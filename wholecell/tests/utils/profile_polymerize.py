@@ -35,6 +35,7 @@ polymerize.__iter__ = lambda self: iter(
     (self.sequenceElongation, self.monomerUsages, self.nReactions)
 )
 
+
 # Wrap methods in line-profiling decorator
 # noinspection PyUnresolvedReferences
 def setup_profiler():
@@ -42,9 +43,13 @@ def setup_profiler():
 
     polymerize._setup = line_profile(polymerize._setup)
     polymerize._sanitize_inputs = line_profile(polymerize._sanitize_inputs)
-    polymerize._gather_input_dimensions = line_profile(polymerize._gather_input_dimensions)
+    polymerize._gather_input_dimensions = line_profile(
+        polymerize._gather_input_dimensions
+    )
     polymerize._gather_sequence_data = line_profile(polymerize._gather_sequence_data)
-    polymerize._prepare_running_values = line_profile(polymerize._prepare_running_values)
+    polymerize._prepare_running_values = line_profile(
+        polymerize._prepare_running_values
+    )
     polymerize._prepare_outputs = line_profile(polymerize._prepare_outputs)
 
     polymerize._elongate = line_profile(polymerize._elongate)

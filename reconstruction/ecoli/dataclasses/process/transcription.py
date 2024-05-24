@@ -402,7 +402,9 @@ class Transcription(object):
         # in sim_data.constants
         tRNA_cistron_ids = np.array(all_cistron_ids)[is_tRNA]
         for cistron_id in tRNA_cistron_ids:
-            cistron_id_to_half_life[cistron_id] = sim_data.constants.stable_RNA_half_life
+            cistron_id_to_half_life[cistron_id] = (
+                sim_data.constants.stable_RNA_half_life
+            )
 
         # Get half life of each RNA cistron - if the half life is not given, use
         # the averaged reported half life of mRNAs
@@ -1252,17 +1254,23 @@ class Transcription(object):
         if sim_data.stable_rrna:
             # If stable rRNA option is on, set degradation rates of mature rRNAs
             # to the values calculated from the half-life in sim_data.constants
-            rna_deg_rates[is_rRNA] = np.log(2) / sim_data.constants.stable_RNA_half_life.asNumber(units.s)
+            rna_deg_rates[is_rRNA] = np.log(
+                2
+            ) / sim_data.constants.stable_RNA_half_life.asNumber(units.s)
         else:
             # Default: Set degradation rates of mature rRNAs to the average
             # reported degradation rates of mRNAs
             # Note: rRNAs complexed into ribosomal subunits will not degrade, so
             # this will only significantly affect excess rRNAs
-            rna_deg_rates[is_rRNA] = np.log(2) / self.average_mRNA_cistron_half_life.asNumber(units.s)
+            rna_deg_rates[is_rRNA] = np.log(
+                2
+            ) / self.average_mRNA_cistron_half_life.asNumber(units.s)
 
         # Set degradation rates of tRNAs to the values calculated from the
         # half-life in sim_data.constants
-        rna_deg_rates[is_tRNA] = np.log(2) / sim_data.constants.stable_RNA_half_life.asNumber(units.s)
+        rna_deg_rates[is_tRNA] = np.log(
+            2
+        ) / sim_data.constants.stable_RNA_half_life.asNumber(units.s)
 
         # Get MWs of mature RNA molecules
         mws = sim_data.getter.get_masses(mature_rna_ids).asNumber(units.g / units.mol)
@@ -2174,8 +2182,7 @@ class Transcription(object):
         # Use the wildtype replication coordinates that were used to calculate
         # exp_free and exp_ppgpp, instead of coordinates that can be adjusted
         # via variants
-        n_avg_copy = copy_number(
-            tau, self.rna_data['wt_replication_coordinate'])
+        n_avg_copy = copy_number(tau, self.rna_data["wt_replication_coordinate"])
 
         # Return values
         factor = loss / n_avg_copy
@@ -2184,7 +2191,7 @@ class Transcription(object):
         )
 
         if balanced_rRNA_prob:
-            prob[self.rna_data['is_rRNA']] = prob[self.rna_data['is_rRNA']].mean()
+            prob[self.rna_data["is_rRNA"]] = prob[self.rna_data["is_rRNA"]].mean()
 
         return prob, factor
 
@@ -2201,4 +2208,5 @@ class Transcription(object):
         """
 
         self.new_gene_expression_baselines = (
-            raw_data.new_gene_data.new_gene_baseline_expression_parameters)
+            raw_data.new_gene_data.new_gene_baseline_expression_parameters
+        )

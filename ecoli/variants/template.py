@@ -24,7 +24,7 @@ def apply_variant(
     Returns:
         Simulation data with the following attributes modified::
 
-            # Document sim_data changes here 
+            # Document sim_data changes here
             param_1: Set to params["param_1"]
             param_2: Set to params["param_2"]
 

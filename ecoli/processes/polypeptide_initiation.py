@@ -151,7 +151,7 @@ class PolypeptideInitiation(PartitionedProcess):
                         "max_p": 0.0,
                         "max_p_per_protein": (
                             np.zeros(len(self.monomer_ids), np.float64),
-                            self.monomer_ids
+                            self.monomer_ids,
                         ),
                     }
                 ),
@@ -306,39 +306,50 @@ class PolypeptideInitiation(PartitionedProcess):
         while np.any(protein_init_prob > max_p_per_protein):
             if protein_init_prob[~is_overcrowded].sum() != 0:
                 # Resolve overcrowding through rescaling (preferred)
-                protein_init_prob[is_overcrowded] = max_p_per_protein[
-                    is_overcrowded]
+                protein_init_prob[is_overcrowded] = max_p_per_protein[is_overcrowded]
                 scale_the_rest_by = (
-                    (1. - protein_init_prob[is_overcrowded].sum())
-                    / protein_init_prob[~is_overcrowded].sum())
+                    1.0 - protein_init_prob[is_overcrowded].sum()
+                ) / protein_init_prob[~is_overcrowded].sum()
                 protein_init_prob[~is_overcrowded] *= scale_the_rest_by
-                is_overcrowded |= (protein_init_prob > max_p_per_protein)
+                is_overcrowded |= protein_init_prob > max_p_per_protein
             else:
                 # If we cannot resolve the overcrowding through rescaling,
                 # we need to activate fewer ribosomes. Set the number of
                 # ribosomes to activate so that there will be no overcrowding.
                 is_n_ribosomes_to_activate_reduced = True
                 max_index = np.argmax(
-                    protein_init_prob[is_overcrowded] / max_p_per_protein[is_overcrowded])
+                    protein_init_prob[is_overcrowded]
+                    / max_p_per_protein[is_overcrowded]
+                )
                 max_init_prob = protein_init_prob[is_overcrowded][max_index]
                 associated_cistron_counts = cistron_counts[
-                    self.cistron_to_monomer_mapping][is_overcrowded][max_index]
-                n_ribosomes_to_activate = np.int64((
-                    self.ribosomeElongationRate
-                    / self.active_ribosome_footprint_size
-                    * (units.s) * states['timestep'] / max_init_prob
-                    * associated_cistron_counts).asNumber())
+                    self.cistron_to_monomer_mapping
+                ][is_overcrowded][max_index]
+                n_ribosomes_to_activate = np.int64(
+                    (
+                        self.ribosomeElongationRate
+                        / self.active_ribosome_footprint_size
+                        * (units.s)
+                        * states["timestep"]
+                        / max_init_prob
+                        * associated_cistron_counts
+                    ).asNumber()
+                )
 
                 # Update maximum probabilities based on new number of activated
                 # ribosomes.
                 max_p = (
                     self.ribosomeElongationRate
                     / self.active_ribosome_footprint_size
-                    * (units.s) * states['timestep']
-                    / n_ribosomes_to_activate).asNumber()
-                max_p_per_protein = max_p * cistron_counts[self.cistron_to_monomer_mapping]
-                is_overcrowded = (protein_init_prob > max_p_per_protein)
-                assert is_overcrowded.sum() == 0 # We expect no overcrowding
+                    * (units.s)
+                    * states["timestep"]
+                    / n_ribosomes_to_activate
+                ).asNumber()
+                max_p_per_protein = (
+                    max_p * cistron_counts[self.cistron_to_monomer_mapping]
+                )
+                is_overcrowded = protein_init_prob > max_p_per_protein
+                assert is_overcrowded.sum() == 0  # We expect no overcrowding
 
         # Compute actual transcription probabilities of each transcript
         actual_protein_init_prob = protein_init_prob.copy()

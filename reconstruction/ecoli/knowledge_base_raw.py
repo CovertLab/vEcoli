@@ -208,7 +208,7 @@ class KnowledgeBaseEcoli(object):
         self.parameter_file_attribute_names: List[str] = [
             os.path.splitext(os.path.basename(filename))[0]
             for filename in self.list_of_parameter_filenames
-            ]
+        ]
 
         if self.operons_on:
             self.list_of_dict_filenames.append("transcription_units.tsv")
@@ -222,8 +222,8 @@ class KnowledgeBaseEcoli(object):
                 )
                 self.added_data.update(
                     {
-					    "transcription_units": "rrna_options.remove_rrna_operons.transcription_units_added",
-					}
+                        "transcription_units": "rrna_options.remove_rrna_operons.transcription_units_added",
+                    }
                 )
             else:
                 self.removed_data.update(
@@ -239,7 +239,9 @@ class KnowledgeBaseEcoli(object):
 
         if remove_rrff:
             self.list_of_parameter_filenames.append(
-				os.path.join("rrna_options", "remove_rrff", "mass_parameters_modified.tsv")
+                os.path.join(
+                    "rrna_options", "remove_rrff", "mass_parameters_modified.tsv"
+                )
             )
             self.removed_data.update(
                 {
@@ -249,8 +251,8 @@ class KnowledgeBaseEcoli(object):
             )
             self.modified_data.update(
                 {
-				    "mass_parameters": "rrna_options.remove_rrff.mass_parameters_modified",
-				}
+                    "mass_parameters": "rrna_options.remove_rrff.mass_parameters_modified",
+                }
             )
             if self.operons_on:
                 self.modified_data.update(
@@ -364,7 +366,7 @@ class KnowledgeBaseEcoli(object):
 
     def _load_parameters(self, dir_name, file_name):
         path = self
-        for sub_path in file_name[len(dir_name) + 1:].split(os.path.sep)[:-1]:
+        for sub_path in file_name[len(dir_name) + 1 :].split(os.path.sep)[:-1]:
             if not hasattr(path, sub_path):
                 setattr(path, sub_path, DataStore())
             path = getattr(path, sub_path)
@@ -445,10 +447,14 @@ class KnowledgeBaseEcoli(object):
 
             if added_data:  # Some new gene additional files may be empty
                 # Check columns are the same for each dataset
-                col_diff = set(data[0].keys()).symmetric_difference(added_data[0].keys())
+                col_diff = set(data[0].keys()).symmetric_difference(
+                    added_data[0].keys()
+                )
                 if col_diff:
-                    raise ValueError(f'Could not join datasets {data_attr} and {attr_to_add} '
-                        f'because columns do not match (different columns: {col_diff}).')
+                    raise ValueError(
+                        f"Could not join datasets {data_attr} and {attr_to_add} "
+                        f"because columns do not match (different columns: {col_diff})."
+                    )
 
             # Join datasets
             for row in added_data:
@@ -471,9 +477,11 @@ class KnowledgeBaseEcoli(object):
             if data_attr in self.parameter_file_attribute_names:
                 for key, value in data_to_modify.items():
                     if key not in data:
-                        raise ValueError(f'Could not modify data {data_attr}'
-                            f'with {modify_attr} because the name {key} does '
-                            f'not exist in {data_attr}.')
+                        raise ValueError(
+                            f"Could not modify data {data_attr}"
+                            f"with {modify_attr} because the name {key} does "
+                            f"not exist in {data_attr}."
+                        )
 
                     data[key] = value
 
@@ -487,9 +495,11 @@ class KnowledgeBaseEcoli(object):
 
                 # Modify any matching rows with identical IDs
                 if list(data[0].keys())[0] != id_col_name:
-                    raise ValueError(f'Could not modify data {data_attr} with '
-                        f'{modify_attr} because the names of the first columns '
-                        f'do not match.')
+                    raise ValueError(
+                        f"Could not modify data {data_attr} with "
+                        f"{modify_attr} because the names of the first columns "
+                        f"do not match."
+                    )
 
                 modified_entry_ids = set()
                 for i, row in enumerate(data):
@@ -503,12 +513,15 @@ class KnowledgeBaseEcoli(object):
                 # Check for entries in modification data that do not exist in
                 # original data
                 id_diff = set(id_to_modified_cols.keys()).symmetric_difference(
-                    modified_entry_ids)
+                    modified_entry_ids
+                )
                 if id_diff:
-                    raise ValueError(f'Could not modify data {data_attr} with '
-                        f'{modify_attr} because of one or more entries in '
-                        f'{modify_attr} that do not exist in {data_attr} '
-                        f'(nonexistent entries: {id_diff}).')
+                    raise ValueError(
+                        f"Could not modify data {data_attr} with "
+                        f"{modify_attr} because of one or more entries in "
+                        f"{modify_attr} that do not exist in {data_attr} "
+                        f"(nonexistent entries: {id_diff})."
+                    )
 
     def _check_new_gene_ids(self, nested_attr):
         """
@@ -525,13 +538,11 @@ class KnowledgeBaseEcoli(object):
         for row in new_genes_data:
             assert row["id"].startswith("NG"), "ids of new genes must start with NG"
         for row in new_RNA_data:
-            assert row["id"].startswith("NG"), (
-                "ids of new gene rnas must start with NG"
-            )
+            assert row["id"].startswith("NG"), "ids of new gene rnas must start with NG"
         for row in new_protein_data:
-            assert row["id"].startswith("NG"), (
-                "ids of new gene proteins must start with NG"
-            )
+            assert row["id"].startswith(
+                "NG"
+            ), "ids of new gene proteins must start with NG"
         return
 
     def _update_gene_insertion_location(self, nested_attr):
@@ -549,9 +560,9 @@ class KnowledgeBaseEcoli(object):
 
         insert_loc_data = getattr(nested_data, "insertion_location")
 
-        assert len(insert_loc_data) == 1, (
-            "each noncontiguous insertion should be in its own directory"
-        )
+        assert (
+            len(insert_loc_data) == 1
+        ), "each noncontiguous insertion should be in its own directory"
         insert_pos = insert_loc_data[0]["insertion_pos"]
 
         if not tu_data:
@@ -564,8 +575,10 @@ class KnowledgeBaseEcoli(object):
         # Add important DNA sites to the list of locations to check
         # TODO: Check for other DNA sites if we include any in the future
         sites_data_to_check = [
-            site for site in dna_sites_data if site['common_name'] == 'oriC' or
-            site['common_name'] == 'TerC']
+            site
+            for site in dna_sites_data
+            if site["common_name"] == "oriC" or site["common_name"] == "TerC"
+        ]
         data_to_check += sites_data_to_check
 
         conflicts = [
@@ -595,13 +608,15 @@ class KnowledgeBaseEcoli(object):
 
         """
         for row in data:
-            left = row['left_end_pos']
-            right = row['right_end_pos']
-            if ((left is not None and left != '')
-                    and (right is not None and right != '')
-                    and left >= insert_pos):
-                row.update({'left_end_pos': left + insert_len})
-                row.update({'right_end_pos': right + insert_len})
+            left = row["left_end_pos"]
+            right = row["right_end_pos"]
+            if (
+                (left is not None and left != "")
+                and (right is not None and right != "")
+                and left >= insert_pos
+            ):
+                row.update({"left_end_pos": left + insert_len})
+                row.update({"right_end_pos": right + insert_len})
 
     def _update_gene_locations(self, nested_attr, insert_pos):
         """
@@ -611,7 +626,7 @@ class KnowledgeBaseEcoli(object):
 
         genes_data = getattr(self, "genes")
         tu_data = getattr(self, "transcription_units")
-        dna_sites_data = getattr(self, 'dna_sites')
+        dna_sites_data = getattr(self, "dna_sites")
 
         nested_data = getattr(self, nested_attr[:-1].split(".")[0])
         for attr in nested_attr[:-1].split(".")[1:]:

@@ -328,7 +328,13 @@ class RnaDegradation(PartitionedProcess):
                 * self.is_mRNA
                 * rna_exists
             )
-        rrna_deg_probs = 1. / np.dot(rna_specificity, self.is_rRNA * rna_exists) * rna_specificity * self.is_rRNA * rna_exists
+        rrna_deg_probs = (
+            1.0
+            / np.dot(rna_specificity, self.is_rRNA * rna_exists)
+            * rna_specificity
+            * self.is_rRNA
+            * rna_exists
+        )
         trna_deg_probs = (
             1.0 / np.dot(self.is_tRNA, rna_exists) * self.is_tRNA * rna_exists
         )

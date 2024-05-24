@@ -441,7 +441,7 @@ class TranscriptInitiation(PartitionedProcess):
                     "actual_rna_synth_prob": np.zeros(self.n_TUs),
                     "tu_is_overcrowded": np.zeros(self.n_TUs),
                     "total_rna_init": 0,
-                    "max_p": 0.,
+                    "max_p": 0.0,
                 },
                 "ribosome_data": {"total_rna_init": 0},
                 "rnap_data": {
@@ -1122,7 +1122,9 @@ def run_plot(config, data):
     N = len(data["time"])
     timestep = config["time_step"]
     inits_by_TU = np.stack(data["listeners"]["rnap_data"]["rna_init_event"][1:])
-    synth_probs = np.array(data["listeners"]["rna_synth_prob"]["actual_rna_synth_prob"][1:])
+    synth_probs = np.array(
+        data["listeners"]["rna_synth_prob"]["actual_rna_synth_prob"][1:]
+    )
 
     # plot synthesis probabilities over time
     plt.subplot(2, 2, 1)
