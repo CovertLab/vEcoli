@@ -16,8 +16,8 @@
     "variants": {
         "new_gene_internal_shift": {
             "condition": {"value": ["basal", "with_aa"]},
-            "induction_gen": {"value": 2},
-            "knockout_gen": {"value": 8},
+            "induction_gen": {"value": [2]},
+            "knockout_gen": {"value": [8]},
             "exp_trl_eff": {
                 "nested": {
                     "exp": {
