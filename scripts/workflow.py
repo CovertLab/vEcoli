@@ -99,24 +99,29 @@ def generate_lineage(
         # Handle special case of 1st generation
         if gen == 0:
             sim_imports.append(
-                f"include {{ simGen0 as {name} }} from '{NEXTFLOW_DIR}/sim'")
+                f"include {{ simGen0 as {name} }} from '{NEXTFLOW_DIR}/sim'"
+            )
             # Start with agent ID 1 so no leading zeros
-            sim_workflow.append((
-                f"\t{name}(params.config, variantCh.combine(seedCh).combine([1]), '1')"
-            ))
+            sim_workflow.append(
+                (
+                    f"\t{name}(params.config, variantCh.combine(seedCh).combine([1]), '1')"
+                )
+            )
             all_sim_tasks.append(f"{name}.out.metadata")
             if not single_daughters:
-                sim_workflow.append(f"\t{name}.out.nextGen0.mix({name}.out.nextGen1).set {{ {name}_nextGen }}")
+                sim_workflow.append(
+                    f"\t{name}.out.nextGen0.mix({name}.out.nextGen1).set {{ {name}_nextGen }}"
+                )
             else:
                 sim_workflow.append(f"\t{name}.out.nextGen0.set {{ {name}_nextGen }}")
             continue
-        sim_imports.append(
-            f"include {{ sim as {name} }} from '{NEXTFLOW_DIR}/sim'"
-        )
+        sim_imports.append(f"include {{ sim as {name} }} from '{NEXTFLOW_DIR}/sim'")
         parent = f"sim_gen_{gen}"
         sim_workflow.append(f"\t{name}({parent}_nextGen)")
         if not single_daughters:
-            sim_workflow.append(f"\t{name}.out.nextGen0.mix({name}.out.nextGen1).set {{ {name}_nextGen }}")
+            sim_workflow.append(
+                f"\t{name}.out.nextGen0.mix({name}.out.nextGen1).set {{ {name}_nextGen }}"
+            )
         else:
             sim_workflow.append(f"\t{name}.out.nextGen0.set {{ {name}_nextGen }}")
         all_sim_tasks.append(f"{name}.out.metadata")
@@ -130,7 +135,9 @@ def generate_lineage(
 
     if analysis_config.get("multi_variant", False):
         # Channel that groups all sim tasks
-        sim_workflow.append(MULTIVARIANT_CHANNEL.format(size=sims_per_seed * n_init_sims))
+        sim_workflow.append(
+            MULTIVARIANT_CHANNEL.format(size=sims_per_seed * n_init_sims)
+        )
         sim_workflow.append("\tanalysisMultiVariant(params.config, kb, multiVariantCh)")
         sim_imports.append(
             f"include {{ analysisMultiVariant }} from '{NEXTFLOW_DIR}/analysis'"
@@ -309,12 +316,21 @@ def main():
         filesystem, outdir = fs.FileSystem.from_uri(out_uri)
     except KeyError:
         raise KeyError("Missing out_dir or out_uri for emitter config.")
-    outdir = os.path.join(outdir, "nextflow", experiment_id)
+    outdir = os.path.join(outdir, f"experiment_id={experiment_id}", "nextflow")
     filesystem.create_dir(outdir)
     filesystem.copy_file(workflow_path, os.path.join(outdir, "main.nf"))
     filesystem.copy_file(config_path, os.path.join(outdir, "nextflow.config"))
 
     # Start nextflow workflow
+    report_path = os.path.join(
+        out_uri,
+        f"experiment_id={experiment_id}",
+        "nextflow",
+        f"{experiment_id}_report{"_resume" if args.resume else ""}.html",
+    )
+    workdir = os.path.join(
+        out_uri, "nextflow_workdirs", f"experiment_id={experiment_id}"
+    )
     if nf_profile == "standard" or nf_profile == "gcloud":
         subprocess.run(
             [
@@ -326,15 +342,15 @@ def main():
                 "-profile",
                 nf_profile,
                 "-with-report",
-                f"{experiment_id}_report.html",
+                report_path,
                 "-work-dir",
-                os.path.join(out_uri, "nextflow", experiment_id, "work"),
-                "-resume" if args.resume else ""
+                workdir,
+                "-resume" if args.resume else "",
             ]
         )
     elif nf_profile == "sherlock":
         batch_script = os.path.join(out_dir, "nextflow_job.sh")
-        with open(batch_script, 'w') as f:
+        with open(batch_script, "w") as f:
             f.write(f"""#!/bin/bash
 #SBATCH --job-name=nextflow-{experiment_id}
 #SBATCH --time=7-00:00:00
@@ -342,9 +358,7 @@ def main():
 #SBATCH --mem=8GB
 #SBATCH -p mcovert
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
-    -with-report {experiment_id}_report.html \
-    -work-dir {os.path.join(out_uri, "nextflow", experiment_id, "work")} \
-    {"-resume" if args.resume else ""}
+    -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume else ""}
 """)
         subprocess.run(["sbatch", batch_script])
 
