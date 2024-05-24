@@ -257,7 +257,7 @@ def main():
         nf_config = f.readlines()
     nf_config = "".join(nf_config)
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
-    nf_config = nf_config.replace("CONFIG_FILE", config_file)
+    nf_config = nf_config.replace("CONFIG_FILE", os.path.abspath(config_file))
 
     # By default, assume running on local device
     nf_profile = "standard"
