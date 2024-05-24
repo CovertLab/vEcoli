@@ -30,8 +30,10 @@ def validation_experiment(
         emitter='timeseries', # 'timeseries',
         name='validation_experiment',
         raw_output=False,
-        condition = "with_aa", # basal, with_aa
-        fixed_media = "minimal_plus_amino_acids" # minimal, minimal_plus_amino_acids
+        # to make a sim with minimal media conditions, use basal and minimal
+        # to make a sim with rich media conditions, use with_aa and minimal_plus_amino_acids
+        condition = "basal", # basal, with_aa
+        fixed_media = "minimal" # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
