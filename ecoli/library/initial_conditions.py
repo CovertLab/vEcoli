@@ -442,12 +442,6 @@ def initialize_complexation(bulk_counts, sim_data, random_state):
     bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data["id"]
     molecule_idx = bulk_name_to_idx(molecule_names, bulk_ids)
 
-    # save rnase counts for after complexation, need to be monomers
-    rnases = sim_data.process.rna_decay.endoRNase_ids
-    rnase_idx = bulk_name_to_idx(rnases, bulk_ids)
-    rnase_counts = bulk_counts[rnase_idx]
-    bulk_counts[rnase_idx] = 0
-
     stoich_matrix = sim_data.process.complexation.stoich_matrix().astype(
         np.int64, order="F"
     )
@@ -464,8 +458,6 @@ def initialize_complexation(bulk_counts, sim_data, random_state):
 
     if np.any(updated_molecule_counts < 0):
         raise ValueError("Negative counts after complexation")
-
-    bulk_counts[rnase_idx] = rnase_counts
 
 
 def initialize_full_chromosome(unique_molecules, sim_data, unique_id_rng):
