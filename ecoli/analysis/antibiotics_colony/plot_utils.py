@@ -1,9 +1,8 @@
-import matplotlib.pyplot as plt
 import seaborn as sns
 
 
 HIGHLIGHT_BLUE = (0, 0.4, 1)
-HIGHLIGHT_RED = (0.678, 0, .125)
+HIGHLIGHT_RED = (0.678, 0, 0.125)
 BG_GRAY = "0.4"
 
 

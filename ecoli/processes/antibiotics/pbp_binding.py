@@ -30,7 +30,10 @@ TOPOLOGY = {
     "pbp_state": ("pbp_state",),
     "wall_state": ("wall_state",),
     "volume": ("boundary", "volume"),
-    "first_update": ("first_update", "pbp_binding",)
+    "first_update": (
+        "first_update",
+        "pbp_binding",
+    ),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -137,10 +140,7 @@ class PBPBinding(Step):
                     "_default": 0,
                     "_emit": True,
                 },
-                "shadow_murein": {
-                    "_default": 0, 
-                    "_emit": True
-                },
+                "shadow_murein": {"_default": 0, "_emit": True},
             },
             "concentrations": {
                 self.beta_lactam: {"_default": 0.0 * units.micromolar, "_emit": True},
@@ -189,7 +189,7 @@ class PBPBinding(Step):
                 "_default": True,
                 "_updater": "set",
                 "_divider": {"divider": "set_value", "config": {"value": True}},
-            }
+            },
         }
 
     def next_update(self, timestep, states):
@@ -200,18 +200,18 @@ class PBPBinding(Step):
             self.pbp1ba_idx = bulk_name_to_idx(self.PBP1B_alpha, bulk_ids)
             self.pbp1bg_idx = bulk_name_to_idx(self.PBP1B_gamma, bulk_ids)
         update = {"murein_state": {}}
-        
+
         # Calculate fraction of active PBP1a, PBP1b using Hill Equation
         # (calculating prop NOT bound, i.e. 1 - Hill eq value)
         beta_lactam = states["concentrations"][self.beta_lactam]
         active_fraction_1a = 1 / (1 + (beta_lactam / self.K_A_1a) ** self.n_1a)
         active_fraction_1b = 1 / (1 + (beta_lactam / self.K_A_1b) ** self.n_1b)
-        
+
         update["pbp_state"] = {
             "active_fraction_PBP1A": active_fraction_1a,
             "active_fraction_PBP1B": active_fraction_1b,
         }
-        
+
         if states["first_update"]:
             update["first_update"] = False
             # Initialize cell wall if necessary (first cell in sim)
@@ -259,37 +259,39 @@ class PBPBinding(Step):
                         },
                         "murein_state": {
                             "incorporated_murein": incorporated_monomers,
-                            "unincorporated_murein": -incorporated_monomers
+                            "unincorporated_murein": -incorporated_monomers,
                         },
                     }
                 )
                 return update
-            
+
             # Set lattice rows, cols, and extension factor after division when
             # running in EngineProcess
             elif states["wall_state"]["lattice_rows"] == 0:
                 # Get cell size information
-                length = length_from_volume(states["volume"],
-                    self.cell_radius * 2).to("micrometer")
+                length = length_from_volume(states["volume"], self.cell_radius * 2).to(
+                    "micrometer"
+                )
 
                 # Set extension factor such that lattice covers the cell
                 lattice = states["wall_state"]["lattice"]
                 extension = remove_units(
                     (
                         length
-                        / (lattice.shape[1] * (self.inter_strand_distance 
-                                                + self.disaccharide_width))
+                        / (
+                            lattice.shape[1]
+                            * (self.inter_strand_distance + self.disaccharide_width)
+                        )
                     ).to("dimensionless")
                 )
-                
+
                 update.update(
                     {
-                        "wall_state":
-                            {
-                                "lattice_rows": lattice.shape[0],
-                                "lattice_cols": lattice.shape[1],
-                                "extension_factor": extension
-                            }
+                        "wall_state": {
+                            "lattice_rows": lattice.shape[0],
+                            "lattice_cols": lattice.shape[1],
+                            "extension_factor": extension,
+                        }
                     }
                 )
                 return update
@@ -345,20 +347,16 @@ def test_pbp_binding():
                     else 0 * units.micromolar
                 ),
             }
-            for time in range(0, 100)}
+            for time in range(0, 100)
+        }
     }
     timeline_process = BulkTimelineProcess(timeline_params)
 
     # Create composite with timeline
-    processes = {
-        "pbp_binding": process,
-        "bulk-timeline": timeline_process}
+    processes = {"pbp_binding": process, "bulk-timeline": timeline_process}
     topology = {
         "pbp_binding": TOPOLOGY,
-        "bulk-timeline": {
-            "bulk": ("bulk",),
-            "concentrations": ("concentrations",)
-        }
+        "bulk-timeline": {"bulk": ("bulk",), "concentrations": ("concentrations",)},
     }
 
     # Run experiment
@@ -373,12 +371,15 @@ def test_pbp_binding():
             "concentrations": {
                 "ampicillin": 0 * units.micromolar,
             },
-            "bulk": np.array([
-                ("CPD-12261[p]", initial_murein),
-                ("CPLX0-7717[m]", 100),
-                ("CPLX0-3951[i]", 100),
-                ("CPLX0-8300[c]", 0)
-            ], dtype=[('id', 'U40'), ('count', int)])
+            "bulk": np.array(
+                [
+                    ("CPD-12261[p]", initial_murein),
+                    ("CPLX0-7717[m]", 100),
+                    ("CPLX0-3951[i]", 100),
+                    ("CPLX0-8300[c]", 0),
+                ],
+                dtype=[("id", "U40"), ("count", int)],
+            ),
         },
     }
     composite = Composite(

@@ -1,0 +1,52 @@
+// Global default params
+params {
+    gcpProjectId = 'allen-discovery-center-mcovert'
+    gcpRegion = 'us-west1'
+    experimentId = 'EXPERIMENT_ID'
+    config = 'CONFIG_FILE'
+}
+
+profiles {
+    gcloud {
+        // Retry once with more RAM, then error out
+        process.memory = { 4.GB * task.attempt }
+        process.cpus = 2
+        process.executor = 'google-batch'
+        process.container = 'IMAGE_NAME'
+        google.project = "${params.gcpProjectId}"
+        google.location = "${params.gcpRegion}"
+        docker.enabled = true
+        params.projectRoot = '/vivarium-ecoli'
+        params.publishDir = "${params.experimentId}"
+        process.maxRetries = 1
+    }
+    sherlock {
+        process.memory = {
+            // Do not increase RAM or runtime if failure caused
+            // by preemption (exit code 143)
+            if ( task.exitStatus in [137, 140] ) {
+                4.GB * task.attempt
+            } else {
+                4.GB
+            }
+        }
+        process.cpus = 2
+        process.executor = 'slurm'
+        process.queue = 'owners'
+        process.time = {
+            if ( task.exitStatus == 140 ) {
+                2.h * task.attempt
+            } else {
+                2.h
+            }
+        }
+        process.maxRetries = 5
+        params.projectRoot = "${launchDir}"
+        params.publishDir = "\$SCRATCH/out/${params.experimentId}"
+    }
+    standard {
+        process.executor = 'local'
+        params.projectRoot = "${launchDir}"
+        params.publishDir = "${launchDir}/out"
+    }
+}

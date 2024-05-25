@@ -2,25 +2,24 @@ from vivarium.core.process import Process
 
 
 class Chemostat(Process):
-
     defaults = {
         # Map from variable names to the values (must support
         # subtraction) those variables should be held at.
-        'targets': {},
-        'delay': 0,
+        "targets": {},
+        "delay": 0,
     }
-    name = 'chemostat'
+    name = "chemostat"
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        self.seconds_to_wait = self.parameters['delay']
+        self.seconds_to_wait = self.parameters["delay"]
 
     def ports_schema(self):
         schema = {
             variable: {
-                '_default': target * 0,
+                "_default": target * 0,
             }
-            for variable, target in self.parameters['targets'].items()
+            for variable, target in self.parameters["targets"].items()
         }
         return schema
 
@@ -29,11 +28,11 @@ class Chemostat(Process):
             self.seconds_to_wait -= timestep
             return {}
 
-        targets = self.parameters['targets']
+        targets = self.parameters["targets"]
         update = {
             variable: {
-                '_value': targets[variable] - current,
-                '_updater': 'accumulate',
+                "_value": targets[variable] - current,
+                "_updater": "accumulate",
             }
             for variable, current in state.items()
         }

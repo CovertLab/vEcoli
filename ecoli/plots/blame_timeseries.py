@@ -9,16 +9,17 @@ from ecoli.plots.blame_utils import get_bulk_processes
 
 
 def validate_data(data):
-    if 'log_update' not in data[0.0].keys():
+    if "log_update" not in data[0.0].keys():
         raise ValueError(
-            "Missing log_update store in data; did you run simulation without logged updates?")
+            "Missing log_update store in data; did you run simulation without logged updates?"
+        )
 
 
 def preprocess_data(data, bulk_ids, bulk_processes, molecules):
     """
     Prepares raw data for blame-timeseries plot.
     Returns data in the form time, process, values_array
-    where time is a numpy array of times, process is a list of 
+    where time is a numpy array of times, process is a list of
     process names, and values_array is a numpy array of the form
     (molecule x time x process).
     """
@@ -35,7 +36,7 @@ def preprocess_data(data, bulk_ids, bulk_processes, molecules):
         for k, process in enumerate(processes):
             fake_bulk[:] = 0
             path = bulk_processes[process][0]
-            logged = data[timepoint]['log_update']
+            logged = data[timepoint]["log_update"]
             if process not in logged:
                 continue
             bulk_updates = logged[process].get(path, ())
@@ -61,27 +62,30 @@ def signed_stacked_bar(ax, x, y, bar_labels):
     # and negative entries get stacked below.
     total_pos = np.zeros(len(x), dtype=np.float64)
     total_neg = np.zeros_like(total_pos)
-    
+
     for series in range(y.shape[1]):
         data = y[:, series]
-        ax.bar(x, data,
-               bottom=np.where(data > 0, total_pos, total_neg),
-               label=bar_labels[series])
+        ax.bar(
+            x,
+            data,
+            bottom=np.where(data > 0, total_pos, total_neg),
+            label=bar_labels[series],
+        )
         total_pos += np.clip(data, 0, None)
         total_neg += np.clip(data, None, 0)
 
     # Plot net change
-    ax.plot(x, total_pos + total_neg,
-            color="k", label="net change")
+    ax.plot(x, total_pos + total_neg, color="k", label="net change")
 
 
-def blame_timeseries(data: dict,
-                     topology: dict,
-                     bulk_ids: list[str],
-                     molecules: list[str],
-                     filename: str=None,
-                     yscale: str='linear'
-    ) -> tuple[mpl.axes.Axes, mpl.figure.Figure]:
+def blame_timeseries(
+    data: dict,
+    topology: dict,
+    bulk_ids: list[str],
+    molecules: list[str],
+    filename: str = None,
+    yscale: str = "linear",
+) -> tuple[mpl.axes.Axes, mpl.figure.Figure]:
     """
     Generates timeseries blame plots for the selected bulk molecules assuming
     that bulk data is an array of counts ordered by bulk_ids and saves to the
@@ -104,13 +108,13 @@ def blame_timeseries(data: dict,
                         yscale="linear")
 
     Args:
-        data: Data from an experiment (for experiments with cell 
+        data: Data from an experiment (for experiments with cell
             division, ensure that ``bulk`` is a top-level field in the
             sub-dictionaries for each time point)
-        topology: Experiment topology (used to determine which processes 
+        topology: Experiment topology (used to determine which processes
             are connected to ``bulk`` and how)
-        bulk_ids: List (or array) of bulk molecule names in the order 
-            they appear in the structured bulk Numpy array (see :ref:`bulk`). 
+        bulk_ids: List (or array) of bulk molecule names in the order
+            they appear in the structured bulk Numpy array (see :ref:`bulk`).
             Typically retrieved from simulation config metadata.
         molecules: List of bulk molecule names to plot data for
         filename: Path to save plot to (optional)
@@ -125,20 +129,26 @@ def blame_timeseries(data: dict,
     # Collect data into one dictionary
     # of the form: {process : {molecule : timeseries}}
     bulk_processes = get_bulk_processes(topology)
-    time, processes, values_array = preprocess_data(data, bulk_ids,
-                                                    bulk_processes, molecules)
+    time, processes, values_array = preprocess_data(
+        data, bulk_ids, bulk_processes, molecules
+    )
 
     # Twp subplots per molecule (count, change)
     max_t = time.max()
-    fig, axs = plt.subplots(len(molecules), 2,
-                            figsize=(10 + np.sqrt(max_t), 3*len(molecules)),
-                            gridspec_kw={'width_ratios': [1, 10 + np.sqrt(max_t)]})
+    fig, axs = plt.subplots(
+        len(molecules),
+        2,
+        figsize=(10 + np.sqrt(max_t), 3 * len(molecules)),
+        gridspec_kw={"width_ratios": [1, 10 + np.sqrt(max_t)]},
+    )
     axs = np.atleast_2d(axs)
     for i, molecule in enumerate(molecules):
         # Plot molecule count over time
         # molecule_data = data['bulk'][molecule]
         molecule_idx = np.where(bulk_ids == molecule)[0][0]
-        molecule_data = np.array([timepoint['bulk'][molecule_idx] for timepoint in data.values()])
+        molecule_data = np.array(
+            [timepoint["bulk"][molecule_idx] for timepoint in data.values()]
+        )
         axs[i, 0].set_title(f"Count of {molecule}", pad=20)
         axs[i, 0].set_ylabel("# molecules")
         axs[i, 0].set_xlabel("Time (s)")
@@ -152,12 +162,11 @@ def blame_timeseries(data: dict,
         axs[i, 1].set_xticks(time[1:])
         axs[i, 1].axhline(y=0, color="k", linestyle="--", alpha=0.5)
 
-        y = values_array[i, 1:len(time), :]
-        signed_stacked_bar(axs[i,1], time[1:], y, processes)
+        y = values_array[i, 1 : len(time), :]
+        signed_stacked_bar(axs[i, 1], time[1:], y, processes)
         axs[i, 1].set_yscale(yscale)
 
-    axs[0, 1].legend(bbox_to_anchor=(1.04, 0.5),
-                     loc="center left", borderaxespad=0)
+    axs[0, 1].legend(bbox_to_anchor=(1.04, 0.5), loc="center left", borderaxespad=0)
 
     # Sizing and spacing
     # fig.set_size_inches(4 + np.sqrt(max_t),  # include space for legend(s)
@@ -180,15 +189,19 @@ def test_blame_timeseries():
     # - serializers
 
     from vivarium.core.emitter import (
-        data_from_database, get_local_client, timeseries_from_data)
+        data_from_database,
+        get_local_client,
+        timeseries_from_data,
+    )
 
     EXPERIMENT_ID = None  # "d811d69e-0cf6-11ec-a1ab-00155df92294"
 
     if EXPERIMENT_ID:
-        data, conf = data_from_database(EXPERIMENT_ID,
-                                        get_local_client("localhost", "27017", "simulations"))
+        data, conf = data_from_database(
+            EXPERIMENT_ID, get_local_client("localhost", "27017", "simulations")
+        )
         data = timeseries_from_data(data)
-        topo = conf['topology']
+        topo = conf["topology"]
 
     else:
         sim = EcoliSim.from_file()
@@ -200,29 +213,32 @@ def test_blame_timeseries():
         sim.emit_processes = False
         sim.total_time = 100
         sim.build_ecoli()
-        bulk_ids = sim.generated_initial_state['agents']['0']['bulk']['id']
+        bulk_ids = sim.generated_initial_state["agents"]["0"]["bulk"]["id"]
         sim.run()
         data = sim.query()
-        topo = sim.ecoli_experiment.topology['agents']['0']
+        topo = sim.ecoli_experiment.topology["agents"]["0"]
 
-    molecules = [
-        "EG10841-MONOMER",
-        "EG10321-MONOMER",
-        "EG11545-MONOMER",
-        "EG11967-MONOMER",
-        "FLAGELLAR-MOTOR-COMPLEX",
-        "G361-MONOMER",
-        "CPLX0-7451",
-        "CPLX0-7452"  # Final flagella molecule
-    ]
+    # molecules = [
+    #     "EG10841-MONOMER",
+    #     "EG10321-MONOMER",
+    #     "EG11545-MONOMER",
+    #     "EG11967-MONOMER",
+    #     "FLAGELLAR-MOTOR-COMPLEX",
+    #     "G361-MONOMER",
+    #     "CPLX0-7451",
+    #     "CPLX0-7452",  # Final flagella molecule
+    # ]
 
-    data = {time: time_data['agents']['0']
-            for time, time_data in data.items()}
+    data = {time: time_data["agents"]["0"] for time, time_data in data.items()}
 
-    blame_timeseries(data, topo, bulk_ids,
-                     ['CPD-12261[p]'],# + molecules,
-                     'out/ecoli_master/murein_blame.png',
-                     yscale="linear")
+    blame_timeseries(
+        data,
+        topo,
+        bulk_ids,
+        ["CPD-12261[p]"],  # + molecules,
+        "out/ecoli_master/murein_blame.png",
+        yscale="linear",
+    )
 
 
 if __name__ == "__main__":

@@ -24,33 +24,41 @@ from ast import literal_eval
 
 from ecoli.library.sim_data import SIM_DATA_PATH_NO_OPERONS
 
+
 def main():
     # Load complexation and TU index data from sim_data
-    sim_data = pickle.load(open(SIM_DATA_PATH_NO_OPERONS, 'rb'))
+    sim_data = pickle.load(open(SIM_DATA_PATH_NO_OPERONS, "rb"))
     if sim_data.operons_on:
-        raise TypeError('marA regulon only works with operons OFF')
-    bulk_names = sim_data.internal_state.bulk_molecules.bulk_data['id']
-    TU_id_to_index = {rna: idx for idx, rna in
-        enumerate(sim_data.process.transcription.rna_data['id'])}
+        raise TypeError("marA regulon only works with operons OFF")
+    bulk_names = sim_data.internal_state.bulk_molecules.bulk_data["id"]
+    TU_id_to_index = {
+        rna: idx
+        for idx, rna in enumerate(sim_data.process.transcription.rna_data["id"])
+    }
     comp_stoich = sim_data.process.complexation.stoich_matrix().astype(np.int64).T
     comp_molecules = sim_data.process.complexation.molecule_names
 
-    rnas = pd.read_table("reconstruction/ecoli/flat/rnas.tsv", comment='#')
-    rnas['synonyms'] = rnas['synonyms'].apply(literal_eval)
-    rnas = rnas.explode('synonyms')
+    rnas = pd.read_table("reconstruction/ecoli/flat/rnas.tsv", comment="#")
+    rnas["synonyms"] = rnas["synonyms"].apply(literal_eval)
+    rnas = rnas.explode("synonyms")
 
     # Use fold change from exposure to 1.5 mg/L tetracycline
     tet_FC = pd.read_table("data/marA_binding/tet_FC.tsv")
-    tet_FC = tet_FC.loc[:,["Gene Name ", "1.5 mg/L tet."]]
-    tet_FC.rename(columns={
-        "Gene Name ": "Gene name", "1.5 mg/L tet.": "Fold change"}, inplace=True)
-    de_genes = tet_FC.sort_values(
-        by="Fold change", ascending=False, ignore_index=True)
-    de_genes = de_genes.merge(rnas, left_on='Gene name', right_on='synonyms')
+    tet_FC = tet_FC.loc[:, ["Gene Name ", "1.5 mg/L tet."]]
+    tet_FC.rename(
+        columns={"Gene Name ": "Gene name", "1.5 mg/L tet.": "Fold change"},
+        inplace=True,
+    )
+    de_genes = tet_FC.sort_values(by="Fold change", ascending=False, ignore_index=True)
+    de_genes = de_genes.merge(rnas, left_on="Gene name", right_on="synonyms")
 
     # Delete these two duplicates that are the incorrect genes
-    de_genes = de_genes.loc[~((de_genes['Gene name']=="acrE") & (de_genes['common_name']=='acrB'))]
-    de_genes = de_genes.loc[~((de_genes['Gene name']=="acrB") & (de_genes['common_name']=='gyrB'))]
+    de_genes = de_genes.loc[
+        ~((de_genes["Gene name"] == "acrE") & (de_genes["common_name"] == "acrB"))
+    ]
+    de_genes = de_genes.loc[
+        ~((de_genes["Gene name"] == "acrB") & (de_genes["common_name"] == "gyrB"))
+    ]
 
     # Get model RNAs names by appending the "[c]" suffix, then get TU index for RNA
     TU_idx = [TU_id_to_index[rna_id + "[c]"] for rna_id in de_genes["id"]]
@@ -63,21 +71,24 @@ def main():
         add_monomers_used = []
         add_complex_names = []
         if complex_name in comp_rxns.columns:
-            stoich = comp_rxns.loc[comp_rxns[complex_name]<0, :]
+            stoich = comp_rxns.loc[comp_rxns[complex_name] < 0, :]
             for i in range(stoich.shape[0]):
                 curr_stoich = stoich.iloc[i, :]
-                product = curr_stoich.loc[curr_stoich>0]
-                add_monomers_used.append(int(curr_stoich[complex_name]*np.abs(monomers_used)/product[0]))
+                product = curr_stoich.loc[curr_stoich > 0]
+                add_monomers_used.append(
+                    int(curr_stoich[complex_name] * np.abs(monomers_used) / product[0])
+                )
                 add_complex_names.append(product.index.array[0])
-        
+
         if len(add_complex_names) > 0:
             for i, add_complex_name in enumerate(add_complex_names):
-                more_monomers_used, more_complex_names = recursive_search(add_complex_name, add_monomers_used[i])
+                more_monomers_used, more_complex_names = recursive_search(
+                    add_complex_name, add_monomers_used[i]
+                )
                 add_monomers_used += more_monomers_used
                 add_complex_names += more_complex_names
-        
+
         return add_monomers_used, add_complex_names
-        
 
     def get_IDs(monomer_id):
         monomer_id = json.loads(monomer_id)
@@ -95,26 +106,29 @@ def main():
         complex_names = []
         for bulk_id in degene_bulk_ids:
             if bulk_id in comp_rxns.columns:
-                stoich = comp_rxns.loc[comp_rxns[bulk_id]<0, :]
+                stoich = comp_rxns.loc[comp_rxns[bulk_id] < 0, :]
                 for i in range(len(stoich)):
-                    curr_stoich = stoich.iloc[i,:]
+                    curr_stoich = stoich.iloc[i, :]
                     monomers_used.append(curr_stoich[bulk_id])
-                    complex_names.append(curr_stoich.loc[curr_stoich>0].index.array[0])
-                
+                    complex_names.append(
+                        curr_stoich.loc[curr_stoich > 0].index.array[0]
+                    )
+
         for i, complex_name in enumerate(complex_names):
-            add_monomers_used, add_complex_names = recursive_search(complex_name, monomers_used[i])
+            add_monomers_used, add_complex_names = recursive_search(
+                complex_name, monomers_used[i]
+            )
             monomers_used += add_monomers_used
             complex_names += add_complex_names
-        
+
         degene_complex_ids = []
         degene_monomers_used = []
         for bulk_name in bulk_names:
-            for monomer_used, complex_name in zip(
-                monomers_used, complex_names):
+            for monomer_used, complex_name in zip(monomers_used, complex_names):
                 if complex_name in bulk_name:
                     degene_complex_ids.append(bulk_name)
                     degene_monomers_used.append(monomer_used)
-        
+
         return [degene_bulk_ids, degene_monomers_used, degene_complex_ids]
 
     # Protein IDs have varied suffixes: brute force search
@@ -122,18 +136,22 @@ def main():
     for monomer_id in de_genes["monomer_ids"]:
         all_ids.append(get_IDs(monomer_id))
 
-    (de_genes["bulk_ids"], de_genes["monomers_used"], 
-        de_genes["complex_ids"]) = zip(
-            *[ids for ids in all_ids])
-        
-    # Add marR-tet complex
-    marR_complex_ids = de_genes.loc[de_genes['Gene name'] == 'marR', 'complex_ids'].to_numpy()[0]
-    marR_complex_ids.append('marR-tet[c]')
-    marR_monomers_used = de_genes.loc[de_genes['Gene name'] == 'marR', 'monomers_used'].to_numpy()[0]
-    marR_monomers_used.append(-2)
-        
-    de_genes.to_csv(
-        "data/marA_binding/model_degenes.csv", index=False)
+    (de_genes["bulk_ids"], de_genes["monomers_used"], de_genes["complex_ids"]) = zip(
+        *[ids for ids in all_ids]
+    )
 
-if __name__=="__main__":
+    # Add marR-tet complex
+    marR_complex_ids = de_genes.loc[
+        de_genes["Gene name"] == "marR", "complex_ids"
+    ].to_numpy()[0]
+    marR_complex_ids.append("marR-tet[c]")
+    marR_monomers_used = de_genes.loc[
+        de_genes["Gene name"] == "marR", "monomers_used"
+    ].to_numpy()[0]
+    marR_monomers_used.append(-2)
+
+    de_genes.to_csv("data/marA_binding/model_degenes.csv", index=False)
+
+
+if __name__ == "__main__":
     main()
