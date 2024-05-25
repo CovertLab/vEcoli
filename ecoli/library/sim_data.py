@@ -450,6 +450,7 @@ class LoadSimData:
                         duplex_na,
                         duplex_na,
                         duplex_na,
+                        duplex_na,
                         duplex_is_miscRNA,
                         duplex_na,
                         duplex_na,
