@@ -36,6 +36,9 @@
     "chromosome_path": ["unique", "full_chromosome"],
     "spatial_environment": false,
     "spatial_environment_config": {},
+    "fixed_media": "minimal",
+    "condition": "basal",
+    "media_timeline": null,
 
     "save": false,
     "save_times": [],
