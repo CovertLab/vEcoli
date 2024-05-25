@@ -176,20 +176,12 @@ def make_initial_state(initial_file, rnai_data=None):
             agent_data["unique_dtypes"] = {}
             for name, mols in agent_data["unique"].items():
                 agent_data["unique_dtypes"][name] = str(mols.dtype)
-            agent_data["boundary"]["external"] = {
-                key: value.magnitude
-                for key, value in agent_data["boundary"]["external"].items()
-            }
     else:
         initial_state = update_agent(initial_state, rnai_data)
         initial_state["bulk_dtypes"] = str(initial_state["bulk"].dtype)
         initial_state["unique_dtypes"] = {}
         for name, mols in initial_state["unique"].items():
             initial_state["unique_dtypes"][name] = str(mols.dtype)
-        initial_state["boundary"]["external"] = {
-            key: value.magnitude
-            for key, value in initial_state["boundary"]["external"].items()
-        }
     write_json(f"data/antibiotics_{initial_file}.json", initial_state)
 
 
