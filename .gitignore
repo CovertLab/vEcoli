@@ -59,5 +59,4 @@ ecoli/composites/ecoli_configs/test_configs/test_export.json
 # Nextflow files #
 ##################
 .nextflow*
-work
-scripts/nextflow/main.nf
+nextflow_temp

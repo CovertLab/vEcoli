@@ -17,7 +17,7 @@ with open("data/proc_to_name.json", "r") as f:
 wc_to_viv_proc = {v: k for k, v in viv_to_wc_proc.items()}
 
 layers = {
-    1: ["ecoli-equilibrium", "ecoli-two-component-system"],
+    1: ["ecoli-equilibrium", "ecoli-two-component-system", "ecoli-rna-maturation"],
     3: [
         "ecoli-transcript-initiation",
         "ecoli-polypeptide-initiation",
@@ -29,7 +29,6 @@ layers = {
     4: [
         "ecoli-transcript-elongation",
         "ecoli-polypeptide-elongation",
-        "ecoli-rna-maturation",
     ],
 }
 

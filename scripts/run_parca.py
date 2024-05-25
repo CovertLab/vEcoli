@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import pickle
 import time
@@ -31,6 +32,8 @@ def run_parca(config):
         operons_on=config["operons"],
         remove_rrna_operons=config["remove_rrna_operons"],
         remove_rrff=config["remove_rrff"],
+        stable_rrna=config["stable_rrna"],
+        new_genes_option=config["new_genes"],
     )
     print(f"{time.ctime()}: Saving raw_data")
     with open(raw_data_file, "wb") as f:
@@ -163,14 +166,21 @@ def main():
         " Usually set this consistently between runParca and runSim.",
     )
 
-    config = SimConfig(parser=parser)
-    config.update_from_cli()
-    config = config.to_dict()
+    config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
+    args = parser.parse_args()
+    with open(config_file, "r") as f:
+        config = json.load(f)
+    if args.config is not None:
+        config_file = args.config
+        with open(os.path.join(args.config), "r") as f:
+            SimConfig.merge_config_dicts(config, json.load(f))
     # ParCa options are defined under `parca_options` key in config JSON
     # Merge these with CLI arguments, which take precedence
+    cli_options = {k: v for k, v in vars(args).items() if v is not None}
+    cli_options.pop("config")
     parca_options = config.pop("parca_options")
-    config = {**parca_options, **config}
-    run_parca(config)
+    SimConfig.merge_config_dicts(parca_options, cli_options)
+    run_parca(parca_options)
 
 
 if __name__ == "__main__":

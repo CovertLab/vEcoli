@@ -237,7 +237,7 @@ def test_ecoli_with_metabolism_classic_div(
     total_time=10,
     divide=True,
     emitter="timeseries",
-    initial_state_file="met_division_test_state",
+    initial_state_file="vivecoli_t2527",
 ):
     # TODO (Cyrus) - Add test that affirms structure of output query.
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")

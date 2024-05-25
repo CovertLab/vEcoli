@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import importlib
 import itertools
 import os
 import json
@@ -11,7 +12,6 @@ from typing import Any, TYPE_CHECKING
 import numpy as np
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
-from ecoli.variants import VARIANT_REGISTRY
 from ecoli.experiments.ecoli_master_sim import SimConfig
 
 if TYPE_CHECKING:
@@ -45,9 +45,11 @@ def parse_variants(variant_config: dict[str, dict[str, Any]]) -> list[dict[str, 
                     'nested': {...}
                 },
                 # When more than one parameter is defined, an 'op' key
-                # MUST define how to combine them. The two methods are:
+                # MUST define how to combine them. The three options are:
                 # 'zip': Zip parameters (must have same length)
                 # 'prod': Cartesian product of parameters
+                # 'add': Concatenate parameter lists into single parameter
+                #        named {param_name_1}__{param_name_2}__...
                 'param_2': {...},
                 'op': 'zip'
             }
@@ -105,6 +107,11 @@ def parse_variants(variant_config: dict[str, dict[str, Any]]) -> list[dict[str, 
         param_dicts = [
             {name: val[i] for name, val in parsed.items()} for i in range(n_combos)
         ]
+    elif operation == "add":
+        combined_param_name = "__".join(parsed)
+        param_dicts = []
+        for val in parsed.values():
+            param_dicts.extend({combined_param_name: i} for i in val)
     elif operation is None:
         param_name = list(parsed.keys())[0]
         param_vals = parsed[param_name]
@@ -136,11 +143,11 @@ def apply_and_save_variants(
             :py:data:`~ecoli.variant.VARIANT_REGISTRY`
         outdir: Path to folder where variant ``sim_data`` pickles are saved
     """
-    variant_func = VARIANT_REGISTRY[variant_name]
+    variant_mod = importlib.import_module(f"ecoli.variants.{variant_name}")
     variant_metadata = {0: "baseline"}
     for i, params in enumerate(param_dicts):
         variant_metadata[i + 1] = params
-        variant_sim_data = variant_func(sim_data, params)
+        variant_sim_data = variant_mod.apply_variant(sim_data, params)
         outpath = os.path.join(outdir, f"{i+1}.cPickle")
         with open(outpath, "wb") as f:
             pickle.dump(variant_sim_data, f)
@@ -190,7 +197,7 @@ def test_create_variants():
             pickle.dump(SimData(), f)
         repo_dir = os.path.dirname(os.path.dirname(__file__))
         # Test script and config system
-        os.environ['PYTHONPATH'] = repo_dir
+        os.environ["PYTHONPATH"] = repo_dir
         subprocess.run(
             [
                 "python",
@@ -203,7 +210,7 @@ def test_create_variants():
                 "test_create_variants/out",
             ],
             check=True,
-            env=os.environ
+            env=os.environ,
         )
         # Check that metadata aligns with variant sim_data attrs
         with open("test_create_variants/out/metadata.json") as f:
@@ -212,7 +219,7 @@ def test_create_variants():
         var_paths = out_path.glob("*.cPickle")
         for var_path in var_paths:
             # Skip baseline
-            if var_path.stem == '0':
+            if var_path.stem == "0":
                 continue
             with open(var_path, "rb") as f:
                 variant_sim_data = pickle.load(f)
@@ -239,8 +246,11 @@ def main():
             f"of the options defined in {default_config}. To configure "
             "variants, the config must include the `variant` key. Under the "
             "`variant` key should be a single key with the name of the "
-            "variant function (see ecoli/variants/__init__.py). Under the "
-            "variant function key should be a parameter dictionary as "
+            "variant module under `ecoli.variant` (for example, `variant_1` "
+            "if imported as `ecoli.variant.variant_1` or `folder_1.variant_1` "
+            "if imported as `ecoli.variant.folder_1.variant_1`). See "
+            "`ecoli.variants.template` for variant template. Under the "
+            "variant module name should be a parameter dictionary as "
             "described in the docstring for `parse_variants`."
         ),
     )

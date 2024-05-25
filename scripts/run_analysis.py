@@ -7,6 +7,7 @@ import warnings
 import polars as pl
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+from ecoli.experiments.ecoli_master_sim import SimConfig
 from ecoli.library.parquet_emitter import get_lazyframes
 
 FILTERS = {
@@ -69,7 +70,7 @@ def main():
     if args.config is not None:
         config_file = args.config
         with open(os.path.join(args.config), "r") as f:
-            config = {**config, **json.load(f)}
+            SimConfig.merge_config_dicts(config, json.load(f))
     out_dir = config["emitter"]["config"].get("out_dir", None)
     out_uri = config["emitter"]["config"].get("out_uri", None)
     config = config["analysis_options"]

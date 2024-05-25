@@ -4,13 +4,34 @@
     "parca_options": {
         "cpus": 6
     },
-    "generations": 2,
-    "n_init_sims": 2,
-    "single_daughters": false,
+    "generations": 10,
+    "n_init_sims": 4,
+    "single_daughters": true,
     "emitter" : {
         "type": "parquet",
         "config": {
             "out_dir": "/home/covertlab/work/vivarium-ecoli/out"
+        }
+    },
+    "variants": {
+        "new_gene_internal_shift": {
+            "condition": {"value": ["basal", "with_aa"]},
+            "induction_gen": {"value": [2]},
+            "knockout_gen": {"value": [8]},
+            "exp_trl_eff": {
+                "nested": {
+                    "exp": {
+                        "logspace": {
+                            "start": 6,
+                            "stop": 9,
+                            "num": 4
+                        }
+                    },
+                    "trl_eff": {"value": [10, 5, 1, 0.1, 0]},
+                    "op": "prod"
+                }
+            },
+            "op": "prod"
         }
     },
     "analysis_options": {
