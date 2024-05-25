@@ -16,25 +16,32 @@ from ecoli.processes.environment.derive_globals import DeriveGlobals
 from ecoli.processes.environment.exchange import Exchange
 
 
-NAME = 'grow_divide'
+NAME = "grow_divide"
 
 
 GROW_DIVIDE_DEFAULTS = {
-        'growth': {
-            'variables': ['mass'],
-        },
-        'divide_condition': {
-            'threshold': 2000.0 * units.fg},
-        'boundary_path': ('boundary',),
-        'agents_path': ('..', '..', 'agents',),
-        'daughter_path': tuple(),
-        '_schema': {
-            'growth': {
-                'variables': {
-                    'mass': {
-                        '_default': 1000.0 * units.fg,
-                        '_divider': 'split',
-                    }}}}}
+    "growth": {
+        "variables": ["mass"],
+    },
+    "divide_condition": {"threshold": 2000.0 * units.fg},
+    "boundary_path": ("boundary",),
+    "agents_path": (
+        "..",
+        "..",
+        "agents",
+    ),
+    "daughter_path": tuple(),
+    "_schema": {
+        "growth": {
+            "variables": {
+                "mass": {
+                    "_default": 1000.0 * units.fg,
+                    "_divider": "split",
+                }
+            }
+        }
+    },
+}
 
 
 class GrowDivide(Composer):
@@ -42,57 +49,61 @@ class GrowDivide(Composer):
 
     def generate_processes(self, config):
         # division config
-        daughter_path = config['daughter_path']
-        agent_id = config['agent_id']
+        daughter_path = config["daughter_path"]
+        agent_id = config["agent_id"]
         division_config = dict(
-            config.get('division', {}),
+            config.get("division", {}),
             daughter_path=daughter_path,
             agent_id=agent_id,
-            composer=self)
+            composer=self,
+        )
 
         return {
-            'growth': GrowthRate(config['growth']),
-            'globals_deriver': DeriveGlobals(),
-            'divide_condition': DivideCondition(config['divide_condition']),
-            'division': MetaDivision(division_config)}
+            "growth": GrowthRate(config["growth"]),
+            "globals_deriver": DeriveGlobals(),
+            "divide_condition": DivideCondition(config["divide_condition"]),
+            "division": MetaDivision(division_config),
+        }
 
     def generate_topology(self, config):
-        boundary_path = config['boundary_path']
-        agents_path = config['agents_path']
+        boundary_path = config["boundary_path"]
+        agents_path = config["agents_path"]
         return {
-            'growth': {
-                'variables': boundary_path,
-                'rates': ('rates',),
+            "growth": {
+                "variables": boundary_path,
+                "rates": ("rates",),
             },
-            'globals_deriver': {
-                'global': boundary_path
+            "globals_deriver": {"global": boundary_path},
+            "divide_condition": {
+                "variable": boundary_path + ("mass",),
+                "divide": boundary_path + ("divide",),
             },
-            'divide_condition': {
-                'variable': boundary_path + ('mass',),
-                'divide': boundary_path + ('divide',)
-            },
-            'division': {
-                'global': boundary_path,
-                'agents': agents_path},
-            }
+            "division": {"global": boundary_path, "agents": agents_path},
+        }
 
 
 class GrowDivideExchange(GrowDivide):
-    name = 'grow_divide_exchange'
+    name = "grow_divide_exchange"
     defaults = GROW_DIVIDE_DEFAULTS
-    defaults.update({
-        'exchange': {
-            'molecules': ['A'],
-        },
-        'fields_path': ('..', '..', 'fields'),
-        'dimensions_path': ('..', '..', 'dimensions',),
-    })
+    defaults.update(
+        {
+            "exchange": {
+                "molecules": ["A"],
+            },
+            "fields_path": ("..", "..", "fields"),
+            "dimensions_path": (
+                "..",
+                "..",
+                "dimensions",
+            ),
+        }
+    )
 
     def generate_processes(self, config):
         processes = super().generate_processes(config)
 
         added_processes = {
-            'exchange': Exchange(config['exchange']),
+            "exchange": Exchange(config["exchange"]),
         }
         processes.update(added_processes)
         return processes
@@ -100,13 +111,13 @@ class GrowDivideExchange(GrowDivide):
     def generate_topology(self, config):
         topology = super().generate_topology(config)
 
-        boundary_path = config['boundary_path']
+        boundary_path = config["boundary_path"]
 
         added_topology = {
-            'exchange': {
-                'exchanges': boundary_path + ('exchanges',),
-                'external': boundary_path + ('external',),
-                'internal': ('internal',),
+            "exchange": {
+                "exchanges": boundary_path + ("exchanges",),
+                "external": boundary_path + ("external",),
+                "internal": ("internal",),
             },
         }
         topology.update(added_topology)
@@ -114,79 +125,73 @@ class GrowDivideExchange(GrowDivide):
 
 
 def test_grow_divide(total_time=2000, return_data=False):
-
-    agent_id = '0'
-    composite = GrowDivide({
-        'agent_id': agent_id,
-        'growth': {
-            'growth_rate': 0.006,  # very fast growth
-            'default_growth_noise': 1e-3,
+    agent_id = "0"
+    composite = GrowDivide(
+        {
+            "agent_id": agent_id,
+            "growth": {
+                "growth_rate": 0.006,  # very fast growth
+                "default_growth_noise": 1e-3,
+            },
         }
-    })
+    )
 
-    initial_state = {
-        'agents': {
-            agent_id: {
-                'global': {
-                    'mass': 1000 * units.fg}
-            }}}
+    initial_state = {"agents": {agent_id: {"global": {"mass": 1000 * units.fg}}}}
 
-    settings = {
-        'experiment_id': 'grow_divide'}
+    settings = {"experiment_id": "grow_divide"}
     experiment = composer_in_experiment(
         composite,
         initial_state=initial_state,
-        outer_path=('agents', agent_id),
-        settings=settings)
+        outer_path=("agents", agent_id),
+        settings=settings,
+    )
 
     experiment.update(total_time)
     output = experiment.emitter.get_data_unitless()
 
     # assert division occurred
-    assert list(output[0.0]['agents'].keys()) == [agent_id]
-    assert agent_id not in list(output[total_time]['agents'].keys())
-    assert len(output[0.0]['agents']) == 1
-    assert len(output[total_time]['agents']) > 1
+    assert list(output[0.0]["agents"].keys()) == [agent_id]
+    assert agent_id not in list(output[total_time]["agents"].keys())
+    assert len(output[0.0]["agents"]) == 1
+    assert len(output[total_time]["agents"]) > 1
 
     if return_data:
         return output
 
 
 def test_grow_divide_exchange(total_time=2000, return_data=False):
-
-    agent_id = '0'
-    molecule_id = 'A'
-    composite = GrowDivideExchange({
-        'agent_id': agent_id,
-        'growth': {
-            'growth_rate': 0.006,  # very fast growth
-            'default_growth_noise': 1e-3},
-        'exchange': {
-            'molecules': [molecule_id],
-        }})
+    agent_id = "0"
+    molecule_id = "A"
+    composite = GrowDivideExchange(
+        {
+            "agent_id": agent_id,
+            "growth": {
+                "growth_rate": 0.006,  # very fast growth
+                "default_growth_noise": 1e-3,
+            },
+            "exchange": {
+                "molecules": [molecule_id],
+            },
+        }
+    )
 
     initial_state = {
-        'agents': {
+        "agents": {
             agent_id: {
-                'global': {
-                    'mass': 1000 * units.fg},
-                'external': {
-                    molecule_id: 10.0  * units.mmol / units.L
-                },
-                'internal': {
-                    molecule_id: 0.0  * units.mmol / units.L
-                }
+                "global": {"mass": 1000 * units.fg},
+                "external": {molecule_id: 10.0 * units.mmol / units.L},
+                "internal": {molecule_id: 0.0 * units.mmol / units.L},
             }
         }
     }
 
-    settings = {
-        'experiment_id': 'grow_divide_exchange'}
+    settings = {"experiment_id": "grow_divide_exchange"}
     experiment = composer_in_experiment(
         composite,
         initial_state=initial_state,
-        outer_path=('agents', agent_id),
-        settings=settings)
+        outer_path=("agents", agent_id),
+        settings=settings,
+    )
 
     experiment.update(total_time)
     output = experiment.emitter.get_data_unitless()
@@ -194,10 +199,10 @@ def test_grow_divide_exchange(total_time=2000, return_data=False):
     # assert
     # external starts at 1, goes down until death, and then back up
     # internal does the inverse
-    assert list(output[0.0]['agents'].keys()) == [agent_id]
-    assert agent_id not in list(output[total_time]['agents'].keys())
-    assert len(output[0.0]['agents']) == 1
-    assert len(output[total_time]['agents']) > 1
+    assert list(output[0.0]["agents"].keys()) == [agent_id]
+    assert agent_id not in list(output[total_time]["agents"].keys())
+    assert len(output[0.0]["agents"]) == 1
+    assert len(output[total_time]["agents"]) > 1
 
     if return_data:
         return output
@@ -211,13 +216,13 @@ def main():
     # if grow_divide:
     output = test_grow_divide(2000, return_data=True)
     plot_settings = {}
-    plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide')
+    plot_agents_multigen(output, plot_settings, out_dir, "grow_divide")
 
     # if grow_divide_exchange:
     output = test_grow_divide_exchange(2000, return_data=True)
     plot_settings = {}
-    plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide_exchange')
+    plot_agents_multigen(output, plot_settings, out_dir, "grow_divide_exchange")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

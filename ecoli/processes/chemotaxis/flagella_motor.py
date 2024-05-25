@@ -32,15 +32,16 @@ from vivarium.core.emitter import timeseries_from_data
 from vivarium.plots.simulation_output import plot_simulation_output
 
 from ecoli.library.schema import create_unique_indexes
+
 # plots
 from ecoli.plots.flagella_activity import plot_activity
 
 
-NAME = 'flagella_motor'
+NAME = "flagella_motor"
 
 
 class FlagellaMotor(Process):
-    """ Flagellar motor activity
+    """Flagellar motor activity
 
     :term:`Ports`:
      * **internal_counts**
@@ -52,153 +53,148 @@ class FlagellaMotor(Process):
     """
 
     name = NAME
-    expected_pmf = -140  # PMF ~170mV at pH 7, ~140mV at pH 7.7 (Berg H, E. coli in motion, 2004, pg 113)
+    expected_pmf = (
+        -140
+    )  # PMF ~170mV at pH 7, ~140mV at pH 7.7 (Berg H, E. coli in motion, 2004, pg 113)
     expected_flagella = 4
     expected_thrust = 0.5  # (pN) Hughes MP & Morgan H. (1999) Measurement of bacterial flagellar thrust.
     defaults = {
-        'time_step': 0.01,
-        'n_flagella': expected_flagella,
-
+        "time_step": 0.01,
+        "n_flagella": expected_flagella,
         #  CheY phosphorylation parameters
-        'k_y': 100.0,  # 1/uM/s
-        'k_z': 30.0,  # / [CheZ],
-        'gamma_y': 0.1,  # rate constant
-        'k_s': 0.45,  # scaling coefficient
-        'adapt_precision': 8,  # scales CheY_P to cluster activity
-
+        "k_y": 100.0,  # 1/uM/s
+        "k_z": 30.0,  # / [CheZ],
+        "gamma_y": 0.1,  # rate constant
+        "k_s": 0.45,  # scaling coefficient
+        "adapt_precision": 8,  # scales CheY_P to cluster activity
         # rotational state of individual flagella
         # parameters from Sneddon, Pontius, and Emonet (2012)
-        'omega': 1.3,  # (1/s) characteristic motor switch time
-        'g_0': 40,  # (k_B*T) free energy barrier for CCW-->CW
-        'g_1': 40,  # (k_B*T) free energy barrier for CW-->CCW
-        'K_D': 3.06,  # binding constant of CheY-P to base of the motor
-
+        "omega": 1.3,  # (1/s) characteristic motor switch time
+        "g_0": 40,  # (k_B*T) free energy barrier for CCW-->CW
+        "g_1": 40,  # (k_B*T) free energy barrier for CW-->CCW
+        "K_D": 3.06,  # binding constant of CheY-P to base of the motor
         # added parameters
-        'ccw_to_cw_leak': 0.2,  # 1/s rate of spontaneous switch to cw
-
+        "ccw_to_cw_leak": 0.2,  # 1/s rate of spontaneous switch to cw
         # motile force parameters
-        'flagellum_thrust': expected_thrust / math.log(expected_flagella + 1),
-        'tumble_jitter': 60.0,
-        'tumble_scaling': 0.5 / expected_pmf,  # scale to expected PMF
-        'run_scaling': 1.0 / expected_pmf,  # scale to expected PMF
-
+        "flagellum_thrust": expected_thrust / math.log(expected_flagella + 1),
+        "tumble_jitter": 60.0,
+        "tumble_scaling": 0.5 / expected_pmf,  # scale to expected PMF
+        "run_scaling": 1.0 / expected_pmf,  # scale to expected PMF
         # initial state
-        'initial_state': {
-            'internal': {
+        "initial_state": {
+            "internal": {
                 # response regulator proteins
-                'CheY': 2.59,
-                'CheY_P': 2.59,  # (uM) mean concentration of CheY-P
-                'CheZ': 1.0,  # (uM) phosphatase
-                'CheA': 1.0,  # (uM)
+                "CheY": 2.59,
+                "CheY_P": 2.59,  # (uM) mean concentration of CheY-P
+                "CheZ": 1.0,  # (uM) phosphatase
+                "CheA": 1.0,  # (uM)
                 # sensor activity
-                'chemoreceptor_activity': 1/3,
+                "chemoreceptor_activity": 1 / 3,
                 # cell motile state
-                'motile_state': 1,  # 1 for tumble, 0 for run
+                "motile_state": 1,  # 1 for tumble, 0 for run
             },
-            'membrane': {
-                'PMF': expected_pmf,
+            "membrane": {
+                "PMF": expected_pmf,
             },
-            'boundary': {
-                'thrust': 0,
-                'torque': 0,
-            }
+            "boundary": {
+                "thrust": 0,
+                "torque": 0,
+            },
         },
-
         # seed for unique ID generation
-        'seed': 0,
+        "seed": 0,
     }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        self.random_state = np.random.RandomState(
-            seed=self.parameters['seed'])
+        self.random_state = np.random.RandomState(seed=self.parameters["seed"])
 
     def ports_schema(self):
         ports = [
-            'internal_counts',
-            'flagella',
-            'internal',
-            'boundary',
-            'membrane',
+            "internal_counts",
+            "flagella",
+            "internal",
+            "boundary",
+            "membrane",
         ]
         schema = {port: {} for port in ports}
 
         # internal_counts of flagella (n_flagella)
-        schema['internal_counts']['flagella'] = {
-            '_default': self.parameters['n_flagella'],
-            '_emit': True}
+        schema["internal_counts"]["flagella"] = {
+            "_default": self.parameters["n_flagella"],
+            "_emit": True,
+        }
 
         # flagella
-        schema['flagella'] = {
-            '_divider': 'split_dict',
-            '*': {
-                '_default': 1,
-                '_updater': 'set',
-                '_emit': True}}
+        schema["flagella"] = {
+            "_divider": "split_dict",
+            "*": {"_default": 1, "_updater": "set", "_emit": True},
+        }
 
         # internal
         state_emit = [
-            'chemoreceptor_activity',
-            'motile_state',
-            'CheA',
-            'CheY_P',
-            'CheY',
+            "chemoreceptor_activity",
+            "motile_state",
+            "CheA",
+            "CheY_P",
+            "CheY",
         ]
         state_set_updater = [
-                'motile_state',
-                'CheA',
-                'CheY_P',
-                'CheY',
+            "motile_state",
+            "CheA",
+            "CheY_P",
+            "CheY",
         ]
-        for state, default in self.parameters['initial_state']['internal'].items():
-            schema['internal'][state] = {'_default': default}
+        for state, default in self.parameters["initial_state"]["internal"].items():
+            schema["internal"][state] = {"_default": default}
             if state in state_emit:
-                schema['internal'][state].update({
-                    '_emit': True})
+                schema["internal"][state].update({"_emit": True})
             if state in state_set_updater:
-                schema['internal'][state].update({
-                    '_updater': 'set'})
+                schema["internal"][state].update({"_updater": "set"})
 
         # boundary (thrust and torque)
-        for state, default in self.parameters['initial_state']['boundary'].items():
-            schema['boundary'][state] = {
-                '_default': default,
-                '_emit': True,
-                '_updater': 'set'}
+        for state, default in self.parameters["initial_state"]["boundary"].items():
+            schema["boundary"][state] = {
+                "_default": default,
+                "_emit": True,
+                "_updater": "set",
+            }
 
         # membrane
-        for state in ['PMF', 'protons_flux_accumulated']:
-            schema['membrane'][state] = {
-                '_default': self.parameters['initial_state']['membrane'].get(state, 0.0)}
+        for state in ["PMF", "protons_flux_accumulated"]:
+            schema["membrane"][state] = {
+                "_default": self.parameters["initial_state"]["membrane"].get(state, 0.0)
+            }
 
         return schema
 
     def next_update(self, timestep, states):
-
         # get flagella sub-compartments and current flagella protein counts
-        flagella = states['flagella']
-        n_flagella = states['internal_counts']['flagella']
+        flagella = states["flagella"]
+        n_flagella = states["internal_counts"]["flagella"]
 
         # proton motive force
-        PMF = states['membrane']['PMF']
+        PMF = states["membrane"]["PMF"]
 
         # internal states
-        internal = states['internal']
-        P_on = internal['chemoreceptor_activity']
-        CheY_0 = internal['CheY']
-        CheY_P_0 = internal['CheY_P']
+        internal = states["internal"]
+        P_on = internal["chemoreceptor_activity"]
+        CheY_0 = internal["CheY"]
+        CheY_P_0 = internal["CheY_P"]
 
         # parameters
-        adapt_precision = self.parameters['adapt_precision']
-        k_y = self.parameters['k_y']
-        k_s = self.parameters['k_s']
-        k_z = self.parameters['k_z']
-        gamma_y = self.parameters['gamma_y']
+        adapt_precision = self.parameters["adapt_precision"]
+        k_y = self.parameters["k_y"]
+        k_s = self.parameters["k_s"]
+        k_z = self.parameters["k_z"]
+        gamma_y = self.parameters["gamma_y"]
 
         ## Kinase activity
         # relative steady-state concentration of phosphorylated CheY.
         # CheZ combined in k_z as dephosphorylation rate of CheY-P
-        new_CheY_P = adapt_precision * k_y * k_s * P_on / (k_y * k_s * P_on + k_z + gamma_y)
+        new_CheY_P = (
+            adapt_precision * k_y * k_s * P_on / (k_y * k_s * P_on + k_z + gamma_y)
+        )
         dCheY_P = new_CheY_P - CheY_P_0
 
         # TODO -- add an assert here instead
@@ -210,20 +206,21 @@ class FlagellaMotor(Process):
         flagella_update = {}
         new_flagella = int(n_flagella) - len(flagella)
         if new_flagella < 0:
-            flagella_update['_delete'] = []
+            flagella_update["_delete"] = []
             remove = random.sample(list(flagella.keys()), abs(new_flagella))
             for flagella_id in remove:
-                flagella_update['_delete'].append((flagella_id,))
+                flagella_update["_delete"].append((flagella_id,))
 
         elif new_flagella > 0:
-            flagella_update['_add'] = []
+            flagella_update["_add"] = []
             new_flagella_indexes = create_unique_indexes(
-                new_flagella, self.random_state)
+                new_flagella, self.random_state
+            )
             for index in range(new_flagella):
                 flagella_id = new_flagella_indexes[index]
-                flagella_update['_add'].append({
-                    'key': str(flagella_id),
-                    'state': random.choice([-1, 1])})
+                flagella_update["_add"].append(
+                    {"key": str(flagella_id), "state": random.choice([-1, 1])}
+                )
 
         # update individual flagella states
         for flagella_id, motor_state in flagella.items():
@@ -246,27 +243,22 @@ class FlagellaMotor(Process):
             torque = 0
 
         return {
-            'flagella': flagella_update,
-            'internal': {
-                'motile_state': motile_state,
-                'CheY_P': CheY_P,
-                'CheY': CheY},
-            'boundary': {
-                'thrust': thrust,
-                'torque': torque}}
-
+            "flagella": flagella_update,
+            "internal": {"motile_state": motile_state, "CheY_P": CheY_P, "CheY": CheY},
+            "boundary": {"thrust": thrust, "torque": torque},
+        }
 
     def update_flagellum(self, motor_state, CheY_P, timestep):
         """
         calculate the rotational state of a individual flagellum
-        
+
         .. note::
             TODO -- normal, semi, curly states from Sneddon
         """
-        g_0 = self.parameters['g_0']  # (k_B*T) free energy barrier for CCW-->CW
-        g_1 = self.parameters['g_1']  # (k_B*T) free energy barrier for CW-->CCW
-        K_D = self.parameters['K_D']  # binding constant of CheY-P to base of the motor
-        omega = self.parameters['omega']  # (1/s) characteristic motor switch time
+        g_0 = self.parameters["g_0"]  # (k_B*T) free energy barrier for CCW-->CW
+        g_1 = self.parameters["g_1"]  # (k_B*T) free energy barrier for CW-->CCW
+        K_D = self.parameters["K_D"]  # binding constant of CheY-P to base of the motor
+        omega = self.parameters["omega"]  # (1/s) characteristic motor switch time
 
         # free energy barrier
         delta_g = g_0 / 4 - g_1 / 2 * (CheY_P / (CheY_P + K_D))
@@ -278,8 +270,8 @@ class FlagellaMotor(Process):
         CCW_bias = CW_to_CCW / (CW_to_CCW + CCW_to_CW)
 
         # don't let ccw_to_cw get under leak value
-        if CW_bias < self.parameters['ccw_to_cw_leak']:
-            CW_bias = self.parameters['ccw_to_cw_leak']
+        if CW_bias < self.parameters["ccw_to_cw_leak"]:
+            CW_bias = self.parameters["ccw_to_cw_leak"]
 
         # flagella motor state: -1 for CCW, 1 for CW
         if motor_state == -1:
@@ -306,33 +298,35 @@ class FlagellaMotor(Process):
         """
         thrust scales with log(n_flagella) because only the thickness of the bundle is affected
         """
-        thrust = self.parameters['tumble_scaling'] * \
-                 PMF * self.parameters['flagellum_thrust'] * \
-                 math.log(n_flagella + 1)
-        torque = random.normalvariate(0, self.parameters['tumble_jitter'])
+        thrust = (
+            self.parameters["tumble_scaling"]
+            * PMF
+            * self.parameters["flagellum_thrust"]
+            * math.log(n_flagella + 1)
+        )
+        torque = random.normalvariate(0, self.parameters["tumble_jitter"])
         return [thrust, torque]
 
     def run(self, n_flagella, PMF):
         """
         thrust scales with log(n_flagella) because only the thickness of the bundle is affected
         """
-        thrust = self.parameters['run_scaling'] * \
-                 PMF * self.parameters['flagellum_thrust'] * \
-                 math.log(n_flagella + 1)
+        thrust = (
+            self.parameters["run_scaling"]
+            * PMF
+            * self.parameters["flagellum_thrust"]
+            * math.log(n_flagella + 1)
+        )
         torque = 0.0
         return [thrust, torque]
 
 
 # test functions
 def get_chemoreceptor_activity_timeline(
-        total_time=2,
-        time_step=0.01,
-        rate=1.0,
-        initial_value=1.0/3.0
+    total_time=2, time_step=0.01, rate=1.0, initial_value=1.0 / 3.0
 ):
     val = copy.copy(initial_value)
-    timeline = [(0, {
-        ('internal', 'chemoreceptor_activity'): initial_value})]
+    timeline = [(0, {("internal", "chemoreceptor_activity"): initial_value})]
     t = 0
     while t < total_time:
         val += random.choice((-1, 1)) * rate * time_step
@@ -340,13 +334,12 @@ def get_chemoreceptor_activity_timeline(
             val = 0
         if val > 1:
             val = 1
-        timeline.append((t, {
-            ('internal', 'chemoreceptor_activity'): val}))
+        timeline.append((t, {("internal", "chemoreceptor_activity"): val}))
         t += time_step
     return timeline
 
 
-def test_variable_flagella(out_dir='out', return_data=False):
+def test_variable_flagella(out_dir="out", return_data=False):
     total_time = 30
     time_step = 0.01
     initial_flagella = 2
@@ -358,19 +351,18 @@ def test_variable_flagella(out_dir='out', return_data=False):
         rate=2.0,
     )
     timeline_flagella = [
-        (10, {('internal_counts', 'flagella'): initial_flagella + 1}),
-        (20, {('internal_counts', 'flagella'): initial_flagella + 2}),
+        (10, {("internal_counts", "flagella"): initial_flagella + 1}),
+        (20, {("internal_counts", "flagella"): initial_flagella + 2}),
     ]
     timeline.extend(timeline_flagella)
 
     # run simulation
-    process_config = {'n_flagella': initial_flagella}
+    process_config = {"n_flagella": initial_flagella}
     process = FlagellaMotor(process_config)
     settings = {
-        'return_raw_data': True,
-        'timeline': {
-            'timeline': timeline,
-            'time_step': time_step}}
+        "return_raw_data": True,
+        "timeline": {"timeline": timeline, "time_step": time_step},
+    }
     raw_data = simulate_process(process, settings)
 
     if return_data:
@@ -391,5 +383,5 @@ def main():
     plot_activity(data, plot_settings, out_dir)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

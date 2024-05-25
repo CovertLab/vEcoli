@@ -1,0 +1,25 @@
+{
+    "experiment_id": "test",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 6
+    },
+    "generations": 2,
+    "n_init_sims": 2,
+    "single_daughters": false,
+    "emitter" : {
+        "type": "parquet",
+        "config": {
+            "out_dir": "/home/covertlab/work/vivarium-ecoli/out"
+        }
+    },
+    "analysis_options": {
+        "single": {"single.mass_fraction_summary": {}},
+        "multi_daughter": {"test_multicell": {"arg_1": 1}},
+        "multi_generation": {"multigeneration.new_gene_counts": {}},
+        "multi_seed": {"multiseed.ecocyc_table": {}},
+        "multi_variant": {"test_multivariant": {"arg_1": 1}},
+        "multi_experiment": {"test_multiexperiment": {"arg_1": 1}},
+        "parca": {"test_parca": {"arg_1": 1}}
+    }
+}
