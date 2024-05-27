@@ -1,8 +1,8 @@
 import os
 from typing import Any
 
+import duckdb
 import hvplot.polars
-import polars as pl
 
 hvplot.extension("matplotlib")
 
@@ -22,56 +22,50 @@ COLORS = ["#%02x%02x%02x" % (color[0], color[1], color[2]) for color in COLORS_2
 
 def plot(
     params: dict[str, Any],
-    config_lf: pl.LazyFrame,
-    history_lf: pl.LazyFrame,
+    configuration: duckdb.DuckDBPyRelation,
+    history: duckdb.DuckDBPyRelation,
     sim_data_paths: list[str],
     validation_data_paths: list[str],
     outdir: str,
 ):
     assert (
-        config_lf.collect(streaming=True).n_unique(
-            subset=[
-                "experiment_id",
-                "variant",
-                "generation",
-                "lineage_seed",
-                "agent_id",
-            ]
-        )
+        duckdb.sql("""
+            SELECT count(time) as num_cells
+            FROM configuration
+            GROUP BY experiment_id, variant, generation,
+                lineage_seed, agent_id
+        """).fetchnumpy()['num_cells'][0]
         == 1
     ), "Mass fraction summary plot requires single-cell data."
 
-    mass_columns = {
-        "Protein": "listeners__mass__protein_mass",
-        "tRNA": "listeners__mass__tRna_mass",
-        "rRNA": "listeners__mass__rRna_mass",
-        "mRNA": "listeners__mass__mRna_mass",
-        "DNA": "listeners__mass__dna_mass",
-        "Small Mol.s": "listeners__mass__smallMolecule_mass",
-    }
-    other_columns = {
-        "Time (min)": (pl.col("time") - pl.col("time").min()) / 60,
-        "Total dry mass": "listeners__mass__dry_mass",
-    }
+    mass_data = duckdb.sql("""
+        SELECT
+            (time - MIN(time) OVER ()) / 60 AS "Time (min)",
+            listeners__mass__protein_mass AS Protein,
+            listeners__mass__tRna_mass AS tRNA,
+            listeners__mass__rRna_mass AS rRNA,
+            listeners__mass__mRna_mass AS mRNA,
+            listeners__mass__dna_mass AS DNA,
+            listeners__mass__smallMolecule_mass AS "Small Mol.s",
+            listeners__mass__dry_mass AS "Total dry mass"
+        FROM history
+        ORDER BY "Time (min)"
+        """).pl()
 
-    mass_data = (
-        history_lf.select(**other_columns, **mass_columns)
-        .sort("Time (min)")
-        .collect(streaming=True)
-    )
+    submasses = ['Protein', 'tRNA', 'rRNA', 'mRNA', 'DNA', 'Small Mol.s']
     fractions = (
-        mass_data[list(mass_columns.keys())] / mass_data["Total dry mass"]
+        mass_data[submasses] / mass_data["Total dry mass"]
     ).mean()
     mass_data = mass_data.select(
         "Time (min)",
         mass_data["Total dry mass"] / mass_data[0, "Total dry mass"],
-        *(mass_data[col] / mass_data[0, col] for col in mass_columns),
+        *(mass_data[col] / mass_data[0, col] for col in submasses),
     )
 
     mass_data = mass_data.rename(
         {
             label: "{} ({:.3f})".format(label, fractions[0, label])
-            for label in mass_columns
+            for label in submasses
         }
     )
     plot_namespace = mass_data.plot
