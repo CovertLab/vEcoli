@@ -2,13 +2,13 @@ import atexit
 import os
 import pathlib
 import tempfile
-from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Mapping, Union
 
+import duckdb
+from fsspec import filesystem
 import numpy as np
 import orjson
-import polars as pl
 import pyarrow as pa
 from pyarrow import fs
 from pyarrow import json as pj
@@ -84,11 +84,11 @@ def json_to_parquet(
     pathlib.Path(ndjson).unlink()
 
 
-def get_lazyframes(
+def get_duckdb_relations(
     out_dir: Union[str, pathlib.Path] = None, out_uri: str = None
-) -> tuple[pl.LazyFrame, pl.LazyFrame]:
+) -> tuple[duckdb.DuckDBPyRelation, duckdb.DuckDBPyRelation]:
     """
-    Return Polars LazyFrames for all sim configs and sim outputs in a folder.
+    Return DuckDB relations for sim configs and sim outputs.
 
     Args:
         out_dir: Relative or absolute path to local directory containing
@@ -96,34 +96,30 @@ def get_lazyframes(
         out_uri: URI equivalent of ``out_dir`` (takes precedence)
 
     Returns:
-        Tuple ``(sim config LazyFrame, sim output LazyFrame)``.
+        Tuple ``(sim config relation, sim output relation)``.
     """
-    if out_uri is None:
-        out_uri = pathlib.Path(out_dir).resolve().as_uri()
-    scheme = urlparse(out_uri).scheme
-    filesystem, outdir = fs.FileSystem.from_uri(out_uri)
-    history_dir = os.path.join(outdir, "history")
-    config_dir = os.path.join(outdir, "configuration")
-    schema = {
-        "experiment_id": pl.String(),
-        "variant": pl.Int64(),
-        "lineage_seed": pl.Int64(),
-        "generation": pl.Int64(),
-        "agent_id": pl.String(),
-    }
-    history_frames = (
-        pl.scan_parquet(f"{scheme}://{f.path}", hive_schema=schema)
-        for f in filesystem.get_file_info(fs.FileSelector(history_dir, recursive=True))
-        if f.extension == "pq"
-    )
-    history = pl.concat(history_frames, how="diagonal_relaxed")
-    config_frames = (
-        pl.scan_parquet(f"{scheme}://{f.path}", hive_schema=schema)
-        for f in filesystem.get_file_info(fs.FileSelector(config_dir, recursive=True))
-        if f.extension == "pq"
-    )
-    config = pl.concat(config_frames, how="diagonal_relaxed")
-    return config, history
+    out_path = out_dir
+    if out_path is None:
+        out_path = out_uri
+        duckdb.register_filesystem(filesystem("gcs"))
+    read_pq_sql = """
+        SELECT *
+        FROM read_parquet(
+            '{}/*/*/*/*/*/*.pq',
+            union_by_name = true,
+            hive_partitioning = true,
+            hive_types = {{
+                'experiment_id': VARCHAR,
+                'variant': BIGINT,
+                'lineage_seed': BIGINT,
+                'generation': BIGINT,
+                'agent_id': VARCHAR}}
+        );"""
+    history_out_path = os.path.join(out_path, "history")
+    history_rel = duckdb.sql(read_pq_sql.format(history_out_path))
+    config_out_path = os.path.join(out_path, "configuration")
+    config_rel = duckdb.sql(read_pq_sql.format(config_out_path))
+    return config_rel, history_rel
 
 
 def get_encoding(

@@ -4,11 +4,11 @@ import json
 import os
 import warnings
 
-import polars as pl
+import duckdb
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
-from ecoli.library.parquet_emitter import get_lazyframes
+from ecoli.library.parquet_emitter import get_duckdb_relations
 
 FILTERS = {
     "experiment_id": (str, "multi_experiment", "multi_variant"),
@@ -80,12 +80,12 @@ def main():
 
     # Set up Polars filters for data
     analysis_type = None
-    pl_filter = None
+    duckdb_filter = []
     last_analysis_level = -1
     filter_types = list(FILTERS.keys())
     for current_analysis_level, (
         data_filter,
-        (_, analysis_many, analysis_one),
+        (data_type, analysis_many, analysis_one),
     ) in enumerate(FILTERS.items()):
         if config.get(f"{data_filter}_range", None) is not None:
             if config[data_filter] is not None:
@@ -111,41 +111,39 @@ def main():
                 )
             if len(config[data_filter]) > 1:
                 analysis_type = analysis_many
-                if pl_filter is None:
-                    pl_filter = pl.col(data_filter).is_in(config[data_filter])
+                if data_type is str:
+                    filter_values = "', '".join(config[data_filter])
+                    duckdb_filter.append(f"{data_filter} IN ('{filter_values}')")
                 else:
-                    pl_filter = (
-                        pl.col(data_filter).is_in(config[data_filter])
-                    ) & pl_filter
+                    filter_values = ", ".join(config[data_filter])
+                    duckdb_filter.append(f"{data_filter} IN ({filter_values})")
             else:
                 analysis_type = analysis_one
-                if pl_filter is None:
-                    pl_filter = pl.col(data_filter) == config[data_filter][0]
+                if data_type is str:
+                    duckdb_filter.append(f"{data_filter} = '{config[data_filter][0]}'")
                 else:
-                    pl_filter = (
-                        pl.col(data_filter) == config[data_filter][0]
-                    ) & pl_filter
+                    duckdb_filter.append(f"{data_filter} = {config[data_filter][0]}")
             last_analysis_level = current_analysis_level
-
-    # If no filters were provided, assume analyzing ParCa output
-    if analysis_type is None:
-        analysis_type = "parca"
-        config_lf = pl.DataFrame({})
-        history_lf = pl.DataFrame({})
-    else:
-        # Load Parquet files from output directory / URI specified in config
-        config_lf, history_lf = get_lazyframes(out_dir, out_uri)
-        config_lf = config_lf.filter(pl_filter)
-        history_lf = history_lf.filter(pl_filter)
 
     # Run the analyses listed under the most specific filter
     analysis_options = config[analysis_type]
-    for analysis_name, analysis_params in analysis_options.items():
-        analysis_mod = importlib.import_module(f"ecoli.analysis.{analysis_name}")
+    analysis_modules = {}
+    for analysis_name in analysis_options:
+        analysis_modules[analysis_name] = importlib.import_module(f"ecoli.analysis.{analysis_name}")
+    for analysis_name, analysis_mod in analysis_modules.items():
+        # If no filters were provided, assume analyzing ParCa output
+        if analysis_type is None:
+            analysis_type = "parca"
+        else:
+            # Load Parquet files from output directory / URI specified in config
+            config_rel, history_rel = get_duckdb_relations(out_dir, out_uri)
+            duckdb_filter = " AND ".join(duckdb_filter)
+            config_filtered = duckdb.sql(f"SELECT * FROM config_rel WHERE {duckdb_filter}")
+            history_filtered = duckdb.sql(f"SELECT * FROM history_rel WHERE {duckdb_filter}")
         analysis_mod.plot(
-            analysis_params,
-            config_lf,
-            history_lf,
+            analysis_options[analysis_name],
+            config_filtered,
+            history_filtered,
             config["sim_data_path"],
             config["validation_data_path"],
             config["outdir"],
