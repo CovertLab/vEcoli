@@ -102,6 +102,7 @@ def get_duckdb_relations(
     if out_path is None:
         out_path = out_uri
         duckdb.register_filesystem(filesystem("gcs"))
+    duckdb.sql(f"SET temp_directory = '{out_path}'")
     read_pq_sql = """
         SELECT *
         FROM read_parquet(
