@@ -38,36 +38,42 @@ def plot(
         == 1
     ), "Mass fraction summary plot requires single-cell data."
 
-    mass_data = duckdb.sql("""
-        SELECT
+    duckdb.sql("""
+        CREATE TABLE all_mass_data AS SELECT
             (time - MIN(time) OVER ()) / 60 AS "Time (min)",
             listeners__mass__protein_mass AS Protein,
             listeners__mass__tRna_mass AS tRNA,
             listeners__mass__rRna_mass AS rRNA,
             listeners__mass__mRna_mass AS mRNA,
             listeners__mass__dna_mass AS DNA,
-            listeners__mass__smallMolecule_mass AS "Small Mol.s",
-            listeners__mass__dry_mass AS "Total dry mass"
+            listeners__mass__smallMolecule_mass AS smallMol,
+            listeners__mass__dry_mass AS Dry
         FROM history
         ORDER BY "Time (min)"
+        """)
+
+    fractions = duckdb.sql("""
+        SELECT
+            avg(Protein / Dry) AS Protein,
+            avg(tRNA / Dry) AS tRNA,
+            avg(rRNA / Dry) AS rRNA,
+            avg(mRNA / Dry) AS mRNA,
+            avg(DNA / Dry) AS DNA,
+            avg(smallMol / Dry) AS "Small Mol.s",
+        FROM all_mass_data
+        """).fetchnumpy()
+    mass_data = duckdb.sql(f"""
+        WITH firsts AS (SELECT first(COLUMNS(*) ORDER BY "Time (min)") FROM all_mass_data)
+        SELECT
+            all_mass_data."Time (min)",
+            all_mass_data.Protein / firsts.Protein AS "Protein ({fractions["Protein"][0]})",
+            all_mass_data.tRNA / firsts.tRNA AS "tRNA ({fractions["tRNA"][0]})",
+            all_mass_data.rRNA / firsts.rRNA AS "rRNA ({fractions["rRNA"][0]})",
+            all_mass_data.mRNA / firsts.mRNA AS "mRNA ({fractions["mRNA"][0]})",
+            all_mass_data.DNA / firsts.DNA AS "DNA ({fractions["DNA"][0]})",
+            all_mass_data.smallMol / firsts.smallMol AS "Small Mol.s ({fractions["Small Mol.s"][0]})",
+        FROM all_mass_data, firsts
         """).pl()
-
-    submasses = ['Protein', 'tRNA', 'rRNA', 'mRNA', 'DNA', 'Small Mol.s']
-    fractions = (
-        mass_data[submasses] / mass_data["Total dry mass"]
-    ).mean()
-    mass_data = mass_data.select(
-        "Time (min)",
-        mass_data["Total dry mass"] / mass_data[0, "Total dry mass"],
-        *(mass_data[col] / mass_data[0, col] for col in submasses),
-    )
-
-    mass_data = mass_data.rename(
-        {
-            label: "{} ({:.3f})".format(label, fractions[0, label])
-            for label in submasses
-        }
-    )
     plot_namespace = mass_data.plot
     # hvplot.output(backend='matplotlib')
     plotted_data = plot_namespace.line(
