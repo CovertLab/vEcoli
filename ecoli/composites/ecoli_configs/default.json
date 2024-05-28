@@ -63,6 +63,8 @@
     "chromosome_path": ["unique", "full_chromosome"],
     "spatial_environment": false,
     "spatial_environment_config": {},
+    "fixed_media": "minimal",
+    "condition": "basal",
 
     "save": false,
     "save_times": [],
