@@ -1,5 +1,5 @@
 """
-Cookbook of common Polars manipulations for analysis scripts.
+Cookbook of common DuckDB manipulations for analysis scripts.
 """
 
 import os
@@ -7,9 +7,11 @@ import pickle
 from itertools import pairwise
 from typing import Any, TYPE_CHECKING
 
+import duckdb
+import pyarrow as pa
+from pyarrow import compute as pc
 import matplotlib.pyplot as plt
 import numpy as np
-import polars as pl
 
 if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
@@ -23,49 +25,43 @@ will be contained in columns with this prefix.
 """
 
 
-def num_cells(config_lf: pl.LazyFrame) -> int:
+def num_cells(configuration: duckdb.DuckDBPyRelation) -> int:
     """
-    Return count of cells in filtered LazyFrame (requires ``experiment_id``,
+    Return cell count in filtered DuckDB relation (requires ``experiment_id``,
     ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns).
     """
-    return (
-        config_lf.select(
-            ["experiment_id", "variant", "lineage_seed", "generation", "agent_id"]
-        )
-        .select(pl.struct(pl.all()).n_unique())
-        .collect(streaming=True)
-    )
+    return duckdb.sql("""SELECT count(
+        DISTINCT experiment_id, variant, lineage_seed, generation, agent_id
+        ) FROM configuration""")
 
 
-def ndlist_to_ndarray(s: pl.Series) -> np.ndarray:
+def ndlist_to_ndarray(s: pa.Array) -> np.ndarray:
     """
     Convert a series consisting of nested lists with fixed dimensions into
     a Numpy ndarray. This should really only be necessary if you are trying
-    to perform linear algebra (e.g. matrix multiplication, dot products).
-    You can accomplish most other manipulations with Polars alone.
+    to perform linear algebra (e.g. matrix multiplication, dot products) inside
+    a user-defined function (see DuckDB documentation on Python Function API).
     """
     dimensions = [1, len(s)]
-    while s.dtype == pl.List:
-        s = s.explode()
+    while isinstance(s.type, pa.ListType):
+        s = pc.list_flatten(s)
         dimensions.append(len(s))
     dimensions = [p[1] // p[0] for p in pairwise(dimensions)]
     return s.to_numpy().reshape(dimensions)
 
 
-def ndidx_to_pl_expr(name: str, idx: list[Any]) -> pl.Expr:
+def ndidx_to_pl_expr(name: str, idx: list[int | list[int | bool] | str]) -> str:
     """
-    Returns a Polars expression that evaluates to the equivalent of converting
-    the ``name`` column into an ndarray (see :py:func:`~.ndlist_to_ndarray`)
-    and calling ``name_arr[idx]``. Note that, unlike in Numpy, ``idx`` can only
-    contain 1D lists of integer indices (no nesting or bool masks) or ``":"``.
+    Returns a DuckDB expression for a column equivalent to converting each row
+    of ``name`` into an ndarray ``name_arr`` (:py:func:`~.ndlist_to_ndarray`)
+    and getting ``name_arr[idx]``. ``idx`` can contain 1D lists of integers,
+    boolean masks, or ``":"`` (no 2D+ indices like x[[[1,2]]]).
 
     This function is useful for reducing the amount of data loaded for columns
-    with lists of 2 or more dimensions. For 1D list columns, the ability to
-    individually name indices with :py:func:`~.named_idx` is probably better.
+    with lists of 2 or more dimensions. For list columns with one dimension,
+    use :py:func:`~.named_idx` to create expressions for many indices at once.
 
-    If more advanced Numpy indexing strategies are required, you can use this
-    function to filter as much as possible, :py:func:`~.ndlist_to_ndarray` to
-    convert to a Numpy ndarray, and proceed with native Numpy indexing.
+    .. WARNING:: DuckDB arrays are 1-indexed!
 
     Args:
         name: Name of column to recursively index
@@ -82,61 +78,75 @@ def ndidx_to_pl_expr(name: str, idx: list[Any]) -> pl.Expr:
                 [[0, 1], ":", [0, 1]]
 
     """
-    idx = idx.copy().reverse()
+    idx = idx.copy()
+    idx.reverse()
     # Construct expression from inside out (deepest to shallowest axis)
-    pl_expr = pl.element().list.gather(idx.pop(0))
-    for indices in idx[:-1]:
-        # Skip gathering indices for dimensions where all are selected
-        if indices == ":":
-            pl_expr = pl.element().list.eval(pl_expr)
+    first_idx = idx.pop(0)
+    if isinstance(first_idx, list):
+        if isinstance(first_idx[0], int):
+            one_indexed_idx = ", ".join(str(i + 1) for i in first_idx)
+            select_expr = f"list_select(x_0, [{one_indexed_idx}])"
+        elif isinstance(first_idx[0], bool):
+            select_expr = f"list_where(x_0, {first_idx})"
         else:
-            pl_expr = pl.element().list.gather(indices).list.eval(pl_expr)
-    if idx[-1] == ":":
-        return pl.col(name).list.eval(pl_expr)
-    return pl.col(name).list.gather(idx[-1]).list.eval(pl_expr)
+            raise TypeError("Indices must be integers or boolean masks.")
+    elif first_idx == ":":
+        select_expr = "x_0"
+    else:
+        select_expr = f"x_0[{first_idx + 1}]"
+    for i, indices in enumerate(idx):
+        if isinstance(indices, list):
+            if isinstance(indices[0], int):
+                one_indexed_idx = ", ".join(str(i + 1) for i in indices)
+                select_expr = f"list_transform(list_select(x_{i+1}, [{one_indexed_idx}]), x_{i} -> {select_expr})"
+            elif isinstance(indices[0], bool):
+                select_expr = f"list_transform(list_where(x_{i+1}, {indices}), x_{i} -> {select_expr})"
+            else:
+                raise TypeError("Indices must be integers or boolean masks.")
+        elif indices == ":":
+            select_expr = f"list_transform(x_{i+1}, x_{i} -> {select_expr})"
+        else:
+            select_expr = f"list_transform(x_{i+1}[{indices + 1}], x_{i} -> {select_expr})"
+    select_expr = select_expr.replace(f"x_{i+1}", name)
+    return select_expr + f" AS {name}"
 
 
-def named_idx(col: str, names: list[str], idx: list[int]) -> dict[str, pl.Expr]:
+def named_idx(col: str, names: list[str], idx: list[int]) -> list[str]:
     """
-    Returns a mapping of column names to Polars expressions for
-    given indices from each row of a list column.
+    Create SQL SELECT expressions for given indices from a list column.
+
+    .. WARNING:: DuckDB arrays are 1-indexed!
 
     Args:
         col: Name of list column.
-        names: Suffixes to append to ``col`` for final column names
-        idx: For each suffix in ``names``, the index to get from each
-            row of the ``col``
+        names: New column names, one for each index.
+        idx: Indices to retrieve from ``col``
 
     Returns:
-        Dictionary that maps ``{col}__{names[i]}`` to Polars expression for
-        ``idx[i]`` element of each row in ``col``
+        List of strings that can be put after SELECT in DuckDB query
     """
-    return {
-        f"{col}__{name}": pl.col(col).list.get(index) for name, index in zip(names, idx)
-    }
+    return [f"{col}[{i + 1}] AS \"{n}\"" for n, i in zip(names, idx)]
 
 
-def get_field_metadata(config_lf: pl.LazyFrame, field: str) -> list:
+def get_field_metadata(configuration: duckdb.DuckDBPyRelation, field: str) -> list:
     """
     Gets the saved metadata for a given field as a list.
 
     Args:
-        config_lf: LazyFrame of configuration data from
-            :py:func:`~ecoli.library.parquet_emitter.get_lazyframes`
+        config_lf: DuckDB relation of configuration data from
+            :py:func:`~ecoli.library.parquet_emitter.get_duckdb_relation`
         field: Name of field to get metadata for
     """
-    metadata = config_lf.select(pl.col(METADATA_PREFIX + field).first()).collect(
-        streaming=True
-    )[METADATA_PREFIX + field][0]
-    if isinstance(metadata, pl.Series):
-        return metadata.to_list()
-    return metadata
+    metadata = duckdb.sql(
+        f"SELECT first({METADATA_PREFIX + field}) AS m FROM configuration"
+    ).arrow()["m"][0]
+    return metadata.as_py()
 
 
 def plot(
     params: dict[str, Any],
-    config_lf: pl.LazyFrame,
-    history_lf: pl.LazyFrame,
+    configuration: duckdb.DuckDBPyRelation,
+    history: duckdb.DuckDBPyRelation,
     sim_data_path: list[str],
     validation_data_path: list[str],
     outdir: str,
@@ -147,8 +157,8 @@ def plot(
 
     Args:
         params: Parameters for analysis from config JSON
-        config_lf: Polars LazyFrame containing configuration data
-        history_lf: Polars LazyFrame containing simulation output
+        configuration: DuckDB relation containing configuration data
+        history: DuckDB relation containing simulation output
         sim_data_path: Path to sim_data pickle
         validation_data_path: Path to validation_data pickle
         outdir: Output directory
@@ -158,62 +168,53 @@ def plot(
         sim_data: "SimulationDataEcoli" = pickle.load(f)
 
     # Create filters for the data you want to read
-    exp_id_filter = pl.col("experiment_id") == "some_experiment_id"
-    generation_range_filter = pl.col("generation").is_in(list(range(4, 8)))
-    mass_filter = pl.col("listeners__mass__dry_mass") < 300
-    # Filters support logical &, ~, and |
-    config_lf = config_lf.filter(exp_id_filter & generation_range_filter)
-    history_lf = history_lf.filter(
-        exp_id_filter & generation_range_filter & mass_filter
-    )
+    data_filters = [
+        "experiment_id = 'some_experiment_id'",
+        f"generation IN {tuple(range(4, 8))}",
+        "listeners__mass__dry_mass < 300"
+    ]
+    # Combine filters with AND, OR, NOT
+    data_filters = " AND ".join(data_filters)
 
     # Read values of interest from configs, such as field-specific metadata
     # Say we wanted to get the indices of certain bulk molecules in the
     # bulk counts array by name for agent_id ``01``
     molecules_of_interest = ["GUANOSINE-5DP-3DP[c]", "WATER[c]", "PROTON[c]"]
-    bulk_names = get_field_metadata(config_lf, "bulk")
+    bulk_names = get_field_metadata(configuration, "bulk")
     bulk_idx = {}
     for mol in molecules_of_interest:
         bulk_idx[mol] = bulk_names.index(mol)
 
-    # Select specific columns to read with a list of column names
-    # Column names are just their tuple paths in the simulation Store
-    # concatenated with double underscores
-    simple_col_select = ["time", "experiment_id"]
-    # Can also use kewword args to rename columns, perform scalar operations,
-    # slice/index lists, and more using expressions
-    advanced_col_projection = {
-        "time_since_division": pl.col("time"),
-        "cell_mass_picogram": pl.col("listeners__mass__cell_mass") / 1000,
-        "rna_synth_prob": pl.col("listeners__rna_synth_prob__actual_rna_synth_prob"),
-        **named_idx("bulk", bulk_idx.keys(), bulk_idx.values()),
-    }
-    history_lf = history_lf.select(simple_col_select, **advanced_col_projection)
+    # Use SELECT statement to select and perform calculations on columns
+    selected_history = duckdb.sql(f"""
+        SELECT
+            -- Simple selection (comments in SQL are marked with double dash)
+            time, experiment_id,
+            -- Can perform calculations and give columns aliases with AS
+            time / 60 AS minutes_since_division,
+            listeners__mass__cell_mass / 1000 as cell_mass_picogram,
+            listeners__rna_synth_prob__actual_rna_synth_prob as rna_synth_prob,
+            {ndidx_to_pl_expr("listeners__rna_synth_prob__n_bound_TF_per_TU", [[1,2], [3,4]])},
+            {", ".join(named_idx("bulk", bulk_idx.keys(), bulk_idx.values()))}
+        FROM history
+        -- Apply filter using WHERE clause
+        WHERE {data_filters}
+        -- MUST explicitly order by time
+        ORDER BY time ASC
+    """).arrow()
 
-    # NOTE: Must explicitly sort by ``time`` column or rows may be out of order
-    history_lf = history_lf.sort("time")
-
-    # When satisfied with your query, call ``collect`` on your LazyFrame
-    # Always set streaming to True so Polars can process data in batches
-    # and greatly reduce memory usage
-    history_df = history_lf.collect(streaming=True)
-
-    # Polars offers many tools to filter, join, and transform data
+    # DuckDB offers many tools to filter, join, and transform data
     # Check their documentation to see if they have a function to
-    # do what you want before converting to a Numpy array / Pandas DF
-    rna_synth_prob = ndlist_to_ndarray(history_df["rna_synth_prob"])
+    # do what you want before converting to Numpy, Pandas, Polars, etc.
+    rna_synth_prob = ndlist_to_ndarray(selected_history["rna_synth_prob"])
     # Leverage the 2-D array to perform vectorized operations
     cistron_tu_mat = sim_data.process.transcription.cistron_tu_mapping_matrix
     rna_synth_prob_per_cistron = cistron_tu_mat.dot(rna_synth_prob.T).T
 
-    # Now you can use matplotlib as usual or, if you kept your data
-    # in a Polars dataframe, use their plotting capabilities
-    plt.plot(history_df["time"], rna_synth_prob_per_cistron[0])
+    plt.plot(selected_history["minutes_since_division"], rna_synth_prob_per_cistron[0])
 
     # Anything that you want to save should be saved using relative file
     # paths. The absolute output directory is given as a CLI or JSON
     # config option to scripts/run_analysis.py
     os.makedirs(os.path.join(outdir, "plots"), exist_ok=True)
-    os.makedirs(os.path.join(outdir, "data"), exist_ok=True)
     plt.savefig(os.path.join(outdir, "plots/test.svg"))
-    history_df.write_parquet(os.path.join(outdir, "data/test_data.pq"))
