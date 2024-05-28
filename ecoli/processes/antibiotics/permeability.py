@@ -88,7 +88,7 @@ class Permeability(Step):
 def main():
     sim_time = 10
 
-    initial_state = get_state_from_file(path="data/vivecoli_t2000.json")
+    initial_state = get_state_from_file(path="data/vivecoli_t2527.json")
     initial_state["boundary"] = {}
     initial_state["boundary"]["surface_area"] = SA_AVERAGE
     porin_idx_1 = np.where(initial_state["bulk"]["id"] == "CPLX0-7533[o]")[0]

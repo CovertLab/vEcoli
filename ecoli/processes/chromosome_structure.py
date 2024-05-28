@@ -97,6 +97,7 @@ class ChromosomeStructure(Step):
         self.protein_sequences = self.parameters["protein_sequences"]
         self.n_TUs = self.parameters["n_TUs"]
         self.n_TFs = self.parameters["n_TFs"]
+        self.rna_ids = self.parameters["rna_ids"]
         self.n_amino_acids = self.parameters["n_amino_acids"]
         self.n_fragment_bases = self.parameters["n_fragment_bases"]
         replichore_lengths = self.parameters["replichore_lengths"]
@@ -153,6 +154,10 @@ class ChromosomeStructure(Step):
                         "headon_collision_coordinates": [],
                         "codirectional_collision_coordinates": [],
                         "n_removed_ribosomes": 0,
+                        "incomplete_transcription_events": (
+                            np.zeros(self.n_TUs, np.int64),
+                            self.rna_ids,
+                        ),
                     }
                 )
             },
@@ -584,6 +589,9 @@ class ChromosomeStructure(Step):
             RNA_RNAP_indexes, RNAP_unique_indexes[removed_RNAPs_mask]
         )
 
+        # Initialize counts of incomplete transcription events
+        incomplete_transcription_event = np.zeros(self.n_TUs)
+
         # Remove RNAPs and RNAs that have collided with replisomes
         if n_total_collisions > 0:
             if removed_RNAPs_mask.sum() > 0:
@@ -603,6 +611,9 @@ class ChromosomeStructure(Step):
 
             if n_initiated_sequences > 0:
                 incomplete_rna_indexes = RNA_TU_indexes[removed_RNAs_mask]
+                incomplete_transcription_event = np.bincount(
+                    incomplete_rna_indexes, minlength=self.n_TUs
+                )
 
                 incomplete_sequences = buildSequences(
                     self.rna_sequences,
@@ -655,6 +666,12 @@ class ChromosomeStructure(Step):
                 update["bulk"].append((self.mature_rna_idx, mature_rna_counts))
                 update["bulk"].append((self.fragmentBasesIdx, base_counts))
                 update["bulk"].append((self.ppi_idx, n_ppi_added))
+
+            assert n_initiated_sequences == incomplete_transcription_event.sum()
+
+        update["listeners"]["rnap_data"]["incomplete_transcription_event"] = (
+            incomplete_transcription_event
+        )
 
         # Get mask for ribosomes that are bound to nonexisting mRNAs
         remaining_RNA_unique_indexes = RNA_unique_indexes[

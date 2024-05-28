@@ -20,7 +20,7 @@ def run_experiment():
     )
     ecoli.total_time = total_time
     ecoli.build_ecoli()
-    ecoli.generated_initial_state["agents"]["0"]["division_threshold"] = 572.2
+    ecoli.generated_initial_state["agents"]["0"]["division_threshold"] = 724.4
 
     # Save list of bulk indices to index bulk emits
     bulk_ids = ecoli.generated_initial_state["agents"]["0"]["bulk"]["id"]

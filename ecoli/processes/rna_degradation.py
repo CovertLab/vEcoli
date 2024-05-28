@@ -169,12 +169,6 @@ class RnaDegradation(PartitionedProcess):
         self.endo_degradation_stoich_matrix[ppi_idx, :] = 1
         self.endo_degradation_stoich_matrix[proton_idx, :] = 0
 
-        self.ribosome30S = self.parameters["ribosome30S"]
-        self.ribosome50S = self.parameters["ribosome50S"]
-        self.rrfa_idx = self.parameters["rrfa_idx"]
-        self.rrla_idx = self.parameters["rrla_idx"]
-        self.rrsa_idx = self.parameters["rrsa_idx"]
-
         # Load Michaelis-Menten constants fitted to recapitulate
         # first-order RNA decay model
         self.Kms = self.parameters["Kms"]
@@ -229,8 +223,6 @@ class RnaDegradation(PartitionedProcess):
             )
             self.endoRNase_idx = bulk_name_to_idx(self.endoRNase_ids, bulk_ids)
             self.exoRNase_idx = bulk_name_to_idx(self.exoRNase_ids, bulk_ids)
-            self.ribosome30S_idx = bulk_name_to_idx(self.ribosome30S, bulk_ids)
-            self.ribosome50S_idx = bulk_name_to_idx(self.ribosome50S, bulk_ids)
             self.water_idx = bulk_name_to_idx(self.water_id, bulk_ids)
             self.proton_idx = bulk_name_to_idx(self.proton_id, bulk_ids)
 
@@ -239,16 +231,9 @@ class RnaDegradation(PartitionedProcess):
         cell_volume = cell_mass / self.cell_density
         counts_to_molar = 1 / (self.n_avogadro * cell_volume)
 
-        # Get total counts of RNAs including rRNAs, charged tRNAs, and active
-        # (translatable) unique mRNAs
+        # Get total counts of RNAs including free rRNAs, uncharged and charged tRNAs, and
+        # active (translatable) unique mRNAs
         bulk_RNA_counts = counts(states["bulk"], self.bulk_rnas_idx)
-        bulk_RNA_counts[self.rrsa_idx] += counts(states["bulk"], self.ribosome30S_idx)
-        bulk_RNA_counts[[self.rrla_idx, self.rrfa_idx]] += counts(
-            states["bulk"], self.ribosome50S_idx
-        )
-        bulk_RNA_counts[[self.rrla_idx, self.rrfa_idx, self.rrsa_idx]] += states[
-            "active_ribosome"
-        ]["_entryState"].sum()
         bulk_RNA_counts[self.uncharged_trna_indexes] += counts(
             states["bulk"], self.charged_trna_idx
         )
@@ -324,7 +309,7 @@ class RnaDegradation(PartitionedProcess):
         # Boolean variable that tracks existence of each RNA
         rna_exists = (total_RNA_counts > 0).astype(np.int64)
 
-        # Compute degradation probabilities of each RNA: for mRNAs, this
+        # Compute degradation probabilities of each RNA: for mRNAs and rRNAs, this
         # is based on the specificity of each mRNA. For tRNAs and rRNAs,
         # this is distributed evenly.
         if self.degrade_misc:
@@ -343,11 +328,15 @@ class RnaDegradation(PartitionedProcess):
                 * self.is_mRNA
                 * rna_exists
             )
+        rrna_deg_probs = (
+            1.0
+            / np.dot(rna_specificity, self.is_rRNA * rna_exists)
+            * rna_specificity
+            * self.is_rRNA
+            * rna_exists
+        )
         trna_deg_probs = (
             1.0 / np.dot(self.is_tRNA, rna_exists) * self.is_tRNA * rna_exists
-        )
-        rrna_deg_probs = (
-            1.0 / np.dot(self.is_rRNA, rna_exists) * self.is_rRNA * rna_exists
         )
 
         # Mask RNA counts into each class of RNAs
@@ -377,15 +366,13 @@ class RnaDegradation(PartitionedProcess):
         # mRNA becomes a full transcript to simplify the transcript elongation
         # process.
         n_bulk_RNAs_to_degrade = n_RNAs_to_degrade.copy()
-        n_bulk_RNAs_to_degrade[self.is_mRNA] = 0
+        n_bulk_RNAs_to_degrade[self.is_mRNA.astype(bool)] = 0
         self.n_unique_RNAs_to_deactivate = n_RNAs_to_degrade.copy()
-        self.n_unique_RNAs_to_deactivate[np.logical_not(self.is_mRNA)] = 0
+        self.n_unique_RNAs_to_deactivate[np.logical_not(self.is_mRNA.astype(bool))] = 0
 
         requests.setdefault("bulk", []).extend(
             [
                 (self.bulk_rnas_idx, n_bulk_RNAs_to_degrade),
-                (self.endoRNase_idx, counts(states["bulk"], self.endoRNase_idx)),
-                (self.exoRNase_idx, counts(states["bulk"], self.exoRNase_idx)),
                 (
                     self.fragment_bases_idx,
                     counts(states["bulk"], self.fragment_bases_idx),

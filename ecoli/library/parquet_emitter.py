@@ -325,7 +325,6 @@ class ParquetEmitter(Emitter):
         # In colony simulations, EngineProcess will terminate simulation
         # immediately upon division (following branch is never invoked)
         if len(data["data"]["agents"]) > 1:
-            self._finalize()
             return
         for agent_data in data["data"]["agents"].values():
             agent_data["time"] = float(data["data"]["time"])

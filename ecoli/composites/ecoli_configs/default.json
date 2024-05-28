@@ -20,7 +20,7 @@
     "initial_state_overrides": [],
     "initial_state": {},
     "time_step": 1.0,
-    "total_time": 3000.0,
+    "total_time": 10800.0,
     "initial_global_time": 0.0,
 
     "variants": {},
@@ -38,6 +38,8 @@
         "rnapoly_fitting": true,
         "remove_rrna_operons": false,
         "remove_rrff": false,
+        "stable_rrna": false,
+        "new_genes": "off",
         "debug_parca": false,
         "load_intermediate": null,
         "save_intermediates": false,
@@ -61,6 +63,8 @@
     "chromosome_path": ["unique", "full_chromosome"],
     "spatial_environment": false,
     "spatial_environment_config": {},
+    "fixed_media": "minimal",
+    "condition": "basal",
 
     "save": false,
     "save_times": [],
@@ -80,6 +84,7 @@
 
         "ecoli-equilibrium",
         "ecoli-two-component-system",
+        "ecoli-rna-maturation",
 
         "ecoli-tf-binding",
 
@@ -92,7 +97,6 @@
 
         "ecoli-transcript-elongation",
         "ecoli-polypeptide-elongation",
-        "ecoli-rna-maturation",
 
         "ecoli-chromosome-structure",
 
@@ -132,6 +136,7 @@
 
         "ecoli-equilibrium": [["ecoli-tf-unbinding"]],
         "ecoli-two-component-system": [["ecoli-tf-unbinding"]],
+        "ecoli-rna-maturation": [["ecoli-tf-unbinding"]],
 
         "ecoli-tf-binding": [["ecoli-equilibrium"]],
 
@@ -144,9 +149,8 @@
 
         "ecoli-transcript-elongation": [["ecoli-complexation"]],
         "ecoli-polypeptide-elongation": [["ecoli-complexation"]],
-        "ecoli-rna-maturation": [["ecoli-complexation"]],
 
-        "ecoli-chromosome-structure": [["ecoli-rna-maturation"]],
+        "ecoli-chromosome-structure": [["ecoli-polypeptide-elongation"]],
 
         "ecoli-metabolism": [["ecoli-chromosome-structure"]],
 
