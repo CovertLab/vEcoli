@@ -25,14 +25,14 @@ will be contained in columns with this prefix.
 """
 
 
-def num_cells(configuration: duckdb.DuckDBPyRelation) -> int:
+def num_cells(config_num_cells: duckdb.DuckDBPyRelation) -> int:
     """
     Return cell count in filtered DuckDB relation (requires ``experiment_id``,
     ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns).
     """
     return duckdb.sql("""SELECT count(
         DISTINCT experiment_id, variant, lineage_seed, generation, agent_id
-        ) FROM configuration""")
+        ) AS m FROM config_num_cells""").arrow()["m"][0].as_py()
 
 
 def ndlist_to_ndarray(s: pa.Array) -> np.ndarray:
@@ -128,7 +128,10 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> list[str]:
     return [f"{col}[{i + 1}] AS \"{n}\"" for n, i in zip(names, idx)]
 
 
-def get_field_metadata(configuration: duckdb.DuckDBPyRelation, field: str) -> list:
+def get_field_metadata(
+    config_field_metadata: duckdb.DuckDBPyRelation,
+    field: str
+) -> list:
     """
     Gets the saved metadata for a given field as a list.
 
@@ -138,7 +141,28 @@ def get_field_metadata(configuration: duckdb.DuckDBPyRelation, field: str) -> li
         field: Name of field to get metadata for
     """
     metadata = duckdb.sql(
-        f"SELECT first({METADATA_PREFIX + field}) AS m FROM configuration"
+        f"SELECT first({METADATA_PREFIX + field}) AS m FROM config_field_metadata"
+    ).arrow()["m"][0]
+    metadata_val = metadata.as_py()
+    if isinstance(metadata_val, list):
+        return metadata_val
+    return list(metadata_val)
+
+
+def get_config_value(
+    config_get_value: duckdb.DuckDBPyRelation,
+    config_opt: str
+) -> Any:
+    """
+    Gets the saved configuration option.
+
+    Args:
+        config_lf: DuckDB relation of configuration data from
+            :py:func:`~ecoli.library.parquet_emitter.get_duckdb_relation`
+        field: Name of configuration option to get value pf
+    """
+    metadata = duckdb.sql(
+        f"SELECT first(data__{config_opt}) AS m FROM config_get_value"
     ).arrow()["m"][0]
     return metadata.as_py()
 
