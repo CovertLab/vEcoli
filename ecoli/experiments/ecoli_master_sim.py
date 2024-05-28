@@ -302,6 +302,11 @@ class SimConfig:
                 action="store",
                 help="Seed used for first cell in lineage.",
             )
+            self.parser.add_argument(
+                "--initial_global_time",
+                action="store",
+                help="Initial time in context of whole lineage.",
+            )
 
     @staticmethod
     def merge_config_dicts(d1: dict[str, Any], d2: dict[str, Any]) -> None:
@@ -747,6 +752,8 @@ class EcoliSim:
                     )
                     write_json(daughter_path, agent_state)
                 print(f"Divided at t = {self.ecoli_experiment.global_time}.")
+                with open("last_division_time.sh", "w") as f:
+                    f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 sys.exit()
             time_elapsed = self.save_times[i]
             state = self.ecoli_experiment.state.get_value(condition=not_a_process)
