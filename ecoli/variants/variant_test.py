@@ -4,7 +4,7 @@ if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
 
-def variant_test(
+def apply_variant(
     sim_data: "SimulationDataEcoli", params: dict[str, list[Any]]
 ) -> "SimulationDataEcoli":
     """

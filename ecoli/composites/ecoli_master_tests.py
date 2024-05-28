@@ -12,6 +12,7 @@ import warnings
 from vivarium.core.engine import Engine
 from vivarium.core.control import run_library_cli
 
+from ecoli.library.schema import bulk_name_to_idx
 from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data
 from ecoli.plots.snapshots_video import make_video
 from ecoli.composites.ecoli_configs import (
@@ -27,7 +28,7 @@ def test_division(agent_id="0", total_time=4):
 
     # get initial mass from Ecoli composer
     sim = EcoliSim.from_file()
-    sim.config["initial_state_file"] = "vivecoli_t2000"
+    sim.config["initial_state_file"] = "vivecoli_t2527"
     sim.config["divide"] = True
     sim.config["division_variable"] = ("listeners", "mass", "dry_mass")
     sim.config["agent_id"] = agent_id
@@ -37,7 +38,7 @@ def test_division(agent_id="0", total_time=4):
     sim.build_ecoli()
 
     # Set threshold so that mother divides after first timestep
-    sim.generated_initial_state["agents"]["0"]["division_threshold"] = 572.2
+    sim.generated_initial_state["agents"]["0"]["division_threshold"] = 724.4
     sim.run()
 
     # retrieve output
@@ -60,19 +61,37 @@ def test_division(agent_id="0", total_time=4):
     ribosome_idx = np.array(
         [polypep_init.ribosome30S_idx, polypep_init.ribosome50S_idx]
     )
-    ignore_idx = np.concatenate(
-        [metabolite_idx, trna_charging_idx, ppgpp_idx, ribosome_idx]
+    # ignore fragment bases, which also change before division
+    fragment_base_idx = (
+        sim.ecoli_experiment.state["agents"]["00"]["process"]["ecoli-rna-maturation"]
+        .value[0]
+        .fragment_base_idx
     )
-    mother_state = next(iter(output[1]["agents"].values()))
+    # ignore high-count membrane-related proteins, which also change before division
+    membrane_idx = bulk_name_to_idx(
+        ["EG10544-MONOMER[m]", "EG10669-MONOMER[o]", "EG50003-MONOMER[c]"],
+        sim.ecoli_experiment.state["agents"]["00"]["bulk"].value["id"],
+    )
+    ignore_idx = np.concatenate(
+        [
+            metabolite_idx,
+            trna_charging_idx,
+            ppgpp_idx,
+            ribosome_idx,
+            fragment_base_idx,
+            membrane_idx,
+        ]
+    )
+    mother_state = next(iter(output[0]["agents"].values()))
     mother_bulk = np.delete(mother_state["bulk"], ignore_idx)
-    daughter_states = list(output[2]["agents"].values())
+    daughter_states = list(output[1]["agents"].values())
     daughter_bulk = [np.delete(ds["bulk"], ignore_idx) for ds in daughter_states]
 
     # compare the counts of bulk molecules between the mother and daughters
     # this is not exact because the mother grew slightly in the timestep
     # after its last emit but before being split into two daughter cells
     assert np.allclose(
-        mother_bulk, np.array(daughter_bulk[0]) + np.array(daughter_bulk[1]), atol=50
+        mother_bulk, np.array(daughter_bulk[0]) + np.array(daughter_bulk[1]), atol=20
     )
 
     # compare the counts of unique molecules between the mother and daughters
@@ -107,7 +126,7 @@ def test_division_topology():
     # get initial mass from Ecoli composer
     sim = EcoliSim.from_file()
     sim.config["seed"] = 1
-    sim.config["initial_state_file"] = "vivecoli_t2000"
+    sim.config["initial_state_file"] = "vivecoli_t2527"
     sim.config["divide"] = True
     sim.config["agent_id"] = agent_id
     sim.build_ecoli()
