@@ -11,8 +11,8 @@ process simGen0 {
     val agent_id
 
     output:
-    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d0), path('daughter_state_0.json'), val(agent_id_d0), emit: nextGen0
-    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d1), path('daughter_state_1.json'), val(agent_id_d1), emit: nextGen1
+    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d0), path('daughter_state_0.json'), val(agent_id_d0), env(division_time) emit: nextGen0
+    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d1), path('daughter_state_1.json'), val(agent_id_d1), env(division_time) emit: nextGen1
     // This information is necessary to group simulations for analysis scripts
     // In order: variant sim_data, experiment ID, variant name, seed, generation, agent_id, experiment ID
     tuple path(sim_data), val(params.experimentId), val("${sim_data.getBaseName()}"), val(lineage_seed), val(generation), val(agent_id), emit: metadata
@@ -27,6 +27,7 @@ process simGen0 {
     # Create empty daughter states so workflow can continue even if sim fails
     touch daughter_state_0.json
     touch daughter_state_1.json
+    touch division_time.sh
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/ecoli/experiments/ecoli_master_sim.py \\
         -c $config \\
         --sim_data_path $sim_data \\
@@ -35,6 +36,7 @@ process simGen0 {
         --seed ${lineage_seed} \\
         --lineage_seed ${lineage_seed} \\
         --agent_id \'${agent_id}\'
+    source division_time.sh
     """
 
     // Used to test workflow
@@ -47,6 +49,7 @@ process simGen0 {
     """
     echo "$config $sim_data $lineage_seed $generation" > daughter_state_0.json
     echo "$sim_seed" > daughter_state_1.json
+    export division_time=1000
     """
 }
 
@@ -75,6 +78,7 @@ process sim {
     # Create empty daughter states so workflow can continue even if sim fails
     touch daughter_state_0.json
     touch daughter_state_1.json
+    touch division_time.sh
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/ecoli/experiments/ecoli_master_sim.py \\
         -c $config \\
         --sim_data_path $sim_data \\
@@ -84,6 +88,7 @@ process sim {
         --seed ${sim_seed} \\
         --lineage_seed ${lineage_seed} \\
         --agent_id \'${agent_id}\'
+    source division_time.sh
     """
 
     stub:
@@ -95,5 +100,6 @@ process sim {
     """
     echo "$config $sim_data $lineage_seed $generation" > daughter_state_0.json
     echo "$initial_state $sim_seed" > daughter_state_1.json
+    export division_time=1000
     """
 }
