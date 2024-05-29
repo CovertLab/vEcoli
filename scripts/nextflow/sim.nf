@@ -11,8 +11,8 @@ process simGen0 {
     val agent_id
 
     output:
-    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d0), path('daughter_state_0.json'), val(agent_id_d0), env(division_time) emit: nextGen0
-    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d1), path('daughter_state_1.json'), val(agent_id_d1), env(division_time) emit: nextGen1
+    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d0), path('daughter_state_0.json'), val(agent_id_d0), env(division_time), emit: nextGen0
+    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d1), path('daughter_state_1.json'), val(agent_id_d1), env(division_time), emit: nextGen1
     // This information is necessary to group simulations for analysis scripts
     // In order: variant sim_data, experiment ID, variant name, seed, generation, agent_id, experiment ID
     tuple path(sim_data), val(params.experimentId), val("${sim_data.getBaseName()}"), val(lineage_seed), val(generation), val(agent_id), emit: metadata
@@ -61,11 +61,11 @@ process sim {
     tag "variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
     input:
-    tuple path(config), path(sim_data), val(lineage_seed), val(generation), val(sim_seed), path(initial_state, stageAs: 'data/*'), val(agent_id)
+    tuple path(config), path(sim_data), val(lineage_seed), val(generation), val(sim_seed), path(initial_state, stageAs: 'data/*'), val(agent_id), val(prev_division_time)
 
     output:
-    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d0), path('daughter_state_0.json'), val(agent_id_d0), emit: nextGen0
-    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d1), path('daughter_state_1.json'), val(agent_id_d1), emit: nextGen1
+    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d0), path('daughter_state_0.json'), val(agent_id_d0), env(division_time), emit: nextGen0
+    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d1), path('daughter_state_1.json'), val(agent_id_d1), env(division_time), emit: nextGen1
     tuple path(sim_data), val(params.experimentId), val("${sim_data.getBaseName()}"), val(lineage_seed), val(generation), val(agent_id), emit: metadata
 
     script:
@@ -87,7 +87,8 @@ process sim {
         --variant ${sim_data.getBaseName()} \\
         --seed ${sim_seed} \\
         --lineage_seed ${lineage_seed} \\
-        --agent_id \'${agent_id}\'
+        --agent_id \'${agent_id}\' \\
+        --initial_global_time ${prev_division_time}
     source division_time.sh
     """
 
