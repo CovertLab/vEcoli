@@ -20,19 +20,19 @@ MULTIDAUGHTER_CHANNEL = """
     generationSize = {gen_size}
     simCh
         .map {{ tuple(groupKey(it[1..4], generationSize[it[4]]), it[0], it[1], it[2], it[3], it[4] ) }}
-        .groupTuple()
+        .groupTuple(remainder: true)
         .map {{ tuple(it[1][0], it[2][0], it[3][0], it[4][0], it[5][0]) }}
         .set {{ multiDaughterCh }}
 """
 MULTIGENERATION_CHANNEL = """
     simCh
-        .groupTuple(by: [1, 2, 3], size: {size})
+        .groupTuple(by: [1, 2, 3], size: {size}, remainder: true)
         .map {{ tuple(it[0][0], it[1], it[2], it[3]) }}
         .set {{ multiGenerationCh }}
 """
 MULTISEED_CHANNEL = """
     simCh
-        .groupTuple(by: [1, 2], size: {size})
+        .groupTuple(by: [1, 2], size: {size}, remainder: true)
         .map {{ tuple(it[0][0], it[1], it[2]) }}
         .set {{ multiSeedCh }}
 """
@@ -40,7 +40,7 @@ MULTIVARIANT_CHANNEL = """
     // Group once to deduplicate variant names and pickles
     // Group again into single value for entire experiment
     simCh
-        .groupTuple(by: [1, 2], size: {size})
+        .groupTuple(by: [1, 2], size: {size}, remainder: true)
         .map {{ tuple(it[0][0], it[1], it[2]) }}
         .groupTuple(by: [1])
         .set {{ multiVariantCh }}

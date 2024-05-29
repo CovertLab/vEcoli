@@ -162,7 +162,7 @@ def plot(
         ),
         unnest_counts AS (
             SELECT
-                -- Unnest gene copy number to perform aggregations (e.g. mean, stddev)
+                -- Unnest RNA counts to perform aggregations (e.g. mean, stddev)
                 unnest(rna_counts) AS rna_counts,
                 -- Track list index for each unnested row for grouped aggregations
                 generate_subscripts(rna_counts, 1) as rna_idx,
