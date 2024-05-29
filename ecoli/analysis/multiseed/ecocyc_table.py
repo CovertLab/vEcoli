@@ -130,7 +130,7 @@ def plot(
     }
     gene_to_rna_order_idx = pl.DataFrame({
         "rna_idx": [gene_id_to_idx[gene] for gene in gene_ids],
-        "row_num": list(range(1, len(gene_ids) + 1))
+        "gene_idx": list(range(1, len(gene_ids) + 1))
     })
     rna_data = duckdb.sql(
         f"""
@@ -214,10 +214,10 @@ def plot(
             JOIN (
                 SELECT
                     "gene-copy-number-avg", "gene-copy-number-std", 
-                    row_number() OVER () AS row_num
+                    row_number() OVER () AS gene_idx
                 FROM aggregates
             )
-            USING (row_num)
+            USING (gene_idx)
         )
         USING (rna_idx)
         ORDER BY rna_idx
