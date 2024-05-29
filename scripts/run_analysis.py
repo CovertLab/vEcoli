@@ -58,6 +58,7 @@ def main():
     parser.add_argument(
         "--validation_data_path",
         "--validation-data-path",
+        nargs="*",
         help="Path to the validation_data pickle(s) to use.",
     )
     parser.add_argument(
