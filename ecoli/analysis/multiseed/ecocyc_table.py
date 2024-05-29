@@ -114,31 +114,12 @@ def plot(
         sim_data.molecule_ids.s50_full_complex,
     ]
     ribo_subunit_idx = [bulk_id_to_idx[ribo] for ribo in ribosomal_subunit_ids]
-
-    # Reorder gene copy number listener to match RNA counts
-    cistron_id_to_gene_id = {
-        cistron["id"]: cistron["gene_id"]
-        for cistron in sim_data.process.transcription.cistron_data
-    }
-    gene_ids = [cistron_id_to_gene_id[rna_id]
-        for rna_id in mRNA_ids + tRNA_cistron_ids + rRNA_cistron_ids]
-    gene_ids_rna_synth_prob = get_field_metadata(
-        config_skip_n_gens, "listeners__rna_synth_prob__gene_copy_number"
-    )
-    gene_id_to_idx = {
-        gene: i + 1 for i, gene in enumerate(gene_ids_rna_synth_prob)
-    }
-    gene_to_rna_order_idx = pl.DataFrame({
-        "rna_idx": [gene_id_to_idx[gene] for gene in gene_ids],
-        "gene_idx": list(range(1, len(gene_ids) + 1))
-    })
     rna_data = duckdb.sql(
         f"""
         WITH filter_first AS (
             SELECT
-                -- Create RNA counts list of mRNAs, tRNAs, and rRNAs (in
-                -- that order), then unnest to perform aggregations (e.g. mean).
-                unnest(list_concat(
+                -- Create RNA counts list of mRNAs, tRNAs, and rRNAs (in order)
+                list_concat(
                     listeners__rna_counts__mRNA_cistron_counts,
                     list_concat(
                         -- tRNA = charged + uncharged
@@ -165,63 +146,81 @@ def plot(
                             ]
                         )  
                     )
-                )) AS rna_counts,
-                -- Unnest gene copy number to perform aggregations (e.g. mean, stddev)
-                unnest(listeners__rna_synth_prob__gene_copy_number) AS gene_copy_numbers,
-                -- Track list index for each unnested row for grouped aggregations
-                generate_subscripts(listeners__rna_synth_prob__gene_copy_number, 1) as gene_idx,
+                ) AS rna_counts,
                 listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar,
                 listeners__mass__dry_mass AS dry_masses
             FROM history_skip_n_gens
             -- Filter out first timestep for each cell because counts_to_molar is 0
-            QUALIFY row_number() OVER (
-                PARTITION BY lineage_seed, generation, agent_id
-                ORDER BY time
-            ) != 1
+            WHERE (lineage_seed, generation, agent_id, time) NOT IN (
+                SELECT
+                    (lineage_seed, generation, agent_id, MIN(time))
+                FROM
+                    history_skip_n_gens
+                GROUP BY
+                    lineage_seed, generation, agent_id
+            )
         ),
-        -- Materialize aggregation CTE so can reuse without recomputing
-        aggregates AS MATERIALIZED (
+        unnest_counts AS (
             SELECT
-                avg(rna_counts) AS "rna-count-avg",
-                stddev(rna_counts) AS "rna-count-std",
-                avg(rna_counts * counts_to_molar) AS "rna-concentration-avg",
-                stddev(rna_counts * counts_to_molar) AS "rna-concentration-std",
-                avg(dry_masses) AS "dry-masses-avg",
-                avg(gene_copy_numbers) AS "gene-copy-number-avg",
-                stddev(gene_copy_numbers) AS "gene-copy-number-std"
+                -- Unnest gene copy number to perform aggregations (e.g. mean, stddev)
+                unnest(rna_counts) AS rna_counts,
+                -- Track list index for each unnested row for grouped aggregations
+                generate_subscripts(rna_counts, 1) as rna_idx,
+                counts_to_molar, dry_masses
             FROM filter_first
-            GROUP BY gene_idx
-            ORDER BY gene_idx
         )
         SELECT
-            "rna-count-avg", "rna-count-std", "rna-concentration-avg",
-            "rna-concentration-std", "dry-masses-avg", "gene-copy-number-avg",
-            "gene-copy-number-std"
-        -- Sort gene copy number aggregates by joining with gene_to_rna_order_idx,
-        -- a Polars DataFrame that maps the ordering of genes in the gene copy number
-        -- listener to the ordering of genes in the RNA count aggregates.
-        FROM (
-            SELECT
-                "rna-count-avg", "rna-count-std", "rna-concentration-avg",
-                "rna-concentration-std", "dry-masses-avg",
-                row_number() OVER () AS rna_idx
-            FROM aggregates
-        )
-        JOIN (
-            SELECT
-                "gene-copy-number-avg", "gene-copy-number-std", rna_idx
-            FROM gene_to_rna_order_idx
-            JOIN (
-                SELECT
-                    "gene-copy-number-avg", "gene-copy-number-std", 
-                    row_number() OVER () AS gene_idx
-                FROM aggregates
-            )
-            USING (gene_idx)
-        )
-        USING (rna_idx)
+            avg(rna_counts) AS "rna-count-avg",
+            stddev(rna_counts) AS "rna-count-std",
+            avg(rna_counts * counts_to_molar) AS "rna-concentration-avg",
+            stddev(rna_counts * counts_to_molar) AS "rna-concentration-std",
+            avg(dry_masses) AS "dry-masses-avg"
+        FROM unnest_counts
+        GROUP BY rna_idx
         ORDER BY rna_idx
         """).pl()
+    
+    gene_copy_data = duckdb.sql(
+        """
+        WITH filter_first AS (
+            SELECT
+                -- Unnest gene copy number to perform aggregations (e.g. mean, stddev)
+                unnest(listeners__rna_synth_prob__gene_copy_number) AS gene_copy_numbers,
+                -- Track list index for each unnested row for grouped aggregations
+                generate_subscripts(listeners__rna_synth_prob__gene_copy_number, 1) as gene_idx
+            FROM history_skip_n_gens
+            -- Filter out first timestep for each cell because counts_to_molar is 0
+            WHERE (lineage_seed, generation, agent_id, time) NOT IN (
+                SELECT
+                    (lineage_seed, generation, agent_id, MIN(time))
+                FROM
+                    history_skip_n_gens
+                GROUP BY
+                    lineage_seed, generation, agent_id
+            )
+        )
+        SELECT
+            avg(gene_copy_numbers) AS "gene-copy-number-avg",
+            stddev(gene_copy_numbers) AS "gene-copy-number-std"
+        FROM filter_first
+        GROUP BY gene_idx
+        ORDER BY gene_idx
+        """).pl()
+
+    # Retrieve gene copy numbers in order of RNA counts
+    cistron_id_to_gene_id = {
+        cistron["id"]: cistron["gene_id"]
+        for cistron in sim_data.process.transcription.cistron_data
+    }
+    gene_ids = [cistron_id_to_gene_id[rna_id]
+        for rna_id in mRNA_ids + tRNA_cistron_ids + rRNA_cistron_ids]
+    gene_ids_rna_synth_prob = get_field_metadata(
+        config_skip_n_gens, "listeners__rna_synth_prob__gene_copy_number"
+    )
+    gene_id_to_idx = {
+        gene: i for i, gene in enumerate(gene_ids_rna_synth_prob)
+    }
+    gene_to_rna_order_idx = [gene_id_to_idx[gene] for gene in gene_ids]
 
     # Get RNA molecular weights
     gene_id_to_mw = {
@@ -267,6 +266,10 @@ def plot(
             pl.col("dry-masses-avg").sum()
         )["rna-count-avg"],
         "id": pl.Series(gene_ids),
+        "gene-copy-number-avg": gene_copy_data["gene-copy-number-avg"][
+            gene_to_rna_order_idx],
+        "gene-copy-number-std": gene_copy_data["gene-copy-number-std"][
+            gene_to_rna_order_idx],
     })
 
     columns = {
@@ -310,10 +313,14 @@ def plot(
                 generate_subscripts(listeners__monomer_counts, 1) AS monomer_idx,
             FROM history_skip_n_gens
             -- Filter out first timestep for each cell because counts_to_molar is 0
-            QUALIFY row_number() OVER (
-                PARTITION BY lineage_seed, generation, agent_id
-                ORDER BY time
-            ) != 1
+            WHERE (lineage_seed, generation, agent_id, time) NOT IN (
+                SELECT
+                    (lineage_seed, generation, agent_id, MIN(time))
+                FROM
+                    history_skip_n_gens
+                GROUP BY
+                    lineage_seed, generation, agent_id
+            )
         )
         SELECT
             avg(monomer_counts) AS "protein-count-avg",
@@ -413,10 +420,14 @@ def plot(
                 listeners__mass__dry_mass AS dry_masses,
             FROM history_skip_n_gens
             -- Filter out first timestep for each cell because counts_to_molar is 0
-            QUALIFY row_number() OVER (
-                PARTITION BY lineage_seed, generation, agent_id
-                ORDER BY time
-            ) != 1
+            WHERE (lineage_seed, generation, agent_id, time) NOT IN (
+                SELECT
+                    (lineage_seed, generation, agent_id, MIN(time))
+                FROM
+                    history_skip_n_gens
+                GROUP BY
+                    lineage_seed, generation, agent_id
+            )
         )
         SELECT
             avg(complex_counts) AS "complex-count-avg",
