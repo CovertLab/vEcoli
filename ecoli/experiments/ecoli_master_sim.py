@@ -303,7 +303,7 @@ class SimConfig:
                 help="Seed used for first cell in lineage.",
             )
             self.parser.add_argument(
-                "--initial_global_time",
+                "--initial_global_time", type=float,
                 action="store",
                 help="Initial time in context of whole lineage.",
             )
@@ -752,7 +752,7 @@ class EcoliSim:
                     )
                     write_json(daughter_path, agent_state)
                 print(f"Divided at t = {self.ecoli_experiment.global_time}.")
-                with open("last_division_time.sh", "w") as f:
+                with open("division_time.sh", "w") as f:
                     f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 sys.exit()
             time_elapsed = self.save_times[i]
@@ -851,6 +851,8 @@ class EcoliSim:
                     )
                     write_json(daughter_path, agent_state)
                 print(f"Divided at t = {self.ecoli_experiment.global_time}.")
+                with open("division_time.sh", "w") as f:
+                    f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 sys.exit()
         self.ecoli_experiment.end()
         if self.profile:
