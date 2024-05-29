@@ -31,7 +31,7 @@ def num_cells(config_num_cells: duckdb.DuckDBPyRelation) -> int:
     ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns).
     """
     return duckdb.sql("""SELECT count(
-        DISTINCT experiment_id, variant, lineage_seed, generation, agent_id
+        DISTINCT (experiment_id, variant, lineage_seed, generation, agent_id)
         ) AS m FROM config_num_cells""").arrow()["m"][0].as_py()
 
 
