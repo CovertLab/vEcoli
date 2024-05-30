@@ -1,7 +1,7 @@
 import os
 from typing import Any
 
-import polars as pl
+from duckdb import DuckDBPyConnection
 import pickle
 import hvplot.polars
 
@@ -10,8 +10,7 @@ from ecoli.analysis.template import get_field_metadata, named_idx
 
 def plot(
     params: dict[str, Any],
-    config_lf: pl.LazyFrame,
-    history_lf: pl.LazyFrame,
+    conn: DuckDBPyConnection,
     sim_data_paths: list[str],
     validation_data_paths: list[str],
     outdir: str,
@@ -48,7 +47,8 @@ def plot(
     mRNA_idx_dict = {
         rna[:-3]: i
         for i, rna in enumerate(
-            get_field_metadata(config_lf, "listeners__rna_counts__mRNA_counts")
+            get_field_metadata(
+                conn, "configuration", "listeners__rna_counts__mRNA_counts")
         )
     }
     new_gene_mRNA_indexes = [
@@ -59,7 +59,8 @@ def plot(
     monomer_idx_dict = {
         monomer: i
         for i, monomer in enumerate(
-            get_field_metadata(config_lf, "listeners__monomer_counts")
+            get_field_metadata(
+                conn, "configuration", "listeners__monomer_counts")
         )
     }
     new_gene_monomer_indexes = [
@@ -67,28 +68,25 @@ def plot(
     ]
 
     # Load data
-    columns = {
-        "Time (min)": pl.col("time") / 60,
-        **named_idx(
-            "listeners__monomer_counts", new_gene_monomer_ids, new_gene_monomer_indexes
-        )
-        ** named_idx(
-            "listeners__rna_counts__mRNA_counts",
-            new_gene_mRNA_ids,
-            new_gene_mRNA_indexes,
-        ),
-    }
-    new_gene_data = (
-        history_lf.select(**columns).sort("Time (min)").collect(streaming=True)
-    )
+    new_monomers = ", ".join(named_idx(
+        "listeners__monomer_counts",
+        new_gene_monomer_ids,
+        new_gene_monomer_indexes))
+    new_mRNAs = ", ".join(named_idx(
+        "listeners__rna_counts__mRNA_counts",
+        new_gene_mRNA_ids,
+        new_gene_mRNA_indexes))
+    new_gene_data = conn.sql(
+        f"""
+        SELECT
+            time / 60 AS "Time (min)",
+            {new_monomers},
+            {new_mRNAs}
+        FROM history
+        ORDER BY time
+        """).pl()
 
     # mRNA counts
-    new_gene_data = new_gene_data.rename(
-        {
-            "listeners__rna_counts__mRNA_counts" + mRNA_id: mRNA_id
-            for mRNA_id in new_gene_mRNA_ids
-        }
-    )
     mrna_plot = new_gene_data.plot.line(
         x="Time (min)",
         y=[new_gene_mRNA_ids],
@@ -97,12 +95,6 @@ def plot(
     )
 
     # Protein counts
-    new_gene_data = new_gene_data.rename(
-        {
-            "listeners__monomer_counts" + monomer_id: monomer_id
-            for monomer_id in new_gene_monomer_ids
-        }
-    )
     protein_plot = new_gene_data.plot.line(
         x="Time (min)",
         y=[new_gene_monomer_ids],

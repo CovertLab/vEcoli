@@ -5,10 +5,11 @@ import os
 import warnings
 
 import duckdb
+from fsspec import filesystem
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
-from ecoli.library.parquet_emitter import get_duckdb_relations
+from ecoli.library.parquet_emitter import register_sim_views
 
 FILTERS = {
     "experiment_id": (str, "multi_experiment", "multi_variant"),
@@ -132,19 +133,29 @@ def main():
     for analysis_name in analysis_options:
         analysis_modules[analysis_name] = importlib.import_module(f"ecoli.analysis.{analysis_name}")
     for analysis_name, analysis_mod in analysis_modules.items():
+        # Establish a fresh in-memory DuckDB for every analysis
+        conn = duckdb.connect()
+        out_path = out_dir
+        if out_path is None:
+            out_path = out_uri
+            duckdb.register_filesystem(filesystem("gcs"))
+        conn.execute(f"SET temp_directory = '{out_path}'")
+        conn.execute("SET preserve_insertion_order = false")
         # If no filters were provided, assume analyzing ParCa output
         if analysis_type is None:
             analysis_type = "parca"
         else:
-            # Load Parquet files from output directory / URI specified in config
-            config_rel, history_rel = get_duckdb_relations(out_dir, out_uri)
+            # Register filtered views of Parquet files from output directory
+            # or URI specified in config
+            register_sim_views(conn, out_path)
             duckdb_filter = " AND ".join(duckdb_filter)
-            config_filtered = duckdb.sql(f"SELECT * FROM config_rel WHERE {duckdb_filter}")
-            history_filtered = duckdb.sql(f"SELECT * FROM history_rel WHERE {duckdb_filter}")
+            conn.register("configuration", conn.sql(
+                f"SELECT * FROM unfiltered_configuration WHERE {duckdb_filter}"))
+            conn.register("history", conn.sql(
+                f"SELECT * FROM unfiltered_history WHERE {duckdb_filter}"))
         analysis_mod.plot(
             analysis_options[analysis_name],
-            config_filtered,
-            history_filtered,
+            conn,
             config["sim_data_path"],
             config["validation_data_path"],
             config["outdir"],

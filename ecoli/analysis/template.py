@@ -25,14 +25,15 @@ will be contained in columns with this prefix.
 """
 
 
-def num_cells(config_num_cells: duckdb.DuckDBPyRelation) -> int:
+def num_cells(conn: duckdb.DuckDBPyConnection, view: str) -> int:
     """
-    Return cell count in filtered DuckDB relation (requires ``experiment_id``,
-    ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns).
+    Return cell count in view in DuckDB connection (view must have
+    ``experiment_id``, ``variant``, ``lineage_seed``, ``generation``, and
+    ``agent_id`` columns).
     """
-    return duckdb.sql("""SELECT count(
+    return conn.sql(f"""SELECT count(
         DISTINCT (experiment_id, variant, lineage_seed, generation, agent_id)
-        ) AS m FROM config_num_cells""").arrow()["m"][0].as_py()
+        ) FROM {view}""").fetchone()[0]
 
 
 def ndlist_to_ndarray(s: pa.Array) -> np.ndarray:
@@ -129,48 +130,46 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> list[str]:
 
 
 def get_field_metadata(
-    config_field_metadata: duckdb.DuckDBPyRelation,
+    conn: duckdb.DuckDBPyConnection,
+    config_view: str,
     field: str
 ) -> list:
     """
     Gets the saved metadata for a given field as a list.
 
     Args:
-        config_lf: DuckDB relation of configuration data from
-            :py:func:`~ecoli.library.parquet_emitter.get_duckdb_relation`
+        conn: DuckDB connection
+        config_view: Name of view for configuration data
         field: Name of field to get metadata for
     """
-    metadata = duckdb.sql(
-        f"SELECT first({METADATA_PREFIX + field}) AS m FROM config_field_metadata"
-    ).arrow()["m"][0]
-    metadata_val = metadata.as_py()
-    if isinstance(metadata_val, list):
-        return metadata_val
-    return list(metadata_val)
+    metadata = conn.sql(
+        f"SELECT first({METADATA_PREFIX + field}) FROM \"{config_view}\""
+    ).fetchone()[0]
+    if isinstance(metadata, list):
+        return metadata
+    return list(metadata)
 
 
 def get_config_value(
-    config_get_value: duckdb.DuckDBPyRelation,
+    conn: duckdb.DuckDBPyConnection,
+    config_view: str,
     config_opt: str
 ) -> Any:
     """
     Gets the saved configuration option.
 
     Args:
-        config_lf: DuckDB relation of configuration data from
-            :py:func:`~ecoli.library.parquet_emitter.get_duckdb_relation`
+        conn: DuckDB connection
+        config_view: Name of view for configuration data
         field: Name of configuration option to get value pf
     """
-    metadata = duckdb.sql(
-        f"SELECT first(data__{config_opt}) AS m FROM config_get_value"
-    ).arrow()["m"][0]
-    return metadata.as_py()
+    return conn.sql(
+        f"SELECT first(data__{config_opt}) FROM {config_view}").fetchone()[0]
 
 
 def plot(
     params: dict[str, Any],
-    configuration: duckdb.DuckDBPyRelation,
-    history: duckdb.DuckDBPyRelation,
+    conn: duckdb.DuckDBPyConnection,
     sim_data_path: list[str],
     validation_data_path: list[str],
     outdir: str,
@@ -181,8 +180,9 @@ def plot(
 
     Args:
         params: Parameters for analysis from config JSON
-        configuration: DuckDB relation containing configuration data
-        history: DuckDB relation containing simulation output
+        conn: DuckDB connection with simulation output registered as view
+            named ``history`` and simulation configs registered as
+            view named ``configuration``
         sim_data_path: Path to sim_data pickle
         validation_data_path: Path to validation_data pickle
         outdir: Output directory
@@ -204,13 +204,13 @@ def plot(
     # Say we wanted to get the indices of certain bulk molecules in the
     # bulk counts array by name for agent_id ``01``
     molecules_of_interest = ["GUANOSINE-5DP-3DP[c]", "WATER[c]", "PROTON[c]"]
-    bulk_names = get_field_metadata(configuration, "bulk")
+    bulk_names = get_field_metadata(conn, "configuration", "bulk")
     bulk_idx = {}
     for mol in molecules_of_interest:
         bulk_idx[mol] = bulk_names.index(mol)
 
     # Use SELECT statement to select and perform calculations on columns
-    selected_history = duckdb.sql(f"""
+    selected_history = conn.sql(f"""
         SELECT
             -- Simple selection (comments in SQL are marked with double dash)
             time, experiment_id,
