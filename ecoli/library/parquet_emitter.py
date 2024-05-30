@@ -84,25 +84,18 @@ def json_to_parquet(
     pathlib.Path(ndjson).unlink()
 
 
-def get_duckdb_relations(
-    out_dir: Union[str, pathlib.Path] = None, out_uri: str = None
-) -> tuple[duckdb.DuckDBPyRelation, duckdb.DuckDBPyRelation]:
+def register_sim_views(
+    conn: duckdb.DuckDBPyConnection = None, out_path: str = None
+):
     """
-    Return DuckDB relations for sim configs and sim outputs.
+    Register views of sim configs and outputs in DuckDB connection under
+    the names ``configuration`` and ``history``.
 
     Args:
-        out_dir: Relative or absolute path to local directory containing
-            ``history`` and ``configuration`` subdirectories
-        out_uri: URI equivalent of ``out_dir`` (takes precedence)
-
-    Returns:
-        Tuple ``(sim config relation, sim output relation)``.
+        conn: DuckDB connection to register views in
+        out_path: Path to directory containing ``history`` and
+            ``configuration`` subdirectories (can be remote URI)
     """
-    out_path = out_dir
-    if out_path is None:
-        out_path = out_uri
-        duckdb.register_filesystem(filesystem("gcs"))
-    duckdb.sql(f"SET temp_directory = '{out_path}'")
     read_pq_sql = """
         SELECT *
         FROM read_parquet(
@@ -117,10 +110,11 @@ def get_duckdb_relations(
                 'agent_id': VARCHAR}}
         );"""
     history_out_path = os.path.join(out_path, "history")
-    history_rel = duckdb.sql(read_pq_sql.format(history_out_path))
+    conn.register("unfiltered_history",
+                  conn.sql(read_pq_sql.format(history_out_path)))
     config_out_path = os.path.join(out_path, "configuration")
-    config_rel = duckdb.sql(read_pq_sql.format(config_out_path))
-    return config_rel, history_rel
+    conn.register("unfiltered_configuration",
+                  conn.sql(read_pq_sql.format(config_out_path)))
 
 
 def get_encoding(

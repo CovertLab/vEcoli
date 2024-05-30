@@ -14,7 +14,7 @@ import pickle
 import tempfile
 from typing import TYPE_CHECKING, Any
 
-import duckdb
+from duckdb import DuckDBPyConnection
 import numpy as np
 import polars as pl
 from scipy.stats import pearsonr
@@ -62,8 +62,7 @@ def save_file(outdir, filename, columns, values: list[pl.Series]):
 
 def plot(
     params: dict[str, Any],
-    configuration: duckdb.DuckDBPyRelation,
-    history: duckdb.DuckDBPyRelation,
+    conn: DuckDBPyConnection,
     sim_data_paths: list[str],
     validation_data_paths: list[str],
     outdir: str,
@@ -77,25 +76,24 @@ def plot(
     media_id = MEDIA_NAME_TO_ID.get(media_name, media_name)
 
     # Ignore first N generations
-    history_skip_n_gens = duckdb.sql(
-        f"SELECT * FROM history WHERE generation >= {IGNORE_FIRST_N_GENS}")
-    config_skip_n_gens = duckdb.sql(
-        f"SELECT * FROM configuration WHERE generation >= {IGNORE_FIRST_N_GENS}")
+    conn.register("history_skip_n_gens", conn.sql(
+        f"SELECT * FROM history WHERE generation >= {IGNORE_FIRST_N_GENS}"))
+    conn.register("config_skip_n_gens", conn.sql(
+        f"SELECT * FROM config WHERE generation >= {IGNORE_FIRST_N_GENS}"))
 
-    if duckdb.sql("SELECT count(time) AS m FROM config_skip_n_gens").arrow()[
-        'm'][0].as_py() == 0:
+    if conn.sql("SELECT count(*) FROM config_skip_n_gens").fetchone()[0] == 0:
         print("Skipping analysis -- not enough simulations run.")
         return
 
     # Load tables and attributes for mRNAs
     mRNA_ids = get_field_metadata(
-        config_skip_n_gens, "listeners__rna_counts__mRNA_cistron_counts"
+        conn, "config_skip_n_gens", "listeners__rna_counts__mRNA_cistron_counts"
     )
     # mass_unit = get_field_metadata(config_lf, 'listeners__mass__dry_mass')
     # assert mass_unit == 'fg'
 
     # Load tables and attributes for tRNAs and rRNAs
-    bulk_ids = get_field_metadata(config_skip_n_gens, "bulk")
+    bulk_ids = get_field_metadata(conn, "config_skip_n_gens", "bulk")
     bulk_id_to_idx = {bulk_id: i + 1 for i, bulk_id in enumerate(bulk_ids)}
     uncharged_tRNA_ids = sim_data.process.transcription.uncharged_trna_names
     uncharged_tRNA_idx = [bulk_id_to_idx[trna] for trna in uncharged_tRNA_ids]
@@ -114,7 +112,7 @@ def plot(
         sim_data.molecule_ids.s50_full_complex,
     ]
     ribo_subunit_idx = [bulk_id_to_idx[ribo] for ribo in ribosomal_subunit_ids]
-    rna_data = duckdb.sql(
+    rna_data = conn.sql(
         f"""
         WITH filter_first AS (
             SELECT
@@ -180,7 +178,7 @@ def plot(
         ORDER BY rna_idx
         """).pl()
     
-    gene_copy_data = duckdb.sql(
+    gene_copy_data = conn.sql(
         """
         WITH filter_first AS (
             SELECT
@@ -215,7 +213,7 @@ def plot(
     gene_ids = [cistron_id_to_gene_id[rna_id]
         for rna_id in mRNA_ids + tRNA_cistron_ids + rRNA_cistron_ids]
     gene_ids_rna_synth_prob = get_field_metadata(
-        config_skip_n_gens, "listeners__rna_synth_prob__gene_copy_number"
+        conn, "config_skip_n_gens", "listeners__rna_synth_prob__gene_copy_number"
     )
     gene_id_to_idx = {
         gene: i for i, gene in enumerate(gene_ids_rna_synth_prob)
@@ -292,16 +290,16 @@ def plot(
 
     # Build dictionary for metadata
     ecocyc_metadata = {
-        "git_hash": get_config_value(config_skip_n_gens, "git_hash"),
+        "git_hash": get_config_value(conn, "config_skip_n_gens", "git_hash"),
         "n_ignored_generations": IGNORE_FIRST_N_GENS,
-        "n_total_generations": get_config_value(config_skip_n_gens, "generations"),
-        "n_seeds": get_config_value(config_skip_n_gens, "n_init_sims"),
-        "n_cells": num_cells(config_skip_n_gens),
+        "n_total_generations": get_config_value(conn, "config_skip_n_gens", "generations"),
+        "n_seeds": get_config_value(conn, "config_skip_n_gens", "n_init_sims"),
+        "n_cells": num_cells(conn, "config_skip_n_gens"),
         "n_timesteps": len(rna_data),
     }
 
     # Load tables and attributes for proteins
-    monomer_data = duckdb.sql(
+    monomer_data = conn.sql(
         """
         WITH filter_first AS (
             SELECT
@@ -332,7 +330,7 @@ def plot(
         GROUP BY monomer_idx
         ORDER BY monomer_idx
         """).pl()
-    monomer_ids = get_field_metadata(config_skip_n_gens, "listeners__monomer_counts")
+    monomer_ids = get_field_metadata(conn, "config_skip_n_gens", "listeners__monomer_counts")
     monomer_ecocyc_ids = [monomer[:-3] for monomer in monomer_ids]  # strip [*]
     monomer_mw = sim_data.getter.get_masses(monomer_ids).asNumber(
         units.fg / units.count
@@ -408,7 +406,7 @@ def plot(
     # Read data and load attributes for complexes
     complex_ids = sim_data.process.complexation.ids_complexes
     complex_idx = [bulk_id_to_idx[cplx] for cplx in complex_ids]
-    complex_data = duckdb.sql(
+    complex_data = conn.sql(
         f"""
         WITH filter_first AS (
             SELECT
@@ -474,7 +472,7 @@ def plot(
     reaction_ids = sim_data.process.metabolism.base_reaction_ids
 
     # Read fluxes
-    data = duckdb.sql(
+    flux_data = conn.sql(
         f"""
         WITH unnest_fluxes AS (
             SELECT listeners__mass__dry_mass / 
@@ -492,7 +490,7 @@ def plot(
         ORDER BY idx
         """).pl()
     
-    data = data.with_columns(**{
+    flux_data = flux_data.with_columns(**{
         "id": pl.Series(reaction_ids),
         "flux-avg": ((COUNTS_UNITS / MASS_UNITS / TIME_UNITS)
             * pl.col("flux-avg")).asNumber(units.mmol / units.g / units.h),
@@ -505,7 +503,7 @@ def plot(
         "flux-avg": "A floating point number in mmol/g DCW/h units",
         "flux-std": "A floating point number in mmol/g DCW/h units",
     }
-    values = [data[k] for k in columns]
+    values = [flux_data[k] for k in columns]
 
     save_file(outdir, f"wcm_metabolic_reactions_{media_id}.tsv", columns, values)
 
