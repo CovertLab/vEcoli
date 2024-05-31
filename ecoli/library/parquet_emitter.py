@@ -3,18 +3,23 @@ import os
 import pathlib
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Mapping, Union
+from typing import Any, Mapping
 
 import duckdb
-from fsspec import filesystem
 import numpy as np
 import orjson
 import pyarrow as pa
+from pyarrow import dataset as ds
 from pyarrow import fs
 from pyarrow import json as pj
 from pyarrow import parquet as pq
 from vivarium.core.emitter import Emitter
 from vivarium.core.serialize import make_fallback_serializer_function
+
+SCHEMA_HIVE_PARTITION = ("experiment_id=global_parquet_schema/variant=0/"
+    "generation=0/agent_id=0")
+"""Special Hive partition used to hold unified schema for all cells in an
+output directory."""
 
 USE_UINT16 = {
     "listeners__rna_synth_prob__n_bound_TF_per_TU",
@@ -84,8 +89,55 @@ def json_to_parquet(
     pathlib.Path(ndjson).unlink()
 
 
+def write_unified_schema(
+    schema: pa.Schema,
+    filesystem: fs.FileSystem, 
+    cell_outdir: str,
+    outdir: str
+):
+    """
+    Write a ``_metadata`` file containing unified Parquet schema for current
+    cell and create or update global ``_metadata`` which unifies schemas for
+    all cells in output directory. The global ``_metadata`` file is written
+    to a special Hive partition that should not conflict with any sim output:
+    :py:data`~.SCHEMA_HIVE_PARTITION`.
+
+
+    Args:
+        schema: Unified Parquet schema for current cell
+        filesystem: PyArrow filesystem for output
+        cell_outdir: Sim output directory for current cell (Hive partitioned)
+        outdir: Output directory for all cells (history and configuration)
+    """
+    pq.write_metadata(
+        schema,
+        os.path.join(cell_outdir, "_metadata"),
+        filesystem=filesystem
+    )
+    for dataset, filename_contains in (
+        ("configuration", ".pq"), ("history", ".pq")
+    ):
+        schemas = [
+            pq.read_schema(metadata_file.path, filesystem=filesystem)
+            for metadata_file in filesystem.get_file_info(
+                fs.FileSelector(os.path.join(outdir, dataset), recursive=True))
+            if filename_contains in metadata_file.base_name
+        ]
+        unified_schema = pa.unify_schemas(schemas)
+        unified_schema_dir =  os.path.join(
+            outdir, dataset, SCHEMA_HIVE_PARTITION)
+        filesystem.create_dir(unified_schema_dir)
+        pq.write_metadata(
+            unified_schema,
+            os.path.join(unified_schema_dir, "_metadata"),
+            filesystem=filesystem
+        )
+
+
 def register_sim_views(
-    conn: duckdb.DuckDBPyConnection = None, out_path: str = None
+    conn: duckdb.DuckDBPyConnection = None,
+    out_dir: str = None,
+    out_uri: str = None,
 ):
     """
     Register views of sim configs and outputs in DuckDB connection under
@@ -93,28 +145,35 @@ def register_sim_views(
 
     Args:
         conn: DuckDB connection to register views in
-        out_path: Path to directory containing ``history`` and
-            ``configuration`` subdirectories (can be remote URI)
+        out_dir: Local path to directory containing ``history`` and
+            ``configuration`` subdirectories
+        out_uri: Remote URI to directory containing ``history`` and
+            ``configuration`` subdirectories
     """
-    read_pq_sql = """
-        SELECT *
-        FROM read_parquet(
-            '{}/*/*/*/*/*/*.pq',
-            union_by_name = true,
-            hive_partitioning = true,
-            hive_types = {{
-                'experiment_id': VARCHAR,
-                'variant': BIGINT,
-                'lineage_seed': BIGINT,
-                'generation': BIGINT,
-                'agent_id': VARCHAR}}
-        );"""
-    history_out_path = os.path.join(out_path, "history")
-    conn.register("unfiltered_history",
-                  conn.sql(read_pq_sql.format(history_out_path)))
-    config_out_path = os.path.join(out_path, "configuration")
-    conn.register("unfiltered_configuration",
-                  conn.sql(read_pq_sql.format(config_out_path)))
+    if out_uri is None:
+        out_uri = pathlib.Path(out_dir).resolve().as_uri()
+    filesystem, out_path = fs.FileSystem.from_uri(out_uri)
+    partitioning_schema = pa.schema([
+        ("experiment_id", pa.string()),
+        ("variant", pa.int32()),
+        ("lineage_seed", pa.int32()),
+        ("generation", pa.int32()),
+        ("agent_id", pa.string())])
+    partitioning = ds.partitioning(partitioning_schema, flavor="hive")
+    for ds_folder in ["history", "configuration"]:
+        ds_out_path = os.path.join(out_path, ds_folder)
+        schema = pq.read_schema(
+            f'{ds_out_path}/{SCHEMA_HIVE_PARTITION}/_metadata')
+        schema = pa.unify_schemas([schema, partitioning_schema])
+        # DuckDB's built-in Parquet reader currently does not support
+        # Hive partitioning and nested types when specifying a unified
+        # schema (see DuckDB PR#9123) and the union_by_name option causes
+        # memory usage and evaluation time to explode. Use PyArrow datasets
+        # instead because they support unified schemas and are usually just
+        # as performant as the built-in reader.
+        pa_dataset = ds.dataset(os.path.join(out_path, ds_folder),
+            schema=schema, filesystem=filesystem, partitioning=partitioning)
+        conn.register(f"unfiltered_{ds_folder}", pa_dataset)
 
 
 def get_encoding(
@@ -222,7 +281,9 @@ class ParquetEmitter(Emitter):
         atexit.register(self._finalize)
 
     def _finalize(self):
-        """Convert remaining batched emits to Parquet at sim shutdown."""
+        """Convert remaining batched emits to Parquet at sim shutdown. Also calls
+        :py:func`~.write_unified_schema` to avoid performance penalty of
+        schema unification during analysis."""
         if self.num_emits % self.batch_size != 0:
             outfile = os.path.join(
                 self.outdir, "history", self.partitioning_path, f"{self.num_emits}.pq"
@@ -234,6 +295,8 @@ class ParquetEmitter(Emitter):
                 self.filesystem,
                 outfile,
             )
+        write_unified_schema(self.schema, self.filesystem, os.path.join(
+            self.outdir, "history", self.partitioning_path), self.outdir)
 
     def emit(self, data: dict[str, Any]):
         """
