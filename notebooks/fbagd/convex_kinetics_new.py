@@ -9,25 +9,30 @@ class ConvexKineticsNew:
     def __init__(self):
         pass
 
-    def set_up_variables(self, S_matrix, R_matrix, flow_data):
+    def set_up_variables(self, S_matrix, R_matrix, flow_data, dmdt):
 
         # set up variables
         Sd, Sr = S_matrix, R_matrix
         n_flux_set = flow_data.shape[0]
         n_met, n_rxn = Sd.shape
 
-        S_mol = np.array(Sd)
-        S = np.sign(S_mol)  #
-        S_s = -np.copy(S)  # reverse neg sign
-        S_p = np.copy(S)
-        S_s[S > 0] = 0  # zeros products
-        S_p[S < 0] = 0  # zeros substrates
+        # dmdt
+        abs_dmdt = np.abs(dmdt)# np.max(np.array([dmdt, np.zeros(dmdt.shape)]), axis=0)
+        dmdt_mask = (abs_dmdt != 0).flatten()
+        lD = np.log(abs_dmdt[dmdt_mask]).flatten()
+
+        S = np.array(Sd)
+        S_b = np.sign(S)  #
+        S_s = -np.copy(S_b)  # reverse neg sign
+        S_p = np.copy(S_b)
+        S_s[S_b > 0] = 0  # zeros products
+        S_p[S_b < 0] = 0  # zeros substrates
         S_i = np.copy(np.array(Sr) == -1)  # reaction direction does not matter
         S_a = np.copy(np.array(Sr) == 1)
 
         # make the code below one line
         S_s_nz, S_p_nz, S_i_nz, S_a_nz = [np.array(ar.nonzero()) for ar in [S_s, S_p, S_i, S_a]]
-        S_s_mol, S_p_mol = [np.abs(S_mol)[ar.nonzero()] for ar in [S_s, S_p]]
+        S_s_mol, S_p_mol = [np.abs(S)[ar.nonzero()] for ar in [S_s, S_p]]
 
         # TODO Refactor all the below lines as one liners. Also are they all necessary?
         # first coordinate, e.g. metabolites w nonzero substrate/product coeff across all reactions. also works as substrate indices.
@@ -57,6 +62,7 @@ class ConvexKineticsNew:
 
         # define y vecs
         y_s_t, y_p_t, y_i_t, y_a_t = [], [], [], []
+        cd_t = []
 
         # define Km positions by nonzero S matrix concentrations. Activation is reverse val of inhibition.
         for i in range(n_flux_set):
@@ -65,11 +71,13 @@ class ConvexKineticsNew:
             y_p_t.append(cp.multiply(S_p_mol, c[met_p_nz, i] - Km_p))
             y_i_t.append(c[met_i_nz, i] - Km_i if n_Km_i else None)
             y_a_t.append(-(c[met_a_nz, i] - Km_a) if n_Km_a else None)
+            cd_t.append(c[dmdt_mask, i] - lD)
 
         y_s = cp.vstack(y_s_t)
         y_p = cp.vstack(y_p_t)
         y_i = cp.vstack(y_i_t)
         y_a = cp.vstack(y_a_t)
+        cd_f = cp.vstack(cd_t)
 
         # saturation stacks
         y_f_vec = [y_s]
@@ -84,13 +92,14 @@ class ConvexKineticsNew:
         y_f = cp.hstack(y_f_vec)
         y_r = cp.hstack(y_r_vec)
 
+
         print(f"Number of metabolites: {n_met}, number of reactions: {n_rxn}, number of flux sets: {n_flux_set}",
               f"Number of Km_s: {n_Km_s}, number of Km_p: {n_Km_p}, number of Km_i: {n_Km_i}, number of Km_a: {n_Km_a}",
               f"Number of concentrations: {c.shape}, number of y_f: {y_f.shape}, number of y_r: {y_r.shape}", sep='\n')
 
-        return y_f, y_r, y_s, y_p, y_i, y_a, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, S_s, S_p, S_i, S_a, \
+        return y_f, y_r, y_s, y_p, y_i, y_a, cd_f, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, S_s, S_p, S_i, S_a, \
             met_s_nz, met_p_nz, met_i_nz, met_a_nz, rxn_s_nz, rxn_p_nz, rxn_i_nz, rxn_a_nz, \
-            n_rxn, n_met, n_flux_set, S_s_nz, S_p_nz, S_s_mol, S_p_mol, S
+            n_rxn, n_met, n_flux_set, S_s_nz, S_p_nz, S_s_mol, S_p_mol, S_b, S
 
     def construct_binding_matrix(self, n_rxn, S_s, S_p, S_i, S_a, Sr, met_s_nz, met_p_nz, met_i_nz, met_a_nz, rxn_s_nz, rxn_p_nz, rxn_i_nz, rxn_a_nz):
 
@@ -194,19 +203,21 @@ class ConvexKineticsNew:
 
 
     def create_objective_function(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, y_s, y_p,
-                                  denom_expr, l=0.01, e=0.01, f=1):
+                                  denom_expr, dmdt=None, l=0.01, e=0.01, f=1, g = 0.1):
+
+        loss = 0
 
         l1 = cp.sum(cp.hstack([cfwd, crev, cp.vec(c)])) + cp.sum(cp.hstack([-Km_s, -Km_p]))  # regularization
-        prior = cp.norm1(cp.hstack([cfwd, crev, cp.vec(c)])) + cp.norm1(cp.hstack([-Km_s, -Km_p]))  # regularization
+        prior = cp.norm1(cp.hstack([cfwd, crev, cp.vec(c)])) + cp.norm1(cp.hstack([-Km_s, -Km_p]))  # prior
         # reg3 = cp.sum(cp.huber(cp.hstack([y_s, y_p]), 1))  # issue with matrix
         # reg4 = cp.sum(cp.max(cp.abs(cp.hstack([y_s, y_p])) - 3, 0)) # deadzone regularization
+
 
         if Km_i:
             l1 += cp.sum(cp.hstack([-Km_i]))
         if Km_a:
             l1 += cp.sum(cp.hstack([-Km_a]))
 
-        loss = 0
         # for i in range(len(LSE_expr)):
         #     loss += cp.norm1(cp.pos(cp.log_sum_exp(LSE_expr[i])))
         for i in range(len(denom_expr)):
@@ -215,10 +226,14 @@ class ConvexKineticsNew:
 
         return loss
 
-    def set_parameter_bounds(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, LSE_expr, dmdt, lower_bound=-12, upper_bound=12):
+    def set_parameter_bounds(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, LSE_expr, cd_f=None,
+                             lower_bound=-12, upper_bound=12):
 
         constr = [cp.hstack([cfwd, crev, cp.vec(c), Km_s, Km_p]) >= lower_bound,
                   cp.hstack([cfwd, crev, cp.vec(c), Km_s, Km_p]) <= upper_bound,]
+
+        if cd_f:
+            constr.extend([cd_f >= -7])
 
         if Km_i:
             constr.extend([Km_i >= lower_bound, Km_i <= upper_bound])
@@ -264,10 +279,61 @@ class ConvexKineticsNew:
 
         return problem
 
-    def evaluate_fit(self, LSE_expr):
+    def evaluate_equality_fit(self, LSE_expr):
+
+        equality_constr = []
 
         for v in LSE_expr:
-            print(logsumexp(v.value))
+            equality_constr.append(logsumexp(v.value))
+
+        return equality_constr
+
+    def evaluate_flux_reconstruction(self, vE, n_flux_set, n_rxn, S_b, S_s_nz, S_p_nz, d_alpha, d_beta,
+                                     C_alpha, C_beta, y_f, y_r, y_s, y_p, cfwd, crev):
+
+        reconstructed_vE = np.zeros(vE.shape)
+
+        for j in range(n_flux_set):
+            sat_expr = []
+            fwd_sat = np.zeros(n_rxn)
+            back_sat = np.zeros(n_rxn)
+            sat = np.zeros(n_rxn)
+
+            for i in range(n_rxn):
+                # sum terms are separate in logsumexp. one per saturation term (row in C_alpha, C_beta)
+                n_term_s = np.sum(d_alpha == i)
+                n_term_p = np.sum(d_beta == i)
+                n_term = n_term_s + n_term_p
+
+                Km_s_idx = np.nonzero(S_s_nz[1, :] == i)
+                S_s_idx = S_s_nz[0, S_s_nz[1, :] == i]  # negate -1 entries
+
+                Km_p_idx = np.nonzero(S_p_nz[1, :] == i)
+                S_p_idx = S_p_nz[0, S_p_nz[1, :] == i]
+
+                # S_s_idx = S_s_nz[0, S_s_nz[1, :] == i]
+
+                sat_expr.append([(C_alpha @ y_f.value[j, :].flatten())[d_alpha == i],
+                                 (C_beta @ y_r.value[j, :].flatten())[d_beta == i],
+                                 0,
+                                 # -1*np.ones(n_lse_terms - n_term + 1)
+                                 ]
+                                )
+                fwd_sat[i] = (np.exp(-S_b.T[i, S_s_idx] @ y_s.value[j, Km_s_idx].flatten()))  # + cfwd.value[i]
+                back_sat[i] = (np.exp(S_b.T[i, S_p_idx] @ y_p.value[j, Km_p_idx].flatten()))  # + cfwd.value[i]
+
+            for i, rxn in enumerate(sat_expr):
+                s = 0
+
+                for term in rxn:
+                    s += np.sum(np.exp(term))
+
+                sat[i] = (s)
+
+            reconstr = np.exp(cfwd.value) * fwd_sat / sat - np.exp(crev.value) * back_sat / sat
+            reconstructed_vE[j, :] = reconstr
+
+            return reconstructed_vE
 
     def calculate_mechanistic_rates(self):
         pass
