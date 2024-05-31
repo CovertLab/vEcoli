@@ -48,7 +48,7 @@
         "variable_elongation_translation": false
     },
 
-    "analysis_options": {},
+    "analysis_options": {"n_cpus": 2},
 
     "gcloud": null,
 

@@ -6,6 +6,7 @@ import warnings
 
 import duckdb
 from fsspec import filesystem
+import pyarrow as pa
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
@@ -65,6 +66,9 @@ def main():
     parser.add_argument(
         "--outdir", "-o", help="Directory that all analysis output is saved to."
     )
+    parser.add_argument(
+        "--n_cpus", "-n", help="Number of CPUs to use for DuckDB and PyArrow."
+    )
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
     args = parser.parse_args()
     with open(config_file, "r") as f:
@@ -79,8 +83,11 @@ def main():
     for k, v in vars(args).items():
         if v is not None:
             config[k] = v
+    
+    # Set number of threads for PyArrow
+    pa.set_cpu_count(config["n_cpus"])
 
-    # Set up Polars filters for data
+    # Set up DuckDB filters for data
     analysis_type = None
     duckdb_filter = []
     last_analysis_level = -1
@@ -141,6 +148,8 @@ def main():
             duckdb.register_filesystem(filesystem("gcs"))
         conn.execute(f"SET temp_directory = '{out_path}'")
         conn.execute("SET preserve_insertion_order = false")
+        # Set number of threads for DuckDB
+        conn.execute(f"SET threads = {config['n_cpus']}")
         # If no filters were provided, assume analyzing ParCa output
         if analysis_type is None:
             analysis_type = "parca"

@@ -79,7 +79,7 @@ def plot(
     conn.register("history_skip_n_gens", conn.sql(
         f"SELECT * FROM history WHERE generation >= {IGNORE_FIRST_N_GENS}"))
     conn.register("config_skip_n_gens", conn.sql(
-        f"SELECT * FROM config WHERE generation >= {IGNORE_FIRST_N_GENS}"))
+        f"SELECT * FROM configuration WHERE generation >= {IGNORE_FIRST_N_GENS}"))
 
     if conn.sql("SELECT count(*) FROM config_skip_n_gens").fetchone()[0] == 0:
         print("Skipping analysis -- not enough simulations run.")
