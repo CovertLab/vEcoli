@@ -2,6 +2,7 @@ import numpy as np
 import cvxpy as cp
 import itertools
 from scipy.special import logsumexp
+from scipy.sparse import csr_matrix
 
 
 class ConvexKineticsNew:
@@ -203,12 +204,13 @@ class ConvexKineticsNew:
 
 
     def create_objective_function(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, y_s, y_p,
-                                  denom_expr, dmdt=None, l=0.01, e=0.01, f=1, g = 0.1):
+                                  denom_expr, dmdt=None, l=0.01, e=0.01, f=1, g = 0.000001):
 
         loss = 0
 
-        l1 = cp.sum(cp.hstack([cfwd, crev, cp.vec(c)])) + cp.sum(cp.hstack([-Km_s, -Km_p]))  # regularization
-        prior = cp.norm1(cp.hstack([cfwd, crev, cp.vec(c)])) + cp.norm1(cp.hstack([-Km_s, -Km_p]))  # prior
+        l1 = cp.sum(cp.hstack([cfwd, crev])) + cp.sum(cp.hstack([-Km_s, -Km_p]))  # regularization
+        l1_c = cp.sum(cp.hstack([c]))  # weak regularization for concentrations
+        prior = cp.norm1(cp.hstack([cfwd, crev, cp.vec(c)-6])) + cp.norm1(cp.hstack([-Km_s, -Km_p]))  # prior
         # reg3 = cp.sum(cp.huber(cp.hstack([y_s, y_p]), 1))  # issue with matrix
         # reg4 = cp.sum(cp.max(cp.abs(cp.hstack([y_s, y_p])) - 3, 0)) # deadzone regularization
 
@@ -222,7 +224,7 @@ class ConvexKineticsNew:
         #     loss += cp.norm1(cp.pos(cp.log_sum_exp(LSE_expr[i])))
         for i in range(len(denom_expr)):
             loss += f * denom_expr[i]
-        loss += l * l1 + e * prior
+        loss += l * l1 + e * prior + g * l1_c
 
         return loss
 
@@ -337,3 +339,72 @@ class ConvexKineticsNew:
 
     def calculate_mechanistic_rates(self):
         pass
+
+
+class BiochemicalReactionNetwork:
+
+    def __init__(self):
+        pass
+
+    def forward_step(self, cn, S_matrix, cfwd, crev, Km_s, Km_p, Km_i, Km_a, S_s_nz, S_p_nz, S_s_mol, S_p_mol,
+                     S_b, C_alpha, C_beta, d_alpha, d_beta, n_rxn, met_s_nz, met_p_nz, met_i_nz, met_a_nz, debug=True):
+
+        sat_expr = []
+        nfwd_sat = np.zeros(n_rxn)
+        nback_sat = np.zeros(n_rxn)
+        nsat = np.zeros(n_rxn)
+        v_cur = np.zeros(n_rxn)
+
+        S_x = csr_matrix(S_b)
+        C_alpha_x = csr_matrix(C_alpha)
+        C_beta_x = csr_matrix(C_beta)
+
+        # define y vecs
+        y_s_t, y_p_t, y_i_t, y_a_t = [], [], [], []
+
+        # condense the code below into one line
+        y_s_t.append(np.multiply(S_s_mol, cn[met_s_nz] - Km_s.value))
+        y_p_t.append(np.multiply(S_p_mol, cn[met_p_nz] - Km_p.value))
+        y_i_t.append(cn[met_i_nz] - Km_i.value if Km_i else None)
+        y_a_t.append(-(cn[met_a_nz] - Km_a.value) if Km_a else None)
+
+        y_s = np.vstack(y_s_t).flatten()
+        y_p = np.vstack(y_p_t).flatten()
+        y_i = np.vstack(y_i_t).flatten()
+        y_a = np.vstack(y_a_t).flatten()
+
+        y_f_vec = [y_s]
+        y_r_vec = [y_p]
+        if Km_i:
+            y_f_vec.append(y_i)
+            y_r_vec.append(y_i)
+        if Km_a:
+            y_f_vec.append(y_a)
+            y_r_vec.append(y_a)
+
+        y_f_n = np.hstack(y_f_vec).flatten()
+        y_r_n = np.hstack(y_r_vec).flatten()
+
+        for i in range(n_rxn):
+            # sum terms are separate in logsumexp. one per saturation term (row in C_alpha, C_beta)
+            Km_s_idx = np.nonzero(S_s_nz[1, :] == i)
+            S_s_idx = S_s_nz[0, S_s_nz[1, :] == i]  # negate -1 entries
+
+            Km_p_idx = np.nonzero(S_p_nz[1, :] == i)
+            S_p_idx = S_p_nz[0, S_p_nz[1, :] == i]
+
+            cur_sat = (C_alpha_x @ y_f_n)[d_alpha == i].tolist() + \
+                      (C_beta_x @ y_r_n)[d_beta == i].tolist() + \
+                      [0],
+
+            nsat[i] = np.sum(np.exp(cur_sat))
+
+            nfwd_sat[i] = (np.exp(-S_x.T[i, S_s_idx] @ y_s[Km_s_idx]))  # + cfwd.value[i]
+            nback_sat[i] = (np.exp(S_x.T[i, S_p_idx] @ y_p[Km_p_idx]))  # + cfwd.value[i]
+
+
+        v_recon_sim = np.exp(cfwd.value) * nfwd_sat / nsat - np.exp(crev.value) * nback_sat / nsat
+
+        dmdt_recon_sim = S_matrix @ v_recon_sim
+
+        return v_recon_sim, dmdt_recon_sim
