@@ -347,7 +347,7 @@ class BiochemicalReactionNetwork:
         pass
 
     def forward_step(self, cn, S_matrix, cfwd, crev, Km_s, Km_p, Km_i, Km_a, S_s_nz, S_p_nz, S_s_mol, S_p_mol,
-                     S_b, C_alpha, C_beta, d_alpha, d_beta, n_rxn, met_s_nz, met_p_nz, met_i_nz, met_a_nz, debug=True):
+                     S_b, C_alpha, C_beta, d_alpha, d_beta, n_rxn, met_s_nz, met_p_nz, met_i_nz, met_a_nz, debug=True, noise=0):
 
         sat_expr = []
         nfwd_sat = np.zeros(n_rxn)
@@ -403,7 +403,11 @@ class BiochemicalReactionNetwork:
             nback_sat[i] = (np.exp(S_x.T[i, S_p_idx] @ y_p[Km_p_idx]))  # + cfwd.value[i]
 
 
+
         v_recon_sim = np.exp(cfwd.value) * nfwd_sat / nsat - np.exp(crev.value) * nback_sat / nsat
+
+        if noise != 0:
+            v_recon_sim *= np.random.normal(1, noise, v_recon_sim.shape)
 
         dmdt_recon_sim = S_matrix @ v_recon_sim
 
