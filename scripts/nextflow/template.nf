@@ -12,7 +12,7 @@ process runParca {
 
     script:
     """
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_parca.py --config $config -o \$(pwd)
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/parca.py --config $config -o \$(pwd)
     """
 
     stub:
@@ -39,7 +39,7 @@ process analysisParca {
 
     script:
     """
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \
         --sim-data-path=$kb/simData.cPickle \
         --validation-data-path=$kb/validationData.cPickle \
         -o \$(pwd)
