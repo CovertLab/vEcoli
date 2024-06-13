@@ -10,7 +10,7 @@ import pyarrow as pa
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
-from ecoli.library.parquet_emitter import register_sim_views
+from ecoli.library.parquet_emitter import get_dataset_strings
 
 FILTERS = {
     "experiment_id": (str, "multi_experiment", "multi_variant"),
@@ -85,10 +85,12 @@ def main():
             config[k] = v
     
     # Set number of threads for PyArrow
-    pa.set_cpu_count(config["n_cpus"])
+    if "n_cpus" in config:
+        pa.set_cpu_count(config["n_cpus"])
 
     # Set up DuckDB filters for data
-    analysis_type = None
+    # If no filters were provided, assume analyzing ParCa output
+    analysis_type = "parca"
     duckdb_filter = []
     last_analysis_level = -1
     filter_types = list(FILTERS.keys())
@@ -145,26 +147,27 @@ def main():
         out_path = out_dir
         if out_path is None:
             out_path = out_uri
-            duckdb.register_filesystem(filesystem("gcs"))
+            conn.register_filesystem(filesystem("gcs"))
         conn.execute(f"SET temp_directory = '{out_path}'")
         conn.execute("SET preserve_insertion_order = false")
         # Set number of threads for DuckDB
-        conn.execute(f"SET threads = {config['n_cpus']}")
-        # If no filters were provided, assume analyzing ParCa output
-        if analysis_type is None:
-            analysis_type = "parca"
+        if "n_cpus" in config:
+            conn.execute(f"SET threads = {config['n_cpus']}")
+        if analysis_type == "parca":
+            config_sql = ""
+            history_sql = ""
         else:
             # Register filtered views of Parquet files from output directory
             # or URI specified in config
-            register_sim_views(conn, out_path)
+            history_sql, config_sql = get_dataset_strings(out_path)
             duckdb_filter = " AND ".join(duckdb_filter)
-            conn.register("configuration", conn.sql(
-                f"SELECT * FROM unfiltered_configuration WHERE {duckdb_filter}"))
-            conn.register("history", conn.sql(
-                f"SELECT * FROM unfiltered_history WHERE {duckdb_filter}"))
+            config_sql = f"{config_sql} WHERE {duckdb_filter}"
+            history_sql = f"{history_sql} WHERE {duckdb_filter}"
         analysis_mod.plot(
             analysis_options[analysis_name],
             conn,
+            history_sql,
+            config_sql,
             config["sim_data_path"],
             config["validation_data_path"],
             config["outdir"],

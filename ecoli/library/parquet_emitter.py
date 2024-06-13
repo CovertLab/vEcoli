@@ -1,25 +1,30 @@
 import atexit
 import os
 import pathlib
+from itertools import pairwise
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping, Optional
 
 import duckdb
 import numpy as np
 import orjson
 import pyarrow as pa
+from pyarrow import compute as pc
 from pyarrow import dataset as ds
 from pyarrow import fs
 from pyarrow import json as pj
 from pyarrow import parquet as pq
+from tqdm import tqdm
 from vivarium.core.emitter import Emitter
 from vivarium.core.serialize import make_fallback_serializer_function
 
-SCHEMA_HIVE_PARTITION = ("experiment_id=global_parquet_schema/variant=0/"
-    "generation=0/agent_id=0")
-"""Special Hive partition used to hold unified schema for all cells in an
-output directory."""
+METADATA_PREFIX = "data__output_metadata__"
+"""
+In the config dataset, user-defined metadata for each store
+(see :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`)
+will be contained in columns with this prefix.
+"""
 
 USE_UINT16 = {
     "listeners__rna_synth_prob__n_bound_TF_per_TU",
@@ -64,6 +69,8 @@ def json_to_parquet(
     schema: pa.Schema,
     filesystem: fs.FileSystem,
     outfile: str,
+    split_columns: bool = False,
+    small_columns: list[str] = None,
 ):
     """
     Reads newline-delimited JSON file and converts to Parquet file.
@@ -74,106 +81,373 @@ def json_to_parquet(
         schema: PyArrow schema of Parquet file to write
         filesystem: PyArrow filesystem for Parquet output
         outfile: Filepath of output Parqet file
+        split_columns: Whether to write each column in its own file
+        small_columns: List of columns small enough to consolidate
+            at end of simulation for faster read performance
     """
     parse_options = pj.ParseOptions(explicit_schema=schema)
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
     t = pj.read_json(ndjson, read_options=read_options, parse_options=parse_options)
-    pq.write_table(
-        t,
-        outfile,
-        use_dictionary=False,
-        compression="zstd",
-        column_encoding=encodings,
-        filesystem=filesystem,
-    )
+    out_dir = os.path.dirname(outfile)
+    base_name = os.path.basename(outfile)
+    if split_columns:
+        for col_name, col in zip(t.column_names, t.columns):
+            if col.nbytes / len(col) / 8 < len(col) + 1:
+                small_columns.append(col_name)
+            pq.write_table(
+                pa.table({col_name: col, "time": t["time"]}),
+                os.path.join(out_dir, f"column={col_name}", base_name),
+                use_dictionary=False,
+                compression="zstd",
+                column_encoding=encodings,
+                filesystem=filesystem,
+            )
+    else:
+        pq.write_table(
+            t,
+            os.path.join(out_dir, base_name),
+            use_dictionary=False,
+            compression="zstd",
+            column_encoding=encodings,
+            filesystem=filesystem,
+        )
     pathlib.Path(ndjson).unlink()
 
 
-def write_unified_schema(
-    schema: pa.Schema,
-    filesystem: fs.FileSystem, 
-    cell_outdir: str,
-    outdir: str
+def consolidate_small_columns(
+    small_columns: list[str],
+    out_dir: str,
+    filesystem: fs.FileSystem
 ):
     """
-    Write a ``_metadata`` file containing unified Parquet schema for current
-    cell and create or update global ``_metadata`` which unifies schemas for
-    all cells in output directory. The global ``_metadata`` file is written
-    to a special Hive partition that should not conflict with any sim output:
-    :py:data`~.SCHEMA_HIVE_PARTITION`.
+    For each small column, reads batched Parquet files and replaces them with
+    a single file containing all data (faster read performance).
+    """
+    for column in small_columns:
+        col_dir = os.path.join(out_dir, f"column={column}") 
+        col_table = ds.dataset(col_dir, partitioning=None,
+            filesystem=filesystem).sort_by("time").to_table()
+        filesystem.delete_dir_contents(col_dir)
+        pq.write_table(col_table, os.path.join(col_dir, "consolidated.pq"))
 
+
+def get_dataset_strings(out_dir: str) -> tuple[str, str]:
+    """
+    Creates DuckDB SQL strings for sim configs and outputs.
 
     Args:
-        schema: Unified Parquet schema for current cell
-        filesystem: PyArrow filesystem for output
-        cell_outdir: Sim output directory for current cell (Hive partitioned)
-        outdir: Output directory for all cells (history and configuration)
+        out_dir: Path to directory containing ``history`` and
+            ``configuration`` subdirectories (URI beginning with ``gcs://``
+            or ``gs://`` if sim output in Google Cloud Storage)
+
+    Returns:
+        Tuple of DuckDB SQL strings: first can be passed to
+            :py:func:`~.read_stacked_columns` to read one or more columns
+            of sim output by name, second can be passed to
+            :py:func:`~.get_field_metadata` or :py:func:`~.get_config_value`
+            to retrieve metadata / config options for sims
     """
-    pq.write_metadata(
-        schema,
-        os.path.join(cell_outdir, "_metadata"),
-        filesystem=filesystem
-    )
-    for dataset, filename_contains in (
-        ("configuration", ".pq"), ("history", ".pq")
-    ):
-        schemas = [
-            pq.read_schema(metadata_file.path, filesystem=filesystem)
-            for metadata_file in filesystem.get_file_info(
-                fs.FileSelector(os.path.join(outdir, dataset), recursive=True))
-            if filename_contains in metadata_file.base_name
-        ]
-        unified_schema = pa.unify_schemas(schemas)
-        unified_schema_dir =  os.path.join(
-            outdir, dataset, SCHEMA_HIVE_PARTITION)
-        filesystem.create_dir(unified_schema_dir)
-        pq.write_metadata(
-            unified_schema,
-            os.path.join(unified_schema_dir, "_metadata"),
-            filesystem=filesystem
+    return f"""
+        FROM read_parquet(
+            '{os.path.join(out_dir, 'history')}/*/*/*/*/*/column=COLNAMEHERE/*.pq',
+            hive_partitioning = true,
+            hive_types = {{
+                'experiment_id': VARCHAR,
+                'variant': BIGINT,
+                'lineage_seed': BIGINT,
+                'generation': BIGINT,
+                'agent_id': VARCHAR,
+                'column': VARCHAR,
+            }}
+        )
+        """, f"""
+        FROM read_parquet(
+            '{os.path.join(out_dir, 'configuration')}/*/*/*/*/*/*.pq',
+            hive_partitioning = true,
+            hive_types = {{
+                'experiment_id': VARCHAR,
+                'variant': BIGINT,
+                'lineage_seed': BIGINT,
+                'generation': BIGINT,
+                'agent_id': VARCHAR,
+            }}
+        )
+        """
+
+
+def num_cells(conn: duckdb.DuckDBPyConnection, view: str) -> int:
+    """
+    Return cell count in view in DuckDB connection (view must have
+    ``experiment_id``, ``variant``, ``lineage_seed``, ``generation``, and
+    ``agent_id`` columns).
+    """
+    return conn.sql(f"""SELECT count(
+        DISTINCT (experiment_id, variant, lineage_seed, generation, agent_id)
+        ) FROM {view}""").fetchone()[0]
+
+
+def ndlist_to_ndarray(s: pa.Array) -> np.ndarray:
+    """
+    Convert a series consisting of nested lists with fixed dimensions into
+    a Numpy ndarray. This should really only be necessary if you are trying
+    to perform linear algebra (e.g. matrix multiplication, dot products) inside
+    a user-defined function (see DuckDB documentation on Python Function API).
+    """
+    dimensions = [1, len(s)]
+    while isinstance(s.type, pa.ListType):
+        s = pc.list_flatten(s)
+        dimensions.append(len(s))
+    dimensions = [p[1] // p[0] for p in pairwise(dimensions)]
+    return s.to_numpy().reshape(dimensions)
+
+
+def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> str:
+    """
+    Returns a DuckDB expression for a column equivalent to converting each row
+    of ``name`` into an ndarray ``name_arr`` (:py:func:`~.ndlist_to_ndarray`)
+    and getting ``name_arr[idx]``. ``idx`` can contain 1D lists of integers,
+    boolean masks, or ``":"`` (no 2D+ indices like x[[[1,2]]]).
+
+    This function is useful for reducing the amount of data loaded for columns
+    with lists of 2 or more dimensions. For list columns with one dimension,
+    use :py:func:`~.named_idx` to create expressions for many indices at once.
+
+    .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
+        supplied index!
+
+    Args:
+        name: Name of column to recursively index
+        idx: To get all elements for a dimension, supply the string ``":"``.
+            Otherwise, only single integers or 1D integer lists of indices are
+            allowed for each dimension. Some examples::
+
+                [0, 1] # First row, second column
+                [[0, 1], 1] # First and second row, second column
+                [0, 1, ":"] # First element of axis 1, second of 2, all of 3
+                # Final example differs between this function and Numpy
+                # This func: 1st and 2nd of axis 1, all of 2, 1st and 2nd of 3
+                # Numpy: Complicated, see Numpy docs on advanced indexing
+                [[0, 1], ":", [0, 1]]
+
+    """
+    idx = idx.copy()
+    idx.reverse()
+    # Construct expression from inside out (deepest to shallowest axis)
+    first_idx = idx.pop(0)
+    if isinstance(first_idx, list):
+        if isinstance(first_idx[0], int):
+            one_indexed_idx = ", ".join(str(i + 1) for i in first_idx)
+            select_expr = f"list_select(x_0, [{one_indexed_idx}])"
+        elif isinstance(first_idx[0], bool):
+            select_expr = f"list_where(x_0, {first_idx})"
+        else:
+            raise TypeError("Indices must be integers or boolean masks.")
+    elif first_idx == ":":
+        select_expr = "x_0"
+    else:
+        select_expr = f"x_0[{first_idx + 1}]"
+    for i, indices in enumerate(idx):
+        if isinstance(indices, list):
+            if isinstance(indices[0], int):
+                one_indexed_idx = ", ".join(str(i + 1) for i in indices)
+                select_expr = f"list_transform(list_select(x_{i+1}, [{one_indexed_idx}]), x_{i} -> {select_expr})"
+            elif isinstance(indices[0], bool):
+                select_expr = f"list_transform(list_where(x_{i+1}, {indices}), x_{i} -> {select_expr})"
+            else:
+                raise TypeError("Indices must be integers or boolean masks.")
+        elif indices == ":":
+            select_expr = f"list_transform(x_{i+1}, x_{i} -> {select_expr})"
+        else:
+            select_expr = f"list_transform(x_{i+1}[{indices + 1}], x_{i} -> {select_expr})"
+    select_expr = select_expr.replace(f"x_{i+1}", name)
+    return select_expr + f" AS {name}"
+
+
+def named_idx(col: str, names: list[str], idx: list[int]) -> list[str]:
+    """
+    Create SQL SELECT expressions for given indices from a list column.
+
+    .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
+        supplied index!
+
+    Args:
+        col: Name of list column.
+        names: New column names, one for each index.
+        idx: Indices to retrieve from ``col``
+
+    Returns:
+        List of strings that can be put after SELECT in DuckDB query
+    """
+    return [f"{col}[{i + 1}] AS \"{n}\"" for n, i in zip(names, idx)]
+
+
+def get_field_metadata(
+    conn: duckdb.DuckDBPyConnection,
+    config_view: str,
+    field: str
+) -> list:
+    """
+    Gets the saved metadata for a given field as a list.
+
+    Args:
+        conn: DuckDB connection
+        config_view: Name of view for configuration data
+        field: Name of field to get metadata for
+    """
+    metadata = conn.sql(
+        f"SELECT first({METADATA_PREFIX + field}) FROM \"{config_view}\""
+    ).fetchone()[0]
+    if isinstance(metadata, list):
+        return metadata
+    return list(metadata)
+
+
+def get_config_value(
+    conn: duckdb.DuckDBPyConnection,
+    config_view: str,
+    config_opt: str
+) -> Any:
+    """
+    Gets the saved configuration option.
+
+    Args:
+        conn: DuckDB connection
+        config_view: Name of view for configuration data
+        field: Name of configuration option to get value pf
+    """
+    return conn.sql(
+        f"SELECT first(data__{config_opt}) FROM {config_view}").fetchone()[0]
+
+
+def read_stacked_columns(
+    history_sql: str,
+    columns: list[str],
+    remove_first: bool = False,
+    func: Optional[Callable[[pa.Table], pa.Table]] = None,
+    return_sql: bool = False
+) -> pa.Table | str:
+    """
+    Loads columns for many cells. If you would like to perform more advanced
+    computatations (aggregations, window functions, etc.) using the optimized
+    DuckDB API, you can specify ``return_sql=True`` and use the return value
+    as a subquery. For computations that cannot be easily performed using the
+    DuckDB API, you can define a custom function ``func`` that will be called
+    with the data for each cell. 
+
+    For example, to get the average total concentration of three bulk molecules
+    with indices 100, 1000, and 10000 per cell::
+    
+        import duckdb
+        from ecoli.library.parquet_emitter import (
+            get_dataset_strings, read_stacked_columns)    
+        history_sql, config_sql = get_dataset_strings('out/')
+        subquery = read_stacked_columns(
+            history_sql,
+            ["bulk", "listeners__enzyme_kinetics__counts_to_molar"],
+            return_sql = True
+        )
+        query = '''
+            # Note DuckDB arrays are 1-indexed
+            SELECT avg(
+                (bulk[100 + 1] + bulk[1000 + 1] + bulk[10000 + 1]) *
+                listeners__enzyme_kinetics__counts_to_molar
+                ) AS avg_total_conc
+            FROM ({subquery})
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+            '''
+        conn = duckdb.connect()
+        data = conn.sql(query).arrow()
+
+    Here is a more complicated example that defines a custom function to get
+    the per-cell average RNA synthesis probability per cistron::
+
+        import duckdb
+        import pickle
+        import pyarrow as pa
+        from ecoli.library.parquet_emitter import (
+            get_dataset_strings, ndlist_to_ndarray, read_stacked_columns)
+        history_sql, config_sql = get_dataset_strings('out/')
+        # Load sim data
+        with open("reconstruction/sim_data/kb/simData.cPickle", "rb") as f:
+            sim_data = pickle.load(f)
+        # Get mapping from RNAs (TUs) to cistrons
+        cistron_tu_mat = sim_data.process.transcription.cistron_tu_mapping_matrix
+        # Custom aggregation function with Numpy dot product and mean
+        def avg_rna_synth_prob_per_cistron(rna_synth_prob):
+            # Convert rna_synth_prob into 2-D Numpy array (time x TU)
+            rna_synth_prob = ndlist_to_ndarray(rna_synth_prob[
+                "listeners__rna_synth_prob__actual_rna_synth_prob"])
+            rna_synth_prob_per_cistron = cistron_tu_mat.dot(rna_synth_prob.T).T
+            # Return value must be a PyArrow table
+            return pa.table({'avg_rna_synth_prob_per_cistron': [
+                rna_synth_prob_per_cistron.mean(axis=0)]})
+        result = read_stacked_columns(
+            history_sql,
+            ["listeners__rna_synth_prob__actual_rna_synth_prob"],
+            func = avg_rna_synth_prob_per_cistron
         )
 
 
-def register_sim_views(
-    conn: duckdb.DuckDBPyConnection = None,
-    out_dir: str = None,
-    out_uri: str = None,
-):
-    """
-    Register views of sim configs and outputs in DuckDB connection under
-    the names ``configuration`` and ``history``.
-
     Args:
-        conn: DuckDB connection to register views in
-        out_dir: Local path to directory containing ``history`` and
-            ``configuration`` subdirectories
-        out_uri: Remote URI to directory containing ``history`` and
-            ``configuration`` subdirectories
+        history_sql: DuckDB SQL string from :py:func:`~.get_dataset_strings`,
+            potentially with filters appended in ``WHERE`` clause
+        columns: Names of columns to read data for
+        remove_first: Remove data for first timestep of each cell
+        func: Function to call on data for each cell, should take and
+            return a PyArrow table with columns equal to ``columns``
+        return_sql: Instead of directly running the DuckDB query and returning
+            the result as a PyArrow table, return the SQL query string. Cannot
+            be used together with ``func``.
     """
-    if out_uri is None:
-        out_uri = pathlib.Path(out_dir).resolve().as_uri()
-    filesystem, out_path = fs.FileSystem.from_uri(out_uri)
-    partitioning_schema = pa.schema([
-        ("experiment_id", pa.string()),
-        ("variant", pa.int32()),
-        ("lineage_seed", pa.int32()),
-        ("generation", pa.int32()),
-        ("agent_id", pa.string())])
-    partitioning = ds.partitioning(partitioning_schema, flavor="hive")
-    for ds_folder in ["history", "configuration"]:
-        ds_out_path = os.path.join(out_path, ds_folder)
-        schema = pq.read_schema(
-            f'{ds_out_path}/{SCHEMA_HIVE_PARTITION}/_metadata')
-        schema = pa.unify_schemas([schema, partitioning_schema])
-        # DuckDB's built-in Parquet reader currently does not support
-        # Hive partitioning and nested types when specifying a unified
-        # schema (see DuckDB PR#9123) and the union_by_name option causes
-        # memory usage and evaluation time to explode. Use PyArrow datasets
-        # instead because they support unified schemas and are usually just
-        # as performant as the built-in reader.
-        pa_dataset = ds.dataset(os.path.join(out_path, ds_folder),
-            schema=schema, filesystem=filesystem, partitioning=partitioning)
-        conn.register(f"unfiltered_{ds_folder}", pa_dataset)
+    id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
+    joined_sql = f"SELECT {id_cols}, \"{columns[0]}\"" + history_sql.replace(
+        "COLNAMEHERE", columns[0])
+    # If reading multiple columns together, align them using a join
+    for column in columns[1:]:
+        joined_sql += f" JOIN (SELECT {id_cols}, \"{column}\" "
+        joined_sql += history_sql.replace("COLNAMEHERE", column)
+        joined_sql += (") USING (experiment_id, variant, lineage_seed, "
+            "generation, agent_id, time)")
+    # Use an antijoin to remove rows for first timestep of each sim
+    if remove_first:
+        joined_sql = f"""
+            SELECT * FROM ({joined_sql})
+            WHERE (experiment_id, variant, lineage_seed, generation,
+                agent_id, time)
+            NOT IN (
+                SELECT (experiment_id, variant, lineage_seed, generation,
+                    agent_id, MIN(time))
+                {history_sql.replace("COLNAMEHERE", "time")}
+                GROUP BY experiment_id, variant, lineage_seed, generation,
+                    agent_id
+            )"""
+    conn = duckdb.connect()
+    if func is not None:
+        if return_sql:
+            raise RuntimeError("Cannot use func with return_sql.")
+        # Get all cell identifiers
+        time_col = history_sql.replace("COLNAMEHERE", "time")
+        cell_ids = conn.sql(f"""SELECT DISTINCT ON(experiment_id, variant,
+            lineage_seed, generation, agent_id) experiment_id, variant,
+            lineage_seed, generation, agent_id {time_col} ORDER BY {id_cols}
+        """).fetchall()
+        all_cell_tbls = []
+        for experiment_id, variant, lineage_seed, generation, agent_id in tqdm(cell_ids):
+            cell_joined = f"""SELECT * FROM ({joined_sql})
+                WHERE experiment_id = '{experiment_id}' AND
+                    variant = {variant} AND
+                    lineage_seed = {lineage_seed} AND
+                    generation = {generation} AND
+                    agent_id = '{agent_id}'
+                ORDER BY time
+                """
+            # Apply func to data for each cell
+            all_cell_tbls.append(func(conn.sql(cell_joined).arrow()))
+        return pa.concat_tables(all_cell_tbls)
+    query = f"SELECT * FROM ({joined_sql}) ORDER BY {id_cols}"
+    if return_sql:
+        return query
+    return conn.sql(query).arrow()
 
 
 def get_encoding(
@@ -278,25 +552,30 @@ class ParquetEmitter(Emitter):
         self.encodings = {}
         self.schema = pa.schema([])
         self.num_emits = 0
+        # Keep track of columns that are small enough that it is worth
+        # consolidating them into a single file at the end of the sim
+        self.small_columns = []
         atexit.register(self._finalize)
 
     def _finalize(self):
         """Convert remaining batched emits to Parquet at sim shutdown. Also calls
-        :py:func`~.write_unified_schema` to avoid performance penalty of
-        schema unification during analysis."""
-        if self.num_emits % self.batch_size != 0:
-            outfile = os.path.join(
-                self.outdir, "history", self.partitioning_path, f"{self.num_emits}.pq"
-            )
+        :py:func`~.consolidate_small_columns` to mitigate performance penalty of
+        reading many small Parquet files."""
+        outfile = os.path.join(
+            self.outdir, "history", self.partitioning_path, f"{self.num_emits}.pq"
+        )
+        if self.filesystem.get_file_info(outfile).type == 0:
             json_to_parquet(
                 self.temp_data.name,
                 self.encodings,
                 self.schema,
                 self.filesystem,
                 outfile,
+                True,
+                self.small_columns
             )
-        write_unified_schema(self.schema, self.filesystem, os.path.join(
-            self.outdir, "history", self.partitioning_path), self.outdir)
+        consolidate_small_columns(self.small_columns, os.path.join(
+            self.outdir, "history", self.partitioning_path), self.filesystem)
 
     def emit(self, data: dict[str, Any]):
         """
@@ -400,6 +679,9 @@ class ParquetEmitter(Emitter):
                     if encoding is not None:
                         self.encodings[field_name] = encoding
                     self.schema = self.schema.append(pa.field(k, pa_type))
+                    self.filesystem.create_dir(os.path.join(
+                        self.outdir, "history", self.partitioning_path, f"column={k}"
+                    ))
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
             self.temp_data.close()
@@ -416,5 +698,7 @@ class ParquetEmitter(Emitter):
                 self.schema,
                 self.filesystem,
                 outfile,
+                True,
+                self.small_columns
             )
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)

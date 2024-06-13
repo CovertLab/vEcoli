@@ -16,7 +16,7 @@ process analysisSingle {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -52,7 +52,7 @@ process analysisMultiDaughter {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -87,7 +87,7 @@ process analysisMultiGeneration {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -121,7 +121,7 @@ process analysisMultiSeed {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -152,7 +152,7 @@ process analysisMultiVariant {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \\
         --sim-data-path "${sim_data.join("\" \"")}" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
