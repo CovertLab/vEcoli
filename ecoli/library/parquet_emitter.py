@@ -5,6 +5,7 @@ from itertools import pairwise
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Mapping, Optional
+from urllib import parse
 
 import duckdb
 import numpy as np
@@ -94,9 +95,11 @@ def json_to_parquet(
         for col_name, col in zip(t.column_names, t.columns):
             if col.nbytes / len(col) / 8 < len(col) + 1:
                 small_columns.append(col_name)
+            # Special characters can break Hive partitioning so quote them
+            col_name_quoted = parse.quote_plus(col_name)
             pq.write_table(
                 pa.table({col_name: col, "time": t["time"]}),
-                os.path.join(out_dir, f"column={col_name}", base_name),
+                os.path.join(out_dir, f"column={col_name_quoted}", base_name),
                 use_dictionary=False,
                 compression="zstd",
                 column_encoding=encodings,
@@ -387,7 +390,6 @@ def read_stacked_columns(
             func = avg_rna_synth_prob_per_cistron
         )
 
-
     Args:
         history_sql: DuckDB SQL string from :py:func:`~.get_dataset_strings`,
             potentially with filters appended in ``WHERE`` clause
@@ -401,11 +403,12 @@ def read_stacked_columns(
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
     joined_sql = f"SELECT {id_cols}, \"{columns[0]}\"" + history_sql.replace(
-        "COLNAMEHERE", columns[0])
+        "COLNAMEHERE", parse.quote_plus(columns[0]))
     # If reading multiple columns together, align them using a join
     for column in columns[1:]:
+        quoted_colname = parse.quote_plus(column)
         joined_sql += f" JOIN (SELECT {id_cols}, \"{column}\" "
-        joined_sql += history_sql.replace("COLNAMEHERE", column)
+        joined_sql += history_sql.replace("COLNAMEHERE", quoted_colname)
         joined_sql += (") USING (experiment_id, variant, lineage_seed, "
             "generation, agent_id, time)")
     # Use an antijoin to remove rows for first timestep of each sim

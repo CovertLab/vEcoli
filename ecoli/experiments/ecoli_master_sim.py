@@ -18,6 +18,7 @@ import json
 import warnings
 from datetime import datetime
 from typing import Optional, Dict, Any
+from urllib import parse
 
 import numpy as np
 from vivarium.core.engine import Engine
@@ -813,6 +814,8 @@ class EcoliSim:
                 self.experiment_id = datetime.now().strftime(
                     f"{self.experiment_id_base}_%d/%m/%Y %H:%M:%S"
                 )
+            # Special characters can break Hive partitioning so quote them
+            self.experiment_id = parse.quote_plus(self.experiment_id)
             experiment_config["experiment_id"] = self.experiment_id
         experiment_config["profile"] = self.profile
 
