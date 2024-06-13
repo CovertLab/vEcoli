@@ -3,6 +3,7 @@ import importlib
 import json
 import os
 import warnings
+from urllib import parse
 
 import duckdb
 from fsspec import filesystem
@@ -123,7 +124,7 @@ def main():
             if len(config[data_filter]) > 1:
                 analysis_type = analysis_many
                 if data_type is str:
-                    filter_values = "', '".join(config[data_filter])
+                    filter_values = "', '".join(parse.quote_plus(i) for i in config[data_filter])
                     duckdb_filter.append(f"{data_filter} IN ('{filter_values}')")
                 else:
                     filter_values = ", ".join(config[data_filter])
@@ -131,7 +132,8 @@ def main():
             else:
                 analysis_type = analysis_one
                 if data_type is str:
-                    duckdb_filter.append(f"{data_filter} = '{config[data_filter][0]}'")
+                    quoted_val = parse.quote_plus(config[data_filter][0])
+                    duckdb_filter.append(f"{data_filter} = '{quoted_val}'")
                 else:
                     duckdb_filter.append(f"{data_filter} = {config[data_filter][0]}")
             last_analysis_level = current_analysis_level
