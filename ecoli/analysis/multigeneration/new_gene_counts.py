@@ -18,9 +18,10 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: list[str],
+    sim_data_paths: dict[int, list[str]],
     validation_data_paths: list[str],
     outdir: str,
+    variant_metadata: dict[int, Any]
 ):
     # Determine new gene ids
     with open(sim_data_paths[0], "rb") as f:
