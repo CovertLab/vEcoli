@@ -178,30 +178,84 @@ def get_dataset_strings(out_dir: str) -> tuple[str, str]:
         """
 
 
-def num_cells(conn: duckdb.DuckDBPyConnection, view: str) -> int:
+def num_cells(conn: duckdb.DuckDBPyConnection, subquery: str) -> int:
     """
-    Return cell count in view in DuckDB connection (view must have
-    ``experiment_id``, ``variant``, ``lineage_seed``, ``generation``, and
-    ``agent_id`` columns).
+    Return cell count in DuckDB subquery containing ``experiment_id``,
+    ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns).
     """
     return conn.sql(f"""SELECT count(
         DISTINCT (experiment_id, variant, lineage_seed, generation, agent_id)
-        ) FROM {view}""").fetchone()[0]
+        ) FROM ({subquery})""").fetchone()[0]
 
 
 def ndlist_to_ndarray(s: pa.Array) -> np.ndarray:
     """
-    Convert a series consisting of nested lists with fixed dimensions into
+    Convert a PyArrow series of nested lists with fixed dimensions into
     a Numpy ndarray. This should really only be necessary if you are trying
     to perform linear algebra (e.g. matrix multiplication, dot products) inside
-    a user-defined function (see DuckDB documentation on Python Function API).
+    a user-defined function (see DuckDB documentation on Python Function API and
+    ``func`` kwarg for :py:func:`~read_stacked_columns`).
+    
+    For elementwise arithmetic with two nested list columns, this can be used
+    in combination with :py:func:`~.ndarray_to_ndlist` to define a custom DuckDB
+    function as follows::
+    
+        import duckdb
+        from ecoli.library.parquet_emitter import (
+            ndarray_to_ndlist, ndlist_to_ndarray)
+        def sum_arrays(col_0, col_1):
+            return ndarray_to_ndlist(
+                ndlist_to_ndarray(col_0) +
+                ndlist_to_ndarray(col_1)
+            )
+        conn = duckdb.connect()
+        conn.create_function(
+            "sum_2d_int_arrays", # Function name for use in SQL (must be unique)
+            sum_arrays, # Python function that takes and returns PyArrow arrays
+            [list[list[int]], list[list[int]]], # Input types (2D lists here)
+            list[list[int]], # Return type (2D list here)
+            type = "arrow" # Tell DuckDB function operates on Arrow arrays
+        )
+        conn.sql("SELECT sum_2d_int_arrays(int_col_0, int_col_1) from input_table")
+        # Note that function must be registered under different name for each
+        # set of unique input/output types
+        conn.create_function(
+            "sum_2d_int_and_float",
+            sum_arrays,
+            [list[list[int]], list[list[float]]], # Second input is 2D float array
+            list[list[float]], # Adding int to float array gives float in Numpy
+            type = "arrow"
+        )
+        conn.sql("SELECT sum_2d_int_arrays(int_col_0, float_col_0) from input_table")
+
     """
     dimensions = [1, len(s)]
-    while isinstance(s.type, pa.ListType):
+    while isinstance(s.type, pa.ListType) or isinstance(
+        s.type, pa.FixedSizeListType
+    ):
         s = pc.list_flatten(s)
         dimensions.append(len(s))
     dimensions = [p[1] // p[0] for p in pairwise(dimensions)]
     return s.to_numpy().reshape(dimensions)
+
+
+def ndarray_to_ndlist(arr: np.ndarray) -> pa.FixedSizeListArray:
+    """
+    Convert a Numpy ndarray into a PyArrow FixedSizeListArray. This is useful
+    for writing user-defined functions (see DuckDB documentation on Python
+    Function API and ``func`` kwarg for :py:func:`~read_stacked_columns`)
+    that expect a PyArrow return type.
+
+    Note that the number of rows in the returned PyArrow array is equal to the
+    size of the first dimension of the input array. This means for a 3 x 4 x 5
+    Numpy array, the return PyArrow array will have 3 rows where each row is
+    a nested list with 4 lists of length 5.
+    """
+    arrow_flat_array = pa.array(arr.flatten())
+    nested_array = arrow_flat_array
+    for dim_size in reversed(arr.shape[1:]):
+        nested_array = pa.FixedSizeListArray.from_arrays(nested_array, dim_size)
+    return nested_array
 
 
 def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> str:
@@ -209,14 +263,11 @@ def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> 
     Returns a DuckDB expression for a column equivalent to converting each row
     of ``name`` into an ndarray ``name_arr`` (:py:func:`~.ndlist_to_ndarray`)
     and getting ``name_arr[idx]``. ``idx`` can contain 1D lists of integers,
-    boolean masks, or ``":"`` (no 2D+ indices like x[[[1,2]]]).
-
-    This function is useful for reducing the amount of data loaded for columns
-    with lists of 2 or more dimensions. For list columns with one dimension,
-    use :py:func:`~.named_idx` to create expressions for many indices at once.
+    boolean masks, or ``":"`` (no 2D+ indices like x[[[1,2]]]). See also
+    :py:func:`~named_idx` if pulling out a relatively small set of indices.
 
     .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
-        supplied index!
+        supplied integer index!
 
     Args:
         name: Name of column to recursively index
@@ -268,7 +319,10 @@ def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> 
 
 def named_idx(col: str, names: list[str], idx: list[int]) -> list[str]:
     """
-    Create SQL SELECT expressions for given indices from a list column.
+    Create SQL SELECT expressions for given indices from a list column. Since
+    each index gets pulled out into its own column, this greatly simplifies
+    aggregations like averages, etc. Only use this if the number of indices
+    is relatively small (<100). Otherwise, use :py:func:`~.ndidx_to_duckdb_expr`.
 
     .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
         supplied index!
@@ -286,7 +340,7 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> list[str]:
 
 def get_field_metadata(
     conn: duckdb.DuckDBPyConnection,
-    config_view: str,
+    config_subquery: str,
     field: str
 ) -> list:
     """
@@ -294,11 +348,11 @@ def get_field_metadata(
 
     Args:
         conn: DuckDB connection
-        config_view: Name of view for configuration data
+        config_subquery: DuckDB query containing sim config data
         field: Name of field to get metadata for
     """
     metadata = conn.sql(
-        f"SELECT first({METADATA_PREFIX + field}) FROM \"{config_view}\""
+        f"SELECT first(\"{METADATA_PREFIX + field}\") FROM ({config_subquery})"
     ).fetchone()[0]
     if isinstance(metadata, list):
         return metadata
@@ -307,27 +361,29 @@ def get_field_metadata(
 
 def get_config_value(
     conn: duckdb.DuckDBPyConnection,
-    config_view: str,
-    config_opt: str
+    config_subquery: str,
+    field: str
 ) -> Any:
     """
     Gets the saved configuration option.
 
     Args:
         conn: DuckDB connection
-        config_view: Name of view for configuration data
-        field: Name of configuration option to get value pf
+        config_subquery: DuckDB query containing sim config data
+        field: Name of configuration option to get value of
     """
     return conn.sql(
-        f"SELECT first(data__{config_opt}) FROM {config_view}").fetchone()[0]
+        f"SELECT first(\"data__{field}\") FROM ({config_subquery})").fetchone()[0]
 
 
 def read_stacked_columns(
     history_sql: str,
     columns: list[str],
+    projections: Optional[list[str]] = None,
     remove_first: bool = False,
     func: Optional[Callable[[pa.Table], pa.Table]] = None,
-    return_sql: bool = False
+    return_sql: bool = False,
+    order_results: bool = True
 ) -> pa.Table | str:
     """
     Loads columns for many cells. If you would like to perform more advanced
@@ -335,7 +391,7 @@ def read_stacked_columns(
     DuckDB API, you can specify ``return_sql=True`` and use the return value
     as a subquery. For computations that cannot be easily performed using the
     DuckDB API, you can define a custom function ``func`` that will be called
-    with the data for each cell. 
+    on the data for each cell. 
 
     For example, to get the average total concentration of three bulk molecules
     with indices 100, 1000, and 10000 per cell::
@@ -394,22 +450,39 @@ def read_stacked_columns(
         history_sql: DuckDB SQL string from :py:func:`~.get_dataset_strings`,
             potentially with filters appended in ``WHERE`` clause
         columns: Names of columns to read data for
+        projections: Expressions to project from each column that is read.
+            Must be same length as column. If not given, columns are projected
+            as is. If ``None`` for a column, that column is projected as is.
         remove_first: Remove data for first timestep of each cell
         func: Function to call on data for each cell, should take and
             return a PyArrow table with columns equal to ``columns``
         return_sql: Instead of directly running the DuckDB query and returning
             the result as a PyArrow table, return the SQL query string. Cannot
             be used together with ``func``.
+        order_results: Whether to sort returned table by ``experiment_id``,
+            ``variant``, ``lineage_seed``, ``generation``, ``agent_id``, and
+            ``time``. Turning this off can greatly reduce RAM usage.
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
-    joined_sql = f"SELECT {id_cols}, \"{columns[0]}\"" + history_sql.replace(
-        "COLNAMEHERE", parse.quote_plus(columns[0]))
+    if projections is None:
+        projections = [None] * len(columns)
+    first_projection = projections[0]
+    if first_projection is None:
+        first_projection = f"{id_cols}, \"{columns[0]}\""
+    else:
+        first_projection = f"{id_cols}, {first_projection}"
+    joined_sql = f"SELECT * FROM (SELECT {first_projection} FROM (" + \
+        history_sql.replace("COLNAMEHERE", parse.quote_plus(columns[0])) + "))"
     # If reading multiple columns together, align them using a join
-    for column in columns[1:]:
+    for column, projection in zip(columns[1:], projections[1:]):
         quoted_colname = parse.quote_plus(column)
-        joined_sql += f" JOIN (SELECT {id_cols}, \"{column}\" "
+        if projection is None:
+            projection = f"{id_cols}, \"{column}\""
+        else:
+            projection = f"{id_cols}, {projection}"
+        joined_sql += f" JOIN (SELECT {projection} FROM ("
         joined_sql += history_sql.replace("COLNAMEHERE", quoted_colname)
-        joined_sql += (") USING (experiment_id, variant, lineage_seed, "
+        joined_sql += (")) USING (experiment_id, variant, lineage_seed, "
             "generation, agent_id, time)")
     # Use an antijoin to remove rows for first timestep of each sim
     if remove_first:
@@ -420,7 +493,7 @@ def read_stacked_columns(
             NOT IN (
                 SELECT (experiment_id, variant, lineage_seed, generation,
                     agent_id, MIN(time))
-                {history_sql.replace("COLNAMEHERE", "time")}
+                FROM ({history_sql.replace("COLNAMEHERE", "time")})
                 GROUP BY experiment_id, variant, lineage_seed, generation,
                     agent_id
             )"""
@@ -447,7 +520,10 @@ def read_stacked_columns(
             # Apply func to data for each cell
             all_cell_tbls.append(func(conn.sql(cell_joined).arrow()))
         return pa.concat_tables(all_cell_tbls)
-    query = f"SELECT * FROM ({joined_sql}) ORDER BY {id_cols}"
+    if order_results:
+        query = f"SELECT * FROM ({joined_sql}) ORDER BY {id_cols}"
+    else:
+        query = joined_sql
     if return_sql:
         return query
     return conn.sql(query).arrow()

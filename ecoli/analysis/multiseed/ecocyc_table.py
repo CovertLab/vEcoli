@@ -19,7 +19,8 @@ import numpy as np
 import polars as pl
 from scipy.stats import pearsonr
 
-from ecoli.analysis.template import get_config_value, get_field_metadata, num_cells
+from ecoli.library.parquet_emitter import (
+    get_config_value, get_field_metadata, num_cells, read_stacked_columns)
 from ecoli.processes.metabolism import (
     COUNTS_UNITS,
     MASS_UNITS,
@@ -63,6 +64,8 @@ def save_file(outdir, filename, columns, values: list[pl.Series]):
 def plot(
     params: dict[str, Any],
     conn: DuckDBPyConnection,
+    history_sql: str,
+    config_sql: str,
     sim_data_paths: list[str],
     validation_data_paths: list[str],
     outdir: str,
@@ -76,24 +79,23 @@ def plot(
     media_id = MEDIA_NAME_TO_ID.get(media_name, media_name)
 
     # Ignore first N generations
-    conn.register("history_skip_n_gens", conn.sql(
-        f"SELECT * FROM history WHERE generation >= {IGNORE_FIRST_N_GENS}"))
-    conn.register("config_skip_n_gens", conn.sql(
-        f"SELECT * FROM configuration WHERE generation >= {IGNORE_FIRST_N_GENS}"))
+    generation_skip = f"WHERE generation >= {IGNORE_FIRST_N_GENS}"
+    history_sql = f"SELECT * FROM ({history_sql}) {generation_skip}"
+    config_sql = f"SELECT * FROM ({config_sql}) {generation_skip}"
 
-    if conn.sql("SELECT count(*) FROM config_skip_n_gens").fetchone()[0] == 0:
+    if num_cells(conn, config_sql) == 0:
         print("Skipping analysis -- not enough simulations run.")
         return
 
     # Load tables and attributes for mRNAs
     mRNA_ids = get_field_metadata(
-        conn, "config_skip_n_gens", "listeners__rna_counts__mRNA_cistron_counts"
+        conn, config_sql, "listeners__rna_counts__mRNA_cistron_counts"
     )
     # mass_unit = get_field_metadata(config_lf, 'listeners__mass__dry_mass')
     # assert mass_unit == 'fg'
 
     # Load tables and attributes for tRNAs and rRNAs
-    bulk_ids = get_field_metadata(conn, "config_skip_n_gens", "bulk")
+    bulk_ids = get_field_metadata(conn, config_sql, "bulk")
     bulk_id_to_idx = {bulk_id: i + 1 for i, bulk_id in enumerate(bulk_ids)}
     uncharged_tRNA_ids = sim_data.process.transcription.uncharged_trna_names
     uncharged_tRNA_idx = [bulk_id_to_idx[trna] for trna in uncharged_tRNA_ids]
@@ -112,60 +114,63 @@ def plot(
         sim_data.molecule_ids.s50_full_complex,
     ]
     ribo_subunit_idx = [bulk_id_to_idx[ribo] for ribo in ribosomal_subunit_ids]
+    # Filter out first timestep for each cell because counts_to_molar is 0
+    rna_subquery = read_stacked_columns(
+        history_sql, [
+            "bulk",
+            "listeners__unique_molecule_counts__active_ribosome",
+            "listeners__enzyme_kinetics__counts_to_molar",
+            "listeners__mass__dry_mass",
+            "listeners__rna_counts__mRNA_cistron_counts"
+        ], [
+            # Extract only necessary bulk counts to reduce RAM usage
+            f"list_select(bulk, {charged_tRNA_idx}) AS charged_tRNAs, "
+            f"list_select(bulk, {uncharged_tRNA_idx}) AS uncharged_tRNAs, "
+            f"list_select(bulk, {rRNA_idx}) as rRNAs, "
+            f"list_select(bulk, {ribo_subunit_idx}) as ribo_subunits",
+            None, None, None, None
+        ],
+        remove_first=True, return_sql=True, order_results=False
+    )
     rna_data = conn.sql(
         f"""
-        WITH filter_first AS (
+        WITH rna_list AS (
             SELECT
                 -- Create RNA counts list of mRNAs, tRNAs, and rRNAs (in order)
-                list_concat(
-                    listeners__rna_counts__mRNA_cistron_counts,
-                    list_concat(
-                        -- tRNA = charged + uncharged
-                        [
-                            trna[1] + trna[2]
-                            FOR trna IN list_zip(
-                                list_select(bulk, {charged_tRNA_idx}),
-                                list_select(bulk, {uncharged_tRNA_idx})
-                            )
-                        ],
-                        list_concat(
-                            -- First rRNA = bulk + active ribosome + small subunit
-                            [
-                                bulk[{rRNA_idx[0]}] + 
-                                listeners__unique_molecule_counts__active_ribosome +
-                                bulk[{ribo_subunit_idx[0]}]
-                            ],
-                            -- Remaining rRNAs = bulk + active ribosome + large subunit
-                            [
-                                rrna_count +
-                                listeners__unique_molecule_counts__active_ribosome +
-                                bulk[{ribo_subunit_idx[1]}]
-                                FOR rrna_count IN list_select(bulk, {rRNA_idx[1:]})
-                            ]
-                        )  
-                    )
+                (
+                    -- mRNA
+                    listeners__rna_counts__mRNA_cistron_counts +
+                    -- tRNA = charged + uncharged
+                    [
+                        trna[1] + trna[2]
+                        FOR trna IN list_zip(charged_tRNAs, uncharged_tRNAs)
+                    ] +
+                    -- First rRNA = bulk + active ribosome + small subunit
+                    [
+                        rRNAs[1] + 
+                        listeners__unique_molecule_counts__active_ribosome +
+                        ribo_subunits[1]
+                    ] +
+                    -- Remaining rRNAs = bulk + active ribosome + large subunit
+                    [
+                        rrna_count +
+                        listeners__unique_molecule_counts__active_ribosome +
+                        ribo_subunits[2]
+                        FOR rrna_count IN rRNAs[2:]
+                    ]
                 ) AS rna_counts,
                 listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar,
                 listeners__mass__dry_mass AS dry_masses
-            FROM history_skip_n_gens
-            -- Filter out first timestep for each cell because counts_to_molar is 0
-            WHERE (lineage_seed, generation, agent_id, time) NOT IN (
-                SELECT
-                    (lineage_seed, generation, agent_id, MIN(time))
-                FROM
-                    history_skip_n_gens
-                GROUP BY
-                    lineage_seed, generation, agent_id
-            )
+            FROM ({rna_subquery})
         ),
-        unnest_counts AS (
+        unnested_counts AS (
             SELECT
                 -- Unnest RNA counts to perform aggregations (e.g. mean, stddev)
                 unnest(rna_counts) AS rna_counts,
                 -- Track list index for each unnested row for grouped aggregations
                 generate_subscripts(rna_counts, 1) as rna_idx,
                 counts_to_molar, dry_masses
-            FROM filter_first
+            FROM rna_list
         )
         SELECT
             avg(rna_counts) AS "rna-count-avg",
@@ -173,34 +178,30 @@ def plot(
             avg(rna_counts * counts_to_molar) AS "rna-concentration-avg",
             stddev(rna_counts * counts_to_molar) AS "rna-concentration-std",
             avg(dry_masses) AS "dry-masses-avg"
-        FROM unnest_counts
+        FROM unnested_counts
         GROUP BY rna_idx
         ORDER BY rna_idx
         """).pl()
-    
+
+    # Filter out first timestep for each cell because counts_to_molar is 0
+    gene_copy_num_subquery = read_stacked_columns(
+        history_sql, ["listeners__rna_synth_prob__gene_copy_number"],
+        remove_first=True, return_sql=True, order_results=False
+    )
     gene_copy_data = conn.sql(
-        """
-        WITH filter_first AS (
+        f"""
+        WITH unnested_counts AS (
             SELECT
                 -- Unnest gene copy number to perform aggregations (e.g. mean, stddev)
                 unnest(listeners__rna_synth_prob__gene_copy_number) AS gene_copy_numbers,
                 -- Track list index for each unnested row for grouped aggregations
                 generate_subscripts(listeners__rna_synth_prob__gene_copy_number, 1) as gene_idx
-            FROM history_skip_n_gens
-            -- Filter out first timestep for each cell because counts_to_molar is 0
-            WHERE (lineage_seed, generation, agent_id, time) NOT IN (
-                SELECT
-                    (lineage_seed, generation, agent_id, MIN(time))
-                FROM
-                    history_skip_n_gens
-                GROUP BY
-                    lineage_seed, generation, agent_id
-            )
+            FROM ({gene_copy_num_subquery})
         )
         SELECT
             avg(gene_copy_numbers) AS "gene-copy-number-avg",
             stddev(gene_copy_numbers) AS "gene-copy-number-std"
-        FROM filter_first
+        FROM unnested_counts
         GROUP BY gene_idx
         ORDER BY gene_idx
         """).pl()
@@ -213,7 +214,7 @@ def plot(
     gene_ids = [cistron_id_to_gene_id[rna_id]
         for rna_id in mRNA_ids + tRNA_cistron_ids + rRNA_cistron_ids]
     gene_ids_rna_synth_prob = get_field_metadata(
-        conn, "config_skip_n_gens", "listeners__rna_synth_prob__gene_copy_number"
+        conn, config_sql, "listeners__rna_synth_prob__gene_copy_number"
     )
     gene_id_to_idx = {
         gene: i for i, gene in enumerate(gene_ids_rna_synth_prob)
@@ -290,18 +291,26 @@ def plot(
 
     # Build dictionary for metadata
     ecocyc_metadata = {
-        "git_hash": get_config_value(conn, "config_skip_n_gens", "git_hash"),
+        "git_hash": get_config_value(conn, config_sql, "git_hash"),
         "n_ignored_generations": IGNORE_FIRST_N_GENS,
-        "n_total_generations": get_config_value(conn, "config_skip_n_gens", "generations"),
-        "n_seeds": get_config_value(conn, "config_skip_n_gens", "n_init_sims"),
-        "n_cells": num_cells(conn, "config_skip_n_gens"),
+        "n_total_generations": get_config_value(conn, config_sql, "generations"),
+        "n_seeds": get_config_value(conn, config_sql, "n_init_sims"),
+        "n_cells": num_cells(conn, config_sql),
         "n_timesteps": len(rna_data),
     }
 
+    # Filter out first timestep for each cell because counts_to_molar is 0
+    monomer_subquery = read_stacked_columns(
+        history_sql, [
+            "listeners__enzyme_kinetics__counts_to_molar",
+            "listeners__mass__dry_mass",
+            "listeners__monomer_counts"
+        ], remove_first=True, return_sql=True, order_results=False
+    )
     # Load tables and attributes for proteins
     monomer_data = conn.sql(
-        """
-        WITH filter_first AS (
+        f"""
+        WITH unnested_counts AS (
             SELECT
                 listeners__mass__dry_mass AS dry_masses,
                 listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar,
@@ -309,16 +318,7 @@ def plot(
                 unnest(listeners__monomer_counts) AS monomer_counts,
                 -- Track list index for each unnested row for grouped aggregations
                 generate_subscripts(listeners__monomer_counts, 1) AS monomer_idx,
-            FROM history_skip_n_gens
-            -- Filter out first timestep for each cell because counts_to_molar is 0
-            WHERE (lineage_seed, generation, agent_id, time) NOT IN (
-                SELECT
-                    (lineage_seed, generation, agent_id, MIN(time))
-                FROM
-                    history_skip_n_gens
-                GROUP BY
-                    lineage_seed, generation, agent_id
-            )
+            FROM ({monomer_subquery})
         )
         SELECT
             avg(monomer_counts) AS "protein-count-avg",
@@ -326,11 +326,11 @@ def plot(
             avg(monomer_counts * counts_to_molar) AS "protein-concentration-avg",
             stddev(monomer_counts * counts_to_molar) AS "protein-concentration-std",
             avg(dry_masses) AS "dry-masses-avg"
-        FROM filter_first
+        FROM unnested_counts
         GROUP BY monomer_idx
         ORDER BY monomer_idx
         """).pl()
-    monomer_ids = get_field_metadata(conn, "config_skip_n_gens", "listeners__monomer_counts")
+    monomer_ids = get_field_metadata(conn, config_sql, "listeners__monomer_counts")
     monomer_ecocyc_ids = [monomer[:-3] for monomer in monomer_ids]  # strip [*]
     monomer_mw = sim_data.getter.get_masses(monomer_ids).asNumber(
         units.fg / units.count
@@ -406,26 +406,28 @@ def plot(
     # Read data and load attributes for complexes
     complex_ids = sim_data.process.complexation.ids_complexes
     complex_idx = [bulk_id_to_idx[cplx] for cplx in complex_ids]
+    complex_subquery = read_stacked_columns(
+        history_sql, [
+            "bulk",
+            "listeners__enzyme_kinetics__counts_to_molar",
+            "listeners__mass__dry_mass"
+        ], [
+            # Extract only complex bulk counts to reduce RAM usage
+            f"list_select(bulk, {complex_idx}) AS complex_counts",
+            None, None
+        ], remove_first=True, return_sql=True, order_results=False
+    )
     complex_data = conn.sql(
         f"""
-        WITH filter_first AS (
+        WITH unnested_counts AS (
             SELECT
                 -- Unnest complex counts to calculate aggregations (e.g. mean)
-                unnest(list_select(bulk, {complex_idx})) AS complex_counts,
+                unnest(complex_counts) AS complex_counts,
                 -- Track list index for each unnested row for grouped aggregations
-                generate_subscripts(list_select(bulk, {complex_idx}), 1) AS complex_idx,
+                generate_subscripts(complex_counts, 1) AS complex_idx,
                 listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar,
                 listeners__mass__dry_mass AS dry_masses,
-            FROM history_skip_n_gens
-            -- Filter out first timestep for each cell because counts_to_molar is 0
-            WHERE (lineage_seed, generation, agent_id, time) NOT IN (
-                SELECT
-                    (lineage_seed, generation, agent_id, MIN(time))
-                FROM
-                    history_skip_n_gens
-                GROUP BY
-                    lineage_seed, generation, agent_id
-            )
+            FROM ({complex_subquery})
         )
         SELECT
             avg(complex_counts) AS "complex-count-avg",
@@ -433,7 +435,7 @@ def plot(
             avg(complex_counts * counts_to_molar) AS "complex-concentration-avg",
             stddev(complex_counts * counts_to_molar) AS "complex-concentration-std",
             avg(dry_masses) AS "dry-masses-avg"
-        FROM filter_first
+        FROM unnested_counts
         GROUP BY complex_idx
         ORDER BY complex_idx
         """).pl()
@@ -472,6 +474,13 @@ def plot(
     reaction_ids = sim_data.process.metabolism.base_reaction_ids
 
     # Read fluxes
+    flux_subquery = read_stacked_columns(
+        history_sql, [
+            "listeners__fba_results__base_reaction_fluxes",
+            "listeners__mass__cell_mass",
+            "listeners__mass__dry_mass"
+        ], return_sql=True, order_results=False
+    )
     flux_data = conn.sql(
         f"""
         WITH unnest_fluxes AS (
@@ -480,7 +489,7 @@ def plot(
                 -- Unnest monomer counts to calculate aggregations (e.g. mean)
                 unnest(listeners__fba_results__base_reaction_fluxes) as fluxes,
                 generate_subscripts(listeners__fba_results__base_reaction_fluxes, 1) AS idx,
-            FROM history_skip_n_gens
+            FROM ({flux_subquery})
         )
         SELECT 
             avg(fluxes / conversion_coeffs) AS "flux-avg",
