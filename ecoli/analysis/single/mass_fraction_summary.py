@@ -2,9 +2,10 @@ import os
 from typing import Any
 
 from duckdb import DuckDBPyConnection
+import polars as pl
 import hvplot.polars
 
-from ecoli.analysis.template import num_cells
+from ecoli.library.parquet_emitter import num_cells, read_stacked_columns
 
 hvplot.extension("matplotlib")
 
@@ -25,51 +26,40 @@ COLORS = ["#%02x%02x%02x" % (color[0], color[1], color[2]) for color in COLORS_2
 def plot(
     params: dict[str, Any],
     conn: DuckDBPyConnection,
+    history_sql: str,
+    config_sql: str,
     sim_data_paths: list[str],
     validation_data_paths: list[str],
     outdir: str,
 ):
-    assert num_cells(conn, "configuration"
-        ) == 1, "Mass fraction summary plot requires single-cell data."
+    assert (
+        num_cells(conn, config_sql) == 1
+    ), "Mass fraction summary plot requires single-cell data."
 
-    conn.register("all_mass_data", conn.sql("""
-        SELECT
-            (time - MIN(time) OVER ()) / 60 AS "Time (min)",
-            listeners__mass__protein_mass AS Protein,
-            listeners__mass__tRna_mass AS tRNA,
-            listeners__mass__rRna_mass AS rRNA,
-            listeners__mass__mRna_mass AS mRNA,
-            listeners__mass__dna_mass AS DNA,
-            listeners__mass__smallMolecule_mass AS smallMol,
-            listeners__mass__dry_mass AS Dry
-        FROM history
-        ORDER BY "Time (min)"
-        """))
-
-    fractions = conn.sql("""
-        SELECT
-            avg(Protein / Dry) AS Protein,
-            avg(tRNA / Dry) AS tRNA,
-            avg(rRNA / Dry) AS rRNA,
-            avg(mRNA / Dry) AS mRNA,
-            avg(DNA / Dry) AS DNA,
-            avg(smallMol / Dry) AS "Small Mol.s",
-        FROM all_mass_data
-        """).fetchnumpy()
-    mass_data = conn.sql(f"""
-        SELECT
-            "Time (min)",
-            Protein / first(Protein) OVER all_times AS "Protein ({fractions["Protein"][0]:.3f})",
-            tRNA / first(tRNA) OVER all_times AS "tRNA ({fractions["tRNA"][0]:.3f})",
-            rRNA / first(rRNA) OVER all_times AS "rRNA ({fractions["rRNA"][0]:.3f})",
-            mRNA / first(mRNA) OVER all_times AS "mRNA ({fractions["mRNA"][0]:.3f})",
-            DNA / first(DNA) OVER all_times AS "DNA ({fractions["DNA"][0]:.3f})",
-            smallMol / first(smallMol) OVER all_times AS "Small Mol.s ({fractions["Small Mol.s"][0]:.3f})",
-        FROM all_mass_data
-        WINDOW all_times AS (ORDER BY "Time (min)")
-        ORDER BY "Time (min)"
-        """).pl()
-    plot_namespace = mass_data.plot
+    mass_columns = {
+        "Protein": "listeners__mass__protein_mass",
+        "tRNA": "listeners__mass__tRna_mass",
+        "rRNA": "listeners__mass__rRna_mass",
+        "mRNA": "listeners__mass__mRna_mass",
+        "DNA": "listeners__mass__dna_mass",
+        "Small Mol.s": "listeners__mass__smallMolecule_mass",
+        "Dry": "listeners__mass__dry_mass",
+    }
+    mass_data = read_stacked_columns(history_sql, list(mass_columns.values()))
+    mass_data = pl.DataFrame(mass_data).with_columns(
+        **{"Time (min)": (pl.col("time") - pl.col("time").min()) / 60}
+    )
+    fractions = {
+        k: (mass_data[v] / mass_data["listeners__mass__dry_mass"]).mean()
+        for k, v in mass_columns.items()
+    }
+    mass_fold_change = pl.DataFrame(
+        {
+            f"{k} ({fractions[k]:.3f})": mass_data[v] / mass_data[v][0]
+            for k, v in mass_columns.items()
+        }
+    )
+    plot_namespace = mass_fold_change.plot
     # hvplot.output(backend='matplotlib')
     plotted_data = plot_namespace.line(
         x="Time (min)",

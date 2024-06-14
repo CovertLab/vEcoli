@@ -20,7 +20,12 @@ import polars as pl
 from scipy.stats import pearsonr
 
 from ecoli.library.parquet_emitter import (
-    get_config_value, get_field_metadata, num_cells, read_stacked_columns)
+    get_config_value,
+    get_field_metadata,
+    num_cells,
+    read_stacked_columns,
+    skip_n_gens,
+)
 from ecoli.processes.metabolism import (
     COUNTS_UNITS,
     MASS_UNITS,
@@ -79,9 +84,8 @@ def plot(
     media_id = MEDIA_NAME_TO_ID.get(media_name, media_name)
 
     # Ignore first N generations
-    generation_skip = f"WHERE generation >= {IGNORE_FIRST_N_GENS}"
-    history_sql = f"SELECT * FROM ({history_sql}) {generation_skip}"
-    config_sql = f"SELECT * FROM ({config_sql}) {generation_skip}"
+    history_sql = skip_n_gens(history_sql, IGNORE_FIRST_N_GENS)
+    config_sql = skip_n_gens(config_sql, IGNORE_FIRST_N_GENS)
 
     if num_cells(conn, config_sql) == 0:
         print("Skipping analysis -- not enough simulations run.")
@@ -116,21 +120,28 @@ def plot(
     ribo_subunit_idx = [bulk_id_to_idx[ribo] for ribo in ribosomal_subunit_ids]
     # Filter out first timestep for each cell because counts_to_molar is 0
     rna_subquery = read_stacked_columns(
-        history_sql, [
+        history_sql,
+        [
             "bulk",
             "listeners__unique_molecule_counts__active_ribosome",
             "listeners__enzyme_kinetics__counts_to_molar",
             "listeners__mass__dry_mass",
-            "listeners__rna_counts__mRNA_cistron_counts"
-        ], [
+            "listeners__rna_counts__mRNA_cistron_counts",
+        ],
+        [
             # Extract only necessary bulk counts to reduce RAM usage
             f"list_select(bulk, {charged_tRNA_idx}) AS charged_tRNAs, "
             f"list_select(bulk, {uncharged_tRNA_idx}) AS uncharged_tRNAs, "
-            f"list_select(bulk, {rRNA_idx}) as rRNAs, "
-            f"list_select(bulk, {ribo_subunit_idx}) as ribo_subunits",
-            None, None, None, None
+            f"list_select(bulk, {rRNA_idx}) AS rRNAs, "
+            f"list_select(bulk, {ribo_subunit_idx}) AS ribo_subunits",
+            None,
+            None,
+            None,
+            None,
         ],
-        remove_first=True, return_sql=True, order_results=False
+        remove_first=True,
+        return_sql=True,
+        order_results=False,
     )
     rna_data = conn.sql(
         f"""
@@ -168,7 +179,7 @@ def plot(
                 -- Unnest RNA counts to perform aggregations (e.g. mean, stddev)
                 unnest(rna_counts) AS rna_counts,
                 -- Track list index for each unnested row for grouped aggregations
-                generate_subscripts(rna_counts, 1) as rna_idx,
+                generate_subscripts(rna_counts, 1) AS rna_idx,
                 counts_to_molar, dry_masses
             FROM rna_list
         )
@@ -181,12 +192,16 @@ def plot(
         FROM unnested_counts
         GROUP BY rna_idx
         ORDER BY rna_idx
-        """).pl()
+        """
+    ).pl()
 
     # Filter out first timestep for each cell because counts_to_molar is 0
     gene_copy_num_subquery = read_stacked_columns(
-        history_sql, ["listeners__rna_synth_prob__gene_copy_number"],
-        remove_first=True, return_sql=True, order_results=False
+        history_sql,
+        ["listeners__rna_synth_prob__gene_copy_number"],
+        remove_first=True,
+        return_sql=True,
+        order_results=False,
     )
     gene_copy_data = conn.sql(
         f"""
@@ -195,7 +210,7 @@ def plot(
                 -- Unnest gene copy number to perform aggregations (e.g. mean, stddev)
                 unnest(listeners__rna_synth_prob__gene_copy_number) AS gene_copy_numbers,
                 -- Track list index for each unnested row for grouped aggregations
-                generate_subscripts(listeners__rna_synth_prob__gene_copy_number, 1) as gene_idx
+                generate_subscripts(listeners__rna_synth_prob__gene_copy_number, 1) AS gene_idx
             FROM ({gene_copy_num_subquery})
         )
         SELECT
@@ -204,21 +219,22 @@ def plot(
         FROM unnested_counts
         GROUP BY gene_idx
         ORDER BY gene_idx
-        """).pl()
+        """
+    ).pl()
 
     # Retrieve gene copy numbers in order of RNA counts
     cistron_id_to_gene_id = {
         cistron["id"]: cistron["gene_id"]
         for cistron in sim_data.process.transcription.cistron_data
     }
-    gene_ids = [cistron_id_to_gene_id[rna_id]
-        for rna_id in mRNA_ids + tRNA_cistron_ids + rRNA_cistron_ids]
+    gene_ids = [
+        cistron_id_to_gene_id[rna_id]
+        for rna_id in mRNA_ids + tRNA_cistron_ids + rRNA_cistron_ids
+    ]
     gene_ids_rna_synth_prob = get_field_metadata(
         conn, config_sql, "listeners__rna_synth_prob__gene_copy_number"
     )
-    gene_id_to_idx = {
-        gene: i for i, gene in enumerate(gene_ids_rna_synth_prob)
-    }
+    gene_id_to_idx = {gene: i for i, gene in enumerate(gene_ids_rna_synth_prob)}
     gene_to_rna_order_idx = [gene_id_to_idx[gene] for gene in gene_ids]
 
     # Get RNA molecular weights
@@ -238,38 +254,41 @@ def plot(
     rel_to_type_mass = np.zeros(len(rna_data))
     start_idx = 0
     for add_idx in [len(mRNA_ids), len(tRNA_cistron_ids), len(rRNA_cistron_ids)]:
-        rna_slice_mw = rna_mw[start_idx:start_idx + add_idx]
-        rel_to_type_count[
-            start_idx:start_idx + add_idx] = rna_data.select(
-            pl.col("rna-count-avg").slice(start_idx, add_idx) / 
-            pl.col("rna-count-avg").slice(start_idx, add_idx).sum()
+        rna_slice_mw = rna_mw[start_idx : start_idx + add_idx]
+        rel_to_type_count[start_idx : start_idx + add_idx] = rna_data.select(
+            pl.col("rna-count-avg").slice(start_idx, add_idx)
+            / pl.col("rna-count-avg").slice(start_idx, add_idx).sum()
         )["rna-count-avg"]
-        rel_to_type_mass[
-            start_idx:start_idx + add_idx] = rna_data.select(
-            pl.col("rna-count-avg").slice(start_idx, add_idx) * rna_slice_mw /
-            (pl.col("rna-count-avg").slice(start_idx, add_idx) * rna_slice_mw).sum()
+        rel_to_type_mass[start_idx : start_idx + add_idx] = rna_data.select(
+            pl.col("rna-count-avg").slice(start_idx, add_idx)
+            * rna_slice_mw
+            / (pl.col("rna-count-avg").slice(start_idx, add_idx) * rna_slice_mw).sum()
         )["rna-count-avg"]
         start_idx += add_idx
-    rna_data = rna_data.with_columns(**{
-        "relative-rna-count-to-total-rna-type-counts": rel_to_type_count,
-        "relative-rna-mass-to-total-rna-type-mass": rel_to_type_mass,
-        "relative-rna-count-to-total-rna-counts": rna_data.select(
-            pl.col("rna-count-avg") / pl.col("rna-count-avg").sum()
-        )["rna-count-avg"],
-        "relative-rna-mass-to-total-rna-mass": rna_data.select(
-            pl.col("rna-count-avg") * rna_mw / 
-            (pl.col("rna-count-avg") * rna_mw).sum()
-        )["rna-count-avg"],
-        "relative-rna-mass-to-total-cell-dry-mass": rna_data.select(
-            pl.col("rna-count-avg") * rna_mw / 
-            pl.col("dry-masses-avg").sum()
-        )["rna-count-avg"],
-        "id": pl.Series(gene_ids),
-        "gene-copy-number-avg": gene_copy_data["gene-copy-number-avg"][
-            gene_to_rna_order_idx],
-        "gene-copy-number-std": gene_copy_data["gene-copy-number-std"][
-            gene_to_rna_order_idx],
-    })
+    rna_data = rna_data.with_columns(
+        **{
+            "relative-rna-count-to-total-rna-type-counts": rel_to_type_count,
+            "relative-rna-mass-to-total-rna-type-mass": rel_to_type_mass,
+            "relative-rna-count-to-total-rna-counts": rna_data.select(
+                pl.col("rna-count-avg") / pl.col("rna-count-avg").sum()
+            )["rna-count-avg"],
+            "relative-rna-mass-to-total-rna-mass": rna_data.select(
+                pl.col("rna-count-avg")
+                * rna_mw
+                / (pl.col("rna-count-avg") * rna_mw).sum()
+            )["rna-count-avg"],
+            "relative-rna-mass-to-total-cell-dry-mass": rna_data.select(
+                pl.col("rna-count-avg") * rna_mw / pl.col("dry-masses-avg").sum()
+            )["rna-count-avg"],
+            "id": pl.Series(gene_ids),
+            "gene-copy-number-avg": gene_copy_data["gene-copy-number-avg"][
+                gene_to_rna_order_idx
+            ],
+            "gene-copy-number-std": gene_copy_data["gene-copy-number-std"][
+                gene_to_rna_order_idx
+            ],
+        }
+    )
 
     columns = {
         "id": "Object ID, according to EcoCyc",
@@ -301,11 +320,15 @@ def plot(
 
     # Filter out first timestep for each cell because counts_to_molar is 0
     monomer_subquery = read_stacked_columns(
-        history_sql, [
+        history_sql,
+        [
             "listeners__enzyme_kinetics__counts_to_molar",
             "listeners__mass__dry_mass",
-            "listeners__monomer_counts"
-        ], remove_first=True, return_sql=True, order_results=False
+            "listeners__monomer_counts",
+        ],
+        remove_first=True,
+        return_sql=True,
+        order_results=False,
     )
     # Load tables and attributes for proteins
     monomer_data = conn.sql(
@@ -329,7 +352,8 @@ def plot(
         FROM unnested_counts
         GROUP BY monomer_idx
         ORDER BY monomer_idx
-        """).pl()
+        """
+    ).pl()
     monomer_ids = get_field_metadata(conn, config_sql, "listeners__monomer_counts")
     monomer_ecocyc_ids = [monomer[:-3] for monomer in monomer_ids]  # strip [*]
     monomer_mw = sim_data.getter.get_masses(monomer_ids).asNumber(
@@ -338,33 +362,41 @@ def plot(
     monomer_sim_data = sim_data.process.translation.monomer_data.struct_array
     monomer_to_gene_id = {
         monomer_id: cistron_id_to_gene_id[cistron_id]
-        for cistron_id, monomer_id in
-        zip(monomer_sim_data["cistron_id"], monomer_sim_data["id"])
+        for cistron_id, monomer_id in zip(
+            monomer_sim_data["cistron_id"], monomer_sim_data["id"]
+        )
     }
     # Calculate relative statistics
-    monomer_data = monomer_data.with_columns(**{
-        "relative-protein-count-to-total-protein-counts": monomer_data.select(
-            pl.col("protein-count-avg") / pl.col("protein-count-avg").sum()
-        )["protein-count-avg"],
-        "relative-protein-mass-to-total-protein-mass": monomer_data.select(
-            pl.col("protein-count-avg") * monomer_mw /
-            (pl.col("protein-count-avg") * monomer_mw).sum()
-        )["protein-count-avg"],
-        "relative-protein-mass-to-total-cell-dry-mass": monomer_data.select(
-            pl.col("protein-count-avg") * monomer_mw / pl.col("dry-masses-avg")
-        )["protein-count-avg"],
-        "gene-id": pl.Series([monomer_to_gene_id[monomer_id]
-                              for monomer_id in monomer_ids]),
-        "id": pl.Series(monomer_ecocyc_ids),
-    })
-    monomer_data = monomer_data.join(rna_data.select(
-        **{"gene-id": "id", "rna-count-avg": "rna-count-avg"}),
-        on="gene-id")
-    monomer_data = monomer_data.with_columns(**{
-        "relative-protein-count-to-protein-rna-counts": monomer_data.select(
-            pl.col("protein-count-avg") / pl.col("rna-count-avg")
-        )["protein-count-avg"]
-    })
+    monomer_data = monomer_data.with_columns(
+        **{
+            "relative-protein-count-to-total-protein-counts": monomer_data.select(
+                pl.col("protein-count-avg") / pl.col("protein-count-avg").sum()
+            )["protein-count-avg"],
+            "relative-protein-mass-to-total-protein-mass": monomer_data.select(
+                pl.col("protein-count-avg")
+                * monomer_mw
+                / (pl.col("protein-count-avg") * monomer_mw).sum()
+            )["protein-count-avg"],
+            "relative-protein-mass-to-total-cell-dry-mass": monomer_data.select(
+                pl.col("protein-count-avg") * monomer_mw / pl.col("dry-masses-avg")
+            )["protein-count-avg"],
+            "gene-id": pl.Series(
+                [monomer_to_gene_id[monomer_id] for monomer_id in monomer_ids]
+            ),
+            "id": pl.Series(monomer_ecocyc_ids),
+        }
+    )
+    monomer_data = monomer_data.join(
+        rna_data.select(**{"gene-id": "id", "rna-count-avg": "rna-count-avg"}),
+        on="gene-id",
+    )
+    monomer_data = monomer_data.with_columns(
+        **{
+            "relative-protein-count-to-protein-rna-counts": monomer_data.select(
+                pl.col("protein-count-avg") / pl.col("rna-count-avg")
+            )["protein-count-avg"]
+        }
+    )
 
     columns = {
         "id": "Object ID, according to EcoCyc",
@@ -407,15 +439,21 @@ def plot(
     complex_ids = sim_data.process.complexation.ids_complexes
     complex_idx = [bulk_id_to_idx[cplx] for cplx in complex_ids]
     complex_subquery = read_stacked_columns(
-        history_sql, [
+        history_sql,
+        [
             "bulk",
             "listeners__enzyme_kinetics__counts_to_molar",
-            "listeners__mass__dry_mass"
-        ], [
+            "listeners__mass__dry_mass",
+        ],
+        [
             # Extract only complex bulk counts to reduce RAM usage
             f"list_select(bulk, {complex_idx}) AS complex_counts",
-            None, None
-        ], remove_first=True, return_sql=True, order_results=False
+            None,
+            None,
+        ],
+        remove_first=True,
+        return_sql=True,
+        order_results=False,
     )
     complex_data = conn.sql(
         f"""
@@ -438,22 +476,28 @@ def plot(
         FROM unnested_counts
         GROUP BY complex_idx
         ORDER BY complex_idx
-        """).pl()
+        """
+    ).pl()
 
     # Calculate derived protein values
     complex_mw = sim_data.getter.get_masses(complex_ids).asNumber(
         units.fg / units.count
     )
-    complex_data = complex_data.with_columns(**{
-        "relative-complex-mass-to-total-protein-mass": complex_data.select(
-            pl.col("complex-count-avg") * complex_mw /
-            (pl.col("complex-count-avg") * complex_mw).sum()
-        )["complex-count-avg"],
-        "relative-complex-mass-to-total-cell-dry-mass": complex_data.select(
-            pl.col("complex-count-avg") * complex_mw / pl.col("dry-masses-avg")
-        )["complex-count-avg"],
-        "id": pl.Series([complex_id[:-3] for complex_id in complex_ids]),  # strip [*]
-    })
+    complex_data = complex_data.with_columns(
+        **{
+            "relative-complex-mass-to-total-protein-mass": complex_data.select(
+                pl.col("complex-count-avg")
+                * complex_mw
+                / (pl.col("complex-count-avg") * complex_mw).sum()
+            )["complex-count-avg"],
+            "relative-complex-mass-to-total-cell-dry-mass": complex_data.select(
+                pl.col("complex-count-avg") * complex_mw / pl.col("dry-masses-avg")
+            )["complex-count-avg"],
+            "id": pl.Series(
+                [complex_id[:-3] for complex_id in complex_ids]
+            ),  # strip [*]
+        }
+    )
     # Save complex data in table
     columns = {
         "id": "Object ID, according to EcoCyc",
@@ -475,11 +519,14 @@ def plot(
 
     # Read fluxes
     flux_subquery = read_stacked_columns(
-        history_sql, [
+        history_sql,
+        [
             "listeners__fba_results__base_reaction_fluxes",
             "listeners__mass__cell_mass",
-            "listeners__mass__dry_mass"
-        ], return_sql=True, order_results=False
+            "listeners__mass__dry_mass",
+        ],
+        return_sql=True,
+        order_results=False,
     )
     flux_data = conn.sql(
         f"""
@@ -487,7 +534,7 @@ def plot(
             SELECT listeners__mass__dry_mass / 
                 listeners__mass__cell_mass * {cell_density} AS conversion_coeffs,
                 -- Unnest monomer counts to calculate aggregations (e.g. mean)
-                unnest(listeners__fba_results__base_reaction_fluxes) as fluxes,
+                unnest(listeners__fba_results__base_reaction_fluxes) AS fluxes,
                 generate_subscripts(listeners__fba_results__base_reaction_fluxes, 1) AS idx,
             FROM ({flux_subquery})
         )
@@ -497,15 +544,20 @@ def plot(
         FROM unnest_fluxes
         GROUP BY idx
         ORDER BY idx
-        """).pl()
-    
-    flux_data = flux_data.with_columns(**{
-        "id": pl.Series(reaction_ids),
-        "flux-avg": ((COUNTS_UNITS / MASS_UNITS / TIME_UNITS)
-            * pl.col("flux-avg")).asNumber(units.mmol / units.g / units.h),
-        "flux-std": ((COUNTS_UNITS / MASS_UNITS / TIME_UNITS)
-            * pl.col("flux-std")).asNumber(units.mmol / units.g / units.h)
-    })
+        """
+    ).pl()
+
+    flux_data = flux_data.with_columns(
+        **{
+            "id": pl.Series(reaction_ids),
+            "flux-avg": (
+                (COUNTS_UNITS / MASS_UNITS / TIME_UNITS) * pl.col("flux-avg")
+            ).asNumber(units.mmol / units.g / units.h),
+            "flux-std": (
+                (COUNTS_UNITS / MASS_UNITS / TIME_UNITS) * pl.col("flux-std")
+            ).asNumber(units.mmol / units.g / units.h),
+        }
+    )
 
     columns = {
         "id": "Object ID, according to EcoCyc",
