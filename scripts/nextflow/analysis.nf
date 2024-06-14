@@ -9,6 +9,7 @@ process analysisSingle {
     path config
     path kb
     tuple path(sim_data), val(experiment_id), val(variant), val(lineage_seed), val(generation), val(agent_id)
+    path variantMetadata
 
     output:
     path '*'
@@ -24,6 +25,7 @@ process analysisSingle {
         --lineage_seed $lineage_seed \\
         --generation $generation \\
         --agent_id "$agent_id" \\
+        --variant-metadata-path ${variant_metadata} \\
         -o \$(pwd)/plots
     """
 
@@ -45,6 +47,7 @@ process analysisMultiDaughter {
     path config
     path kb
     tuple path(sim_data), val(experiment_id), val(variant), val(lineage_seed), val(generation)
+    path variant_metadata
 
     output:
     path '*'
@@ -59,6 +62,7 @@ process analysisMultiDaughter {
         --variant $variant \\
         --lineage_seed $lineage_seed \\
         --generation $generation \\
+        --variant-metadata-path ${variant_metadata} \\
         -o \$(pwd)/plots
     """
 
@@ -80,6 +84,7 @@ process analysisMultiGeneration {
     path config
     path kb
     tuple path(sim_data), val(experiment_id), val(variant), val(lineage_seed)
+    path variant_metadata
 
     output:
     path '*'
@@ -93,6 +98,7 @@ process analysisMultiGeneration {
         --experiment_id "$experiment_id" \\
         --variant $variant \\
         --lineage_seed $lineage_seed \\
+        --variant-metadata-path ${variant_metadata} \\
         -o \$(pwd)/plots
     """
 
@@ -114,6 +120,7 @@ process analysisMultiSeed {
     path config
     path kb
     tuple path(sim_data), val(experiment_id), val(variant)
+    path variant_metadata
 
     output:
     path '*'
@@ -126,6 +133,7 @@ process analysisMultiSeed {
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
+        --variant-metadata-path ${variant_metadata} \\
         -o \$(pwd)/plots
     """
 
@@ -145,6 +153,7 @@ process analysisMultiVariant {
     path config
     path kb
     tuple path(sim_data, stageAs: 'simData*.cPickle'), val(experiment_id), val(variant)
+    path variant_metadata
 
     output:
     path '*'
@@ -157,6 +166,7 @@ process analysisMultiVariant {
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant ${variant.join("\" \"")} \\
+        --variant-metadata-path ${variant_metadata} \\
         -o \$(pwd)/plots
     """
 

@@ -137,7 +137,9 @@ def generate_lineage(
         sim_workflow.append(
             MULTIVARIANT_CHANNEL.format(size=sims_per_seed * n_init_sims)
         )
-        sim_workflow.append("\tanalysisMultiVariant(params.config, kb, multiVariantCh)")
+        sim_workflow.append(
+            "\tanalysisMultiVariant(params.config, kb, multiVariantCh, "
+            "variantMetadataCh)")
         sim_imports.append(
             f"include {{ analysisMultiVariant }} from '{NEXTFLOW_DIR}/analysis'"
         )
@@ -145,7 +147,8 @@ def generate_lineage(
     if analysis_config.get("multi_seed", False):
         # Channel that groups sim tasks by variant sim_data
         sim_workflow.append(MULTISEED_CHANNEL.format(size=sims_per_seed * n_init_sims))
-        sim_workflow.append("\tanalysisMultiSeed(params.config, kb, multiSeedCh)")
+        sim_workflow.append(
+            "\tanalysisMultiSeed(params.config, kb, multiSeedCh, variantMetadataCh)")
         sim_imports.append(
             f"include {{ analysisMultiSeed }} from '{NEXTFLOW_DIR}/analysis'"
         )
@@ -154,7 +157,8 @@ def generate_lineage(
         # Channel that groups sim tasks by variant sim_data and initial seed
         sim_workflow.append(MULTIGENERATION_CHANNEL.format(size=sims_per_seed))
         sim_workflow.append(
-            "\tanalysisMultiGeneration(params.config, kb, multiGenerationCh)"
+            "\tanalysisMultiGeneration(params.config, kb, multiGenerationCh, "
+            "variantMetadataCh)"
         )
         sim_imports.append(
             f"include {{ analysisMultiGeneration }} from '{NEXTFLOW_DIR}/analysis'"
@@ -166,14 +170,16 @@ def generate_lineage(
         gen_size = "[" + ", ".join([f"{g+1}: {2**g}" for g in range(generations)]) + "]"
         sim_workflow.append(MULTIDAUGHTER_CHANNEL.format(gen_size=gen_size))
         sim_workflow.append(
-            "\tanalysisMultiDaughter(params.config, kb, multiDaughterCh)"
+            "\tanalysisMultiDaughter(params.config, kb, multiDaughterCh, "
+            "variantMetadataCh)"
         )
         sim_imports.append(
             f"include {{ analysisMultiDaughter }} from '{NEXTFLOW_DIR}/analysis'"
         )
 
     if analysis_config.get("single", False):
-        sim_workflow.append("\tanalysisSingle(params.config, kb, simCh)")
+        sim_workflow.append(
+            "\tanalysisSingle(params.config, kb, simCh, variantMetadataCh)")
         sim_imports.append(
             f"include {{ analysisSingle }} from '{NEXTFLOW_DIR}/analysis'"
         )

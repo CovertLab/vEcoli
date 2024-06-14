@@ -37,7 +37,7 @@ from wholecell.utils import units
 if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
-IGNORE_FIRST_N_GENS = 0
+IGNORE_FIRST_N_GENS = 2
 
 MEDIA_NAME_TO_ID = {
     "minimal": "MIX0-57",
@@ -71,9 +71,10 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: list[str],
+    sim_data_paths: dict[int, list[str]],
     validation_data_paths: list[str],
     outdir: str,
+    variant_metadata: dict[int, Any]
 ):
     with open(sim_data_paths[0], "rb") as f:
         sim_data: "SimulationDataEcoli" = pickle.load(f)

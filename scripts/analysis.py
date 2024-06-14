@@ -70,6 +70,11 @@ def main():
     parser.add_argument(
         "--n_cpus", "-n", help="Number of CPUs to use for DuckDB and PyArrow."
     )
+    parser.add_argument(
+        "--variant-metadata-path",
+        "--variant_metadata_path",
+        help="Path to JSON file with variant metadata from create_variants.py."
+    )
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
     args = parser.parse_args()
     with open(config_file, "r") as f:
@@ -139,6 +144,11 @@ def main():
                     duckdb_filter.append(f"{data_filter} = {config[data_filter][0]}")
             last_analysis_level = current_analysis_level
 
+    # Load variant metadata
+    with open(config["variant_metadata_path"], "r") as f:
+        variant_metadata = json.load(f)
+        variant_metadata = {int(k): v for k, v in variant_metadata.items()}
+
     # Run the analyses listed under the most specific filter
     analysis_options = config[analysis_type]
     analysis_modules = {}
@@ -170,9 +180,10 @@ def main():
             conn,
             history_sql,
             config_sql,
-            config["sim_data_path"],
+            dict(zip(config["variant"], config["sim_data_path"])),
             config["validation_data_path"],
             config["outdir"],
+            variant_metadata,
         )
 
     # Save copy of config JSON with parameters for plots

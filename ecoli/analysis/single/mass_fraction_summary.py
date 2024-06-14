@@ -28,9 +28,10 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: list[str],
+    sim_data_paths: dict[int, list[str]],
     validation_data_paths: list[str],
     outdir: str,
+    variant_metadata: dict[int, Any],
 ):
     assert (
         num_cells(conn, config_sql) == 1

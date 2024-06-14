@@ -28,9 +28,10 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_path: list[str],
+    sim_data_path: dict[int, list[str]],
     validation_data_path: list[str],
     outdir: str,
+    variant_metadata: dict[int, Any]
 ):
     with open(sim_data_path[0], "rb") as f:
         sim_data = pickle.load(f)
