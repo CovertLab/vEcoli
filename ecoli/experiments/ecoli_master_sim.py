@@ -304,7 +304,8 @@ class SimConfig:
                 help="Seed used for first cell in lineage.",
             )
             self.parser.add_argument(
-                "--initial_global_time", type=float,
+                "--initial_global_time",
+                type=float,
                 action="store",
                 help="Initial time in context of whole lineage.",
             )

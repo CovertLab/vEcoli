@@ -72,6 +72,7 @@ def json_to_parquet(
     outfile: str,
     split_columns: bool = False,
     small_columns: list[str] = None,
+    write_statistics: bool = True,
 ):
     """
     Reads newline-delimited JSON file and converts to Parquet file.
@@ -85,6 +86,8 @@ def json_to_parquet(
         split_columns: Whether to write each column in its own file
         small_columns: List of columns small enough to consolidate
             at end of simulation for faster read performance
+        write_statistics: Whether to write Parquet statistics (min,
+            max, etc.) for each column
     """
     parse_options = pj.ParseOptions(explicit_schema=schema)
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
@@ -104,6 +107,7 @@ def json_to_parquet(
                 compression="zstd",
                 column_encoding=encodings,
                 filesystem=filesystem,
+                write_statistics=write_statistics,
             )
     else:
         pq.write_table(
@@ -113,28 +117,31 @@ def json_to_parquet(
             compression="zstd",
             column_encoding=encodings,
             filesystem=filesystem,
+            write_statistics=write_statistics,
         )
     pathlib.Path(ndjson).unlink()
 
 
 def consolidate_small_columns(
-    small_columns: list[str],
-    out_dir: str,
-    filesystem: fs.FileSystem
+    small_columns: list[str], out_dir: str, filesystem: fs.FileSystem
 ):
     """
     For each small column, reads batched Parquet files and replaces them with
     a single file containing all data (faster read performance).
     """
     for column in small_columns:
-        col_dir = os.path.join(out_dir, f"column={column}") 
-        col_table = ds.dataset(col_dir, partitioning=None,
-            filesystem=filesystem).sort_by("time").to_table()
+        quoted_column = parse.quote_plus(column)
+        col_dir = os.path.join(out_dir, f"column={quoted_column}")
+        col_table = (
+            ds.dataset(col_dir, partitioning=None, filesystem=filesystem)
+            .sort_by("time")
+            .to_table()
+        )
         filesystem.delete_dir_contents(col_dir)
         pq.write_table(col_table, os.path.join(col_dir, "consolidated.pq"))
 
 
-def get_dataset_strings(out_dir: str) -> tuple[str, str]:
+def get_dataset_sql(out_dir: str) -> tuple[str, str]:
     """
     Creates DuckDB SQL strings for sim configs and outputs.
 
@@ -150,7 +157,8 @@ def get_dataset_strings(out_dir: str) -> tuple[str, str]:
             :py:func:`~.get_field_metadata` or :py:func:`~.get_config_value`
             to retrieve metadata / config options for sims
     """
-    return f"""
+    return (
+        f"""
         FROM read_parquet(
             '{os.path.join(out_dir, 'history')}/*/*/*/*/*/column=COLNAMEHERE/*.pq',
             hive_partitioning = true,
@@ -163,7 +171,8 @@ def get_dataset_strings(out_dir: str) -> tuple[str, str]:
                 'column': VARCHAR,
             }}
         )
-        """, f"""
+        """,
+        f"""
         FROM read_parquet(
             '{os.path.join(out_dir, 'configuration')}/*/*/*/*/*/*.pq',
             hive_partitioning = true,
@@ -175,7 +184,8 @@ def get_dataset_strings(out_dir: str) -> tuple[str, str]:
                 'agent_id': VARCHAR,
             }}
         )
-        """
+        """,
+    )
 
 
 def num_cells(conn: duckdb.DuckDBPyConnection, subquery: str) -> int:
@@ -188,6 +198,13 @@ def num_cells(conn: duckdb.DuckDBPyConnection, subquery: str) -> int:
         ) FROM ({subquery})""").fetchone()[0]
 
 
+def skip_n_gens(subquery: str, n: int) -> str:
+    """
+    Modifies a DuckDB SQL query to skip the first ``n`` generations of data.
+    """
+    return f"SELECT * FROM ({subquery}) WHERE generation >= {n}"
+
+
 def ndlist_to_ndarray(s: pa.Array) -> np.ndarray:
     """
     Convert a PyArrow series of nested lists with fixed dimensions into
@@ -195,11 +212,11 @@ def ndlist_to_ndarray(s: pa.Array) -> np.ndarray:
     to perform linear algebra (e.g. matrix multiplication, dot products) inside
     a user-defined function (see DuckDB documentation on Python Function API and
     ``func`` kwarg for :py:func:`~read_stacked_columns`).
-    
+
     For elementwise arithmetic with two nested list columns, this can be used
     in combination with :py:func:`~.ndarray_to_ndlist` to define a custom DuckDB
     function as follows::
-    
+
         import duckdb
         from ecoli.library.parquet_emitter import (
             ndarray_to_ndlist, ndlist_to_ndarray)
@@ -230,9 +247,7 @@ def ndlist_to_ndarray(s: pa.Array) -> np.ndarray:
 
     """
     dimensions = [1, len(s)]
-    while isinstance(s.type, pa.ListType) or isinstance(
-        s.type, pa.FixedSizeListType
-    ):
+    while isinstance(s.type, pa.ListType) or isinstance(s.type, pa.FixedSizeListType):
         s = pc.list_flatten(s)
         dimensions.append(len(s))
     dimensions = [p[1] // p[0] for p in pairwise(dimensions)]
@@ -300,6 +315,7 @@ def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> 
         select_expr = "x_0"
     else:
         select_expr = f"x_0[{first_idx + 1}]"
+    i = -1
     for i, indices in enumerate(idx):
         if isinstance(indices, list):
             if isinstance(indices[0], int):
@@ -312,17 +328,21 @@ def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> 
         elif indices == ":":
             select_expr = f"list_transform(x_{i+1}, x_{i} -> {select_expr})"
         else:
-            select_expr = f"list_transform(x_{i+1}[{indices + 1}], x_{i} -> {select_expr})"
+            select_expr = (
+                f"list_transform(x_{i+1}[{indices + 1}], x_{i} -> {select_expr})"
+            )
     select_expr = select_expr.replace(f"x_{i+1}", name)
     return select_expr + f" AS {name}"
 
 
-def named_idx(col: str, names: list[str], idx: list[int]) -> list[str]:
+def named_idx(col: str, names: list[str], idx: list[int]) -> str:
     """
-    Create SQL SELECT expressions for given indices from a list column. Since
+    Create DuckDB expressions for given indices from a list column. Can be
+    used in ``projection`` kwarg of :py:func:`~.read_stacked_columns`. Since
     each index gets pulled out into its own column, this greatly simplifies
     aggregations like averages, etc. Only use this if the number of indices
-    is relatively small (<100). Otherwise, use :py:func:`~.ndidx_to_duckdb_expr`.
+    is relatively small (<100) and the list column is 1-dimensional. For 2+
+    dimensions or >100 indices, see :py:func:`~.ndidx_to_duckdb_expr`.
 
     .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
         supplied index!
@@ -333,15 +353,14 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> list[str]:
         idx: Indices to retrieve from ``col``
 
     Returns:
-        List of strings that can be put after SELECT in DuckDB query
+        DuckDB SQL expression for a set of named columns corresponding to
+        the values at given indices of a list column
     """
-    return [f"{col}[{i + 1}] AS \"{n}\"" for n, i in zip(names, idx)]
+    return ", ".join(f'{col}[{i + 1}] AS "{n}"' for n, i in zip(names, idx))
 
 
 def get_field_metadata(
-    conn: duckdb.DuckDBPyConnection,
-    config_subquery: str,
-    field: str
+    conn: duckdb.DuckDBPyConnection, config_subquery: str, field: str
 ) -> list:
     """
     Gets the saved metadata for a given field as a list.
@@ -352,7 +371,7 @@ def get_field_metadata(
         field: Name of field to get metadata for
     """
     metadata = conn.sql(
-        f"SELECT first(\"{METADATA_PREFIX + field}\") FROM ({config_subquery})"
+        f'SELECT first("{METADATA_PREFIX + field}") FROM ({config_subquery})'
     ).fetchone()[0]
     if isinstance(metadata, list):
         return metadata
@@ -360,9 +379,7 @@ def get_field_metadata(
 
 
 def get_config_value(
-    conn: duckdb.DuckDBPyConnection,
-    config_subquery: str,
-    field: str
+    conn: duckdb.DuckDBPyConnection, config_subquery: str, field: str
 ) -> Any:
     """
     Gets the saved configuration option.
@@ -373,7 +390,8 @@ def get_config_value(
         field: Name of configuration option to get value of
     """
     return conn.sql(
-        f"SELECT first(\"data__{field}\") FROM ({config_subquery})").fetchone()[0]
+        f'SELECT first("data__{field}") FROM ({config_subquery})'
+    ).fetchone()[0]
 
 
 def read_stacked_columns(
@@ -383,7 +401,7 @@ def read_stacked_columns(
     remove_first: bool = False,
     func: Optional[Callable[[pa.Table], pa.Table]] = None,
     return_sql: bool = False,
-    order_results: bool = True
+    order_results: bool = True,
 ) -> pa.Table | str:
     """
     Loads columns for many cells. If you would like to perform more advanced
@@ -391,18 +409,21 @@ def read_stacked_columns(
     DuckDB API, you can specify ``return_sql=True`` and use the return value
     as a subquery. For computations that cannot be easily performed using the
     DuckDB API, you can define a custom function ``func`` that will be called
-    on the data for each cell. 
+    on the data for each cell. By default, the returned SQL expression will
+    also include the ``experiment_id``, ``variant``, ``lineage_seed``,
+    ``generation``, ``agent_id``, and ``time``.
 
     For example, to get the average total concentration of three bulk molecules
     with indices 100, 1000, and 10000 per cell::
-    
+
         import duckdb
         from ecoli.library.parquet_emitter import (
-            get_dataset_strings, read_stacked_columns)    
-        history_sql, config_sql = get_dataset_strings('out/')
+            get_dataset_sql, read_stacked_columns)
+        history_sql, config_sql = get_dataset_sql('out/')
         subquery = read_stacked_columns(
             history_sql,
             ["bulk", "listeners__enzyme_kinetics__counts_to_molar"],
+            [named_idx()]
             return_sql = True
         )
         query = '''
@@ -424,8 +445,8 @@ def read_stacked_columns(
         import pickle
         import pyarrow as pa
         from ecoli.library.parquet_emitter import (
-            get_dataset_strings, ndlist_to_ndarray, read_stacked_columns)
-        history_sql, config_sql = get_dataset_strings('out/')
+            get_dataset_sql, ndlist_to_ndarray, read_stacked_columns)
+        history_sql, config_sql = get_dataset_sql('out/')
         # Load sim data
         with open("reconstruction/sim_data/kb/simData.cPickle", "rb") as f:
             sim_data = pickle.load(f)
@@ -447,12 +468,13 @@ def read_stacked_columns(
         )
 
     Args:
-        history_sql: DuckDB SQL string from :py:func:`~.get_dataset_strings`,
+        history_sql: DuckDB SQL string from :py:func:`~.get_dataset_sql`,
             potentially with filters appended in ``WHERE`` clause
         columns: Names of columns to read data for
         projections: Expressions to project from each column that is read.
-            Must be same length as column. If not given, columns are projected
-            as is. If ``None`` for a column, that column is projected as is.
+            Must be same length as ``columns``. If ``None`` for certain
+            columns, those columns are projected as is. If not given, all
+            columns are projected as is.
         remove_first: Remove data for first timestep of each cell
         func: Function to call on data for each cell, should take and
             return a PyArrow table with columns equal to ``columns``
@@ -461,29 +483,36 @@ def read_stacked_columns(
             be used together with ``func``.
         order_results: Whether to sort returned table by ``experiment_id``,
             ``variant``, ``lineage_seed``, ``generation``, ``agent_id``, and
-            ``time``. Turning this off can greatly reduce RAM usage.
+            ``time``. If this using ``return_sql``, this can usually be disabled
+            and any sorting can be deferred until the last step in the query with
+            a manual ``ORDER BY``. Doing this can greatly reduce RAM usage.
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
     if projections is None:
         projections = [None] * len(columns)
     first_projection = projections[0]
     if first_projection is None:
-        first_projection = f"{id_cols}, \"{columns[0]}\""
+        first_projection = f'{id_cols}, "{columns[0]}"'
     else:
         first_projection = f"{id_cols}, {first_projection}"
-    joined_sql = f"SELECT * FROM (SELECT {first_projection} FROM (" + \
-        history_sql.replace("COLNAMEHERE", parse.quote_plus(columns[0])) + "))"
+    joined_sql = (
+        f"SELECT * FROM (SELECT {first_projection} FROM ("
+        + history_sql.replace("COLNAMEHERE", parse.quote_plus(columns[0]))
+        + "))"
+    )
     # If reading multiple columns together, align them using a join
     for column, projection in zip(columns[1:], projections[1:]):
         quoted_colname = parse.quote_plus(column)
         if projection is None:
-            projection = f"{id_cols}, \"{column}\""
+            projection = f'{id_cols}, "{column}"'
         else:
             projection = f"{id_cols}, {projection}"
         joined_sql += f" JOIN (SELECT {projection} FROM ("
         joined_sql += history_sql.replace("COLNAMEHERE", quoted_colname)
-        joined_sql += (")) USING (experiment_id, variant, lineage_seed, "
-            "generation, agent_id, time)")
+        joined_sql += (
+            ")) USING (experiment_id, variant, lineage_seed, "
+            "generation, agent_id, time)"
+        )
     # Use an antijoin to remove rows for first timestep of each sim
     if remove_first:
         joined_sql = f"""
@@ -508,7 +537,9 @@ def read_stacked_columns(
             lineage_seed, generation, agent_id {time_col} ORDER BY {id_cols}
         """).fetchall()
         all_cell_tbls = []
-        for experiment_id, variant, lineage_seed, generation, agent_id in tqdm(cell_ids):
+        for experiment_id, variant, lineage_seed, generation, agent_id in tqdm(
+            cell_ids
+        ):
             cell_joined = f"""SELECT * FROM ({joined_sql})
                 WHERE experiment_id = '{experiment_id}' AND
                     variant = {variant} AND
@@ -608,20 +639,15 @@ class ParquetEmitter(Emitter):
                     'config': {
                         'emits_to_batch': Number of emits per Parquet row
                             group (default: 400),
-                        # Only one of the following is required
-                        'out_dir': absolute or relative output directory,
-                        'out_uri': URI of output directory (e.g. s3://...,
-                            gs://..., etc), supersedes out_dir
+                        'out_dir': output directory (can be local absolute /
+                            relative path or URI of cloud storage bucket)
                     }
                 }
 
         """
-        out_uri = config["config"].get("out_uri", None)
-        if out_uri is None:
-            out_uri = (
-                pathlib.Path(config["config"].get("out_dir", None)).resolve().as_uri()
-            )
-        self.filesystem, self.outdir = fs.FileSystem.from_uri(out_uri)
+        self.filesystem, self.outdir = fs.FileSystem.from_uri(
+            config["config"]["out_dir"]
+        )
         self.batch_size = config["config"].get("batch_size", 400)
         self.fallback_serializer = make_fallback_serializer_function()
         # Batch emits as newline-delimited JSONs in temporary file
@@ -651,10 +677,13 @@ class ParquetEmitter(Emitter):
                 self.filesystem,
                 outfile,
                 True,
-                self.small_columns
+                self.small_columns,
             )
-        consolidate_small_columns(self.small_columns, os.path.join(
-            self.outdir, "history", self.partitioning_path), self.filesystem)
+        consolidate_small_columns(
+            self.small_columns,
+            os.path.join(self.outdir, "history", self.partitioning_path),
+            self.filesystem,
+        )
 
     def emit(self, data: dict[str, Any]):
         """
@@ -678,8 +707,11 @@ class ParquetEmitter(Emitter):
             # Manually create filepaths with hive partitioning
             # Start agent ID with 1 to avoid leading zeros
             agent_id = data["data"].get("agent_id", "1")
+            quoted_experiment_id = parse.quote_plus(
+                data["data"].get("experiment_id", "default")
+            )
             partitioning_keys = {
-                "experiment_id": data["data"].get("experiment_id", "default"),
+                "experiment_id": quoted_experiment_id,
                 "variant": data["data"].get("variant", 0),
                 "lineage_seed": data["data"].get("lineage_seed", 0),
                 "generation": len(agent_id),
@@ -728,6 +760,7 @@ class ParquetEmitter(Emitter):
                 pa.schema(schema),
                 self.filesystem,
                 outfile,
+                write_statistics=False,
             )
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)
             return
@@ -758,9 +791,14 @@ class ParquetEmitter(Emitter):
                     if encoding is not None:
                         self.encodings[field_name] = encoding
                     self.schema = self.schema.append(pa.field(k, pa_type))
-                    self.filesystem.create_dir(os.path.join(
-                        self.outdir, "history", self.partitioning_path, f"column={k}"
-                    ))
+                    self.filesystem.create_dir(
+                        os.path.join(
+                            self.outdir,
+                            "history",
+                            self.partitioning_path,
+                            f"column={k}",
+                        )
+                    )
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
             self.temp_data.close()
@@ -778,6 +816,6 @@ class ParquetEmitter(Emitter):
                 self.filesystem,
                 outfile,
                 True,
-                self.small_columns
+                self.small_columns,
             )
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)

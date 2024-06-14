@@ -3,14 +3,21 @@ from typing import Any
 
 from duckdb import DuckDBPyConnection
 import pickle
+import polars as pl
 import hvplot.polars
 
-from ecoli.analysis.template import get_field_metadata, named_idx
+from ecoli.library.parquet_emitter import (
+    get_field_metadata,
+    named_idx,
+    read_stacked_columns,
+)
 
 
 def plot(
     params: dict[str, Any],
     conn: DuckDBPyConnection,
+    history_sql: str,
+    config_sql: str,
     sim_data_paths: list[str],
     validation_data_paths: list[str],
     outdir: str,
@@ -47,8 +54,7 @@ def plot(
     mRNA_idx_dict = {
         rna[:-3]: i
         for i, rna in enumerate(
-            get_field_metadata(
-                conn, "configuration", "listeners__rna_counts__mRNA_counts")
+            get_field_metadata(conn, config_sql, "listeners__rna_counts__mRNA_counts")
         )
     }
     new_gene_mRNA_indexes = [
@@ -59,8 +65,7 @@ def plot(
     monomer_idx_dict = {
         monomer: i
         for i, monomer in enumerate(
-            get_field_metadata(
-                conn, "configuration", "listeners__monomer_counts")
+            get_field_metadata(conn, config_sql, "listeners__monomer_counts")
         )
     }
     new_gene_monomer_indexes = [
@@ -68,23 +73,20 @@ def plot(
     ]
 
     # Load data
-    new_monomers = ", ".join(named_idx(
-        "listeners__monomer_counts",
-        new_gene_monomer_ids,
-        new_gene_monomer_indexes))
-    new_mRNAs = ", ".join(named_idx(
-        "listeners__rna_counts__mRNA_counts",
-        new_gene_mRNA_ids,
-        new_gene_mRNA_indexes))
-    new_gene_data = conn.sql(
-        f"""
-        SELECT
-            time / 60 AS "Time (min)",
-            {new_monomers},
-            {new_mRNAs}
-        FROM history
-        ORDER BY time
-        """).pl()
+    new_monomers = named_idx(
+        "listeners__monomer_counts", new_gene_monomer_ids, new_gene_monomer_indexes
+    )
+    new_mRNAs = named_idx(
+        "listeners__rna_counts__mRNA_counts", new_gene_mRNA_ids, new_gene_mRNA_indexes
+    )
+    new_gene_data = read_stacked_columns(
+        history_sql,
+        ["listeners__monomer_counts", "listeners__rna_counts__mRNA_counts"],
+        [new_monomers, new_mRNAs],
+    )
+    new_gene_data = pl.DataFrame(new_gene_data).with_columns(
+        **{"Time (min)": pl.col("time") / 60}
+    )
 
     # mRNA counts
     mrna_plot = new_gene_data.plot.line(

@@ -11,7 +11,7 @@ import pyarrow as pa
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
-from ecoli.library.parquet_emitter import get_dataset_strings
+from ecoli.library.parquet_emitter import get_dataset_sql
 
 FILTERS = {
     "experiment_id": (str, "multi_experiment", "multi_variant"),
@@ -78,13 +78,12 @@ def main():
         config_file = args.config
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
-    out_dir = config["emitter"]["config"].get("out_dir", None)
-    out_uri = config["emitter"]["config"].get("out_uri", None)
+    out_dir = config["emitter"]["config"]["out_dir"]
     config = config["analysis_options"]
     for k, v in vars(args).items():
         if v is not None:
             config[k] = v
-    
+
     # Set number of threads for PyArrow
     if "n_cpus" in config:
         pa.set_cpu_count(config["n_cpus"])
@@ -124,7 +123,9 @@ def main():
             if len(config[data_filter]) > 1:
                 analysis_type = analysis_many
                 if data_type is str:
-                    filter_values = "', '".join(parse.quote_plus(i) for i in config[data_filter])
+                    filter_values = "', '".join(
+                        parse.quote_plus(i) for i in config[data_filter]
+                    )
                     duckdb_filter.append(f"{data_filter} IN ('{filter_values}')")
                 else:
                     filter_values = ", ".join(config[data_filter])
@@ -142,14 +143,14 @@ def main():
     analysis_options = config[analysis_type]
     analysis_modules = {}
     for analysis_name in analysis_options:
-        analysis_modules[analysis_name] = importlib.import_module(f"ecoli.analysis.{analysis_name}")
+        analysis_modules[analysis_name] = importlib.import_module(
+            f"ecoli.analysis.{analysis_name}"
+        )
     for analysis_name, analysis_mod in analysis_modules.items():
         # Establish a fresh in-memory DuckDB for every analysis
         conn = duckdb.connect()
         out_path = out_dir
-        if out_path is None:
-            out_path = out_uri
-            conn.register_filesystem(filesystem("gcs"))
+        conn.register_filesystem(filesystem("gcs"))
         conn.execute(f"SET temp_directory = '{out_path}'")
         conn.execute("SET preserve_insertion_order = false")
         # Set number of threads for DuckDB
@@ -159,9 +160,8 @@ def main():
             config_sql = ""
             history_sql = ""
         else:
-            # Register filtered views of Parquet files from output directory
-            # or URI specified in config
-            history_sql, config_sql = get_dataset_strings(out_path)
+            # Get SQL to read Parquet files from output directory with filters
+            history_sql, config_sql = get_dataset_sql(out_path)
             duckdb_filter = " AND ".join(duckdb_filter)
             config_sql = f"{config_sql} WHERE {duckdb_filter}"
             history_sql = f"{history_sql} WHERE {duckdb_filter}"

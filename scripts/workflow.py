@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import pathlib
 import subprocess
 import warnings
 from datetime import datetime
@@ -307,15 +306,11 @@ def main():
         f.writelines(nf_template)
 
     try:
-        emitter_config = config["emitter"]["config"]
-        out_uri = emitter_config.get("out_uri", None)
-        if out_uri is None:
-            out_uri = (
-                pathlib.Path(emitter_config.get("out_dir", None)).resolve().as_uri()
-            )
-        filesystem, outdir = fs.FileSystem.from_uri(out_uri)
+        filesystem, outdir = fs.FileSystem.from_uri(
+            config["emitter"]["config"]["out_dir"]
+        )
     except KeyError:
-        raise KeyError("Missing out_dir or out_uri for emitter config.")
+        raise KeyError("Missing out_dir for emitter config.")
     outdir = os.path.join(outdir, f"experiment_id={experiment_id}", "nextflow")
     filesystem.create_dir(outdir)
     filesystem.copy_file(workflow_path, os.path.join(outdir, "main.nf"))
@@ -323,13 +318,13 @@ def main():
 
     # Start nextflow workflow
     report_path = os.path.join(
-        out_uri,
+        out_dir,
         f"experiment_id={experiment_id}",
         "nextflow",
         f"{experiment_id}_report.html",
     )
     workdir = os.path.join(
-        out_uri, "nextflow_workdirs", f"experiment_id={experiment_id}"
+        out_dir, "nextflow_workdirs", f"experiment_id={experiment_id}"
     )
     if nf_profile == "standard" or nf_profile == "gcloud":
         subprocess.run(
