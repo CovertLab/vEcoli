@@ -43,10 +43,12 @@ Possible Plots:
 - Average new gene monomer yields - per hour and per fg of glucose
 """
 
+from duckdb import DuckDBPyConnection
 import numpy as np
 from matplotlib import pyplot as plt
 import math
 from unum.units import fg
+from typing import Any, Optional
 
 from ecoli.variants.new_gene_internal_shift import (
     get_new_gene_indices)
@@ -172,6 +174,397 @@ capacity_gene_monomer_id = "EG10544-MONOMER[m]"
 capacity_gene_common_name = "lpp"
 # capacity_gene_monomer_id = "EG11036-MONOMER[c]"
 # capacity_gene_common_name = "tufA"
+
+
+def data_to_mapping(data, variant_metadata):
+    variant_to_data = {}
+    for variant, value in data:
+        variant_params = variant_metadata[variant]
+        expression = variant_params["exp_trl_eff"]["exp"]
+        trl_eff = variant_params["exp_trl_eff"]["trl_eff"]
+        variant_to_data[(trl_eff, expression)] = value
+    return variant_to_data
+
+
+def reached_generation(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    generation: int,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Returns mapping from tuples (translation efficiency, expression) to
+    floats between 0 and 1 representing the proportion of initial seeds for
+    that variant which reached the given generation without failing.
+    """
+    subquery = read_stacked_columns(
+        history_sql,
+        ["generation"],
+        return_sql=True,
+        order_results=False
+    )
+    data = conn.sql(
+        f"""
+        WITH max_gen_per_seed AS (
+            SELECT max(generation) AS max_generation, experiment_id, variant
+            FROM ({subquery})
+            GROUP BY experiment_id, variant, lineage_seed
+        )
+        SELECT variant, avg(max_generation > {generation})
+        FROM max_gen_per_seed
+        GROUP BY experiment_id, variant
+        """).fetchall()
+    return data_to_mapping(data, variant_metadata)
+
+
+def doubling_time(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Returns mapping from tuples (translation efficiency, expression) to
+    average doubling time in minutes for all sims in that variant.
+    """
+    subquery = read_stacked_columns(
+        history_sql,
+        ["time"],
+        return_sql=True,
+        order_results=False
+    )
+    data = conn.sql(
+        f"""
+        WITH doubling_times AS (
+            SELECT (max(time) - min(time)) / 60 AS doubling_time,
+                experiment_id, variant, lineage_seed, generation, agent_id
+            FROM ({subquery})
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+        )
+        SELECT variant, avg(doubling_time)
+        FROM doubling_times
+        GROUP BY experiment_id, variant
+        """).fetchall()
+    return data_to_mapping(data, variant_metadata)
+
+
+def cell_mass(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Returns mapping from tuples (translation efficiency, expression) to
+    average cell mass for all sims in that variant.
+    """
+    subquery = read_stacked_columns(
+        history_sql,
+        ["listeners__mass__cell_mass"],
+        return_sql=True,
+        order_results=False
+    )
+    data = conn.sql(
+        f"""
+        WITH avg_per_cell AS (
+            SELECT avg(listeners__mass__cell_mass) AS avg_cell_mass
+            FROM ({subquery})
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+        )
+        SELECT avg(avg_cell_mass) AS avg_per_variant
+        FROM avg_per_cell
+        GROUP BY experiment_id, variant
+        """).fetchall()
+    return data_to_mapping(data, variant_metadata)
+
+
+def dry_mass(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Returns mapping from tuples (translation efficiency, expression) to
+    average dry mass for all simulated timesteps in that variant.
+    """
+    subquery = read_stacked_columns(
+        history_sql,
+        ["listeners__mass__dry_mass"],
+        return_sql=True,
+        order_results=False
+    )
+    data = conn.sql(
+        f"""
+        WITH avg_per_cell AS (
+            SELECT avg(listeners__mass__dry_mass) AS avg_dry_mass
+            FROM ({subquery})
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+        )
+        SELECT avg(avg_dry_mass) AS avg_per_variant
+        FROM avg_per_cell
+        GROUP BY experiment_id, variant
+        """).fetchall()
+    return data_to_mapping(data, variant_metadata)
+
+
+def cell_volume(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Returns mapping from tuples (translation efficiency, expression) to
+    average cell volume for all simulated timesteps in that variant.
+    """
+    subquery = read_stacked_columns(
+        history_sql,
+        ["listeners__mass__volume"],
+        return_sql=True,
+        order_results=False
+    )
+    data = conn.sql(
+        f"""
+        WITH avg_per_cell AS (
+            SELECT avg(listeners__mass__volume) AS avg_volume
+            FROM ({subquery})
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+        )
+        SELECT avg(avg_volume) AS avg_per_variant
+        FROM avg_per_cell
+        GROUP BY experiment_id, variant
+        """).fetchall()
+    return data_to_mapping(data, variant_metadata)
+
+
+def ppgpp_concentration(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Returns mapping from tuples (translation efficiency, expression) to
+    average ppGpp concentration for all simulated timesteps in that variant.
+    """
+    subquery = read_stacked_columns(
+        history_sql,
+        ["listeners__growth_limits__ppgpp_conc"],
+        remove_first=True,
+        return_sql=True,
+        order_results=False
+    )
+    data = conn.sql(
+        f"""
+        WITH avg_per_cell AS (
+            SELECT avg(listeners__growth_limits__ppgpp_conc) AS avg_ppgpp_conc
+            FROM ({subquery})
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+        )
+        SELECT avg(avg_ppgpp_conc) AS avg_per_variant
+        FROM avg_per_cell
+        GROUP BY experiment_id, variant
+        """).fetchall()
+    return data_to_mapping(data, variant_metadata)
+
+
+def rnap_overcrowding(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Returns mapping from tuples (translation efficiency, expression) to the
+    number of genes (averaged over all cells per variant) for which the
+    target transcription probability was higher than the actual (averaged
+    over all timesteps per cell in that variant).
+    """
+    subquery = read_stacked_columns(
+        history_sql,
+        [
+            "listeners__rna_synth_prob__actual_rna_synth_prob",
+            "listeners__rna_synth_prob__target_rna_synth_prob",
+        ],
+        return_sql=True,
+        order_results=False
+    )
+    data = conn.sql(
+        f"""
+        WITH unnested_probs AS (
+            SELECT unnest(listeners__rna_synth_prob__actual_rna_synth_prob)
+                AS actual, experiment_id, variant, lineage_seed, generation,
+                unnest(listeners__rna_synth_prob__target_rna_synth_prob)
+                AS target, agent_id, generate_subscripts(
+                listeners__rna_synth_prob__target_rna_synth_prob, 1) AS rna_idx
+            FROM ({subquery})
+        ),
+        overcrowded_genes AS (
+            SELECT avg(actual) > avg(target) AS overcrowded,
+                experiment_id, variant, lineage_seed, generation, agent_id,
+            FROM unnested_probs
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id,
+                rna_idx
+        ),
+        num_overcrowded_per_cell AS (
+            SELECT sum(overcrowded::BIGINT) AS overcrowded_per_cell,
+                experiment_id, variant
+            FROM overcrowded_genes
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+        )
+        SELECT avg(num_overcrowded_per_cell) AS avg_overcrowded
+        FROM num_overcrowded_per_cell
+        GROUP BY experiment_id, variant
+        """).fetchall()
+    return data_to_mapping(data, variant_metadata)
+
+
+def ribosome_overcrowding(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Returns mapping from tuples (translation efficiency, expression) to the
+    number of genes (averaged over all cells per variant) for which the
+    target translation probability was higher than the actual (averaged
+    over all timesteps per cell in that variant).
+    """
+    subquery = read_stacked_columns(
+        history_sql,
+        [
+            "listeners__ribosome_data__actual_prob_translation_per_transcript",
+            "listeners__ribosome_data__target_prob_translation_per_transcript",
+        ],
+        return_sql=True,
+        order_results=False
+    )
+    data = conn.sql(
+        f"""
+        WITH unnested_probs AS (
+            SELECT unnest(listeners__ribosome_data__actual_prob_translation_per_transcript)
+                AS actual, experiment_id, variant, lineage_seed, generation,
+                unnest(listeners__ribosome_data__target_prob_translation_per_transcript)
+                AS target, agent_id, generate_subscripts(
+                listeners__ribosome_data__target_prob_translation_per_transcript, 1) AS rna_idx
+            FROM ({subquery})
+        ),
+        overcrowded_genes AS (
+            SELECT avg(actual) > avg(target) AS overcrowded,
+                experiment_id, variant, lineage_seed, generation, agent_id,
+            FROM unnested_probs
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id,
+                rna_idx
+        ),
+        num_overcrowded_per_cell AS (
+            SELECT sum(overcrowded::BIGINT) AS overcrowded_per_cell,
+                experiment_id, variant
+            FROM overcrowded_genes
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+        )
+        SELECT avg(num_overcrowded_per_cell) AS avg_overcrowded
+        FROM num_overcrowded_per_cell
+        GROUP BY experiment_id, variant
+        """).fetchall()
+    return data_to_mapping(data, variant_metadata)
+
+
+def mrna_mass(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Returns mapping from tuples (translation efficiency, expression) to
+    average mRNA mass for all simulated timesteps in that variant.
+    """
+    subquery = read_stacked_columns(
+        history_sql,
+        ["listeners__mass__mRna_mass"],
+        remove_first=True,
+        return_sql=True,
+        order_results=False
+    )
+    data = conn.sql(
+        f"""
+        WITH avg_per_cell AS (
+            SELECT avg(listeners__mass__mRna_mass) AS avg_mrna_mass
+            FROM ({subquery})
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+        )
+        SELECT avg(avg_mrna_mass) AS avg_per_variant
+        FROM avg_per_cell
+        GROUP BY experiment_id, variant
+        """).fetchall()
+    return data_to_mapping(data, variant_metadata)
+
+
+def protein_mass(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Returns mapping from tuples (translation efficiency, expression) to
+    average protein mass for all simulated timesteps in that variant.
+    """
+    subquery = read_stacked_columns(
+        history_sql,
+        ["listeners__mass__protein_mass"],
+        remove_first=True,
+        return_sql=True,
+        order_results=False
+    )
+    data = conn.sql(
+        f"""
+        WITH avg_per_cell AS (
+            SELECT avg(listeners__mass__protein_mass) AS avg_protein_mass
+            FROM ({subquery})
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+        )
+        SELECT avg(avg_protein_mass) AS avg_per_variant
+        FROM avg_per_cell
+        GROUP BY experiment_id, variant
+        """).fetchall()
+    return data_to_mapping(data, variant_metadata)
+
+
+def rnap_counts(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Returns mapping from tuples (translation efficiency, expression) to
+    average protein mass for all simulated timesteps in that variant.
+    """
+    subquery = read_stacked_columns(
+        history_sql,
+        ["listeners__mass__protein_mass"],
+        remove_first=True,
+        return_sql=True,
+        order_results=False
+    )
+    data = conn.sql(
+        f"""
+        SELECT avg(listeners__mass__protein_mass) AS avg_protein_mass
+        FROM ({subquery})
+        GROUP BY experiment_id, variant
+        """).fetchall()
+    return data_to_mapping(data, variant_metadata)
+
+
+def plot(
+    params: dict[str, Any],
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    config_sql: str,
+    sim_data_paths: dict[int, list[str]],
+    validation_data_paths: list[str],
+    outdir: str,
+    variant_metadata: dict[int, Any]
+):
+    """
+    Create either a single multi-heatmap plot or 1+ separate heatmaps of data
+    for a grid of new gene variant simulations with varying expression and
+    translation efficiencies. 
+    """
+
 
 class Plot(variantAnalysisPlot.VariantAnalysisPlot):
     """
