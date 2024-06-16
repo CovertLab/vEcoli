@@ -247,6 +247,14 @@ class ConvexKineticsNew:
 
         return constr
 
+    # for metabolites specified, set the concentration to a fixed value for all flux sets
+    def add_exact_concentration_constraints(self, constr, c, fixed_concentration, met_idx):
+
+        for i in range(c.shape[1]):
+            constr.extend([c[met_idx, i] == fixed_concentration])
+
+        return constr
+
     def add_thermodynamic_constraints(self, constr, flow_data, K_eq, S, S_s_nz, S_p_nz, cfwd, crev, Km_s, Km_p, n_flux_set, y_s, y_p, c):
 
         sign = np.sign(flow_data)
