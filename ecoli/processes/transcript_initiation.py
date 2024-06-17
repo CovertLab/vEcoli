@@ -299,6 +299,7 @@ class TranscriptInitiation(PartitionedProcess):
                             self.rna_data["id"],
                         ),
                         "total_rna_init": 0,
+                        "max_p": 0.0,
                     }
                 ),
                 "ribosome_data": listener_schema(
