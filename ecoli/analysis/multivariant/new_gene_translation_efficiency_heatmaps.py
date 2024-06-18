@@ -47,12 +47,15 @@ from duckdb import DuckDBPyConnection
 import numpy as np
 from matplotlib import pyplot as plt
 import math
+import pyarrow as pa
 from unum.units import fg
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from ecoli.variants.new_gene_internal_shift import (
     get_new_gene_indices)
-from ecoli.library.parquet_emitter import read_stacked_columns
+from ecoli.library.parquet_emitter import (get_field_metadata,
+    ndlist_to_ndarray, read_stacked_columns)
+from ecoli.library.schema import bulk_name_to_idx
 from wholecell.utils.plotting_tools import heatmap
 from wholecell.utils import units
 
@@ -176,198 +179,228 @@ capacity_gene_common_name = "lpp"
 # capacity_gene_common_name = "tufA"
 
 
-def data_to_mapping(data, variant_metadata):
-    variant_to_data = {}
+def data_to_mapping(
+    conn: DuckDBPyConnection,
+    variant_metadata: dict[int, Any],
+    history_sql: str,
+    columns: list[str],
+    projections: Optional[list[str]] = None,
+    remove_first: bool = False,
+    func: Optional[Callable] = None,
+    order_results: bool = False,
+    custom_sql: Optional[str] = None,
+    post_func: Optional[Callable] = None,
+    num_digits_rounding: Optional[int] = None
+) -> dict[tuple[float, float], Any]:
+    """
+    Reads one or more columns and calculates some aggregate value for each
+    variant. If no custom SQL query is provided, this defaults to averaging
+    per cell, then averaging the averages per variant.
+
+    Args:
+        conn: DuckDB connection
+        variant_metadata: Mapping of variant IDs to variant params (
+            ``metadata.json`` written by ``scripts.create_variants.py``)
+        history_sql: SQL subquery from :py:func:`ecoli.library.parquet_emitter.get_dataset_sql`
+        columns, projections, remove_first, func, order_results: See
+            :py:func:`ecoli.library.parquet_emitter.read_stacked_columns`
+        custom_sql: SQL string containing a placeholder with name ``subquery``
+            where the result of read_stacked_columns will be placed. Final query
+            result must only have two columns in order: ``variant`` and a value
+            for each variant. If not provided, defaults to average of averages
+        post_func: Function that is called on PyArrow table resulting from query.
+            Should return a PyArrow table with exactly two columns: one named
+            ``variant`` that contains the variant indices, and the other a
+            numerical column with any name.
+        num_digits_rounding: Number of decimal places to round to
+    
+    Returns:
+        Mapping of ``(new gene translation efficiency, new gene expression)``
+        to value calculated for that variant
+    """
+    subquery = read_stacked_columns(
+        history_sql=history_sql,
+        columns=columns,
+        projections=projections,
+        remove_first=remove_first,
+        func=func,
+        return_sql=True,
+        order_results=order_results
+    )
+    if custom_sql is None:
+        if len(columns) > 1:
+            raise RuntimeError("Must provide custom SQL expression to handle "
+                               "multiple columns at once.")
+        custom_sql = f"""
+        WITH avg_per_cell AS (
+            SELECT avg({columns[0]}) AS avg_col_per_cell, experiment_id, variant
+            FROM ({subquery})
+            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+        )
+        SELECT variant, avg(avg_col_per_cell) AS avg_per_variant
+        FROM avg_per_cell
+        GROUP BY experiment_id, variant
+        """
+    if post_func is None:
+        data = conn.sql(custom_sql.format(subquery=subquery)).fetchall()
+    else:
+        data = conn.sql(custom_sql.format(subquery=subquery)).arrow()
+        data = post_func(data)
+        column_names = data.column_names
+        column_names.remove("variant")
+        if len (column_names) != 1:
+            raise RuntimeError("post_func should return a PyArrow table with "
+                "exactly two columns, one named 'variant' and the other with "
+                "any name")
+        data = [(i["variant"], i[column_names[0]]) for i in data]
+    variant_to_value = {}
     for variant, value in data:
         variant_params = variant_metadata[variant]
         expression = variant_params["exp_trl_eff"]["exp"]
         trl_eff = variant_params["exp_trl_eff"]["trl_eff"]
-        variant_to_data[(trl_eff, expression)] = value
-    return variant_to_data
+        if num_digits_rounding is not None:
+            value = round(value, num_digits_rounding)
+        variant_to_value[(trl_eff, expression)] = value
+    return variant_to_value
 
 
-def reached_generation(
-    conn: DuckDBPyConnection,
-    history_sql: str,
-    generation: int,
-    variant_metadata: dict[int, Any]
-):
+def get_mRNA_ids_from_monomer_ids(sim_data, target_monomer_ids):
     """
-    Returns mapping from tuples (translation efficiency, expression) to
-    floats between 0 and 1 representing the proportion of initial seeds for
-    that variant which reached the given generation without failing.
+    Map monomer ids back to the mRNA ids that they were translated from.
+
+    Args:
+        target_monomer_ids: ids of the monomers to map to mRNA ids
+
+    Returns: set of mRNA ids
     """
-    subquery = read_stacked_columns(
-        history_sql,
-        ["generation"],
-        return_sql=True,
-        order_results=False
+    # Map protein ids to cistron ids
+    monomer_ids = sim_data.process.translation.monomer_data['id']
+    cistron_ids = sim_data.process.translation.monomer_data[
+        'cistron_id']
+    monomer_to_cistron_id_dict = {
+        monomer_id: cistron_ids[i] for i, monomer_id in
+        enumerate(monomer_ids)}
+    target_cistron_ids = [
+        monomer_to_cistron_id_dict.get(RNAP_monomer_id) for
+        RNAP_monomer_id in target_monomer_ids]
+    # Map cistron ids to RNA indexes
+    target_RNA_indexes = [
+        sim_data.process.transcription.cistron_id_to_rna_indexes(
+            RNAP_cistron_id) for RNAP_cistron_id in
+        target_cistron_ids]
+    # Map RNA indexes to RNA ids
+    RNA_ids = sim_data.process.transcription.rna_data['id']
+    target_RNA_ids = set()
+    for i in range(len(target_RNA_indexes)):
+        for index in target_RNA_indexes[i]:
+            target_RNA_ids.add(RNA_ids[index])
+    return target_RNA_ids
+
+
+def get_capacity_gene_indexes(
+    conn, config_sql, sim_data, index_type, capacity_gene_monomer_ids):
+    """
+    Retrieve capacity gene indexes of a given type.
+
+    Args:
+        all_cells: Paths to all cells to read data from (directories should
+            contain a simOut/ subdirectory), typically the return from
+            AnalysisPaths.get_cells()
+        index_type: Type of indexes to extract, currently supported options
+            are 'cistron', 'RNA', 'mRNA', and 'monomer'
+        capacity_gene_monomer_ids: monomer ids of capacity gene we need
+            indexes for
+
+    Returns:
+        List of requested indexes
+    """
+    if index_type != "monomer":
+        capacity_gene_mRNA_ids = get_mRNA_ids_from_monomer_ids(
+            sim_data, capacity_gene_monomer_ids)
+
+    if index_type == 'cistron':
+        # Extract cistron indexes for each new gene
+        cistron_idx_dict = {
+            cis: i for i, cis in enumerate(get_field_metadata(
+                conn, config_sql,
+                "listeners__rnap_data__rna_init_event_per_cistron"))}
+        capacity_gene_indexes = [
+            cistron_idx_dict.get(mRNA_id) for mRNA_id in
+            capacity_gene_mRNA_ids]
+    elif index_type == 'RNA':
+        # Extract RNA indexes for each new gene
+        RNA_idx_dict = {
+            rna[:-3]: i for i, rna in enumerate(get_field_metadata(
+                conn, config_sql,
+                "listeners__rna_synth_prob__target_rna_synth_prob"))}
+        capacity_gene_indexes = [
+            RNA_idx_dict.get(mRNA_id) for mRNA_id in capacity_gene_mRNA_ids]
+    elif index_type == 'mRNA':
+        # Extract mRNA indexes for each new gene
+        mRNA_idx_dict = {
+            rna[:-3]: i for i, rna in enumerate(get_field_metadata(
+                conn, config_sql, "listeners__rna_counts__mRNA_counts"))}
+        capacity_gene_indexes = [
+            mRNA_idx_dict.get(mRNA_id[:-3]) for mRNA_id in capacity_gene_mRNA_ids]
+    elif index_type == 'monomer':
+        # Extract protein indexes for each new gene
+        monomer_idx_dict = {
+            monomer: i for i, monomer in enumerate(get_field_metadata(
+                conn, config_sql, "listeners__monomer_counts"))}
+        capacity_gene_indexes = [
+            monomer_idx_dict.get(monomer_id) for monomer_id in
+            capacity_gene_monomer_ids]
+    else:
+        raise Exception(
+            "Index type " + index_type +
+            " has no instructions for data extraction.")
+
+    return capacity_gene_indexes
+
+
+def get_capacity_gene_counts_projection(conn, config_sql, sim_data, index_type, column):
+    capacity_gene_index = get_capacity_gene_indexes(
+        conn, config_sql, sim_data, index_type, [capacity_gene_monomer_id]
     )
-    data = conn.sql(
-        f"""
-        WITH max_gen_per_seed AS (
-            SELECT max(generation) AS max_generation, experiment_id, variant
-            FROM ({subquery})
-            GROUP BY experiment_id, variant, lineage_seed
-        )
-        SELECT variant, avg(max_generation > {generation})
-        FROM max_gen_per_seed
-        GROUP BY experiment_id, variant
-        """).fetchall()
-    return data_to_mapping(data, variant_metadata)
+    return f"list_sum(list_select({column}, {capacity_gene_index})) AS capacity_gene_count"
 
 
-def doubling_time(
-    conn: DuckDBPyConnection,
-    history_sql: str,
-    variant_metadata: dict[int, Any]
-):
-    """
-    Returns mapping from tuples (translation efficiency, expression) to
-    average doubling time in minutes for all sims in that variant.
-    """
-    subquery = read_stacked_columns(
-        history_sql,
-        ["time"],
-        return_sql=True,
-        order_results=False
-    )
-    data = conn.sql(
-        f"""
-        WITH doubling_times AS (
-            SELECT (max(time) - min(time)) / 60 AS doubling_time,
-                experiment_id, variant, lineage_seed, generation, agent_id
-            FROM ({subquery})
-            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
-        )
-        SELECT variant, avg(doubling_time)
-        FROM doubling_times
-        GROUP BY experiment_id, variant
-        """).fetchall()
-    return data_to_mapping(data, variant_metadata)
-
-
-def cell_mass(
-    conn: DuckDBPyConnection,
-    history_sql: str,
-    variant_metadata: dict[int, Any]
-):
-    """
-    Returns mapping from tuples (translation efficiency, expression) to
-    average cell mass for all sims in that variant.
-    """
-    subquery = read_stacked_columns(
-        history_sql,
-        ["listeners__mass__cell_mass"],
-        return_sql=True,
-        order_results=False
-    )
-    data = conn.sql(
-        f"""
+def get_capacity_gene_counts_sql():
+    return """
         WITH avg_per_cell AS (
-            SELECT avg(listeners__mass__cell_mass) AS avg_cell_mass
+            SELECT avg(capacity_gene_count) AS avg_count, experiment_id, variant
             FROM ({subquery})
             GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
         )
-        SELECT avg(avg_cell_mass) AS avg_per_variant
+        SELECT avg(log10(avg_count + 1))
         FROM avg_per_cell
         GROUP BY experiment_id, variant
-        """).fetchall()
-    return data_to_mapping(data, variant_metadata)
-
-
-def dry_mass(
-    conn: DuckDBPyConnection,
-    history_sql: str,
-    variant_metadata: dict[int, Any]
-):
     """
-    Returns mapping from tuples (translation efficiency, expression) to
-    average dry mass for all simulated timesteps in that variant.
+
+
+def get_rnap_counts_projection(sim_data, bulk_ids):
     """
-    subquery = read_stacked_columns(
-        history_sql,
-        ["listeners__mass__dry_mass"],
-        return_sql=True,
-        order_results=False
-    )
-    data = conn.sql(
-        f"""
-        WITH avg_per_cell AS (
-            SELECT avg(listeners__mass__dry_mass) AS avg_dry_mass
-            FROM ({subquery})
-            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
-        )
-        SELECT avg(avg_dry_mass) AS avg_per_variant
-        FROM avg_per_cell
-        GROUP BY experiment_id, variant
-        """).fetchall()
-    return data_to_mapping(data, variant_metadata)
-
-
-def cell_volume(
-    conn: DuckDBPyConnection,
-    history_sql: str,
-    variant_metadata: dict[int, Any]
-):
+    Return SQL projection to selectively read bulk inactive RNAP count.
     """
-    Returns mapping from tuples (translation efficiency, expression) to
-    average cell volume for all simulated timesteps in that variant.
+    rnap_idx = bulk_name_to_idx(
+        [sim_data.molecule_ids.full_RNAP], bulk_ids)
+    return f"bulk[{rnap_idx + 1}] AS bulk"
+
+
+def get_ribosome_counts_projection(sim_data, bulk_ids):
     """
-    subquery = read_stacked_columns(
-        history_sql,
-        ["listeners__mass__volume"],
-        return_sql=True,
-        order_results=False
-    )
-    data = conn.sql(
-        f"""
-        WITH avg_per_cell AS (
-            SELECT avg(listeners__mass__volume) AS avg_volume
-            FROM ({subquery})
-            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
-        )
-        SELECT avg(avg_volume) AS avg_per_variant
-        FROM avg_per_cell
-        GROUP BY experiment_id, variant
-        """).fetchall()
-    return data_to_mapping(data, variant_metadata)
-
-
-def ppgpp_concentration(
-    conn: DuckDBPyConnection,
-    history_sql: str,
-    variant_metadata: dict[int, Any]
-):
+    Return SQL projection to selectively read bulk inactive ribosome count
+    (defined as minimum of free 30S and 50S subunits at any given moment)
     """
-    Returns mapping from tuples (translation efficiency, expression) to
-    average ppGpp concentration for all simulated timesteps in that variant.
-    """
-    subquery = read_stacked_columns(
-        history_sql,
-        ["listeners__growth_limits__ppgpp_conc"],
-        remove_first=True,
-        return_sql=True,
-        order_results=False
-    )
-    data = conn.sql(
-        f"""
-        WITH avg_per_cell AS (
-            SELECT avg(listeners__growth_limits__ppgpp_conc) AS avg_ppgpp_conc
-            FROM ({subquery})
-            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
-        )
-        SELECT avg(avg_ppgpp_conc) AS avg_per_variant
-        FROM avg_per_cell
-        GROUP BY experiment_id, variant
-        """).fetchall()
-    return data_to_mapping(data, variant_metadata)
+    ribosome_idx = bulk_name_to_idx(
+        [sim_data.molecule_ids.s30_full_complex,
+            sim_data.molecule_ids.s50_full_complex], bulk_ids)
+    return f"least(bulk[{ribosome_idx[0] + 1}], bulk[{ribosome_idx[1] + 1}]) AS bulk"
 
 
-def rnap_overcrowding(
-    conn: DuckDBPyConnection,
-    history_sql: str,
-    variant_metadata: dict[int, Any]
+def get_overcrowding_sql(
+    target_col: str,
+    actual_col: str,
 ):
     """
     Returns mapping from tuples (translation efficiency, expression) to the
@@ -375,31 +408,19 @@ def rnap_overcrowding(
     target transcription probability was higher than the actual (averaged
     over all timesteps per cell in that variant).
     """
-    subquery = read_stacked_columns(
-        history_sql,
-        [
-            "listeners__rna_synth_prob__actual_rna_synth_prob",
-            "listeners__rna_synth_prob__target_rna_synth_prob",
-        ],
-        return_sql=True,
-        order_results=False
-    )
-    data = conn.sql(
-        f"""
+    return f"""
         WITH unnested_probs AS (
-            SELECT unnest(listeners__rna_synth_prob__actual_rna_synth_prob)
-                AS actual, experiment_id, variant, lineage_seed, generation,
-                unnest(listeners__rna_synth_prob__target_rna_synth_prob)
-                AS target, agent_id, generate_subscripts(
-                listeners__rna_synth_prob__target_rna_synth_prob, 1) AS rna_idx
-            FROM ({subquery})
+            SELECT unnest({actual_col}) AS actual, experiment_id, variant,
+                lineage_seed, generation, unnest({target_col}) AS target,
+                agent_id, generate_subscripts({target_col}, 1) AS list_idx
+            FROM ({{subquery}})
         ),
         overcrowded_genes AS (
             SELECT avg(actual) > avg(target) AS overcrowded,
                 experiment_id, variant, lineage_seed, generation, agent_id,
             FROM unnested_probs
             GROUP BY experiment_id, variant, lineage_seed, generation, agent_id,
-                rna_idx
+                list_idx
         ),
         num_overcrowded_per_cell AS (
             SELECT sum(overcrowded::BIGINT) AS overcrowded_per_cell,
@@ -407,146 +428,34 @@ def rnap_overcrowding(
             FROM overcrowded_genes
             GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
         )
-        SELECT avg(num_overcrowded_per_cell) AS avg_overcrowded
+        SELECT variant, avg(num_overcrowded_per_cell) AS avg_overcrowded
         FROM num_overcrowded_per_cell
         GROUP BY experiment_id, variant
-        """).fetchall()
-    return data_to_mapping(data, variant_metadata)
+        """
 
 
-def ribosome_overcrowding(
-    conn: DuckDBPyConnection,
-    history_sql: str,
-    variant_metadata: dict[int, Any]
-):
-    """
-    Returns mapping from tuples (translation efficiency, expression) to the
-    number of genes (averaged over all cells per variant) for which the
-    target translation probability was higher than the actual (averaged
-    over all timesteps per cell in that variant).
-    """
-    subquery = read_stacked_columns(
-        history_sql,
-        [
-            "listeners__ribosome_data__actual_prob_translation_per_transcript",
-            "listeners__ribosome_data__target_prob_translation_per_transcript",
-        ],
-        return_sql=True,
-        order_results=False
-    )
-    data = conn.sql(
-        f"""
-        WITH unnested_probs AS (
-            SELECT unnest(listeners__ribosome_data__actual_prob_translation_per_transcript)
-                AS actual, experiment_id, variant, lineage_seed, generation,
-                unnest(listeners__ribosome_data__target_prob_translation_per_transcript)
-                AS target, agent_id, generate_subscripts(
-                listeners__ribosome_data__target_prob_translation_per_transcript, 1) AS rna_idx
-            FROM ({subquery})
-        ),
-        overcrowded_genes AS (
-            SELECT avg(actual) > avg(target) AS overcrowded,
-                experiment_id, variant, lineage_seed, generation, agent_id,
-            FROM unnested_probs
-            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id,
-                rna_idx
-        ),
-        num_overcrowded_per_cell AS (
-            SELECT sum(overcrowded::BIGINT) AS overcrowded_per_cell,
-                experiment_id, variant
-            FROM overcrowded_genes
-            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+def get_trl_eff_weighted_avg_post_func(sim_data, cistron_ids):
+    # Get normalized translation efficiency for all mRNAs
+    trl_effs = sim_data.process.translation.translation_efficiencies_by_monomer
+    trl_eff_ids = sim_data.process.translation.monomer_data['cistron_id']
+    mRNA_cistron_idx_dict = {rna: i for i, rna in enumerate(cistron_ids)}
+    trl_eff_id_mapping = np.array([
+        mRNA_cistron_idx_dict[id] for id in trl_eff_ids])
+
+    def trl_eff_weighted_avg(variant_avg):
+        avg_counts = ndlist_to_ndarray(variant_avg["avg_counts"])
+        total_avg_counts = np.expand_dims(
+            avg_counts.sum(axis=1), axis=1
         )
-        SELECT avg(num_overcrowded_per_cell) AS avg_overcrowded
-        FROM num_overcrowded_per_cell
-        GROUP BY experiment_id, variant
-        """).fetchall()
-    return data_to_mapping(data, variant_metadata)
+        # Compute average translation efficiency, weighted by mRNA counts
+        weighted_avg_trl_eff = np.dot(avg_counts / total_avg_counts,
+            trl_effs[np.argsort(trl_eff_id_mapping)])
+        return pa.table({"variant": variant_avg["variant"],
+                         "weighted_avg": weighted_avg_trl_eff})
+
+    return trl_eff_weighted_avg
 
 
-def mrna_mass(
-    conn: DuckDBPyConnection,
-    history_sql: str,
-    variant_metadata: dict[int, Any]
-):
-    """
-    Returns mapping from tuples (translation efficiency, expression) to
-    average mRNA mass for all simulated timesteps in that variant.
-    """
-    subquery = read_stacked_columns(
-        history_sql,
-        ["listeners__mass__mRna_mass"],
-        remove_first=True,
-        return_sql=True,
-        order_results=False
-    )
-    data = conn.sql(
-        f"""
-        WITH avg_per_cell AS (
-            SELECT avg(listeners__mass__mRna_mass) AS avg_mrna_mass
-            FROM ({subquery})
-            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
-        )
-        SELECT avg(avg_mrna_mass) AS avg_per_variant
-        FROM avg_per_cell
-        GROUP BY experiment_id, variant
-        """).fetchall()
-    return data_to_mapping(data, variant_metadata)
-
-
-def protein_mass(
-    conn: DuckDBPyConnection,
-    history_sql: str,
-    variant_metadata: dict[int, Any]
-):
-    """
-    Returns mapping from tuples (translation efficiency, expression) to
-    average protein mass for all simulated timesteps in that variant.
-    """
-    subquery = read_stacked_columns(
-        history_sql,
-        ["listeners__mass__protein_mass"],
-        remove_first=True,
-        return_sql=True,
-        order_results=False
-    )
-    data = conn.sql(
-        f"""
-        WITH avg_per_cell AS (
-            SELECT avg(listeners__mass__protein_mass) AS avg_protein_mass
-            FROM ({subquery})
-            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
-        )
-        SELECT avg(avg_protein_mass) AS avg_per_variant
-        FROM avg_per_cell
-        GROUP BY experiment_id, variant
-        """).fetchall()
-    return data_to_mapping(data, variant_metadata)
-
-
-def rnap_counts(
-    conn: DuckDBPyConnection,
-    history_sql: str,
-    variant_metadata: dict[int, Any]
-):
-    """
-    Returns mapping from tuples (translation efficiency, expression) to
-    average protein mass for all simulated timesteps in that variant.
-    """
-    subquery = read_stacked_columns(
-        history_sql,
-        ["listeners__mass__protein_mass"],
-        remove_first=True,
-        return_sql=True,
-        order_results=False
-    )
-    data = conn.sql(
-        f"""
-        SELECT avg(listeners__mass__protein_mass) AS avg_protein_mass
-        FROM ({subquery})
-        GROUP BY experiment_id, variant
-        """).fetchall()
-    return data_to_mapping(data, variant_metadata)
 
 
 def plot(
@@ -2943,6 +2852,7 @@ class Plot(variantAnalysisPlot.VariantAnalysisPlot):
                 expression_list_index, trl_eff_list_index])
             variant_mask[trl_eff_list_index, expression_list_index] = True
 
+        bulk_ids = get_field_metadata(conn, config_subquery, "bulk")
         """
         Details needed to create all possible heatmaps
             key (string): Heatmap identifier, will also be used in file name if
@@ -2981,141 +2891,243 @@ class Plot(variantAnalysisPlot.VariantAnalysisPlot):
         default_box_text_size = 'medium'
         # Specify unique fields and non-default values here
         self.heatmap_details = {
-            "doubling_times_heatmap" :
-                {'data_table': 'Main',
-                 'data_column': 'time',
-                 'function_to_apply': lambda x: (x[-1] - x[0]) / 60.,
-                 'num_digits_rounding': 0,
-                 'plot_title': 'Doubling Time (minutes)',
-                },
-            "cell_volume_heatmap":
-                {'data_table': 'Mass',
-                 'data_column': 'cellVolume',
-                 'plot_title': 'Cell Volume (fL)',
-                },
-            "cell_mass_heatmap":
-                {'data_table': 'Mass',
-                 'data_column': 'cellMass',
-                 'num_digits_rounding': 0,
-                 'box_text_size': 'x-small',
-                 'plot_title': 'Cell Mass (fg)',
-                },
-            "cell_dry_mass_heatmap":
-                {'data_table': 'Mass',
-                 'data_column': 'dryMass',
-                 'num_digits_rounding': 0,
-                 'box_text_size': 'x-small',
-                 'plot_title': 'Dry Cell Mass (fg)',
-                },
-            "cell_mRNA_mass_heatmap":
-                {'data_table': 'Mass',
-                 'data_column': 'mRnaMass',
-                 'plot_title': 'Total mRNA Mass (fg)',
-                },
-            "cell_protein_mass_heatmap":
-                {'data_table': 'Mass',
-                 'data_column': 'proteinMass',
-                 'num_digits_rounding': 0,
-                 'box_text_size': 'x-small',
-                 'plot_title': 'Total Protein Mass (fg)',
-                },
-            "ppgpp_concentration_heatmap":
-                {'data_table': 'GrowthLimits',
-                 'data_column': 'ppgpp_conc',
-                 'remove_first': True,
-                 'num_digits_rounding': 1,
-                 'plot_title': 'ppGpp Concentration (uM)',
-                },
-            "ribosome_init_events_heatmap":
-                {'data_table': 'RibosomeData',
-                    'data_column': 'didInitialize',
-                    'num_digits_rounding': 0,
-                    'box_text_size': 'x-small',
-                    'plot_title': 'Ribosome Init Events Per Time Step',
-                    },
-            "rnap_counts_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'num_digits_rounding': 0,
-                 'box_text_size': 'x-small',
-                 'plot_title': 'RNA Polymerase (RNAP) Counts',
-                },
-            "ribosome_counts_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'data_table': 'UniqueMoleculeCounts',
-                 'data_column': 'uniqueMoleculeCounts',
-                 'num_digits_rounding': 0,
-                 'box_text_size': 'x-small',
-                 'plot_title': 'Ribosome Counts',
-                },
-            "active_rnap_counts_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'num_digits_rounding': 0,
-                 'box_text_size': 'x-small',
-                 'plot_title': 'Active RNA Polymerase (RNAP) Counts',
-                },
-            "active_ribosome_counts_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'data_table': 'UniqueMoleculeCounts',
-                 'data_column': 'uniqueMoleculeCounts',
-                 'num_digits_rounding': 0,
-                 'box_text_size': 'x-small',
-                 'plot_title': 'Active Ribosome Counts',
-                },
-            "free_rnap_counts_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'num_digits_rounding': 0,
-                 'box_text_size': 'x-small',
-                 'plot_title': 'Free RNA Polymerase (RNAP) Counts',
-                 },
-            "free_ribosome_counts_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'data_table': 'UniqueMoleculeCounts',
-                 'data_column': 'uniqueMoleculeCounts',
-                 'num_digits_rounding': 0,
-                 'box_text_size': 'x-small',
-                 'plot_title': 'Free Ribosome Counts',
-                 },
-            "rnap_ribosome_counts_ratio_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'num_digits_rounding': 4,
-                 'box_text_size': 'x-small',
-                 'plot_title': 'RNAP Counts / Ribosome Counts',
-                 },
-            "rnap_crowding_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'data_table': 'RnaSynthProb',
-                 'function_to_apply': lambda x: np.mean(x, axis = 0),
-                 'num_digits_rounding': 0,
-                 'plot_title': 'RNAP Crowding: # of TUs',
-                },
-            "ribosome_crowding_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'data_table': 'RibosomeData',
-                 'function_to_apply': lambda x: np.mean(x, axis = 0),
-                 'num_digits_rounding': 0,
-                 'plot_title': 'Ribosome Crowding: # of Monomers',
-                 },
-            "rna_synth_prob_max_p_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'plot_title': 'RNA Synth Max Prob',
-                 'num_digits_rounding': 4},
-            "protein_init_prob_max_p_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'plot_title': 'Protein Init Max Prob',
-                 'num_digits_rounding': 4},
-            "weighted_avg_translation_efficiency_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'num_digits_rounding': 3,
-                 'plot_title': 'Translation Efficiency (Weighted Average)',
-                },
-            "capacity_gene_mRNA_counts_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'plot_title': 'Log(Capacity Gene mRNA Counts+1): '
-                    + capacity_gene_common_name},
-            "capacity_gene_monomer_counts_heatmap":
-                {'is_nonstandard_data_retrieval': True,
-                 'plot_title': 'Log(Capacity Gene Protein Counts+1): '
-                    + capacity_gene_common_name},
+            "completed_gens_heatmap": {
+                "columns": ["generation"],
+                "custom_sql": f"""
+                    WITH max_gen_per_seed AS (
+                        SELECT max(generation) AS max_generation, experiment_id, variant
+                        FROM ({{subquery}})
+                        GROUP BY experiment_id, variant, lineage_seed
+                    )
+                    SELECT variant, avg((max_generation > {COUNT_INDEX})::BIGINT)
+                    FROM max_gen_per_seed
+                    GROUP BY experiment_id, variant
+                    """,
+                "plot_title": f"Percentage of Sims That Reached Generation {COUNT_INDEX}",
+            },
+            "doubling_times_heatmap": {
+                "columns": ["time"],
+                "custom_sql": """
+                    WITH doubling_times AS (
+                        SELECT (max(time) - min(time)) / 60 AS doubling_time,
+                            experiment_id, variant, lineage_seed, generation, agent_id
+                        FROM ({subquery})
+                        GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+                    )
+                    SELECT variant, avg(doubling_time)
+                    FROM doubling_times
+                    GROUP BY experiment_id, variant
+                    """,
+                "plot_title": "Doubling Time (minutes)",
+            },
+            "cell_volume_heatmap": {
+                "columns": ["listeners__mass__volume"],
+                "plot_title": "Cell Volume (fL)",
+            },
+            "cell_mass_heatmap": {
+                "columns": ["listeners__mass__cell_mass"],
+                "plot_title": "Cell Mass (fg)",
+            },
+            "cell_dry_mass_heatmap": {
+                "columns": ["listeners__mass__dry_mass"],
+                "plot_title": "Dry Cell Mass (fg)",
+            },
+            "cell_mRNA_mass_heatmap": {
+                "columns": ["listeners__mass__mRna_mass"],
+                "plot_title": "Total mRNA Mass (fg)",
+            },
+            "cell_protein_mass_heatmap": {
+                "columns": ["listeners__mass__protein_mass"],
+                "plot_title": "Total Protein Mass (fg)",
+                "box_text_size": "x-small",
+                "num_digits_rounding": 0,
+            },
+            "ppgpp_concentration_heatmap": {
+                "columns": ["listeners__growth_limits__ppgpp_conc"],
+                "plot_title": "ppGpp Concentration (uM)",
+                "remove_first": True,
+                "num_digits_rounding": 1,
+            },
+            "ribosome_init_events_heatmap": {
+                "columns": ["listeners__ribosome_data__did_initialize"],
+                "plot_title": "Ribosome Init Events Per Time Step",
+                "num_digits_rounding": 0,
+                "box_text_size": "x-small",
+            },
+            "rnap_counts_heatmap": {
+                "columns": ["bulk", "listeners__unique_molecule_counts__active_RNAP"],
+                "plot_title": "RNA Polymerase (RNAP) Counts",
+                "num_digits_rounding": 0,
+                "box_text_size": "x-small",
+                "projections": [get_rnap_counts_projection(sim_data, bulk_ids), None],
+                "custom_sql": """
+                    WITH total_counts AS (
+                        SELECT avg(bulk +
+                            listeners__unique_molecule_counts__active_RNAP) AS rnap_counts,
+                            experiment_id, variant
+                        FROM ({subquery})
+                        GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+                    )
+                    SELECT variant, avg(rnap_counts)
+                    FROM total_counts
+                    GROUP BY experiment_id, variant
+                    """
+            },
+            "ribosome_counts_heatmap": {
+                "columns": ["bulk", "listeners__unique_molecule_counts__active_ribosome"],
+                "plot_title": "Active Ribosome Counts",
+                "num_digits_rounding": 0,
+                "box_text_size": "x-small",
+                "projections": [get_ribosome_counts_projection(sim_data, bulk_ids), None],
+                "custom_sql": """
+                    WITH total_counts AS (
+                        SELECT avg(bulk +
+                            listeners__unique_molecule_counts__active_ribosome)
+                            AS ribosome_counts,
+                            experiment_id, variant
+                        FROM ({subquery})
+                        GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+                    )
+                    SELECT variant, avg(ribosome_counts)
+                    FROM inactive_counts
+                    GROUP BY experiment_id, variant
+                    """
+            },
+            "active_ribosome_counts_heatmap": {
+                "columns": ["listeners__unique_molecule_counts__active_ribosome"],
+                "plot_title": "Active Ribosome Counts",
+                "num_digits_rounding": 0,
+                "box_text_size": "x-small",
+            },
+            "active_rnap_counts_heatmap": {
+                "columns": ["listeners__unique_molecule_counts__active_RNAP"],
+                "plot_title": "Active RNA Polymerase (RNAP) Counts",
+                "num_digits_rounding": 0,
+                "box_text_size": "x-small",
+            },
+            "free_ribosome_counts_heatmap": {
+                "columns": ["bulk"],
+                "plot_title": "Free Ribosome Counts",
+                "num_digits_rounding": 0,
+                "box_text_size": "x-small",
+                "projections": get_ribosome_counts_projection(sim_data, bulk_ids),
+            },
+            "free_rnap_counts_heatmap": {
+                "columns": ["bulk"],
+                "plot_title": "Free RNA Polymerase (RNAP) Counts",
+                "num_digits_rounding": 0,
+                "box_text_size": "x-small",
+                "projections": get_rnap_counts_projection(sim_data, bulk_ids),
+            },
+            "rnap_ribosome_counts_ratio_heatmap": {
+                "columns": ["bulk", "listeners__unique_molecule_counts__active_RNAP",
+                            "listeners__unique_molecule_counts__active_RNAP"],
+                "plot_title": "RNAP Counts / Ribosome Counts",
+                "num_digits_rounding": 4,
+                "box_text_size": "x-small",
+                "projections": [get_rnap_counts_projection(sim_data, bulk_ids) +
+                    "rnap, " + get_ribosome_counts_projection(sim_data, bulk_ids) +
+                    "ribosome", None, None],
+                "custom_sql": """
+                    WITH total_counts AS (
+                        SELECT avg(bulk_ribosome +
+                            listeners__unique_molecule_counts__active_ribosome)
+                            AS ribosome_counts,
+                            avg(bulk_rnap +
+                            listeners__unique_molecule_counts__active_RNAP) AS rnap_counts,
+                            experiment_id, variant
+                        FROM ({{subquery}})
+                        GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+                    )
+                    SELECT variant, avg(rnap_counts) / avg(ribosome_counts)
+                    FROM total_counts
+                    GROUP BY experiment_id, variant
+                    """
+            },
+            "rnap_crowding_heatmap": {
+                "columns": ["listeners__rna_synth_prob__target_rna_synth_prob",
+                            "listeners__rna_synth_prob__actual_rna_synth_prob"],
+                "plot_title": "RNAP Crowding: # of TUs",
+                "num_digits_rounding": 0,
+                "box_text_size": "x-small",
+                "custom_sql": get_overcrowding_sql(
+                    "listeners__rna_synth_prob__target_rna_synth_prob",
+                    "listeners__rna_synth_prob__actual_rna_synth_prob")
+            },
+            "ribosome_crowding_heatmap": {
+                "columns": [
+                    "listeners__ribosome_data__target_prob_translation_per_transcript",
+                    "listeners__ribosome_data__actual_prob_translation_per_transcript"],
+                "plot_title": "Ribosome Crowding: # of Monomers",
+                "num_digits_rounding": 0,
+                "box_text_size": "x-small",
+                "custom_sql": get_overcrowding_sql(
+                    "listeners__ribosome_data__target_prob_translation_per_transcript",
+                    "listeners__ribosome_data__actual_prob_translation_per_transcript")
+            },
+            "rna_synth_prob_max_p_heatmap": {
+                "columns": ["listeners__rna_synth_prob__max_p"],
+                "plot_title": "RNA Synth Max Prob",
+                "num_digits_rounding": 4,
+            },
+            "protein_init_prob_max_p_heatmap": {
+                "columns": ["listeners__ribosome_data__max_p"],
+                "plot_title": "Protein Init Max Prob",
+                "num_digits_rounding": 4,
+            },
+            "weighted_avg_translation_efficiency_heatmap": {
+                "columns": ["listeners__rna_counts__full_mRNA_cistron_counts"],
+                "plot_title": "Translation Efficiency (Weighted Average)",
+                "num_digits_rounding": 3,
+                "custom_sql": """
+                    WITH unnested_counts AS (
+                        SELECT unnest(listeners__rna_counts__full_mRNA_cistron_counts)
+                            AS cistron_counts, experiment_id, variant, generate_subscripts(
+                            listeners__rna_counts__full_mRNA_cistron_counts, 1) AS list_idx,
+                            lineage_seed, generation, agent_id
+                        FROM ({subquery})
+                    ),
+                    avg_per_cell AS (
+                        SELECT avg(cistron_counts) AS avg_counts, experiment_id, variant, list_idx
+                        FROM unnested_counts
+                        GROUP BY experiment_id, variant, lineage_seed, generation, agent_id,
+                            list_idx
+                    )
+                    SELECT variant, list(avg(avg_counts) ORDER BY list_idx) AS avg_counts
+                    FROM avg_per_cell
+                    GROUP BY experiment_id, variant
+                    """,
+                "post_func": get_trl_eff_weighted_avg_post_func(
+                    sim_data, get_field_metadata(
+                        conn, config_sql,
+                        "listeners__rna_counts__full_mRNA_cistron_counts")),
+            },
+            "capacity_gene_mRNA_counts_heatmap": {
+                "columns": ["listeners__rna_counts__mRNA_counts"],
+                "plot_title": "Log(Capacity Gene mRNA Counts+1): "
+                    + capacity_gene_common_name,
+                "projection": [get_capacity_gene_counts_projection(
+                    conn, config_sql, sim_data, "mRNA")],
+                "custom_sql": get_capacity_gene_counts_sql(),
+            },
+            "capacity_gene_monomer_counts_heatmap": {
+                "columns": ["listeners__monomer_counts"],
+                "plot_title": "Log(Capacity Gene Protein Counts+1): "
+                    + capacity_gene_common_name,
+                "projection": [get_capacity_gene_counts_projection(
+                    conn, config_sql, sim_data, "monomer")],
+                "custom_sql": get_capacity_gene_counts_sql(),
+            },
+            "capacity_gene_mRNA_mass_fraction_heatmap": {
+                "columns": ["listeners__rna_counts__mRNA_counts",
+                            "listeners__mass__mRna_mass"],
+                "plot_title": "Capacity Gene mRNA Mass Fraction: "
+                    + capacity_gene_common_name,
+                "num_digits_rounding": 3,
+                "projection": [get_capacity_gene_counts_projection(
+                    conn, config_sql, sim_data, "mRNA") + "_mRNA", None],
+                "custom_sql": get_capacity_gene_counts_sql(),
+            },
             "capacity_gene_mRNA_mass_fraction_heatmap":
                 {'is_nonstandard_data_retrieval': True,
                  'num_digits_rounding': 3,
