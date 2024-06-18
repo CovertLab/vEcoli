@@ -470,7 +470,9 @@ def read_stacked_columns(
     Args:
         history_sql: DuckDB SQL string from :py:func:`~.get_dataset_sql`,
             potentially with filters appended in ``WHERE`` clause
-        columns: Names of columns to read data for
+        columns: Names of columns to read data for. Unless you need to perform
+            a computation involving multiple columns, calling this function
+            many times with one column each time will use less RAM.
         projections: Expressions to project from each column that is read.
             Must be same length as ``columns``. If ``None`` for certain
             columns, those columns are projected as is. If not given, all
