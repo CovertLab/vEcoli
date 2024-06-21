@@ -49,17 +49,20 @@ from matplotlib import pyplot as plt
 import math
 import pyarrow as pa
 from unum.units import fg
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from ecoli.variants.new_gene_internal_shift import (
     get_new_gene_ids_and_indices)
 from ecoli.library.parquet_emitter import (get_field_metadata,
     ndlist_to_ndarray, read_stacked_columns)
 from ecoli.library.schema import bulk_name_to_idx
-from wholecell.utils.plotting_tools import heatmap
+from wholecell.utils.plotting_tools import export_figure, heatmap
 from wholecell.utils import units
 
 import pickle
+
+if TYPE_CHECKING:
+    from reconstruction.ecoli.fit_sim_data_1 import SimulationDataEcoli
 
 FONT_SIZE=9
 
@@ -179,7 +182,7 @@ capacity_gene_common_name = "lpp"
 # capacity_gene_common_name = "tufA"
 
 
-def data_to_mapping(
+def get_mean_and_std_matrices(
     conn: DuckDBPyConnection,
     variant_mapping: dict[int, tuple[int, int]],
     variant_matrix_shape: tuple[int, int],
@@ -193,9 +196,10 @@ def data_to_mapping(
     post_func: Optional[Callable] = None,
     num_digits_rounding: Optional[int] = None,
     default_value: Optional[Any] = None,
-) -> dict[tuple[float, float], Any]:
+    new_gene_NTP_fraction: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
     """
-    Reads one or more columns and calculates some aggregate value for each
+    Reads one or more columns and calculates mean and std. dev. for each
     variant. If no custom SQL query is provided, this defaults to averaging
     per cell, then calculating the averages and standard deviations of all
     cells per variant.
@@ -213,15 +217,23 @@ def data_to_mapping(
             result must only have two columns in order: ``variant`` and a value
             for each variant. If not provided, defaults to average of averages
         post_func: Function that is called on PyArrow table resulting from query.
-            Should return a PyArrow table with exactly two columns: one named
-            ``variant`` that contains the variant indices, and the other a
-            numerical column with any name.
+            Should return a PyArrow table with exactly three columns: ``variant``
+            for the variant IDs, ``mean`` for some mean aggregate value (can be
+            N-D list column), and ``std`` for some standard deviation aggregate.
         num_digits_rounding: Number of decimal places to round to
-        default_value: 
+        default_value: Default value to put in output variant matrices if
+            variant ID not included in query result (e.g. if variant failed in
+            first generation and had no completed sims)
+        new_gene_NTP_fraction: Set to True for NTP fraction heatmap so query output
+            is properly handled
     
     Returns:
-        Mapping of ``(new gene translation efficiency, new gene expression)``
-        to value calculated for that variant
+        Tuple of Numpy matrices with first two dimensions ``variant_matrix_shape``.
+        Each cell in first matrix has the mean for that variant. Each cell in the
+        second matrix has the std. dev. for that variant. These values can be Numpy
+        arrays instead of scalar values (e.g. when calculating aggregates for many
+        genes at once), in which case the matrices have shapes
+        ``variant_matrix_shape + (num_genes,)``
     """
     subquery = read_stacked_columns(
         history_sql=history_sql,
@@ -274,7 +286,10 @@ def data_to_mapping(
     return np.array(mean_matrix), np.array(std_matrix)
 
 
-def get_mRNA_ids_from_monomer_ids(sim_data, target_monomer_ids):
+def get_mRNA_ids_from_monomer_ids(
+    sim_data: "SimulationDataEcoli",
+    target_monomer_ids: list[str]
+) -> list[str]:
     """
     Map monomer ids back to the mRNA ids that they were translated from.
 
@@ -284,9 +299,9 @@ def get_mRNA_ids_from_monomer_ids(sim_data, target_monomer_ids):
     Returns: set of mRNA ids
     """
     # Map protein ids to cistron ids
-    monomer_ids = sim_data.process.translation.monomer_data['id']
+    monomer_ids = sim_data.process.translation.monomer_data["id"]
     cistron_ids = sim_data.process.translation.monomer_data[
-        'cistron_id']
+        "cistron_id"]
     monomer_to_cistron_id_dict = {
         monomer_id: cistron_ids[i] for i, monomer_id in
         enumerate(monomer_ids)}
@@ -299,53 +314,56 @@ def get_mRNA_ids_from_monomer_ids(sim_data, target_monomer_ids):
             RNAP_cistron_id) for RNAP_cistron_id in
         target_cistron_ids]
     # Map RNA indexes to RNA ids
-    RNA_ids = sim_data.process.transcription.rna_data['id']
+    RNA_ids = sim_data.process.transcription.rna_data["id"]
     target_RNA_ids = set()
     for i in range(len(target_RNA_indexes)):
         for index in target_RNA_indexes[i]:
             target_RNA_ids.add(RNA_ids[index])
-    return target_RNA_ids
+    return list(target_RNA_ids)
 
 
 def get_indexes(
-    conn, config_sql, sim_data, index_type, ids
-):
+    conn: DuckDBPyConnection,
+    config_sql: str,
+    index_type: str,
+    ids: list[str]
+) -> list[int]:
     """
     Retrieve indices of a given type for a set of ids.
 
     Args:
-        all_cells: Paths to all cells to read data from (directories should
-            contain a simOut/ subdirectory), typically the return from
-            AnalysisPaths.get_cells()
-        index_type: Type of indexes to extract, currently supported options
-            are 'cistron', 'RNA', 'mRNA', and 'monomer'
-        capacity_gene_monomer_ids: monomer ids of capacity gene we need
-            indexes for
+        conn: DuckDB database connection
+        config_sql: DuckDB SQL query for sim config data (see
+            :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql`)
+        index_type: Type of indices to return (one of ``cistron``,
+            ``RNA``, ``mRNA``, or ``monomer``)
+        ids: List of IDs to get indices for (must be monomer IDs
+            if ``index_type`` is ``monomer``, else mRNA IDs)
 
     Returns:
         List of requested indexes
     """
-    if index_type == 'cistron':
+    if index_type == "cistron":
         # Extract cistron indexes for each new gene
         cistron_idx_dict = {
             cis: i for i, cis in enumerate(get_field_metadata(
                 conn, config_sql,
                 "listeners__rnap_data__rna_init_event_per_cistron"))}
         indices = [cistron_idx_dict.get(mRNA_id) for mRNA_id in ids]
-    elif index_type == 'RNA':
+    elif index_type == "RNA":
         # Extract RNA indexes for each new gene
         RNA_idx_dict = {
             rna[:-3]: i for i, rna in enumerate(get_field_metadata(
                 conn, config_sql,
                 "listeners__rna_synth_prob__target_rna_synth_prob"))}
         indices = [RNA_idx_dict.get(mRNA_id) for mRNA_id in ids]
-    elif index_type == 'mRNA':
+    elif index_type == "mRNA":
         # Extract mRNA indexes for each new gene
         mRNA_idx_dict = {
             rna[:-3]: i for i, rna in enumerate(get_field_metadata(
                 conn, config_sql, "listeners__rna_counts__mRNA_counts"))}
         indices = [mRNA_idx_dict.get(mRNA_id[:-3]) for mRNA_id in ids]
-    elif index_type == 'monomer':
+    elif index_type == "monomer":
         # Extract protein indexes for each new gene
         monomer_idx_dict = {
             monomer: i for i, monomer in enumerate(get_field_metadata(
@@ -386,29 +404,55 @@ GENE_COUNTS_SQL = """
     FROM avg_per_variant
     GROUP BY experiment_id, variant
     """
+"""
+Generic SQL query for calculating average of a 1D-array column
+per cell, taking log10(cell_avg + 1), and aggregates that per variant
+into mean and std columns.
+"""
 
 
-def get_gene_mass_fraction_func(sim_data, new_gene_ids):
+def get_gene_mass_prod_func(
+    sim_data: "SimulationDataEcoli",
+    gene_ids: list[str]
+) -> Callable[[pa.Table], pa.Table]:
+    """
+    Create a function to be passed as the ``post_func`` argument to
+    :py:func:`~.get_mean_and_std_matrices` which multiplies the
+    average and standard deviation 1D array columns by the mass of
+    the gene ID for each element.
+
+    Args:
+        sim_data: Simulation data
+        gene_ids: IDs of genes in the order they appear in the
+            1D arrays of the query result
+    """
     # Get mass for gene (mRNAs or monomer)
-    new_gene_masses = np.array([
+    gene_masses = np.array([
         (sim_data.getter.get_mass(gene_id) / sim_data.constants.n_avogadro).asNumber(fg)
-        for gene_id in new_gene_ids
+        for gene_id in gene_ids
     ])
 
-    def gene_mass_fraction(variant_agg):
-        avg_count_over_mass = ndlist_to_ndarray(variant_agg["avg_ratio"])
-        std_count_over_mass = ndlist_to_ndarray(variant_agg["std_ratio"])
-        # Count / total mass * mass / count = mass fraction
-        avg_mass_fractions = avg_count_over_mass * new_gene_masses
-        std_mass_fractions = std_count_over_mass * new_gene_masses
+    def gene_mass_prod(variant_agg):
+        avg_arr = ndlist_to_ndarray(variant_agg["mean"])
+        std_arr = ndlist_to_ndarray(variant_agg["std"])
         return pa.table({"variant": variant_agg["variant"],
-                         "mean": avg_mass_fractions,
-                         "std": std_mass_fractions})
+                         "mean": avg_arr * gene_masses,
+                         "std": std_arr * gene_masses})
 
-    return gene_mass_fraction
+    return gene_mass_prod
 
 
-def get_gene_count_fraction_sql(gene_indices: list[int], column: str):
+def get_gene_count_fraction_sql(gene_indices: list[int], column: str) -> str:
+    """
+    Construct generic SQL query that gets the average per cell of a select
+    set of indices from a 1D list column, divides them by the sum of averages
+    for all elements of that list column, and aggregates those ratios per variant
+    into mean and std columns.
+
+    Args:
+        gene_indices: Indices to extract from 1D list column to get ratios for
+        column: Name of 1D list column
+    """
     return f"""
         WITH unnested_counts AS (
             SELECT unnest({column}) AS gene_counts,
@@ -431,14 +475,14 @@ def get_gene_count_fraction_sql(gene_indices: list[int], column: str):
             GROUP BY experiment_id, variant, lineage_seed,
                 generation, agent_id
         ),
-        new_gene_avg_per_cell AS (
-            SELECT avg_count as new_gene_avg, experiment_id, variant,
+        select_gene_avg_per_cell AS (
+            SELECT avg_count as select_gene_avg, experiment_id, variant,
                 lineage_seed, generation, agent_id, gene_idx
             FROM avg_per_cell
             WHERE gene_idx IN {tuple(gene_indices)}
         ),
         ratio_avg_per_cell AS (
-            SELECT capacity_avg / total_avg AS ratio_avg, experiment_id,
+            SELECT select_gene_avg / total_avg AS ratio_avg, experiment_id,
                 variant, gene_idx
             FROM new_gene_avg_per_cell
             LEFT JOIN total_avg_per_cell USING (experiment_id, variant,
@@ -457,7 +501,11 @@ def get_gene_count_fraction_sql(gene_indices: list[int], column: str):
         """
 
 
-def get_new_gene_mRNA_NTP_fraction_sql(sim_data, new_gene_mRNA_ids, ntp_ids):
+def get_new_gene_mRNA_NTP_fraction_sql(
+    sim_data: "SimulationDataEcoli",
+    new_gene_mRNA_ids: list[str],
+    ntp_ids: list[str]
+) -> str:
     """
     Special function to handle extraction and saving of new gene mRNA and
     NTP fraction heatmap data.
@@ -480,16 +528,12 @@ def get_new_gene_mRNA_NTP_fraction_sql(sim_data, new_gene_mRNA_ids, ntp_ids):
         f"all_gene_avg_count, {all_gene_mRNA_ACGU[:, ntp_idx].tolist()}) "
         f"for new_gene_avg in new_gene_avg_count] AS avg_count_over_{ntp_id}"
         for ntp_idx, ntp_id in enumerate(ntp_ids)])
-    # Use DuckDB list comprehension to multiply (avg count / total NTP) from
-    # above by (NTP / count) to get NTP fraction for each new gene mRNA
-    frac_projections = ", ".join([
-        f"[i[0] * i[1] for i in list_zip(avg_count_over_{ntp_id}, "
-        f"{new_gene_mRNA_ACGU[:, ntp_idx].tolist()})] AS avg_{ntp_id}_frac"
-        for ntp_idx, ntp_id in enumerate(ntp_ids)])
-    # Unnest NTP fraction list columns so we can average across variants
+    # Unnest mRNA counts / total NTP count and elementwise multiply by
+    # NTP counts per mRNA to get average NTP fraction per RNA
     unnested_frac_projections = ", ".join([
-        f"unnest(avg_{ntp_id}_frac) AS unnested_{ntp_id}_frac"
-        for ntp_id in ntp_ids
+        f"unnest(avg_count_over_{ntp_id}) * unnest("
+        f"{new_gene_mRNA_ACGU[:, ntp_idx].tolist()}) AS unnested_{ntp_id}_frac"
+        for ntp_idx, ntp_id in enumerate(ntp_ids)
     ]) + f", generate_subscripts(avg_{ntp_ids[0]}, 1) AS gene_idx"
     avg_frac_projections = ", ".join([
         f"avg(unnested_{ntp_id}_frac) AS avg_{ntp_id}_frac, "
@@ -498,8 +542,8 @@ def get_new_gene_mRNA_NTP_fraction_sql(sim_data, new_gene_mRNA_ids, ntp_ids):
     ])
     # Compile new gene average NTP fractions into list columns
     list_avg_frac_projections = ", ".join([
-        f"list(avg_{ntp_id}_frac ORDER BY gene_idx) AS mean, "
-        f"list(std_{ntp_id}_frac ORDER BY gene_idx) AS std"
+        f"list(avg_{ntp_id}_frac ORDER BY gene_idx) AS mean_{ntp_id}, "
+        f"list(std_{ntp_id}_frac ORDER BY gene_idx) AS std_{ntp_id}"
         for ntp_id in ntp_ids
     ])
 
@@ -535,13 +579,9 @@ def get_new_gene_mRNA_NTP_fraction_sql(sim_data, new_gene_mRNA_ids, ntp_ids):
             SELECT experiment_id, variant, {ntp_projections}
             FROM avg_per_cell_lists
         ),
-        avg_frac_per_cell AS (
-            SELECT experiment_id, variant, {frac_projections}
-            FROM avg_count_over_ntp_per_cell
-        ),
         unnested_frac_per_cell AS (
             SELECT experiment_id, variant, {unnested_frac_projections}
-            FROM avg_frac_per_cell
+            FROM avg_count_over_ntp_per_cell
         ),
         avg_frac_per_variant AS (
             SELECT experiment_id, variant, gene_idx, {avg_frac_projections}
@@ -554,7 +594,16 @@ def get_new_gene_mRNA_NTP_fraction_sql(sim_data, new_gene_mRNA_ids, ntp_ids):
         """
 
 
-def avg_ratio_of_1d_arrays_sql(numerator, denominator):
+def avg_ratio_of_1d_arrays_sql(numerator: str, denominator: str) -> str:
+    """
+    Create generic SQL query that calculates the average per cell of each
+    element in two 1D list columns, divides them, and aggregates those ratios
+    per variant into mean and std columns.
+
+    Args:
+        numerator: Name of 1D list column that will be numerator in ratio
+        denominator: Name of 1D list column that will be denominator in ratio
+    """
     return f"""
         WITH unnested_data AS (
             SELECT unnest({denominator}) AS denominator,
@@ -582,7 +631,15 @@ def avg_ratio_of_1d_arrays_sql(numerator, denominator):
         """
 
 
-def avg_1d_array_sql(column: str):
+def avg_1d_array_sql(column: str) -> str:
+    """
+    Create generic SQL query that calculates the average per cell of
+    each element in a 1D array column and aggregates that per variant
+    into mean and std columns.
+
+    Args:
+        column: Name of 1D list column to aggregate
+    """
     return f"""
         WITH unnested_counts AS (
             SELECT unnest({column}) AS array_col,
@@ -612,7 +669,15 @@ def avg_1d_array_sql(column: str):
         """
 
 
-def sum_avg_1d_array_sql(column: str):
+def sum_avg_1d_array_sql(column: str) -> str:
+    """
+    Create generic SQL query that calculates the average per cell of
+    each element in a 1D array column, sums those averages, and
+    aggregates that per variant into mean and std columns.
+
+    Args:
+        column: Name of 1D list column to aggregate
+    """
     return f"""
         WITH unnested_counts AS (
             SELECT unnest({column}) AS array_col,
@@ -641,7 +706,18 @@ def sum_avg_1d_array_sql(column: str):
         """
 
 
-def avg_1d_array_over_scalar_sql(array_column: str, scalar_column: str):
+def avg_1d_array_over_scalar_sql(array_column: str, scalar_column: str) -> str:
+    """
+    Create generic SQL query that calculates the average per cell of
+    each element in a 1D array column, divides those by the average
+    per cell of a scalar column, and aggregates those ratios per variant
+    into mean and std columns.
+
+    Args:
+        array_column: Name of 1D list column to aggregate
+        scalar_column: Name of scalar column to divide ``array_column``
+            cell averages by
+    """
     return f"""
         WITH unnested_counts AS (
             SELECT unnest({array_column}) AS array_col,
@@ -671,7 +747,18 @@ def avg_1d_array_over_scalar_sql(array_column: str, scalar_column: str):
         """
 
 
-def sum_avg_1d_array_over_scalar_sql(array_column: str, scalar_column: str):
+def sum_avg_1d_array_over_scalar_sql(array_column: str, scalar_column: str) -> str:
+    """
+    Create generic SQL query that calculates the average per cell of
+    each element in a 1D array column, divides those by the average
+    per cell of a scalar column, sums those ratios, and aggregates the
+    summed ratios per variant into mean and std columns.
+
+    Args:
+        array_column: Name of 1D list column to aggregate
+        scalar_column: Name of scalar column to divide ``array_column``
+            cell averages by
+    """
     return f"""
         WITH unnested_counts AS (
             SELECT unnest({array_column}) AS array_col,
@@ -699,48 +786,33 @@ def sum_avg_1d_array_over_scalar_sql(array_column: str, scalar_column: str):
         """
 
 
-NEW_GENE_TIME_OVERCROWDED_SQL = """
-    -- Boolean values must be explicitly cast to numeric for aggregation
-    WITH unnested_overcrowded AS (
-        SELECT unnest(overcrowded::TINYINT) AS unnested_data,
-            generate_subscripts(overcrowded, 1) AS list_idx,
-            experiment_id, variant, lineage_seed, generation, agent_id
-        FROM ({{subquery}})
-    ),
-    avg_per_cell AS (
-        SELECT avg(unnested_data) AS frac_time_overcrowded,
-            experiment_id, variant, list_idx
-        FROM unnested_overcrowded
-        GROUP BY experiment_id, variant, lineage_seed, generation,
-            agent_id, list_idx
-    ),
-    avg_per_variant AS (
-        SELECT avg(frac_time_overcrowded) AS avg_frac_time_overcrowded,
-            stddev(frac_time_overcrowded) AS std_frac_time_overcrowded,
-            experiment_id, variant, list_idx
-        FROM avg_per_cell
-        GROUP BY experiment_id, variant, list_idx
-    )
-    SELECT variant, list(avg_frac_time_overcrowded ORDER BY list_idx) AS mean,
-        list(std_frac_time_overcrowded ORDER BY list_idx) AS std
-    FROM avg_per_variant
-    GROUP BY experiment_id, variant
-    """
-
-
-def get_rnap_counts_projection(sim_data, bulk_ids):
+def get_rnap_counts_projection(
+    sim_data: "SimulationDataEcoli",
+    bulk_ids: list[str]
+) -> str:
     """
     Return SQL projection to selectively read bulk inactive RNAP count.
+
+    Args:
+        sim_data: Simulation data
+        bulk_ids: List of all bulk IDs in order
     """
     rnap_idx = bulk_name_to_idx(
         [sim_data.molecule_ids.full_RNAP], bulk_ids)
     return f"bulk[{rnap_idx + 1}] AS bulk"
 
 
-def get_ribosome_counts_projection(sim_data, bulk_ids):
+def get_ribosome_counts_projection(
+    sim_data: "SimulationDataEcoli",
+    bulk_ids: list[str]
+) -> str:
     """
     Return SQL projection to selectively read bulk inactive ribosome count
     (defined as minimum of free 30S and 50S subunits at any given moment)
+
+    Args:
+        sim_data: Simulation data
+        bulk_ids: List of all bulk IDs in order
     """
     ribosome_idx = bulk_name_to_idx(
         [sim_data.molecule_ids.s30_full_complex,
@@ -748,15 +820,19 @@ def get_ribosome_counts_projection(sim_data, bulk_ids):
     return f"least(bulk[{ribosome_idx[0] + 1}], bulk[{ribosome_idx[1] + 1}]) AS bulk"
 
 
-def get_overcrowding_sql(
-    target_col: str,
-    actual_col: str,
-):
+def get_overcrowding_sql(target_col: str, actual_col: str) -> str:
     """
-    Returns mapping from tuples (translation efficiency, expression) to the
-    number of genes (averaged over all cells per variant) for which the
-    target transcription probability was higher than the actual (averaged
-    over all timesteps per cell in that variant).
+    Create generic SQL query that calculates for average number of genes
+    for each cell that are overcrowded, then aggregate that per variant
+    into mean and std columns.
+
+    Args:
+        target_col: Name of 1D list column with target values
+        actual_col: Name of 1D list column with actual values. If the
+            per-cell average of an element in ``actual_col`` is greater
+            than the per-cell average of the corresponding element in
+            ``target_col``, we say that the gene for that element is
+            overcrowded.
     """
     return f"""
         WITH unnested_probs AS (
@@ -785,50 +861,8 @@ def get_overcrowding_sql(
         """
 
 
-def get_trl_eff_weighted_avg_post_func(sim_data, cistron_ids):
-    # Get normalized translation efficiency for all mRNAs
-    trl_effs = sim_data.process.translation.translation_efficiencies_by_monomer
-    trl_eff_ids = sim_data.process.translation.monomer_data['cistron_id']
-    mRNA_cistron_idx_dict = {rna: i for i, rna in enumerate(cistron_ids)}
-    trl_eff_id_mapping = np.array([
-        mRNA_cistron_idx_dict[id] for id in trl_eff_ids])
-
-    def trl_eff_weighted_avg(variant_agg):
-        avg_counts = ndlist_to_ndarray(variant_agg["mean"])
-        total_avg_counts = np.expand_dims(
-            avg_counts.sum(axis=1), axis=1
-        )
-        # Compute average translation efficiency, weighted by mRNA counts
-        weighted_avg_trl_eff = np.dot(avg_counts / total_avg_counts,
-            trl_effs[np.argsort(trl_eff_id_mapping)])
-        return pa.table({"variant": variant_agg["variant"],
-                         "mean": weighted_avg_trl_eff})
-
-    return trl_eff_weighted_avg
-
-
-def get_new_gene_mass_yield_func(sim_data, new_gene_ids):
-    # Get mass for each new gene
-    new_gene_masses = np.array([
-        (sim_data.getter.get_mass(gene_id) /
-         sim_data.constants.n_avogadro).asNumber(fg)
-        for gene_id in new_gene_ids])
-
-    def new_gene_mass_yield(variant_agg):
-        avg_array = ndlist_to_ndarray(variant_agg["mean"])
-        std_array = ndlist_to_ndarray(variant_agg["std"])
-        return pa.table({"variant": variant_agg["variant"],
-                         "mean": avg_array * new_gene_masses,
-                         "std": std_array * new_gene_masses})
-
-    return new_gene_mass_yield
-
-
-"""
-Plotting Functions
-"""
 def plot_heatmaps(
-    self, is_dashboard, variant_mask, heatmap_x_label, heatmap_y_label,
+    heatmap_data, heatmap_details, new_gene_mRNA_ids, ntp_ids, total_heatmaps_to_make, is_dashboard, variant_mask, heatmap_x_label, heatmap_y_label,
     new_gene_expression_factors, new_gene_translation_efficiency_values,
     summary_statistic, figsize_x, figsize_y, plotOutDir, plot_suffix):
     """
@@ -847,8 +881,8 @@ def plot_heatmaps(
             these variants
         new_gene_translation_efficiency_values: New gene translation
             efficiency values used in these variants
-        summary_statistic: Specifies whether average ('mean') or
-            standard deviation ('std_dev') should be displayed on the
+        summary_statistic: Specifies whether average (mean) or
+            standard deviation (std_dev) should be displayed on the
             heatmaps
         figsize_x: Horizontal size of each heatmap
         figsize_y: Vertical size of each heatmap
@@ -856,237 +890,104 @@ def plot_heatmaps(
         plot_suffix: Suffix to add to plot file names, usually specifying
             which generations were plotted
     """
-    if summary_statistic == 'std_dev':
+    if summary_statistic == "std_dev":
         plot_suffix = plot_suffix + "_std_dev"
-    elif summary_statistic != 'mean':
+    elif summary_statistic != "mean":
         raise Exception(
-            "'mean' and 'std_dev' are the only currently supported"
+            "mean and std_dev are the only currently supported"
             " summary statistics")
 
     if is_dashboard:
         # Determine dashboard layout
-        if self.total_heatmaps_to_make > 3:
+        if total_heatmaps_to_make > 3:
             dashboard_ncols = 4
-            dashboard_nrows = math.ceil((self.total_heatmaps_to_make + 1) / dashboard_ncols)
+            dashboard_nrows = math.ceil((total_heatmaps_to_make + 1) / dashboard_ncols)
         else:
-            dashboard_ncols = self.total_heatmaps_to_make + 1
+            dashboard_ncols = total_heatmaps_to_make + 1
             dashboard_nrows = 1
-        fig, axs = plt.subplots(nrows=dashboard_nrows,
+        _, axs = plt.subplots(nrows=dashboard_nrows,
             ncols=dashboard_ncols,
-            figsize=(figsize_y * dashboard_ncols,figsize_x * dashboard_nrows),
-            layout='constrained'
+            figsize=(figsize_y * dashboard_ncols, figsize_x * dashboard_nrows),
+            layout="constrained"
             )
         if dashboard_nrows == 1:
             axs = np.reshape(axs, (1, dashboard_ncols))
+    else:
+        dashboard_ncols = total_heatmaps_to_make
+        dashboard_nrows = 1
+        axs = [[plt.subplots(1, 1, figsize=(figsize_x, figsize_y))[1]
+                for _ in range(total_heatmaps_to_make)]]
 
-        # Percent Completion Heatmap
-        heatmap(
-            self, axs[0,0], variant_mask,
-            self.heatmap_data["completed_gens_heatmap"][0,:,:],
-            self.heatmap_data["completed_gens_heatmap"][0,:,:],
-            new_gene_expression_factors,
-            new_gene_translation_efficiency_values,
-            heatmap_x_label,
-            heatmap_y_label,
-            f"Percentage of Sims That Reached Generation {COUNT_INDEX + 1}")
-        row_ax = 0
-        col_ax = 1
-
-        for h in HEATMAPS_TO_MAKE_LIST:
-            if not self.heatmap_details[h]["is_nonstandard_plot"]:
-                stop_index = 1
-                title_addition = ""
-                if self.heatmap_details[h]["is_new_gene_heatmap"]:
-                    stop_index = len(self.new_gene_mRNA_ids)
-                for i in range(stop_index):
-                    if self.heatmap_details[h]["is_new_gene_heatmap"]:
-                        title_addition = f": {self.new_gene_mRNA_ids[i][:-4]}"
-                    self.make_single_heatmap(
-                        h, axs[row_ax, col_ax], variant_mask,
-                        heatmap_x_label, heatmap_y_label, i,
-                        new_gene_expression_factors,
-                        new_gene_translation_efficiency_values,
-                        summary_statistic, title_addition)
+    row_ax = 0
+    col_ax = 0
+    for h in HEATMAPS_TO_MAKE_LIST:
+        if not heatmap_details[h]["is_nonstandard_plot"]:
+            stop_index = 1
+            title_addition = ""
+            filename_addition = ""
+            if heatmap_details[h]["is_new_gene_heatmap"]:
+                stop_index = len(new_gene_mRNA_ids)
+            for i in range(stop_index):
+                if heatmap_details[h]["is_new_gene_heatmap"]:
+                    title_addition = f": {new_gene_mRNA_ids[i][:-4]}"
+                    filename_addition = f"_{new_gene_mRNA_ids[i][:-4]}"
+                title = heatmap_details[h]["plot_title"] + title_addition
+                if summary_statistic == "std_dev":
+                    title = f"Std Dev: {title}"
+                heatmap(
+                    axs[row_ax, col_ax], variant_mask,
+                    heatmap_data[h][summary_statistic][initial_index, :, :],
+                    heatmap_data["completed_gens_heatmap"][0, :, :],
+                    new_gene_expression_factors, new_gene_translation_efficiency_values,
+                    heatmap_x_label, heatmap_y_label,
+                    title,
+                    heatmap_details[h]["box_text_size"])
+                if not is_dashboard:
+                    axs[row_ax, col_ax].get_figure().tight_layout()
+                    plt.show()
+                    export_figure(plt, plotOutDir, h + filename_addition +
+                        plot_suffix)
+                    plt.close()
+                col_ax += 1
+                if (col_ax == dashboard_ncols):
+                    col_ax = 0
+                    row_ax += 1
+        elif h == "new_gene_mRNA_NTP_fraction_heatmap":
+            for i in range(len(new_gene_mRNA_ids)):
+                for ntp_id in ntp_ids:
+                    title = (f"{heatmap_details[h]['plot_title']} {ntp_id[:-3]}"
+                        f" Fraction: {new_gene_mRNA_ids[initial_index][:-4]}")
+                    if summary_statistic == 'std_dev':
+                        title = f"Std Dev: {title}"
+                    heatmap(
+                        ax, variant_mask,
+                        heatmap_data[h][summary_statistic][ntp_id][initial_index, :, :],
+                        heatmap_data["completed_gens_heatmap"][0, :, :],
+                        new_gene_expression_factors, new_gene_translation_efficiency_values,
+                        heatmap_x_label, heatmap_y_label,
+                        title,
+                        heatmap_details[h]['box_text_size'])
+                    if not is_dashboard:
+                        axs[row_ax, col_ax].get_figure().tight_layout()
+                        plt.show()
+                        export_figure(
+                            plt, plotOutDir,
+                            f"new_gene_mRNA_{ntp_id[:-3]}_fraction_heatmap"
+                            + filename_addition + plot_suffix)
                     col_ax += 1
                     if (col_ax == dashboard_ncols):
                         col_ax = 0
                         row_ax += 1
-            elif h == "new_gene_mRNA_NTP_fraction_heatmap":
-                for i in range(len(self.new_gene_mRNA_ids)):
-                    for ntp_id in self.ntp_ids:
-                        self.make_new_gene_mRNA_NTP_fraction_heatmap(
-                            h, axs[row_ax, col_ax], variant_mask,
-                            heatmap_x_label, heatmap_y_label, i,
-                            new_gene_expression_factors,
-                            new_gene_translation_efficiency_values,
-                            summary_statistic,
-                            ntp_id)
-                        fig.tight_layout()
-                        plt.show()
-                        exportFigure(
-                            plt, plotOutDir,
-                            f'new_gene_mRNA_{ntp_id[:-3]}_fraction_heatmap'
-                            f'_{self.new_gene_mRNA_ids[i][:-4]}'
-                            f'{plot_suffix}')
-                        col_ax += 1
-                        if (col_ax == dashboard_ncols):
-                            col_ax = 0
-                            row_ax += 1
-            else:
-                raise Exception(
-                    f"Heatmap {h} is neither a standard plot nor a"
-                    f" nonstandard plot that has specific instructions for"
-                    f" plotting.")
-        fig.tight_layout()
-        exportFigure(plt, plotOutDir,
+        else:
+            raise Exception(
+                f"Heatmap {h} is neither a standard plot nor a"
+                f" nonstandard plot that has specific instructions for"
+                f" plotting.")
+    if is_dashboard:
+        axs[0, 0].get_figure().tight_layout()
+        export_figure(plt, plotOutDir,
             f"00_new_gene_exp_trl_eff_dashboard{plot_suffix}") ## TODO: Revert back after running new plots on Sherlock sims
         plt.close("all")
-
-    else: # individual plots
-        # Plot percent completion heatmap
-        fig, ax = plt.subplots(1, 1, figsize=(figsize_x, figsize_y))
-        heatmap(
-            self, ax, variant_mask,
-            self.heatmap_data["completed_gens_heatmap"][0, :, :],
-            self.heatmap_data["completed_gens_heatmap"][0, :, :],
-            new_gene_expression_factors,
-            new_gene_translation_efficiency_values,
-            heatmap_x_label,
-            heatmap_y_label,
-            f"Percentage of Sims that Reached Generation {COUNT_INDEX + 1}")
-        fig.tight_layout()
-        plt.show()
-        exportFigure(plt, plotOutDir, 'completed_gens_heatmap')
-
-        for h in HEATMAPS_TO_MAKE_LIST:
-            if not self.heatmap_details[h]["is_nonstandard_plot"]:
-                stop_index = 1
-                title_addition = ""
-                filename_addition = ""
-                if self.heatmap_details[h]["is_new_gene_heatmap"]:
-                    stop_index = len(self.new_gene_mRNA_ids)
-                for i in range(stop_index):
-                    if self.heatmap_details[h]["is_new_gene_heatmap"]:
-                        title_addition = f": {self.new_gene_mRNA_ids[i][:-4]}"
-                        filename_addition = f"_{self.new_gene_mRNA_ids[i][:-4]}"
-                    fig, ax = plt.subplots(1, 1, figsize=(figsize_x, figsize_y))
-                    self.make_single_heatmap(
-                        h, ax, variant_mask, heatmap_x_label, heatmap_y_label,
-                        i, new_gene_expression_factors,
-                        new_gene_translation_efficiency_values,
-                        summary_statistic, title_addition)
-                    fig.tight_layout()
-                    plt.show()
-                    exportFigure(plt, plotOutDir, h + filename_addition +
-                        plot_suffix)
-                    plt.close()
-            elif h == "new_gene_mRNA_NTP_fraction_heatmap":
-                for i in range(len(self.new_gene_mRNA_ids)):
-                    for ntp_id in self.ntp_ids:
-                        fig, ax = plt.subplots(1, 1, figsize=(figsize_x,
-                            figsize_y))
-                        self.make_new_gene_mRNA_NTP_fraction_heatmap(
-                            h, ax, variant_mask, heatmap_x_label,
-                            heatmap_y_label, i, new_gene_expression_factors,
-                            new_gene_translation_efficiency_values,
-                            summary_statistic, ntp_id)
-                        fig.tight_layout()
-                        plt.show()
-                        exportFigure(
-                            plt, plotOutDir,
-                            f'new_gene_mRNA_{ntp_id[:-3]}_fraction_heatmap'
-                            f'_{self.new_gene_mRNA_ids[i][:-4]}{plot_suffix}')
-            else:
-                raise Exception(
-                    f"Heatmap {h} is neither a standard plot nor a"
-                    f" nonstandard plot that has specific instructions for"
-                    f" plotting.")
-
-
-def make_single_heatmap(
-        self, h, ax, variant_mask, heatmap_x_label, heatmap_y_label,
-        initial_index, new_gene_expression_factors,
-        new_gene_translation_efficiency_values,
-        summary_statistic, title_addition):
-    """
-    Creates a heatmap for h.
-
-    Args:
-        h: Heatmap identifier
-        ax: Axes to plot on
-        variant_mask: np.array of dimension
-            (len(new_gene_translation_efficiency_values),
-            len(new_gene_expression_factors)) with entries set to True if
-            variant was run, False otherwise.
-        heatmap_x_label: Label for x axis of heatmap
-        heatmap_y_label: Label for y axis of heatmap
-        initial_index: 0 for non new gene heatmaps, otherwise the relative
-            index of the new gene
-        new_gene_expression_factors: New gene expression factors used in
-            these variants
-        new_gene_translation_efficiency_values: New gene translation
-            efficiency values used in these variants
-        summary_statistic: Specifies whether average ('mean') or
-            standard deviation ('std_dev') should be displayed on the
-            heatmaps
-        title_addition: Any string that needs to be added to the title of
-            the heatmap, e.g. a new gene id
-    """
-    title = self.heatmap_details[h]['plot_title'] + title_addition
-    if summary_statistic == "std_dev":
-        title = f"Std Dev: {title}"
-
-    heatmap(
-        self, ax, variant_mask,
-        self.heatmap_data[h][summary_statistic][initial_index, :, :],
-        self.heatmap_data["completed_gens_heatmap"][0, :, :],
-        new_gene_expression_factors, new_gene_translation_efficiency_values,
-        heatmap_x_label, heatmap_y_label,
-        title,
-        self.heatmap_details[h]['box_text_size'])
-
-
-def make_new_gene_mRNA_NTP_fraction_heatmap(
-        self, h, ax, variant_mask, heatmap_x_label, heatmap_y_label,
-        initial_index, new_gene_expression_factors,
-        new_gene_translation_efficiency_values, summary_statistic, ntp_id):
-    """
-    Special function that creates a new gene mRNA NTP fraction heatmap for
-    one new gene and one NTP.
-
-    Args:
-        h: Heatmap identifier
-        ax: Axes to plot on
-        variant_mask: np.array of dimension
-            (len(new_gene_translation_efficiency_values),
-            len(new_gene_expression_factors)) with entries set to True if
-            variant was run, False otherwise.
-        heatmap_x_label: Label for x axis of heatmap
-        heatmap_y_label: Label for y axis of heatmap
-        initial_index: 0 for non new gene heatmaps, otherwise the relative
-            index of the new gene
-        new_gene_expression_factors: New gene expression factors used in
-            these variants
-        new_gene_translation_efficiency_values: New gene translation
-            efficiency values used in these variants
-        summary_statistic: Specifies whether average ('mean') or
-            standard deviation ('std_dev') should be displayed on the
-            heatmaps
-        ntp_id: Id of NTP to plot
-    """
-    title = (f"{self.heatmap_details[h]['plot_title']} {ntp_id[:-3]}"
-                f" Fraction: {self.new_gene_mRNA_ids[initial_index][:-4]}")
-    if summary_statistic == 'std_dev':
-        title = f"Std Dev: {title}"
-
-    heatmap(
-        self, ax, variant_mask,
-        self.heatmap_data[h][summary_statistic][ntp_id][initial_index, :, :],
-        self.heatmap_data["completed_gens_heatmap"][0, :, :],
-        new_gene_expression_factors, new_gene_translation_efficiency_values,
-        heatmap_x_label, heatmap_y_label,
-        title,
-        self.heatmap_details[h]['box_text_size'])
 
 
 def plot(
@@ -1108,8 +1009,8 @@ def plot(
         sim_data = pickle.load(f)
 
     # Determine new gene mRNA and monomer ids
-    (new_gene_mRNA_ids, new_gene_indices, new_gene_monomer_ids,
-        new_gene_monomer_indices) = get_new_gene_ids_and_indices(sim_data)
+    (new_gene_mRNA_ids, _, new_gene_monomer_ids, _
+        ) = get_new_gene_ids_and_indices(sim_data)
 
     # Assuming we ran a workflow with `n` new gene expression factors
     # and `m` new gene translation efficiency values, create an `n * m`
@@ -1125,6 +1026,8 @@ def plot(
     new_gene_translation_efficiency_values = sorted(set(
         variant_params["exp_trl_eff"]["trl_eff"]
         for variant_params in variant_metadata.values()))
+    variant_matrix_shape = (len(new_gene_translation_efficiency_values),
+                            len(new_gene_expression_factors))
     variant_to_row_col = {
         variant: (
                 new_gene_translation_efficiency_values.index(
@@ -1137,10 +1040,11 @@ def plot(
 
     bulk_ids = get_field_metadata(conn, config_sql, "bulk")
     ntp_ids = list(sim_data.ntp_code_to_id_ordered.values())
+    # Get indices for data extraction
     rnap_subunit_mRNA_ids = get_mRNA_ids_from_monomer_ids(
         sim_data, sim_data.molecule_groups.RNAP_subunits)
     rnap_subunit_mRNA_indexes = get_indexes(
-        conn, config_sql, sim_data, "mRNA", rnap_subunit_mRNA_ids
+        conn, config_sql, "mRNA", rnap_subunit_mRNA_ids
     )
     rnap_subunit_monomer_indexes = get_indexes(
         conn, config_sql, sim_data, "monomer",
@@ -1149,10 +1053,10 @@ def plot(
     ribosomal_mRNA_ids = get_mRNA_ids_from_monomer_ids(
         sim_data, sim_data.molecule_groups.ribosomal_proteins)
     ribosomal_mRNA_indexes = get_indexes(
-        conn, config_sql, sim_data, "mRNA", ribosomal_mRNA_ids
+        conn, config_sql, "mRNA", ribosomal_mRNA_ids
     )
     ribosomal_monomer_indexes = get_indexes(
-        conn, config_sql, sim_data, "monomer",
+        conn, config_sql, "monomer",
         sim_data.molecule_groups.ribosomal_proteins
     )
     cistron_ids = get_field_metadata(conn, config_sql,
@@ -1161,18 +1065,15 @@ def plot(
         sim_data, [capacity_gene_monomer_id]))
     capacity_gene_monomer_ids = [capacity_gene_monomer_id]
     capacity_gene_indexes = {
-        index_type: get_indexes(conn, config_sql, sim_data, index_type, capacity_gene_mRNA_ids)
+        index_type: get_indexes(conn, config_sql, index_type, capacity_gene_mRNA_ids)
         for index_type in ["mRNA", "cistron", "RNA"]
     }
-    capacity_gene_indexes["monomer"] = get_indexes(conn, config_sql, sim_data, "monomer", capacity_gene_monomer_ids)
+    capacity_gene_indexes["monomer"] = get_indexes(conn, config_sql, "monomer", capacity_gene_monomer_ids)
     new_gene_indexes = {
-        index_type: get_indexes(conn, config_sql, sim_data, index_type, new_gene_mRNA_ids)
+        index_type: get_indexes(conn, config_sql, index_type, new_gene_mRNA_ids)
         for index_type in ["mRNA", "cistron", "RNA"]
     }
-    new_gene_indexes["monomer"] = get_indexes(conn, config_sql, sim_data, "monomer", new_gene_monomer_ids)
-
-    FLUX_UNITS = units.mmol / units.g / units.h
-    MASS_UNITS = units.fg
+    new_gene_indexes["monomer"] = get_indexes(conn, config_sql, "monomer", new_gene_monomer_ids)
 
     # Determine glucose index in exchange fluxes
     external_molecule_ids = np.array(get_field_metadata(
@@ -1182,15 +1083,19 @@ def plot(
         print("This plot only runs when glucose is the carbon source.")
         return
     glucose_idx = np.where(external_molecule_ids == "GLC[p]")[0][0]
-    flux_scaling_factor = FLUX_UNITS * MASS_UNITS * sim_data.getter.get_mass("GLC[p]")
+    flux_scaling_factor = (
+        sim_data.getter.get_mass("GLC[p]") *
+        (units.mmol / units.g / units.h) * units.fg # Flux * dry mass units
+    )
 
     # Get normalized translation efficiency for all mRNAs
     trl_effs = sim_data.process.translation.translation_efficiencies_by_monomer
-    trl_eff_ids = sim_data.process.translation.monomer_data['cistron_id']
+    trl_eff_ids = sim_data.process.translation.monomer_data["cistron_id"]
     mRNA_cistron_idx_dict = {rna: i for i, rna in enumerate(cistron_ids)}
     trl_eff_id_mapping = np.array([
         mRNA_cistron_idx_dict[id] for id in trl_eff_ids])
     ordered_trl_effs = trl_effs[np.argsort(trl_eff_id_mapping)]
+
     """
     Details needed to create all possible heatmaps
         key (string): Heatmap identifier, will also be used in file name if
@@ -1212,13 +1117,6 @@ def plot(
             in each square of the heatmap
         plot_title (string): Title of heatmap to display
     """
-    # Defaults - unless otherwise specified, these values will be
-    # used for plotting
-    default_is_nonstandard_plot = False
-    default_value = -1
-    default_remove_first = False
-    default_num_digits_rounding = 2
-    default_box_text_size = 'medium'
     # Specify unique fields and non-default values here
     heatmap_details = {
         "completed_gens_heatmap": {
@@ -1418,30 +1316,38 @@ def plot(
                         experiment_id, variant, lineage_seed, generation, agent_id
                     FROM ({{subquery}})
                 ),
-                avg_per_cell AS (
-                    SELECT avg(array_col * trl_effs) / sum(array_col) OVER
-                        (PARTITION BY experiment_id, variant, lineage_seed,
-                        generation, agent_id) AS avg_array_col,
+                -- Materialize in memory so we can left join per-gene averages with
+                -- sum of all gene averages without re-reading data
+                avg_per_cell AS MATERIALIZED (
+                    SELECT avg(array_col) AS avg_array_col,
                         experiment_id, variant, lineage_seed,
-                        generation, agent_id, gene_idx
+                        generation, agent_id, gene_idx, any_value(trl_effs) AS trl_effs
                     FROM unnested_counts
                     GROUP BY experiment_id, variant, lineage_seed,
                         generation, agent_id, gene_idx
                 ),
-                avg_per_variant AS (
-                    SELECT avg(avg_array_col) AS avg_array_col,
-                        stddev(avg_array_col) AS std_array_col,
-                        experiment_id, variant, gene_idx
+                total_avg_per_cell AS (
+                    SELECT sum(avg_array_col) AS sum_avg_array_col,
+                        experiment_id, variant, lineage_seed,
+                        generation, agent_id
                     FROM avg_per_cell
-                    GROUP BY experiment_id, variant, gene_idx
+                    GROUP BY experiment_id, variant, lineage_seed,
+                        generation, agent_id
+                ),
+                weighted_avg_per_cell AS (
+                    SELECT sum(avg_array_col / sum_avg_array_col * trl_eff) AS
+                        weighted_avg_array_col, experiment_id, variant
+                    FROM avg_per_cell
+                    LEFT JOIN total_avg_per_cell USING (experiment_id,
+                        variant, lineage_seed, generation, agent_id)
+                    GROUP BY experiment_id, variant, lineage_seed,
+                        generation, agent_id
                 )
-                SELECT variant, list(avg_array_col ORDER BY gene_idx) AS mean,
-                    list(std_array_col ORDER BY gene_idx) AS std
-                FROM avg_per_variant
+                SELECT variant, avg(weighted_avg_array_col) AS mean,
+                    stddev(weighted_avg_array_col) AS std
+                FROM weighted_avg_per_cell
                 GROUP BY experiment_id, variant
                 """,
-            "post_func": get_trl_eff_weighted_avg_post_func(
-                sim_data, cistron_ids),
         },
         "capacity_gene_mRNA_counts_heatmap": {
             "columns": ["listeners__rna_counts__mRNA_counts"],
@@ -1469,7 +1375,7 @@ def plot(
                             f"{capacity_gene_indexes['mRNA']}) AS gene_counts",
                             "listeners__mass__mRna_mass AS mass"],
             "custom_sql": avg_1d_array_over_scalar_sql("gene_counts", "mass"),
-            "post_func": get_gene_mass_fraction_func(
+            "post_func": get_gene_mass_prod_func(
                 sim_data, capacity_gene_mRNA_ids),
         },
         "capacity_gene_monomer_mass_fraction_heatmap": {
@@ -1482,7 +1388,7 @@ def plot(
                             f"{capacity_gene_indexes['monomer']}) AS gene_counts",
                             "listeners__mass__protein_mass AS mass"],
             "custom_sql": avg_1d_array_over_scalar_sql("gene_counts", "mass"),
-            "post_func": get_gene_mass_fraction_func(
+            "post_func": get_gene_mass_prod_func(
                 sim_data, capacity_gene_monomer_ids),
         },
         "capacity_gene_mRNA_counts_fraction_heatmap": {
@@ -1533,7 +1439,7 @@ def plot(
                             f"{new_gene_indexes['mRNA']}) AS gene_counts",
                             "listeners__mass__mRna_mass AS mass"],
             "custom_sql": avg_1d_array_over_scalar_sql("gene_counts", "mass"),
-            "post_func": get_gene_mass_fraction_func(
+            "post_func": get_gene_mass_prod_func(
                 sim_data, new_gene_mRNA_ids),
         },
         "new_gene_mRNA_counts_fraction_heatmap": {
@@ -1560,7 +1466,7 @@ def plot(
                             f"{new_gene_indexes['monomer']}) AS gene_counts",
                             "listeners__mass__protein_mass AS mass"],
             "custom_sql": avg_1d_array_over_scalar_sql("gene_counts", "mass"),
-            "post_func": get_gene_mass_fraction_func(
+            "post_func": get_gene_mass_prod_func(
                 sim_data, new_gene_monomer_ids),
         },
         "new_gene_monomer_counts_fraction_heatmap": {
@@ -1595,16 +1501,18 @@ def plot(
         "new_gene_rnap_time_overcrowded_heatmap": {
             "columns": ["listeners__rna_synth_prob__tu_is_overcrowded"],
             "plot_title": "Fraction of Time RNAP Overcrowded New Gene",
+            # Need to explicitly cast boolean list to numeric list for aggregation
             "projection": ["list_select(listeners__rna_synth_prob__tu_is_overcrowded, "
-                    f"{new_gene_indexes['RNA']}) AS overcrowded"],
-            "custom_sql": NEW_GENE_TIME_OVERCROWDED_SQL,
+                    f"{new_gene_indexes['RNA']})::UTINYINT[] AS overcrowded"],
+            "custom_sql": avg_1d_array_sql("overcrowded"),
         },
         "new_gene_ribosome_time_overcrowded_heatmap": {
             "columns": ["listeners__ribosome_data__mRNA_is_overcrowded"],
             "plot_title": "Fraction of Time Ribosome Overcrowded New Gene",
+            # Need to explicitly cast boolean list to numeric list for aggregation
             "projection": ["list_select(listeners__ribosome_data__mRNA_is_overcrowded, "
-                    f"{new_gene_indexes['monomer']}) AS overcrowded"],
-            "custom_sql": NEW_GENE_TIME_OVERCROWDED_SQL,
+                    f"{new_gene_indexes['monomer']})::UTINYINT[] AS overcrowded"],
+            "custom_sql": avg_1d_array_sql("overcrowded"),
         },
         "new_gene_actual_protein_init_prob_heatmap": {
             "columns": ["listeners__ribosome_data__actual_prob_translation_per_transcript"],
@@ -1880,7 +1788,8 @@ def plot(
                     FROM ({{subquery}})
                     GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
                 )
-                SELECT variant, avg(avg_fg_glc_per_hr) AS avg_fg_glc_per_hr
+                SELECT variant, avg(avg_fg_glc_per_hr) AS mean,
+                    stddev(avg_fg_glc_per_hr) AS std
                 FROM avg_per_cell
                 GROUP BY experiment_id, variant
                 """,
@@ -1917,16 +1826,18 @@ def plot(
                 avg_per_variant AS (
                     SELECT experiment_id, variant, avg(monomer_delta / (
                         avg_fg_glc_per_hr * doubling_time))
-                        AS avg_monomer_per_fg_glc, monomer_idx
+                        AS avg_monomer_per_fg_glc, monomer_idx,
+                        stddev(monomer_delta / (avg_fg_glc_per_hr *
+                        doubling_time)) AS std_monomer_per_fg_glc
                     FROM avg_per_cell
                     GROUP BY experiment_id, variant, monomer_idx
                 )
                 SELECT variant, list(avg_monomer_per_fg_glc ORDER BY monomer_idx)
-                    AS variant_avg
+                    AS mean, list(std_monomer_per_fg_glc ORDER BY monomer_idx) AS std
                 FROM avg_per_variant
                 GROUP BY experiment_id, variant
                 """,
-            "post_func": get_new_gene_mass_yield_func(
+            "post_func": get_gene_mass_prod_func(
                 sim_data, new_gene_monomer_ids),
         },
         "new_gene_yield_per_hour": {
@@ -1954,16 +1865,17 @@ def plot(
                 ),
                 avg_per_variant AS (
                     SELECT experiment_id, variant, avg(monomer_delta /
-                        doubling_time) AS avg_monomer_per_hr, monomer_idx
+                        doubling_time) AS avg_monomer_per_hr, monomer_idx,
+                        stddev(monomer_delta / doubling_time) AS std_monomer_per_hr
                     FROM avg_per_cell
                     GROUP BY experiment_id, variant, monomer_idx
                 )
                 SELECT variant, list(avg_monomer_per_hr ORDER BY monomer_idx)
-                    AS variant_avg
+                    AS mean, list(std_monomer_per_hr ORDER BY monomer_idx) AS std
                 FROM avg_per_variant
                 GROUP BY experiment_id, variant
                 """,
-            "post_func": get_new_gene_mass_yield_func(
+            "post_func": get_gene_mass_prod_func(
                 sim_data, new_gene_monomer_ids),
         },
     }
@@ -1973,86 +1885,37 @@ def plot(
     total_heatmaps_to_make = 0
     for h in heatmaps_to_make:
         assert h in heatmap_details, "Heatmap " + h + " is not an option"
-        heatmap_details[h]['is_new_gene_heatmap'] = h.startswith("new_gene_")
-        heatmap_details[h].setdefault(
-            'is_nonstandard_plot',default_is_nonstandard_plot)
-        heatmap_details[h].setdefault(
-            'default_value', default_value)
-        heatmap_details[h].setdefault(
-            'remove_first', default_remove_first)
-        heatmap_details[h].setdefault(
-            'num_digits_rounding', default_num_digits_rounding)
-        heatmap_details[h].setdefault(
-            'box_text_size', default_box_text_size)
+        heatmap_details[h].setdefault("is_nonstandard_plot", False)
+        heatmap_details[h].setdefault("default_value", -1)
+        heatmap_details[h].setdefault("remove_first", False)
+        heatmap_details[h].setdefault("num_digits_rounding", 2)
+        heatmap_details[h].setdefault("box_text_size", "medium")
         if not h.startswith("new_gene_"):
             total_heatmaps_to_make += 1
+            heatmap_details[h]["is_new_gene_heatmap"] = False
         elif h == "new_gene_mRNA_NTP_fraction_heatmap":
-            total_heatmaps_to_make += len(ntp_ids)
+            total_heatmaps_to_make += len(ntp_ids) * len(new_gene_mRNA_ids)
+            heatmap_details[h]["is_new_gene_heatmap"] = True
+            heatmap_details[h]["default_value"] = np.full(
+                (len(ntp_ids), len(new_gene_mRNA_ids)), -1)
         else:
             total_heatmaps_to_make += len(new_gene_mRNA_ids)
-
-    # Create data structures to use for the heatmaps
-    heatmap_data = {}
-    heatmap_data["completed_gens_heatmap"] = np.zeros((
-        1, len(new_gene_translation_efficiency_values),
-        len(new_gene_expression_factors)))
-    for h in heatmaps_to_make:
-        if not heatmap_details[h]['is_new_gene_heatmap']:
-            heatmap_data[h] = {}
-            heatmap_data[h]["mean"] = np.zeros((
-                1, len(new_gene_translation_efficiency_values),
-                len(new_gene_expression_factors))
-                ) + heatmap_details[h]['default_value']
-            heatmap_data[h]["std_dev"] = np.zeros((
-                1, len(new_gene_translation_efficiency_values),
-                len(new_gene_expression_factors))
-            ) + heatmap_details[h]['default_value']
-        else:
-            if h == "new_gene_mRNA_NTP_fraction_heatmap":
-                heatmap_data[h] = {}
-                heatmap_data[
-                    "new_gene_mRNA_NTP_fraction_heatmap"]["mean"] = {}
-                heatmap_data[
-                    "new_gene_mRNA_NTP_fraction_heatmap"]["std_dev"] = {}
-                for ntp_id in ntp_ids:
-                    heatmap_data[
-                        "new_gene_mRNA_NTP_fraction_heatmap"][
-                        "mean"][ntp_id] = np.zeros(
-                        (len(new_gene_mRNA_ids),
-                            len(new_gene_translation_efficiency_values),
-                            len(new_gene_expression_factors))
-                        ) + heatmap_details[h]['default_value']
-                    heatmap_data[
-                        "new_gene_mRNA_NTP_fraction_heatmap"][
-                        "std_dev"][ntp_id] = np.zeros(
-                        (len(new_gene_mRNA_ids),
-                            len(new_gene_translation_efficiency_values),
-                            len(new_gene_expression_factors))
-                        ) + heatmap_details[h]['default_value']
-            else:
-                heatmap_data[h] = {}
-                heatmap_data[h]["mean"] = np.zeros((
-                    len(new_gene_mRNA_ids),
-                    len(new_gene_translation_efficiency_values),
-                    len(new_gene_expression_factors))
-                    ) + heatmap_details[h]['default_value']
-                heatmap_data[h]["std_dev"] = np.zeros((
-                    len(new_gene_mRNA_ids),
-                    len(new_gene_translation_efficiency_values),
-                    len(new_gene_expression_factors))
-                ) + heatmap_details[h]['default_value']
+            heatmap_details[h]["is_new_gene_heatmap"] = False
+            heatmap_details[h]["default_value"] = np.full(
+                len(new_gene_mRNA_ids), -1)
 
     # Data extraction
     print("---Data Extraction---")
+    heatmap_data = {}
     for h in heatmaps_to_make:
         h_details = heatmap_details[h]
-        mean_matrix, std_matrix = data_to_mapping(conn, variant_metadata, history_sql,
+        mean_matrix, std_matrix = get_mean_and_std_matrices(conn,
+            variant_to_row_col, variant_matrix_shape, history_sql,
             h_details["columns"], h_details["projections"],
             h_details["remove_first"], None, h_details["order_results"],
             h_details["custom_sql"], h_details["post_func"],
             h_details["num_digits_rounding"], h_details["default_value"])
-        heatmap_data[h]["mean"] = mean_matrix
-        heatmap_data[h]["std_dev"] = std_matrix
+        heatmap_data[h] = {"mean": mean_matrix, "std_dev": std_matrix}
 
     # Plotting
     print("---Plotting---")
@@ -2064,30 +1927,34 @@ def plot(
 
     # Create dashboard plot
     if DASHBOARD_FLAG == 1 or DASHBOARD_FLAG == 2:
-        self.plot_heatmaps(
-            True, variant_mask, heatmap_x_label, heatmap_y_label,
+        plot_heatmaps(
+            heatmap_data, heatmap_details, new_gene_mRNA_ids, ntp_ids,
+            total_heatmaps_to_make, True, variant_mask, heatmap_x_label, heatmap_y_label,
             new_gene_expression_factors,
-            new_gene_translation_efficiency_values, 'mean', figsize_x,
-            figsize_y, plotOutDir, plot_suffix)
+            new_gene_translation_efficiency_values, "mean", figsize_x,
+            figsize_y, outdir, plot_suffix)
 
         if STD_DEV_FLAG:
-            self.plot_heatmaps(
-                True, variant_mask, heatmap_x_label, heatmap_y_label,
+            plot_heatmaps(
+                heatmap_data, heatmap_details, new_gene_mRNA_ids, ntp_ids,
+                total_heatmaps_to_make, True, variant_mask, heatmap_x_label, heatmap_y_label,
                 new_gene_expression_factors,
-                new_gene_translation_efficiency_values, 'std_dev',
-                figsize_x, figsize_y, plotOutDir, plot_suffix)
+                new_gene_translation_efficiency_values, "std_dev",
+                figsize_x, figsize_y, outdir, plot_suffix)
 
     # Create separate plots
     if DASHBOARD_FLAG == 0 or DASHBOARD_FLAG == 2:
-        self.plot_heatmaps(
-            False, variant_mask, heatmap_x_label,heatmap_y_label,
+        plot_heatmaps(
+            heatmap_data, heatmap_details, new_gene_mRNA_ids, ntp_ids,
+            total_heatmaps_to_make, False, variant_mask, heatmap_x_label, heatmap_y_label,
             new_gene_expression_factors,
-            new_gene_translation_efficiency_values, 'mean', figsize_x,
-            figsize_y, plotOutDir, plot_suffix)
+            new_gene_translation_efficiency_values, "mean", figsize_x,
+            figsize_y, outdir, plot_suffix)
 
         if STD_DEV_FLAG:
-            self.plot_heatmaps(
-                False, variant_mask, heatmap_x_label, heatmap_y_label,
+            plot_heatmaps(
+                heatmap_data, heatmap_details, new_gene_mRNA_ids, ntp_ids,
+                total_heatmaps_to_make, False, variant_mask, heatmap_x_label, heatmap_y_label,
                 new_gene_expression_factors,
-                new_gene_translation_efficiency_values, 'std_dev',
-                figsize_x, figsize_y, plotOutDir, plot_suffix)
+                new_gene_translation_efficiency_values, "std_dev",
+                figsize_x, figsize_y, outdir, plot_suffix)
