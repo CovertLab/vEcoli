@@ -6,28 +6,28 @@ if TYPE_CHECKING:
 
 def get_new_gene_ids_and_indices(sim_data):
     """
-    Determines the indices of new gene mRNAs and proteins using the new
+    Determines the indices of new gene cistrons and proteins using the new
     gene flag in sim_data.
 
     Returns:
-        new_gene_mRNA_ids: names of new gene mRNAs
-        new_gene_indices: indices in rna_data table for new gene mRNAs
+        new_gene_cistron_ids: names of new gene cistrons
+        new_gene_indices: indices in rna_data table for new gene cistrons
         new_monomer_ids: names of new gene monomers
         new_monomer_indices: indices in monomer_data table for new monomers
     """
-    mRNA_sim_data = sim_data.process.transcription.cistron_data.struct_array
+    cistron_sim_data = sim_data.process.transcription.cistron_data.struct_array
     monomer_sim_data = sim_data.process.translation.monomer_data.struct_array
-    new_gene_mRNA_ids = mRNA_sim_data[mRNA_sim_data["is_new_gene"]]["id"].tolist()
-    mRNA_monomer_id_dict = dict(
+    new_gene_cistron_ids = cistron_sim_data[cistron_sim_data["is_new_gene"]]["id"].tolist()
+    cistron_monomer_id_dict = dict(
         zip(monomer_sim_data["cistron_id"], monomer_sim_data["id"])
     )
     new_monomer_ids = [
-        mRNA_monomer_id_dict.get(mRNA_id) for mRNA_id in new_gene_mRNA_ids
+        cistron_monomer_id_dict.get(cistron_id) for cistron_id in new_gene_cistron_ids
     ]
-    if len(new_gene_mRNA_ids) == 0:
+    if len(new_gene_cistron_ids) == 0:
         raise Exception(
             "This variant  is intended to be run on simulations "
-            "where the new gene option was enabled, but no new gene mRNAs were "
+            "where the new gene option was enabled, but no new gene cistrons were "
             "found."
         )
     if len(new_monomer_ids) == 0:
@@ -37,17 +37,17 @@ def get_new_gene_ids_and_indices(sim_data):
             "were found."
         )
     assert len(new_monomer_ids) == len(
-        new_gene_mRNA_ids
-    ), "number of new gene monomers and mRNAs should be equal"
+        new_gene_cistron_ids
+    ), "number of new gene monomers and cistrons should be equal"
     rna_data = sim_data.process.transcription.rna_data
-    mRNA_idx_dict = {rna[:-3]: i for i, rna in enumerate(rna_data["id"])}
-    new_gene_indices = [mRNA_idx_dict.get(mRNA_id) for mRNA_id in new_gene_mRNA_ids]
+    cistron_idx_dict = {rna[:-3]: i for i, rna in enumerate(rna_data["id"])}
+    new_gene_indices = [cistron_idx_dict.get(cistron_id) for cistron_id in new_gene_cistron_ids]
     monomer_idx_dict = {monomer: i for i, monomer in enumerate(monomer_sim_data["id"])}
     new_monomer_indices = [
         monomer_idx_dict.get(monomer_id) for monomer_id in new_monomer_ids
     ]
 
-    return new_gene_mRNA_ids, new_gene_indices, new_monomer_ids, new_monomer_indices
+    return new_gene_cistron_ids, new_gene_indices, new_monomer_ids, new_monomer_indices
 
 
 def modify_new_gene_exp_trl(
