@@ -2,10 +2,14 @@
 Reusable plotting functions and tools
 """
 
+import os
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import stats
 import numpy as np
+
+from wholecell.utils import filepath
 
 DEFAULT_MATPLOTLIB_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
@@ -57,7 +61,134 @@ COLORS_256 = [ # From colorbrewer2.org, qualitative 8-class set 1
 with plt.style.context('seaborn-v0_8-colorblind'):
     COLORS_COLORBLIND = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-def plotSplom(arrayOfdataArrays, nameArray="", stdArrays=None, labels=None, fig=None, plotCorrCoef=True, formatString='o'):
+def remove_border(ax=None, bottom=False):
+    if ax is None:
+        ax = plt.gca()
+
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        if bottom:
+            ax.spines['bottom'].set_visible(False)
+            ax.set_xticks([])
+
+LOW_RES_DIR = 'low_res_plots'
+SVG_DIR = 'svg_plots'
+HTML_DIR = 'html_plots'
+LOW_RES_DPI = 120
+
+def export_figure(plt, plotOutDir, plotOutFileName, metadata=None, transparent=False,
+    dpi=LOW_RES_DPI, extension=None):
+
+    if metadata is not None and "analysis_type" in metadata:
+        analysis_type = metadata["analysis_type"]
+
+        if analysis_type == 'single':
+            # Format metadata signature for single gen figure
+            metadata_signature = "_".join([
+                str(metadata["time"])[:13],
+                str(metadata["variant_function"]),
+                str(metadata["variant_index"]),
+                "Seed",
+                str(metadata["seed"]),
+                "Gen",
+                str(metadata["gen"]) + '/' + str(int(metadata["total_gens"]) - 1),
+                "Githash",
+                str(metadata["git_hash"])[:10],
+                "Desc",
+                str(metadata["description"])
+                ])
+
+        elif analysis_type == 'multigen':
+            # Format metadata signature for multi gen figure
+            metadata_signature = "_".join([
+                str(metadata["time"][:13]),
+                str(metadata["variant_function"]),
+                str(metadata["variant_index"]),
+                "Seed",
+                str(metadata["seed"]),
+                str(metadata["total_gens"]),
+                "gens",
+                "Githash",
+                str(metadata["git_hash"])[:10],
+                "Desc",
+                str(metadata["description"])
+                ])
+
+        elif analysis_type == 'cohort':
+            # Format metadata signature for cohort figure
+            metadata_signature = "_".join([
+                str(metadata["time"][:13]),
+                str(metadata["variant_function"]),
+                str(metadata["variant_index"]),
+                str(metadata["total_gens"]),
+                "gens",
+                "Githash",
+                str(metadata["git_hash"])[:10],
+                "Desc",
+                str(metadata["description"])
+                ])
+
+        elif analysis_type == 'variant':
+            # Format metadata signature for variant figure
+            metadata_signature = "_".join([
+                str(metadata["time"][:13]),
+                str(metadata["total_variants"]),
+                "variants",
+                str(metadata["total_gens"]),
+                "gens",
+                "Githash",
+                str(metadata["git_hash"])[:10],
+                "Desc",
+                str(metadata["description"])
+                ])
+
+        elif analysis_type == 'parca':
+            # Format metadata signature for parca figure
+            metadata_signature = "_".join([
+                str(metadata["time"][:13]),
+                "Githash",
+                str(metadata["git_hash"])[:10],
+                "Desc",
+                str(metadata["description"])
+                ])
+
+        elif analysis_type == 'comparison':
+            # Format metadata signature for a comparison figure
+            metadata_signature = "_".join([
+                str(metadata["time"][:13]),
+                str(metadata["total_variants"]),
+                "variants",
+                str(metadata["total_gens"]),
+                "gens",
+                "Githash",
+                str(metadata["git_hash"])[:10],
+                "Desc",
+                str(metadata["description"])
+                ])
+
+        else:
+            raise ValueError('Unknown analysis_type {}'.format(analysis_type))
+
+        # Add metadata signature to the bottom of the plot
+        # Don't accidentally trigger $TeX formatting$.
+        metadata_signature = metadata_signature.replace('$', '')
+        plt.figtext(0,0, metadata_signature, size=8)
+
+    # Make folders for holding alternate types of images
+    filepath.makedirs(plotOutDir, LOW_RES_DIR)
+    filepath.makedirs(plotOutDir, SVG_DIR)
+
+    # Save images
+    if extension:
+        # Only save one type in main analysis directory if extension is given
+        plt.savefig(os.path.join(plotOutDir, plotOutFileName + extension), dpi=dpi, transparent=transparent)
+    else:
+        # Save all image types
+        plt.savefig(os.path.join(plotOutDir, plotOutFileName + '.pdf'), transparent=transparent)
+        plt.savefig(os.path.join(plotOutDir, SVG_DIR, plotOutFileName + '.svg'), transparent=transparent)
+        plt.savefig(os.path.join(plotOutDir, LOW_RES_DIR, plotOutFileName + '.png'), dpi=dpi, transparent=transparent)
+
+def plot_splom(arrayOfdataArrays, nameArray="", stdArrays=None, labels=None, fig=None, plotCorrCoef=True, formatString='o'):
     """
     Plot a scatterplot matrix (Splom) of data contained in arrayOfdataArrays,
     with labels in the same order held within nameArray.
@@ -96,13 +227,12 @@ def plotSplom(arrayOfdataArrays, nameArray="", stdArrays=None, labels=None, fig=
 
     return fig
 
-def labeled_indexable_hist(obj, ax, data, gen_data, gen_start, gen_end, colors, xlabel, bin_width=1., xlim=None, sf=1, font_size=9):
+def labeled_indexable_hist(ax, data, gen_data, gen_start, gen_end, colors, xlabel, bin_width=1., xlim=None, sf=1, font_size=9):
     """
     Creates a histogram of (subset of) data, with label for mean and standard
     deviation of data for each variant
 
     Args:
-        obj: specify the Plot object
         ax: Axes object
         data: data to plot
         gen_data: generation index corresponding to each data point
@@ -145,12 +275,12 @@ def labeled_indexable_hist(obj, ax, data, gen_data, gen_start, gen_end, colors, 
 
     if xlim:
         ax.set_xlim(xlim)
-    obj.remove_border(ax)
+    remove_border(ax)
     ax.set_xlabel(xlabel, fontsize=font_size)
     ax.tick_params(labelsize=font_size)
     ax.legend()
 
-def labeled_indexable_scatter(obj, ax, xdata, ydata, gen_data, gen_start,
+def labeled_indexable_scatter(ax, xdata, ydata, gen_data, gen_start,
                               gen_end, colors, xlabel, ylabel, xlim=None,
                               ylim=None, sf=1, font_size=9):
     """
@@ -158,7 +288,6 @@ def labeled_indexable_scatter(obj, ax, xdata, ydata, gen_data, gen_start,
     standard deviation of data for each variant
 
     Args:
-        obj: specify the Plot object
         ax: Axes object
         xdata: data to plot on x axes
         ydata: data to plot on y axes
@@ -201,18 +330,17 @@ def labeled_indexable_scatter(obj, ax, xdata, ydata, gen_data, gen_start,
         ax.set_xlim(xlim)
     if ylim:
         ax.set_ylim(ylim)
-    obj.remove_border(ax)
+    remove_border(ax)
     ax.set_xlabel(xlabel, fontsize=font_size)
     ax.set_ylabel(ylabel, fontsize=font_size)
     ax.tick_params(labelsize=font_size)
     ax.legend()
 
-def heatmap(obj, ax, mask, data, completion_data, xticklabels, yticklabels,
+def heatmap(ax, mask, data, completion_data, xticklabels, yticklabels,
             xlabel="", ylabel="", title="", box_text_size ="medium",
             ax_font_size=9, title_font_size=9, percent_completion_threshold = 0.88):
     """
     Args:
-        obj: specify the Plot object
         ax: Axes object
         mask: Only plot values where mask is true, must match dimensions of
         data
