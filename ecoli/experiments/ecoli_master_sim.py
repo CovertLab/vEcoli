@@ -4,7 +4,7 @@ Interface for configuring and running **single-cell** E. coli simulations.
 .. note::
     Simulations can be configured to divide through this interface, but
     full colony-scale simulations are best run using the
-    :py:mod:`~ecoli.composites.ecoli_engine_process` module for efficient
+    :py:mod:`~ecoli.experiments.ecoli_engine_process` module for efficient
     multithreading.
 """
 

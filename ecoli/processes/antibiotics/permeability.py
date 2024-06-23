@@ -1,6 +1,6 @@
 import numpy as np
 from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
-from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.library.wcecoli_state import get_state_from_file
 from ecoli.processes.bulk_timeline import BulkTimelineProcess
 from vivarium.core.emitter import timeseries_from_data
 from vivarium.core.engine import Engine

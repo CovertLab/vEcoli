@@ -14,11 +14,11 @@ from ecoli.experiments.ecoli_master_sim import SimConfig
 from ecoli.library.parquet_emitter import get_dataset_sql
 
 FILTERS = {
-    "experiment_id": (str, "multi_experiment", "multi_variant"),
-    "variant": (int, "multi_variant", "multi_seed"),
-    "lineage_seed": (int, "multi_seed", "multi_generation"),
-    "generation": (int, "multi_generation", "multi_daughter"),
-    "agent_id": (str, "multi_daughter", "single"),
+    "experiment_id": (str, "multiexperiment", "multivariant"),
+    "variant": (int, "multivariant", "multiseed"),
+    "lineage_seed": (int, "multiseed", "multigeneration"),
+    "generation": (int, "multigeneration", "multidaughter"),
+    "agent_id": (str, "multidaughter", "single"),
 }
 """Mapping of data filters to data type, analysis type if more than
 one value is given for filter, and analysis type for one value."""
@@ -156,7 +156,7 @@ def main():
     analysis_modules = {}
     for analysis_name in analysis_options:
         analysis_modules[analysis_name] = importlib.import_module(
-            f"ecoli.analysis.{analysis_name}"
+            f"ecoli.analysis.{analysis_type}.{analysis_name}"
         )
     for analysis_name, analysis_mod in analysis_modules.items():
         # Establish a fresh in-memory DuckDB for every analysis
