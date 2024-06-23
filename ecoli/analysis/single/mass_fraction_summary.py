@@ -48,19 +48,19 @@ def plot(
         "Dry": "listeners__mass__dry_mass",
     }
     mass_data = read_stacked_columns(history_sql, list(mass_columns.values()))
-    mass_data = pl.DataFrame(mass_data).with_columns(
-        **{"Time (min)": (pl.col("time") - pl.col("time").min()) / 60}
-    )
+    mass_data = pl.DataFrame(mass_data)
     fractions = {
         k: (mass_data[v] / mass_data["listeners__mass__dry_mass"]).mean()
         for k, v in mass_columns.items()
     }
-    mass_fold_change = pl.DataFrame(
-        {
+    new_columns = {
+        "Time (min)": (mass_data["time"] - mass_data["time"].min()) / 60,
+        **{
             f"{k} ({fractions[k]:.3f})": mass_data[v] / mass_data[v][0]
             for k, v in mass_columns.items()
         }
-    )
+    }
+    mass_fold_change = pl.DataFrame(new_columns)
     plot_namespace = mass_fold_change.plot
     # hvplot.output(backend='matplotlib')
     plotted_data = plot_namespace.line(

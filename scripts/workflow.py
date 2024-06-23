@@ -283,7 +283,8 @@ def main():
     final_config_path = os.path.join(outdir, "workflow_config.json")
     with open(temp_config_path, "w") as f:
         json.dump(config, f)
-    filesystem.copy_file(temp_config_path, final_config_path)
+    if not args.resume:
+        filesystem.copy_file(temp_config_path, final_config_path)
 
     nf_config = os.path.join(os.path.dirname(__file__), "nextflow", "config.template")
     with open(nf_config, "r") as f:
@@ -330,9 +331,11 @@ def main():
         f.writelines(nf_template)
 
     workflow_path = os.path.join(out_uri, "main.nf")
-    filesystem.copy_file(local_workflow, os.path.join(outdir, "main.nf"))
+    
     config_path = os.path.join(out_uri, "nextflow.config")
-    filesystem.copy_file(local_config, os.path.join(outdir, "nextflow.config"))
+    if not args.resume:
+        filesystem.copy_file(local_workflow, os.path.join(outdir, "main.nf"))
+        filesystem.copy_file(local_config, os.path.join(outdir, "nextflow.config"))
 
     # Start nextflow workflow
     report_path = os.path.join(

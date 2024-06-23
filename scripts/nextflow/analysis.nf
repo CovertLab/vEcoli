@@ -1,7 +1,7 @@
 process analysisSingle {
     publishDir "${params.publishDir}/experiment_id=${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
@@ -9,7 +9,7 @@ process analysisSingle {
     path config
     path kb
     tuple path(sim_data), val(experiment_id), val(variant), val(lineage_seed), val(generation), val(agent_id)
-    path variantMetadata
+    path variant_metadata
 
     output:
     path '*'
@@ -39,7 +39,7 @@ process analysisSingle {
 process analysisMultiDaughter {
     publishDir "${params.publishDir}/experiment_id=${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
@@ -76,7 +76,7 @@ process analysisMultiDaughter {
 process analysisMultiGeneration {
     publishDir "${params.publishDir}/experiment_id=${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}"
 
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}"
 
@@ -112,7 +112,7 @@ process analysisMultiGeneration {
 process analysisMultiSeed {
     publishDir "${params.publishDir}/experiment_id=${params.experimentId}/analyses/variant=${variant}"
 
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
     tag "variant=${variant}"
 
@@ -147,7 +147,7 @@ process analysisMultiSeed {
 process analysisMultiVariant {
     publishDir "${params.publishDir}/experiment_id=${params.experimentId}/analyses"
 
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
     input:
     path config
