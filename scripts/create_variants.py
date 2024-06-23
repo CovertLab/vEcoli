@@ -154,7 +154,7 @@ def apply_and_save_variants(
         with open(outpath, "wb") as f:
             pickle.dump(variant_sim_data, f)
     with open(os.path.join(outdir, "metadata.json"), "w") as f:
-        json.dump(variant_metadata, f)
+        json.dump({variant_name: variant_metadata}, f)
 
 
 def test_parse_variants():

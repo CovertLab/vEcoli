@@ -147,7 +147,9 @@ def main():
     # Load variant metadata
     with open(config["variant_metadata_path"], "r") as f:
         variant_metadata = json.load(f)
-        variant_metadata = {int(k): v for k, v in variant_metadata.items()}
+        variant_name = list(variant_metadata.keys())[0]
+        variant_metadata = {int(k): v for k, v 
+            in variant_metadata[variant_name].items()}
 
     # Run the analyses listed under the most specific filter
     analysis_options = config[analysis_type]
@@ -184,6 +186,7 @@ def main():
             config["validation_data_path"],
             config["outdir"],
             variant_metadata,
+            variant_name,
         )
 
     # Save copy of config JSON with parameters for plots

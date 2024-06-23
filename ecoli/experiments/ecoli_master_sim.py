@@ -918,6 +918,7 @@ class EcoliSim:
                 "need to be replicated."
             )
         metadata["processes"] = [k for k in metadata["processes"].keys()]
+        metadata["time"] = datetime.now()
         return metadata
 
     def to_json_string(self) -> str:

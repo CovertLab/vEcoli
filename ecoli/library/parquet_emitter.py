@@ -191,7 +191,7 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
 def num_cells(conn: duckdb.DuckDBPyConnection, subquery: str) -> int:
     """
     Return cell count in DuckDB subquery containing ``experiment_id``,
-    ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns).
+    ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns.
     """
     return conn.sql(f"""SELECT count(
         DISTINCT (experiment_id, variant, lineage_seed, generation, agent_id)
@@ -392,6 +392,38 @@ def get_config_value(
     return conn.sql(
         f'SELECT first("data__{field}") FROM ({config_subquery})'
     ).fetchone()[0]
+
+
+def get_plot_metadata(
+    conn: duckdb.DuckDBPyConnection, config_subquery: str, variant_name: str
+) -> dict[str, Any]:
+    """
+    Gets dictionary that can be used as ``metadata`` kwarg to
+    :py:func:`wholecell.utils.plotting_tools.export_figure`.
+
+    Args:
+        conn: DuckDB connection
+        config_subquery: DuckDB query containing sim config data
+        variant_name: Name of variant
+    """
+    return {
+        "git_hash": get_config_value(conn, config_subquery, "git_hash"),
+        "time": get_config_value(conn, config_subquery, "time"),
+        "description": get_config_value(conn, config_subquery, "description"),
+        "variant_function": variant_name,
+        "variant_index": conn.sql(
+            f"SELECT DISTINCT variant FROM ({config_subquery})"
+            ).arrow().to_pydict()["variant"],
+        "seed": conn.sql(
+            f"SELECT DISTINCT lineage_seed FROM ({config_subquery})"
+            ).arrow().to_pydict()["lineage_seed"],
+        "total_gens": conn.sql(
+            f"SELECT count(DISTINCT generation) FROM ({config_subquery})"
+            ).fetchone()[0],
+        "total_variants": conn.sql(
+            f"SELECT count(DISTINCT variant) FROM ({config_subquery})"
+            ).fetchone()[0],
+    }
 
 
 def read_stacked_columns(

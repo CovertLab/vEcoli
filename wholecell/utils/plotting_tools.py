@@ -85,7 +85,7 @@ def export_figure(plt, plotOutDir, plotOutFileName, metadata=None, transparent=F
         if analysis_type == 'single':
             # Format metadata signature for single gen figure
             metadata_signature = "_".join([
-                str(metadata["time"])[:13],
+                str(metadata["time"]),
                 str(metadata["variant_function"]),
                 str(metadata["variant_index"]),
                 "Seed",
@@ -98,10 +98,10 @@ def export_figure(plt, plotOutDir, plotOutFileName, metadata=None, transparent=F
                 str(metadata["description"])
                 ])
 
-        elif analysis_type == 'multigen':
+        elif analysis_type == 'multigeneration':
             # Format metadata signature for multi gen figure
             metadata_signature = "_".join([
-                str(metadata["time"][:13]),
+                str(metadata["time"]),
                 str(metadata["variant_function"]),
                 str(metadata["variant_index"]),
                 "Seed",
@@ -114,10 +114,10 @@ def export_figure(plt, plotOutDir, plotOutFileName, metadata=None, transparent=F
                 str(metadata["description"])
                 ])
 
-        elif analysis_type == 'cohort':
-            # Format metadata signature for cohort figure
+        elif analysis_type == 'multiseed':
+            # Format metadata signature for multiseed figure
             metadata_signature = "_".join([
-                str(metadata["time"][:13]),
+                str(metadata["time"]),
                 str(metadata["variant_function"]),
                 str(metadata["variant_index"]),
                 str(metadata["total_gens"]),
@@ -128,10 +128,10 @@ def export_figure(plt, plotOutDir, plotOutFileName, metadata=None, transparent=F
                 str(metadata["description"])
                 ])
 
-        elif analysis_type == 'variant':
-            # Format metadata signature for variant figure
+        elif analysis_type == 'multivariant':
+            # Format metadata signature for multivariant figure
             metadata_signature = "_".join([
-                str(metadata["time"][:13]),
+                str(metadata["time"]),
                 str(metadata["total_variants"]),
                 "variants",
                 str(metadata["total_gens"]),
@@ -145,17 +145,17 @@ def export_figure(plt, plotOutDir, plotOutFileName, metadata=None, transparent=F
         elif analysis_type == 'parca':
             # Format metadata signature for parca figure
             metadata_signature = "_".join([
-                str(metadata["time"][:13]),
+                str(metadata["time"]),
                 "Githash",
                 str(metadata["git_hash"])[:10],
                 "Desc",
                 str(metadata["description"])
                 ])
 
-        elif analysis_type == 'comparison':
-            # Format metadata signature for a comparison figure
+        elif analysis_type == 'multiexperiment':
+            # Format metadata signature for a multiexperiment figure
             metadata_signature = "_".join([
-                str(metadata["time"][:13]),
+                str(metadata["time"]),
                 str(metadata["total_variants"]),
                 "variants",
                 str(metadata["total_gens"]),
@@ -375,7 +375,7 @@ def heatmap(ax, mask, data, completion_data, xticklabels, yticklabels,
     cmap_name = 'blue_cmap'
     blue_cmap = LinearSegmentedColormap.from_list(cmap_name, grid_colors, N=100)
 
-    im = ax.imshow(data, cmap=blue_cmap)
+    ax.imshow(data, cmap=blue_cmap)
     ax.set_xticks(np.arange(len(xticklabels)))
     ax.set_xticklabels(xticklabels)
     ax.set_yticks(np.arange(len(yticklabels)))
@@ -390,7 +390,7 @@ def heatmap(ax, mask, data, completion_data, xticklabels, yticklabels,
                     continue
                 if completion_data[i,j] < percent_completion_threshold:
                     col = "r"
-                text = ax.text(
+                ax.text(
                     j, i, data[i, j], ha="center", va="center", color=col,
                     fontsize=box_text_size)
     ax.set_xlabel(xlabel, fontsize=ax_font_size)

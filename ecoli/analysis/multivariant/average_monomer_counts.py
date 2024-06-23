@@ -45,6 +45,7 @@ def plot(
     validation_data_paths: list[str],
     outdir: str,
     variant_metadata: dict[int, Any],
+    variant_name: str,
 ):
     """
     Calculates average monomer counts per variant and saves them as separate
