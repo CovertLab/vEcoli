@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import warnings
 from datetime import datetime
@@ -132,7 +133,7 @@ def generate_lineage(
 
     sims_per_seed = generations if single_daughters else 2**generations - 1
 
-    if analysis_config.get("multi_variant", False):
+    if analysis_config.get("multivariant", False):
         # Channel that groups all sim tasks
         sim_workflow.append(
             MULTIVARIANT_CHANNEL.format(size=sims_per_seed * n_init_sims)
@@ -144,7 +145,7 @@ def generate_lineage(
             f"include {{ analysisMultiVariant }} from '{NEXTFLOW_DIR}/analysis'"
         )
 
-    if analysis_config.get("multi_seed", False):
+    if analysis_config.get("multiseed", False):
         # Channel that groups sim tasks by variant sim_data
         sim_workflow.append(MULTISEED_CHANNEL.format(size=sims_per_seed * n_init_sims))
         sim_workflow.append(
@@ -153,7 +154,7 @@ def generate_lineage(
             f"include {{ analysisMultiSeed }} from '{NEXTFLOW_DIR}/analysis'"
         )
 
-    if analysis_config.get("multi_generation", False):
+    if analysis_config.get("multigeneration", False):
         # Channel that groups sim tasks by variant sim_data and initial seed
         sim_workflow.append(MULTIGENERATION_CHANNEL.format(size=sims_per_seed))
         sim_workflow.append(
@@ -164,7 +165,7 @@ def generate_lineage(
             f"include {{ analysisMultiGeneration }} from '{NEXTFLOW_DIR}/analysis'"
         )
 
-    if analysis_config.get("multi_daughter", False) and not single_daughters:
+    if analysis_config.get("multidaughter", False) and not single_daughters:
         # Channel that groups sim tasks by variant sim_data, initial seed, and generation
         # When simulating both daughters, will have >1 cell for generation >1
         gen_size = "[" + ", ".join([f"{g+1}: {2**g}" for g in range(generations)]) + "]"
@@ -264,12 +265,32 @@ def main():
         current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         experiment_id = experiment_id + "_" + current_time
 
+    # Resolve output directory
+    if "out_uri" not in config["emitter"]["config"]:
+        out_uri = os.path.abspath(config["emitter"]["config"]["out_dir"])
+        config["emitter"]["config"]["out_dir"] = out_uri
+    else:
+        out_uri = config["emitter"]["config"]["out_uri"]
+    filesystem, outdir = fs.FileSystem.from_uri(out_uri)
+    outdir = os.path.join(outdir, f"experiment_id={experiment_id}", "nextflow")
+    out_uri = os.path.join(out_uri, f"experiment_id={experiment_id}", "nextflow")
+    repo_dir = os.path.dirname(os.path.dirname(__file__))
+    local_outdir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
+    os.makedirs(local_outdir, exist_ok=True)
+    filesystem.create_dir(outdir)
+    temp_config_path = f"{local_outdir}/workflow_config.json"
+    final_config_uri = os.path.join(out_uri, "workflow_config.json")
+    final_config_path = os.path.join(outdir, "workflow_config.json")
+    with open(temp_config_path, "w") as f:
+        json.dump(config, f)
+    filesystem.copy_file(temp_config_path, final_config_path)
+
     nf_config = os.path.join(os.path.dirname(__file__), "nextflow", "config.template")
     with open(nf_config, "r") as f:
         nf_config = f.readlines()
     nf_config = "".join(nf_config)
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
-    nf_config = nf_config.replace("CONFIG_FILE", os.path.abspath(config_file))
+    nf_config = nf_config.replace("CONFIG_FILE", final_config_uri)
 
     # By default, assume running on local device
     nf_profile = "standard"
@@ -290,11 +311,8 @@ def main():
     elif config.get("sherlock", None) is not None:
         nf_profile = "sherlock"
 
-    repo_dir = os.path.dirname(os.path.dirname(__file__))
-    out_dir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
-    os.makedirs(out_dir, exist_ok=True)
-    config_path = os.path.join(out_dir, "nextflow.config")
-    with open(config_path, "w") as f:
+    local_config = os.path.join(local_outdir, "nextflow.config")
+    with open(local_config, "w") as f:
         f.writelines(nf_config)
 
     sim_imports, sim_workflow = generate_code(config)
@@ -307,31 +325,24 @@ def main():
     nf_template = "".join(nf_template)
     nf_template = nf_template.replace("IMPORTS", sim_imports)
     nf_template = nf_template.replace("WORKFLOW", sim_workflow)
-    workflow_path = os.path.join(out_dir, "main.nf")
-    with open(workflow_path, "w") as f:
+    local_workflow = os.path.join(local_outdir, "main.nf")
+    with open(local_workflow, "w") as f:
         f.writelines(nf_template)
 
-    try:
-        filesystem, outdir = fs.FileSystem.from_uri(
-            config["emitter"]["config"]["out_dir"]
-        )
-    except KeyError:
-        raise KeyError("Missing out_dir for emitter config.")
-    outdir = os.path.join(outdir, f"experiment_id={experiment_id}", "nextflow")
-    filesystem.create_dir(outdir)
-    filesystem.copy_file(workflow_path, os.path.join(outdir, "main.nf"))
-    filesystem.copy_file(config_path, os.path.join(outdir, "nextflow.config"))
+    workflow_path = os.path.join(out_uri, "main.nf")
+    filesystem.copy_file(local_workflow, os.path.join(outdir, "main.nf"))
+    config_path = os.path.join(out_uri, "nextflow.config")
+    filesystem.copy_file(local_config, os.path.join(outdir, "nextflow.config"))
 
     # Start nextflow workflow
     report_path = os.path.join(
-        out_dir,
-        f"experiment_id={experiment_id}",
-        "nextflow",
+        out_uri,
         f"{experiment_id}_report.html",
     )
     workdir = os.path.join(
-        out_dir, "nextflow_workdirs", f"experiment_id={experiment_id}"
+        out_uri, "nextflow_workdirs", f"experiment_id={experiment_id}"
     )
+    shutil.rmtree(local_outdir)
     if nf_profile == "standard" or nf_profile == "gcloud":
         subprocess.run(
             [
@@ -350,7 +361,7 @@ def main():
             ]
         )
     elif nf_profile == "sherlock":
-        batch_script = os.path.join(out_dir, "nextflow_job.sh")
+        batch_script = os.path.join(local_outdir, "nextflow_job.sh")
         with open(batch_script, "w") as f:
             f.write(f"""#!/bin/bash
 #SBATCH --job-name=nextflow-{experiment_id}
@@ -361,6 +372,7 @@ def main():
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
     -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume else ""}
 """)
+        filesystem.copy_file(batch_script, os.path.join(outdir, "nextflow_job.sh"))
         subprocess.run(["sbatch", batch_script])
 
 
