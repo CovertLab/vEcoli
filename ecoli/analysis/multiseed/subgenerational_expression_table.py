@@ -31,7 +31,8 @@ def plot(
     sim_data_path: dict[int, list[str]],
     validation_data_path: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any]
+    variant_metadata: dict[int, Any],
+    variant_name: str,
 ):
     with open(sim_data_path[0], "rb") as f:
         sim_data = pickle.load(f)
