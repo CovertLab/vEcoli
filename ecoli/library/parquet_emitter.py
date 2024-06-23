@@ -673,15 +673,18 @@ class ParquetEmitter(Emitter):
                     'config': {
                         'emits_to_batch': Number of emits per Parquet row
                             group (default: 400),
-                        'out_dir': output directory (can be local absolute /
-                            relative path or URI of cloud storage bucket)
+                        # Only pick ONE of the following
+                        'out_dir': local output directory (absolute/relative),
+                        'out_uri': Google Cloud storage bucket URI
                     }
                 }
 
         """
-        self.filesystem, self.outdir = fs.FileSystem.from_uri(
-            config["config"]["out_dir"]
-        )
+        if "out_uri" not in config["config"]:
+            out_uri = os.path.abspath(config["config"]["out_dir"])
+        else:
+            out_uri = config["config"]["out_uri"]
+        self.filesystem, self.outdir = fs.FileSystem.from_uri(out_uri)
         self.batch_size = config["config"].get("batch_size", 400)
         self.fallback_serializer = make_fallback_serializer_function()
         # Batch emits as newline-delimited JSONs in temporary file
@@ -830,7 +833,7 @@ class ParquetEmitter(Emitter):
                             self.outdir,
                             "history",
                             self.partitioning_path,
-                            f"column={k}",
+                            f"column={parse.quote_plus(k)}",
                         )
                     )
         self.num_emits += 1

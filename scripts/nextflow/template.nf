@@ -92,9 +92,8 @@ workflow {
         .variantSimData
         .flatten()
         .set { variantCh }
-    createVariants
+    createVariants.out
         .variantMetadata
-        .first()
         .set { variantMetadataCh }
 WORKFLOW
 }
