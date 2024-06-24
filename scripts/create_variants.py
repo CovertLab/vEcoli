@@ -217,6 +217,8 @@ def test_create_variants():
         # Check that metadata aligns with variant sim_data attrs
         with open("test_create_variants/out/metadata.json") as f:
             variant_metadata = json.load(f)
+        assert "variant_test" in variant_metadata
+        variant_metadata = variant_metadata["variant_test"]
         out_path = Path("test_create_variants/out")
         var_paths = out_path.glob("*.cPickle")
         for var_path in var_paths:
