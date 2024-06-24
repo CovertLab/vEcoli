@@ -17,7 +17,9 @@ def get_new_gene_ids_and_indices(sim_data):
     """
     cistron_sim_data = sim_data.process.transcription.cistron_data.struct_array
     monomer_sim_data = sim_data.process.translation.monomer_data.struct_array
-    new_gene_cistron_ids = cistron_sim_data[cistron_sim_data["is_new_gene"]]["id"].tolist()
+    new_gene_cistron_ids = cistron_sim_data[cistron_sim_data["is_new_gene"]][
+        "id"
+    ].tolist()
     cistron_monomer_id_dict = dict(
         zip(monomer_sim_data["cistron_id"], monomer_sim_data["id"])
     )
@@ -41,7 +43,9 @@ def get_new_gene_ids_and_indices(sim_data):
     ), "number of new gene monomers and cistrons should be equal"
     rna_data = sim_data.process.transcription.rna_data
     cistron_idx_dict = {rna[:-3]: i for i, rna in enumerate(rna_data["id"])}
-    new_gene_indices = [cistron_idx_dict.get(cistron_id) for cistron_id in new_gene_cistron_ids]
+    new_gene_indices = [
+        cistron_idx_dict.get(cistron_id) for cistron_id in new_gene_cistron_ids
+    ]
     monomer_idx_dict = {monomer: i for i, monomer in enumerate(monomer_sim_data["id"])}
     new_monomer_indices = [
         monomer_idx_dict.get(monomer_id) for monomer_id in new_monomer_ids
@@ -71,8 +75,7 @@ def modify_new_gene_exp_trl(
         translation_efficiency: Translation efficiency for new genes
     """
     # Determine ids and indices of new genes
-    _, new_gene_indices, _, new_monomer_indices = get_new_gene_ids_and_indices(
-        sim_data)
+    _, new_gene_indices, _, new_monomer_indices = get_new_gene_ids_and_indices(sim_data)
 
     # Modify expression and translation efficiency for new genes
     for gene_idx, monomer_idx in zip(new_gene_indices, new_monomer_indices):

@@ -411,18 +411,18 @@ def get_plot_metadata(
         "time": get_config_value(conn, config_subquery, "time"),
         "description": get_config_value(conn, config_subquery, "description"),
         "variant_function": variant_name,
-        "variant_index": conn.sql(
-            f"SELECT DISTINCT variant FROM ({config_subquery})"
-            ).arrow().to_pydict()["variant"],
-        "seed": conn.sql(
-            f"SELECT DISTINCT lineage_seed FROM ({config_subquery})"
-            ).arrow().to_pydict()["lineage_seed"],
+        "variant_index": conn.sql(f"SELECT DISTINCT variant FROM ({config_subquery})")
+        .arrow()
+        .to_pydict()["variant"],
+        "seed": conn.sql(f"SELECT DISTINCT lineage_seed FROM ({config_subquery})")
+        .arrow()
+        .to_pydict()["lineage_seed"],
         "total_gens": conn.sql(
             f"SELECT count(DISTINCT generation) FROM ({config_subquery})"
-            ).fetchone()[0],
+        ).fetchone()[0],
         "total_variants": conn.sql(
             f"SELECT count(DISTINCT variant) FROM ({config_subquery})"
-            ).fetchone()[0],
+        ).fetchone()[0],
     }
 
 

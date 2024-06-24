@@ -140,7 +140,8 @@ def generate_lineage(
         )
         sim_workflow.append(
             "\tanalysisMultiVariant(params.config, kb, multiVariantCh, "
-            "variantMetadataCh)")
+            "variantMetadataCh)"
+        )
         sim_imports.append(
             f"include {{ analysisMultiVariant }} from '{NEXTFLOW_DIR}/analysis'"
         )
@@ -149,7 +150,8 @@ def generate_lineage(
         # Channel that groups sim tasks by variant sim_data
         sim_workflow.append(MULTISEED_CHANNEL.format(size=sims_per_seed * n_init_sims))
         sim_workflow.append(
-            "\tanalysisMultiSeed(params.config, kb, multiSeedCh, variantMetadataCh)")
+            "\tanalysisMultiSeed(params.config, kb, multiSeedCh, variantMetadataCh)"
+        )
         sim_imports.append(
             f"include {{ analysisMultiSeed }} from '{NEXTFLOW_DIR}/analysis'"
         )
@@ -180,7 +182,8 @@ def generate_lineage(
 
     if analysis_config.get("single", False):
         sim_workflow.append(
-            "\tanalysisSingle(params.config, kb, simCh, variantMetadataCh)")
+            "\tanalysisSingle(params.config, kb, simCh, variantMetadataCh)"
+        )
         sim_imports.append(
             f"include {{ analysisSingle }} from '{NEXTFLOW_DIR}/analysis'"
         )
@@ -331,7 +334,7 @@ def main():
         f.writelines(nf_template)
 
     workflow_path = os.path.join(out_uri, "main.nf")
-    
+
     config_path = os.path.join(out_uri, "nextflow.config")
     if not args.resume:
         filesystem.copy_file(local_workflow, os.path.join(outdir, "main.nf"))
