@@ -1138,8 +1138,16 @@ def plot(
     translation efficiencies.
     """
     # Do not include control variant data
-    history_sql = f"FROM ({history_sql}) WHERE variant > 0"
-    config_sql = f"FROM ({config_sql}) WHERE variant > 0"
+    history_sql = (
+        f"FROM ({history_sql}) WHERE variant > 0 "
+        f"AND generation >= {MIN_CELL_INDEX} AND "
+        f"AND generation < {MAX_CELL_INDEX}"
+    )
+    config_sql = (
+        f"FROM ({config_sql}) WHERE variant > 0 "
+        f"AND generation >= {MIN_CELL_INDEX} AND "
+        f"AND generation < {MAX_CELL_INDEX}"
+    )
     sim_data_paths.pop(0)
     variant_metadata.pop(0)
 
