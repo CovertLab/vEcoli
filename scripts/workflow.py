@@ -295,6 +295,7 @@ def main():
     nf_config = "".join(nf_config)
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
     nf_config = nf_config.replace("CONFIG_FILE", final_config_uri)
+    nf_config = nf_config.replace("PUBLISH_DIR", out_uri)
 
     # By default, assume running on local device
     nf_profile = "standard"
