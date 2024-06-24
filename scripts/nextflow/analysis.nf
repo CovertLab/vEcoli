@@ -1,14 +1,13 @@
 process analysisSingle {
     publishDir "${params.publishDir}/experiment_id=${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
-
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
     input:
     path config
     path kb
     tuple path(sim_data), val(experiment_id), val(variant), val(lineage_seed), val(generation), val(agent_id)
+    path variant_metadata
 
     output:
     path '*'
@@ -16,7 +15,7 @@ process analysisSingle {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -24,6 +23,7 @@ process analysisSingle {
         --lineage_seed $lineage_seed \\
         --generation $generation \\
         --agent_id "$agent_id" \\
+        --variant-metadata-path ${variant_metadata} \\
         -o \$(pwd)/plots
     """
 
@@ -37,14 +37,13 @@ process analysisSingle {
 process analysisMultiDaughter {
     publishDir "${params.publishDir}/experiment_id=${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
-
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
     input:
     path config
     path kb
     tuple path(sim_data), val(experiment_id), val(variant), val(lineage_seed), val(generation)
+    path variant_metadata
 
     output:
     path '*'
@@ -52,13 +51,14 @@ process analysisMultiDaughter {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
         --lineage_seed $lineage_seed \\
         --generation $generation \\
+        --variant-metadata-path ${variant_metadata} \\
         -o \$(pwd)/plots
     """
 
@@ -72,14 +72,13 @@ process analysisMultiDaughter {
 process analysisMultiGeneration {
     publishDir "${params.publishDir}/experiment_id=${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}"
 
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
-
     tag "variant=${variant}/lineage_seed=${lineage_seed}"
 
     input:
     path config
     path kb
     tuple path(sim_data), val(experiment_id), val(variant), val(lineage_seed)
+    path variant_metadata
 
     output:
     path '*'
@@ -87,12 +86,13 @@ process analysisMultiGeneration {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
         --lineage_seed $lineage_seed \\
+        --variant-metadata-path ${variant_metadata} \\
         -o \$(pwd)/plots
     """
 
@@ -106,14 +106,13 @@ process analysisMultiGeneration {
 process analysisMultiSeed {
     publishDir "${params.publishDir}/experiment_id=${params.experimentId}/analyses/variant=${variant}"
 
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
-
     tag "variant=${variant}"
 
     input:
     path config
     path kb
     tuple path(sim_data), val(experiment_id), val(variant)
+    path variant_metadata
 
     output:
     path '*'
@@ -121,11 +120,12 @@ process analysisMultiSeed {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
+        --variant-metadata-path ${variant_metadata} \\
         -o \$(pwd)/plots
     """
 
@@ -139,12 +139,11 @@ process analysisMultiSeed {
 process analysisMultiVariant {
     publishDir "${params.publishDir}/experiment_id=${params.experimentId}/analyses"
 
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
-
     input:
     path config
     path kb
     tuple path(sim_data, stageAs: 'simData*.cPickle'), val(experiment_id), val(variant)
+    path variant_metadata
 
     output:
     path '*'
@@ -152,11 +151,12 @@ process analysisMultiVariant {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \\
         --sim-data-path "${sim_data.join("\" \"")}" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
-        --variant ${variant.join("\" \"")} \\
+        --variant ${variant.join(" ")} \\
+        --variant-metadata-path ${variant_metadata} \\
         -o \$(pwd)/plots
     """
 

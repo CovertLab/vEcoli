@@ -4,7 +4,7 @@ import pytest
 
 from vivarium.core.engine import pf
 
-from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.library.wcecoli_state import get_state_from_file
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 
 from migration.migration_utils import get_process_state, run_and_compare

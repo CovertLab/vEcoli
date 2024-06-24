@@ -1,13 +1,14 @@
 import argparse
-from pathlib import Path
+import copy
 import importlib
 import itertools
-import os
 import json
+import os
 import pickle
 import shutil
 import subprocess
-from typing import Any, TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -146,13 +147,14 @@ def apply_and_save_variants(
     variant_mod = importlib.import_module(f"ecoli.variants.{variant_name}")
     variant_metadata = {0: "baseline"}
     for i, params in enumerate(param_dicts):
+        sim_data_copy = copy.deepcopy(sim_data)
         variant_metadata[i + 1] = params
-        variant_sim_data = variant_mod.apply_variant(sim_data, params)
+        variant_sim_data = variant_mod.apply_variant(sim_data_copy, params)
         outpath = os.path.join(outdir, f"{i+1}.cPickle")
         with open(outpath, "wb") as f:
             pickle.dump(variant_sim_data, f)
     with open(os.path.join(outdir, "metadata.json"), "w") as f:
-        json.dump(variant_metadata, f)
+        json.dump({variant_name: variant_metadata}, f)
 
 
 def test_parse_variants():
@@ -215,6 +217,8 @@ def test_create_variants():
         # Check that metadata aligns with variant sim_data attrs
         with open("test_create_variants/out/metadata.json") as f:
             variant_metadata = json.load(f)
+        assert "variant_test" in variant_metadata
+        variant_metadata = variant_metadata["variant_test"]
         out_path = Path("test_create_variants/out")
         var_paths = out_path.glob("*.cPickle")
         for var_path in var_paths:

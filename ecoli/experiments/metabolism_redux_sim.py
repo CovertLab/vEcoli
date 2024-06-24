@@ -11,7 +11,7 @@ import pytest
 
 # vivarium-ecoli imports
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.library.wcecoli_state import get_state_from_file
 
 
 import numpy as np

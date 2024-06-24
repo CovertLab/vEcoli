@@ -3,19 +3,22 @@ import importlib
 import json
 import os
 import warnings
+from urllib import parse
 
-import polars as pl
+import duckdb
+from fsspec import filesystem
+import pyarrow as pa
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
-from ecoli.library.parquet_emitter import get_lazyframes
+from ecoli.library.parquet_emitter import get_dataset_sql
 
 FILTERS = {
-    "experiment_id": (str, "multi_experiment", "multi_variant"),
-    "variant": (int, "multi_variant", "multi_seed"),
-    "lineage_seed": (int, "multi_seed", "multi_generation"),
-    "generation": (int, "multi_generation", "multi_daughter"),
-    "agent_id": (str, "multi_daughter", "single"),
+    "experiment_id": (str, "multiexperiment", "multivariant"),
+    "variant": (int, "multivariant", "multiseed"),
+    "lineage_seed": (int, "multiseed", "multigeneration"),
+    "generation": (int, "multigeneration", "multidaughter"),
+    "agent_id": (str, "multidaughter", "single"),
 }
 """Mapping of data filters to data type, analysis type if more than
 one value is given for filter, and analysis type for one value."""
@@ -58,10 +61,19 @@ def main():
     parser.add_argument(
         "--validation_data_path",
         "--validation-data-path",
+        nargs="*",
         help="Path to the validation_data pickle(s) to use.",
     )
     parser.add_argument(
         "--outdir", "-o", help="Directory that all analysis output is saved to."
+    )
+    parser.add_argument(
+        "--n_cpus", "-n", help="Number of CPUs to use for DuckDB and PyArrow."
+    )
+    parser.add_argument(
+        "--variant-metadata-path",
+        "--variant_metadata_path",
+        help="Path to JSON file with variant metadata from create_variants.py.",
     )
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
     args = parser.parse_args()
@@ -71,21 +83,25 @@ def main():
         config_file = args.config
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
-    out_dir = config["emitter"]["config"].get("out_dir", None)
-    out_uri = config["emitter"]["config"].get("out_uri", None)
+    out_dir = config["emitter"]["config"]["out_dir"]
     config = config["analysis_options"]
     for k, v in vars(args).items():
         if v is not None:
             config[k] = v
 
-    # Set up Polars filters for data
-    analysis_type = None
-    pl_filter = None
+    # Set number of threads for PyArrow
+    if "n_cpus" in config:
+        pa.set_cpu_count(config["n_cpus"])
+
+    # Set up DuckDB filters for data
+    # If no filters were provided, assume analyzing ParCa output
+    analysis_type = "parca"
+    duckdb_filter = []
     last_analysis_level = -1
     filter_types = list(FILTERS.keys())
     for current_analysis_level, (
         data_filter,
-        (_, analysis_many, analysis_one),
+        (data_type, analysis_many, analysis_one),
     ) in enumerate(FILTERS.items()):
         if config.get(f"{data_filter}_range", None) is not None:
             if config[data_filter] is not None:
@@ -111,44 +127,67 @@ def main():
                 )
             if len(config[data_filter]) > 1:
                 analysis_type = analysis_many
-                if pl_filter is None:
-                    pl_filter = pl.col(data_filter).is_in(config[data_filter])
+                if data_type is str:
+                    filter_values = "', '".join(
+                        parse.quote_plus(str(i)) for i in config[data_filter]
+                    )
+                    duckdb_filter.append(f"{data_filter} IN ('{filter_values}')")
                 else:
-                    pl_filter = (
-                        pl.col(data_filter).is_in(config[data_filter])
-                    ) & pl_filter
+                    filter_values = ", ".join(str(i) for i in config[data_filter])
+                    duckdb_filter.append(f"{data_filter} IN ({filter_values})")
             else:
                 analysis_type = analysis_one
-                if pl_filter is None:
-                    pl_filter = pl.col(data_filter) == config[data_filter][0]
+                if data_type is str:
+                    quoted_val = parse.quote_plus(str(config[data_filter][0]))
+                    duckdb_filter.append(f"{data_filter} = '{quoted_val}'")
                 else:
-                    pl_filter = (
-                        pl.col(data_filter) == config[data_filter][0]
-                    ) & pl_filter
+                    duckdb_filter.append(f"{data_filter} = {config[data_filter][0]}")
             last_analysis_level = current_analysis_level
 
-    # If no filters were provided, assume analyzing ParCa output
-    if analysis_type is None:
-        analysis_type = "parca"
-        config_lf = pl.DataFrame({})
-        history_lf = pl.DataFrame({})
-    else:
-        # Load Parquet files from output directory / URI specified in config
-        config_lf, history_lf = get_lazyframes(out_dir, out_uri)
-        config_lf = config_lf.filter(pl_filter)
-        history_lf = history_lf.filter(pl_filter)
+    # Load variant metadata
+    with open(config["variant_metadata_path"], "r") as f:
+        variant_metadata = json.load(f)
+        variant_name = list(variant_metadata.keys())[0]
+        variant_metadata = {
+            int(k): v for k, v in variant_metadata[variant_name].items()
+        }
 
     # Run the analyses listed under the most specific filter
     analysis_options = config[analysis_type]
-    for analysis_name, analysis_params in analysis_options.items():
-        analysis_mod = importlib.import_module(f"ecoli.analysis.{analysis_name}")
+    analysis_modules = {}
+    for analysis_name in analysis_options:
+        analysis_modules[analysis_name] = importlib.import_module(
+            f"ecoli.analysis.{analysis_type}.{analysis_name}"
+        )
+    for analysis_name, analysis_mod in analysis_modules.items():
+        # Establish a fresh in-memory DuckDB for every analysis
+        conn = duckdb.connect()
+        out_path = out_dir
+        conn.register_filesystem(filesystem("gcs"))
+        conn.execute(f"SET temp_directory = '{out_path}'")
+        conn.execute("SET preserve_insertion_order = false")
+        # Set number of threads for DuckDB
+        if "n_cpus" in config:
+            conn.execute(f"SET threads = {config['n_cpus']}")
+        if analysis_type == "parca":
+            config_sql = ""
+            history_sql = ""
+        else:
+            # Get SQL to read Parquet files from output directory with filters
+            history_sql, config_sql = get_dataset_sql(out_path)
+            duckdb_filter = " AND ".join(duckdb_filter)
+            config_sql = f"{config_sql} WHERE {duckdb_filter}"
+            history_sql = f"{history_sql} WHERE {duckdb_filter}"
         analysis_mod.plot(
-            analysis_params,
-            config_lf,
-            history_lf,
-            config["sim_data_path"],
+            analysis_options[analysis_name],
+            conn,
+            history_sql,
+            config_sql,
+            dict(zip(config["variant"], config["sim_data_path"])),
             config["validation_data_path"],
             config["outdir"],
+            variant_metadata,
+            variant_name,
         )
 
     # Save copy of config JSON with parameters for plots

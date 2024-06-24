@@ -8,10 +8,16 @@ import os
 from typing import Any
 
 # noinspection PyUnresolvedReferences
+from duckdb import DuckDBPyConnection
 import numpy as np
-import polars as pl
 
-from ecoli.analysis.template import get_field_metadata, named_idx
+from ecoli.library.parquet_emitter import (
+    get_field_metadata,
+    ndidx_to_duckdb_expr,
+    num_cells,
+    read_stacked_columns,
+    skip_n_gens,
+)
 
 
 IGNORE_FIRST_N_GENS = 8
@@ -19,20 +25,23 @@ IGNORE_FIRST_N_GENS = 8
 
 def plot(
     params: dict[str, Any],
-    config_lf: pl.LazyFrame,
-    history_lf: pl.LazyFrame,
-    sim_data_path: list[str],
-    validation_data_path: list[str],
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    config_sql: str,
+    sim_data_paths: dict[int, list[str]],
+    validation_data_paths: list[str],
     outdir: str,
+    variant_metadata: dict[int, Any],
+    variant_name: str,
 ):
-    with open(sim_data_path[0], "rb") as f:
+    with open(next(iter(sim_data_paths.values())), "rb") as f:
         sim_data = pickle.load(f)
 
     # Ignore first N generations
-    history_lf = history_lf.filter(pl.col("generation") >= IGNORE_FIRST_N_GENS)
-    config_lf = config_lf.filter(pl.col("generation") >= IGNORE_FIRST_N_GENS)
+    history_sql = skip_n_gens(history_sql, IGNORE_FIRST_N_GENS)
+    config_sql = skip_n_gens(config_sql, IGNORE_FIRST_N_GENS)
 
-    if config_lf.select("time").count().collect(streaming=True)["time"][0] == 0:
+    if num_cells(conn, config_sql) == 0:
         print("Skipping analysis - not enough generations run.")
         return
 
@@ -63,86 +72,84 @@ def plot(
 
     # Get subcolumn for mRNA cistron IDs in RNA counts table
     mRNA_cistron_ids_rna_counts_table = get_field_metadata(
-        config_lf, "listeners__rna_counts__mRNA_cistron_counts"
+        conn, config_sql, "listeners__rna_counts__mRNA_cistron_counts"
     )
 
-    # Get indexes of mRNA cistrons in this subcolumn
+    # Get indexes of mRNA cistrons in this subcolums (DuckDB lists are 1-indexed)
     mRNA_cistron_id_to_index = {
-        cistron_id: i
+        cistron_id: i + 1
         for (i, cistron_id) in enumerate(mRNA_cistron_ids_rna_counts_table)
     }
-    mRNA_cistron_indexes = np.array(
-        [mRNA_cistron_id_to_index[cistron_id] for cistron_id in mRNA_cistron_ids]
-    )
-
-    # Get boolean matrix for whether each gene's mRNA exists in each
-    # generation or not
-    mRNA_exists_in_gen = (
-        history_lf.select(
-            **{
-                "lineage_seed": "lineage_seed",
-                "generation": "generation",
-                "agent_id": "agent_id",
-                **named_idx(
-                    "listeners__rna_counts__mRNA_cistron_counts",
-                    mRNA_cistron_ids,
-                    mRNA_cistron_indexes,
-                ),
-            }
-        )
-        .groupby(["lineage_seed", "generation", "agent_id"])
-        .agg(pl.all().sum() > 0)
-        .drop(["lineage_seed", "generation", "agent_id"])
-        .collect(streaming=True)
-    )
-
-    # Divide by total number of cells to get probability
-    p_mRNA_exists_in_gen = mRNA_exists_in_gen.sum() / mRNA_exists_in_gen.shape[0]
-
-    # Get maximum counts of mRNAs for each gene across all timepoints
-    max_mRNA_counts = (
-        history_lf.select(
-            **named_idx(
-                "listeners__rna_counts__mRNA_cistron_counts",
-                mRNA_cistron_ids,
-                mRNA_cistron_indexes,
-            )
-        )
-        .max()
-        .collect(streaming=True)
-    )
+    mRNA_cistron_indexes = [
+        mRNA_cistron_id_to_index[cistron_id] for cistron_id in mRNA_cistron_ids
+    ]
 
     # Get subcolumn for monomer IDs in monomer counts table
     monomer_ids_monomer_counts_table = get_field_metadata(
-        config_lf, "listeners__monomer_counts"
+        conn, config_sql, "listeners__monomer_counts"
     )
 
-    # Get indexes of monomers in this subcolumn
+    # Get indexes of monomers in this subcolumn (DuckDB lists are 1-indexed)
     monomer_id_to_index = {
-        monomer_id: i for (i, monomer_id) in enumerate(monomer_ids_monomer_counts_table)
+        monomer_id: i + 1
+        for (i, monomer_id) in enumerate(monomer_ids_monomer_counts_table)
     }
-    monomer_indexes = np.array(
-        [monomer_id_to_index[monomer_id] for monomer_id in monomer_ids]
-    )
+    monomer_indexes = [monomer_id_to_index[monomer_id] for monomer_id in monomer_ids]
 
-    # Get maximum counts of monomers for each gene across all timepoints
-    max_monomer_counts = (
-        history_lf.select(
-            **named_idx("listeners__monomer_counts", monomer_ids, monomer_indexes)
+    monomer_expr = ndidx_to_duckdb_expr("listeners__monomer_counts", [monomer_indexes])
+    cistron_expr = ndidx_to_duckdb_expr(
+        "listeners__rna_counts__mRNA_cistron_counts", [mRNA_cistron_indexes]
+    )
+    subquery = read_stacked_columns(
+        history_sql,
+        ["listeners__monomer_counts", "listeners__rna_counts__mRNA_cistron_counts"],
+        [f"{monomer_expr} AS monomer_counts", f"{cistron_expr} AS mrna_counts"],
+        return_sql=True,
+        order_results=False,
+    )
+    out_df = conn.sql(
+        f"""
+        -- Unnest monomer and mRNA count columns, labelling with
+        -- index so we can later calculate per-cistron aggregates
+        WITH unnested_counts AS (
+            SELECT lineage_seed, generation, agent_id,
+                unnest(monomer_counts) AS monomer_counts,
+                unnest(mrna_counts) AS mrna_counts,
+                generate_subscripts(mrna_counts, 1) AS cistron_idx
+            FROM {subquery}
+        ),
+        -- Group by cell and cistron to get existence of each mRNA per cell
+        cell_aggregate AS (
+            SELECT
+                SUM(mrna_counts) > 0 AS exists,
+                MAX(monomer_counts) AS max_monomer_counts,
+                MAX(mrna_counts) AS max_mRNA_counts,
+                cistron_idx
+            FROM unnested_counts
+            GROUP BY lineage_seed, generation, agent_id, cistron_idx
+        ),
+        full_aggregate AS (
+            SELECT
+                -- Calculate probability that mRNA exists per cell cycle
+                AVG(exists::INTEGER) AS p_expressed,
+                -- Get maximum mRNA and monomer counts across all cells and times
+                MAX(max_monomer_counts) AS max_monomer_counts,
+                MAX(max_mRNA_counts) AS max_mRNA_counts,
+                cistron_idx
+            FROM cell_aggregate
+            GROUP BY cistron_idx
         )
-        .max()
-        .collect(streaming=True)
-    )
+        SELECT * FROM full_aggregate
+        -- Filter to only include sub-generational genes
+        WHERE p_expressed > 0 AND p_expressed < 1
+        """
+    ).pl()
 
-    # Write data to table
-    out_df = pl.DataFrame(
-        {
-            "gene_name": gene_ids,
-            "cistron_name": mRNA_cistron_ids,
-            "protein_name": [i[:-3] for i in monomer_ids],
-            "p_expressed": p_mRNA_exists_in_gen.transpose(),
-            "max_mRNA_count": max_mRNA_counts.transpose(),
-            "max_monomer_counts": max_monomer_counts.transpose(),
-        }
-    ).filter((0 < pl.col("p_expressed")) & (pl.col("p_expressed") < 1))
+    # Add gene, cistron, and protein names (DuckDB lists are 1-indexed so
+    # must subtract one before using to index Numpy arrays)
+    out_df = out_df.with_columns(
+        gene_name=np.array(gene_ids)[out_df["cistron_idx"] - 1],
+        cistron_name=np.array(mRNA_cistron_ids)[out_df["cistron_idx"] - 1],
+        protein_name=np.array([i[:-3] for i in monomer_ids])[out_df["cistron_idx"] - 1],
+    )
     out_df.write_csv(os.path.join(outdir, "subgen.tsv"), separator="\t")
