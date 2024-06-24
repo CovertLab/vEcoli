@@ -211,8 +211,8 @@ def test_rna_interference(return_data=False):
     # deepcopying in vivarium-core causes this warning to appear
     warnings.filterwarnings("ignore", message="Incompatible schema "
             "assignment at .+ Trying to assign the value <bound method "
-            "UniqueNumpyUpdater\.updater .+ to key updater, which already "
-            "has the value <bound method UniqueNumpyUpdater\.updater")
+            "UniqueNumpyUpdater.updater .+ to key updater, which already "
+            "has the value <bound method UniqueNumpyUpdater.updater")
     experiment = Engine(
         processes={"rna-interference": rna_inter},
         steps={"unique-update": unique_update},

@@ -748,8 +748,8 @@ def test_transcript_elongation():
     # deepcopying in vivarium-core causes this warning to appear
     warnings.filterwarnings("ignore", message="Incompatible schema "
             "assignment at .+ Trying to assign the value <bound method "
-            "UniqueNumpyUpdater\.updater .+ to key updater, which already "
-            "has the value <bound method UniqueNumpyUpdater\.updater")
+            "UniqueNumpyUpdater.updater .+ to key updater, which already "
+            "has the value <bound method UniqueNumpyUpdater.updater")
     engine = Engine(**settings, initial_state=deepcopy(initial_state))
     engine.run_for(100)
     data = engine.emitter.get_timeseries()
@@ -807,8 +807,8 @@ def test_transcript_elongation():
     # deepcopying in vivarium-core causes this warning to appear
     warnings.filterwarnings("ignore", message="Incompatible schema "
             "assignment at .+ Trying to assign the value <bound method "
-            "UniqueNumpyUpdater\.updater .+ to key updater, which already "
-            "has the value <bound method UniqueNumpyUpdater\.updater")
+            "UniqueNumpyUpdater.updater .+ to key updater, which already "
+            "has the value <bound method UniqueNumpyUpdater.updater")
     engine = Engine(**settings, initial_state=deepcopy(initial_state))
     engine.run_for(100)
     data = engine.emitter.get_timeseries()
