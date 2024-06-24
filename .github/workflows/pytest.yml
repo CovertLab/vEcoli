@@ -27,7 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip wheel
-        pip install numpy
+        pip install numpy==1.26.3
         pip install Cython
         pip install -r requirements.txt
     - name: Setup
