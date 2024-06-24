@@ -67,7 +67,9 @@ def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
 def get_git_revision_hash() -> str:
     """Returns current Git hash for model repository to include in metadata
     that is emitted when starting a simulation."""
-    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+    return subprocess.check_output(
+        ["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"]
+        ).decode("ascii").strip()
 
 
 def get_git_status() -> str:
@@ -75,7 +77,8 @@ def get_git_status() -> str:
     emitted when starting a simulation.
     """
     status_str = (
-        subprocess.check_output(["git", "status", "--porcelain"])
+        subprocess.check_output(
+            ["git", "-C", CONFIG_DIR_PATH, "status", "--porcelain"])
         .decode("ascii")
         .strip()
     )
