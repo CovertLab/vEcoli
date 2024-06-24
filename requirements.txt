@@ -138,7 +138,7 @@ numpy==1.26.4
 oauthlib==3.2.2
 opencv-python==4.10.0.84
 orjson==3.10.5
-ortools==9.10.4067
+ortools==9.9.3963
 osqp==0.6.7
 overrides==7.7.0
 packaging==24.1
