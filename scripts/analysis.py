@@ -129,16 +129,16 @@ def main():
                 analysis_type = analysis_many
                 if data_type is str:
                     filter_values = "', '".join(
-                        parse.quote_plus(i) for i in config[data_filter]
+                        parse.quote_plus(str(i)) for i in config[data_filter]
                     )
                     duckdb_filter.append(f"{data_filter} IN ('{filter_values}')")
                 else:
-                    filter_values = ", ".join(config[data_filter])
+                    filter_values = ", ".join(str(i) for i in config[data_filter])
                     duckdb_filter.append(f"{data_filter} IN ({filter_values})")
             else:
                 analysis_type = analysis_one
                 if data_type is str:
-                    quoted_val = parse.quote_plus(config[data_filter][0])
+                    quoted_val = parse.quote_plus(str(config[data_filter][0]))
                     duckdb_filter.append(f"{data_filter} = '{quoted_val}'")
                 else:
                     duckdb_filter.append(f"{data_filter} = {config[data_filter][0]}")
