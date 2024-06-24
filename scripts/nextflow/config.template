@@ -30,6 +30,9 @@ profiles {
                 4.GB
             }
         }
+        process.errorStrategy = {
+            (task.exitStatus in [137, 139, 140, 143, null]) &&
+            (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
         process.cpus = 2
         process.executor = 'slurm'
         process.queue = 'owners'
