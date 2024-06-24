@@ -165,7 +165,7 @@ process analysisMultiVariant {
         --sim-data-path "${sim_data.join("\" \"")}" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
-        --variant ${variant.join("\" \"")} \\
+        --variant ${variant.join(" ")} \\
         --variant-metadata-path ${variant_metadata} \\
         -o \$(pwd)/plots
     """
