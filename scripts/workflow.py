@@ -348,7 +348,6 @@ def main():
     workdir = os.path.join(
         out_uri, "nextflow_workdirs", f"experiment_id={experiment_id}"
     )
-    shutil.rmtree(local_outdir)
     if nf_profile == "standard" or nf_profile == "gcloud":
         subprocess.run(
             [
@@ -380,6 +379,7 @@ nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
 """)
         filesystem.copy_file(batch_script, os.path.join(outdir, "nextflow_job.sh"))
         subprocess.run(["sbatch", batch_script])
+    shutil.rmtree(local_outdir)
 
 
 if __name__ == "__main__":
