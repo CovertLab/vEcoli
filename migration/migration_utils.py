@@ -8,7 +8,7 @@ from vivarium.core.engine import Engine, view_values, _process_update
 from vivarium.library.dict_utils import deep_merge
 
 from wholecell.utils import units
-from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.library.wcecoli_state import get_state_from_file
 from migration import LOAD_SIM_DATA, LOAD_SIM_DATA_NO_OPERONS
 
 PERCENT_ERROR_THRESHOLD = 0.05

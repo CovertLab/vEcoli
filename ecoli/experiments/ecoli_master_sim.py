@@ -4,7 +4,7 @@ Interface for configuring and running **single-cell** E. coli simulations.
 .. note::
     Simulations can be configured to divide through this interface, but
     full colony-scale simulations are best run using the
-    :py:mod:`~ecoli.composites.ecoli_engine_process` module for efficient
+    :py:mod:`~ecoli.experiments.ecoli_engine_process` module for efficient
     multithreading.
 """
 
@@ -18,6 +18,7 @@ import json
 import warnings
 from datetime import datetime
 from typing import Optional, Dict, Any
+from urllib import parse
 
 import numpy as np
 from vivarium.core.engine import Engine
@@ -66,7 +67,9 @@ def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
 def get_git_revision_hash() -> str:
     """Returns current Git hash for model repository to include in metadata
     that is emitted when starting a simulation."""
-    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+    return subprocess.check_output(
+        ["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"]
+        ).decode("ascii").strip()
 
 
 def get_git_status() -> str:
@@ -74,7 +77,8 @@ def get_git_status() -> str:
     emitted when starting a simulation.
     """
     status_str = (
-        subprocess.check_output(["git", "status", "--porcelain"])
+        subprocess.check_output(
+            ["git", "-C", CONFIG_DIR_PATH, "status", "--porcelain"])
         .decode("ascii")
         .strip()
     )
@@ -301,6 +305,12 @@ class SimConfig:
                 "--lineage_seed",
                 action="store",
                 help="Seed used for first cell in lineage.",
+            )
+            self.parser.add_argument(
+                "--initial_global_time",
+                type=float,
+                action="store",
+                help="Initial time in context of whole lineage.",
             )
 
     @staticmethod
@@ -747,6 +757,8 @@ class EcoliSim:
                     )
                     write_json(daughter_path, agent_state)
                 print(f"Divided at t = {self.ecoli_experiment.global_time}.")
+                with open("division_time.sh", "w") as f:
+                    f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 sys.exit()
             time_elapsed = self.save_times[i]
             state = self.ecoli_experiment.state.get_value(condition=not_a_process)
@@ -806,12 +818,17 @@ class EcoliSim:
                 self.experiment_id = datetime.now().strftime(
                     f"{self.experiment_id_base}_%d/%m/%Y %H:%M:%S"
                 )
+            # Special characters can break Hive partitioning so quote them
+            self.experiment_id = parse.quote_plus(self.experiment_id)
             experiment_config["experiment_id"] = self.experiment_id
         experiment_config["profile"] = self.profile
 
         # Since unique numpy updater is an class method, internal
         # deepcopying in vivarium-core causes this warning to appear
-        warnings.filterwarnings("ignore", message="Incompatible schema assignment at ")
+        warnings.filterwarnings("ignore", message="Incompatible schema "
+            "assignment at .+ Trying to assign the value <bound method "
+            "UniqueNumpyUpdater\.updater .+ to key updater, which already "
+            "has the value <bound method UniqueNumpyUpdater\.updater")
         self.ecoli_experiment = Engine(**experiment_config)
 
         # Only emit designated stores if specified
@@ -844,6 +861,8 @@ class EcoliSim:
                     )
                     write_json(daughter_path, agent_state)
                 print(f"Divided at t = {self.ecoli_experiment.global_time}.")
+                with open("division_time.sh", "w") as f:
+                    f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 sys.exit()
         self.ecoli_experiment.end()
         if self.profile:
@@ -905,6 +924,7 @@ class EcoliSim:
                 "need to be replicated."
             )
         metadata["processes"] = [k for k in metadata["processes"].keys()]
+        metadata["time"] = datetime.now()
         return metadata
 
     def to_json_string(self) -> str:

@@ -38,7 +38,7 @@ from ecoli.processes.unique_update import UniqueUpdate
 
 # state
 from ecoli.processes.partition import Requester, Evolver, Step, Process
-from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.library.wcecoli_state import get_state_from_file
 
 SIM_DATA_PATH = os.path.abspath(
     os.path.join(

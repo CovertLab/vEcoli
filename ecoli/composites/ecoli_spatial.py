@@ -87,7 +87,7 @@ from ecoli.plots.ecoli_spatial_plots import (
     plot_molecule_characterizations,
 )
 
-from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.library.wcecoli_state import get_state_from_file
 from ecoli.library.schema import attrs, bulk_name_to_idx
 
 SIM_DATA_PATH = "reconstruction/sim_data/kb/simData.cPickle"

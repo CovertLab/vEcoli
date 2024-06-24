@@ -1,8 +1,6 @@
 process runParca {
     // Run ParCa using parca_options from config JSON
-    publishDir "${params.publishDir}/${params.experimentId}/parca"
-
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
+    publishDir "${params.publishDir}/experiment_id=${params.experimentId}/parca"
 
     input:
     path config
@@ -12,7 +10,7 @@ process runParca {
 
     script:
     """
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_parca.py --config $config -o \$(pwd)
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/parca.py --config $config -o \$(pwd)
     """
 
     stub:
@@ -26,9 +24,7 @@ process runParca {
 }
 
 process analysisParca {
-    publishDir "${params.publishDir}/${params.experimentId}/parca/analysis"
-
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
+    publishDir "${params.publishDir}/experiment_id=${params.experimentId}/parca/analysis"
 
     input:
     path config
@@ -39,7 +35,7 @@ process analysisParca {
 
     script:
     """
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/analysis.py -c $config \
         --sim-data-path=$kb/simData.cPickle \
         --validation-data-path=$kb/validationData.cPickle \
         -o \$(pwd)
@@ -54,9 +50,7 @@ process analysisParca {
 
 process createVariants {
     // Parse variants in config JSON to generate variants
-    publishDir "${params.publishDir}/${params.experimentId}/variant_sim_data"
-
-    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
+    publishDir "${params.publishDir}/experiment_id=${params.experimentId}/variant_sim_data"
 
     input:
     path config
@@ -92,5 +86,8 @@ workflow {
         .variantSimData
         .flatten()
         .set { variantCh }
+    createVariants.out
+        .variantMetadata
+        .set { variantMetadataCh }
 WORKFLOW
 }

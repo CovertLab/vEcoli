@@ -17,7 +17,7 @@ profiles {
         google.location = "${params.gcpRegion}"
         docker.enabled = true
         params.projectRoot = '/vivarium-ecoli'
-        params.publishDir = "${params.experimentId}"
+        params.publishDir = "PUBLISH_DIR"
         process.maxRetries = 1
     }
     sherlock {
@@ -30,6 +30,9 @@ profiles {
                 4.GB
             }
         }
+        process.errorStrategy = {
+            (task.exitStatus in [137, 139, 140, 143, null]) &&
+            (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
         process.cpus = 2
         process.executor = 'slurm'
         process.queue = 'owners'
@@ -42,11 +45,11 @@ profiles {
         }
         process.maxRetries = 5
         params.projectRoot = "${launchDir}"
-        params.publishDir = "\$SCRATCH/out/${params.experimentId}"
+        params.publishDir = "PUBLISH_DIR"
     }
     standard {
         process.executor = 'local'
         params.projectRoot = "${launchDir}"
-        params.publishDir = "${launchDir}/out"
+        params.publishDir = "PUBLISH_DIR"
     }
 }
