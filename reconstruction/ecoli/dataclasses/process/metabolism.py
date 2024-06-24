@@ -42,7 +42,7 @@ from wholecell.utils import units
 
 KINETIC_CONSTRAINT_CONC_UNITS = units.umol / units.L
 K_CAT_UNITS = 1 / units.s
-"""Units for k\ :sub:`cat`\ values"""
+"""Units for k :sub:`cat` values"""
 METABOLITE_CONCENTRATION_UNITS = units.mol / units.L
 """Units for metabolite concentrations"""
 DRY_MASS_UNITS = units.fg
