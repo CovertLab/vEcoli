@@ -1137,19 +1137,17 @@ def plot(
     for a grid of new gene variant simulations with varying expression and
     translation efficiencies.
     """
-    # Do not include control variant data
+    # Filter to specified generation range
     history_sql = (
-        f"FROM ({history_sql}) WHERE variant > 0 "
-        f"AND generation >= {MIN_CELL_INDEX} AND "
+        f"FROM ({history_sql}) WHERE generation >= {MIN_CELL_INDEX} "
         f"AND generation < {MAX_CELL_INDEX}"
     )
     config_sql = (
-        f"FROM ({config_sql}) WHERE variant > 0 "
-        f"AND generation >= {MIN_CELL_INDEX} AND "
+        f"FROM ({config_sql}) WHERE generation >= {MIN_CELL_INDEX} "
         f"AND generation < {MAX_CELL_INDEX}"
     )
-    sim_data_paths.pop(0)
-    variant_metadata.pop(0)
+    # Define baseline variant (ID = 0) as 0 new gene expr. and trans. eff.
+    variant_metadata[0] = {"exp_trl_eff": {"exp": 0, "trl_eff": 0}}
 
     with open(next(iter(sim_data_paths.values())), "rb") as f:
         sim_data = pickle.load(f)
