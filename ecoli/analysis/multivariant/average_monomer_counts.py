@@ -60,7 +60,7 @@ def plot(
     os.makedirs(unfiltered_dir, exist_ok=True)
     os.makedirs(filtered_dir, exist_ok=True)
 
-    with open(sim_data_paths[0], "rb") as f:
+    with open(next(iter(sim_data_paths.values())), "rb") as f:
         sim_data: "SimulationDataEcoli" = pickle.load(f)
     mRNA_sim_data = (
         sim_data.process.transcription.cistron_data.struct_array)
