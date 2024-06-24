@@ -73,7 +73,7 @@ def main():
     parser.add_argument(
         "--variant-metadata-path",
         "--variant_metadata_path",
-        help="Path to JSON file with variant metadata from create_variants.py."
+        help="Path to JSON file with variant metadata from create_variants.py.",
     )
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
     args = parser.parse_args()
@@ -148,8 +148,9 @@ def main():
     with open(config["variant_metadata_path"], "r") as f:
         variant_metadata = json.load(f)
         variant_name = list(variant_metadata.keys())[0]
-        variant_metadata = {int(k): v for k, v 
-            in variant_metadata[variant_name].items()}
+        variant_metadata = {
+            int(k): v for k, v in variant_metadata[variant_name].items()
+        }
 
     # Run the analyses listed under the most specific filter
     analysis_options = config[analysis_type]

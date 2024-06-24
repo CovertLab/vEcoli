@@ -58,7 +58,7 @@ def plot(
         **{
             f"{k} ({fractions[k]:.3f})": mass_data[v] / mass_data[v][0]
             for k, v in mass_columns.items()
-        }
+        },
     }
     mass_fold_change = pl.DataFrame(new_columns)
     plot_namespace = mass_fold_change.plot
