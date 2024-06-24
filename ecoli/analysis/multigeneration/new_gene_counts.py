@@ -25,7 +25,7 @@ def plot(
     variant_name: str,
 ):
     # Determine new gene ids
-    with open(sim_data_paths[0], "rb") as f:
+    with open(next(iter(sim_data_paths.values())), "rb") as f:
         sim_data = pickle.load(f)
     mRNA_sim_data = sim_data.process.transcription.cistron_data.struct_array
     monomer_sim_data = sim_data.process.translation.monomer_data.struct_array
@@ -93,7 +93,7 @@ def plot(
     # mRNA counts
     mrna_plot = new_gene_data.plot.line(
         x="Time (min)",
-        y=[new_gene_mRNA_ids],
+        y=new_gene_mRNA_ids,
         ylabel="mRNA Counts",
         title="New Gene mRNA Counts",
     )
@@ -101,7 +101,7 @@ def plot(
     # Protein counts
     protein_plot = new_gene_data.plot.line(
         x="Time (min)",
-        y=[new_gene_monomer_ids],
+        y=new_gene_monomer_ids,
         ylabel="Protein Counts",
         title="New Gene Protein Counts",
     )
