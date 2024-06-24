@@ -825,7 +825,10 @@ class EcoliSim:
 
         # Since unique numpy updater is an class method, internal
         # deepcopying in vivarium-core causes this warning to appear
-        warnings.filterwarnings("ignore", message="Incompatible schema assignment at ")
+        warnings.filterwarnings("ignore", message="Incompatible schema "
+            "assignment at .+ Trying to assign the value <bound method "
+            "UniqueNumpyUpdater\.updater .+ to key updater, which already "
+            "has the value <bound method UniqueNumpyUpdater\.updater")
         self.ecoli_experiment = Engine(**experiment_config)
 
         # Only emit designated stores if specified
