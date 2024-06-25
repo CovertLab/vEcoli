@@ -52,8 +52,6 @@
 
     "agent_id": "0",
     "parallel": false,
-    "daughter_path": [],
-    "agents_path": ["..", "..", "agents"],
     "divide": true,
     "d_period": true,
     "division_threshold": true,

@@ -422,7 +422,6 @@ class EcoliSim:
                 or :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.from_cli`
         """
         # Do some datatype pre-processesing
-        config["agents_path"] = tuple(config["agents_path"])
         config["processes"] = {process: None for process in config["processes"]}
 
         # Keep track of base experiment id
