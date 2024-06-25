@@ -926,15 +926,6 @@ class EcoliSim:
         metadata["time"] = datetime.now()
         return metadata
 
-    def to_json_string(self) -> str:
-        """
-        Serializes simulation setting dictionary along with git hash and
-        final list of process names. Called by
-        :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.export_json`.
-
-        """
-        return str(serialize_value(self.get_metadata()))
-
     def get_output_metadata(self) -> dict[str, Any]:
         """
         Filters all ports schemas to include only output metadata
@@ -970,7 +961,7 @@ class EcoliSim:
             filename: Filepath and name for saved JSON (include ``.json``).
         """
         with open(filename, "w") as f:
-            f.write(self.to_json_string())
+            json.dump(serialize_value(self.get_metadata()), f)
 
 
 def extract_metadata(ports_schema: dict[str, Any], properties: bool = False):
