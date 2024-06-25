@@ -68,13 +68,7 @@ class Ecoli(Composer):
         "time_step": 2.0,
         "seed": 0,
         "sim_data_path": SIM_DATA_PATH,
-        "daughter_path": tuple(),
         "agent_id": "0",
-        "agents_path": (
-            "..",
-            "..",
-            "agents",
-        ),
         "division_threshold": 668,  # fg
         "division_variable": ("listeners", "mass", "dry_mass"),
         "chromosome_path": ("unique", " full_chromosome"),
@@ -613,13 +607,13 @@ class Ecoli(Composer):
             topology["division"] = {
                 "division_variable": tuple(config["division_variable"]),
                 "full_chromosome": tuple(config["chromosome_path"]),
-                "agents": tuple(config["agents_path"]),
+                "agents": ("..", "..", "agents"),
                 "media_id": ("environment", "media_id"),
                 "division_threshold": ("division_threshold",),
             }
             if config["generations"] is not None:
                 topology["stop-after-division"] = {
-                    "agents": tuple(config["agents_path"])
+                    "agents": ("..", "..", "agents")
                 }
 
         # Add Allocator and UniqueUpdate topologies

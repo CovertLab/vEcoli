@@ -169,8 +169,6 @@ Schema overrides can also be used to emit data that would normally not be emitte
 - `"progress_bar"` : (boolean) whether to show the progress bar
 - `"agent_id"`
 - `"parallel"`
-- `"daughter_path"`
-- `"agents_path"`
 - `"division"`
 - `"divide"`
 
