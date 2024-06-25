@@ -267,6 +267,7 @@ def main():
     if config["suffix_time"]:
         current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         experiment_id = experiment_id + "_" + current_time
+        config["suffix_time"] = False
 
     # Resolve output directory
     if "out_uri" not in config["emitter"]["config"]:
@@ -295,7 +296,8 @@ def main():
     nf_config = "".join(nf_config)
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
     nf_config = nf_config.replace("CONFIG_FILE", final_config_uri)
-    nf_config = nf_config.replace("PUBLISH_DIR", out_uri)
+    nf_config = nf_config.replace("PUBLISH_DIR", os.path.dirname(
+        os.path.dirname(out_uri)))
 
     # By default, assume running on local device
     nf_profile = "standard"
