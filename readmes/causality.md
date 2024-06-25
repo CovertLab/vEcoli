@@ -1,8 +1,23 @@
 # Causality Networks
 
-To build a causality network, use the command `python ecoli/analysis/buildCausalityNetwork.py`.
-Use the `--show` flag to open up the resulting visualization in your web browser.
-Use the `--id` flag to pass in an experiment id that you want the network to be built from.
-Without the `--id` flag, you will be asked to input an experiment id while the program is running.
+> **Note:** Broken as of June 25, 2024, due to new sim output format.
 
-The first timestep in the data is not included when building a causality network. 
+> **Note:** Must be a member of the `CovertLab` GitHub organization.
+
+[The Causality visualization tool](https://github.com/CovertLab/causality) can be used to manually examine the model's
+output (molecule counts, reaction fluxes, etc.). First, [run a simulation](#running-the-simulation) ensuring that data is set to be emitted to MongoDB (e.g. `emitter` is `database` in [configuration](readmes/ecoli_configurations.md)). Then, build the Causality network with the following command:
+
+```
+python ecoli/analysis/buildCausalityNetwork.py
+```
+
+Then, clone the Causality repository into the same folder as the vivarium-ecoli repository (e.g. `/dev/causality` and `/dev/vivarium-ecoli`) and follow the installation instructions.
+
+Finally, start the Causality server, which will open an interactive webpage in your web browser:
+
+```
+cd /dev/causality
+python site/server.py ../vivarium-ecoli/out/seriesOut/
+```
+
+> **Note:** The first timestep in the data is not included when building a causality network.
