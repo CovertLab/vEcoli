@@ -31,7 +31,7 @@ profiles {
             }
         }
         process.errorStrategy = {
-            (task.exitStatus in [137, 139, 140, 143, null]) &&
+            (task.exitStatus in [137, 139, 140, 143]) &&
             (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
         process.cpus = 2
         process.executor = 'slurm'
@@ -43,9 +43,12 @@ profiles {
                 2.h
             }
         }
-        process.maxRetries = 5
+        process.maxRetries = 3
         params.projectRoot = "${launchDir}"
         params.publishDir = "PUBLISH_DIR"
+        executor.exitReadTimeout = 1.h
+        executor.pollInterval = '30 sec'
+        executor.submitRateLimit = '1 sec'
     }
     standard {
         process.executor = 'local'
