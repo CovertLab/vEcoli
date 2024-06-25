@@ -158,7 +158,6 @@
         "unique_molecule_counts": [["ecoli-metabolism"]],
         "ribosome_data_listener": [["ecoli-metabolism"]]
     },
-    "_schema": {},
     "engine_process_reports": [
         ["listeners"]
     ],
