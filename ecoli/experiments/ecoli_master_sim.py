@@ -41,6 +41,12 @@ from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.schema import not_a_process
 
 
+class TimeLimitError(RuntimeError):
+    """Error raised when ``fail_at_total_time`` is True and simulation
+    reaches ``total_time``."""
+    pass
+
+
 def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
     """JSON files allow lists but do not allow tuples. This function
     transforms the list paths in topologies loaded from JSON into
@@ -311,6 +317,12 @@ class SimConfig:
                 type=float,
                 action="store",
                 help="Initial time in context of whole lineage.",
+            )
+            self.parser.add_argument(
+                "--fail_at_total_time",
+                action="store_true",
+                default=True,
+                help="Simulation will raise TimeLimitException upon reaching total_time.",
             )
 
     @staticmethod
@@ -866,6 +878,8 @@ class EcoliSim:
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
+        if self.fail_at_total_time:
+            raise TimeLimitError(f"Exceeded maximum simulation time: {self.total_time}")
 
     def query(self, query: list[tuple[str]] = None):
         """
