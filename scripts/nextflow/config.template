@@ -1,20 +1,28 @@
 // Global default params
 params {
-    gcpProjectId = 'allen-discovery-center-mcovert'
-    gcpRegion = 'us-west1'
     experimentId = 'EXPERIMENT_ID'
     config = 'CONFIG_FILE'
 }
 
 profiles {
     gcloud {
-        // Retry once with more RAM, then error out
-        process.memory = { 4.GB * task.attempt }
+        // Retry once with more RAM if OOM
+        process.memory = {
+            if ( task.exitStatus == 137 ) {
+                4.GB * task.attempt
+            } else {
+                4.GB
+            }
+        }
         process.cpus = 2
         process.executor = 'google-batch'
         process.container = 'IMAGE_NAME'
-        google.project = "${params.gcpProjectId}"
-        google.location = "${params.gcpRegion}"
+        process.errorStrategy = {
+            // Exit status 137 (OOM), 139 (segfault, probably in PyArrow),
+            task.exitStatus in [137, 139] ? 'retry' : 'ignore' }
+        google.project = 'allen-discovery-center-mcovert'
+        google.location = 'us-west1'
+        google.batch.spot = true
         docker.enabled = true
         params.projectRoot = '/vivarium-ecoli'
         params.publishDir = "PUBLISH_DIR"
@@ -22,8 +30,6 @@ profiles {
     }
     sherlock {
         process.memory = {
-            // Do not increase RAM or runtime if failure caused
-            // by preemption (exit code 143)
             if ( task.exitStatus in [137, 140] ) {
                 4.GB * task.attempt
             } else {
@@ -31,6 +37,8 @@ profiles {
             }
         }
         process.errorStrategy = {
+            // Exit status 137 (OOM), 139 (segfault, probably in PyArrow),
+            // 140 (SLURM job limits), 143 (SLURM pre-emption)
             task.exitStatus in [137, 139, 140, 143] ? 'retry' : 'ignore' }
         process.cpus = 2
         process.executor = 'slurm'
@@ -45,8 +53,10 @@ profiles {
         process.maxRetries = 3
         params.projectRoot = "${launchDir}"
         params.publishDir = "PUBLISH_DIR"
+        // Retry all jobs that fail to submit (different from fail during runtime)
         executor.retry.reason = '.*'
-        executor.pollInterval = '30s'
+        // Avoid polling scheduler too frequently (can cause job status mixups)
+        executor.pollInterval = '5m'
         executor.queueStatInterval = '5m'
     }
     standard {
