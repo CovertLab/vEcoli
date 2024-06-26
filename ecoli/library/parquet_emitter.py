@@ -71,7 +71,6 @@ def json_to_parquet(
     filesystem: fs.FileSystem,
     outfile: str,
     split_columns: bool = False,
-    small_columns: list[str] = None,
     write_statistics: bool = True,
 ):
     """
@@ -84,8 +83,6 @@ def json_to_parquet(
         filesystem: PyArrow filesystem for Parquet output
         outfile: Filepath of output Parqet file
         split_columns: Whether to write each column in its own file
-        small_columns: List of columns small enough to consolidate
-            at end of simulation for faster read performance
         write_statistics: Whether to write Parquet statistics (min,
             max, etc.) for each column
     """
@@ -96,8 +93,6 @@ def json_to_parquet(
     base_name = os.path.basename(outfile)
     if split_columns:
         for col_name, col in zip(t.column_names, t.columns):
-            if col.nbytes / len(col) / 8 < len(col) + 1:
-                small_columns.append(col_name)
             # Special characters can break Hive partitioning so quote them
             col_name_quoted = parse.quote_plus(col_name)
             pq.write_table(
@@ -120,25 +115,6 @@ def json_to_parquet(
             write_statistics=write_statistics,
         )
     pathlib.Path(ndjson).unlink()
-
-
-def consolidate_small_columns(
-    small_columns: list[str], out_dir: str, filesystem: fs.FileSystem
-):
-    """
-    For each small column, reads batched Parquet files and replaces them with
-    a single file containing all data (faster read performance).
-    """
-    for column in small_columns:
-        quoted_column = parse.quote_plus(column)
-        col_dir = os.path.join(out_dir, f"column={quoted_column}")
-        col_table = (
-            ds.dataset(col_dir, partitioning=None, filesystem=filesystem)
-            .sort_by("time")
-            .to_table()
-        )
-        filesystem.delete_dir_contents(col_dir)
-        pq.write_table(col_table, os.path.join(col_dir, "consolidated.pq"))
 
 
 def get_dataset_sql(out_dir: str) -> tuple[str, str]:
@@ -694,15 +670,10 @@ class ParquetEmitter(Emitter):
         self.encodings = {}
         self.schema = pa.schema([])
         self.num_emits = 0
-        # Keep track of columns that are small enough that it is worth
-        # consolidating them into a single file at the end of the sim
-        self.small_columns = []
         atexit.register(self._finalize)
 
     def _finalize(self):
-        """Convert remaining batched emits to Parquet at sim shutdown. Also calls
-        :py:func`~.consolidate_small_columns` to mitigate performance penalty of
-        reading many small Parquet files."""
+        """Convert remaining batched emits to Parquet at sim shutdown."""
         outfile = os.path.join(
             self.outdir, "history", self.partitioning_path, f"{self.num_emits}.pq"
         )
@@ -714,13 +685,7 @@ class ParquetEmitter(Emitter):
                 self.filesystem,
                 outfile,
                 True,
-                self.small_columns,
             )
-        consolidate_small_columns(
-            self.small_columns,
-            os.path.join(self.outdir, "history", self.partitioning_path),
-            self.filesystem,
-        )
 
     def emit(self, data: dict[str, Any]):
         """
@@ -853,6 +818,5 @@ class ParquetEmitter(Emitter):
                 self.filesystem,
                 outfile,
                 True,
-                self.small_columns,
             )
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)
