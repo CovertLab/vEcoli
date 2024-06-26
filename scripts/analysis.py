@@ -83,7 +83,14 @@ def main():
         config_file = args.config
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
-    out_dir = config["emitter"]["config"]["out_dir"]
+    if "out_uri" not in config["emitter"]["config"]:
+        out_uri = os.path.abspath(config["emitter"]["config"]["out_dir"])
+        gcs_bucket = True
+    else:
+        out_uri = config["emitter"]["config"]["out_uri"]
+        assert (parse.urlparse(out_uri).scheme == "gcs" or
+                parse.urlparse(out_uri).scheme == "gs")
+        gcs_bucket = True
     config = config["analysis_options"]
     for k, v in vars(args).items():
         if v is not None:
@@ -162,8 +169,9 @@ def main():
     for analysis_name, analysis_mod in analysis_modules.items():
         # Establish a fresh in-memory DuckDB for every analysis
         conn = duckdb.connect()
-        out_path = out_dir
-        conn.register_filesystem(filesystem("gcs"))
+        out_path = out_uri
+        if gcs_bucket:
+            conn.register_filesystem(filesystem("gcs"))
         conn.execute(f"SET temp_directory = '{out_path}'")
         conn.execute("SET preserve_insertion_order = false")
         # Set number of threads for DuckDB
