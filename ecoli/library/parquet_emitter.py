@@ -69,7 +69,6 @@ def json_to_parquet(
     schema: pa.Schema,
     filesystem: fs.FileSystem,
     outfile: str,
-    write_statistics: bool = False,
 ):
     """
     Reads newline-delimited JSON file and converts to Parquet file.
@@ -127,7 +126,8 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
                 'lineage_seed': BIGINT,
                 'generation': BIGINT,
                 'agent_id': VARCHAR,
-            }}
+            }},
+            union_by_name = true,
         )
         """,
         f"""
@@ -140,7 +140,8 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
                 'lineage_seed': BIGINT,
                 'generation': BIGINT,
                 'agent_id': VARCHAR,
-            }}
+            }},
+            union_by_name = true,
         )
         """,
     )
