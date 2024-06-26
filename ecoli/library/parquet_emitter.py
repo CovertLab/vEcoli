@@ -69,7 +69,7 @@ def json_to_parquet(
     schema: pa.Schema,
     filesystem: fs.FileSystem,
     outfile: str,
-    write_statistics: bool = True,
+    write_statistics: bool = False,
 ):
     """
     Reads newline-delimited JSON file and converts to Parquet file.
@@ -81,7 +81,10 @@ def json_to_parquet(
         filesystem: PyArrow filesystem for Parquet output
         outfile: Filepath of output Parqet file
         write_statistics: Whether to write Parquet statistics (min,
-            max, etc.) for each column
+            max, etc.) for each column. Usually not useful for us
+            since we do not tend to filter at a more granular level
+            than provided by our Hive partitioning scheme. Slows down
+            Parquet reading significantly.
     """
     parse_options = pj.ParseOptions(explicit_schema=schema)
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
@@ -723,7 +726,6 @@ class ParquetEmitter(Emitter):
                 pa.schema(schema),
                 self.filesystem,
                 outfile,
-                write_statistics=False,
             )
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)
             return
