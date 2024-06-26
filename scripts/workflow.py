@@ -352,7 +352,7 @@ def main():
         f"{experiment_id}_report.html",
     )
     workdir = os.path.join(
-        out_uri, "nextflow_workdirs", f"experiment_id={experiment_id}"
+        out_uri, "nextflow_workdirs"
     )
     if nf_profile == "standard" or nf_profile == "gcloud":
         subprocess.run(

@@ -172,8 +172,12 @@ def main():
         out_path = out_uri
         if gcs_bucket:
             conn.register_filesystem(filesystem("gcs"))
+        # Temp directory so DuckDB can spill to disk when data larger than RAM
         conn.execute(f"SET temp_directory = '{out_path}'")
+        # Turning this off reduces RAM usage
         conn.execute("SET preserve_insertion_order = false")
+        # Cache Parquet metadata so only needs to be scanned once
+        conn.execute("SET enable_object_cache = true")
         # Set number of threads for DuckDB
         if "n_cpus" in config:
             conn.execute(f"SET threads = {config['n_cpus']}")
