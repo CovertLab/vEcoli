@@ -127,9 +127,12 @@ def generate_lineage(
         all_sim_tasks.append(f"{name}.out.metadata")
 
     # Channel that combines metadata for all sim tasks
-    tasks = all_sim_tasks[0]
-    other_tasks = ", ".join(all_sim_tasks[1:])
-    sim_workflow.append(f"\t{tasks}.mix({other_tasks}).set {{ simCh }}")
+    if len(all_sim_tasks) > 1:
+        tasks = all_sim_tasks[0]
+        other_tasks = ", ".join(all_sim_tasks[1:])
+        sim_workflow.append(f"\t{tasks}.mix({other_tasks}).set {{ simCh }}")
+    else:
+        sim_workflow.append(f"\t{all_sim_tasks[0]}.set {{ simCh }}")
 
     sims_per_seed = generations if single_daughters else 2**generations - 1
 
