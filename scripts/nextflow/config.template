@@ -31,8 +31,7 @@ profiles {
             }
         }
         process.errorStrategy = {
-            (task.exitStatus in [137, 139, 140, 143]) &&
-            (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
+            task.exitStatus in [137, 139, 140, 143] ? 'retry' : 'ignore' }
         process.cpus = 2
         process.executor = 'slurm'
         process.queue = 'owners'
