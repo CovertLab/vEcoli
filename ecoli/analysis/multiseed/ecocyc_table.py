@@ -136,10 +136,10 @@ def plot(
             f"list_select(bulk, {uncharged_tRNA_idx}) AS uncharged_tRNAs, "
             f"list_select(bulk, {rRNA_idx}) AS rRNAs, "
             f"list_select(bulk, {ribo_subunit_idx}) AS ribo_subunits",
-            None,
-            None,
-            None,
-            None,
+            "listeners__unique_molecule_counts__active_ribosome",
+            "listeners__enzyme_kinetics__counts_to_molar",
+            "listeners__mass__dry_mass",
+            "listeners__rna_counts__mRNA_cistron_counts",
         ],
         remove_first=True,
         order_results=False,
@@ -447,8 +447,8 @@ def plot(
         [
             # Extract only complex bulk counts to reduce RAM usage
             f"list_select(bulk, {complex_idx}) AS complex_counts",
-            None,
-            None,
+            "listeners__enzyme_kinetics__counts_to_molar",
+            "listeners__mass__dry_mass",
         ],
         remove_first=True,
         order_results=False,

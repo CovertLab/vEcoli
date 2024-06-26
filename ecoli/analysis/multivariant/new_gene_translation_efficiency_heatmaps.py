@@ -1368,7 +1368,8 @@ def plot(
             "plot_title": "RNA Polymerase (RNAP) Counts",
             "num_digits_rounding": 0,
             "box_text_size": "x-small",
-            "projections": [get_rnap_counts_projection(sim_data, bulk_ids), None],
+            "projections": [get_rnap_counts_projection(sim_data, bulk_ids),
+                            "listeners__unique_molecule_counts__active_RNAP"],
             "custom_sql": """
                 WITH total_counts AS (
                     SELECT avg(bulk +
@@ -1387,7 +1388,8 @@ def plot(
             "plot_title": "Active Ribosome Counts",
             "num_digits_rounding": 0,
             "box_text_size": "x-small",
-            "projections": [get_ribosome_counts_projection(sim_data, bulk_ids), None],
+            "projections": [get_ribosome_counts_projection(sim_data, bulk_ids),
+                            "listeners__unique_molecule_counts__active_ribosome"],
             "custom_sql": """
                 WITH total_counts AS (
                     SELECT avg(bulk +
@@ -1443,8 +1445,8 @@ def plot(
                 + "_rnap, "
                 + get_ribosome_counts_projection(sim_data, bulk_ids)
                 + "_ribosome",
-                None,
-                None,
+                "listeners__unique_molecule_counts__active_RNAP",
+                "listeners__unique_molecule_counts__active_ribosome",
             ],
             "custom_sql": """
                 WITH total_counts AS (
@@ -2129,7 +2131,7 @@ def plot(
                 "-listeners__fba_results__external_exchange_fluxes["
                 f"{glucose_idx}] AS glucose_flux",
                 "listeners__mass__dry_mass AS dry_mass",
-                None,
+                "time",
                 "list_select(listeners__monomer_counts, "
                 f"{new_gene_indexes['monomer']}) AS monomer_counts",
             ],
@@ -2175,7 +2177,7 @@ def plot(
             "plot_title": "New Gene fg Protein Yield per Hour",
             "num_digits_rounding": 2,
             "projections": [
-                None,
+                "time",
                 "list_select(listeners__monomer_counts, "
                 f"{new_gene_indexes['monomer']}) AS monomer_counts",
             ],
