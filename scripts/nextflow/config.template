@@ -58,6 +58,8 @@ profiles {
         // Avoid polling scheduler too frequently (can cause job status mixups)
         executor.pollInterval = '5m'
         executor.queueStatInterval = '5m'
+        executor.submitRateLimit = '20/min'
+        executor.exitReadTimeout = '15 min'
     }
     standard {
         process.executor = 'local'
