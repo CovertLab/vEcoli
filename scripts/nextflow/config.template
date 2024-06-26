@@ -45,7 +45,7 @@ profiles {
         process.maxRetries = 3
         params.projectRoot = "${launchDir}"
         params.publishDir = "PUBLISH_DIR"
-        executor.retry.reason = '.+'
+        executor.retry.reason = '.*'
         executor.pollInterval = '30s'
         executor.queueStatInterval = '5m'
     }
