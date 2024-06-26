@@ -85,6 +85,7 @@ def plot(
         history_sql,
         ["listeners__monomer_counts", "listeners__rna_counts__mRNA_counts"],
         [new_monomers, new_mRNAs],
+        conn=conn,
     )
     new_gene_data = pl.DataFrame(new_gene_data).with_columns(
         **{"Time (min)": pl.col("time") / 60}

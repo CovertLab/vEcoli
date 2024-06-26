@@ -104,7 +104,6 @@ def plot(
         history_sql,
         ["listeners__monomer_counts", "listeners__rna_counts__mRNA_cistron_counts"],
         [f"{monomer_expr} AS monomer_counts", f"{cistron_expr} AS mrna_counts"],
-        return_sql=True,
         order_results=False,
     )
     out_df = conn.sql(

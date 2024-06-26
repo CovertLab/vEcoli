@@ -142,7 +142,6 @@ def plot(
             None,
         ],
         remove_first=True,
-        return_sql=True,
         order_results=False,
     )
     rna_data = conn.sql(
@@ -202,7 +201,6 @@ def plot(
         history_sql,
         ["listeners__rna_synth_prob__gene_copy_number"],
         remove_first=True,
-        return_sql=True,
         order_results=False,
     )
     gene_copy_data = conn.sql(
@@ -329,7 +327,6 @@ def plot(
             "listeners__monomer_counts",
         ],
         remove_first=True,
-        return_sql=True,
         order_results=False,
     )
     # Load tables and attributes for proteins
@@ -454,7 +451,6 @@ def plot(
             None,
         ],
         remove_first=True,
-        return_sql=True,
         order_results=False,
     )
     complex_data = conn.sql(
@@ -527,7 +523,6 @@ def plot(
             "listeners__mass__cell_mass",
             "listeners__mass__dry_mass",
         ],
-        return_sql=True,
         order_results=False,
     )
     flux_data = conn.sql(

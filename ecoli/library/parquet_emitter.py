@@ -408,18 +408,19 @@ def read_stacked_columns(
     projections: Optional[list[str]] = None,
     remove_first: bool = False,
     func: Optional[Callable[[pa.Table], pa.Table]] = None,
-    return_sql: bool = False,
+    conn: Optional[duckdb.DuckDBPyConnection] = None,
     order_results: bool = True,
 ) -> pa.Table | str:
     """
     Loads columns for many cells. If you would like to perform more advanced
     computatations (aggregations, window functions, etc.) using the optimized
-    DuckDB API, you can specify ``return_sql=True`` and use the return value
-    as a subquery. For computations that cannot be easily performed using the
-    DuckDB API, you can define a custom function ``func`` that will be called
-    on the data for each cell. By default, the returned SQL expression will
+    DuckDB API, you can omit ``conn``, in which case this function will return
+    an SQL string that can be used as a subquery. For computations that cannot
+    be easily performed using the DuckDB API, you can define a custom function
+    ``func`` that will be called on the data for each cell. By default, the
+    return value (whether it be the actual data or an SQL subquery) will
     also include the ``experiment_id``, ``variant``, ``lineage_seed``,
-    ``generation``, ``agent_id``, and ``time``.
+    ``generation``, ``agent_id``, and ``time`` columns.
 
     For example, to get the average total concentration of three bulk molecules
     with indices 100, 1000, and 10000 per cell::
@@ -431,14 +432,13 @@ def read_stacked_columns(
         subquery = read_stacked_columns(
             history_sql,
             ["bulk", "listeners__enzyme_kinetics__counts_to_molar"],
-            [named_idx()]
-            return_sql = True
+            # Note DuckDB arrays are 1-indexed
+            ["bulk[100 + 1] + bulk[1000 + 1] + bulk[10000 + 1] AS bulk_sum", None],
+            order_results=False,
         )
         query = '''
-            # Note DuckDB arrays are 1-indexed
             SELECT avg(
-                (bulk[100 + 1] + bulk[1000 + 1] + bulk[10000 + 1]) *
-                listeners__enzyme_kinetics__counts_to_molar
+                bulk_sum * listeners__enzyme_kinetics__counts_to_molar
                 ) AS avg_total_conc
             FROM ({subquery})
             GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
@@ -469,10 +469,12 @@ def read_stacked_columns(
             # Return value must be a PyArrow table
             return pa.table({'avg_rna_synth_prob_per_cistron': [
                 rna_synth_prob_per_cistron.mean(axis=0)]})
+        conn = duckdb.connect()
         result = read_stacked_columns(
             history_sql,
             ["listeners__rna_synth_prob__actual_rna_synth_prob"],
-            func = avg_rna_synth_prob_per_cistron
+            func=avg_rna_synth_prob_per_cistron,
+            conn=conn,
         )
 
     Args:
@@ -488,12 +490,14 @@ def read_stacked_columns(
         remove_first: Remove data for first timestep of each cell
         func: Function to call on data for each cell, should take and
             return a PyArrow table with columns equal to ``columns``
-        return_sql: Instead of directly running the DuckDB query and returning
-            the result as a PyArrow table, return the SQL query string. Cannot
-            be used together with ``func``.
+        conn: DuckDB connection instance with which to run query. Typically
+            provided by :py:func:`scripts.analysis.main` to the ``plot``
+            method of analysis scripts (tweaked some DuckDB settings). Can
+            be omitted to return SQL query string to be used as subquery
+            instead of running query immediately and returning result.
         order_results: Whether to sort returned table by ``experiment_id``,
             ``variant``, ``lineage_seed``, ``generation``, ``agent_id``, and
-            ``time``. If this using ``return_sql``, this can usually be disabled
+            ``time``. If no ``conn`` is provided, this can usually be disabled
             and any sorting can be deferred until the last step in the query with
             a manual ``ORDER BY``. Doing this can greatly reduce RAM usage.
     """
@@ -536,10 +540,9 @@ def read_stacked_columns(
                 GROUP BY experiment_id, variant, lineage_seed, generation,
                     agent_id
             )"""
-    conn = duckdb.connect()
     if func is not None:
-        if return_sql:
-            raise RuntimeError("Cannot use func with return_sql.")
+        if conn is None:
+            raise RuntimeError("`conn` must be provided with `func`.")
         # Get all cell identifiers
         time_col = history_sql.replace("COLNAMEHERE", "time")
         cell_ids = conn.sql(f"""SELECT DISTINCT ON(experiment_id, variant,
@@ -565,7 +568,7 @@ def read_stacked_columns(
         query = f"SELECT * FROM ({joined_sql}) ORDER BY {id_cols}"
     else:
         query = joined_sql
-    if return_sql:
+    if conn is None:
         return query
     return conn.sql(query).arrow()
 
