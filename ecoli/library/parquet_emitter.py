@@ -753,14 +753,6 @@ class ParquetEmitter(Emitter):
                     if encoding is not None:
                         self.encodings[field_name] = encoding
                     self.schema = self.schema.append(pa.field(k, pa_type))
-                    self.filesystem.create_dir(
-                        os.path.join(
-                            self.outdir,
-                            "history",
-                            self.partitioning_path,
-                            f"column={parse.quote_plus(k)}",
-                        )
-                    )
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
             self.temp_data.close()
