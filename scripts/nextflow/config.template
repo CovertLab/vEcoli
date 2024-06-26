@@ -46,6 +46,8 @@ profiles {
         params.projectRoot = "${launchDir}"
         params.publishDir = "PUBLISH_DIR"
         executor.retry.reason = '.+'
+        executor.pollInterval = '30s'
+        executor.queueStatInterval = '5m'
     }
     standard {
         process.executor = 'local'
