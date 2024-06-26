@@ -80,11 +80,6 @@ def json_to_parquet(
         schema: PyArrow schema of Parquet file to write
         filesystem: PyArrow filesystem for Parquet output
         outfile: Filepath of output Parqet file
-        write_statistics: Whether to write Parquet statistics (min,
-            max, etc.) for each column. Usually not useful for us
-            since we do not tend to filter at a more granular level
-            than provided by our Hive partitioning scheme. Slows down
-            Parquet reading significantly.
     """
     parse_options = pj.ParseOptions(explicit_schema=schema)
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
@@ -98,7 +93,9 @@ def json_to_parquet(
         compression="zstd",
         column_encoding=encodings,
         filesystem=filesystem,
-        write_statistics=write_statistics,
+        # Writing statistics with giant nested columns bloats metadata
+        # and dramatically slows down reading while increasing RAM usage
+        write_statistics=False,
     )
     pathlib.Path(ndjson).unlink()
 
@@ -122,7 +119,7 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
     return (
         f"""
         FROM read_parquet(
-            '{os.path.join(out_dir, 'history')}/*/*/*/*/*/column=COLNAMEHERE/*.pq',
+            '{os.path.join(out_dir, 'history')}/*/*/*/*/*/*.pq',
             hive_partitioning = true,
             hive_types = {{
                 'experiment_id': VARCHAR,
