@@ -45,9 +45,7 @@ profiles {
         process.maxRetries = 3
         params.projectRoot = "${launchDir}"
         params.publishDir = "PUBLISH_DIR"
-        executor.exitReadTimeout = 1.h
-        executor.pollInterval = '30 sec'
-        executor.submitRateLimit = '1 sec'
+        executor.retry.reason = '.+'
     }
     standard {
         process.executor = 'local'
