@@ -127,7 +127,6 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
                 'lineage_seed': BIGINT,
                 'generation': BIGINT,
                 'agent_id': VARCHAR,
-                'column': VARCHAR,
             }}
         )
         """,
