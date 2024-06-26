@@ -30,10 +30,9 @@ For more details, refer to the [user guide](https://covertlab.github.io/vivarium
 
 pyenv lets you install and switch between multiple Python releases and multiple "virtual 
 environments", each with its own pip packages. Using pyenv, create a virtual environment 
-and install Python 3.11.3. For a tutorial on how to create a virtual environment, follow 
-the instructions [here](https://github.com/CovertLab/wcEcoli/blob/master/docs/create-pyenv.md) 
-and stop once you reach the "Create the 'wcEcoli3' python virtual environment" step. Then, 
-run the following command in your terminal:
+and install Python 3.11.3. For a tutorial on how to install pyenv and other dependencies,
+follow the instructions [here](https://github.com/CovertLab/wcEcoli/blob/master/docs/dev-tools.md).
+Then, run the following command in your terminal:
 
     pyenv virtualenv 3.11.3 viv-ecoli && pyenv local viv-ecoli
 
@@ -61,9 +60,10 @@ and JVM were properly installed and the same version.
     javac -version
     java -version
 
-After verifying your Java installation, you can proceed with the Nextflow installation
-steps, starting with `curl -s https://get.nextflow.io | bash`. If this command fails, try prepending
-`export CAPSULE_LOG=verbose` and re-run it, checking for failed downloads. If found, simply rerun this command until it succeeds.
+After verifying your Java installation, you can proceed with installing Nextflow,
+starting with `curl -s https://get.nextflow.io | bash`. If this fails, try
+prepending `export CAPSULE_LOG=verbose` and re-run, checking for failed downloads.
+If any downloads failed, re-run this command until it succeeds.
 
 ## Test Installation
 
@@ -77,8 +77,10 @@ To test your installation, from the top-level of the cloned repository, invoke:
 This will run the following basic simulation workflow:
 
 1. Run the [parameter calculator](scripts/parca.py) to generate simulation data.
-2. Run the [simulation](ecoli/experiments/ecoli_master_sim.py) for a single generation, saving output in `out` folder.
-3. [Analyze simulation output](scripts/analysis.py) by creating a [mass fraction plot](ecoli/analysis/single/mass_fraction_summary.py).
+2. Run the [simulation](ecoli/experiments/ecoli_master_sim.py)
+    for a single generation, saving output in `out` folder.
+3. [Analyze simulation output](scripts/analysis.py) by creating a
+    [mass fraction plot](ecoli/analysis/single/mass_fraction_summary.py).
 
 
 ## Next Steps
