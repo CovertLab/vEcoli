@@ -12,7 +12,6 @@ import numpy as np
 import orjson
 import pyarrow as pa
 from pyarrow import compute as pc
-from pyarrow import dataset as ds
 from pyarrow import fs
 from pyarrow import json as pj
 from pyarrow import parquet as pq
@@ -70,7 +69,6 @@ def json_to_parquet(
     schema: pa.Schema,
     filesystem: fs.FileSystem,
     outfile: str,
-    split_columns: bool = False,
     write_statistics: bool = True,
 ):
     """
@@ -82,7 +80,6 @@ def json_to_parquet(
         schema: PyArrow schema of Parquet file to write
         filesystem: PyArrow filesystem for Parquet output
         outfile: Filepath of output Parqet file
-        split_columns: Whether to write each column in its own file
         write_statistics: Whether to write Parquet statistics (min,
             max, etc.) for each column
     """
@@ -91,29 +88,15 @@ def json_to_parquet(
     t = pj.read_json(ndjson, read_options=read_options, parse_options=parse_options)
     out_dir = os.path.dirname(outfile)
     base_name = os.path.basename(outfile)
-    if split_columns:
-        for col_name, col in zip(t.column_names, t.columns):
-            # Special characters can break Hive partitioning so quote them
-            col_name_quoted = parse.quote_plus(col_name)
-            pq.write_table(
-                pa.table({col_name: col, "time": t["time"]}),
-                os.path.join(out_dir, f"column={col_name_quoted}", base_name),
-                use_dictionary=False,
-                compression="zstd",
-                column_encoding=encodings,
-                filesystem=filesystem,
-                write_statistics=write_statistics,
-            )
-    else:
-        pq.write_table(
-            t,
-            os.path.join(out_dir, base_name),
-            use_dictionary=False,
-            compression="zstd",
-            column_encoding=encodings,
-            filesystem=filesystem,
-            write_statistics=write_statistics,
-        )
+    pq.write_table(
+        t,
+        os.path.join(out_dir, base_name),
+        use_dictionary=False,
+        compression="zstd",
+        column_encoding=encodings,
+        filesystem=filesystem,
+        write_statistics=write_statistics,
+    )
     pathlib.Path(ndjson).unlink()
 
 
@@ -433,13 +416,12 @@ def read_stacked_columns(
             history_sql,
             ["bulk", "listeners__enzyme_kinetics__counts_to_molar"],
             # Note DuckDB arrays are 1-indexed
-            ["bulk[100 + 1] + bulk[1000 + 1] + bulk[10000 + 1] AS bulk_sum", None],
+            ["bulk[100 + 1] + bulk[1000 + 1] + bulk[10000 + 1] AS bulk_sum",
+            "listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar"],
             order_results=False,
         )
         query = '''
-            SELECT avg(
-                bulk_sum * listeners__enzyme_kinetics__counts_to_molar
-                ) AS avg_total_conc
+            SELECT avg(bulk_sum * counts_to_molar) AS avg_total_conc
             FROM ({subquery})
             GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
             '''
@@ -483,10 +465,8 @@ def read_stacked_columns(
         columns: Names of columns to read data for. Unless you need to perform
             a computation involving multiple columns, calling this function
             many times with one column each time will use less RAM.
-        projections: Expressions to project from each column that is read.
-            Must be same length as ``columns``. If ``None`` for certain
-            columns, those columns are projected as is. If not given, all
-            columns are projected as is.
+        projections: Expressions to project from ``columns`` that are read.
+            If not given, all ``columns`` are projected as is.
         remove_first: Remove data for first timestep of each cell
         func: Function to call on data for each cell, should take and
             return a PyArrow table with columns equal to ``columns``
@@ -503,34 +483,14 @@ def read_stacked_columns(
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
     if projections is None:
-        projections = [None] * len(columns)
-    first_projection = projections[0]
-    if first_projection is None:
-        first_projection = f'{id_cols}, "{columns[0]}"'
-    else:
-        first_projection = f"{id_cols}, {first_projection}"
-    joined_sql = (
-        f"SELECT * FROM (SELECT {first_projection} FROM ("
-        + history_sql.replace("COLNAMEHERE", parse.quote_plus(columns[0]))
-        + "))"
-    )
-    # If reading multiple columns together, align them using a join
-    for column, projection in zip(columns[1:], projections[1:]):
-        quoted_colname = parse.quote_plus(column)
-        if projection is None:
-            projection = f'{id_cols}, "{column}"'
-        else:
-            projection = f"{id_cols}, {projection}"
-        joined_sql += f" JOIN (SELECT {projection} FROM ("
-        joined_sql += history_sql.replace("COLNAMEHERE", quoted_colname)
-        joined_sql += (
-            ")) USING (experiment_id, variant, lineage_seed, "
-            "generation, agent_id, time)"
-        )
+        projections = columns
+    projections.append(id_cols)
+    projections = ", ".join(projections)
+    sql_query = f"SELECT {projections} FROM ({history_sql})"
     # Use an antijoin to remove rows for first timestep of each sim
     if remove_first:
-        joined_sql = f"""
-            SELECT * FROM ({joined_sql})
+        sql_query = f"""
+            SELECT * FROM ({sql_query})
             WHERE (experiment_id, variant, lineage_seed, generation,
                 agent_id, time)
             NOT IN (
@@ -544,16 +504,15 @@ def read_stacked_columns(
         if conn is None:
             raise RuntimeError("`conn` must be provided with `func`.")
         # Get all cell identifiers
-        time_col = history_sql.replace("COLNAMEHERE", "time")
         cell_ids = conn.sql(f"""SELECT DISTINCT ON(experiment_id, variant,
             lineage_seed, generation, agent_id) experiment_id, variant,
-            lineage_seed, generation, agent_id {time_col} ORDER BY {id_cols}
+            lineage_seed, generation, agent_id FROM ({history_sql}) ORDER BY {id_cols}
         """).fetchall()
         all_cell_tbls = []
         for experiment_id, variant, lineage_seed, generation, agent_id in tqdm(
             cell_ids
         ):
-            cell_joined = f"""SELECT * FROM ({joined_sql})
+            cell_joined = f"""SELECT * FROM ({sql_query})
                 WHERE experiment_id = '{experiment_id}' AND
                     variant = {variant} AND
                     lineage_seed = {lineage_seed} AND
@@ -565,9 +524,9 @@ def read_stacked_columns(
             all_cell_tbls.append(func(conn.sql(cell_joined).arrow()))
         return pa.concat_tables(all_cell_tbls)
     if order_results:
-        query = f"SELECT * FROM ({joined_sql}) ORDER BY {id_cols}"
+        query = f"SELECT * FROM ({sql_query}) ORDER BY {id_cols}"
     else:
-        query = joined_sql
+        query = sql_query
     if conn is None:
         return query
     return conn.sql(query).arrow()
@@ -687,7 +646,6 @@ class ParquetEmitter(Emitter):
                 self.schema,
                 self.filesystem,
                 outfile,
-                True,
             )
 
     def emit(self, data: dict[str, Any]):
@@ -820,6 +778,5 @@ class ParquetEmitter(Emitter):
                 self.schema,
                 self.filesystem,
                 outfile,
-                True,
             )
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)
