@@ -294,7 +294,7 @@ def main():
         apply_and_save_variants(sim_data, parsed_params, variant_name, config["outdir"])
     else:
         with open(os.path.join(config["outdir"], "metadata.json"), "w") as f:
-            json.dump({0: "baseline"}, f)
+            json.dump({None: {0: "baseline"}}, f)
     print("Done.")
 
 
