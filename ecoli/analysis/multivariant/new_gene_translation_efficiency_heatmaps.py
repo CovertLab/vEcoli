@@ -1139,12 +1139,12 @@ def plot(
     """
     # Filter to specified generation range
     history_sql = (
-        f"FROM ({history_sql}) WHERE generation >= {MIN_CELL_INDEX} "
-        f"AND generation < {MAX_CELL_INDEX}"
+        f"FROM ({history_sql}) WHERE generation >= {MIN_CELL_INDEX}"
+        f" AND generation < {MAX_CELL_INDEX}"
     )
     config_sql = (
-        f"FROM ({config_sql}) WHERE generation >= {MIN_CELL_INDEX} "
-        f"AND generation < {MAX_CELL_INDEX}"
+        f"FROM ({config_sql}) WHERE generation >= {MIN_CELL_INDEX}"
+        f" AND generation < {MAX_CELL_INDEX}"
     )
     # Define baseline variant (ID = 0) as 0 new gene expr. and trans. eff.
     variant_metadata[0] = {"exp_trl_eff": {"exp": 0, "trl_eff": 0}}
