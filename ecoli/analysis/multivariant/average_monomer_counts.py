@@ -82,7 +82,7 @@ def plot(
     ]
 
     subquery = read_stacked_columns(
-        history_sql, ["listeners__monomer_counts"], return_sql=True, order_results=False
+        history_sql, ["listeners__monomer_counts"], order_results=False
     )
     avg_monomer_per_variant = conn.sql(f"""
         WITH unnested_counts AS (

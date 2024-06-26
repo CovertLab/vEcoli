@@ -243,7 +243,6 @@ def get_mean_and_std_matrices(
         projections=projections,
         remove_first=remove_first,
         func=func,
-        return_sql=True,
         order_results=order_results,
     )
     if custom_sql is None:
