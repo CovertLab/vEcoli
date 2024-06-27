@@ -1368,8 +1368,10 @@ def plot(
             "plot_title": "RNA Polymerase (RNAP) Counts",
             "num_digits_rounding": 0,
             "box_text_size": "x-small",
-            "projections": [get_rnap_counts_projection(sim_data, bulk_ids),
-                            "listeners__unique_molecule_counts__active_RNAP"],
+            "projections": [
+                get_rnap_counts_projection(sim_data, bulk_ids),
+                "listeners__unique_molecule_counts__active_RNAP",
+            ],
             "custom_sql": """
                 WITH total_counts AS (
                     SELECT avg(bulk +
@@ -1388,8 +1390,10 @@ def plot(
             "plot_title": "Active Ribosome Counts",
             "num_digits_rounding": 0,
             "box_text_size": "x-small",
-            "projections": [get_ribosome_counts_projection(sim_data, bulk_ids),
-                            "listeners__unique_molecule_counts__active_ribosome"],
+            "projections": [
+                get_ribosome_counts_projection(sim_data, bulk_ids),
+                "listeners__unique_molecule_counts__active_ribosome",
+            ],
             "custom_sql": """
                 WITH total_counts AS (
                     SELECT avg(bulk +

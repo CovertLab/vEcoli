@@ -612,9 +612,7 @@ class Ecoli(Composer):
                 "division_threshold": ("division_threshold",),
             }
             if config["generations"] is not None:
-                topology["stop-after-division"] = {
-                    "agents": ("..", "..", "agents")
-                }
+                topology["stop-after-division"] = {"agents": ("..", "..", "agents")}
 
         # Add Allocator and UniqueUpdate topologies
         _, steps, _ = self.processes_and_steps

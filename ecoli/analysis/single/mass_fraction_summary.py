@@ -47,7 +47,9 @@ def plot(
         "Small Mol.s": "listeners__mass__smallMolecule_mass",
         "Dry": "listeners__mass__dry_mass",
     }
-    mass_data = read_stacked_columns(history_sql, list(mass_columns.values()), conn=conn)
+    mass_data = read_stacked_columns(
+        history_sql, list(mass_columns.values()), conn=conn
+    )
     mass_data = pl.DataFrame(mass_data)
     fractions = {
         k: (mass_data[v] / mass_data["listeners__mass__dry_mass"]).mean()
