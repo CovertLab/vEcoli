@@ -3,6 +3,8 @@ process analysisSingle {
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
+    array 10
+
     input:
     path config
     path kb
