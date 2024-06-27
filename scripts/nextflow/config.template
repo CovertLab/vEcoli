@@ -43,7 +43,7 @@ profiles {
             // is the case for errors that leave no exit code
             ((task.exitStatus in [137, 139, 140, 143, Integer.MAX_VALUE])
             && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore' }
-        process.cpus = 2
+        process.cpus = 1
         process.executor = 'slurm'
         process.queue = 'owners'
         process.time = {
