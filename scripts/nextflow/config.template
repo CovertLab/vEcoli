@@ -58,11 +58,11 @@ profiles {
         params.publishDir = "PUBLISH_DIR"
         // Retry all jobs that fail to submit (different from fail during runtime)
         executor.submit.retry.reason = '.*'
-        executor.retry.delay = '10 min'
-        executor.retry.maxDelay = '20 min'
+        executor.retry.delay = '5 min'
+        executor.retry.maxDelay = '10 min'
         // Avoid polling scheduler too frequently (can cause job status mixups)
         executor.pollInterval = '5 min'
-        executor.queueStatInterval = '5 min'
+        executor.queueStatInterval = '2 min'
         executor.submitRateLimit = '20/min'
         executor.exitReadTimeout = '15 min'
         executor.dumpInterval = '6 min'
