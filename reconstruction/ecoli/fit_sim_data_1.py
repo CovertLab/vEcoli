@@ -990,7 +990,7 @@ def expressionConverge(
         )
 
     for iteration in range(MAX_FITTING_ITERATIONS):
-        if VERBOSE == 1:
+        if VERBOSE > 1:
             print("Iteration: {}".format(iteration))
 
         initialExpression = expression.copy()
@@ -1026,7 +1026,7 @@ def expressionConverge(
 
         degreeOfFit = np.sqrt(np.mean(np.square(initialExpression - expression)))
 
-        if VERBOSE == 1:
+        if VERBOSE > 1:
             print("degree of fit: {}".format(degreeOfFit))
             print(
                 f"Average cistron expression residuals: {np.linalg.norm(cistron_expression_res)}"
