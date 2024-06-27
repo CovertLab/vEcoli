@@ -88,8 +88,10 @@ def main():
         gcs_bucket = True
     else:
         out_uri = config["emitter"]["config"]["out_uri"]
-        assert (parse.urlparse(out_uri).scheme == "gcs" or
-                parse.urlparse(out_uri).scheme == "gs")
+        assert (
+            parse.urlparse(out_uri).scheme == "gcs"
+            or parse.urlparse(out_uri).scheme == "gs"
+        )
         gcs_bucket = True
     config = config["analysis_options"]
     for k, v in vars(args).items():

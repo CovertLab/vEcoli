@@ -44,6 +44,7 @@ from ecoli.library.schema import not_a_process
 class TimeLimitError(RuntimeError):
     """Error raised when ``fail_at_total_time`` is True and simulation
     reaches ``total_time``."""
+
     pass
 
 
@@ -73,9 +74,11 @@ def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
 def get_git_revision_hash() -> str:
     """Returns current Git hash for model repository to include in metadata
     that is emitted when starting a simulation."""
-    return subprocess.check_output(
-        ["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"]
-        ).decode("ascii").strip()
+    return (
+        subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"])
+        .decode("ascii")
+        .strip()
+    )
 
 
 def get_git_status() -> str:
@@ -83,8 +86,7 @@ def get_git_status() -> str:
     emitted when starting a simulation.
     """
     status_str = (
-        subprocess.check_output(
-            ["git", "-C", CONFIG_DIR_PATH, "status", "--porcelain"])
+        subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "status", "--porcelain"])
         .decode("ascii")
         .strip()
     )
@@ -836,10 +838,13 @@ class EcoliSim:
 
         # Since unique numpy updater is an class method, internal
         # deepcopying in vivarium-core causes this warning to appear
-        warnings.filterwarnings("ignore", message="Incompatible schema "
+        warnings.filterwarnings(
+            "ignore",
+            message="Incompatible schema "
             "assignment at .+ Trying to assign the value <bound method "
             "UniqueNumpyUpdater.updater .+ to key updater, which already "
-            "has the value <bound method UniqueNumpyUpdater.updater")
+            "has the value <bound method UniqueNumpyUpdater.updater",
+        )
         self.ecoli_experiment = Engine(**experiment_config)
 
         # Only emit designated stores if specified
