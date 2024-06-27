@@ -1,5 +1,6 @@
 import atexit
 import os
+import gc
 import glob
 import pathlib
 from itertools import pairwise
@@ -674,6 +675,9 @@ class ParquetEmitter(Emitter):
                 # and dramatically slows down reading while increasing RAM usage
                 write_statistics=False,
             )
+            # Explicitly free table memory every iteration
+            del t
+            gc.collect()
         shutil.rmtree(os.path.dirname(outfile), ignore_errors=True)
 
     def emit(self, data: dict[str, Any]):
