@@ -7,19 +7,14 @@ params {
 profiles {
     gcloud {
         // Retry once with more RAM if OOM
-        process.memory = {
-            if ( task.exitStatus == 137 ) {
-                4.GB * task.attempt
-            } else {
-                4.GB
-            }
-        }
+        process.memory = { 4.GB * task.attempt }
         process.cpus = 2
         process.executor = 'google-batch'
         process.container = 'IMAGE_NAME'
         process.errorStrategy = {
-            // Exit status 137 (OOM), 139 (segfault, probably in PyArrow),
-            task.exitStatus in [137, 139] ? 'retry' : 'ignore' }
+            // Codes: 137 (out-of-memory)
+            ((task.exitStatus == 137)
+            && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore' }
         google.project = 'allen-discovery-center-mcovert'
         google.location = 'us-west1'
         google.batch.spot = true
@@ -37,12 +32,13 @@ profiles {
             }
         }
         process.errorStrategy = {
-            // Exit status 137 (OOM), 139 (segfault, probably in PyArrow),
-            // 140 (SLURM job limits), 143 (SLURM pre-emption)
+            // Codes: 140 (SLURM job limits), 143 (SLURM preemption)
             // Default value for exitStatus is max integer value, this
-            // is the case for errors that leave no exit code
-            ((task.exitStatus in [137, 139, 140, 143, Integer.MAX_VALUE])
+            // is a catch-all for errors that leave no exit code
+            ((task.exitStatus in [140, 143, Integer.MAX_VALUE])
             && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore' }
+        // Using single core is slightly slower but can have shorter
+        // queue times and is less damaging to future job priority
         process.cpus = 1
         process.executor = 'slurm'
         process.queue = 'owners'
