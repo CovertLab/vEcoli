@@ -39,7 +39,10 @@ profiles {
         process.errorStrategy = {
             // Exit status 137 (OOM), 139 (segfault, probably in PyArrow),
             // 140 (SLURM job limits), 143 (SLURM pre-emption)
-            task.exitStatus in [137, 139, 140, 143] ? 'retry' : 'ignore' }
+            // Default value for exitStatus is max integer value, this
+            // is the case for errors that leave no exit code
+            ((task.exitStatus in [137, 139, 140, 143, Integer.MAX_VALUE])
+            && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore' }
         process.cpus = 2
         process.executor = 'slurm'
         process.queue = 'owners'
@@ -60,6 +63,7 @@ profiles {
         executor.queueStatInterval = '5m'
         executor.submitRateLimit = '20/min'
         executor.exitReadTimeout = '15 min'
+        executor.dumpInterval = '6 min'
     }
     standard {
         process.executor = 'local'
