@@ -2,6 +2,8 @@ process runParca {
     // Run ParCa using parca_options from config JSON
     publishDir "${params.publishDir}/experiment_id=${params.experimentId}/parca"
 
+    cpus PARCA_CPUS
+
     input:
     path config
 
