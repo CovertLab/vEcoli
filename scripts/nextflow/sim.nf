@@ -3,8 +3,6 @@ process simGen0 {
 
     tag "variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
-    array 10
-
     input:
     path config
     tuple path(sim_data), val(lineage_seed), val(generation)
@@ -57,8 +55,6 @@ process sim {
     publishDir path: "${params.publishDir}/experiment_id=${params.experimentId}/daughter_states/variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}",  pattern: "*.json"
 
     tag "variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
-
-    array 10
 
     input:
     tuple path(config), path(sim_data), val(lineage_seed), val(generation), val(sim_seed), path(initial_state, stageAs: 'data/*'), val(agent_id), val(prev_division_time)
