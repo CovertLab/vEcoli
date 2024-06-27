@@ -395,7 +395,7 @@ def main():
 #SBATCH --job-name=nextflow-{experiment_id}
 #SBATCH --time=7-00:00:00
 #SBATCH --cpus-per-task 1
-#SBATCH --mem=8GB
+#SBATCH --mem=4GB
 #SBATCH -p mcovert
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
     -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume else ""}
