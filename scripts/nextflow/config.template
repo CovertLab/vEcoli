@@ -4,6 +4,11 @@ params {
     config = 'CONFIG_FILE'
 }
 
+trace {
+    enabled = true
+    fields = 'name,native_id,status,submit,start,complete,duration,realtime,exit,realtime,%cpu,%mem,rss,peak_rss,error_action,cpu_model,workdir'
+}
+
 profiles {
     gcloud {
         // Retry once with more RAM if OOM
