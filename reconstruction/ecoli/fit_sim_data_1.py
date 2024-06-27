@@ -27,8 +27,8 @@ from wholecell.utils.fitting import normalize, masses_and_counts_for_homeostatic
 
 
 # Fitting parameters
-FITNESS_THRESHOLD = 1e-9
-MAX_FITTING_ITERATIONS = 1000
+FITNESS_THRESHOLD = 1e-8
+MAX_FITTING_ITERATIONS = 100
 N_SEEDS = 10
 
 # Parameters used in fitPromoterBoundProbability()
@@ -988,7 +988,7 @@ def expressionConverge(
         )
 
     for iteration in range(MAX_FITTING_ITERATIONS):
-        if VERBOSE > 1:
+        if VERBOSE == 1:
             print("Iteration: {}".format(iteration))
 
         initialExpression = expression.copy()
@@ -1024,7 +1024,7 @@ def expressionConverge(
 
         degreeOfFit = np.sqrt(np.mean(np.square(initialExpression - expression)))
 
-        if VERBOSE > 1:
+        if VERBOSE == 1:
             print("degree of fit: {}".format(degreeOfFit))
             print(
                 f"Average cistron expression residuals: {np.linalg.norm(cistron_expression_res)}"
