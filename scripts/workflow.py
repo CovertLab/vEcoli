@@ -237,6 +237,22 @@ def build_wcm_image(image_name, runtime_image_name):
     )
 
 
+def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):
+    """
+    Robustly copy the contents of a local source file to a destination path on
+    a PyArrow filesystem.
+
+    Args:
+        source: Path to source file on local filesystem
+        dest: Path to destination file on PyArrow filesystem. If Cloud Storage
+            bucket, DO NOT include ``gs://`` or ``gcs://``.
+        filesystem: PyArrow filesystem instantiated from URI of ``dest``
+    """
+    with filesystem.open_output_stream(dest) as stream:
+        with open(source, "rb") as f:
+            stream.write(f.read())
+
+
 def main():
     parser = argparse.ArgumentParser()
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
@@ -291,7 +307,7 @@ def main():
     with open(temp_config_path, "w") as f:
         json.dump(config, f)
     if not args.resume:
-        filesystem.copy_file(temp_config_path, final_config_path)
+        copy_to_filesystem(temp_config_path, final_config_path, filesystem)
 
     nf_config = os.path.join(os.path.dirname(__file__), "nextflow", "config.template")
     with open(nf_config, "r") as f:
@@ -299,8 +315,9 @@ def main():
     nf_config = "".join(nf_config)
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
     nf_config = nf_config.replace("CONFIG_FILE", final_config_uri)
-    nf_config = nf_config.replace("PUBLISH_DIR", os.path.dirname(
-        os.path.dirname(out_uri)))
+    nf_config = nf_config.replace(
+        "PUBLISH_DIR", os.path.dirname(os.path.dirname(out_uri))
+    )
 
     # By default, assume running on local device
     nf_profile = "standard"
@@ -343,17 +360,17 @@ def main():
 
     config_path = os.path.join(out_uri, "nextflow.config")
     if not args.resume:
-        filesystem.copy_file(local_workflow, os.path.join(outdir, "main.nf"))
-        filesystem.copy_file(local_config, os.path.join(outdir, "nextflow.config"))
+        copy_to_filesystem(local_workflow, os.path.join(outdir, "main.nf"), filesystem)
+        copy_to_filesystem(
+            local_config, os.path.join(outdir, "nextflow.config"), filesystem
+        )
 
     # Start nextflow workflow
     report_path = os.path.join(
         out_uri,
         f"{experiment_id}_report.html",
     )
-    workdir = os.path.join(
-        out_uri, "nextflow_workdirs"
-    )
+    workdir = os.path.join(out_uri, "nextflow_workdirs")
     if nf_profile == "standard" or nf_profile == "gcloud":
         subprocess.run(
             [
@@ -383,7 +400,9 @@ def main():
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
     -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume else ""}
 """)
-        filesystem.copy_file(batch_script, os.path.join(outdir, "nextflow_job.sh"))
+        copy_to_filesystem(
+            batch_script, os.path.join(outdir, "nextflow_job.sh"), filesystem
+        )
         subprocess.run(["sbatch", batch_script])
     shutil.rmtree(local_outdir)
 
