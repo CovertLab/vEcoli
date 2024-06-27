@@ -1,9 +1,11 @@
 import atexit
 import os
+import glob
 import pathlib
 from itertools import pairwise
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
+import shutil
 from typing import Any, Callable, Mapping, Optional
 from urllib import parse
 
@@ -67,8 +69,8 @@ def json_to_parquet(
     ndjson: str,
     encodings: dict[str, str],
     schema: pa.Schema,
-    filesystem: fs.FileSystem,
     outfile: str,
+    filesystem: Optional[fs.FileSystem] = None,
 ):
     """
     Reads newline-delimited JSON file and converts to Parquet file.
@@ -77,8 +79,8 @@ def json_to_parquet(
         ndjson: Path to newline-delimited JSON file.
         encodings: Mapping of column names to Parquet encodings
         schema: PyArrow schema of Parquet file to write
-        filesystem: PyArrow filesystem for Parquet output
-        outfile: Filepath of output Parqet file
+        outfile: Filepath of output Parquet file
+        filesystem: PyArrow filesystem for Parquet output (local if None)
     """
     parse_options = pj.ParseOptions(explicit_schema=schema)
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
@@ -127,7 +129,6 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
                 'generation': BIGINT,
                 'agent_id': VARCHAR,
             }},
-            union_by_name = true,
         )
         """,
         f"""
@@ -141,7 +142,6 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
                 'generation': BIGINT,
                 'agent_id': VARCHAR,
             }},
-            union_by_name = true,
         )
         """,
     )
@@ -620,8 +620,14 @@ class ParquetEmitter(Emitter):
         """
         if "out_uri" not in config["config"]:
             out_uri = os.path.abspath(config["config"]["out_dir"])
+            # If running locally or on Sherlock, out_dir will be on
+            # relatively fast storage so we can put temp sim out there too
+            self.scratch_dir = os.path.join(out_uri, "in_progress")
         else:
             out_uri = config["config"]["out_uri"]
+            # If running on Google Cloud, create folder on fast local disk
+            # to temporarily hold sim output (cleaned up on VM shutdown)
+            self.scratch_dir = "in_progress"
         self.filesystem, self.outdir = fs.FileSystem.from_uri(out_uri)
         self.batch_size = config["config"].get("batch_size", 400)
         self.fallback_serializer = make_fallback_serializer_function()
@@ -635,18 +641,40 @@ class ParquetEmitter(Emitter):
         atexit.register(self._finalize)
 
     def _finalize(self):
-        """Convert remaining batched emits to Parquet at sim shutdown."""
+        """Convert remaining batched emits to Parquet at sim shutdown.
+        Then, read back Parquet files one by one with final schema, filling
+        in NULL columns as appropriate. Finally, copy schema-unified Parquet
+        files to the final filesystem."""
         outfile = os.path.join(
-            self.outdir, "history", self.partitioning_path, f"{self.num_emits}.pq"
+            self.scratch_dir, self.partitioning_path, f"{self.num_emits}.pq"
         )
-        if self.filesystem.get_file_info(outfile).type == 0:
+        if not os.path.exists(outfile):
             json_to_parquet(
                 self.temp_data.name,
                 self.encodings,
                 self.schema,
-                self.filesystem,
                 outfile,
             )
+        for pq_file in glob.glob(
+            os.path.join(self.scratch_dir, self.partitioning_path, "*.pq")
+        ):
+            final_pq_file = os.path.join(
+                self.outdir, "history", self.partitioning_path, os.path.basename(pq_file)
+            )
+            # By giving explicit schema, NULL will be filled in for missing columns
+            t = pq.read_table(pq_file, schema=self.schema)
+            pq.write_table(
+                t,
+                final_pq_file,
+                use_dictionary=False,
+                compression="zstd",
+                column_encoding=self.encodings,
+                filesystem=self.filesystem,
+                # Writing statistics with giant nested columns bloats metadata
+                # and dramatically slows down reading while increasing RAM usage
+                write_statistics=False,
+            )
+        shutil.rmtree(os.path.dirname(outfile), ignore_errors=True)
 
     def emit(self, data: dict[str, Any]):
         """
@@ -708,6 +736,18 @@ class ParquetEmitter(Emitter):
             except FileNotFoundError:
                 pass
             self.filesystem.create_dir(os.path.dirname(outfile))
+            # Immediately write config Parquet to final filesystem
+            # because it is small and requires no further processing
+            self.executor.submit(
+                json_to_parquet,
+                self.temp_data.name,
+                self.encodings,
+                pa.schema(schema),
+                outfile,
+                self.filesystem,
+            )
+            self.temp_data = tempfile.NamedTemporaryFile(delete=False)
+            # Delete any sim output files in final filesystem
             history_outdir = os.path.join(
                 self.outdir, "history", self.partitioning_path
             )
@@ -716,15 +756,12 @@ class ParquetEmitter(Emitter):
             except FileNotFoundError:
                 pass
             self.filesystem.create_dir(history_outdir)
-            self.executor.submit(
-                json_to_parquet,
-                self.temp_data.name,
-                self.encodings,
-                pa.schema(schema),
-                self.filesystem,
-                outfile,
-            )
-            self.temp_data = tempfile.NamedTemporaryFile(delete=False)
+            # Create local temp dir to hold sim output because we
+            # need to perform schema unification at sim end before
+            # moving to final filesystem (see self._finalize)
+            history_outdir = os.path.join(self.scratch_dir, self.partitioning_path)
+            shutil.rmtree(history_outdir, ignore_errors=True)
+            os.makedirs(history_outdir)
             return
         # Each Engine that uses this emitter should only simulate a single cell
         # In lineage simulations, StopAfterDivision Step will terminate
@@ -757,8 +794,7 @@ class ParquetEmitter(Emitter):
         if self.num_emits % self.batch_size == 0:
             self.temp_data.close()
             outfile = os.path.join(
-                self.outdir,
-                data["table"],
+                self.scratch_dir,
                 self.partitioning_path,
                 f"{self.num_emits}.pq",
             )
@@ -767,7 +803,6 @@ class ParquetEmitter(Emitter):
                 self.temp_data.name,
                 self.encodings,
                 self.schema,
-                self.filesystem,
                 outfile,
             )
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)
