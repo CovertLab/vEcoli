@@ -204,13 +204,13 @@ class ConvexKineticsNew:
 
 
     def create_objective_function(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, y_s, y_p,
-                                  denom_expr, dmdt=None, l=0.01, e=0.01, f=1, g = 0.000001):
+                                  denom_expr, dmdt=None, l=0.001, e=0.0001, f=1, g = 0.000001, c_prior = 8):
 
         loss = 0
 
         l1 = cp.sum(cp.hstack([cfwd, crev])) + cp.sum(cp.hstack([-Km_s, -Km_p]))  # regularization
         l1_c = cp.sum(cp.hstack([c]))  # weak regularization for concentrations
-        prior = cp.norm1(cp.hstack([cfwd, crev, cp.vec(c)-6])) + cp.norm1(cp.hstack([-Km_s, -Km_p]))  # prior
+        prior = cp.norm1(cp.hstack([cfwd, crev, cp.vec(c)-c_prior])) + cp.norm1(cp.hstack([-Km_s, -Km_p]))  # prior
         # reg3 = cp.sum(cp.huber(cp.hstack([y_s, y_p]), 1))  # issue with matrix
         # reg4 = cp.sum(cp.max(cp.abs(cp.hstack([y_s, y_p])) - 3, 0)) # deadzone regularization
 
