@@ -15,6 +15,7 @@ from ecoli.library.parquet_emitter import (
     get_field_metadata,
     ndidx_to_duckdb_expr,
     num_cells,
+    open_arbitrary_sim_data,
     read_stacked_columns,
     skip_n_gens,
 )
@@ -28,13 +29,13 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: dict[int, list[str]],
+    sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any],
-    variant_name: str,
+    variant_metadata: dict[str, dict[int, Any]],
+    variant_names: list[str],
 ):
-    with open(next(iter(sim_data_paths.values())), "rb") as f:
+    with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
 
     # Ignore first N generations
