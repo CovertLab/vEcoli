@@ -34,6 +34,7 @@ from ecoli.library.updaters import (
 
 # Enable segmentation and other fault handling for tracebacks
 import faulthandler
+
 faulthandler.enable()
 
 emitter_registry.register("clickhouse", ClickHouseEmitter)

@@ -14,7 +14,11 @@ import numpy as np
 import polars as pl
 from typing import Any
 
-from ecoli.library.parquet_emitter import read_stacked_columns, ndlist_to_ndarray, open_arbitrary_sim_data
+from ecoli.library.parquet_emitter import (
+    read_stacked_columns,
+    ndlist_to_ndarray,
+    open_arbitrary_sim_data,
+)
 from reconstruction.ecoli.fit_sim_data_1 import SimulationDataEcoli
 
 IGNORE_FIRST_N_GENS = 1
