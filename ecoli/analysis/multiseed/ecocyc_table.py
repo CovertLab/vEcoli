@@ -22,6 +22,8 @@ from scipy.stats import pearsonr
 from ecoli.library.parquet_emitter import (
     get_config_value,
     get_field_metadata,
+    open_arbitrary_sim_data,
+    open_output_file,
     num_cells,
     read_stacked_columns,
     skip_n_gens,
@@ -71,15 +73,15 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: dict[int, list[str]],
+    sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any],
-    variant_name: str,
+    variant_metadata: dict[str, dict[int, Any]],
+    variant_names: list[str],
 ):
-    with open(next(iter(sim_data_paths.values())), "rb") as f:
+    with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data: "SimulationDataEcoli" = pickle.load(f)
-    with open(validation_data_paths[0], "rb") as f:
+    with open_output_file(validation_data_paths[0]) as f:
         validation_data = pickle.load(f)
 
     media_name = sim_data.conditions[sim_data.condition]["nutrients"]

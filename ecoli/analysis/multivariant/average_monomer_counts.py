@@ -14,7 +14,7 @@ import numpy as np
 import polars as pl
 from typing import Any
 
-from ecoli.library.parquet_emitter import read_stacked_columns, ndlist_to_ndarray
+from ecoli.library.parquet_emitter import read_stacked_columns, ndlist_to_ndarray, open_arbitrary_sim_data
 from reconstruction.ecoli.fit_sim_data_1 import SimulationDataEcoli
 
 IGNORE_FIRST_N_GENS = 1
@@ -42,11 +42,11 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: dict[int, list[str]],
+    sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any],
-    variant_name: str,
+    variant_metadata: dict[str, dict[int, Any]],
+    variant_names: list[str],
 ):
     """
     Calculates average monomer counts per variant and saves them as separate
@@ -61,7 +61,7 @@ def plot(
     os.makedirs(unfiltered_dir, exist_ok=True)
     os.makedirs(filtered_dir, exist_ok=True)
 
-    with open(next(iter(sim_data_paths.values())), "rb") as f:
+    with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data: "SimulationDataEcoli" = pickle.load(f)
     mRNA_sim_data = sim_data.process.transcription.cistron_data.struct_array
     monomer_sim_data = sim_data.process.translation.monomer_data.struct_array

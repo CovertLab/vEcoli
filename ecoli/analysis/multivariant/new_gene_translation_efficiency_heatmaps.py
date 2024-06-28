@@ -59,6 +59,7 @@ from ecoli.library.parquet_emitter import (
     get_field_metadata,
     ndarray_to_ndlist,
     ndlist_to_ndarray,
+    open_arbitrary_sim_data,
     read_stacked_columns,
 )
 from ecoli.library.schema import bulk_name_to_idx
@@ -1125,11 +1126,11 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: dict[int, list[str]],
+    sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any],
-    variant_name: str,
+    variant_metadata: dict[str, dict[int, Any]],
+    variant_names: list[str],
 ):
     """
     Create either a single multi-heatmap plot or 1+ separate heatmaps of data
@@ -1146,9 +1147,11 @@ def plot(
         f" AND generation < {MAX_CELL_INDEX}"
     )
     # Define baseline variant (ID = 0) as 0 new gene expr. and trans. eff.
+    experiment_id = next(iter(variant_metadata.keys()))
+    variant_metadata = variant_metadata[experiment_id]
     variant_metadata[0] = {"exp_trl_eff": {"exp": 0, "trl_eff": 0}}
 
-    with open(next(iter(sim_data_paths.values())), "rb") as f:
+    with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
 
     # Determine new gene cistron and monomer ids
