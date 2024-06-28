@@ -388,9 +388,7 @@ def get_plot_metadata(
     }
 
 
-def open_output_file(
-    outfile: str
-) -> pa.NativeFile:
+def open_output_file(outfile: str) -> pa.NativeFile:
     """
     Open a file by its path, whether that be a path on local storage or
     Google Cloud Storage.
@@ -409,9 +407,7 @@ def open_output_file(
     return filesystem.open_input_file(outfile)
 
 
-def open_arbitrary_sim_data(
-    sim_data_dict: dict[str, dict[int, Any]]
-) -> pa.NativeFile:
+def open_arbitrary_sim_data(sim_data_dict: dict[str, dict[int, Any]]) -> pa.NativeFile:
     """
     Given a mapping from experiment ID(s) to mappings from variant ID(s)
     to sim_data path(s), pick an arbitrary sim_data to read.
@@ -688,8 +684,11 @@ class ParquetEmitter(Emitter):
         that even columns which are all NULL for some simulations are read as
         the correct non-NULL type from other simulations."""
         outfile = os.path.join(
-            self.outdir, self.experiment_id, "history", self.partitioning_path,
-            f"{self.num_emits}.pq"
+            self.outdir,
+            self.experiment_id,
+            "history",
+            self.partitioning_path,
+            f"{self.num_emits}.pq",
         )
         if self.filesystem.get_file_info(outfile).type == 0:
             json_to_parquet(
@@ -699,27 +698,45 @@ class ParquetEmitter(Emitter):
                 outfile,
                 self.filesystem,
             )
-        experiment_dir = fs.FileSelector(os.path.join(self.outdir,
-            self.experiment_id, "history", f"experiment_id={self.experiment_id}"
-            ), recursive=True)
-        latest_schemas = sorted((f for f in self.filesystem.get_file_info(
-            experiment_dir) if os.path.basename(f.path) == "_metadata"),
-            key=lambda x: x.mtime_ns)[-10:]
+        experiment_dir = fs.FileSelector(
+            os.path.join(
+                self.outdir,
+                self.experiment_id,
+                "history",
+                f"experiment_id={self.experiment_id}",
+            ),
+            recursive=True,
+        )
+        latest_schemas = sorted(
+            (
+                f
+                for f in self.filesystem.get_file_info(experiment_dir)
+                if os.path.basename(f.path) == "_metadata"
+            ),
+            key=lambda x: x.mtime_ns,
+        )[-10:]
         schemas_to_unify = [self.schema]
         for schema in latest_schemas:
-            schemas_to_unify.append(pq.read_schema(
-                schema.path, filesystem=self.filesystem))
+            schemas_to_unify.append(
+                pq.read_schema(schema.path, filesystem=self.filesystem)
+            )
         unified_schema = pa.unify_schemas(schemas_to_unify)
         unified_schema_path = os.path.join(
-            self.outdir, self.experiment_id, "history", self.partitioning_path,
-            "_metadata")
-        pq.write_metadata(unified_schema, unified_schema_path,
-            filesystem=self.filesystem)
+            self.outdir,
+            self.experiment_id,
+            "history",
+            self.partitioning_path,
+            "_metadata",
+        )
+        pq.write_metadata(
+            unified_schema, unified_schema_path, filesystem=self.filesystem
+        )
         experiment_schema_path = os.path.join(
             self.outdir, "history", self.experiment_id, EXPERIMENT_SCHEMA_SUFFIX
         )
-        pq.write_metadata(unified_schema, experiment_schema_path,
-            filesystem=self.filesystem)
+        pq.write_metadata(
+            unified_schema, experiment_schema_path, filesystem=self.filesystem
+        )
 
     def emit(self, data: dict[str, Any]):
         """
@@ -773,8 +790,11 @@ class ParquetEmitter(Emitter):
                     encodings[field_name] = encoding
                 schema.append((k, pa_type))
             outfile = os.path.join(
-                self.outdir, self.experiment_id, data["table"],
-                self.partitioning_path, "config.pq"
+                self.outdir,
+                self.experiment_id,
+                data["table"],
+                self.partitioning_path,
+                "config.pq",
             )
             # Cleanup any existing output files from previous runs then
             # create new folder for config / simulation output
@@ -817,11 +837,13 @@ class ParquetEmitter(Emitter):
             # type in our cached Parquet schema
             new_keys = set(agent_data) - set(self.non_null_keys)
             if len(new_keys) > 0:
-                new_key_data = orjson.loads(orjson.dumps(
-                    {k: agent_data[k] for k in new_keys},
-                    option=orjson.OPT_SERIALIZE_NUMPY,
-                    default=self.fallback_serializer,
-                ))
+                new_key_data = orjson.loads(
+                    orjson.dumps(
+                        {k: agent_data[k] for k in new_keys},
+                        option=orjson.OPT_SERIALIZE_NUMPY,
+                        default=self.fallback_serializer,
+                    )
+                )
                 for k, v in new_key_data.items():
                     pa_type, encoding, field_name, is_null = get_encoding(
                         v, k, k in USE_UINT16, k in USE_UINT32
@@ -836,11 +858,13 @@ class ParquetEmitter(Emitter):
                         self.schema = self.schema.set(field_index, new_field)
                     else:
                         self.schema = self.schema.append(new_field)
-            self.temp_data.write(orjson.dumps(
-                agent_data,
-                option=orjson.OPT_SERIALIZE_NUMPY,
-                default=self.fallback_serializer,
-            ))
+            self.temp_data.write(
+                orjson.dumps(
+                    agent_data,
+                    option=orjson.OPT_SERIALIZE_NUMPY,
+                    default=self.fallback_serializer,
+                )
+            )
             self.temp_data.write("\n".encode("utf-8"))
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:

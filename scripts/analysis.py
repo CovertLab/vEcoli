@@ -27,9 +27,8 @@ one value is given for filter, and analysis type for one value."""
 
 
 def parse_variant_data_dir(
-    experiment_id: list[str],
-    variant_data_dir: list[str]
-) -> tuple[dict[str, dict[str, dict[int, Any]]], dict[str, dict[int, Any]], list[str]]:
+    experiment_id: list[str], variant_data_dir: list[str]
+) -> tuple[dict[str, dict[str, dict[int, Any]]], dict[str, dict[int, str]], list[str]]:
     """
     For each experiment ID and corresponding variant sim data directory,
     load the variant metadata JSON and parse the variant sim data file
@@ -105,8 +104,8 @@ def main():
         "--sim-data-path",
         nargs="*",
         help="Path to the sim_data pickle(s) to use. If multiple variants given"
-            " via --variant or --variant-range, must provide same number"
-            " of paths here in same order. Alternatively, see --variant-data-dir.",
+        " via --variant or --variant-range, must provide same number"
+        " of paths here in same order. Alternatively, see --variant-data-dir.",
     )
     parser.add_argument(
         "--validation_data_path",
@@ -124,16 +123,16 @@ def main():
         "--variant-metadata-path",
         "--variant_metadata_path",
         help="Path to JSON file with variant metadata from create_variants.py."
-            " Required with --sim-data-path. Otherwise, see --variant-data-dir.",
+        " Required with --sim-data-path. Otherwise, see --variant-data-dir.",
     )
     parser.add_argument(
         "--variant-data-dir",
         "--variant_data_dir",
         nargs="*",
         help="Path(s) to one or more directories containing variant sim data"
-            " and metadata from create_variants.py. Supersedes --sim-data-path and"
-            " --variant-metadata-path. If >1 experiment IDs, this is required and"
-            " must have the same length and order as the given experiment IDs.",
+        " and metadata from create_variants.py. Supersedes --sim-data-path and"
+        " --variant-metadata-path. If >1 experiment IDs, this is required and"
+        " must have the same length and order as the given experiment IDs.",
     )
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
     args = parser.parse_args()
@@ -215,31 +214,36 @@ def main():
 
     # Load variant metadata
     if len(config["experiment_id"]) > 1:
-        assert "variant_data_dir" in config, (
-            "Must provide --variant-data-dir for each experiment ID."
-        )
-        assert len(config["variant_data_dir"]) == len(config["experiment_id"]), (
-            "Must provide --variant-data-dir for each experiment ID."
-        )
+        assert (
+            "variant_data_dir" in config
+        ), "Must provide --variant-data-dir for each experiment ID."
+        assert len(config["variant_data_dir"]) == len(
+            config["experiment_id"]
+        ), "Must provide --variant-data-dir for each experiment ID."
     if "variant_data_dir" in config:
         if "variant_metadata_path" in config:
-            warnings.warn("Ignoring --variant-metadata-path in favor of"
-                          " --variant-data-dir")
+            warnings.warn(
+                "Ignoring --variant-metadata-path in favor of" " --variant-data-dir"
+            )
         if "sim_data_path" in config:
-            warnings.warn("Ignoring --sim-data-path in favor of"
-                          " --variant-data-dir")
+            warnings.warn("Ignoring --sim-data-path in favor of" " --variant-data-dir")
         variant_metadata, sim_data_dict, variant_names = parse_variant_data_dir(
-            config["experiment_id"],
-            config["variant_data_dir"])
+            config["experiment_id"], config["variant_data_dir"]
+        )
     else:
         with open(config["variant_metadata_path"], "r") as f:
             variant_metadata = json.load(f)
             variant_name = list(variant_metadata.keys())[0]
-            variant_metadata = {config["experiment_id"] :{
-                int(k): v for k, v in variant_metadata[variant_name].items()
-            }}
-        sim_data_dict = {config["experiment_id"]: 
-            dict(zip(config["variant"], config["sim_data_path"]))}
+            variant_metadata = {
+                config["experiment_id"][0]: {
+                    int(k): v for k, v in variant_metadata[variant_name].items()
+                }
+            }
+        sim_data_dict = {
+            config["experiment_id"][0]: dict(
+                zip(config["variant"], config["sim_data_path"])
+            )
+        }
         variant_names = [variant_name]
 
     # Run the analyses listed under the most specific filter
