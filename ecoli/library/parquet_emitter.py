@@ -1,12 +1,9 @@
 import atexit
 import os
-import gc
-import glob
 import pathlib
 from itertools import pairwise
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
-import shutil
 from typing import Any, Callable, Mapping, Optional
 from urllib import parse
 
@@ -27,6 +24,12 @@ METADATA_PREFIX = "data__output_metadata__"
 In the config dataset, user-defined metadata for each store
 (see :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`)
 will be contained in columns with this prefix.
+"""
+
+EXPERIMENT_SCHEMA_SUFFIX = "variant=0/lineage_seed=0/generation=1/agent_id=1/_metadata"
+"""
+Hive partitioning suffix following experiment ID partition for Parquet file
+containing schema unified over all cells in this simulation.
 """
 
 USE_UINT16 = {
@@ -86,11 +89,9 @@ def json_to_parquet(
     parse_options = pj.ParseOptions(explicit_schema=schema)
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
     t = pj.read_json(ndjson, read_options=read_options, parse_options=parse_options)
-    out_dir = os.path.dirname(outfile)
-    base_name = os.path.basename(outfile)
     pq.write_table(
         t,
-        os.path.join(out_dir, base_name),
+        outfile,
         use_dictionary=False,
         compression="zstd",
         column_encoding=encodings,
@@ -121,7 +122,8 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
     return (
         f"""
         FROM read_parquet(
-            '{os.path.join(out_dir, 'history')}/*/*/*/*/*/*.pq',
+            ['{os.path.join(out_dir, 'history')}/*/{EXPERIMENT_SCHEMA_SUFFIX}',
+            '{os.path.join(out_dir, 'history')}/*/*/*/*/*/*.pq'],
             hive_partitioning = true,
             hive_types = {{
                 'experiment_id': VARCHAR,
@@ -535,15 +537,15 @@ def read_stacked_columns(
 
 def get_encoding(
     val: Any, field_name: str, use_uint16: bool = False, use_uint32: bool = False
-) -> tuple[Any, str]:
+) -> tuple[Any, str, str, bool]:
     """
     Get optimal PyArrow type and Parquet encoding for input value.
     """
     if isinstance(val, float):
         # Polars does not support BYTE_STREAM_SPLIT yet
-        return pa.float64(), "PLAIN", field_name
+        return pa.float64(), "PLAIN", field_name, False
     elif isinstance(val, bool):
-        return pa.bool_(), "RLE", field_name
+        return pa.bool_(), "RLE", field_name, False
     elif isinstance(val, int):
         # Optimize memory usage for select integer fields
         if use_uint16:
@@ -552,15 +554,19 @@ def get_encoding(
             pa_type = pa.uint32()
         else:
             pa_type = pa.int64()
-        return pa_type, "DELTA_BINARY_PACKED", field_name
+        return pa_type, "DELTA_BINARY_PACKED", field_name, False
     elif isinstance(val, str):
-        return pa.string(), "DELTA_BYTE_ARRAY", field_name
+        return pa.string(), "DELTA_BYTE_ARRAY", field_name, False
     elif isinstance(val, list):
-        inner_type, _, field_name = get_encoding(
-            val[0], field_name, use_uint16, use_uint32
-        )
-        # PLAIN encoding yields overall better compressed size for lists
-        return pa.list_(inner_type), "PLAIN", field_name + ".list.element"
+        if len(val) > 0:
+            inner_type, _, field_name, is_null = get_encoding(
+                val[0], field_name, use_uint16, use_uint32
+            )
+            # PLAIN encoding yields overall better compressed size for lists
+            return pa.list_(inner_type), "PLAIN", field_name + ".list.element", is_null
+        return pa.list_(pa.null()), "PLAIN", field_name + ".list.element", True
+    elif val is None:
+        return pa.null(), "PLAIN", field_name, True
     raise TypeError(f"{field_name} has unsupported type {type(val)}.")
 
 
@@ -582,12 +588,6 @@ def flatten_dict(d: dict):
             newKey = k if partialKey == _FLAG_FIRST else f"{partialKey}__{k}"
             if isinstance(v, Mapping):
                 visit_key(v, results, newKey)
-            elif isinstance(v, list) and len(v) == 0:
-                continue
-            elif isinstance(v, np.ndarray) and len(v) == 0:
-                continue
-            elif v is None:
-                continue
             else:
                 results.append((newKey, v))
 
@@ -621,14 +621,8 @@ class ParquetEmitter(Emitter):
         """
         if "out_uri" not in config["config"]:
             out_uri = os.path.abspath(config["config"]["out_dir"])
-            # If running locally or on Sherlock, out_dir will be on
-            # relatively fast storage so we can put temp sim out there too
-            self.scratch_dir = os.path.join(out_uri, "in_progress")
         else:
             out_uri = config["config"]["out_uri"]
-            # If running on Google Cloud, create folder on fast local disk
-            # to temporarily hold sim output (cleaned up on VM shutdown)
-            self.scratch_dir = "in_progress"
         self.filesystem, self.outdir = fs.FileSystem.from_uri(out_uri)
         self.batch_size = config["config"].get("batch_size", 400)
         self.fallback_serializer = make_fallback_serializer_function()
@@ -638,47 +632,53 @@ class ParquetEmitter(Emitter):
         # Keep a cache of field encodings and fields encountered
         self.encodings = {}
         self.schema = pa.schema([])
+        self.non_null_keys = set()
         self.num_emits = 0
         atexit.register(self._finalize)
 
     def _finalize(self):
         """Convert remaining batched emits to Parquet at sim shutdown.
-        Then, read back Parquet files one by one with final schema, filling
-        in NULL columns as appropriate. Finally, copy schema-unified Parquet
-        files to the final filesystem."""
+        Read 10 most recent Parquet schema from ``_metadata`` file written
+        by other simulations with the same experiment ID, then unify
+        with the current simulation Parquet schema and write a ``_metadata``
+        file for the current simulation. Write same ``_metadata`` to Hive
+        partition of current experiment ID, variant 0, lineage_seed 0,
+        generation 1, and agent_id 1. This is the first file read by DuckDB
+        in the subquery generated by :py:func:`~.get_dataset_sql` and ensures
+        that even columns which are all NULL for some simulations are read as
+        the correct non-NULL type from other simulations."""
         outfile = os.path.join(
-            self.scratch_dir, self.partitioning_path, f"{self.num_emits}.pq"
+            self.outdir, "history", self.partitioning_path, f"{self.num_emits}.pq"
         )
-        if not os.path.exists(outfile):
+        if self.filesystem.get_file_info(outfile).type == 0:
             json_to_parquet(
                 self.temp_data.name,
                 self.encodings,
                 self.schema,
                 outfile,
+                self.filesystem,
             )
-        for pq_file in glob.glob(
-            os.path.join(self.scratch_dir, self.partitioning_path, "*.pq")
-        ):
-            final_pq_file = os.path.join(
-                self.outdir, "history", self.partitioning_path, os.path.basename(pq_file)
-            )
-            # By giving explicit schema, NULL will be filled in for missing columns
-            t = pq.read_table(pq_file, schema=self.schema)
-            pq.write_table(
-                t,
-                final_pq_file,
-                use_dictionary=False,
-                compression="zstd",
-                column_encoding=self.encodings,
-                filesystem=self.filesystem,
-                # Writing statistics with giant nested columns bloats metadata
-                # and dramatically slows down reading while increasing RAM usage
-                write_statistics=False,
-            )
-            # Explicitly free table memory every iteration
-            del t
-            gc.collect()
-        shutil.rmtree(os.path.dirname(outfile), ignore_errors=True)
+        experiment_id_dir = self.partitioning_path.split("/")[0]
+        experiment_dir = fs.FileSelector(os.path.join(self.outdir, "history",
+            experiment_id_dir), recursive=True)
+        latest_schemas = sorted((f for f in self.filesystem.get_file_info(
+            experiment_dir) if os.path.basename(f.path) == "_metadata"),
+            key=lambda x: x.mtime_ns)[-10:]
+        schemas_to_unify = [self.schema]
+        for schema in latest_schemas:
+            schemas_to_unify.append(pq.read_schema(
+                schema.path, filesystem=self.filesystem))
+        unified_schema = pa.unify_schemas(schemas_to_unify)
+        unified_schema_path = os.path.join(
+            self.outdir, "history", self.partitioning_path, "_metadata"
+        )
+        pq.write_metadata(unified_schema, unified_schema_path,
+            filesystem=self.filesystem)
+        experiment_schema_path = os.path.join(
+            self.outdir, "history", experiment_id_dir, EXPERIMENT_SCHEMA_SUFFIX
+        )
+        pq.write_metadata(unified_schema, experiment_schema_path,
+            filesystem=self.filesystem)
 
     def emit(self, data: dict[str, Any]):
         """
@@ -726,7 +726,7 @@ class ParquetEmitter(Emitter):
             encodings = {}
             schema = []
             for k, v in data.items():
-                pa_type, encoding, field_name = get_encoding(v, k)
+                pa_type, encoding, field_name, _ = get_encoding(v, k)
                 if encoding is not None:
                     encodings[field_name] = encoding
                 schema.append((k, pa_type))
@@ -740,8 +740,6 @@ class ParquetEmitter(Emitter):
             except FileNotFoundError:
                 pass
             self.filesystem.create_dir(os.path.dirname(outfile))
-            # Immediately write config Parquet to final filesystem
-            # because it is small and requires no further processing
             self.executor.submit(
                 json_to_parquet,
                 self.temp_data.name,
@@ -760,12 +758,6 @@ class ParquetEmitter(Emitter):
             except FileNotFoundError:
                 pass
             self.filesystem.create_dir(history_outdir)
-            # Create local temp dir to hold sim output because we
-            # need to perform schema unification at sim end before
-            # moving to final filesystem (see self._finalize)
-            history_outdir = os.path.join(self.scratch_dir, self.partitioning_path)
-            shutil.rmtree(history_outdir, ignore_errors=True)
-            os.makedirs(history_outdir)
             return
         # Each Engine that uses this emitter should only simulate a single cell
         # In lineage simulations, StopAfterDivision Step will terminate
@@ -777,28 +769,42 @@ class ParquetEmitter(Emitter):
         for agent_data in data["data"]["agents"].values():
             agent_data["time"] = float(data["data"]["time"])
             agent_data = flatten_dict(agent_data)
-            agent_data_str = orjson.dumps(
-                agent_data,
-                option=orjson.OPT_SERIALIZE_NUMPY,
-                default=self.fallback_serializer,
-            )
-            self.temp_data.write(agent_data_str)
-            self.temp_data.write("\n".encode("utf-8"))
-            new_keys = set(agent_data) - set(self.schema.names)
+            # If we encounter columns that have, up until this point,
+            # been NULL, serialize/deserialize them and update their
+            # type in our cached Parquet schema
+            new_keys = set(agent_data) - set(self.non_null_keys)
             if len(new_keys) > 0:
-                agent_data = orjson.loads(agent_data_str)
-                for k in new_keys:
-                    pa_type, encoding, field_name = get_encoding(
-                        agent_data[k], k, k in USE_UINT16, k in USE_UINT32
+                new_key_data = orjson.loads(orjson.dumps(
+                    {k: agent_data[k] for k in new_keys},
+                    option=orjson.OPT_SERIALIZE_NUMPY,
+                    default=self.fallback_serializer,
+                ))
+                for k, v in new_key_data.items():
+                    pa_type, encoding, field_name, is_null = get_encoding(
+                        v, k, k in USE_UINT16, k in USE_UINT32
                     )
                     if encoding is not None:
                         self.encodings[field_name] = encoding
-                    self.schema = self.schema.append(pa.field(k, pa_type))
+                    if not is_null:
+                        self.non_null_keys.add(k)
+                    new_field = pa.field(k, pa_type)
+                    field_index = self.schema.get_field_index(k)
+                    if field_index >= 0:
+                        self.schema = self.schema.set(field_index, new_field)
+                    else:
+                        self.schema = self.schema.append(new_field)
+            self.temp_data.write(orjson.dumps(
+                agent_data,
+                option=orjson.OPT_SERIALIZE_NUMPY,
+                default=self.fallback_serializer,
+            ))
+            self.temp_data.write("\n".encode("utf-8"))
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
             self.temp_data.close()
             outfile = os.path.join(
-                self.scratch_dir,
+                self.outdir,
+                "history",
                 self.partitioning_path,
                 f"{self.num_emits}.pq",
             )
@@ -808,5 +814,6 @@ class ParquetEmitter(Emitter):
                 self.encodings,
                 self.schema,
                 outfile,
+                self.filesystem,
             )
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)
