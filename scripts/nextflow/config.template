@@ -13,7 +13,8 @@ profiles {
     gcloud {
         // Retry once with more RAM if OOM
         process.memory = { 4.GB * task.attempt }
-        process.cpus = 2
+        // Using single core is slightly slower but much cheaper
+        process.cpus = 1
         process.executor = 'google-batch'
         process.container = 'IMAGE_NAME'
         process.errorStrategy = {
@@ -27,6 +28,8 @@ profiles {
         params.projectRoot = '/vivarium-ecoli'
         params.publishDir = "PUBLISH_DIR"
         process.maxRetries = 1
+        // Check Google Cloud latest spot pricing / performance
+        process.machineType = 't2d-standard-1'
     }
     sherlock {
         process.memory = {
