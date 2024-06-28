@@ -122,8 +122,8 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
     return (
         f"""
         FROM read_parquet(
-            ['{os.path.join(out_dir, 'history')}/*/{EXPERIMENT_SCHEMA_SUFFIX}',
-            '{os.path.join(out_dir, 'history')}/*/*/*/*/*/*.pq'],
+            ['{os.path.join(out_dir, '*')}/history/*/{EXPERIMENT_SCHEMA_SUFFIX}',
+            '{os.path.join(out_dir, '*')}/history/*/*/*/*/*/*.pq'],
             hive_partitioning = true,
             hive_types = {{
                 'experiment_id': VARCHAR,
@@ -136,7 +136,7 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
         """,
         f"""
         FROM read_parquet(
-            '{os.path.join(out_dir, 'configuration')}/*/*/*/*/*/*.pq',
+            '{os.path.join(out_dir, '*')}/configuration/*/*/*/*/*/*.pq',
             hive_partitioning = true,
             hive_types = {{
                 'experiment_id': VARCHAR,
@@ -688,7 +688,8 @@ class ParquetEmitter(Emitter):
         that even columns which are all NULL for some simulations are read as
         the correct non-NULL type from other simulations."""
         outfile = os.path.join(
-            self.outdir, "history", self.partitioning_path, f"{self.num_emits}.pq"
+            self.outdir, self.experiment_id, "history", self.partitioning_path,
+            f"{self.num_emits}.pq"
         )
         if self.filesystem.get_file_info(outfile).type == 0:
             json_to_parquet(
@@ -698,9 +699,9 @@ class ParquetEmitter(Emitter):
                 outfile,
                 self.filesystem,
             )
-        experiment_id_dir = self.partitioning_path.split("/")[0]
-        experiment_dir = fs.FileSelector(os.path.join(self.outdir, "history",
-            experiment_id_dir), recursive=True)
+        experiment_dir = fs.FileSelector(os.path.join(self.outdir,
+            self.experiment_id, "history", f"experiment_id={self.experiment_id}"
+            ), recursive=True)
         latest_schemas = sorted((f for f in self.filesystem.get_file_info(
             experiment_dir) if os.path.basename(f.path) == "_metadata"),
             key=lambda x: x.mtime_ns)[-10:]
@@ -710,12 +711,12 @@ class ParquetEmitter(Emitter):
                 schema.path, filesystem=self.filesystem))
         unified_schema = pa.unify_schemas(schemas_to_unify)
         unified_schema_path = os.path.join(
-            self.outdir, "history", self.partitioning_path, "_metadata"
-        )
+            self.outdir, self.experiment_id, "history", self.partitioning_path,
+            "_metadata")
         pq.write_metadata(unified_schema, unified_schema_path,
             filesystem=self.filesystem)
         experiment_schema_path = os.path.join(
-            self.outdir, "history", experiment_id_dir, EXPERIMENT_SCHEMA_SUFFIX
+            self.outdir, "history", self.experiment_id, EXPERIMENT_SCHEMA_SUFFIX
         )
         pq.write_metadata(unified_schema, experiment_schema_path,
             filesystem=self.filesystem)
@@ -752,6 +753,7 @@ class ParquetEmitter(Emitter):
                 "generation": len(agent_id),
                 "agent_id": agent_id,
             }
+            self.experiment_id = quoted_experiment_id
             self.partitioning_path = os.path.join(
                 *(f"{k}={v}" for k, v in partitioning_keys.items())
             )
@@ -771,7 +773,8 @@ class ParquetEmitter(Emitter):
                     encodings[field_name] = encoding
                 schema.append((k, pa_type))
             outfile = os.path.join(
-                self.outdir, data["table"], self.partitioning_path, "config.pq"
+                self.outdir, self.experiment_id, data["table"],
+                self.partitioning_path, "config.pq"
             )
             # Cleanup any existing output files from previous runs then
             # create new folder for config / simulation output
@@ -791,7 +794,7 @@ class ParquetEmitter(Emitter):
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)
             # Delete any sim output files in final filesystem
             history_outdir = os.path.join(
-                self.outdir, "history", self.partitioning_path
+                self.outdir, self.experiment_id, "history", self.partitioning_path
             )
             try:
                 self.filesystem.delete_dir(history_outdir)
@@ -844,6 +847,7 @@ class ParquetEmitter(Emitter):
             self.temp_data.close()
             outfile = os.path.join(
                 self.outdir,
+                self.experiment_id,
                 "history",
                 self.partitioning_path,
                 f"{self.num_emits}.pq",

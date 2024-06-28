@@ -295,8 +295,8 @@ def main():
     else:
         out_uri = config["emitter"]["config"]["out_uri"]
     filesystem, outdir = fs.FileSystem.from_uri(out_uri)
-    outdir = os.path.join(outdir, f"experiment_id={experiment_id}", "nextflow")
-    out_uri = os.path.join(out_uri, f"experiment_id={experiment_id}", "nextflow")
+    outdir = os.path.join(outdir, experiment_id, "nextflow")
+    out_uri = os.path.join(out_uri, experiment_id, "nextflow")
     repo_dir = os.path.dirname(os.path.dirname(__file__))
     local_outdir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
     os.makedirs(local_outdir, exist_ok=True)
