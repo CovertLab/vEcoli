@@ -207,7 +207,7 @@ def test_create_variants():
         subprocess.run(
             [
                 "python",
-                "scripts/create_variants.py",
+                "runscripts/create_variants.py",
                 "-c",
                 "ecoli/composites/ecoli_configs/test_variant.json",
                 "--kb",

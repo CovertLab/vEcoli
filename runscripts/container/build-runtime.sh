@@ -30,11 +30,11 @@ done
 
 # This needs only one payload file so copy it in rather than using a config at
 # the project root which would upload the entire project.
-cp requirements.txt scripts/container/runtime/
+cp requirements.txt runscripts/container/runtime/
 
 if [ "$RUN_LOCAL" = true ]; then
     echo "=== Locally building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
-    docker build -f scripts/container/runtime/Dockerfile -t "${WCM_RUNTIME}" .
+    docker build -f runscripts/container/runtime/Dockerfile -t "${WCM_RUNTIME}" .
 else
     PROJECT="$(gcloud config get-value core/project)"
     REGION=$(gcloud config get compute/region)
@@ -43,7 +43,7 @@ else
     echo $TAG
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
-    gcloud builds submit --timeout=3h --tag "${TAG}" scripts/container/runtime/
+    gcloud builds submit --timeout=3h --tag "${TAG}" runscripts/container/runtime/
 fi
 
-rm scripts/container/runtime/requirements.txt
+rm runscripts/container/runtime/requirements.txt

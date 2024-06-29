@@ -79,7 +79,7 @@ import json
 from typing import Optional
 
 
-from ecoli.analysis.network_components import (
+from ecoli.analysis.causality_network.network_components import (
     Node,
     Edge,
     NODELIST_FILENAME,

@@ -64,9 +64,9 @@ nitpick_ignore = [
     # No API documentation for Unum package
     ("py:class", "Unum"),
     ("py:class", "unum.Unum"),
-    # Silence warnings in ecoli.plots.snapshots.make_snapshots_figure
+    # Silence warnings in ecoli.analysis.colony.snapshots.make_snapshots_figure
     ("py:class", "any valid matplotlib color"),
-    # Silence warning in ecoli.plots.blame.SignNormalize
+    # Silence warning in ecoli.analysis.single.blame.SignNormalize
     ("py:class", "default: False"),
     # Silence warning in ecoli.processes.environment.field_timeline.FieldTimeline
     ("py:class", "vivarium.processes.timeline.TimelineProcess"),

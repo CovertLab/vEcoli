@@ -33,7 +33,8 @@ process simGen0 {
         --variant ${sim_data.getBaseName()} \\
         --seed ${lineage_seed} \\
         --lineage_seed ${lineage_seed} \\
-        --agent_id \'${agent_id}\'
+        --agent_id \'${agent_id}\' \\
+        --fail_at_total_time
     source division_time.sh
     """
 
@@ -84,7 +85,8 @@ process sim {
         --seed ${sim_seed} \\
         --lineage_seed ${lineage_seed} \\
         --agent_id \'${agent_id}\' \\
-        --initial_global_time ${prev_division_time}
+        --initial_global_time ${prev_division_time} \\
+        --fail_at_total_time
     source division_time.sh
     """
 

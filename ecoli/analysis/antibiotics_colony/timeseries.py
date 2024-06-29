@@ -11,8 +11,7 @@ from matplotlib.colors import rgb_to_hsv
 from mpl_toolkits.axes_grid1 import anchored_artists
 
 from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR, restrict_data
-from ecoli.plots.snapshots import plot_snapshots, plot_tags
-from ecoli.plots.snapshots_video import make_video
+from ecoli.analysis.colony.snapshots import plot_snapshots, plot_tags, make_video
 
 
 def plot_timeseries(

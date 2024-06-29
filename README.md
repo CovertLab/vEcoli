@@ -72,14 +72,14 @@ To test your installation, from the top-level of the cloned repository, invoke:
     # Must set PYTHONPATH and OMP_NUM_THREADS for every new shell
     export PYTHONPATH=.
     export OMP_NUM_THREADS=1
-    python scripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
+    python runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
 
 This will run the following basic simulation workflow:
 
-1. Run the [parameter calculator](scripts/parca.py) to generate simulation data.
+1. Run the [parameter calculator](runscripts/parca.py) to generate simulation data.
 2. Run the [simulation](ecoli/experiments/ecoli_master_sim.py)
     for a single generation, saving output in `out` folder.
-3. [Analyze simulation output](scripts/analysis.py) by creating a
+3. [Analyze simulation output](runscripts/analysis.py) by creating a
     [mass fraction plot](ecoli/analysis/single/mass_fraction_summary.py).
 
 

@@ -324,7 +324,7 @@ class SimConfig:
             self.parser.add_argument(
                 "--fail_at_total_time",
                 action="store_true",
-                default=True,
+                default=False,
                 help="Simulation will raise TimeLimitException upon reaching total_time.",
             )
 

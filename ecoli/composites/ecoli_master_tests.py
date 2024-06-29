@@ -13,8 +13,7 @@ from vivarium.core.engine import Engine
 from vivarium.core.control import run_library_cli
 
 from ecoli.library.schema import bulk_name_to_idx
-from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data
-from ecoli.plots.snapshots_video import make_video
+from ecoli.analysis.colony.snapshots import plot_snapshots, format_snapshot_data, make_video
 from ecoli.composites.ecoli_configs import (
     ECOLI_DEFAULT_PROCESSES,
     ECOLI_DEFAULT_TOPOLOGY,
