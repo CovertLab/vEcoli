@@ -6,10 +6,11 @@ steps, topology, and initial state of the E. coli whole cell model.
     Use the :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` interface
     to configure and run simulations with this composer.
 """
+# mypy: disable-error-code=attr-defined
 
 from copy import deepcopy
 import os
-from typing import Any
+from typing import Any, Optional
 import warnings
 
 # vivarium-core
@@ -119,7 +120,7 @@ class Ecoli(Composer):
 
         self.processes_and_steps = self.generate_processes_and_steps(self.config)
 
-    def initial_state(self, config: dict[str, Any] = None) -> dict[str, Any]:
+    def initial_state(self, config: Optional[dict[str, Any]] = None) -> dict[str, Any]:
         """Users have three options for configuring the simulation initial state:
 
         1. ``config['initial_state']``
@@ -218,7 +219,7 @@ class Ecoli(Composer):
 
     def generate_processes_and_steps(
         self, config: dict[str, Any]
-    ) -> tuple[dict[str, Process], dict[str, Step], dict[str, tuple[str]]]:
+    ) -> tuple[dict[str, Process], dict[str, Step], dict[str, list[tuple[str]]]]:
         """Helper function that dynamically initializes all processes and
         steps (including their flow) according to options supplied in ``config``.
         This method is called when :py:class:`~ecoli.composites.ecoli_master.Ecoli`
@@ -628,7 +629,7 @@ class Ecoli(Composer):
                 topology[step_name] = allocator_topo.copy()
 
         # Do not keep an unnecessary reference to these
-        self.processes_and_steps = None
+        del self.processes_and_steps
         return topology
 
 

@@ -76,6 +76,7 @@ import re
 import os
 import pickle
 import json
+from typing import Optional
 
 
 from ecoli.analysis.network_components import (
@@ -1141,7 +1142,6 @@ class BuildNetwork(object):
             )
 
     def _remove_hanging_edges(self):
-        # type: () -> None
         """
         Remove edges that are not connected to existing nodes.
         """
@@ -1158,8 +1158,9 @@ class BuildNetwork(object):
         for index in disconnected_edge_indexes[::-1]:
             self.edge_list.pop(index)
 
-    def _append_edge(self, type_, src, dst, stoichiometry=""):
-        # type: (str, str, str, Union[None, str, int]) -> None
+    def _append_edge(
+        self, type_: str, src: str, dst: str, stoichiometry: Optional[str | int] = ""
+    ):
         """
         Helper function for appending new nodes to the network.
         """

@@ -3,6 +3,7 @@ SimulationData mass data
 """
 
 import numpy as np
+import numpy.typing as npt
 from scipy import interpolate, stats
 from scipy.optimize import minimize
 import unum
@@ -168,7 +169,6 @@ class Mass(object):
 
     # Set based on growth rate avgCellDryMass
     def get_avg_cell_dry_mass(self, doubling_time: unum.Unum) -> unum.Unum:
-        # type: (units.Unum) -> units.Unum
         """
         Gets the dry mass for an average cell at the given doubling time.
 
@@ -190,7 +190,6 @@ class Mass(object):
         return units.fg / inverse_mass
 
     def get_dna_critical_mass(self, doubling_time: unum.Unum) -> unum.Unum:
-        # type: (units.Unum) -> units.Unum
         """
         Returns the critical mass for replication initiation.  Faster growing
         cells maintain a consistent initiation mass but slower growing cells
@@ -747,8 +746,8 @@ def _loadTableIntoObjectGivenDoublingTime(obj, list_of_dicts):
 
 
 def linear_regression(
-    x: np.ndarray[float],
-    y: np.ndarray[float],
+    x: npt.NDArray[np.float64],
+    y: npt.NDArray[np.float64],
     r_tol: float = 0.999,
     p_tol: float = 1e-5,
 ) -> tuple[float, float]:

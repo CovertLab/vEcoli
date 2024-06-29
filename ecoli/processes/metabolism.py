@@ -13,10 +13,11 @@ NOTE:
 and internal states have been updated (deriver-like, no partitioning necessary)
 """
 
-from typing import Any
+from typing import Any, Optional
 import warnings
 
 import numpy as np
+import numpy.typing as npt
 from scipy.sparse import csr_matrix
 from unum import Unum
 from vivarium.core.process import Step
@@ -663,7 +664,7 @@ class Metabolism(Step):
         self,
         counts_to_molar: Unum,
         count_diff: dict[str, float],
-        amino_acid_counts: np.ndarray[int],
+        amino_acid_counts: dict[str, float],
     ) -> dict[str, Unum]:
         """
         Finds new amino acid concentration targets based on difference in
@@ -720,7 +721,7 @@ class FluxBalanceAnalysisModel(object):
     def __init__(
         self,
         parameters: dict[str, Any],
-        timeline: tuple[tuple[str]] = None,
+        timeline: tuple[tuple[str]],
         include_ppgpp: bool = True,
     ):
         """
@@ -874,8 +875,8 @@ class FluxBalanceAnalysisModel(object):
         self,
         objective: dict[str, Unum],
         metabolite_concentrations: Unum,
-        external_molecule_levels: np.ndarray[float],
-    ) -> np.ndarray[float]:
+        external_molecule_levels: npt.NDArray[np.float64],
+    ) -> npt.NDArray[np.float64]:
         """
         Limit amino acid uptake to what is needed to meet concentration
         objective to prevent use as carbon source, otherwise could be used
@@ -919,14 +920,16 @@ class FluxBalanceAnalysisModel(object):
 
     def set_molecule_levels(
         self,
-        metabolite_counts: np.ndarray[int],
+        metabolite_counts: npt.NDArray[np.int64],
         counts_to_molar: Unum,
         coefficient: Unum,
         current_media_id: str,
         unconstrained: set[str],
         constrained: set[str],
         conc_updates: dict[str, Unum],
-        aa_uptake_package: tuple[np.ndarray[float], np.ndarray[str], bool] = None,
+        aa_uptake_package: Optional[
+            tuple[npt.NDArray[np.float64], npt.NDArray[np.str_], bool]
+        ] = None,
     ):
         """
         Set internal and external molecule levels available to the FBA solver.
@@ -976,7 +979,7 @@ class FluxBalanceAnalysisModel(object):
 
     def set_reaction_bounds(
         self,
-        catalyst_counts: np.ndarray[int],
+        catalyst_counts: npt.NDArray[np.int64],
         counts_to_molar: Unum,
         coefficient: Unum,
         gtp_to_hydrolyze: float,
@@ -1024,11 +1027,13 @@ class FluxBalanceAnalysisModel(object):
 
     def set_reaction_targets(
         self,
-        kinetic_enzyme_counts: np.ndarray[int],
-        kinetic_substrate_counts: np.ndarray[int],
+        kinetic_enzyme_counts: npt.NDArray[np.int64],
+        kinetic_substrate_counts: npt.NDArray[np.int64],
         counts_to_molar: Unum,
         time_step: Unum,
-    ) -> tuple[np.ndarray[float], np.ndarray[float], np.ndarray[float]]:
+    ) -> tuple[
+        npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]
+    ]:
         """
         Set reaction targets for constrained reactions in the FBA object.
 

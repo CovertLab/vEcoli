@@ -48,10 +48,10 @@ raw_data = KnowledgeBaseEcoli(
     operons_on=False,
     remove_rrna_operons=False,
     remove_rrff=False,
-)  # type: Any
+)
 
 modelRates = {}
-paperRates = {}  # type: Dict[str, Union[int, float]]
+paperRates: dict[str, int | float] = {}
 
 for rna in raw_data.rna_half_lives:
     geneID = rna["id"]
@@ -77,7 +77,7 @@ maxLine = 1.1 * max(max(paper), max(model))
 
 plt.plot([0, maxLine], [0, maxLine], "--r")
 plt.plot(model, paper, "o", markeredgecolor="k", markerfacecolor="none")
-plt.axis([0, 1, 0, maxLine])
+plt.axis((0, 1, 0, maxLine))
 Correlation_ExpPred = np.corrcoef(model, paper)[0][1]
 
 plt.xlabel("RNA decay rate expected from model [1/min]")

@@ -7,6 +7,7 @@ Interface for configuring and running **single-cell** E. coli simulations.
     :py:mod:`~ecoli.experiments.ecoli_engine_process` module for efficient
     multithreading.
 """
+# mypy: disable-error-code=attr-defined
 
 import argparse
 import copy
@@ -60,7 +61,7 @@ def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Topology with tuple paths (e.g. ``['bulk']`` turns into ``('bulk',)``)
     """
-    tuplified_topology = {}
+    tuplified_topology: dict[str, Any] = {}
     for k, v in topology.items():
         if isinstance(v, dict):
             tuplified_topology[k] = tuplify_topology(v)
@@ -85,13 +86,11 @@ def get_git_status() -> str:
     """Returns Git status of model repository to include in metadata that is
     emitted when starting a simulation.
     """
-    status_str = (
+    return (
         subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "status", "--porcelain"])
         .decode("ascii")
         .strip()
     )
-    status = status_str.split("\n")
-    return status
 
 
 def report_profiling(stats: pstats.Stats) -> None:
@@ -104,13 +103,15 @@ def report_profiling(stats: pstats.Stats) -> None:
     _, stats_keys = stats.get_print_list(
         ("(next_update)|(calculate_request)|(evolve_state)",)
     )
-    summed_stats = {}
+    summed_stats: dict[tuple[str, str, str], int] = {}
     for key in stats_keys:
         key_stats = stats.stats[key]
         _, _, _, cumtime, _ = key_stats
         path, line, func = key
         path = os.path.basename(path)
-        summed_stats[(path, line, func)] = summed_stats.get((path, func), 0) + cumtime
+        summed_stats[(path, line, func)] = (
+            summed_stats.get((path, line, func), 0) + cumtime
+        )
     summed_stats_inverse_map = {time: key for key, time in summed_stats.items()}
     print("\nPer-process profiling:\n")
     for time in sorted(summed_stats_inverse_map.keys())[::-1]:
@@ -120,7 +121,7 @@ def report_profiling(stats: pstats.Stats) -> None:
     stats.sort_stats("cumtime").print_stats(20)
 
 
-def key_value_pair(argument_string: str) -> tuple[str, str]:
+def key_value_pair(argument_string: str) -> list[str]:
     """Parses key-value pairs specified as strings of the form ``key=value``
     via CLI. See ``emitter_arg`` option in
     :py:class:`~ecoli.experiments.ecoli_master_sim.SimConfig`.
@@ -517,7 +518,7 @@ class EcoliSim:
 
     def _retrieve_processes(
         self,
-        processes: list[str],
+        processes: dict[str, str],
         add_processes: list[str],
         exclude_processes: list[str],
         swap_processes: dict[str, str],
@@ -631,7 +632,7 @@ class EcoliSim:
         Returns:
             Mapping of process names to process configs.
         """
-        result = {}
+        result: dict[str, Any] = {}
         for process in processes:
             result[process] = process_configs.get(process)
             if result[process] is None:
@@ -886,7 +887,7 @@ class EcoliSim:
         if self.fail_at_total_time:
             raise TimeLimitError(f"Exceeded maximum simulation time: {self.total_time}")
 
-    def query(self, query: list[tuple[str]] = None):
+    def query(self, query: Optional[list[tuple[str]]] = None):
         """
         Query emitted data.
 
@@ -959,7 +960,7 @@ class EcoliSim:
             processes_and_steps = self.ecoli.processes
             processes_and_steps.update(self.ecoli.steps)
             topologies = self.ecoli.topology
-        output_metadata = {}
+        output_metadata: dict[str, Any] = {}
         for proc_name, proc in processes_and_steps.items():
             proc_ports_schema = proc.get_schema()
             extracted = extract_metadata(proc_ports_schema)

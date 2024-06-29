@@ -9,7 +9,7 @@ from typing import Any
 
 # noinspection PyUnresolvedReferences
 from duckdb import DuckDBPyConnection
-import numpy as np
+import polars as pl
 
 from ecoli.library.parquet_emitter import (
     get_field_metadata,
@@ -148,8 +148,10 @@ def plot(
     # Add gene, cistron, and protein names (DuckDB lists are 1-indexed so
     # must subtract one before using to index Numpy arrays)
     out_df = out_df.with_columns(
-        gene_name=np.array(gene_ids)[out_df["cistron_idx"] - 1],
-        cistron_name=np.array(mRNA_cistron_ids)[out_df["cistron_idx"] - 1],
-        protein_name=np.array([i[:-3] for i in monomer_ids])[out_df["cistron_idx"] - 1],
+        gene_name=pl.Series(gene_ids)[out_df["cistron_idx"] - 1],
+        cistron_name=pl.Series(mRNA_cistron_ids)[out_df["cistron_idx"] - 1],
+        protein_name=pl.Series([i[:-3] for i in monomer_ids])[
+            out_df["cistron_idx"] - 1
+        ],
     )
     out_df.write_csv(os.path.join(outdir, "subgen.tsv"), separator="\t")

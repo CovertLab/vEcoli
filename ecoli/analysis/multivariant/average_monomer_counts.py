@@ -12,7 +12,7 @@ import csv
 from duckdb import DuckDBPyConnection
 import numpy as np
 import polars as pl
-from typing import Any
+from typing import Any, cast
 
 from ecoli.library.parquet_emitter import (
     read_stacked_columns,
@@ -74,7 +74,7 @@ def plot(
         zip(monomer_sim_data["cistron_id"], monomer_sim_data["id"])
     )
     new_gene_monomer_ids = [
-        mRNA_monomer_id_dict.get(mRNA_id) for mRNA_id in new_gene_mRNA_ids
+        cast(str, mRNA_monomer_id_dict.get(mRNA_id)) for mRNA_id in new_gene_mRNA_ids
     ]
     all_monomer_ids = monomer_sim_data["id"]
     original_monomer_ids = all_monomer_ids[
@@ -82,7 +82,8 @@ def plot(
     ]
     monomer_idx_dict = {monomer: i for i, monomer in enumerate(all_monomer_ids)}
     original_monomer_idx = [
-        monomer_idx_dict.get(monomer_id) for monomer_id in original_monomer_ids
+        cast(int, monomer_idx_dict.get(monomer_id))
+        for monomer_id in original_monomer_ids
     ]
 
     subquery = read_stacked_columns(

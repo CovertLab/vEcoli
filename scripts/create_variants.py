@@ -8,7 +8,7 @@ import pickle
 import shutil
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
@@ -19,7 +19,9 @@ if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
 
-def parse_variants(variant_config: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+def parse_variants(
+    variant_config: dict[str, str | dict[str, Any]],
+) -> list[dict[str, Any]]:
     """
     Parse parameters for a variant specified under ``variants`` key of config.
     See :py:func:`~.test_parse_variants` for an sample ``variant_config`` and
@@ -71,6 +73,7 @@ def parse_variants(variant_config: dict[str, dict[str, Any]]) -> list[dict[str, 
     # Perform pre-processing of parameters
     parsed = {}
     for param_name, param_conf in variant_config.items():
+        param_conf = cast(dict[str, Any], param_conf)
         if len(param_conf) > 1:
             raise TypeError(f"{param_name} should only have 1 type.")
         param_type = list(param_conf.keys())[0]
@@ -80,6 +83,7 @@ def parse_variants(variant_config: dict[str, dict[str, Any]]) -> list[dict[str, 
                 raise TypeError(f"{param_name} should have a list value.")
             parsed[param_name] = param_vals
         elif param_type == "nested":
+            param_vals = cast(dict[str, str | dict[str, Any]], param_vals)
             parsed[param_name] = parse_variants(param_vals)
         else:
             try:
@@ -145,7 +149,7 @@ def apply_and_save_variants(
         outdir: Path to folder where variant ``sim_data`` pickles are saved
     """
     variant_mod = importlib.import_module(f"ecoli.variants.{variant_name}")
-    variant_metadata = {0: "baseline"}
+    variant_metadata: dict[int, str | dict[str, Any]] = {0: "baseline"}
     for i, params in enumerate(param_dicts):
         sim_data_copy = copy.deepcopy(sim_data)
         variant_metadata[i + 1] = params

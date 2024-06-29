@@ -12,6 +12,7 @@ import os
 import pickle
 import time
 import traceback
+from typing import Callable
 
 from stochastic_arrow import StochasticSystem
 from cvxpy import Variable, Problem, Minimize, norm
@@ -506,8 +507,13 @@ def final_adjustments(sim_data, cell_specs, **kwargs):
     return sim_data, cell_specs
 
 
-def apply_updates(func, args, labels, dest, cpus):
-    # type: (Callable[..., dict], List[tuple], List[str], dict, int) -> None
+def apply_updates(
+    func: Callable[..., dict],
+    args: list[tuple],
+    labels: list[str],
+    dest: dict,
+    cpus: int,
+):
     """
     Use multiprocessing (if cpus > 1) to apply args to a function to get
     dictionary updates for a destination dictionary.

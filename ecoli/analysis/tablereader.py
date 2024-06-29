@@ -1,5 +1,6 @@
 from warnings import warn
 import numpy as np
+from typing import Any
 
 from vivarium.core.emitter import timeseries_from_data
 
@@ -627,12 +628,10 @@ class TableReader(object):
         self._columnNames = {k for k in self._mapping.keys()}
 
     @property
-    def path(self):
-        # type: () -> str
+    def path(self) -> str:
         return self._path
 
-    def readAttribute(self, name):
-        # type: (str) -> Any
+    def readAttribute(self, name: str) -> Any:
         """
         If emitted_config is supplied during initialization, this can be used
         to access listener metadata (e.g. bulk molecule names for count arrays)
@@ -643,8 +642,9 @@ class TableReader(object):
             sim_metadata = sim_metadata.get(key, {})
         return sim_metadata.get("_properties", {}).get("metadata", None)
 
-    def readColumn(self, name, indices=None, squeeze=True):
-        # type: (str, Any, bool) -> np.ndarray
+    def readColumn(
+        self, name: str, indices: Any = None, squeeze: bool = True
+    ) -> np.ndarray:
         """
         Load a full column (all rows). Each row entry is a 1-D NumPy array of
         subcolumns, so the initial result is a 2-D array row x subcolumn, which

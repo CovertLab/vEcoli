@@ -1,9 +1,10 @@
 import itertools
 import os
-from typing import Any, Dict, List
+from typing import Any, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import seaborn as sns
 from matplotlib.colors import rgb_to_hsv
@@ -16,9 +17,9 @@ from ecoli.plots.snapshots_video import make_video
 
 def plot_timeseries(
     data: pd.DataFrame,
-    axes: List[plt.Axes] = None,
-    columns_to_plot: Dict[str, tuple] = None,
-    highlight_lineage: str = None,
+    axes: list[plt.Axes],
+    columns_to_plot: dict[str, tuple],
+    highlight_lineage: str,
     conc: bool = False,
     mark_death: bool = False,
     background_lineages: bool = True,
@@ -151,15 +152,15 @@ def plot_timeseries(
                 alpha=0.5,
                 marker="x",
             )
-        curr_ax.autoscale(enable=True, axis="both", tight="both")
+        curr_ax.autoscale(enable=True, axis="both", tight=True)
         curr_ax.set_yticks(ticks=np.around(curr_ax.get_ylim(), decimals=0))
         xticks = np.around(curr_ax.get_xlim(), decimals=1)
         xticklabels = []
         for time in xticks:
             if time % 1 == 0:
-                xticklabels.append(int(time))
+                xticklabels.append(str(int(time)))
             else:
-                xticklabels.append(time)
+                xticklabels.append(str(time))
         curr_ax.set_xticks(ticks=xticks, labels=xticklabels)
         curr_ax.set_xlabel("Time (hr)")
         sns.despine(ax=curr_ax, offset=3, trim=True)
@@ -167,8 +168,8 @@ def plot_timeseries(
 
 def plot_field_snapshots(
     data: pd.DataFrame,
-    metadata: Dict[str, Dict[int, Dict[str, Any]]],
-    highlight_lineage: str = None,
+    metadata: dict[str, dict[str, dict[str, Any]]],
+    highlight_lineage: Optional[str] = None,
     highlight_color: tuple = (1, 0, 0),
     min_pct=1,
     max_pct=1,
@@ -218,7 +219,7 @@ def plot_field_snapshots(
         agent_id: (0, 0, 1) for agent_id in agent_ids if agent_id not in lineage_ids
     }
     for agent_id in lineage_ids:
-        agent_colors[agent_id] = rgb_to_hsv(highlight_color)
+        agent_colors[agent_id] = tuple(list(rgb_to_hsv(highlight_color)))
     condition = data.loc[:, "Condition"].unique()[0]
     seed = data.loc[:, "Seed"].unique()[0]
     data = data.sort_values("Time")
@@ -227,7 +228,7 @@ def plot_field_snapshots(
     condition_fields = {time: condition_fields[time] for time in data["Time"]}
     condition_bounds = metadata[condition][str(seed)]["bounds"]
     # Convert data back to dictionary form for snapshot plot
-    snapshot_data = {}
+    snapshot_data: dict[float, dict] = {}
     for time, agent_id, boundary in zip(
         data["Time"], data["Agent ID"], data["Boundary"]
     ):
@@ -298,12 +299,12 @@ def plot_field_snapshots(
 
 def plot_tag_snapshots(
     data: pd.DataFrame,
-    metadata: Dict[str, Dict[int, Dict[str, Any]]],
-    tag_colors: Dict[str, Any] = None,
+    metadata: dict[str, dict[int, dict[str, Any]]],
+    tag_colors: dict[str, Any],
+    snapshot_times: npt.NDArray[np.float64],
     conc: bool = False,
-    snapshot_times: List = None,
     min_color: Any = (1, 1, 1),
-    out_prefix: str = None,
+    out_prefix: Optional[str] = None,
     show_membrane: bool = False,
     return_fig: bool = False,
     figsize=(9, 1.75),
@@ -448,8 +449,8 @@ def plot_tag_snapshots(
 
 def make_tag_video(
     data: pd.DataFrame,
-    metadata: Dict[str, Dict[int, Dict[str, Any]]],
-    tag_colors: Dict[str, Any] = None,
+    metadata: dict[str, dict[str, dict[str, Any]]],
+    tag_colors: dict[str, Any] = None,
     conc: bool = False,
     min_color: Any = (0, 0, 0),
     out_prefix: str = None,
@@ -496,7 +497,7 @@ def make_tag_video(
             data = data.reset_index()
         condition_bounds = metadata[min(metadata)][str(seed)]["bounds"]
         # Convert data back to dictionary form for snapshot plot
-        snapshot_data = {}
+        snapshot_data: dict[float, dict] = {}
         for time, agent_id, boundary, column in zip(
             data["Time"], data["Agent ID"], data["Boundary"], data[highlight_column]
         ):

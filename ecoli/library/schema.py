@@ -591,7 +591,7 @@ def divide_ribosomes_by_RNA(
     return [np.zeros(0, dtype=values.dtype), np.zeros(0, dtype=values.dtype)]
 
 
-def divide_domains(state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def divide_domains(state: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
     """Divider function for chromosome domains. Ensures that all chromosome
     domains associated with a full chromosome go to the same daughter cell
     that the full chromosome does.
@@ -665,7 +665,7 @@ def divide_by_domain(
 
 def divide_RNAs_by_domain(
     values: np.ndarray, state: Dict[str, Any]
-) -> tuple[np.ndarray, np.ndarray]:
+) -> list[np.ndarray]:
     """Divider function for RNA unique molecules. Ensures that incomplete
     transcripts are divided in accordance with how active RNAPs are
     divided (which themselves depend on how chromosome domains are divided).

@@ -3,10 +3,12 @@ MetabolismRedux
 """
 
 import numpy as np
+import numpy.typing as npt
 import time
 from unum import Unum
 import warnings
 from scipy.sparse import csr_matrix
+from typing import Optional
 
 from vivarium.core.process import Step
 from vivarium.library.units import units as vivunits
@@ -17,7 +19,7 @@ from wholecell.utils import units
 
 from ecoli.processes.registries import topology_registry
 import cvxpy as cp
-from typing import Iterable, Mapping
+from typing import cast, Iterable, Mapping
 from dataclasses import dataclass
 
 COUNTS_UNITS = units.mmol
@@ -495,15 +497,15 @@ class NetworkFlowModel:
 
     def __init__(
         self,
-        stoich_arr: Iterable[dict],
-        metabolites: Iterable[list],
-        reactions: Iterable[list],
-        homeostatic_metabolites: Iterable[str],
-        kinetic_reactions: Iterable[str],
-        free_reactions: Iterable[str] = None,  # TODO Use free reactions
+        stoich_arr: npt.NDArray[np.int64],
+        metabolites: list[str],
+        reactions: list[str],
+        homeostatic_metabolites: list[str],
+        kinetic_reactions: list[str],
+        free_reactions: Optional[list[str]] = None,  # TODO Use free reactions
     ):
         self.S_orig = csr_matrix(stoich_arr.astype(np.int64))
-        self.S_exch = None
+        self.S_exch: Optional[npt.NDArray[np.float64]] = None
         self.n_mets, self.n_orig_rxns = self.S_orig.shape
         self.mets = metabolites
         self.met_map = {metabolite: i for i, metabolite in enumerate(metabolites)}
@@ -530,7 +532,7 @@ class NetworkFlowModel:
             else None
         )
 
-    def set_up_exchanges(self, exchanges: Iterable[str], uptakes: Iterable[str]):
+    def set_up_exchanges(self, exchanges: set[str], uptakes: set[str]):
         """Set up exchange reactions for the network flow model. Exchanges allow certain metabolites to have flow out of
         the system. Uptakes allow certain metabolites to also have flow into the system."""
         all_exchanges = exchanges.copy()
@@ -539,7 +541,7 @@ class NetworkFlowModel:
         # All exchanges can secrete but only uptakes go in both directions
         self.S_exch = np.zeros((self.n_mets, len(all_exchanges) + len(uptakes)))
         self.exchanges = []
-        self.secretion_idx = []
+        secretion_idx = []
         exch_idx = 0
         for met in all_exchanges:
             exch_name = met + " exchange"
@@ -549,27 +551,30 @@ class NetworkFlowModel:
                 self.exchanges.append(exch_name)
                 exch_idx += 1
             self.exchanges.append(exch_name + " rev")
-            self.secretion_idx.append(exch_idx)
+            secretion_idx.append(exch_idx)
             self.S_exch[met_idx, exch_idx] = -1
             exch_idx += 1
 
-        self.S_exch = csr_matrix(self.S_exch)
+        self.S_exch = cast(csr_matrix, csr_matrix(self.S_exch))
 
         _, self.n_exch_rxns = self.S_exch.shape
 
-        self.secretion_idx = np.array(self.secretion_idx, dtype=int)
+        self.secretion_idx = np.array(secretion_idx, dtype=int)
 
     def solve(
         self,
-        homeostatic_targets: Iterable[float] = None,
+        homeostatic_targets: Optional[Iterable[float]] = None,
         maintenance_target: float = 0,
-        kinetic_targets: Iterable[float] = None,
-        binary_kinetic_idx: Iterable[int] = None,
-        objective_weights: Mapping[str, float] = None,
+        kinetic_targets: Optional[Iterable[float]] = None,
+        binary_kinetic_idx: Optional[Iterable[int]] = None,
+        objective_weights: Optional[Mapping[str, float]] = None,
         upper_flux_bound: float = 100,
         solver=cp.GLOP,
     ) -> FlowResult:
         """Solve the network flow model for fluxes and dm/dt values."""
+        # mypy fixes
+        objective_weights = cast(Mapping[str, float], objective_weights)
+
         # set up variables
         v = cp.Variable(self.n_orig_rxns)
         e = cp.Variable(self.n_exch_rxns)

@@ -62,6 +62,7 @@ information with the outside simulation.
 
 import copy
 import warnings
+from typing import Any
 
 import numpy as np
 from vivarium.core.composer import Composer
@@ -132,7 +133,7 @@ class SchemaStub(Step):
     simulation.
     """
 
-    defaults = {
+    defaults: dict[str, Any] = {
         "ports_schema": {},
     }
 
