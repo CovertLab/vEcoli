@@ -19,6 +19,8 @@ import numpy as np
 from wholecell.utils import units
 from wholecell.utils.make_media import Media
 
+from typing import Any
+
 # threshold (units.mmol / units.L) separates concentrations that are import constrained with
 # max flux = 0 from unconstrained molecules.
 IMPORT_CONSTRAINT_THRESHOLD = 1e-5
@@ -101,8 +103,9 @@ class ExternalState(object):
                 for mol, conc in concentrations.items()
             }
 
-    def exchange_data_from_concentrations(self, molecules):
-        # type: (Dict[str, float]) -> Dict[str, Any]
+    def exchange_data_from_concentrations(
+        self, molecules: dict[str, float]
+    ) -> dict[str, Any]:
         """
         Update importExchangeMolecules for FBA based on current nutrient concentrations.
         This provides a simple type of transport to accommodate changing nutrient

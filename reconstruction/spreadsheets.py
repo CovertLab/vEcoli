@@ -11,74 +11,12 @@ from itertools import filterfalse
 import json
 import re
 import numpy as np
+from typing import Any, Iterator
 
 from wholecell.utils import units
 
 
 CSV_DIALECT = csv.excel_tab
-
-
-def comment_line(line):
-    # type: (str) -> bool
-    return line.lstrip().startswith("#")
-
-
-# TODO(jerry): Implementing this on wholecell.io.tsv.dict_reader/dict_writer
-#  would simplify it a little.
-
-
-@contextmanager
-def tsv_reader(filename):
-    # type: (str) -> Iterator[JsonReader]
-    """A context manager that opens a TSV JsonReader on the given filename with
-    an input filter to skip comment lines.
-    """
-    # ########################################################################
-    # NOTE: Python 3 csv requires opening the file as text 'r' with the right
-    # character encoding while Python 2 csv requires opening it as bytes 'rb'
-    # then decoding from UTF-8 after csv reads it but before DictReader or at
-    # least before json.loads(). The file can be in UTF-8 or its ASCII subset.
-    # ########################################################################
-
-    with io.open(filename, mode="r", encoding="utf-8", newline="") as fh:
-        reader = JsonReader(filterfalse(comment_line, fh), dialect=CSV_DIALECT)
-        yield reader
-
-
-def read_tsv(filename):
-    # type: (str) -> Sequence[Dict[str, Any]]
-    """Read an entire .tsv file using JsonReader and skip comment lines."""
-    with tsv_reader(filename) as reader:
-        return list(reader)
-
-
-@contextmanager
-def tsv_writer(filename, fieldnames):
-    # type: (str, Sequence[str]) -> Iterator[JsonWriter]
-    """A context manager that opens a TSV JsonWriter on the given filename.
-    Just call its writerow() and writerows() methods.
-    """
-    # ########################################################################
-    # NOTE: Python 3 csv requires opening the file as text 'w' with the right
-    # character encoding while Python 2 csv requires opening it as bytes 'wb'
-    # and encoding the data to UTF-8 before csv writes it.
-    # ########################################################################
-
-    fieldnames = list(fieldnames)
-    with io.open(filename, mode="w", encoding="utf-8", newline="") as fh:
-        writer = JsonWriter(fh, fieldnames, dialect=CSV_DIALECT)
-        writer.writeheader()
-
-        yield writer
-
-        fh.flush()
-
-
-def array_to_list(value):
-    if isinstance(value, np.ndarray):
-        value = value.tolist()
-
-    return value
 
 
 class JsonWriter(csv.DictWriter):
@@ -152,22 +90,19 @@ class JsonReader(object):
     def __iter__(self):
         return self
 
-    def __next__(self):
-        # type: () -> Dict[str, Any]
+    def __next__(self) -> dict[str, Any]:
         return self._decode_row(self.tsv_dict_reader.__next__())
 
     @property
-    def fieldnames(self):
-        # type: () -> List[str]
+    def fieldnames(self) -> list[str]:
         return self._fieldnames
 
-    def _decode_row(self, row_dict):
-        # type: (Dict[str, str]) -> Dict[str, Any]
+    def _decode_row(self, row_dict: dict[str, str]) -> dict[str, Any]:
         """Decode a DictReader row.
 
         NOTE: Each returned row contains unicode/str keys and values.
         """
-        attributeDict = {}  # type: Dict[str, Any]
+        attributeDict: dict[str, Any] = {}
 
         for fieldname in self._fieldnames:
             raw_value = row_dict[fieldname]
@@ -211,11 +146,68 @@ class JsonReader(object):
         return attributeDict
 
     @property
-    def dialect(self):
-        # type: () -> CSV_DIALECT
+    def dialect(self) -> CSV_DIALECT:
         return self.tsv_dict_reader.dialect
 
     @property
-    def line_num(self):
-        # type: () -> int
+    def line_num(self) -> int:
         return self.tsv_dict_reader.line_num
+
+
+def comment_line(line: str) -> bool:
+    return line.lstrip().startswith("#")
+
+
+# TODO(jerry): Implementing this on wholecell.io.tsv.dict_reader/dict_writer
+#  would simplify it a little.
+
+
+@contextmanager
+def tsv_reader(filename: str) -> Iterator[JsonReader]:
+    """A context manager that opens a TSV JsonReader on the given filename with
+    an input filter to skip comment lines.
+    """
+    # ########################################################################
+    # NOTE: Python 3 csv requires opening the file as text 'r' with the right
+    # character encoding while Python 2 csv requires opening it as bytes 'rb'
+    # then decoding from UTF-8 after csv reads it but before DictReader or at
+    # least before json.loads(). The file can be in UTF-8 or its ASCII subset.
+    # ########################################################################
+
+    with io.open(filename, mode="r", encoding="utf-8", newline="") as fh:
+        reader = JsonReader(filterfalse(comment_line, fh), dialect=CSV_DIALECT)
+        yield reader
+
+
+def read_tsv(filename: str) -> list[dict[str, Any]]:
+    """Read an entire .tsv file using JsonReader and skip comment lines."""
+    with tsv_reader(filename) as reader:
+        return list(reader)
+
+
+@contextmanager
+def tsv_writer(filename: str, fieldnames: list[str]) -> Iterator[JsonWriter]:
+    """A context manager that opens a TSV JsonWriter on the given filename.
+    Just call its writerow() and writerows() methods.
+    """
+    # ########################################################################
+    # NOTE: Python 3 csv requires opening the file as text 'w' with the right
+    # character encoding while Python 2 csv requires opening it as bytes 'wb'
+    # and encoding the data to UTF-8 before csv writes it.
+    # ########################################################################
+
+    fieldnames = list(fieldnames)
+    with io.open(filename, mode="w", encoding="utf-8", newline="") as fh:
+        writer = JsonWriter(fh, fieldnames, dialect=CSV_DIALECT)
+        writer.writeheader()
+
+        yield writer
+
+        fh.flush()
+
+
+def array_to_list(value):
+    if isinstance(value, np.ndarray):
+        value = value.tolist()
+
+    return value

@@ -28,7 +28,7 @@ one value is given for filter, and analysis type for one value."""
 
 def parse_variant_data_dir(
     experiment_id: list[str], variant_data_dir: list[str]
-) -> tuple[dict[str, dict[str, dict[int, Any]]], dict[str, dict[int, str]], list[str]]:
+) -> tuple[dict[str, dict[int, Any]], dict[str, dict[int, str]], list[str]]:
     """
     For each experiment ID and corresponding variant sim data directory,
     load the variant metadata JSON and parse the variant sim data file
@@ -64,7 +64,7 @@ def parse_variant_data_dir(
             v_data_dir = os.path.abspath(v_data_dir)
         filesystem, data_dir = fs.FileSystem.from_uri(v_data_dir)
         sim_data_dict[e_id] = {
-            int(os.path.basename(os.path.splitext(i.path)[0])): i.path
+            int(os.path.basename(os.path.splitext(i.path)[0])): str(i.path)
             for i in filesystem.get_file_info(fs.FileSelector(data_dir, recursive=True))
             if os.path.splitext(i.path)[1] == ".cPickle"
         }

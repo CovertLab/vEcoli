@@ -47,11 +47,12 @@ import itertools
 
 from duckdb import DuckDBPyConnection
 import numpy as np
+import numpy.typing as npt
 from matplotlib import pyplot as plt
 import math
 import pyarrow as pa
 from unum.units import fg
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 from tqdm import tqdm
 
 from ecoli.variants.new_gene_internal_shift import get_new_gene_ids_and_indices
@@ -329,7 +330,7 @@ def get_indexes(
     config_sql: str,
     index_type: str,
     ids: list[str] | list[list[str]],
-) -> list[int] | list[list[int]]:
+) -> list[int | None] | list[list[int | None]]:
     """
     Retrieve DuckDB indices of a given type for a set of IDs. Note that
     DuckDB lists are 1-indexed.
@@ -356,7 +357,7 @@ def get_indexes(
                 )
             )
         }
-        indices = [cistron_idx_dict.get(cistron) for cistron in ids]
+        return [cistron_idx_dict.get(cistron) for cistron in ids]
     elif index_type == "RNA":
         # Extract RNA indexes for each new gene
         RNA_idx_dict = {
@@ -367,7 +368,7 @@ def get_indexes(
                 )
             )
         }
-        indices = [[RNA_idx_dict.get(rna_id) for rna_id in rna_ids] for rna_ids in ids]
+        return [[RNA_idx_dict.get(rna_id) for rna_id in rna_ids] for rna_ids in ids]
     elif index_type == "mRNA":
         # Extract mRNA indexes for each new gene
         mRNA_idx_dict = {
@@ -378,7 +379,7 @@ def get_indexes(
                 )
             )
         }
-        indices = [[mRNA_idx_dict.get(rna_id) for rna_id in rna_ids] for rna_ids in ids]
+        return [[mRNA_idx_dict.get(rna_id) for rna_id in rna_ids] for rna_ids in ids]
     elif index_type == "monomer":
         # Extract protein indexes for each new gene
         monomer_idx_dict = {
@@ -387,13 +388,11 @@ def get_indexes(
                 get_field_metadata(conn, config_sql, "listeners__monomer_counts")
             )
         }
-        indices = [monomer_idx_dict.get(monomer_id) for monomer_id in ids]
+        return [monomer_idx_dict.get(monomer_id) for monomer_id in ids]
     else:
         raise Exception(
             "Index type " + index_type + " has no instructions for data extraction."
         )
-
-    return indices
 
 
 GENE_COUNTS_SQL = """
@@ -850,8 +849,8 @@ def get_rnap_counts_projection(
         sim_data: Simulation data
         bulk_ids: List of all bulk IDs in order
     """
-    rnap_idx = bulk_name_to_idx([sim_data.molecule_ids.full_RNAP], bulk_ids)
-    return f"bulk[{rnap_idx[0] + 1}] AS bulk"
+    rnap_idx = bulk_name_to_idx(sim_data.molecule_ids.full_RNAP, bulk_ids)
+    return f"bulk[{rnap_idx + 1}] AS bulk"
 
 
 def get_ribosome_counts_projection(
@@ -865,12 +864,15 @@ def get_ribosome_counts_projection(
         sim_data: Simulation data
         bulk_ids: List of all bulk IDs in order
     """
-    ribosome_idx = bulk_name_to_idx(
-        [
-            sim_data.molecule_ids.s30_full_complex,
-            sim_data.molecule_ids.s50_full_complex,
-        ],
-        bulk_ids,
+    ribosome_idx = cast(
+        np.ndarray,
+        bulk_name_to_idx(
+            [
+                sim_data.molecule_ids.s30_full_complex,
+                sim_data.molecule_ids.s50_full_complex,
+            ],
+            bulk_ids,
+        ),
     )
     return f"least(bulk[{ribosome_idx[0] + 1}], bulk[{ribosome_idx[1] + 1}]) AS bulk"
 
@@ -930,7 +932,7 @@ def get_variant_mask(
     config_sql: str,
     variant_to_row_col: dict[int, tuple[int, int]],
     variant_matrix_shape: tuple[int, int],
-) -> np.ndarray[bool]:
+) -> npt.NDArray[np.bool_]:
     """
     Get a boolean matrix where the rows represent the different
     translation efficiencies and the columns represent the different
@@ -1206,7 +1208,10 @@ def plot(
     rnap_subunit_mRNA_indexes = list(
         set(
             itertools.chain.from_iterable(
-                get_indexes(conn, config_sql, "mRNA", rnap_subunit_mRNA_ids)
+                cast(
+                    list[list[int]],
+                    get_indexes(conn, config_sql, "mRNA", rnap_subunit_mRNA_ids),
+                )
             )
         )
     )
@@ -1219,7 +1224,10 @@ def plot(
     ribosomal_mRNA_indexes = list(
         set(
             itertools.chain.from_iterable(
-                get_indexes(conn, config_sql, "mRNA", ribosomal_mRNA_ids)
+                cast(
+                    list[list[int]],
+                    get_indexes(conn, config_sql, "mRNA", ribosomal_mRNA_ids),
+                )
             )
         )
     )
@@ -1249,9 +1257,13 @@ def plot(
         )
         new_gene_mRNA_ids.append(RNA_ids[target_RNA_idx])
     new_gene_indexes = {
-        "mRNA": get_indexes(conn, config_sql, "mRNA", new_gene_mRNA_ids),
+        "mRNA": cast(
+            list[list[int]], get_indexes(conn, config_sql, "mRNA", new_gene_mRNA_ids)
+        ),
         "monomer": get_indexes(conn, config_sql, "monomer", new_gene_monomer_ids),
-        "RNA": get_indexes(conn, config_sql, "RNA", new_gene_mRNA_ids),
+        "RNA": cast(
+            list[list[int]], get_indexes(conn, config_sql, "RNA", new_gene_mRNA_ids)
+        ),
         "cistron": get_indexes(conn, config_sql, "cistron", new_gene_cistron_ids),
     }
 
@@ -1300,7 +1312,7 @@ def plot(
         plot_title (string): Title of heatmap to display
     """
     # Specify unique fields and non-default values here
-    heatmap_details = {
+    heatmap_details: dict[str, dict] = {
         "completed_gens_heatmap": {
             "columns": ["time"],
             "custom_sql": f"""

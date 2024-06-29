@@ -2,6 +2,7 @@ import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from typing import Optional
 
 from ecoli.experiments.ecoli_master_sim import EcoliSim
 from ecoli.library.schema import bulk_name_to_idx
@@ -83,7 +84,7 @@ def blame_timeseries(
     topology: dict,
     bulk_ids: list[str],
     molecules: list[str],
-    filename: str = None,
+    filename: Optional[str] = None,
     yscale: str = "linear",
 ) -> tuple[mpl.axes.Axes, mpl.figure.Figure]:
     """
@@ -132,6 +133,7 @@ def blame_timeseries(
     time, processes, values_array = preprocess_data(
         data, bulk_ids, bulk_processes, molecules
     )
+    bulk_ids = np.array(bulk_ids)
 
     # Twp subplots per molecule (count, change)
     max_t = time.max()

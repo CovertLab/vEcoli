@@ -941,8 +941,7 @@ class VoronoiMaster(object):
                 )
         return gross_error
 
-    def _find_total(self, val):
-        # type: (Union[int, float, dict]) -> float
+    def _find_total(self, val: int | float | dict) -> float:
         """
         Find the total value within a number or nestable dictionary.
         """
@@ -991,8 +990,8 @@ class VoronoiMaster(object):
                 labels, values, canvas_obj
             )
         voronoi_list = [voronoi_out]
-        polygon_value_list = [[] for _ in dic]  # type: List[Iterable]
-        label_site_list = [[] for _ in dic]  # type: List[Iterable]
+        polygon_value_list: list[list] = [[] for _ in dic]
+        label_site_list: list[list] = [[] for _ in dic]
 
         for i, value in enumerate(dic.values()):
             if isinstance(value, (float, int)):

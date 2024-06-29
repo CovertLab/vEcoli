@@ -14,6 +14,7 @@ import itertools
 import re
 from typing import (
     Any,
+    Callable,
     cast,
     Iterable,
     Optional,
@@ -26,6 +27,7 @@ from unum import Unum
 
 from numba import njit
 import numpy as np
+import numpy.typing as npt
 import sympy as sp
 from sympy.parsing.sympy_parser import parse_expr
 
@@ -605,8 +607,12 @@ class Metabolism(object):
             self._enzymes,
             self.constraint_is_kcat_only,
         ) = self._lambdify_constraints(constraints)
-        self._compiled_enzymes = None
-        self._compiled_saturation = None
+        self._compiled_enzymes: Optional[
+            Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]]
+        ] = None
+        self._compiled_saturation: Optional[
+            Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]]
+        ] = None
 
         # TODO: move this to a sim_data analysis script
         if VERBOSE:
@@ -792,7 +798,7 @@ class Metabolism(object):
         cytoplasm_tag = "[c]"
 
         for row in raw_data.amino_acid_pathways:
-            data = {}
+            data: dict[str, Any] = {}
             data["enzymes"] = [
                 e + sim_data.getter.get_compartment_tag(e) for e in row["Enzymes"]
             ]
@@ -827,7 +833,7 @@ class Metabolism(object):
             }
             self.aa_synthesis_pathways[row["Amino acid"] + cytoplasm_tag] = data
 
-        self.aa_synthesis_pathway_adjustments = {}
+        self.aa_synthesis_pathway_adjustments: dict[str, dict[str, float]] = {}
         for row in raw_data.adjustments.amino_acid_pathways:
             # Read data from row
             aa = row["Amino acid"] + cytoplasm_tag
@@ -996,7 +1002,9 @@ class Metabolism(object):
             - f_exported
         )
 
-    def aa_supply_scaling(self, aa_conc: Unum, aa_present: Unum) -> np.ndarray[float]:
+    def aa_supply_scaling(
+        self, aa_conc: Unum, aa_present: Unum
+    ) -> npt.NDArray[np.float64]:
         """
         Called during polypeptide_elongation process
         Determine amino acid supply rate scaling based on current amino acid
@@ -1024,7 +1032,7 @@ class Metabolism(object):
 
     def get_aa_to_transporters_mapping_data(
         self, sim_data: "SimulationDataEcoli", export: bool = False
-    ) -> tuple[dict[str, list], np.ndarray[int], np.ndarray[str]]:
+    ) -> tuple[dict[str, list], npt.NDArray[np.float64], npt.NDArray[np.str_]]:
         """
         Creates a dictionary that maps amino acids with their transporters.
         Based on this dictionary, it creates a correlation matrix with rows
@@ -1056,7 +1064,7 @@ class Metabolism(object):
         # CYS does not have any uptake reaction, so we initialize the dict with it to ensure
         # the presence of the 21 AAs
         # TODO (Santiago): Reversible reactions?
-        aa_to_transporters = {"CYS[c]": []}
+        aa_to_transporters: dict[str, list[str]] = {"CYS[c]": []}
         for reaction in self.transport_reactions:
             for aa in sim_data.molecule_groups.amino_acids:
                 if aa in self.reaction_stoich[reaction] and matches_direction(
@@ -1078,7 +1086,7 @@ class Metabolism(object):
                     transporters_to_idx[transporter] = c
                     c += 1
 
-        aa_to_transporters_matrix = [0] * len(aa_to_transporters)
+        aa_to_transporters_matrix = [[0]] * len(aa_to_transporters)
 
         for i, trnspts in enumerate(aa_to_transporters.values()):
             temp = [0] * len(transporters_to_idx)
@@ -1139,7 +1147,7 @@ class Metabolism(object):
         aa_with_km = {}
 
         # Calculate average factor to estimate missing KMs
-        coeff_estimate_kms = 0
+        coeff_estimate_kms = 0.0
         for export_kms in self.amino_acid_export_kms:
             aa_with_km[export_kms["Amino Acid"]] = export_kms["KM"]
             coef_per_aa = 0
@@ -1355,9 +1363,9 @@ class Metabolism(object):
         aa_upstream_kms = {}
         aa_reverse_kms = {}
         aa_degradation_kms = {}
-        fwd_rates = {}
-        rev_rates = {}
-        deg_rates = {}
+        fwd_rates: dict[str, float] = {}
+        rev_rates: dict[str, float] = {}
+        deg_rates: dict[str, float] = {}
         calculated_uptake_rates = {}
         minimal_conc = conc("minimal")
         with_aa_conc = conc("minimal_plus_amino_acids")
@@ -1367,7 +1375,7 @@ class Metabolism(object):
         # those calculations have completed
         self.aa_forward_stoich = np.eye(n_aas)
         self.aa_reverse_stoich = np.eye(n_aas)
-        dependencies = {}
+        dependencies: dict[str, set[str]] = {}
         for aa in aa_ids:
             for downstream_aa in self.aa_synthesis_pathways[aa]["downstream"]:
                 if units.isfinite(
@@ -1391,7 +1399,7 @@ class Metabolism(object):
                 ] = -stoich
                 dependencies.setdefault(reverse_aa, set()).add(aa)
 
-        ordered_aa_ids = []
+        ordered_aa_ids: list[str] = []
         for _ in aa_ids:  # limit number of iterations number of amino acids in case there are cyclic links
             for aa in sorted(set(aa_ids) - set(ordered_aa_ids)):
                 for downstream_aa in dependencies.get(aa, set()):
@@ -1879,10 +1887,12 @@ class Metabolism(object):
 
     def amino_acid_synthesis(
         self,
-        counts_per_aa_fwd: np.ndarray,
-        counts_per_aa_rev: np.ndarray,
-        aa_conc: Union[units.Unum, np.ndarray],
-    ) -> tuple[np.ndarray[float], np.ndarray[float], np.ndarray[float]]:
+        counts_per_aa_fwd: npt.NDArray[np.int64],
+        counts_per_aa_rev: npt.NDArray[np.int64],
+        aa_conc: Union[units.Unum, npt.NDArray[np.float64]],
+    ) -> tuple[
+        npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]
+    ]:
         """
         Calculate the net rate of synthesis for amino acid pathways (can be
         negative with reverse reactions).
@@ -1927,10 +1937,10 @@ class Metabolism(object):
 
     def amino_acid_export(
         self,
-        aa_transporters_counts: np.ndarray,
-        aa_conc: Union[units.Unum, np.ndarray],
+        aa_transporters_counts: npt.NDArray[np.int64],
+        aa_conc: Union[units.Unum, npt.NDArray[np.float64]],
         mechanistic_uptake: bool,
-    ) -> np.ndarray[float]:
+    ) -> npt.NDArray[np.float64]:
         """
         Calculate the rate of amino acid export.
 
@@ -1957,12 +1967,12 @@ class Metabolism(object):
 
     def amino_acid_import(
         self,
-        aa_in_media: np.ndarray,
+        aa_in_media: npt.NDArray[np.bool_],
         dry_mass: units.Unum,
-        internal_aa_conc: Union[units.Unum, np.ndarray],
-        aa_transporters_counts: np.ndarray,
+        internal_aa_conc: Union[units.Unum, npt.NDArray[np.float64]],
+        aa_transporters_counts: npt.NDArray[np.int64],
         mechanisitic_uptake: bool,
-    ) -> np.ndarray[float]:
+    ) -> npt.NDArray[np.float64]:
         """
         Calculate the rate of amino acid uptake.
 
@@ -2052,7 +2062,7 @@ class Metabolism(object):
         # complexes containing the subunit, including itself
         # Start by building mappings from subunits to complexes that are
         # directly formed from the subunit through a single reaction
-        subunit_id_to_parent_complexes = {}  # type: Dict[str, List[str]]
+        subunit_id_to_parent_complexes: dict[str, list[str]] = {}
 
         for comp_reaction in itertools.chain(
             cast(Any, raw_data).complexation_reactions,
@@ -2340,7 +2350,7 @@ class Metabolism(object):
     @staticmethod
     def temperature_adjusted_kcat(
         kcat: Unum, temp: Union[float, str] = ""
-    ) -> np.ndarray[float]:
+    ) -> npt.NDArray[np.float64]:
         """
         Args:
                 kcat: enzyme turnover number(s) (1 / time)
@@ -2410,7 +2420,7 @@ class Metabolism(object):
         reactant_tags: dict[str, str],
         product_tags: dict[str, str],
         known_mets: set[str],
-    ) -> tuple[Optional[np.ndarray], list[str]]:
+    ) -> tuple[Optional[npt.NDArray[np.float64]], list[str]]:
         """
         Args:
                 constraint: values defining a kinetic constraint::
@@ -2606,7 +2616,7 @@ class Metabolism(object):
 
         known_metabolites_ = set() if known_metabolites is None else known_metabolites
 
-        constraints = {}  # type: Dict[Tuple[str, str], Dict[str, list]]
+        constraints: dict[tuple[str, str], dict[str, list]] = {}
         for constraint in cast(Any, raw_data).metabolism_kinetics:
             rxn = constraint["reactionID"]
             enzyme = constraint["enzymeID"]
@@ -2818,7 +2828,15 @@ class Metabolism(object):
     @staticmethod
     def _lambdify_constraints(
         constraints: dict[str, Any],
-    ) -> tuple[list[str], list[str], list[str], np.ndarray, str, str, np.ndarray]:
+    ) -> tuple[
+        list[str],
+        list[str],
+        list[str],
+        npt.NDArray[np.float64],
+        str,
+        str,
+        npt.NDArray[np.bool_],
+    ]:
         """
         Creates str representations of kinetic terms to be used to create
         kinetic constraints that are returned with getKineticConstraints().
@@ -3149,9 +3167,11 @@ class ConcentrationUpdates(object):
 
     # return adjustments to concDict based on nutrient conditions
     def concentrations_based_on_nutrients(
-        self, media_id=None, imports=None, conversion_units=None
-    ):
-        # type: (Optional[str], Optional[Set[str]], Optional[units.Unum]) -> Dict[str, Any]
+        self,
+        media_id: Optional[str] = None,
+        imports: Optional[str] = None,
+        conversion_units: Optional[units.Unum] = None,
+    ) -> dict[str, Any]:
         if conversion_units:
             conversion = self.units.asNumber(conversion_units)
         else:

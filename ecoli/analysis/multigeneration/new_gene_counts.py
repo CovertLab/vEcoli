@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Any, cast
 
 from duckdb import DuckDBPyConnection
 import pickle
@@ -35,7 +35,7 @@ def plot(
         zip(monomer_sim_data["cistron_id"], monomer_sim_data["id"])
     )
     new_gene_monomer_ids = [
-        mRNA_monomer_id_dict.get(mRNA_id) for mRNA_id in new_gene_mRNA_ids
+        cast(str, mRNA_monomer_id_dict.get(mRNA_id)) for mRNA_id in new_gene_mRNA_ids
     ]
 
     if len(new_gene_mRNA_ids) == 0:
@@ -61,7 +61,7 @@ def plot(
         )
     }
     new_gene_mRNA_indexes = [
-        mRNA_idx_dict.get(mRNA_id) for mRNA_id in new_gene_mRNA_ids
+        cast(int, mRNA_idx_dict.get(mRNA_id)) for mRNA_id in new_gene_mRNA_ids
     ]
 
     # Extract proein indexes for each new gene
@@ -72,7 +72,8 @@ def plot(
         )
     }
     new_gene_monomer_indexes = [
-        monomer_idx_dict.get(monomer_id) for monomer_id in new_gene_monomer_ids
+        cast(int, monomer_idx_dict.get(monomer_id))
+        for monomer_id in new_gene_monomer_ids
     ]
 
     # Load data

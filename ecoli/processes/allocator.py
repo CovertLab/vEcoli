@@ -9,6 +9,7 @@ process priorities.
 
 import numpy as np
 from vivarium.core.process import Step
+from typing import Any
 
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import counts, numpy_schema, bulk_name_to_idx, listener_schema
@@ -42,9 +43,9 @@ class Allocator(Step):
     name = NAME
     topology = TOPOLOGY
 
-    defaults = {}
+    defaults: dict[str, Any] = {}
 
-    processes = {}
+    processes: dict[str, Any] = {}
 
     # Constructor
     def __init__(self, parameters=None):

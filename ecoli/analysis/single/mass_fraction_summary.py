@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Any, cast
 
 from duckdb import DuckDBPyConnection
 import polars as pl
@@ -58,7 +58,7 @@ def plot(
     new_columns = {
         "Time (min)": (mass_data["time"] - mass_data["time"].min()) / 60,
         **{
-            f"{k} ({fractions[k]:.3f})": mass_data[v] / mass_data[v][0]
+            f"{k} ({cast(float, fractions[k]):.3f})": mass_data[v] / mass_data[v][0]
             for k, v in mass_columns.items()
         },
     }

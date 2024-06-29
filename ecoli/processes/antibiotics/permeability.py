@@ -8,6 +8,8 @@ from vivarium.core.process import Step
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 
+from typing import Any
+
 # TODO: Recompute average surface area with corrected formula
 # To calculate SA_AVERAGE, we calculated the average surface area of the model up until division.
 SA_AVERAGE = 6.22200939450696 * units.micron**2
@@ -39,7 +41,7 @@ INNER_BILAYER_TET_PERM = 3 * 1e-6 * units.cm / units.sec
 
 class Permeability(Step):
     name = "permeability"
-    defaults = {
+    defaults: dict[str, Any] = {
         "porin_ids": [],
         "diffusing_molecules": [],
     }

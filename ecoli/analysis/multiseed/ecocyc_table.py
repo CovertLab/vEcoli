@@ -424,7 +424,7 @@ def plot(
         )
 
         columns["validation-count"] = "A floating point number"
-        values.append(protein_counts_val)
+        values.append(pl.Series(protein_counts_val))
 
         protein_val_exists = np.logical_not(np.isnan(protein_counts_val))
         r, _ = pearsonr(

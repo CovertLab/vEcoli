@@ -4,7 +4,7 @@ import pathlib
 from itertools import pairwise
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Mapping, Optional
+from typing import Any, Callable, cast, Mapping, Optional
 from urllib import parse
 
 import duckdb
@@ -155,9 +155,12 @@ def num_cells(conn: duckdb.DuckDBPyConnection, subquery: str) -> int:
     Return cell count in DuckDB subquery containing ``experiment_id``,
     ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns.
     """
-    return conn.sql(f"""SELECT count(
+    return cast(
+        tuple,
+        conn.sql(f"""SELECT count(
         DISTINCT (experiment_id, variant, lineage_seed, generation, agent_id)
-        ) FROM ({subquery})""").fetchone()[0]
+        ) FROM ({subquery})""").fetchone(),
+    )[0]
 
 
 def skip_n_gens(subquery: str, n: int) -> str:
@@ -275,8 +278,10 @@ def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> 
             raise TypeError("Indices must be integers or boolean masks.")
     elif first_idx == ":":
         select_expr = "x_0"
+    elif isinstance(first_idx, int):
+        select_expr = f"x_0[{int(first_idx) + 1}]"
     else:
-        select_expr = f"x_0[{first_idx + 1}]"
+        raise TypeError("All indices must be lists, ints, or ':'.")
     i = -1
     for i, indices in enumerate(idx):
         if isinstance(indices, list):
@@ -289,10 +294,10 @@ def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> 
                 raise TypeError("Indices must be integers or boolean masks.")
         elif indices == ":":
             select_expr = f"list_transform(x_{i+1}, x_{i} -> {select_expr})"
+        elif isinstance(first_idx, int):
+            select_expr = f"list_transform(x_{i+1}[{cast(int, indices) + 1}], x_{i} -> {select_expr})"
         else:
-            select_expr = (
-                f"list_transform(x_{i+1}[{indices + 1}], x_{i} -> {select_expr})"
-            )
+            raise TypeError("All indices must be lists, ints, or ':'.")
     select_expr = select_expr.replace(f"x_{i+1}", name)
     return select_expr + f" AS {name}"
 
@@ -332,9 +337,12 @@ def get_field_metadata(
         config_subquery: DuckDB query containing sim config data
         field: Name of field to get metadata for
     """
-    metadata = conn.sql(
-        f'SELECT first("{METADATA_PREFIX + field}") FROM ({config_subquery})'
-    ).fetchone()[0]
+    metadata = cast(
+        tuple,
+        conn.sql(
+            f'SELECT first("{METADATA_PREFIX + field}") FROM ({config_subquery})'
+        ).fetchone(),
+    )[0]
     if isinstance(metadata, list):
         return metadata
     return list(metadata)
@@ -351,9 +359,10 @@ def get_config_value(
         config_subquery: DuckDB query containing sim config data
         field: Name of configuration option to get value of
     """
-    return conn.sql(
-        f'SELECT first("data__{field}") FROM ({config_subquery})'
-    ).fetchone()[0]
+    return cast(
+        tuple,
+        conn.sql(f'SELECT first("data__{field}") FROM ({config_subquery})').fetchone(),
+    )[0]
 
 
 def get_plot_metadata(
@@ -379,12 +388,18 @@ def get_plot_metadata(
         "seed": conn.sql(f"SELECT DISTINCT lineage_seed FROM ({config_subquery})")
         .arrow()
         .to_pydict()["lineage_seed"],
-        "total_gens": conn.sql(
-            f"SELECT count(DISTINCT generation) FROM ({config_subquery})"
-        ).fetchone()[0],
-        "total_variants": conn.sql(
-            f"SELECT count(DISTINCT variant) FROM ({config_subquery})"
-        ).fetchone()[0],
+        "total_gens": cast(
+            tuple,
+            conn.sql(
+                f"SELECT count(DISTINCT generation) FROM ({config_subquery})"
+            ).fetchone(),
+        )[0],
+        "total_variants": cast(
+            tuple,
+            conn.sql(
+                f"SELECT count(DISTINCT variant) FROM ({config_subquery})"
+            ).fetchone(),
+        )[0],
     }
 
 
@@ -617,7 +632,7 @@ def flatten_dict(d: dict):
     emits to be written to, compressed, and encoded as its own column
     in a Parquet file for efficient storage and retrieval.
     """
-    results = []
+    results: list[tuple[str, Any]] = []
 
     def visit_key(subdict, results, partialKey):
         for k, v in subdict.items():
@@ -666,9 +681,9 @@ class ParquetEmitter(Emitter):
         self.temp_data = tempfile.NamedTemporaryFile(delete=False)
         self.executor = ThreadPoolExecutor(2)
         # Keep a cache of field encodings and fields encountered
-        self.encodings = {}
+        self.encodings: dict[str, str] = {}
         self.schema = pa.schema([])
-        self.non_null_keys = set()
+        self.non_null_keys: set[str] = set()
         self.num_emits = 0
         atexit.register(self._finalize)
 

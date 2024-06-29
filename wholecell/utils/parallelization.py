@@ -3,16 +3,15 @@
 import multiprocessing as mp
 import multiprocessing.pool
 import os
+from typing import Any, Callable, Iterable, Optional
 
 
-def is_macos():
-    # type: () -> bool
+def is_macos() -> bool:
     """Return True if this is running on macOS."""
     return os.uname()[0].lower() == "darwin"
 
 
-def cpus(requested_num_processes=None):
-    # type: (Optional[int]) -> int
+def cpus(requested_num_processes: Optional[int] = None) -> int:
     """Return the usable number of worker processes for a multiprocessing Pool,
     up to `requested_num_processes` (default = max available), considering SLURM
     and any other environment-specific limitations.
@@ -25,32 +24,32 @@ def cpus(requested_num_processes=None):
     the job on this node.
 
     By default, srun sets:
-            SLURM_CPUS_ON_NODE=1
-            SLURM_JOB_CPUS_PER_NODE=1
+        SLURM_CPUS_ON_NODE=1
+        SLURM_JOB_CPUS_PER_NODE=1
 
     srun -p mcovert --cpus-per-task=2:
-            SLURM_CPUS_PER_TASK=2
-            SLURM_CPUS_ON_NODE=2
-            SLURM_JOB_CPUS_PER_NODE=2
+        SLURM_CPUS_PER_TASK=2
+        SLURM_CPUS_ON_NODE=2
+        SLURM_JOB_CPUS_PER_NODE=2
 
     srun --ntasks-per-node=3 --cpus-per-task=4:
-            SLURM_CPUS_PER_TASK=4
-            SLURM_CPUS_ON_NODE=12
-            SLURM_JOB_CPUS_PER_NODE=12
+        SLURM_CPUS_PER_TASK=4
+        SLURM_CPUS_ON_NODE=12
+        SLURM_JOB_CPUS_PER_NODE=12
 
     srun --ntasks-per-node=3:
-            SLURM_CPUS_ON_NODE=3
-            SLURM_JOB_CPUS_PER_NODE=3
+        SLURM_CPUS_ON_NODE=3
+        SLURM_JOB_CPUS_PER_NODE=3
 
     Args:
-            requested_num_processes: the requested number of worker
-                    processes; None or 0 means return the max usable number
+        requested_num_processes: the requested number of worker
+                processes; None or 0 means return the max usable number
 
     Returns:
-            num_cpus: the usable number of worker processes for a Pool, as limited
-                    by the hardware, OS, SLURM, and `requested_num_processes`.
+        num_cpus: the usable number of worker processes for a Pool, as limited
+                by the hardware, OS, SLURM, and `requested_num_processes`.
 
-                    ==> 1 means DO NOT CREATE WORKER SUBPROCESSES.
+                ==> 1 means DO NOT CREATE WORKER SUBPROCESSES.
 
     See also `pool()`.
 
@@ -80,30 +79,27 @@ def cpus(requested_num_processes=None):
     return available
 
 
-def pool(num_processes=None, nestable=False):
-    # type: (Optional[int], bool) -> Union[mp.pool.Pool, InlinePool]
-    """Return an `InlinePool` if `cpus(num_processes) == 1`, else a
-    multiprocessing `Pool(cpus(num_processes))`, as suitable for the current
-    runtime environment.
-
-    This uses the 'spawn' process start method to create a fresh python
-    interpreter process, avoiding threading problems and cross-platform
-    inconsistencies.
-
-    nestable can create a pool of non-daemon worker processes that can spawn
-    nested processes and have have nested pools.
-
-    See `cpus()` on figuring the number of usable processes.
-    See `InlinePool` about why running in-process is important.
+class ApplyResult(object):
     """
-    usable = cpus(num_processes)
+    A substitute for multiprocessing.ApplyResult() to return with apply_async.
+    Will get created after a successful function call so ready() and
+    successful() are always True.
+    """
 
-    if usable == 1:
-        return InlinePool()
-    elif nestable:
-        return NoDaemonPool()
-    else:
-        return mp.get_context(method="spawn").Pool(processes=usable)
+    def __init__(self, result):
+        self._result = result
+
+    def ready(self):
+        return True
+
+    def successful(self):
+        return True
+
+    def wait(self, timeout=None):
+        pass
+
+    def get(self, timeout=None):
+        return self._result
 
 
 class InlinePool(object):
@@ -115,13 +111,22 @@ class InlinePool(object):
     the main process.
     """
 
-    def map(self, func, iterable, chunksize=None):
-        # type: (Callable[..., Any], Iterable[Any], Optional[int]) -> List[Any]
+    def map(
+        self,
+        func: Callable[..., Any],
+        iterable: Iterable[Any],
+        chunksize: Optional[int] = None,
+    ) -> list:
         """Map the function over the iterable."""
         return list(map(func, iterable))
 
-    def apply_async(self, func, args=(), kwds=None, callback=None):
-        # type: (Callable[..., Any], Iterable[Any], Optional[Dict[str, Any]], Optional[Callable[..., None]]) -> ApplyResult
+    def apply_async(
+        self,
+        func: Callable[..., Any],
+        args: Iterable[Any] = (),
+        kwds: Optional[dict[str, Any]] = None,
+        callback: Optional[Callable[..., None]] = None,
+    ) -> ApplyResult:
         """
         Apply the function to the args serially (not asynchronously since
         only one process available).
@@ -149,29 +154,6 @@ class InlinePool(object):
         pass
 
 
-class ApplyResult(object):
-    """
-    A substitute for multiprocessing.ApplyResult() to return with apply_async.
-    Will get created after a successful function call so ready() and
-    successful() are always True.
-    """
-
-    def __init__(self, result):
-        self._result = result
-
-    def ready(self):
-        return True
-
-    def successful(self):
-        return True
-
-    def wait(self, timeout=None):
-        pass
-
-    def get(self, timeout=None):
-        return self._result
-
-
 class NoDaemonProcess(mp.Process):
     @property  # type: ignore[override]
     def daemon(self):
@@ -197,3 +179,30 @@ class NoDaemonPool(mp.pool.Pool):
     def __init__(self, *args, **kwargs):
         kwargs["context"] = NoDaemonContext()
         super().__init__(*args, **kwargs)
+
+
+def pool(
+    num_processes: Optional[int] = None, nestable: bool = False
+) -> mp.pool.Pool | InlinePool:
+    """Return an `InlinePool` if `cpus(num_processes) == 1`, else a
+    multiprocessing `Pool(cpus(num_processes))`, as suitable for the current
+    runtime environment.
+
+    This uses the 'spawn' process start method to create a fresh python
+    interpreter process, avoiding threading problems and cross-platform
+    inconsistencies.
+
+    nestable can create a pool of non-daemon worker processes that can spawn
+    nested processes and have have nested pools.
+
+    See `cpus()` on figuring the number of usable processes.
+    See `InlinePool` about why running in-process is important.
+    """
+    usable = cpus(num_processes)
+
+    if usable == 1:
+        return InlinePool()
+    elif nestable:
+        return NoDaemonPool()
+    else:
+        return mp.get_context(method="spawn").Pool(processes=usable)
