@@ -505,7 +505,7 @@ class NetworkFlowModel:
         free_reactions: Optional[list[str]] = None,  # TODO Use free reactions
     ):
         self.S_orig = csr_matrix(stoich_arr.astype(np.int64))
-        self.S_exch: Optional[npt.NDArray[np.float64]] = None
+        self.S_exch = csr_matrix([])
         self.n_mets, self.n_orig_rxns = self.S_orig.shape
         self.mets = metabolites
         self.met_map = {metabolite: i for i, metabolite in enumerate(metabolites)}
@@ -555,7 +555,7 @@ class NetworkFlowModel:
             self.S_exch[met_idx, exch_idx] = -1
             exch_idx += 1
 
-        self.S_exch = cast(csr_matrix, csr_matrix(self.S_exch))
+        self.S_exch = csr_matrix(self.S_exch)
 
         _, self.n_exch_rxns = self.S_exch.shape
 

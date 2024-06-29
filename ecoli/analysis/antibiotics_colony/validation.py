@@ -181,8 +181,8 @@ def plot_colony_growth(
 
 def plot_mrna_fc(
     data: pd.DataFrame,
-    ax: Optional[plt.Axes] = None,
-    genes_to_plot: Optional[list[str]] = None,
+    ax: plt.Axes,
+    genes_to_plot: list[str],
     highlight_genes: Optional[dict[str, tuple]] = None,
 ) -> None:
     """Plot scatter plot of simulated and experimental log2 fold change for
@@ -236,7 +236,7 @@ def plot_mrna_fc(
     )
     relative_data = relative_data.join(tet_degenes, how="inner").reset_index()
     relative_data = relative_data.rename(columns={"index": "Gene"})
-    palette = {gene: "k" for gene in relative_data["Gene"].unique()}
+    palette: dict[str, Any] = {gene: "k" for gene in relative_data["Gene"].unique()}
     if highlight_genes:
         palette = {**palette, **highlight_genes}
     sns.scatterplot(
@@ -277,8 +277,8 @@ def plot_mrna_fc(
 
 def plot_protein_synth_inhib(
     data: pd.DataFrame,
-    ax: plt.Axes = None,
-    literature: pd.DataFrame = None,
+    ax: plt.Axes,
+    literature: pd.DataFrame,
 ):
     """Plot scatter plot of normalized % protein synthesis inhibition across a
     variety of tetracycline concentrations.
@@ -303,7 +303,11 @@ def plot_protein_synth_inhib(
     sampled_time = sampled_time.sort_values("Time")
 
     grouped_agents = sampled_time.groupby(["Condition", "Seed", "Agent ID"])
-    normed_data = {"Condition": [], "Normed delta": [], "Tetracycline": []}
+    normed_data: dict[str, Any] = {
+        "Condition": [],
+        "Normed delta": [],
+        "Tetracycline": [],
+    }
     for (condition, seed, agent_id), agent_data in grouped_agents:
         protein_deltas = np.diff(agent_data.loc[:, "Protein mass"])
         # Ignore final timestep (protein mass deltas require two timepoints)

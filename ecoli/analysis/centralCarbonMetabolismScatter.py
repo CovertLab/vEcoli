@@ -8,6 +8,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 import seaborn as sns
+from unum import Unum
 
 from wholecell.utils import units
 from ecoli.library.sim_data import SIM_DATA_PATH
@@ -24,8 +25,9 @@ class Plot:
     """Plot fluxome data"""
 
     @staticmethod
-    def load_toya_data(validation_data_file, sim_data_file, sim_df):
-        # type: (str, str, str) -> Tuple[List[str], Unum, Unum]
+    def load_toya_data(
+        validation_data_file: str, sim_data_file: str, sim_df: str
+    ) -> tuple[list[str], Unum, Unum]:
         """Load fluxome data from 2010 validation data
 
         Arguments:

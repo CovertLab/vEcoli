@@ -1,5 +1,5 @@
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Type
 
 import numpy as np
 
@@ -26,7 +26,7 @@ QUADRATIC = {
 if TYPE_CHECKING:
     from wholecell.utils._netflow._base import NetworkFlowProblemBase
 
-SOLVERS: dict[str, "NetworkFlowProblemBase"] = {}
+SOLVERS: dict[str, "Type[NetworkFlowProblemBase]"] = {}
 try:
     from ._netflow.nf_cplex import NetworkFlowCPLEX
 except ImportError:

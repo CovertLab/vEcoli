@@ -10,7 +10,7 @@ class Aggregator(Step):
     """
 
     name = "aggregator"
-    defaults = {"paths": tuple(), "funcs": tuple()}
+    defaults: dict[str, tuple] = {"paths": tuple(), "funcs": tuple()}
 
     def __init__(self, parameters):
         super().__init__(parameters)

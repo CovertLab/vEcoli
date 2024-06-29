@@ -3,29 +3,32 @@
 from typing import cast, List
 
 import numpy as np
+import numpy.typing as npt
 
 
 def get_simulated_validation_counts(
-    validation_counts, monomer_counts, validation_ids, simulation_ids
-):
-    # type: (np.ndarray, np.ndarray, np.ndarray, np.ndarray) -> Tuple[np.ndarray, np.ndarray]
+    validation_counts: npt.NDArray[np.int64],
+    monomer_counts: npt.NDArray[np.int64],
+    validation_ids: npt.NDArray[np.str_],
+    simulation_ids: npt.NDArray[np.str_],
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
     """
     Get simulated counts and validation counts of monomers that exist in both
     the simulation and the validation data
 
     Arguments:
-            validation_counts: Monomer counts from validation data.
-            monomer_counts: Simulated monomer counts (from translation
-                    process).
-            validation_ids: Monomer IDs from validation data. IDs
-                    must appear in same order as in validation_counts.
-            simulation_ids: IDs of monomers in the same order as
-                    monomer_counts.
+        validation_counts: Monomer counts from validation data.
+        monomer_counts: Simulated monomer counts (from translation
+            process).
+        validation_ids: Monomer IDs from validation data. IDs
+            must appear in same order as in validation_counts.
+        simulation_ids: IDs of monomers in the same order as
+            monomer_counts.
 
     Returns:
-            The simulated counts of the monomers that appear in the
-            validation data, and the validation counts of the monomers in the same
-            order.
+        The simulated counts of the monomers that appear in the
+        validation data, and the validation counts of the monomers in the same
+        order.
     """
     avg_sim_counts = monomer_counts.mean(axis=0)
 

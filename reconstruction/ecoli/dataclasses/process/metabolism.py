@@ -8,6 +8,7 @@ TODO:
 - find concentration for PI[c]
 - add (d)NTP byproduct concentrations
 """
+# mypy: disable-error-code=attr-defined
 
 from copy import copy
 import itertools
@@ -436,7 +437,7 @@ class Metabolism(object):
             )
 
         # Load relative metabolite changes
-        relative_changes = {}
+        relative_changes: dict[str, dict[str, float]] = {}
         for row in raw_data.relative_metabolite_concentrations:
             met = row["Metabolite"]
             met_id = met + wildtypeIDtoCompartment.get(met, "[c]")
@@ -732,7 +733,7 @@ class Metabolism(object):
 
         # Indices (i: metabolite, j: reaction) and values (v: stoichiometry)
         # for sparse reaction matrix
-        metabolite_indices = {}
+        metabolite_indices: dict[str, int] = {}
         new_index = 0
         rxn_i = []
         rxn_j = []
@@ -1800,11 +1801,11 @@ class Metabolism(object):
         rich_conc = np.array(
             [with_aa_conc[aa].asNumber(METABOLITE_CONCENTRATION_UNITS) for aa in aa_ids]
         )
-        self.aa_import_kis = (
+        self.aa_import_kis: np.ndarray = (
             rich_conc.copy()
         )  # Assume this conc is the inhibition constant: TODO: find KIs
         saturation = 1 / (1 + rich_conc / self.aa_import_kis)
-        self.specific_import_rates = np.array(
+        self.specific_import_rates: np.ndarray = np.array(
             [calculated_uptake_rates[aa] for aa in aa_ids]
         ) / cell_specs["with_aa"]["avgCellDryMassInit"].asNumber(DRY_MASS_UNITS)
         self.max_specific_import_rates = self.specific_import_rates / saturation

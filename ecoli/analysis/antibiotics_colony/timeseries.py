@@ -363,7 +363,7 @@ def plot_tag_snapshots(
             data = data.reset_index()
         condition_bounds = metadata[min(metadata)][seed]["bounds"]
         # Convert data back to dictionary form for snapshot plot
-        snapshot_data = {}
+        snapshot_data: dict[float, dict] = {}
         data_max = data[highlight_column].max()
         data_min = data[highlight_column].min()
         tag_ranges = {(highlight_column,): [data_min, data_max]}
@@ -450,10 +450,10 @@ def plot_tag_snapshots(
 def make_tag_video(
     data: pd.DataFrame,
     metadata: dict[str, dict[str, dict[str, Any]]],
-    tag_colors: dict[str, Any] = None,
+    tag_colors: dict[str, Any],
+    out_prefix: str,
     conc: bool = False,
     min_color: Any = (0, 0, 0),
-    out_prefix: str = None,
     show_membrane: bool = False,
     highlight_agent=None,
 ) -> None:

@@ -1653,17 +1653,17 @@ def initialize_translation(
 
 
 def determine_chromosome_state(
-    tau: float | Unum,
-    replichore_length: float | Unum,
+    tau: Unum,
+    replichore_length: Unum,
     n_max_replisomes: int,
     place_holder: int,
-    cell_mass: float | Unum,
-    critical_mass: float | Unum,
+    cell_mass: Unum,
+    critical_mass: Unum,
     replication_rate: float,
 ) -> tuple[
-    dict[str, dict[str, npt.NDArray[np.int64]]],
-    dict[str, dict[str, npt.NDArray[Any]]],
-    dict[str, dict[str, npt.NDArray[np.int64]]],
+    dict[str, npt.NDArray[np.int32]],
+    dict[str, npt.NDArray[Any]],
+    dict[str, npt.NDArray[np.int32]],
 ]:
     """
     Calculates the attributes of oriC's, replisomes, and chromosome domains on
