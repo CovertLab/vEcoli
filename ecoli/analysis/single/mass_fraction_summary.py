@@ -28,10 +28,10 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: dict[int, list[str]],
+    sim_data_paths: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any],
+    variant_metadata: dict[str, dict[int, Any]],
     variant_name: str,
 ):
     assert (

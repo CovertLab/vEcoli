@@ -21,22 +21,21 @@ FILE_LOCATION = os.path.realpath(os.path.dirname(__file__))
 OUTPUT_FILE = os.path.join(FILE_LOCATION, "metabolite_concentrations.tsv")
 
 
-def load_conc(filename):
-    # type: (str) -> Tuple[str, Dict[str, str]]
+def load_conc(filename: str) -> tuple[str, dict[str, str]]:
     """
     Load concentration data from a tsv file.  First column should be metabolite
     ID and second column should be concentration.  Does not handle more than
     one concentration column at this point.
 
     Args:
-            filename: path to concentration tsv file
+        filename: path to concentration tsv file
 
     Returns:
-            label: header describing the concentration data
-            conc: metabolite ID to concentration
+        label: header describing the concentration data
+        conc: metabolite ID to concentration
     """
 
-    conc = {}  # type: Dict[str, str]
+    conc: dict[str, str] = {}
     with io.open(filename, "rb") as f:
         reader = tsv.reader(f)
 
@@ -54,8 +53,7 @@ def load_conc(filename):
     return label, conc
 
 
-def save_conc(conc):
-    # type: (List[Tuple[str, Dict[str, str]]]) -> None
+def save_conc(conc: list[tuple[str, dict[str, str]]]):
     """
     Save combined concentration data with blank entries for metabolites with
     unknown concentrations.

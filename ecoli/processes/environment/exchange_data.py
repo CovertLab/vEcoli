@@ -1,3 +1,5 @@
+from typing import Any
+
 from ecoli.processes.registries import topology_registry
 from vivarium.core.process import Step
 from vivarium.library.units import units
@@ -17,7 +19,7 @@ class ExchangeData(Step):
 
     name = NAME
     topology = TOPOLOGY
-    defaults = {
+    defaults: dict[str, Any] = {
         "external_state": None,
         "environment_molecules": [],
         "saved_media": {},

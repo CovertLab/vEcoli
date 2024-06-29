@@ -107,7 +107,7 @@ def report_profiling(stats: pstats.Stats) -> None:
     for key in stats_keys:
         key_stats = stats.stats[key]
         _, _, _, cumtime, _ = key_stats
-        path, line, func = key
+        path, line, func = key.split(" ")
         path = os.path.basename(path)
         summed_stats[(path, line, func)] = (
             summed_stats.get((path, line, func), 0) + cumtime

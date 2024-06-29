@@ -995,8 +995,8 @@ class VoronoiMaster(object):
 
         for i, value in enumerate(dic.values()):
             if isinstance(value, (float, int)):
-                polygon_value_list[i] = (voronoi_out.polygons[i], values[i])
-                label_site_list[i] = (labels[i], voronoi_out.sites[i])
+                polygon_value_list[i] = [voronoi_out.polygons[i], values[i]]
+                label_site_list[i] = [labels[i], voronoi_out.sites[i]]
 
             elif isinstance(value, dict):
                 if voronoi_list_old is not None:

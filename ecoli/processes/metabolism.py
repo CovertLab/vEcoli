@@ -721,7 +721,7 @@ class FluxBalanceAnalysisModel(object):
     def __init__(
         self,
         parameters: dict[str, Any],
-        timeline: tuple[tuple[str]],
+        timeline: tuple[tuple[int, str], ...],
         include_ppgpp: bool = True,
     ):
         """

@@ -3,6 +3,7 @@ Classes for the Nodes and Edges of a causality network.
 """
 
 import numpy as np
+from typing import Optional
 
 
 # Filenames
@@ -252,12 +253,11 @@ class Edge(object):
                     coefficient of reaction-metabolite pair, integer, e.g. 1
     """
 
-    def __init__(self, process):
-        # type: (str) -> None
-        self.process = process  # type: str
-        self.src_id = None  # type: Optional[str]
-        self.dst_id = None  # type: Optional[str]
-        self.stoichiometry = None  # type: Union[None, str, int]
+    def __init__(self, process: str):
+        self.process = process
+        self.src_id: Optional[str] = None
+        self.dst_id: Optional[str] = None
+        self.stoichiometry: Optional[str | int] = None
 
     def get_src_id(self):
         """
@@ -277,8 +277,9 @@ class Edge(object):
         """
         return self.process
 
-    def read_attributes(self, src_id, dst_id, stoichiometry=""):
-        # type: (str, str, Union[None, str, int]) -> None
+    def read_attributes(
+        self, src_id: str, dst_id: str, stoichiometry: Optional[str | int] = ""
+    ):
         # TODO(jerry): A narrower type for stoichiometry?
         """
         Sets the remaining attribute variables of the node. Argument can be

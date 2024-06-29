@@ -268,7 +268,7 @@ def plot(
         )["rna-count-avg"]
         start_idx += add_idx
     rna_data = rna_data.with_columns(
-        **{
+        **{  # type: ignore[arg-type]
             "relative-rna-count-to-total-rna-type-counts": rel_to_type_count,
             "relative-rna-mass-to-total-rna-type-mass": rel_to_type_mass,
             "relative-rna-count-to-total-rna-counts": rna_data.select(

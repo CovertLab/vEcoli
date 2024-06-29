@@ -786,7 +786,7 @@ class NetworkFlowModel:
         active_constraints_mask: Optional[npt.NDArray[np.bool_]] = None,
     ):
         self.S_orig = csr_matrix(stoich_arr.astype(np.int64))
-        self.S_exch: Optional[npt.NDArray[np.float64]] = None
+        self.S_exch = np.zeros(0)
         self.n_mets, self.n_orig_rxns = self.S_orig.shape
         self.mets = metabolites
         self.met_map = {metabolite: i for i, metabolite in enumerate(metabolites)}

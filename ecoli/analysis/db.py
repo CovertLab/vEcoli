@@ -4,7 +4,7 @@ import collections
 from bson import MinKey, MaxKey
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
-from typing import Optional
+from typing import Any, Optional
 
 from vivarium.core.emitter import (
     data_from_database,
@@ -176,8 +176,8 @@ def access_data(
     host: str = "localhost",
     port: int = 27017,
     sampling_rate: Optional[int] = None,
-    start_time: Optional[int] = None,
-    end_time: Optional[int] = None,
+    start_time: Optional[int | MinKey] = None,
+    end_time: Optional[int | MaxKey] = None,
     cpus: int = 1,
 ):
     """
@@ -214,12 +214,14 @@ def access_data(
 
     # Match experiment ID and time range
     experiment_query = {"experiment_id": experiment_id}
-    time_filter = {"data.time": {"$gte": start_time, "$lte": end_time}}
+    time_filter: dict[str, dict[str, Any]] = {
+        "data.time": {"$gte": start_time, "$lte": end_time}
+    }
     if sampling_rate:
         time_filter["data.time"]["$mod"] = [sampling_rate, 0]
     # Ensure data is ordered by time (putting it early in pipeline
     # allows MongoDB to use index)
-    aggregation = [
+    aggregation: list[dict[str, Any]] = [
         {"$match": {**experiment_query, **time_filter}},
         {"$sort": {"data.time": 1}},
     ]
@@ -240,7 +242,7 @@ def access_data(
     aggregation.append({"$unwind": "$data.agents"})
     # Construct aggregation stage to retrieve data at paths and group them
     # into timeseries arrays for each agent ID
-    retrieve_paths = {"data.agents.k": 1, "data.time": 1}
+    retrieve_paths: dict[str, Any] = {"data.agents.k": 1, "data.time": 1}
     group_paths = {
         "_id": "$data.agents.k",
         "start_time": {"$first": "$data.time"},
