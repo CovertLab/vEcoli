@@ -380,8 +380,7 @@ def test_lysis(
 
 
 def main():
-    from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data
-    from ecoli.plots.snapshots_video import make_video
+    from ecoli.analysis.colony.snapshots import plot_snapshots, format_snapshot_data, make_video
 
     bounds = [15, 15] * units.um
     molecule_name = "beta-lactam"

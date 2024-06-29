@@ -42,7 +42,7 @@ git diff HEAD > source-info/git_diff.txt
 if [ "$RUN_LOCAL" = true ]; then
     echo "=== Locally building WCM code Docker Image ${WCM_IMAGE} on ${RUNTIME_IMAGE} ==="
     echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
-    docker build -f scripts/container/wholecell/Dockerfile -t "${WCM_IMAGE}" \
+    docker build -f runscripts/container/wholecell/Dockerfile -t "${WCM_IMAGE}" \
         --build-arg from="${RUNTIME_IMAGE}" \
         --build-arg git_hash="${GIT_HASH}" \
         --build-arg git_branch="${GIT_BRANCH}" \
@@ -54,7 +54,7 @@ else
     REGION=$(gcloud config get compute/region)
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
-    gcloud builds submit --timeout=15m --config scripts/container/cloud_build.json \
+    gcloud builds submit --timeout=15m --config runscripts/container/cloud_build.json \
         --substitutions="_REGION=${REGION},_WCM_RUNTIME=${RUNTIME_IMAGE},\
         _WCM_CODE=${WCM_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
         _TIMESTAMP=${TIMESTAMP}"

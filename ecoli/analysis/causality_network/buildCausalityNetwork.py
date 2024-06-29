@@ -11,8 +11,8 @@ import pprint as pp
 import subprocess
 import time
 
-from ecoli.analysis import read_dynamics
-from ecoli.analysis.build_network import BuildNetwork
+from ecoli.analysis.causality_network import read_dynamics
+from ecoli.analysis.causality_network.build_network import BuildNetwork
 from wholecell.utils import filepath as fp
 from time import monotonic as monotonic_seconds
 from time import process_time as process_time_seconds

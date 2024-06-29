@@ -19,14 +19,14 @@ from ecoli.processes.metabolism import (
     TIME_UNITS,
     MASS_UNITS,
 )
-from ecoli.analysis.network_components import (
+from ecoli.analysis.causality_network.network_components import (
     EDGELIST_JSON,
     Node,
     NODELIST_JSON,
     COUNT_UNITS,
     PROB_UNITS,
 )
-from ecoli.analysis.build_network import NODE_ID_SUFFIX
+from ecoli.analysis.causality_network.build_network import NODE_ID_SUFFIX
 
 from wholecell.utils import units
 
@@ -80,6 +80,8 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
     if not experiment_id:
         experiment_id = input("Please provide an experiment id: ")
 
+    # TODO: Convert to use DuckDB
+    raise NotImplementedError("Still need to convert to use DuckDB!")
     # Retrieve the data directly from database
     db = get_experiment_database()
     query = [

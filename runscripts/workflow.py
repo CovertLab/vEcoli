@@ -101,10 +101,9 @@ def generate_lineage(
             sim_imports.append(
                 f"include {{ simGen0 as {name} }} from '{NEXTFLOW_DIR}/sim'"
             )
-            # Start with agent ID 1 so no leading zeros
             sim_workflow.append(
                 (
-                    f"\t{name}(params.config, variantCh.combine(seedCh).combine([1]), '1')"
+                    f"\t{name}(params.config, variantCh.combine(seedCh).combine([1]), '0')"
                 )
             )
             all_sim_tasks.append(f"{name}.out.metadata")

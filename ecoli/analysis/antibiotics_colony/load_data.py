@@ -6,10 +6,15 @@ from functools import partial
 
 import pandas as pd
 from tqdm import tqdm
+from vivarium.core.serialize import deserialize_value
 from vivarium.library.dict_utils import get_value_from_path
+from vivarium.library.units import remove_units
 
 from ecoli.analysis.antibiotics_colony import EXPERIMENT_ID_MAPPING, PATHS_TO_LOAD
-from ecoli.analysis.db import access_counts_old, deserialize_and_remove_units
+
+
+def deserialize_and_remove_units(d):
+    return remove_units(deserialize_value(d))
 
 
 def agent_data_table(raw_data, paths_dict, condition, seed):
@@ -63,20 +68,9 @@ def load_data(
             if curr_experiment_id != experiment_id:
                 continue
             metadata = {condition: {seed: {}}}
-            rep_data = access_counts_old(
-                experiment_id=experiment_id,
-                monomer_names=monomers,
-                mrna_names=mrnas,
-                rna_synth_prob=mrnas,
-                inner_paths=inner_paths,
-                outer_paths=outer_paths,
-                host=host,
-                port=port,
-                sampling_rate=sampling_rate,
-                cpus=cpus,
-                start_time=0,
-                end_time=26000,
-            )
+            # TODO: Convert to use DuckDB
+            raise NotImplementedError("Still need to convert to use DuckDB!")
+            rep_data = {}
             with ProcessPoolExecutor(cpus) as executor:
                 print("Deserializing data and removing units...")
                 deserialized_data = list(
