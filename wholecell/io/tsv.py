@@ -8,6 +8,12 @@ from io import TextIOWrapper
 from typing import (
     Any,
     cast,
+    Collection,
+    IO,
+    Iterable,
+    Optional,
+    Sequence,
+    Text,
     Type,
     Union,
 )
@@ -17,8 +23,13 @@ DIALECT = Union[str, csv.Dialect, Type[csv.Dialect]]
 
 
 class reader(object):
-    def __init__(self, csvfile, dialect="excel", delimiter="\t", **fmtparams):
-        # type: (IO[bytes], DIALECT, str, **Any) -> None
+    def __init__(
+        self,
+        csvfile: IO[bytes],
+        dialect: DIALECT = "excel",
+        delimiter: str = "\t",
+        **fmtparams: Any,
+    ):
         """Open a csv reader() defaulting to TAB delimiters.
 
         REQUIRES: `csvfile` must be a buffered byte reader, e.g. from
@@ -34,27 +45,29 @@ class reader(object):
     def __iter__(self):
         return self
 
-    def __next__(self):
-        # type: () -> List[Text]
+    def __next__(self) -> list[Text]:
         row = next(self.reader)
         return row
 
     next = __next__
 
     @property
-    def dialect(self):
-        # type: () -> DIALECT
+    def dialect(self) -> DIALECT:
         return self.reader.dialect
 
     @property
-    def line_num(self):
-        # type: () -> int
+    def line_num(self) -> int:
         return self.reader.line_num
 
 
 class writer(object):
-    def __init__(self, csvfile, dialect="excel", delimiter="\t", **fmtparams):
-        # type: (IO[bytes], DIALECT, str, **Any) -> None
+    def __init__(
+        self,
+        csvfile: IO[bytes],
+        dialect: DIALECT = "excel",
+        delimiter: str = "\t",
+        **fmtparams: Any,
+    ):
         """Open a csv writer() defaulting to TAB delimiters.
 
         REQUIRES: `csvfile` must be a buffered byte writer, e.g. from
@@ -69,24 +82,22 @@ class writer(object):
             self.output_file, dialect=dialect, delimiter=delimiter, **fmtparams
         )
 
-    def writerow(self, row):
-        # type: (Sequence[Any]) -> None
+    def writerow(self, row: Sequence[Any]):
         self.writer.writerow(row)
 
-    def writerows(self, rows):
-        # type: (Iterable[Sequence[Any]]) -> None
+    def writerows(self, rows: Iterable[Sequence[Any]]):
         for row in rows:
             self.writerow(row)
 
     @property
-    def dialect(self):
-        # type: () -> DIALECT
+    def dialect(self) -> DIALECT:
         return self.writer.dialect
 
 
 class dict_reader(object):
-    def __init__(self, f, fieldnames=None, **kwargs):
-        # type: (IO[bytes], Optional[List[str]], **Any) -> None
+    def __init__(
+        self, f: IO[bytes], fieldnames: Optional[list[str]] = None, **kwargs: Any
+    ):
         """
         Open a csv DictReader() defaulting to TAB delimiters. Fields whose
         names start with an underscore are removed from self._fieldnames, and
@@ -111,8 +122,7 @@ class dict_reader(object):
     def __iter__(self):
         return self
 
-    def __next__(self):
-        # type: () -> Union[Dict[str, str], OrderedDict[str, str]]
+    def __next__(self) -> dict[str, str]:
         row = self.tsv_dict_reader.__next__()
 
         # Discard entries with private field names
@@ -121,13 +131,11 @@ class dict_reader(object):
         return new_row
 
     @property
-    def fieldnames(self):
-        # type: () -> List[str]
+    def fieldnames(self) -> list[str]:
         return self._fieldnames
 
     @fieldnames.setter
-    def fieldnames(self, values):
-        # type: (List[str]) -> None
+    def fieldnames(self, values: list[str]):
         self.tsv_dict_reader.fieldnames = values
 
         self._fieldnames = [
@@ -137,18 +145,17 @@ class dict_reader(object):
         ]
 
     @property
-    def dialect(self):
-        # type: () -> DIALECT
+    def dialect(self) -> DIALECT:
         return self.tsv_dict_reader.dialect
 
     @property
-    def line_num(self):
-        # type: () -> int
+    def line_num(self) -> int:
         return self.tsv_dict_reader.line_num
 
 
-def dict_writer(f, fieldnames, dialect="excel", **kwargs):
-    # type: (IO[bytes], Collection[str], DIALECT, **Any) -> csv.DictWriter
+def dict_writer(
+    f: IO[bytes], fieldnames: Collection[str], dialect: DIALECT = "excel", **kwargs: Any
+) -> csv.DictWriter:
     """Open a csv DictWriter() defaulting to TAB delimiters.
 
     REQUIRES: `csvfile` must be a buffered byte writer, e.g. from

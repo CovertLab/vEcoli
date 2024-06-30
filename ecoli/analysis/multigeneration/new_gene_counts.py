@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Any, cast
 
 from duckdb import DuckDBPyConnection
 import pickle
@@ -8,6 +8,7 @@ import hvplot.polars
 
 from ecoli.library.parquet_emitter import (
     get_field_metadata,
+    open_arbitrary_sim_data,
     named_idx,
     read_stacked_columns,
 )
@@ -18,14 +19,14 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: dict[int, list[str]],
+    sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any],
-    variant_name: str,
+    variant_metadata: dict[str, dict[int, Any]],
+    variant_names: list[str],
 ):
     # Determine new gene ids
-    with open(next(iter(sim_data_paths.values())), "rb") as f:
+    with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
     mRNA_sim_data = sim_data.process.transcription.cistron_data.struct_array
     monomer_sim_data = sim_data.process.translation.monomer_data.struct_array
@@ -34,7 +35,7 @@ def plot(
         zip(monomer_sim_data["cistron_id"], monomer_sim_data["id"])
     )
     new_gene_monomer_ids = [
-        mRNA_monomer_id_dict.get(mRNA_id) for mRNA_id in new_gene_mRNA_ids
+        cast(str, mRNA_monomer_id_dict.get(mRNA_id)) for mRNA_id in new_gene_mRNA_ids
     ]
 
     if len(new_gene_mRNA_ids) == 0:
@@ -60,7 +61,7 @@ def plot(
         )
     }
     new_gene_mRNA_indexes = [
-        mRNA_idx_dict.get(mRNA_id) for mRNA_id in new_gene_mRNA_ids
+        cast(int, mRNA_idx_dict.get(mRNA_id)) for mRNA_id in new_gene_mRNA_ids
     ]
 
     # Extract proein indexes for each new gene
@@ -71,7 +72,8 @@ def plot(
         )
     }
     new_gene_monomer_indexes = [
-        monomer_idx_dict.get(monomer_id) for monomer_id in new_gene_monomer_ids
+        cast(int, monomer_idx_dict.get(monomer_id))
+        for monomer_id in new_gene_monomer_ids
     ]
 
     # Load data
@@ -85,6 +87,7 @@ def plot(
         history_sql,
         ["listeners__monomer_counts", "listeners__rna_counts__mRNA_counts"],
         [new_monomers, new_mRNAs],
+        conn=conn,
     )
     new_gene_data = pl.DataFrame(new_gene_data).with_columns(
         **{"Time (min)": pl.col("time") / 60}

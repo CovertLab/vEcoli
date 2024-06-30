@@ -12,6 +12,7 @@ import numpy as np
 
 from reconstruction.spreadsheets import tsv_writer
 from wholecell.io import tsv
+from typing import Any, Iterable
 
 
 FILE_LOCATION = os.path.dirname(os.path.realpath(__file__))
@@ -22,17 +23,15 @@ GENES_FILES = os.path.join(FILE_LOCATION, "gene_names.tsv")
 OUTPUT_FILE = os.path.join(FILE_LOCATION, "updated_fold_changes.tsv")
 
 
-def load_file(filename):
-    # type: (str) -> List[List[str]]
+def load_file(filename: str) -> list[list[str]]:
     """Load a tsv file."""
 
     with io.open(filename, "rb") as f:
-        reader = tsv.reader(f)  # type: Iterable
+        reader: Iterable = tsv.reader(f)
         return list(reader)
 
 
-def load_src(attempt_match):
-    # type: (bool) -> Dict[str, Dict[str, Dict[str, float]]]
+def load_src(attempt_match: bool) -> dict[str, dict[str, dict[str, float]]]:
     """
     Loads and extracts gene regulation data from the source data.
 
@@ -49,7 +48,7 @@ def load_src(attempt_match):
     shifts = load_shifts()
 
     # Extract fold changes from data
-    data = {}  # type: Dict[str, Dict[str, List[float]]]
+    data: dict[str, dict[str, list[float]]] = {}
     for line in raw_data:
         # Columns of interest
         condition = (line[4], line[5])
@@ -85,8 +84,7 @@ def load_src(attempt_match):
     return processed_data
 
 
-def load_wcm(attempt_match):
-    # type: (bool) -> Dict[str, Dict[str, Dict[str, float]]]
+def load_wcm(attempt_match: bool) -> dict[str, dict[str, dict[str, float]]]:
     """
     Loads and extracts gene regulation data from the whole-cell model.
 
@@ -102,7 +100,7 @@ def load_wcm(attempt_match):
     raw_data = load_file(WCM_FILE)[1:]
 
     # Extract mean and std from data
-    data = {}  # type: Dict[str, Dict[str, Dict[str, Any]]]
+    data: dict[str, dict[str, dict[str, Any]]] = {}
     for line in raw_data:
         if line[0].startswith("#"):
             continue
@@ -131,8 +129,7 @@ def load_wcm(attempt_match):
     return data
 
 
-def load_shifts():
-    # type: () -> Dict[Tuple[str, str], Dict[str, int]]
+def load_shifts() -> dict[tuple[str, str], dict[str, int]]:
     """
     Load TF regulation information for each shift.
 
@@ -156,8 +153,12 @@ def load_shifts():
     return shifts
 
 
-def compare_data(data1, data2, desc, verbose=True):
-    # type: (Dict[str, Dict[str, Dict[str, float]]], Dict[str, Dict[str, Dict[str, float]]], str, bool) -> None
+def compare_data(
+    data1: dict[str, dict[str, dict[str, float]]],
+    data2: dict[str, dict[str, dict[str, float]]],
+    desc: str,
+    verbose: bool = True,
+):
     """
     Compares regulation from source data to wcm data.
 
@@ -244,8 +245,7 @@ def compare_data(data1, data2, desc, verbose=True):
     )
 
 
-def replace_uncertain_entries(data):
-    # type: (Dict[str, Dict[str, Dict[str, float]]]) -> None
+def replace_uncertain_entries(data: dict[str, dict[str, dict[str, float]]]):
     """
     Replaces entries that were marked as uncertain in fold changes
     (Regulation_direct 3 or 4) if the mean fold change is the opposite sign
@@ -260,7 +260,7 @@ def replace_uncertain_entries(data):
 
     with tsv_writer(OUTPUT_FILE, headers) as writer:
         # Check each fold change and update if needed
-        for line in raw_data[1:]:  # type: List[str]
+        for line in raw_data[1:]:
             tf = line[0].strip('#" ')
             gene = line[1].strip()
             direction = int(line[5])
@@ -292,8 +292,7 @@ def replace_uncertain_entries(data):
             writer.writerow(d)
 
 
-def parse_args():
-    # type: () -> argparse.Namespace
+def parse_args() -> argparse.Namespace:
     """
     Parses arguments from the command line.
 
