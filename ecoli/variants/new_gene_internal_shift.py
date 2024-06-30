@@ -86,7 +86,7 @@ def modify_new_gene_exp_trl(
 
 
 def apply_variant(
-    sim_data: "SimulationDataEcoli", params: dict[str, list[Any]]
+    sim_data: "SimulationDataEcoli", params: dict[str, Any]
 ) -> "SimulationDataEcoli":
     """
     Modify sim_data so new gene expression and translation efficiency
@@ -132,11 +132,11 @@ def apply_variant(
     ]
 
     # Initialize internal shift dictionary
-    sim_data.internal_shift_dict = {}
+    sim_data.internal_shift_dict = {}  # type: ignore[attr-defined]
 
     # Add the new gene induction to the internal_shift instructions
     if params["induction_gen"] != -1:
-        sim_data.internal_shift_dict[params["induction_gen"]] = (
+        sim_data.internal_shift_dict[params["induction_gen"]] = (  # type: ignore[attr-defined]
             modify_new_gene_exp_trl,
             (params["exp_trl_eff"]["exp"], params["exp_trl_eff"]["trl_eff"]),
         )
@@ -145,7 +145,7 @@ def apply_variant(
             "New genes are knocked out by default, so induction should happen"
             " before knockout."
         )
-        sim_data.internal_shift_dict[params["knockout_gen"]] = (
+        sim_data.internal_shift_dict[params["knockout_gen"]] = (  # type: ignore[attr-defined]
             modify_new_gene_exp_trl,
             (0, params["exp_trl_eff"]["trl_eff"]),
         )

@@ -32,6 +32,11 @@ from ecoli.library.updaters import (
     inverse_updater_registry,
 )
 
+# Enable segmentation and other fault handling for tracebacks
+import faulthandler
+
+faulthandler.enable()
+
 emitter_registry.register("clickhouse", ClickHouseEmitter)
 emitter_registry.register("parquet", ParquetEmitter)
 

@@ -29,8 +29,7 @@ OUTPUT_FLAT_FILE = os.path.join(
 )
 
 
-def get_symbols_to_monomer_ids():
-    # type: () -> Dict[str, str]
+def get_symbols_to_monomer_ids() -> dict[str, str]:
     """
     Builds a mapping from gene symbols to the protein monomer IDs, used in later
     data import functions.
@@ -65,8 +64,7 @@ def get_symbols_to_monomer_ids():
         return symbols_to_monomer_ids
 
 
-def get_half_lives(symbols_to_monomer_ids):
-    # type: (Dict[str, str]) -> Dict[str, float]
+def get_half_lives(symbols_to_monomer_ids: dict[str, str]) -> dict[str, float]:
     """
     Reads protein half-lives from Nagar et. al. (2021) and stores them in a
     dictionary. Any protein listed that does not exist in the model is skipped.
@@ -104,8 +102,7 @@ def get_half_lives(symbols_to_monomer_ids):
     return id_to_half_life
 
 
-def build_half_life_table(raw_half_lives):
-    # type: (Dict[str, float]) -> None
+def build_half_life_table(raw_half_lives: dict[str, float]):
     """
     Builds the protein half-life flat file that is used as raw data for
     simulations using them. Assigns all proteins with half-lives greater than

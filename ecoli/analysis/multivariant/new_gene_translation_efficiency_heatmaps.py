@@ -47,11 +47,12 @@ import itertools
 
 from duckdb import DuckDBPyConnection
 import numpy as np
+import numpy.typing as npt
 from matplotlib import pyplot as plt
 import math
 import pyarrow as pa
 from unum.units import fg
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 from tqdm import tqdm
 
 from ecoli.variants.new_gene_internal_shift import get_new_gene_ids_and_indices
@@ -59,6 +60,7 @@ from ecoli.library.parquet_emitter import (
     get_field_metadata,
     ndarray_to_ndlist,
     ndlist_to_ndarray,
+    open_arbitrary_sim_data,
     read_stacked_columns,
 )
 from ecoli.library.schema import bulk_name_to_idx
@@ -243,7 +245,6 @@ def get_mean_and_std_matrices(
         projections=projections,
         remove_first=remove_first,
         func=func,
-        return_sql=True,
         order_results=order_results,
     )
     if custom_sql is None:
@@ -329,7 +330,7 @@ def get_indexes(
     config_sql: str,
     index_type: str,
     ids: list[str] | list[list[str]],
-) -> list[int] | list[list[int]]:
+) -> list[int | None] | list[list[int | None]]:
     """
     Retrieve DuckDB indices of a given type for a set of IDs. Note that
     DuckDB lists are 1-indexed.
@@ -356,7 +357,7 @@ def get_indexes(
                 )
             )
         }
-        indices = [cistron_idx_dict.get(cistron) for cistron in ids]
+        return [cistron_idx_dict.get(cistron) for cistron in ids]
     elif index_type == "RNA":
         # Extract RNA indexes for each new gene
         RNA_idx_dict = {
@@ -367,7 +368,7 @@ def get_indexes(
                 )
             )
         }
-        indices = [[RNA_idx_dict.get(rna_id) for rna_id in rna_ids] for rna_ids in ids]
+        return [[RNA_idx_dict.get(rna_id) for rna_id in rna_ids] for rna_ids in ids]
     elif index_type == "mRNA":
         # Extract mRNA indexes for each new gene
         mRNA_idx_dict = {
@@ -378,7 +379,7 @@ def get_indexes(
                 )
             )
         }
-        indices = [[mRNA_idx_dict.get(rna_id) for rna_id in rna_ids] for rna_ids in ids]
+        return [[mRNA_idx_dict.get(rna_id) for rna_id in rna_ids] for rna_ids in ids]
     elif index_type == "monomer":
         # Extract protein indexes for each new gene
         monomer_idx_dict = {
@@ -387,13 +388,11 @@ def get_indexes(
                 get_field_metadata(conn, config_sql, "listeners__monomer_counts")
             )
         }
-        indices = [monomer_idx_dict.get(monomer_id) for monomer_id in ids]
+        return [monomer_idx_dict.get(monomer_id) for monomer_id in ids]
     else:
         raise Exception(
             "Index type " + index_type + " has no instructions for data extraction."
         )
-
-    return indices
 
 
 GENE_COUNTS_SQL = """
@@ -850,8 +849,8 @@ def get_rnap_counts_projection(
         sim_data: Simulation data
         bulk_ids: List of all bulk IDs in order
     """
-    rnap_idx = bulk_name_to_idx([sim_data.molecule_ids.full_RNAP], bulk_ids)
-    return f"bulk[{rnap_idx[0] + 1}] AS bulk"
+    rnap_idx = bulk_name_to_idx(sim_data.molecule_ids.full_RNAP, bulk_ids)
+    return f"bulk[{rnap_idx + 1}] AS bulk"
 
 
 def get_ribosome_counts_projection(
@@ -865,12 +864,15 @@ def get_ribosome_counts_projection(
         sim_data: Simulation data
         bulk_ids: List of all bulk IDs in order
     """
-    ribosome_idx = bulk_name_to_idx(
-        [
-            sim_data.molecule_ids.s30_full_complex,
-            sim_data.molecule_ids.s50_full_complex,
-        ],
-        bulk_ids,
+    ribosome_idx = cast(
+        np.ndarray,
+        bulk_name_to_idx(
+            [
+                sim_data.molecule_ids.s30_full_complex,
+                sim_data.molecule_ids.s50_full_complex,
+            ],
+            bulk_ids,
+        ),
     )
     return f"least(bulk[{ribosome_idx[0] + 1}], bulk[{ribosome_idx[1] + 1}]) AS bulk"
 
@@ -930,7 +932,7 @@ def get_variant_mask(
     config_sql: str,
     variant_to_row_col: dict[int, tuple[int, int]],
     variant_matrix_shape: tuple[int, int],
-) -> np.ndarray[bool]:
+) -> npt.NDArray[np.bool_]:
     """
     Get a boolean matrix where the rows represent the different
     translation efficiencies and the columns represent the different
@@ -1126,11 +1128,11 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: dict[int, list[str]],
+    sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any],
-    variant_name: str,
+    variant_metadata: dict[str, dict[int, Any]],
+    variant_names: list[str],
 ):
     """
     Create either a single multi-heatmap plot or 1+ separate heatmaps of data
@@ -1139,17 +1141,19 @@ def plot(
     """
     # Filter to specified generation range
     history_sql = (
-        f"FROM ({history_sql}) WHERE generation >= {MIN_CELL_INDEX} "
-        f"AND generation < {MAX_CELL_INDEX}"
+        f"FROM ({history_sql}) WHERE generation >= {MIN_CELL_INDEX}"
+        f" AND generation < {MAX_CELL_INDEX}"
     )
     config_sql = (
-        f"FROM ({config_sql}) WHERE generation >= {MIN_CELL_INDEX} "
-        f"AND generation < {MAX_CELL_INDEX}"
+        f"FROM ({config_sql}) WHERE generation >= {MIN_CELL_INDEX}"
+        f" AND generation < {MAX_CELL_INDEX}"
     )
     # Define baseline variant (ID = 0) as 0 new gene expr. and trans. eff.
+    experiment_id = next(iter(variant_metadata.keys()))
+    variant_metadata = variant_metadata[experiment_id]
     variant_metadata[0] = {"exp_trl_eff": {"exp": 0, "trl_eff": 0}}
 
-    with open(next(iter(sim_data_paths.values())), "rb") as f:
+    with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
 
     # Determine new gene cistron and monomer ids
@@ -1204,7 +1208,10 @@ def plot(
     rnap_subunit_mRNA_indexes = list(
         set(
             itertools.chain.from_iterable(
-                get_indexes(conn, config_sql, "mRNA", rnap_subunit_mRNA_ids)
+                cast(
+                    list[list[int]],
+                    get_indexes(conn, config_sql, "mRNA", rnap_subunit_mRNA_ids),
+                )
             )
         )
     )
@@ -1217,7 +1224,10 @@ def plot(
     ribosomal_mRNA_indexes = list(
         set(
             itertools.chain.from_iterable(
-                get_indexes(conn, config_sql, "mRNA", ribosomal_mRNA_ids)
+                cast(
+                    list[list[int]],
+                    get_indexes(conn, config_sql, "mRNA", ribosomal_mRNA_ids),
+                )
             )
         )
     )
@@ -1230,10 +1240,12 @@ def plot(
     capacity_gene_mRNA_ids = get_mRNA_ids_from_monomer_ids(
         sim_data, capacity_gene_monomer_ids
     )
-    capacity_gene_indexes = {
-        "mRNA": get_indexes(conn, config_sql, "mRNA", capacity_gene_mRNA_ids),
-        "monomer": get_indexes(conn, config_sql, "monomer", capacity_gene_monomer_ids),
-    }
+    capacity_gene_mRNA_indexes = cast(
+        list[list[int]], get_indexes(conn, config_sql, "mRNA", capacity_gene_mRNA_ids)
+    )
+    capacity_gene_monomer_indexes = cast(
+        list[int], get_indexes(conn, config_sql, "monomer", capacity_gene_monomer_ids)
+    )
     capacity_gene_common_names = [
         sim_data.common_names.get_common_name(monomer_id[:-3])
         for monomer_id in capacity_gene_monomer_ids
@@ -1246,12 +1258,18 @@ def plot(
             cistron_id
         )
         new_gene_mRNA_ids.append(RNA_ids[target_RNA_idx])
-    new_gene_indexes = {
-        "mRNA": get_indexes(conn, config_sql, "mRNA", new_gene_mRNA_ids),
-        "monomer": get_indexes(conn, config_sql, "monomer", new_gene_monomer_ids),
-        "RNA": get_indexes(conn, config_sql, "RNA", new_gene_mRNA_ids),
-        "cistron": get_indexes(conn, config_sql, "cistron", new_gene_cistron_ids),
-    }
+    new_gene_mRNA_indexes = cast(
+        list[list[int]], get_indexes(conn, config_sql, "mRNA", new_gene_mRNA_ids)
+    )
+    new_gene_monomer_indexes = cast(
+        list[int], get_indexes(conn, config_sql, "monomer", new_gene_monomer_ids)
+    )
+    new_gene_RNA_indexes = cast(
+        list[list[int]], get_indexes(conn, config_sql, "RNA", new_gene_mRNA_ids)
+    )
+    new_gene_cistron_indexes = cast(
+        list[int], get_indexes(conn, config_sql, "cistron", new_gene_cistron_ids)
+    )
 
     # Determine glucose index in exchange fluxes
     external_molecule_ids = np.array(
@@ -1298,7 +1316,7 @@ def plot(
         plot_title (string): Title of heatmap to display
     """
     # Specify unique fields and non-default values here
-    heatmap_details = {
+    heatmap_details: dict[str, dict] = {
         "completed_gens_heatmap": {
             "columns": ["time"],
             "custom_sql": f"""
@@ -1369,7 +1387,10 @@ def plot(
             "plot_title": "RNA Polymerase (RNAP) Counts",
             "num_digits_rounding": 0,
             "box_text_size": "x-small",
-            "projections": [get_rnap_counts_projection(sim_data, bulk_ids), None],
+            "projections": [
+                get_rnap_counts_projection(sim_data, bulk_ids),
+                "listeners__unique_molecule_counts__active_RNAP",
+            ],
             "custom_sql": """
                 WITH total_counts AS (
                     SELECT avg(bulk +
@@ -1388,7 +1409,10 @@ def plot(
             "plot_title": "Active Ribosome Counts",
             "num_digits_rounding": 0,
             "box_text_size": "x-small",
-            "projections": [get_ribosome_counts_projection(sim_data, bulk_ids), None],
+            "projections": [
+                get_ribosome_counts_projection(sim_data, bulk_ids),
+                "listeners__unique_molecule_counts__active_ribosome",
+            ],
             "custom_sql": """
                 WITH total_counts AS (
                     SELECT avg(bulk +
@@ -1444,8 +1468,8 @@ def plot(
                 + "_rnap, "
                 + get_ribosome_counts_projection(sim_data, bulk_ids)
                 + "_ribosome",
-                None,
-                None,
+                "listeners__unique_molecule_counts__active_RNAP",
+                "listeners__unique_molecule_counts__active_ribosome",
             ],
             "custom_sql": """
                 WITH total_counts AS (
@@ -1551,7 +1575,7 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_counts__mRNA_counts",
-                    capacity_gene_indexes["mRNA"],
+                    capacity_gene_mRNA_indexes,
                     "gene_counts",
                 )
             ],
@@ -1562,7 +1586,7 @@ def plot(
             "plot_title": "Log(Capacity Gene Protein Counts+1): ",
             "projections": [
                 "list_select(listeners__monomer_counts, "
-                f"{capacity_gene_indexes['monomer']}) AS gene_counts"
+                f"{capacity_gene_monomer_indexes}) AS gene_counts"
             ],
             "custom_sql": GENE_COUNTS_SQL,
         },
@@ -1576,7 +1600,7 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_counts__mRNA_counts",
-                    capacity_gene_indexes["mRNA"],
+                    capacity_gene_mRNA_indexes,
                     "gene_counts",
                 ),
                 "listeners__mass__mRna_mass AS mass",
@@ -1592,7 +1616,7 @@ def plot(
             "num_digits_rounding": 3,
             "projections": [
                 "list_select(listeners__monomer_counts, "
-                f"{capacity_gene_indexes['monomer']}) AS gene_counts",
+                f"{capacity_gene_monomer_indexes}) AS gene_counts",
                 "listeners__mass__protein_mass AS mass",
             ],
             "custom_sql": avg_1d_array_over_scalar_sql("gene_counts", "mass"),
@@ -1605,7 +1629,7 @@ def plot(
             "plot_title": "Capacity Gene mRNA Counts Fraction: ",
             "num_digits_rounding": 3,
             "custom_sql": get_gene_count_fraction_sql(
-                capacity_gene_indexes["mRNA"],
+                capacity_gene_mRNA_indexes,
                 "listeners__rna_counts__mRNA_counts",
                 "mRNA",
             ),
@@ -1615,7 +1639,7 @@ def plot(
             "plot_title": "Capacity Gene Protein Counts Fraction: ",
             "num_digits_rounding": 3,
             "custom_sql": get_gene_count_fraction_sql(
-                capacity_gene_indexes["monomer"], "listeners__monomer_counts", "monomer"
+                capacity_gene_monomer_indexes, "listeners__monomer_counts", "monomer"
             ),
         },
         "new_gene_copy_number_heatmap": {
@@ -1623,7 +1647,7 @@ def plot(
             "plot_title": "New Gene Copy Number",
             "projections": [
                 "list_select(listeners__rna_synth_prob__gene_copy_number, "
-                f"{new_gene_indexes['cistron']}) AS gene_counts"
+                f"{new_gene_cistron_indexes}) AS gene_counts"
             ],
             "num_digits_rounding": 3,
             "custom_sql": avg_1d_array_sql("gene_counts"),
@@ -1634,7 +1658,7 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_counts__mRNA_counts",
-                    new_gene_indexes["mRNA"],
+                    new_gene_mRNA_indexes,
                     "gene_counts",
                 )
             ],
@@ -1645,7 +1669,7 @@ def plot(
             "plot_title": "Log(New Gene Protein Counts+1)",
             "projections": [
                 "list_select(listeners__monomer_counts, "
-                f"{new_gene_indexes['monomer']}) AS gene_counts"
+                f"{new_gene_monomer_indexes}) AS gene_counts"
             ],
             "custom_sql": GENE_COUNTS_SQL,
         },
@@ -1658,7 +1682,7 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_counts__mRNA_counts",
-                    new_gene_indexes["mRNA"],
+                    new_gene_mRNA_indexes,
                     "gene_counts",
                 ),
                 "listeners__mass__mRna_mass AS mass",
@@ -1670,7 +1694,7 @@ def plot(
             "columns": ["listeners__rna_counts__mRNA_counts"],
             "plot_title": "New Gene mRNA Counts Fraction",
             "custom_sql": get_gene_count_fraction_sql(
-                new_gene_indexes["mRNA"], "listeners__rna_counts__mRNA_counts", "mRNA"
+                new_gene_mRNA_indexes, "listeners__rna_counts__mRNA_counts", "mRNA"
             ),
         },
         "new_gene_mRNA_NTP_fraction_heatmap": {
@@ -1679,7 +1703,7 @@ def plot(
             "num_digits_rounding": 4,
             "box_text_size": "x-small",
             "custom_sql": get_new_gene_mRNA_NTP_fraction_sql(
-                sim_data, new_gene_indexes["mRNA"], ntp_ids
+                sim_data, new_gene_mRNA_indexes, ntp_ids
             ),
             "is_nonstandard_plot": True,
         },
@@ -1688,7 +1712,7 @@ def plot(
             "plot_title": "New Gene Protein Mass Fraction",
             "projections": [
                 "list_select(listeners__monomer_counts, "
-                f"{new_gene_indexes['monomer']}) AS gene_counts",
+                f"{new_gene_monomer_indexes}) AS gene_counts",
                 "listeners__mass__protein_mass AS mass",
             ],
             "custom_sql": avg_1d_array_over_scalar_sql("gene_counts", "mass"),
@@ -1700,7 +1724,7 @@ def plot(
             "columns": ["listeners__monomer_counts"],
             "plot_title": "New Gene Protein Counts Fraction",
             "custom_sql": get_gene_count_fraction_sql(
-                new_gene_indexes["monomer"], "listeners__monomer_counts", "monomer"
+                new_gene_monomer_indexes, "listeners__monomer_counts", "monomer"
             ),
         },
         "new_gene_rnap_init_rate_heatmap": {
@@ -1711,9 +1735,9 @@ def plot(
             "plot_title": "New Gene RNAP Initialization Rate",
             "projections": [
                 "list_select(listeners__rna_synth_prob__gene_copy_number, "
-                f"{new_gene_indexes['cistron']}) AS gene_copy_number",
+                f"{new_gene_cistron_indexes}) AS gene_copy_number",
                 "list_select(listeners__rnap_data__rna_init_event_per_cistron, "
-                f"{new_gene_indexes['cistron']}) AS rna_init_event_per_cistron",
+                f"{new_gene_cistron_indexes}) AS rna_init_event_per_cistron",
             ],
             "custom_sql": avg_ratio_of_1d_arrays_sql(
                 "rna_init_event_per_cistron", "gene_copy_number"
@@ -1728,11 +1752,11 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_counts__mRNA_counts",
-                    new_gene_indexes["mRNA"],
+                    new_gene_mRNA_indexes,
                     "mRNA_counts",
                 ),
                 "list_select(listeners__ribosome_data__ribosome_init_event_per_monomer, "
-                f"{new_gene_indexes['monomer']}) AS ribosome_init_event_per_monomer",
+                f"{new_gene_monomer_indexes}) AS ribosome_init_event_per_monomer",
             ],
             "custom_sql": avg_ratio_of_1d_arrays_sql(
                 "ribosome_init_event_per_monomer", "mRNA_counts"
@@ -1745,7 +1769,7 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_synth_prob__tu_is_overcrowded",
-                    new_gene_indexes["RNA"],
+                    new_gene_RNA_indexes,
                     "overcrowded",
                     "UTINYINT[]",
                 )
@@ -1758,7 +1782,7 @@ def plot(
             # Need to explicitly cast boolean list to numeric list for aggregation
             "projections": [
                 "list_select(listeners__ribosome_data__mRNA_is_overcrowded, "
-                f"{new_gene_indexes['monomer']})::UTINYINT[] AS overcrowded"
+                f"{new_gene_monomer_indexes})::UTINYINT[] AS overcrowded"
             ],
             "custom_sql": avg_1d_array_sql("overcrowded"),
         },
@@ -1770,7 +1794,7 @@ def plot(
             "num_digits_rounding": 4,
             "projections": [
                 "list_select(listeners__ribosome_data__actual_prob_translation_per_transcript, "
-                f"{new_gene_indexes['monomer']}) AS init_prob"
+                f"{new_gene_monomer_indexes}) AS init_prob"
             ],
             "custom_sql": avg_1d_array_sql("init_prob"),
         },
@@ -1782,7 +1806,7 @@ def plot(
             "num_digits_rounding": 4,
             "projections": [
                 "list_select(listeners__ribosome_data__target_prob_translation_per_transcript, "
-                f"{new_gene_indexes['monomer']}) AS init_prob"
+                f"{new_gene_monomer_indexes}) AS init_prob"
             ],
             "custom_sql": avg_1d_array_sql("init_prob"),
         },
@@ -1795,9 +1819,9 @@ def plot(
             "num_digits_rounding": 4,
             "projections": [
                 "list_select(listeners__ribosome_data__target_prob_translation_per_transcript, "
-                f"{new_gene_indexes['monomer']}) AS target_prob",
+                f"{new_gene_monomer_indexes}) AS target_prob",
                 "list_select(listeners__ribosome_data__max_p_per_protein, "
-                f"{new_gene_indexes['monomer']}) AS max_p",
+                f"{new_gene_monomer_indexes}) AS max_p",
             ],
             "custom_sql": avg_ratio_of_1d_arrays_sql("target_prob", "max_p"),
         },
@@ -1811,7 +1835,7 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_synth_prob__target_rna_synth_prob",
-                    new_gene_indexes["RNA"],
+                    new_gene_RNA_indexes,
                     "target_prob",
                 ),
                 "listeners__rna_synth_prob__max_p AS max_p",
@@ -1825,7 +1849,7 @@ def plot(
             "box_test_size": "x-small",
             "projections": [
                 "list_select(listeners__ribosome_data__ribosome_init_event_per_monomer, "
-                f"{new_gene_indexes['monomer']}) AS init_events"
+                f"{new_gene_monomer_indexes}) AS init_events"
             ],
             "custom_sql": avg_1d_array_sql("init_events"),
         },
@@ -1838,7 +1862,7 @@ def plot(
             "num_digits_rounding": 4,
             "projections": [
                 "list_select(listeners__ribosome_data__ribosome_init_event_per_monomer, "
-                f"{new_gene_indexes['monomer']}) AS init_events",
+                f"{new_gene_monomer_indexes}) AS init_events",
                 "listeners__ribosome_data__did_initialize AS did_initialize",
             ],
             "custom_sql": avg_1d_array_over_scalar_sql("init_events", "did_initialize"),
@@ -1850,7 +1874,7 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_synth_prob__actual_rna_synth_prob",
-                    new_gene_indexes["RNA"],
+                    new_gene_RNA_indexes,
                     "synth_probs",
                 )
             ],
@@ -1863,7 +1887,7 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_synth_prob__target_rna_synth_prob",
-                    new_gene_indexes["RNA"],
+                    new_gene_RNA_indexes,
                     "synth_probs",
                 )
             ],
@@ -1877,7 +1901,7 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_counts__partial_mRNA_counts",
-                    new_gene_indexes["mRNA"],
+                    new_gene_mRNA_indexes,
                     "rnap_counts",
                 )
             ],
@@ -1893,7 +1917,7 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_counts__partial_mRNA_counts",
-                    new_gene_indexes["mRNA"],
+                    new_gene_mRNA_indexes,
                     "rnap_counts",
                 ),
                 "listeners__unique_molecule_counts__active_RNAP AS active_counts",
@@ -2038,7 +2062,7 @@ def plot(
             "box_text_size": "x-small",
             "projections": [
                 "list_select(listeners__ribosome_data__n_ribosomes_per_transcript, "
-                f"{new_gene_indexes['monomer']}) AS ribosome_counts"
+                f"{new_gene_monomer_indexes}) AS ribosome_counts"
             ],
             "custom_sql": avg_1d_array_sql("ribosome_counts"),
         },
@@ -2051,7 +2075,7 @@ def plot(
             "num_digits_rounding": 3,
             "projections": [
                 "list_select(listeners__ribosome_data__n_ribosomes_per_transcript, "
-                f"{new_gene_indexes['monomer']}) AS ribosome_counts",
+                f"{new_gene_monomer_indexes}) AS ribosome_counts",
                 "listeners__unique_molecule_counts__active_ribosome AS active_counts",
             ],
             "custom_sql": avg_1d_array_over_scalar_sql(
@@ -2068,7 +2092,7 @@ def plot(
             "projections": [
                 get_rnas_combined_as_genes_projection(
                     "listeners__rna_counts__partial_mRNA_counts",
-                    capacity_gene_indexes["mRNA"],
+                    capacity_gene_mRNA_indexes,
                     "rnap_counts",
                 ),
                 "listeners__unique_molecule_counts__active_RNAP AS active_counts",
@@ -2084,7 +2108,7 @@ def plot(
             "num_digits_rounding": 4,
             "projections": [
                 "list_select(listeners__ribosome_data__n_ribosomes_per_transcript, "
-                f"{capacity_gene_indexes['monomer']}) AS ribosome_counts",
+                f"{capacity_gene_monomer_indexes}) AS ribosome_counts",
                 "listeners__unique_molecule_counts__active_ribosome AS active_counts",
             ],
             "custom_sql": avg_1d_array_over_scalar_sql(
@@ -2130,9 +2154,9 @@ def plot(
                 "-listeners__fba_results__external_exchange_fluxes["
                 f"{glucose_idx}] AS glucose_flux",
                 "listeners__mass__dry_mass AS dry_mass",
-                None,
+                "time",
                 "list_select(listeners__monomer_counts, "
-                f"{new_gene_indexes['monomer']}) AS monomer_counts",
+                f"{new_gene_monomer_indexes}) AS monomer_counts",
             ],
             "remove_first": True,
             "custom_sql": f"""
@@ -2176,9 +2200,9 @@ def plot(
             "plot_title": "New Gene fg Protein Yield per Hour",
             "num_digits_rounding": 2,
             "projections": [
-                None,
+                "time",
                 "list_select(listeners__monomer_counts, "
-                f"{new_gene_indexes['monomer']}) AS monomer_counts",
+                f"{new_gene_monomer_indexes}) AS monomer_counts",
             ],
             "remove_first": True,
             "custom_sql": """

@@ -9,12 +9,13 @@ from typing import Any
 
 # noinspection PyUnresolvedReferences
 from duckdb import DuckDBPyConnection
-import numpy as np
+import polars as pl
 
 from ecoli.library.parquet_emitter import (
     get_field_metadata,
     ndidx_to_duckdb_expr,
     num_cells,
+    open_arbitrary_sim_data,
     read_stacked_columns,
     skip_n_gens,
 )
@@ -28,13 +29,13 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: dict[int, list[str]],
+    sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any],
-    variant_name: str,
+    variant_metadata: dict[str, dict[int, Any]],
+    variant_names: list[str],
 ):
-    with open(next(iter(sim_data_paths.values())), "rb") as f:
+    with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
 
     # Ignore first N generations
@@ -104,7 +105,6 @@ def plot(
         history_sql,
         ["listeners__monomer_counts", "listeners__rna_counts__mRNA_cistron_counts"],
         [f"{monomer_expr} AS monomer_counts", f"{cistron_expr} AS mrna_counts"],
-        return_sql=True,
         order_results=False,
     )
     out_df = conn.sql(
@@ -148,8 +148,10 @@ def plot(
     # Add gene, cistron, and protein names (DuckDB lists are 1-indexed so
     # must subtract one before using to index Numpy arrays)
     out_df = out_df.with_columns(
-        gene_name=np.array(gene_ids)[out_df["cistron_idx"] - 1],
-        cistron_name=np.array(mRNA_cistron_ids)[out_df["cistron_idx"] - 1],
-        protein_name=np.array([i[:-3] for i in monomer_ids])[out_df["cistron_idx"] - 1],
+        gene_name=pl.Series(gene_ids)[out_df["cistron_idx"] - 1],
+        cistron_name=pl.Series(mRNA_cistron_ids)[out_df["cistron_idx"] - 1],
+        protein_name=pl.Series([i[:-3] for i in monomer_ids])[
+            out_df["cistron_idx"] - 1
+        ],
     )
     out_df.write_csv(os.path.join(outdir, "subgen.tsv"), separator="\t")

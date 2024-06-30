@@ -5,7 +5,7 @@ if TYPE_CHECKING:
 
 
 def apply_variant(
-    sim_data: "SimulationDataEcoli", params: dict[str, list[Any]]
+    sim_data: "SimulationDataEcoli", params: dict[str, Any]
 ) -> "SimulationDataEcoli":
     """
     Test variant that adds new attributes to sim_data. Also tests composition
@@ -33,8 +33,8 @@ def apply_variant(
             sim_data.e
 
     """
-    sim_data.a = params["a"]
-    sim_data.b = params["b"]
+    sim_data.a = params["a"]  # type: ignore[attr-defined]
+    sim_data.b = params["b"]  # type: ignore[attr-defined]
     sim_data = variant_test_2(sim_data, params["c"])
     return sim_data
 
@@ -61,6 +61,6 @@ def variant_test_2(
             sim_data.e
 
     """
-    sim_data.d = params["d"]
-    sim_data.e = params["e"]
+    sim_data.d = params["d"]  # type: ignore[attr-defined]
+    sim_data.e = params["e"]  # type: ignore[attr-defined]
     return sim_data

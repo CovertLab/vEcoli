@@ -26,7 +26,7 @@ from ecoli.library.lattice_utils import (
     make_diffusion_schema,
 )
 from vivarium.library.topology import get_in
-from ecoli.plots.snapshots import plot_snapshots
+from ecoli.analysis.colony.snapshots import plot_snapshots
 
 
 NAME = "reaction_diffusion"

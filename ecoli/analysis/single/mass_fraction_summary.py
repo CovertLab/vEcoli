@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Any, cast
 
 from duckdb import DuckDBPyConnection
 import polars as pl
@@ -28,10 +28,10 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: dict[int, list[str]],
+    sim_data_paths: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any],
+    variant_metadata: dict[str, dict[int, Any]],
     variant_name: str,
 ):
     assert (
@@ -47,7 +47,9 @@ def plot(
         "Small Mol.s": "listeners__mass__smallMolecule_mass",
         "Dry": "listeners__mass__dry_mass",
     }
-    mass_data = read_stacked_columns(history_sql, list(mass_columns.values()))
+    mass_data = read_stacked_columns(
+        history_sql, list(mass_columns.values()), conn=conn
+    )
     mass_data = pl.DataFrame(mass_data)
     fractions = {
         k: (mass_data[v] / mass_data["listeners__mass__dry_mass"]).mean()
@@ -56,7 +58,7 @@ def plot(
     new_columns = {
         "Time (min)": (mass_data["time"] - mass_data["time"].min()) / 60,
         **{
-            f"{k} ({fractions[k]:.3f})": mass_data[v] / mass_data[v][0]
+            f"{k} ({cast(float, fractions[k]):.3f})": mass_data[v] / mass_data[v][0]
             for k, v in mass_columns.items()
         },
     }

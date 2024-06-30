@@ -93,6 +93,8 @@ if __name__ == "__main__":
         help="Saved csv file from running this script once with raw data",
     )
     args = parser.parse_args()
+    # TODO: Convert to use DuckDB
+    raise NotImplementedError("Still need to convert to use DuckDB!")
     if args.raw_data:
         data = pickle.load(open(args.data, "rb"))
         with ProcessPoolExecutor(30) as executor:

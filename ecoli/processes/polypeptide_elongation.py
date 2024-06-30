@@ -15,6 +15,7 @@ from typing import Any, Callable, Optional, Tuple
 
 from numba import njit
 import numpy as np
+import numpy.typing as npt
 from scipy.integrate import solve_ivp
 from unum import Unum
 
@@ -1364,8 +1365,11 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         )
 
     def distribution_from_aa(
-        self, n_aa: np.ndarray[int], n_trna: np.ndarray[int], limited: bool = False
-    ) -> np.ndarray[int]:
+        self,
+        n_aa: npt.NDArray[np.int64],
+        n_trna: npt.NDArray[np.int64],
+        limited: bool = False,
+    ) -> npt.NDArray[np.int64]:
         """
         Distributes counts of amino acids to tRNAs that are associated with
         each amino acid. Uses self.process.aa_from_trna mapping to distribute
@@ -1438,7 +1442,7 @@ def ppgpp_metabolite_changes(
     uncharged_trna_conc: Unum,
     charged_trna_conc: Unum,
     ribosome_conc: Unum,
-    f: np.ndarray[float],
+    f: npt.NDArray[np.float64],
     rela_conc: Unum,
     spot_conc: Unum,
     ppgpp_conc: Unum,
@@ -1448,9 +1452,9 @@ def ppgpp_metabolite_changes(
     ppgpp_params: dict[str, Any],
     time_step: float,
     request: bool = False,
-    limits: np.ndarray[float] = None,
-    random_state: np.random.RandomState = None,
-) -> tuple[np.ndarray[int], int, int, Unum, Unum, Unum, Unum]:
+    limits: Optional[npt.NDArray[np.float64]] = None,
+    random_state: Optional[np.random.RandomState] = None,
+) -> tuple[npt.NDArray[np.int64], int, int, Unum, Unum, Unum, Unum]:
     """
     Calculates the changes in metabolite counts based on ppGpp synthesis and
     degradation reactions.
@@ -1638,10 +1642,10 @@ def calculate_trna_charging(
     uncharged_trna_conc: Unum,
     charged_trna_conc: Unum,
     aa_conc: Unum,
-    ribosome_conc: float,
+    ribosome_conc: Unum,
     f: Unum,
     params: dict[str, Any],
-    supply: Callable = None,
+    supply: Optional[Callable] = None,
     time_limit: float = 1000,
     limit_v_rib: bool = False,
     use_disabled_aas: bool = False,
@@ -1688,7 +1692,7 @@ def calculate_trna_charging(
           in units of MICROMOLAR_UNITS. Will be zeros if supply function is not given.
     """
 
-    def negative_check(trna1: np.ndarray[float], trna2: np.ndarray[float]):
+    def negative_check(trna1: npt.NDArray[np.float64], trna2: npt.NDArray[np.float64]):
         """
         Check for floating point precision issues that can lead to small
         negative numbers instead of 0. Adjusts both species of tRNA to
@@ -1703,7 +1707,7 @@ def calculate_trna_charging(
         trna2[mask] = trna1[mask] + trna2[mask]
         trna1[mask] = 0
 
-    def dcdt(t: float, c: np.ndarray[float]) -> np.ndarray[float]:
+    def dcdt(t: float, c: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """
         Function for solve_ivp to integrate
 
@@ -1912,14 +1916,14 @@ def get_charging_supply_function(
     amino_acid_export: Callable,
     aa_supply_scaling: Callable,
     counts_to_molar: Unum,
-    aa_supply: np.ndarray[float],
-    fwd_enzyme_counts: np.ndarray[int],
-    rev_enzyme_counts: np.ndarray[int],
+    aa_supply: npt.NDArray[np.float64],
+    fwd_enzyme_counts: npt.NDArray[np.int64],
+    rev_enzyme_counts: npt.NDArray[np.int64],
     dry_mass: Unum,
-    importer_counts: np.ndarray[int],
-    exporter_counts: np.ndarray[int],
-    aa_in_media: np.ndarray[bool],
-) -> Optional[Callable[[np.ndarray[float]], Tuple[Unum, Unum, Unum]]]:
+    importer_counts: npt.NDArray[np.int64],
+    exporter_counts: npt.NDArray[np.int64],
+    aa_in_media: npt.NDArray[np.bool_],
+) -> Optional[Callable[[npt.NDArray[np.float64]], Tuple[Unum, Unum, Unum]]]:
     """
     Get a function mapping internal amino acid concentrations to the amount of
     amino acid supply expected.

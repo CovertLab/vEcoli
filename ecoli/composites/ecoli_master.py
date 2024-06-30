@@ -6,10 +6,11 @@ steps, topology, and initial state of the E. coli whole cell model.
     Use the :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` interface
     to configure and run simulations with this composer.
 """
+# mypy: disable-error-code=attr-defined
 
 from copy import deepcopy
 import os
-from typing import Any
+from typing import Any, Optional
 import warnings
 
 # vivarium-core
@@ -30,7 +31,6 @@ from ecoli.composites.ecoli_configs import (
     ECOLI_DEFAULT_PROCESSES,
     ECOLI_DEFAULT_TOPOLOGY,
 )
-from ecoli.plots.topology import get_ecoli_partition_topology_settings
 from ecoli.processes.cell_division import Division, MarkDPeriod, StopAfterDivision
 from ecoli.processes.allocator import Allocator
 from ecoli.processes.partition import PartitionedProcess
@@ -68,13 +68,7 @@ class Ecoli(Composer):
         "time_step": 2.0,
         "seed": 0,
         "sim_data_path": SIM_DATA_PATH,
-        "daughter_path": tuple(),
         "agent_id": "0",
-        "agents_path": (
-            "..",
-            "..",
-            "agents",
-        ),
         "division_threshold": 668,  # fg
         "division_variable": ("listeners", "mass", "dry_mass"),
         "chromosome_path": ("unique", " full_chromosome"),
@@ -125,7 +119,7 @@ class Ecoli(Composer):
 
         self.processes_and_steps = self.generate_processes_and_steps(self.config)
 
-    def initial_state(self, config: dict[str, Any] = None) -> dict[str, Any]:
+    def initial_state(self, config: Optional[dict[str, Any]] = None) -> dict[str, Any]:
         """Users have three options for configuring the simulation initial state:
 
         1. ``config['initial_state']``
@@ -224,7 +218,7 @@ class Ecoli(Composer):
 
     def generate_processes_and_steps(
         self, config: dict[str, Any]
-    ) -> tuple[dict[str, Process], dict[str, Step], dict[str, tuple[str]]]:
+    ) -> tuple[dict[str, Process], dict[str, Step], dict[str, list[tuple[str]]]]:
         """Helper function that dynamically initializes all processes and
         steps (including their flow) according to options supplied in ``config``.
         This method is called when :py:class:`~ecoli.composites.ecoli_master.Ecoli`
@@ -264,7 +258,7 @@ class Ecoli(Composer):
                     :py:class:`~ecoli.processes.partition.PartitionedProcess`) at
                     the path ``('log_update',)`` by wrapping them with
                     :py:func:`~ecoli.library.logging_tools.make_logging_process`.
-                    See :py:mod:`~ecoli.plots.blame` for a plotting script that
+                    See :py:mod:`~ecoli.analysis.single.blame` for a plotting script that
                     can be used to visualize how each process changes bulk
                     molecule counts.
 
@@ -613,14 +607,12 @@ class Ecoli(Composer):
             topology["division"] = {
                 "division_variable": tuple(config["division_variable"]),
                 "full_chromosome": tuple(config["chromosome_path"]),
-                "agents": tuple(config["agents_path"]),
+                "agents": ("..", "..", "agents"),
                 "media_id": ("environment", "media_id"),
                 "division_threshold": ("division_threshold",),
             }
             if config["generations"] is not None:
-                topology["stop-after-division"] = {
-                    "agents": tuple(config["agents_path"])
-                }
+                topology["stop-after-division"] = {"agents": ("..", "..", "agents")}
 
         # Add Allocator and UniqueUpdate topologies
         _, steps, _ = self.processes_and_steps
@@ -636,7 +628,7 @@ class Ecoli(Composer):
                 topology[step_name] = allocator_topo.copy()
 
         # Do not keep an unnecessary reference to these
-        self.processes_and_steps = None
+        del self.processes_and_steps
         return topology
 
 
@@ -688,13 +680,140 @@ def run_ecoli(
     return sim.query()
 
 
+def get_ecoli_partition_topology_plot_settings():
+    evolver_row = -6
+    allocator_row = -7
+    requester_row = -8
+    process_distance = 0.9
+    settings = {
+        "graph_format": "hierarchy",
+        "dashed_edges": True,
+        "show_ports": False,
+        "node_size": 12000,
+        "coordinates": {
+            "ecoli-tf-binding_evolver": (1 * process_distance, evolver_row),
+            "ecoli-tf-binding_requester": (1 * process_distance, requester_row),
+            "ecoli-transcript-initiation_evolver": (2 * process_distance, evolver_row),
+            "ecoli-transcript-initiation_requester": (
+                2 * process_distance,
+                requester_row,
+            ),
+            "ecoli-transcript-elongation_evolver": (3 * process_distance, evolver_row),
+            "ecoli-transcript-elongation_requester": (
+                3 * process_distance,
+                requester_row,
+            ),
+            "ecoli-rna-degradation_evolver": (4 * process_distance, evolver_row),
+            "ecoli-rna-degradation_requester": (4 * process_distance, requester_row),
+            "ecoli-polypeptide-initiation_evolver": (5 * process_distance, evolver_row),
+            "ecoli-polypeptide-initiation_requester": (
+                5 * process_distance,
+                requester_row,
+            ),
+            "ecoli-polypeptide-elongation_evolver": (6 * process_distance, evolver_row),
+            "ecoli-polypeptide-elongation_requester": (
+                6 * process_distance,
+                requester_row,
+            ),
+            "ecoli-complexation_evolver": (7 * process_distance, evolver_row),
+            "ecoli-complexation_requester": (7 * process_distance, requester_row),
+            "ecoli-two-component-system_evolver": (8 * process_distance, evolver_row),
+            "ecoli-two-component-system_requester": (
+                8 * process_distance,
+                requester_row,
+            ),
+            "ecoli-equilibrium_evolver": (9 * process_distance, evolver_row),
+            "ecoli-equilibrium_requester": (9 * process_distance, requester_row),
+            "ecoli-protein-degradation_evolver": (10 * process_distance, evolver_row),
+            "ecoli-protein-degradation_requester": (
+                10 * process_distance,
+                requester_row,
+            ),
+            "ecoli-chromosome-replication_evolver": (
+                11 * process_distance,
+                evolver_row,
+            ),
+            "ecoli-chromosome-replication_requester": (
+                11 * process_distance,
+                requester_row,
+            ),
+            "ecoli-chromosome-structure_evolver": (12 * process_distance, evolver_row),
+            "ecoli-chromosome-structure_requester": (
+                12 * process_distance,
+                requester_row,
+            ),
+            "ecoli-chromosome-structure": (12 * process_distance, evolver_row),
+            "ecoli-metabolism_evolver": (13 * process_distance, evolver_row),
+            "ecoli-metabolism_requester": (13 * process_distance, requester_row),
+            "ecoli-metabolism": (13 * process_distance, evolver_row),
+            "ecoli-mass-listener": (14 * process_distance, evolver_row),
+            "mRNA_counts_listener": (15 * process_distance, evolver_row),
+            "divide_condition": (16 * process_distance, evolver_row),
+            "allocator": (6 * process_distance, allocator_row),
+        },
+        "node_labels": {
+            # processes
+            "ecoli-tf-binding_requester": "tf\nbinding\nrequester",
+            "ecoli-tf-binding_evolver": "tf\nbinding\nevolver",
+            "ecoli-transcript-initiation_requester": "transcript\ninitiation\nrequester",
+            "ecoli-transcript-initiation_evolver": "transcript\ninitiation\nevolver",
+            "ecoli-transcript-elongation_requester": "transcript\nelongation\nrequester",
+            "ecoli-transcript-elongation_evolver": "transcript\nelongation\nevolver",
+            "ecoli-rna-degradation_requester": "rna\ndegradation\nrequester",
+            "ecoli-rna-degradation_evolver": "rna\ndegradation\nevolver",
+            "ecoli-polypeptide-initiation_requester": "polypeptide\ninitiation\nrequester",
+            "ecoli-polypeptide-initiation_evolver": "polypeptide\ninitiation\nevolver",
+            "ecoli-polypeptide-elongation_requester": "polypeptide\nelongation\nrequester",
+            "ecoli-polypeptide-elongation_evolver": "polypeptide\nelongation\nevolver",
+            "ecoli-complexation_requester": "complexation\nrequester",
+            "ecoli-complexation_evolver": "complexation\nevolver",
+            "ecoli-two-component-system_requester": "two component\nsystem\nrequester",
+            "ecoli-two-component-system_evolver": "two component\nsystem\nevolver",
+            "ecoli-equilibrium_requester": "equilibrium\nrequester",
+            "ecoli-equilibrium_evolver": "equilibrium\nevolver",
+            "ecoli-protein-degradation_requester": "protein\ndegradation\nrequester",
+            "ecoli-protein-degradation_evolver": "protein\ndegradation\nevolver",
+            "ecoli-chromosome-replication_requester": "chromosome\nreplication\nrequester",
+            "ecoli-chromosome-replication_evolver": "chromosome\nreplication\nevolver",
+            "ecoli-chromosome-structure_requester": "chromosome\nstructure\nrequester",
+            "ecoli-chromosome-structure_evolver": "chromosome\nstructure\nevolver",
+            "ecoli-metabolism_requester": "metabolism\nrequester",
+            "ecoli-metabolism_evolver": "metabolism\nevolver",
+            "ecoli-mass-listener": "mass",
+            "mRNA_counts_listener": "mrna\ncounts",
+            "divide_condition": "division",
+        },
+        "remove_nodes": [
+            "allocate\necoli-polypeptide-elongation\nenvironment\namino_acids",
+            "request\necoli-polypeptide-elongation\nenvironment\namino_acids",
+            "aa_enzymes",
+            "process_state",
+            "process_state\npolypeptide_elongation",
+            "environment\nexchange_data",
+            "listeners\nmass\ncell_mass",
+            "listeners\nfba_results",
+            "listeners\nenzyme_kinetics",
+            "listeners\nmass",
+            "listeners\nribosome_data",
+            "listeners\nfba_results",
+            "listeners\nRnapData",
+            "listeners\ntranscript_elongation_listener",
+            "listeners\nrna_degradation_listener",
+            "listeners\nequilibrium_listener",
+            "listeners\nreplication_data",
+            "listeners\nrnap_data",
+        ],
+    }
+    return settings
+
+
 def ecoli_topology_plot(config=None):
     if not config:
         config = {}
     """Make a topology plot of Ecoli"""
     agent_id_config = {"agent_id": "1"}
     ecoli = Ecoli({**agent_id_config, **config})
-    settings = get_ecoli_partition_topology_settings()
+    settings = get_ecoli_partition_topology_plot_settings()
     topo_plot = plot_topology(
         ecoli,
         filename="topology",

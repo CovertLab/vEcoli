@@ -12,9 +12,13 @@ import csv
 from duckdb import DuckDBPyConnection
 import numpy as np
 import polars as pl
-from typing import Any
+from typing import Any, cast
 
-from ecoli.library.parquet_emitter import read_stacked_columns, ndlist_to_ndarray
+from ecoli.library.parquet_emitter import (
+    read_stacked_columns,
+    ndlist_to_ndarray,
+    open_arbitrary_sim_data,
+)
 from reconstruction.ecoli.fit_sim_data_1 import SimulationDataEcoli
 
 IGNORE_FIRST_N_GENS = 1
@@ -42,11 +46,11 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: dict[int, list[str]],
+    sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any],
-    variant_name: str,
+    variant_metadata: dict[str, dict[int, Any]],
+    variant_names: list[str],
 ):
     """
     Calculates average monomer counts per variant and saves them as separate
@@ -61,7 +65,7 @@ def plot(
     os.makedirs(unfiltered_dir, exist_ok=True)
     os.makedirs(filtered_dir, exist_ok=True)
 
-    with open(next(iter(sim_data_paths.values())), "rb") as f:
+    with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data: "SimulationDataEcoli" = pickle.load(f)
     mRNA_sim_data = sim_data.process.transcription.cistron_data.struct_array
     monomer_sim_data = sim_data.process.translation.monomer_data.struct_array
@@ -70,7 +74,7 @@ def plot(
         zip(monomer_sim_data["cistron_id"], monomer_sim_data["id"])
     )
     new_gene_monomer_ids = [
-        mRNA_monomer_id_dict.get(mRNA_id) for mRNA_id in new_gene_mRNA_ids
+        cast(str, mRNA_monomer_id_dict.get(mRNA_id)) for mRNA_id in new_gene_mRNA_ids
     ]
     all_monomer_ids = monomer_sim_data["id"]
     original_monomer_ids = all_monomer_ids[
@@ -78,11 +82,12 @@ def plot(
     ]
     monomer_idx_dict = {monomer: i for i, monomer in enumerate(all_monomer_ids)}
     original_monomer_idx = [
-        monomer_idx_dict.get(monomer_id) for monomer_id in original_monomer_ids
+        cast(int, monomer_idx_dict.get(monomer_id))
+        for monomer_id in original_monomer_ids
     ]
 
     subquery = read_stacked_columns(
-        history_sql, ["listeners__monomer_counts"], return_sql=True, order_results=False
+        history_sql, ["listeners__monomer_counts"], order_results=False
     )
     avg_monomer_per_variant = conn.sql(f"""
         WITH unnested_counts AS (

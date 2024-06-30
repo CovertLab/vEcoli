@@ -12,7 +12,7 @@ import scipy.constants
 import numpy as np
 
 # noinspection PyUnresolvedReferences
-from unum.units import mol  # satisfy mypy
+from unum.units import mol, mmol, g, h, L, fg, min, s, umol, dmol, J, K  # satisfy mypy
 from unum.units import *
 from unum import Unum
 
