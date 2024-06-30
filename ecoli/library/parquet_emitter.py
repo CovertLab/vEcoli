@@ -26,7 +26,7 @@ In the config dataset, user-defined metadata for each store
 will be contained in columns with this prefix.
 """
 
-EXPERIMENT_SCHEMA_SUFFIX = "variant=0/lineage_seed=0/generation=1/agent_id=1/_metadata"
+EXPERIMENT_SCHEMA_SUFFIX = "variant=0/lineage_seed=0/generation=1/agent_id=0/_metadata"
 """
 Hive partitioning suffix following experiment ID partition for Parquet file
 containing schema unified over all cells in this simulation.
