@@ -1270,7 +1270,9 @@ def make_video(
             img_paths_2 = list(
                 tqdm(
                     executor.map(
-                        save_timeseries_figure, time_indices, itertools.repeat(plot_kwargs)
+                        save_timeseries_figure,
+                        time_indices,
+                        itertools.repeat(plot_kwargs),
                     ),
                     total=len(time_indices),
                 )

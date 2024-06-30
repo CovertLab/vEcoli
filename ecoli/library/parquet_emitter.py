@@ -610,11 +610,18 @@ def get_encoding(
         return pa.string(), "DELTA_BYTE_ARRAY", field_name, False
     elif isinstance(val, list):
         if len(val) > 0:
-            inner_type, _, field_name, is_null = get_encoding(
-                val[0], field_name, use_uint16, use_uint32
-            )
-            # PLAIN encoding yields overall better compressed size for lists
-            return pa.list_(inner_type), "PLAIN", field_name + ".list.element", is_null
+            for inner_val in val:
+                if inner_val is not None:
+                    inner_type, _, field_name, is_null = get_encoding(
+                        val[0], field_name, use_uint16, use_uint32
+                    )
+                    # PLAIN encoding yields overall better compressed size for lists
+                    return (
+                        pa.list_(inner_type),
+                        "PLAIN",
+                        field_name + ".list.element",
+                        is_null,
+                    )
         return pa.list_(pa.null()), "PLAIN", field_name + ".list.element", True
     elif val is None:
         return pa.null(), "PLAIN", field_name, True

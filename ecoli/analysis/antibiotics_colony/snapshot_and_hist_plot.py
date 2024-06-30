@@ -21,7 +21,11 @@ from vivarium.library.dict_utils import get_value_from_path
 from vivarium.library.topology import convert_path_style
 from vivarium.library.units import remove_units
 
-from ecoli.analysis.colony.snapshots import format_snapshot_data, get_tag_ranges, plot_tags
+from ecoli.analysis.colony.snapshots import (
+    format_snapshot_data,
+    get_tag_ranges,
+    plot_tags,
+)
 from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR, PATHS_TO_LOAD
 
 
