@@ -5,6 +5,7 @@ name: Pytest
 # Improves reproducibility and speed
 env:
   OPENBLAS_NUM_THREADS: 1
+  OMP_NUM_THREADS: 1
 
 on:
   push:
@@ -37,4 +38,4 @@ jobs:
         make clean compile
     - name: Test with pytest
       run: |
-        python -m pytest --cov=ecoli --durations=0 -m 'not (noci or master)'
+        python -m pytest --cov=ecoli --durations=0
