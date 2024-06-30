@@ -6,13 +6,13 @@
 
 Vivarium *E. coli* (vEcoli) is a port of the Covert Lab's 
 [E. coli Whole Cell Model](https://github.com/CovertLab/wcEcoli) (wcEcoli)
-to the [Vivarium framework](https://github.com/vivarium-collective/vivarium-core). Its main benefits over the old model are:
+to the [Vivarium framework](https://github.com/vivarium-collective/vivarium-core). Its main benefits over the original model are:
 
-1. Modular processes: easily add/remove processes that interact with
+1. **Modular processes:** easily add/remove processes that interact with
     existing or new simulation state
-2. Unified configuration: all configuration happens through JSON files,
+2. **Unified configuration:** all configuration happens through JSON files,
     making it easy to run simulations/analyses with different options
-3. Parquet output: simulation output is in a widely-supported columnar
+3. **Parquet output:** simulation output is in a widely-supported columnar
     file format that enables fast, larger-than-RAM analytics with DuckDB
 
 As in wcEcoli, [raw experimental data](reconstruction/ecoli/flat) is first processed
