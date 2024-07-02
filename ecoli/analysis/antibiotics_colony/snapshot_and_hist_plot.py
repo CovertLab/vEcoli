@@ -212,12 +212,12 @@ def make_snapshot_and_hist_plot(
 
 def get_data(experiment_id, time, molecules, host, port, cpus, verbose):
     # Prepare molecule paths for access_counts()
-    monomers = [m[-1] for m in molecules if m[-2] == "monomer"]
-    mrnas = [m[-1] for m in molecules if m[-2] == "mrna"]
-    inner_paths = [
-        path for path in molecules if path[-1] not in mrnas and path[-1] not in monomers
-    ]
-    outer_paths = [("data", "dimensions")]
+    # monomers = [m[-1] for m in molecules if m[-2] == "monomer"]
+    # mrnas = [m[-1] for m in molecules if m[-2] == "mrna"]
+    # inner_paths = [
+    #     path for path in molecules if path[-1] not in mrnas and path[-1] not in monomers
+    # ]
+    # outer_paths = [("data", "dimensions")]
 
     if verbose:
         print(f"Accessing data for experiment {experiment_id}...")

@@ -87,7 +87,7 @@ def main():
     plt.plot([0, maxLine], [0, maxLine], "--r")
     plt.plot(model, paper, "o", markeredgecolor="k", markerfacecolor="none")
     plt.axis((0, 1, 0, maxLine))
-    Correlation_ExpPred = np.corrcoef(model, paper)[0][1]
+    Correlation_ExpPred = np.corrcoef(model, paper)[0][1]  # noqa: F841
 
     plt.xlabel("RNA decay rate expected from model [1/min]")
     plt.ylabel("RNA decay rate from paper (Moffitt et al. 2016) [1/min]")

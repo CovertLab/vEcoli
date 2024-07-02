@@ -29,10 +29,9 @@ class DependencyGraph(object):
     def __init__(self):
         # type: () -> None
         """Initialize dependencies to empty dictionary"""
-        self.dependencies = {}  # type: dict[str, list[str]]
+        self.dependencies: dict[str, list[str]] = {}
 
-    def add_nodes(self, nodes):
-        # type: (Iterable[str]) -> None
+    def add_nodes(self, nodes: Iterable[str]):
         """Add nodes with no dependencies
 
         Arguments:
@@ -41,8 +40,7 @@ class DependencyGraph(object):
         for node in nodes:
             self.dependencies[node] = []
 
-    def add_dep_relation(self, a, b):
-        # type: (str, str) -> None
+    def add_dep_relation(self, a: str, b: str):
         """Add an edge such that a depends on b
 
         If a or b does not exist yet as a node, it will be created.

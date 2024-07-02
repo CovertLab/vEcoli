@@ -12,8 +12,8 @@ import scipy.constants
 import numpy as np
 
 # noinspection PyUnresolvedReferences
-from unum.units import mol, mmol, g, h, L, fg, min, s, umol, dmol, J, K  # satisfy mypy
-from unum.units import *
+from unum.units import mol, mmol, g, h, L, fg, min, s, umol, dmol, J, K  # noqa: F401
+from unum.units import *  # noqa: F403
 from unum import Unum
 
 count = Unum.unit("count", mol / scipy.constants.Avogadro)
