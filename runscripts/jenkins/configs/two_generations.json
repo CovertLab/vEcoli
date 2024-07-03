@@ -1,0 +1,19 @@
+{
+    "experiment_id": "two_generations",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 3
+    },
+    "generations": 2,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter" : {
+        "type": "parquet",
+        "config": {
+            "out_dir": "out"
+        }
+    },
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}}
+    }
+}
