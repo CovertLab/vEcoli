@@ -1,0 +1,13 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Test 2 Generations') {
+            steps {
+                script {
+                    sh "bash runscripts/jenkins/workflow.sh runscripts/jenkins/configs/two-generations.json"
+                }
+            }
+        }
+    }
+}
