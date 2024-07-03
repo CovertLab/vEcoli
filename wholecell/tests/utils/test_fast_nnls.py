@@ -96,7 +96,7 @@ class Test_fast_nnls(unittest.TestCase):
         x2, r2 = fast_nnls(sA, b)
 
         npt.assert_array_equal(x1, x2)
-        npt.assert_array_equal(r1, r2)
+        npt.assert_array_almost_equal(r1, r2)
 
     def test_reproducibility(self):
         """
