@@ -1,0 +1,10 @@
+{
+    "suffix_time": false,
+    "generations": 1,
+    "emitter" : {
+        "type": "parquet",
+        "config": {
+            "out_dir": "out"
+        }
+    }
+}

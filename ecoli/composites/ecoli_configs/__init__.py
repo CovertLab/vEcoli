@@ -97,18 +97,3 @@ for process in ECOLI_DEFAULT_PROCESSES:
         )
 
     ECOLI_DEFAULT_TOPOLOGY[process] = process_topology
-
-# Add log_update ports if log_updates is True
-if config["log_updates"]:
-    for process, ports in ECOLI_DEFAULT_TOPOLOGY.items():
-        ECOLI_DEFAULT_TOPOLOGY[process]["log_update"] = (
-            "log_update",
-            process,
-        )
-
-# add division
-if config["divide"]:
-    ECOLI_DEFAULT_TOPOLOGY["division"] = {
-        "variable": ("listeners", "mass", "cell_mass"),
-        "agents": ["..", "..", "agents"],
-    }

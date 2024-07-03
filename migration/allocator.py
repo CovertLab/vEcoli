@@ -9,7 +9,7 @@ import numpy as np
 from ecoli.processes.allocator import Allocator
 from migration import LOAD_SIM_DATA
 from migration.migration_utils import run_non_partitioned_process, recursive_compare
-from ecoli.library.wcecoli_state import get_state_from_file
+from ecoli.library.json_state import get_state_from_file
 
 
 with open("data/proc_to_name.json", "r") as f:

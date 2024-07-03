@@ -13,7 +13,7 @@ from vivarium.library.dict_utils import deep_merge
 
 # vivarium-ecoli imports
 from ecoli.library.sim_data import LoadSimData
-from ecoli.library.wcecoli_state import get_state_from_file
+from ecoli.library.json_state import get_state_from_file
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.metabolism_redux import MetabolismRedux
 from ecoli.processes.stubs.exchange_stub import Exchange

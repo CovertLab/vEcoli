@@ -83,7 +83,7 @@ from ecoli.processes.spatiality.diffusion_network import (
     DiffusionNetwork,
 )
 
-from ecoli.library.wcecoli_state import get_state_from_file
+from ecoli.library.json_state import get_state_from_file
 from ecoli.library.schema import attrs, bulk_name_to_idx
 
 SIM_DATA_PATH = "reconstruction/sim_data/kb/simData.cPickle"
