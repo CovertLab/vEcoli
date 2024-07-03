@@ -35,7 +35,7 @@ jobs:
         make clean compile
     - name: Test with pytest
       run: |
-        python -m pytest --cov=ecoli --durations=0
+        python -m pytest --cov=ecoli --cov=reconstruction --cov=wholecell --cov=runscripts --durations=0
   Mypy:
     runs-on: ubuntu-latest
     strategy:
