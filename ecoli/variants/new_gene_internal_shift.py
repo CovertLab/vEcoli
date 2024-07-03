@@ -1,5 +1,7 @@
 from typing import Any, TYPE_CHECKING
 
+from ecoli.variants.condition import apply_variant as condition_variant
+
 if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
@@ -125,11 +127,7 @@ def apply_variant(
 
     """
     # Set media condition
-    sim_data.condition = params["condition"]
-    sim_data.external_state.current_timeline_id = params["condition"]
-    sim_data.external_state.saved_timelines[params["condition"]] = [
-        (0, sim_data.conditions[params["condition"]]["nutrients"])
-    ]
+    sim_data = condition_variant(sim_data, params)
 
     # Initialize internal shift dictionary
     sim_data.internal_shift_dict = {}  # type: ignore[attr-defined]

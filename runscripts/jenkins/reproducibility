@@ -1,0 +1,13 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Test Reproducibility') {
+            steps {
+                script {
+                    sh "bash runscripts/jenkins/check-reproducibility.sh"
+                }
+            }
+        }
+    }
+}
