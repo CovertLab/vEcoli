@@ -607,14 +607,6 @@ class EcoliSim:
                 deep_merge(process_topology, tuplify_topology(topology[process]))
             result[process] = process_topology
 
-        # Add log_update ports if log_updates is True
-        if log_updates:
-            for process, ports in result.items():
-                result[process]["log_update"] = (
-                    "log_update",
-                    process,
-                )
-
         return result
 
     def _retrieve_process_configs(

@@ -31,7 +31,7 @@ from ecoli.experiments.ecoli_master_sim import (
 from ecoli.library.logging_tools import write_json
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.schema import not_a_process
-from ecoli.library.wcecoli_state import get_state_from_file
+from ecoli.library.json_state import get_state_from_file
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.environment.lysis import Lysis

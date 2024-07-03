@@ -53,23 +53,21 @@ def load_data(
     experiment_id=None, cpus=8, sampling_rate=2, host="10.138.0.75", port=27017
 ):
     # Get data for the specified experiment_id
-    monomers = [path[-1] for path in PATHS_TO_LOAD.values() if path[0] == "monomer"]
-    mrnas = [path[-1] for path in PATHS_TO_LOAD.values() if path[0] == "mrna"]
-    inner_paths = [
-        path
-        for path in PATHS_TO_LOAD.values()
-        if path[-1] not in mrnas
-        and path[-1] not in monomers
-        and path != ("total_mrna",)
-    ]
-    outer_paths = [("data", "dimensions"), ("data", "fields")]
+    # monomers = [path[-1] for path in PATHS_TO_LOAD.values() if path[0] == "monomer"]
+    # mrnas = [path[-1] for path in PATHS_TO_LOAD.values() if path[0] == "mrna"]
+    # inner_paths = [
+    #     path
+    #     for path in PATHS_TO_LOAD.values()
+    #     if path[-1] not in mrnas
+    #     and path[-1] not in monomers
+    #     and path != ("total_mrna",)
+    # ]
+    # outer_paths = [("data", "dimensions"), ("data", "fields")]
     for condition, seeds in EXPERIMENT_ID_MAPPING.items():
         for seed, curr_experiment_id in seeds.items():
             if curr_experiment_id != experiment_id:
                 continue
             metadata = {condition: {seed: {}}}
-            # TODO: Convert to use DuckDB
-            raise NotImplementedError("Still need to convert to use DuckDB!")
             rep_data = {}
             with ProcessPoolExecutor(cpus) as executor:
                 print("Deserializing data and removing units...")
@@ -127,6 +125,8 @@ def main():
     )
     args = parser.parse_args()
     os.makedirs("data/colony_data/sim_dfs/", exist_ok=True)
+    # TODO: Convert to use DuckDB
+    raise NotImplementedError("Still need to convert to use DuckDB!")
     load_data(args.experiment_id, cpus=args.cpus)
 
 
