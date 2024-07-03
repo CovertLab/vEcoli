@@ -1,0 +1,10 @@
+{
+    "generations": 1,
+    "fail_at_total_time": true,
+    "emitter" : {
+        "type": "parquet",
+        "config": {
+            "out_dir": "out"
+        }
+    }
+}
