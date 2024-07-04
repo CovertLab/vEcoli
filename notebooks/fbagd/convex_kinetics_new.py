@@ -155,7 +155,7 @@ class ConvexKineticsNew:
 
         return C_alpha, C_beta, d_alpha, d_beta
 
-    def construct_kinetic_objective(self, flow_data, n_flux_set, n_rxn, C_alpha, C_beta, d_alpha, d_beta,
+    def construct_kinetic_objective(self, flow_data, enzyme_data, n_flux_set, n_rxn, C_alpha, C_beta, d_alpha, d_beta,
                                     S_s_nz, S_p_nz, S, y_f, y_r, y_s, y_p, cfwd, crev):
 
         LSE_expr = []
@@ -163,6 +163,7 @@ class ConvexKineticsNew:
 
         sign = np.sign(flow_data)
         lvE = np.log(sign * flow_data)
+        lnE = np.log(enzyme_data)
 
         for j in range(n_flux_set):
             for i in range(n_rxn):
@@ -178,8 +179,8 @@ class ConvexKineticsNew:
 
                 expr_sat_alpha = (C_alpha @ cp.vec(y_f[j, :]))[d_alpha == i]
                 expr_sat_beta = (C_beta @ cp.vec(y_r[j, :]))[d_beta == i]
-                expr_fwd = -S.T[i, S_s_idx] @ cp.vec(y_s[j, Km_s_idx]) + cfwd[i]
-                expr_rev = S.T[i, S_p_idx] @ cp.vec(y_p[j, Km_p_idx]) + crev[i]
+                expr_fwd = -S.T[i, S_s_idx] @ cp.vec(y_s[j, Km_s_idx]) + cfwd[i] + lnE[j, i]
+                expr_rev = S.T[i, S_p_idx] @ cp.vec(y_p[j, Km_p_idx]) + crev[i] + lnE[j, i]
 
                 if sign[j, i] == 1:
                     denom = expr_fwd
@@ -208,9 +209,10 @@ class ConvexKineticsNew:
 
         loss = 0
 
-        l1 = cp.sum(cp.hstack([cfwd, crev])) + cp.sum(cp.hstack([-Km_s, -Km_p]))  # regularization
+        l1 = 100*cp.sum(cp.hstack([cfwd, crev])) + cp.sum(cp.hstack([-Km_s, -Km_p]))  # regularization
         l1_c = cp.sum(cp.hstack([c]))  # weak regularization for concentrations
-        prior = cp.norm1(cp.hstack([cfwd, crev, cp.vec(c)-c_prior])) + cp.norm1(cp.hstack([-Km_s, -Km_p]))  # prior
+        prior = cp.norm1(cp.hstack([cp.vec(c) - c_prior]))
+        # prior = cp.norm1(cp.hstack([cfwd, crev, cp.vec(c)-c_prior])) + cp.norm1(cp.hstack([-Km_s, -Km_p]))  # prior
         # reg3 = cp.sum(cp.huber(cp.hstack([y_s, y_p]), 1))  # issue with matrix
         # reg4 = cp.sum(cp.max(cp.abs(cp.hstack([y_s, y_p])) - 3, 0)) # deadzone regularization
 
@@ -298,7 +300,7 @@ class ConvexKineticsNew:
 
         return equality_constr
 
-    def evaluate_flux_reconstruction(self, vE, n_flux_set, n_rxn, S_b, S_s_nz, S_p_nz, d_alpha, d_beta,
+    def evaluate_flux_reconstruction(self, vE, nE, n_flux_set, n_rxn, S_b, S_s_nz, S_p_nz, d_alpha, d_beta,
                                      C_alpha, C_beta, y_f, y_r, y_s, y_p, cfwd, crev):
 
         reconstructed_vE = np.zeros(vE.shape)
@@ -340,7 +342,7 @@ class ConvexKineticsNew:
 
                 sat[i] = (s)
 
-            reconstr = np.exp(cfwd.value) * fwd_sat / sat - np.exp(crev.value) * back_sat / sat
+            reconstr = nE * (np.exp(cfwd.value) * fwd_sat / sat - np.exp(crev.value) * back_sat / sat)
             reconstructed_vE[j, :] = reconstr
 
             return reconstructed_vE
@@ -354,7 +356,7 @@ class BiochemicalReactionNetwork:
     def __init__(self):
         pass
 
-    def forward_step(self, cn, S_matrix, cfwd, crev, Km_s, Km_p, Km_i, Km_a, S_s_nz, S_p_nz, S_s_mol, S_p_mol,
+    def forward_step(self, cn, nE, S_matrix, cfwd, crev, Km_s, Km_p, Km_i, Km_a, S_s_nz, S_p_nz, S_s_mol, S_p_mol,
                      S_b, C_alpha, C_beta, d_alpha, d_beta, n_rxn, met_s_nz, met_p_nz, met_i_nz, met_a_nz, debug=True, noise=0):
 
         sat_expr = []
@@ -412,7 +414,7 @@ class BiochemicalReactionNetwork:
 
 
 
-        v_recon_sim = np.exp(cfwd.value) * nfwd_sat / nsat - np.exp(crev.value) * nback_sat / nsat
+        v_recon_sim = nE * (np.exp(cfwd.value) * nfwd_sat / nsat - np.exp(crev.value) * nback_sat / nsat)
 
         if noise != 0:
             v_recon_sim *= np.random.normal(1, noise, v_recon_sim.shape)
