@@ -1,7 +1,7 @@
 set -e
 
 export PYTHONPATH=$PWD
-module load wcEcoli/python3 java/18.0.2 nextflow
+module load wcEcoli/python3 java/18.0.2 biology nextflow
 
 export PATH="${GROUP_HOME}/pyenv/bin:${PATH}"
 eval "$(pyenv init -)"
