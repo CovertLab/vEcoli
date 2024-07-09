@@ -342,14 +342,14 @@ class SimulationDataEcoli(object):
             ]
         )
         delta = delta_prob @ p_promoter_bound
-        prob, factor = self.process.transcription.synth_prob_from_ppgpp(
+        aff, factor = self.process.transcription.synth_aff_from_ppgpp(
             ppgpp, self.process.replication.get_average_copy_number
         )
-        rna_expression = prob * (1 + delta) / factor
+        rna_expression = aff * (1 + delta) / factor
 
         # For cases with no basal ppGpp expression, assume the delta prob is the
         # same as without ppGpp control
-        mask = prob == 0
+        mask = aff == 0
         rna_expression[mask] = delta[mask] / factor[mask]
 
         rna_expression[rna_expression < 0] = 0

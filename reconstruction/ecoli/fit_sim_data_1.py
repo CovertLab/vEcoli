@@ -12,6 +12,7 @@ import os
 import pickle
 import time
 import traceback
+import copy
 
 from stochastic_arrow import StochasticSystem
 from cvxpy import Variable, Problem, Minimize, norm
@@ -271,38 +272,38 @@ def tf_condition_specs(
     cpus = parallelization.cpus(cpus)
 
     # Apply updates to cell_specs from buildTfConditionCellSpecifications for each TF condition
-    conditions = list(sorted(sim_data.tf_to_active_inactive_conditions))
-    args = [
-        (
-            sim_data,
-            tf,
-            variable_elongation_transcription,
-            variable_elongation_translation,
-            disable_ribosome_capacity_fitting,
-            disable_rnapoly_capacity_fitting,
-        )
-        for tf in conditions
-    ]
-    apply_updates(
-        buildTfConditionCellSpecifications, args, conditions, cell_specs, cpus
-    )
-
-    for conditionKey in cell_specs:
-        if conditionKey == "basal":
-            continue
-
-        sim_data.process.transcription.rna_expression[conditionKey] = cell_specs[
-            conditionKey
-        ]["expression"]
-        sim_data.process.transcription.rna_synth_prob[conditionKey] = cell_specs[
-            conditionKey
-        ]["synthProb"]
-        sim_data.process.transcription.cistron_expression[conditionKey] = cell_specs[
-            conditionKey
-        ]["cistron_expression"]
-        sim_data.process.transcription.fit_cistron_expression[conditionKey] = (
-            cell_specs[conditionKey]["fit_cistron_expression"]
-        )
+    # conditions = list(sorted(sim_data.tf_to_active_inactive_conditions))
+    # args = [
+    #     (
+    #         sim_data,
+    #         tf,
+    #         variable_elongation_transcription,
+    #         variable_elongation_translation,
+    #         disable_ribosome_capacity_fitting,
+    #         disable_rnapoly_capacity_fitting,
+    #     )
+    #     for tf in conditions
+    # ]
+    # apply_updates(
+    #     buildTfConditionCellSpecifications, args, conditions, cell_specs, cpus
+    # )
+    #
+    # for conditionKey in cell_specs:
+    #     if conditionKey == "basal":
+    #         continue
+    #
+    #     sim_data.process.transcription.rna_expression[conditionKey] = cell_specs[
+    #         conditionKey
+    #     ]["expression"]
+    #     sim_data.process.transcription.rna_synth_prob[conditionKey] = cell_specs[
+    #         conditionKey
+    #     ]["synthProb"]
+    #     sim_data.process.transcription.cistron_expression[conditionKey] = cell_specs[
+    #         conditionKey
+    #     ]["cistron_expression"]
+    #     sim_data.process.transcription.fit_cistron_expression[conditionKey] = (
+    #         cell_specs[conditionKey]["fit_cistron_expression"]
+    #     )
 
     buildCombinedConditionCellSpecifications(
         sim_data,
@@ -338,7 +339,8 @@ def promoter_binding(sim_data, cell_specs, **kwargs):
     if VERBOSE > 0:
         print("Fitting promoter binding")
     # noinspection PyTypeChecker
-    fitPromoterBoundProbability(sim_data, cell_specs)
+    #fitPromoterBoundProbability(sim_data, cell_specs)
+    fitExpressionAffinities(sim_data, cell_specs)
 
     return sim_data, cell_specs
 
@@ -346,7 +348,7 @@ def promoter_binding(sim_data, cell_specs, **kwargs):
 @save_state
 def adjust_promoters(sim_data, cell_specs, **kwargs):
     # noinspection PyTypeChecker
-    fitLigandConcentrations(sim_data, cell_specs)
+    #fitLigandConcentrations(sim_data, cell_specs)
     calculateRnapRecruitment(sim_data, cell_specs)
 
     return sim_data, cell_specs
@@ -2889,6 +2891,152 @@ def expressionFromConditionAndFoldChange(transcription, condPerturbations, tfFCs
     return expression, cistron_expression
 
 
+
+def fitExpressionAffinities(sim_data, cell_specs):
+    rich_condition = 'with_aa'
+    minimal_condition = 'basal'
+
+    purR_inactive = "PC00033[c]"
+    purR_active = "CPLX-123"
+    purC_tu_id = 'TU00055[c]'
+    purC_fc = 1/3
+    is_purC = (sim_data.process.transcription.rna_data["id"] == purC_tu_id)
+    rna_transcr_aff = sim_data.process.transcription.rna_transcr_aff
+
+    # def calculateMinimalAffinities(sim_data, cell_specs):
+    #     # Get specific doubling time for basal condition
+    #     tau = cell_specs[minimal_condition]["doubling_time"].asNumber(units.min)
+    #
+    #     # Calculate average copy number of gene for basal condition
+    #     rna_coords = sim_data.process.transcription.rna_data["replication_coordinate"]
+    #     avg_copy_nums = sim_data.process.replication.get_average_copy_number(
+    #         tau, rna_coords
+    #     )
+    #
+    #     # Compute affinities as the probability per gene copy, a_basal = p_basal / copy_basal
+    #     minimal_affinities = (sim_data.process.transcription.rna_synth_prob[minimal_condition]
+    #                        / avg_copy_nums)
+    #     affinities[minimal_condition] = minimal_affinities
+
+    def setConditionProbs(sim_data, cell_specs):
+        rich_synth_probs = sim_data.process.transcription.rna_synth_prob[rich_condition]
+        rich_synth_probs[is_purC] = (sim_data.process.transcription.rna_synth_prob[minimal_condition]
+                                    [is_purC] * purC_fc)
+        # TODO: check does this actually modify sim_data rna_synth_prob?
+        rich_synth_probs[~is_purC] *= (1 - rich_synth_probs[is_purC]) / np.sum(rich_synth_probs[~is_purC])
+
+    def calculateRichAffinities(sim_data, cell_specs, is_regulated_rna):
+        # Set up system of equations: a1 * copy1 = p1 * sum(a1 * copy1)
+        rich_affinities = copy.deepcopy(rna_transcr_aff[minimal_condition])
+
+        # Get specific doubling time for rich condition
+        tau = cell_specs[rich_condition]["doubling_time"].asNumber(units.min)
+
+        # Calculate average copy number of gene for basal condition
+        rna_coords = sim_data.process.transcription.rna_data["replication_coordinate"]
+        avg_copy_nums = sim_data.process.replication.get_average_copy_number(
+            tau, rna_coords
+        )
+
+        # Solve equation: for regulated genes, aff * copy = proba * sum(aff * copy for all genes)
+        # Let aff * copy = k. Then, for all regulated i, k_i = p_i * (sum(k_j regulated) + sum(k_j unregulated))
+        # k_i - p_i * sum(k_j regulated) = p_i * sum(k_j unregulated). Let C = sum(k_j unregulated)
+        # sum over j regulated of (-p_i k_j) + k_i = C * p_i
+        # Or, M k = C p, where p is a vector of all regulated p_i's, k is a vector of all regulated k's,
+        # and M is a iXi matrix which in the i'th row, has -p_i on all columns except 1 - p_i on the i'th column.
+
+        unregulated_affinities = rich_affinities[~is_regulated_rna]
+        unregulated_copy_nums = avg_copy_nums[~is_regulated_rna]
+        unregulated_ks_sum = np.dot(unregulated_affinities, unregulated_copy_nums)
+        regulated_probas = (sim_data.process.transcription.rna_synth_prob[rich_condition]
+                            [is_regulated_rna])
+        b = unregulated_ks_sum * regulated_probas
+
+        num_reg_rnas = len(regulated_probas)
+        M = np.tile(-1 * regulated_probas, (num_reg_rnas, 1)).T
+        for i in range(num_reg_rnas):
+            M[i, i] += 1
+
+        solved_ks = np.linalg.solve(M, b)
+
+        # Back-calculate affinities from k = copy * aff
+        solved_reg_affinities = solved_ks / avg_copy_nums[is_regulated_rna]
+        rich_affinities[is_regulated_rna] = solved_reg_affinities
+
+        # Store in dictionary
+        rna_transcr_aff[rich_condition] = rich_affinities
+
+    def construct_r_vector(sim_data, cell_specs, is_regulated_rna):
+        # Returns the r vector, and the col_name_to_index. This includes rna__alpha, which holds the affinity without any TF bound
+        # (i.e. the basal affinity), and rna__tf, which holds the affinity when the TF is bound.
+        # For unregulated genes, they should all just have rna__alpha, holding the minimal affinity which is the same as
+        # the basal affinity. For regulated genes like purC, then there should be purC__alpha for when the TF is not bound in minimal,
+        # and a purC__purR for when the TF is bound, in rich conditions, and purC__purR should just be the rich_affinities one.
+        # For the other regulated genes, basal and delta might be more complicated.
+        r = []
+        col_name_to_index = {}
+        rna_ids = sim_data.process.transcription.rna_data["id"]
+        # Add genes that are not regulated (TODO: include the ones regulated by other 22)
+        for rna_id, aff in zip(rna_ids[~is_purC],
+            rna_transcr_aff[minimal_condition][~is_purC]):
+            rna_id_no_loc = rna_id[:-3]
+            col_name = rna_id_no_loc + "__alpha"
+            r.append(aff)
+            col_name_to_index[col_name] = len(r)
+
+        # Add genes that are regulated TODO: make general, don't use purR_active
+        for rna_id, idx in zip(rna_ids[is_purC], np.where(is_purC)[0]):
+            # TODO: figure out how to get this purR
+            rna_id_no_loc = rna_id[:-3]
+            col_name_basal = rna_id_no_loc + "__alpha"
+            col_name_delta = rna_id_no_loc + "__" + purR_active
+
+            # For each condition, rna_transcr_aff[condition] = alpha + pP * delta, solve for alpha and delta
+            # That is to say, [1, pP] = rna_transcr_aff
+            M = []
+            b = []
+            for condition in sim_data.pPromoterBound:
+                M.append([1, pPromoterBound[condition][purR_active]])
+                b.append(rna_transcr_aff[condition][is_purC][idx])
+
+            solution = np.linalg.solve(M, b)
+            alpha = solution[0]
+            delta = solution[1]
+
+            r.append(alpha)
+            col_name_to_index[col_name_basal] = len(col_name_to_index)
+            r.append(delta)
+            col_name_to_index[col_name_delta] = len(col_name_to_index)
+
+        return r, col_name_to_index
+
+    is_regulated_rna = np.array([len(sim_data.relation.rna_id_to_regulating_tfs[rnaId]) > 0
+                                 for rnaId in sim_data.process.transcription.rna_data['id']])
+    setConditionProbs(sim_data, cell_specs)
+    #calculateMinimalAffinities(sim_data, cell_specs)
+    calculateRichAffinities(sim_data, cell_specs, is_regulated_rna)
+
+    pPromoterBound = calculatePromoterBoundProbability(sim_data, cell_specs)
+    sim_data.pPromoterBound = pPromoterBound
+
+    r_vector, col_name_to_index = construct_r_vector(sim_data, cell_specs, is_regulated_rna)
+
+    # Update sim_data with these calculated affinities
+    cell_specs['basal']['r_vector'] = r_vector
+    cell_specs['basal']['r_columns'] = col_name_to_index
+
+    # TODO: figure out how to solve the rest of the genes too, using affinities to calculate the deltas??
+    # TODO: now, we have these rich affinities, what to do with them? For purC, u
+    # really just want to save the two affinities. For unregulated genes, want to save that
+    # one affinity. For the other genes by 22 TFs, perhaps go through the same process as before??
+    # Except use the affinities to calculate the deltas?
+
+
+    # First need smth to calculate basal affinities
+    # Then need a function to get probabilities for rich media
+    # Then need a function to calculate updated affinities for purC gene (and, in fact, for all genes)
+    # Then need to save the values
+
 def fitPromoterBoundProbability(sim_data, cell_specs):
     r"""
     Calculates the probabilities (P) that each transcription factor will bind
@@ -2918,7 +3066,7 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
     - RNA synthesis probabilities
     - cell_specs['basal']['r_vector']: Fit parameters on how the recruitment of
     a TF affects the expression of a gene. High (positive) values of r indicate
-    that the TF binding increases the probability that the gene is expressed.
+    that the TF binding increases the probability that the gene is expressed (its affinity).
     - cell_specs['basal']['r_columns']: mapping of column name to index in r
 
     Notes
@@ -2927,6 +3075,20 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
     the parameters being fit.
     """
 
+    # TODO: so change vector_k to be with affinities instead, using the calculations.
+    # pPromoterBound, for purC, should be 1 or 0. For other genes, supposedly it could
+    # be something like that too. Given this, optimizing for r vector given pPromoterBound
+    # and k might be easier, and then ig you could optimize for pPromoterBound as well tho
+    # idk if it would be needed?
+    # TODO: But for right now, leave the other TFs as they are, run with different affinities.
+    # And then modify at the end with purC stuff, pPromoterBound too maybe?
+    # Or, you could think about using this optimizing framework as just a way to solve it in general
+    # too? So then integrate ur stuff into this optimizing method? But not too sure about that,
+    # maybe shud just be a one-step thing.
+    # TODO: seems like I should try some stuff out. But goal is to get to the purC modeling out
+    # first, and add on more genes, so seems like if I can just do it separately, then that's good. :)
+    # TODO: also change the tf_binding/unbinding, equilibirum for ligands, and make raw_data files,
+    # so u can run purC. :)
     def build_vector_k(sim_data, cell_specs):
         """
         Construct vector k that contains existing fit transcription
@@ -3826,185 +3988,210 @@ def fitLigandConcentrations(sim_data, cell_specs):
 
 def calculatePromoterBoundProbability(sim_data, cell_specs):
     """
-    Calculate the probability that a transcription factor is bound to its
-    associated promoter for all simulated growth conditions. The bulk
-    average concentrations calculated for TFs and their ligands are used to
-    compute the probabilities based on the type (0CS, 1CS, 2CS) of the TF.
+    #     Calculate the probability that a transcription factor is bound to its
+    #     associated promoter for all simulated growth conditions. The bulk
+    #     average concentrations calculated for TFs and their ligands are used to
+    #     compute the probabilities based on the type (0CS, 1CS, 2CS) of the TF.
+    #
+    #     Requires
+    #     --------
+    #     - Bulk average counts of transcription factors and associated ligands
+    #     for each condition (in cell_specs)
+    #
+    #     Returns
+    #     --------
+    #     - pPromoterBound: Probability that a transcription factor is bound to
+    #     its promoter, per growth condition and TF. Each probability is indexed by
+    #     pPromoterBound[condition][TF].
+    #     """
 
-    Requires
-    --------
-    - Bulk average counts of transcription factors and associated ligands
-    for each condition (in cell_specs)
-
-    Returns
-    --------
-    - pPromoterBound: Probability that a transcription factor is bound to
-    its promoter, per growth condition and TF. Each probability is indexed by
-    pPromoterBound[condition][TF].
-    """
-
-    pPromoterBound = {}  # Initialize return value
-    cellDensity = sim_data.constants.cell_density
-    init_to_average = sim_data.mass.avg_cell_to_initial_cell_conversion_factor
-
-    # Matrix to determine number of promoters each TF can bind to in a given condition
-    tf_idx = {tf: i for i, tf in enumerate(sim_data.tf_to_active_inactive_conditions)}
-    cistron_id_to_tu_indexes = {
-        cistron_id: sim_data.process.transcription.cistron_id_to_rna_indexes(cistron_id)
-        for cistron_id in sim_data.process.transcription.cistron_data["id"]
-    }
-    regulation_i = []
-    regulation_j = []
-    regulation_v = []
-    for tf, cistrons in sim_data.tf_to_fold_change.items():
-        if tf not in tf_idx:
-            continue
-
-        for cistron in cistrons:
-            for tu_index in cistron_id_to_tu_indexes[cistron]:
-                regulation_i.append(tf_idx[tf])
-                regulation_j.append(tu_index)
-                regulation_v.append(1)
-
-    regulation = scipy.sparse.csr_matrix(
-        (regulation_v, (regulation_i, regulation_j)),
-        shape=(len(tf_idx), len(sim_data.process.transcription.rna_data)),
-    )
-    rna_coords = sim_data.process.transcription.rna_data["replication_coordinate"]
-
-    for conditionKey in sorted(cell_specs):
-        pPromoterBound[conditionKey] = {}
-        tau = sim_data.condition_to_doubling_time[conditionKey].asNumber(units.min)
-        n_avg_copy = sim_data.process.replication.get_average_copy_number(
-            tau, rna_coords
-        )
-        n_promoter_targets = regulation.dot(n_avg_copy)
-
-        cellVolume = (
-            cell_specs[conditionKey]["avgCellDryMassInit"]
-            / cellDensity
-            / sim_data.mass.cell_dry_mass_fraction
-        )
-        countsToMolar = 1 / (sim_data.constants.n_avogadro * cellVolume)
-
-        for tf in sorted(sim_data.tf_to_active_inactive_conditions):
-            tfType = sim_data.process.transcription_regulation.tf_to_tf_type[tf]
-            curr_tf_idx = bulk_name_to_idx(
-                tf + "[c]", cell_specs[conditionKey]["bulkAverageContainer"]["id"]
-            )
-            tf_counts = counts(
-                cell_specs[conditionKey]["bulkAverageContainer"], curr_tf_idx
-            )
-            tf_targets = n_promoter_targets[tf_idx[tf]]
-            limited_tf_counts = min(1, tf_counts * init_to_average / tf_targets)
-            if tfType == "0CS":
-                pPromoterBound[conditionKey][tf] = (
-                    limited_tf_counts  # If TF exists, the promoter is always bound to the TF
-                )
-
-            elif tfType == "1CS":
-                boundId = sim_data.process.transcription_regulation.active_to_bound[
-                    tf
-                ]  # ID of TF bound to ligand
-                kd = sim_data.process.equilibrium.get_rev_rate(
-                    boundId + "[c]"
-                ) / sim_data.process.equilibrium.get_fwd_rate(boundId + "[c]")
-
-                signal = sim_data.process.equilibrium.get_metabolite(
-                    boundId + "[c]"
-                )  # ID of ligand that binds to TF
-                signalCoeff = sim_data.process.equilibrium.get_metabolite_coeff(
-                    boundId + "[c]"
-                )  # Stoichiometric coefficient of ligand
-
-                # Get bulk average concentrations of ligand and TF
-                signal_idx = bulk_name_to_idx(
-                    signal, cell_specs[conditionKey]["bulkAverageContainer"]["id"]
-                )
-                signalConc = (
-                    countsToMolar
-                    * counts(
-                        cell_specs[conditionKey]["bulkAverageContainer"], signal_idx
-                    )
-                ).asNumber(units.mol / units.L)
-                tfConc = (countsToMolar * tf_counts).asNumber(units.mol / units.L)
-
-                # If TF is active in its bound state
-                if tf == boundId:
-                    if tfConc > 0:
-                        pPromoterBound[conditionKey][tf] = (
-                            limited_tf_counts
-                            * sim_data.process.transcription_regulation.p_promoter_bound_SKd(
-                                signalConc, kd, signalCoeff
-                            )
-                        )
-                    else:
-                        pPromoterBound[conditionKey][tf] = 0.0
-
-                # If TF is active in its unbound state
-                else:
-                    if tfConc > 0:
-                        pPromoterBound[conditionKey][tf] = (
-                            1.0
-                            - limited_tf_counts
-                            * sim_data.process.transcription_regulation.p_promoter_bound_SKd(
-                                signalConc, kd, signalCoeff
-                            )
-                        )
-                    else:
-                        pPromoterBound[conditionKey][tf] = 0.0
-
-            elif tfType == "2CS":
-                # Get bulk average concentrations of active and inactive TF
-                activeTfConc = (countsToMolar * tf_counts).asNumber(units.mol / units.L)
-                inactiveTf = (
-                    sim_data.process.two_component_system.active_to_inactive_tf[
-                        tf + "[c]"
-                    ]
-                )
-                inactive_tf_idx = bulk_name_to_idx(
-                    inactiveTf, cell_specs[conditionKey]["bulkAverageContainer"]["id"]
-                )
-                inactiveTfConc = (
-                    countsToMolar
-                    * counts(
-                        cell_specs[conditionKey]["bulkAverageContainer"],
-                        inactive_tf_idx,
-                    )
-                ).asNumber(units.mol / units.L)
-
-                if activeTfConc == 0 and inactiveTfConc == 0:
-                    pPromoterBound[conditionKey][tf] = 0.0
-                else:
-                    pPromoterBound[conditionKey][tf] = (
-                        limited_tf_counts
-                        * activeTfConc
-                        / (activeTfConc + inactiveTfConc)
-                    )
-
-    # Check for any inconsistencies that could lead to feasbility issues when fitting
-    for condition in pPromoterBound:
-        if "inactive" in condition:
-            tf = condition.split("__")[0]
-            active_p = pPromoterBound[f"{tf}__active"][tf]
-            inactive_p = pPromoterBound[f"{tf}__inactive"][tf]
-
-            if inactive_p >= active_p:
-                print(
-                    "Warning: active condition does not have higher binding"
-                    f" probability than inactive condition for {tf}"
-                    f" ({active_p:.3f} vs {inactive_p:.3f})."
-                )
+    pPromoterBound = {}
+    pPromoterBound['basal']['CPLX-123'] = 0.0
+    pPromoterBound['with_aa']['CPLX-123'] = 1.0
 
     return pPromoterBound
+
+# def calculatePromoterBoundProbability(sim_data, cell_specs):
+#     """
+#     Calculate the probability that a transcription factor is bound to its
+#     associated promoter for all simulated growth conditions. The bulk
+#     average concentrations calculated for TFs and their ligands are used to
+#     compute the probabilities based on the type (0CS, 1CS, 2CS) of the TF.
+#
+#     Requires
+#     --------
+#     - Bulk average counts of transcription factors and associated ligands
+#     for each condition (in cell_specs)
+#
+#     Returns
+#     --------
+#     - pPromoterBound: Probability that a transcription factor is bound to
+#     its promoter, per growth condition and TF. Each probability is indexed by
+#     pPromoterBound[condition][TF].
+#     """
+#
+#     pPromoterBound = {}  # Initialize return value
+#     cellDensity = sim_data.constants.cell_density
+#     init_to_average = sim_data.mass.avg_cell_to_initial_cell_conversion_factor
+#
+#     # Matrix to determine number of promoters each TF can bind to in a given condition
+#     tf_idx = {tf: i for i, tf in enumerate(sim_data.tf_to_active_inactive_conditions)}
+#     cistron_id_to_tu_indexes = {
+#         cistron_id: sim_data.process.transcription.cistron_id_to_rna_indexes(cistron_id)
+#         for cistron_id in sim_data.process.transcription.cistron_data["id"]
+#     }
+#     regulation_i = []
+#     regulation_j = []
+#     regulation_v = []
+#     for tf, cistrons in sim_data.tf_to_fold_change.items():
+#         if tf not in tf_idx:
+#             continue
+#
+#         for cistron in cistrons:
+#             for tu_index in cistron_id_to_tu_indexes[cistron]:
+#                 regulation_i.append(tf_idx[tf])
+#                 regulation_j.append(tu_index)
+#                 regulation_v.append(1)
+#
+#     regulation = scipy.sparse.csr_matrix(
+#         (regulation_v, (regulation_i, regulation_j)),
+#         shape=(len(tf_idx), len(sim_data.process.transcription.rna_data)),
+#     )
+#     rna_coords = sim_data.process.transcription.rna_data["replication_coordinate"]
+#
+#     for conditionKey in sorted(cell_specs):
+#         pPromoterBound[conditionKey] = {}
+#         tau = sim_data.condition_to_doubling_time[conditionKey].asNumber(units.min)
+#         n_avg_copy = sim_data.process.replication.get_average_copy_number(
+#             tau, rna_coords
+#         )
+#         n_promoter_targets = regulation.dot(n_avg_copy)
+#
+#         cellVolume = (
+#             cell_specs[conditionKey]["avgCellDryMassInit"]
+#             / cellDensity
+#             / sim_data.mass.cell_dry_mass_fraction
+#         )
+#         countsToMolar = 1 / (sim_data.constants.n_avogadro * cellVolume)
+#
+#         for tf in sorted(sim_data.tf_to_active_inactive_conditions):
+#             tfType = sim_data.process.transcription_regulation.tf_to_tf_type[tf]
+#             curr_tf_idx = bulk_name_to_idx(
+#                 tf + "[c]", cell_specs[conditionKey]["bulkAverageContainer"]["id"]
+#             )
+#             tf_counts = counts(
+#                 cell_specs[conditionKey]["bulkAverageContainer"], curr_tf_idx
+#             )
+#             tf_targets = n_promoter_targets[tf_idx[tf]]
+#             limited_tf_counts = min(1, tf_counts * init_to_average / tf_targets)
+#             if tfType == "0CS":
+#                 pPromoterBound[conditionKey][tf] = (
+#                     limited_tf_counts  # If TF exists, the promoter is always bound to the TF
+#                 )
+#
+#             elif tfType == "1CS":
+#                 boundId = sim_data.process.transcription_regulation.active_to_bound[
+#                     tf
+#                 ]  # ID of TF bound to ligand
+#                 kd = sim_data.process.equilibrium.get_rev_rate(
+#                     boundId + "[c]"
+#                 ) / sim_data.process.equilibrium.get_fwd_rate(boundId + "[c]")
+#
+#                 signal = sim_data.process.equilibrium.get_metabolite(
+#                     boundId + "[c]"
+#                 )  # ID of ligand that binds to TF
+#                 signalCoeff = sim_data.process.equilibrium.get_metabolite_coeff(
+#                     boundId + "[c]"
+#                 )  # Stoichiometric coefficient of ligand
+#
+#                 # Get bulk average concentrations of ligand and TF
+#                 signal_idx = bulk_name_to_idx(
+#                     signal, cell_specs[conditionKey]["bulkAverageContainer"]["id"]
+#                 )
+#                 signalConc = (
+#                     countsToMolar
+#                     * counts(
+#                         cell_specs[conditionKey]["bulkAverageContainer"], signal_idx
+#                     )
+#                 ).asNumber(units.mol / units.L)
+#                 tfConc = (countsToMolar * tf_counts).asNumber(units.mol / units.L)
+#
+#                 # If TF is active in its bound state
+#                 if tf == boundId:
+#                     if tfConc > 0:
+#                         pPromoterBound[conditionKey][tf] = (
+#                             limited_tf_counts
+#                             * sim_data.process.transcription_regulation.p_promoter_bound_SKd(
+#                                 signalConc, kd, signalCoeff
+#                             )
+#                         )
+#                     else:
+#                         pPromoterBound[conditionKey][tf] = 0.0
+#
+#                 # If TF is active in its unbound state
+#                 else:
+#                     if tfConc > 0:
+#                         pPromoterBound[conditionKey][tf] = (
+#                             1.0
+#                             - limited_tf_counts
+#                             * sim_data.process.transcription_regulation.p_promoter_bound_SKd(
+#                                 signalConc, kd, signalCoeff
+#                             )
+#                         )
+#                     else:
+#                         pPromoterBound[conditionKey][tf] = 0.0
+#
+#             elif tfType == "2CS":
+#                 # Get bulk average concentrations of active and inactive TF
+#                 activeTfConc = (countsToMolar * tf_counts).asNumber(units.mol / units.L)
+#                 inactiveTf = (
+#                     sim_data.process.two_component_system.active_to_inactive_tf[
+#                         tf + "[c]"
+#                     ]
+#                 )
+#                 inactive_tf_idx = bulk_name_to_idx(
+#                     inactiveTf, cell_specs[conditionKey]["bulkAverageContainer"]["id"]
+#                 )
+#                 inactiveTfConc = (
+#                     countsToMolar
+#                     * counts(
+#                         cell_specs[conditionKey]["bulkAverageContainer"],
+#                         inactive_tf_idx,
+#                     )
+#                 ).asNumber(units.mol / units.L)
+#
+#                 if activeTfConc == 0 and inactiveTfConc == 0:
+#                     pPromoterBound[conditionKey][tf] = 0.0
+#                 else:
+#                     pPromoterBound[conditionKey][tf] = (
+#                         limited_tf_counts
+#                         * activeTfConc
+#                         / (activeTfConc + inactiveTfConc)
+#                     )
+#
+#     # Check for any inconsistencies that could lead to feasbility issues when fitting
+#     for condition in pPromoterBound:
+#         if "inactive" in condition:
+#             tf = condition.split("__")[0]
+#             active_p = pPromoterBound[f"{tf}__active"][tf]
+#             inactive_p = pPromoterBound[f"{tf}__inactive"][tf]
+#
+#             if inactive_p >= active_p:
+#                 print(
+#                     "Warning: active condition does not have higher binding"
+#                     f" probability than inactive condition for {tf}"
+#                     f" ({active_p:.3f} vs {inactive_p:.3f})."
+#                 )
+#
+#     return pPromoterBound
 
 
 def calculateRnapRecruitment(sim_data, cell_specs):
     """
-    Constructs the basal_prob vector and delta_prob matrix from values of r.
-    The basal_prob vector holds the basal transcription probabilities of each
-    transcription unit. The delta_prob matrix holds the differences in
-    transcription probabilities when transcription factors bind to the
+    Constructs the basal_aff vector and delta_aff matrix from values of r.
+    The basal_aff vector holds the basal transcription affinities of each
+    transcription unit. The delta_aff matrix holds the differences in
+    transcription affinities when transcription factors bind to the
     promoters of each transcription unit. Both values are stored in sim_data.
 
     Requires
@@ -4017,8 +4204,8 @@ def calculateRnapRecruitment(sim_data, cell_specs):
 
     Modifies
     --------
-    - Rescales values in basal_prob such that all values are positive
-    - Adds basal_prob and delta_prob arrays to sim_data
+    - Rescales values in basal_aff such that all values are positive
+    - Adds basal_aff and delta_aff arrays to sim_data
     """
 
     r = cell_specs["basal"]["r_vector"]
@@ -4030,16 +4217,57 @@ def calculateRnapRecruitment(sim_data, cell_specs):
     all_TUs = transcription.rna_data["id"]
     all_tfs = transcription_regulation.tf_ids
 
-    # Initialize basal_prob vector and delta_prob sparse matrix
-    basal_prob = np.zeros(len(all_TUs))
+    # Initialize basal_aff vector and delta_aff sparse matrix
+    basal_aff = np.zeros(len(all_TUs))
     deltaI, deltaJ, deltaV = [], [], []
 
     for rna_idx, rnaId in enumerate(all_TUs):
         rnaIdNoLoc = rnaId[:-3]  # Remove compartment ID from RNA ID
 
+        # TODO: so we'll have a file with the binding sites of all TFs (including purR to some)
+        #  And then we'll have a file with all the fold changes that we're
+        #  actually including (including just purR to purC).
+        # What we need is: the delta needs to only append for the gene that we're talking
+        # about, which rn is just purC.
+
+        # Choice two: include a separate matrix that has all binding sites,
+        # we'll construct this matrix from raw data.
+        # Each binding site corresponds to a TF, and some TUs.
+
+        # For now, just speed-run a way to actually simulate purC, without worrying
+        # much about binding sites, etc.
+        # This matrix will be: rows will be
+        # but then have delta only include those that are actually being
+        # regulated.
+
+        # In tf_binding, it needs to read all sites that are open, that is to say,
+        # based on all the promoters that are there, according to the binding site
+        # getter, get how many binding sites there are for each TF (could make them
+        # objects but for now don't). So maybe for each promoter, add an attribute which
+        # is a list that is len(tf_ids) long, and has a value which is how many binding sites
+        # for each TF it has?
+
+        # If each TU only had one binding site per tf. Then we could j
+
+        # Should have a file that connects all TFs with binding site names
+        # and connects binding site names to the TU(s) it regulates, a list.
+        # And a file that's like these reactions.
+        # And then have a file which contains the reaction rates of each of these
+        # things (if 1 TF binds to multiple sites, or
+        # 3 TFs bind to multiple sites at once, etc., you'll change the file that has
+        # the reactions).
+        # And then TF_binding will read in these reactions of TFs to binding sites,
+        # and it has to be able to know which promoters these binding sites are connected
+        # to.
+
         # Take only those TFs with active/inactive conditions data
         for tf in sim_data.relation.rna_id_to_regulating_tfs.get(rnaId, []):
-            if tf not in sorted(sim_data.tf_to_active_inactive_conditions):
+            # if tf not in sorted(sim_data.tf_to_active_inactive_conditions):
+            #     continue
+            # TODO: change this to not be hacky and also include other TFs
+            if tf not in ['CPLX-123']:
+                continue
+            if rnaId not in ['TU00055[c]']:
                 continue
 
             colName = rnaIdNoLoc + "__" + tf
@@ -4053,19 +4281,19 @@ def calculateRnapRecruitment(sim_data, cell_specs):
         # Add alpha column for each RNA
         colName = rnaIdNoLoc + "__alpha"
 
-        # Set element in basal_prob to the transcription unit's value for alpha
-        basal_prob[rna_idx] = r[col_names_to_index[colName]]
+        # Set element in basal_aff to the transcription unit's value for alpha
+        basal_aff[rna_idx] = r[col_names_to_index[colName]]
 
     # Convert to arrays
     deltaI, deltaJ, deltaV = np.array(deltaI), np.array(deltaJ), np.array(deltaV)
     delta_shape = (len(all_TUs), len(all_tfs))
 
     # Adjust any negative basal probabilities to 0
-    basal_prob[basal_prob < 0] = 0
+    basal_aff[basal_aff < 0] = 0
 
     # Add basal_prob vector and delta_prob matrix to sim_data
-    transcription_regulation.basal_prob = basal_prob
-    transcription_regulation.delta_prob = {
+    transcription_regulation.basal_aff = basal_aff
+    transcription_regulation.delta_aff = {
         "deltaI": deltaI,
         "deltaJ": deltaJ,
         "deltaV": deltaV,

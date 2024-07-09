@@ -24,7 +24,7 @@ from wholecell.utils.random import stochasticRound
 
 RAND_MAX = 2**31
 
-
+# TODO: adjust everything in here according to changes made in the sim for TFs
 def create_bulk_container(
     sim_data,
     n_seeds=1,
@@ -961,22 +961,23 @@ def initialize_transcription(
     if ppgpp_regulation:
         doubling_time = sim_data.condition_to_doubling_time[sim_data.condition]
         ppgpp_conc = sim_data.growth_rate_parameters.get_ppGpp_conc(doubling_time)
-        basal_prob, _ = sim_data.process.transcription.synth_prob_from_ppgpp(
+        basal_aff, _ = sim_data.process.transcription.synth_aff_from_ppgpp(
             ppgpp_conc, sim_data.process.replication.get_average_copy_number
         )
-        ppgpp_scale = basal_prob[TU_index]
+        ppgpp_scale = basal_aff[TU_index]
         # Use original delta prob if no ppGpp basal prob
         ppgpp_scale[ppgpp_scale == 0] = 1
     else:
-        basal_prob = sim_data.process.transcription_regulation.basal_prob.copy()
+        basal_aff = sim_data.process.transcription_regulation.basal_aff.copy()
         ppgpp_scale = 1
 
+    # TODO: adjust this to use affinities
     if trna_attenuation:
-        basal_prob[sim_data.process.transcription.attenuated_rna_indices] += (
+        basal_aff[sim_data.process.transcription.attenuated_rna_indices] += (
             sim_data.process.transcription.attenuation_basal_prob_adjustments
         )
-    n_TUs = len(basal_prob)
-    delta_prob_matrix = sim_data.process.transcription_regulation.get_delta_prob_matrix(
+    n_TUs = len(basal_aff)
+    delta_aff_matrix = sim_data.process.transcription_regulation.get_delta_aff_matrix(
         dense=True, ppgpp=ppgpp_regulation
     )
 
@@ -993,6 +994,7 @@ def initialize_transcription(
     ]
     transcription_direction = sim_data.process.transcription.rna_data["is_forward"]
 
+    # TODO: make this into affinities
     # Determine changes from genetic perturbations
     genetic_perturbations = {}
     perturbations = getattr(sim_data, "genetic_perturbations", {})
@@ -1019,22 +1021,27 @@ def initialize_transcription(
     idx_rnap = np.where(sim_data.process.transcription.rna_data["includes_RNAP"])[0]
 
     # Calculate probabilities of the RNAP binding to the promoters
-    promoter_init_probs = basal_prob[TU_index] + ppgpp_scale * np.multiply(
-        delta_prob_matrix[TU_index, :], bound_TF
+    promoter_init_affs = basal_aff[TU_index] + ppgpp_scale * np.multiply(
+        delta_aff_matrix[TU_index, :], bound_TF
     ).sum(axis=1)
 
+    # TODO: make into using affinities
     if len(genetic_perturbations) > 0:
         rescale_initiation_probs(
-            promoter_init_probs,
+            promoter_init_affs,
             TU_index,
             genetic_perturbations["fixedSynthProbs"],
             genetic_perturbations["fixedRnaIdxs"],
         )
 
-    # Adjust probabilities to not be negative
-    promoter_init_probs[promoter_init_probs < 0] = 0.0
-    promoter_init_probs /= promoter_init_probs.sum()
-    if np.any(promoter_init_probs < 0):
+    # Adjust affinities to not be negative
+    promoter_init_affs[promoter_init_affs < 0] = 0.0
+
+    # Normalize affinities to get synthesis probabilities
+    promoter_init_probs
+
+    #promoter_init_probs /= promoter_init_probs.sum()
+    if np.any(promoter_init_affs < 0):
         raise Exception("Have negative RNA synthesis probabilities")
 
     # Adjust synthesis probabilities depending on environment

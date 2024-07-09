@@ -51,8 +51,8 @@ class TranscriptionRegulation(object):
         }
 
         # Values set after promoter fitting in parca with calculateRnapRecruitment()
-        self.basal_prob = None
-        self.delta_prob = None
+        self.basal_aff = None
+        self.delta_aff = None
 
     def p_promoter_bound_tf(self, tfActive, tfInactive):
         """
@@ -67,39 +67,39 @@ class TranscriptionRegulation(object):
         """
         return float(signal) ** power / (float(signal) ** power + float(Kd) ** power)
 
-    def get_delta_prob_matrix(
+    def get_delta_aff_matrix(
         self, dense=False, ppgpp=False
     ) -> Union[sparse.csr_matrix, np.ndarray]:
         """
-        Returns the delta probability matrix mapping the promoter binding effect
+        Returns the delta affinity matrix mapping the promoter binding effect
         of each TF to each gene.
 
         Args:
                 dense: If True, returns a dense matrix, otherwise csr sparse
-                ppgpp: If True, normalizes delta probabilities to be on the same
-                        scale as ppGpp normalized probabilities since delta_prob is
-                        calculated based on basal_prob which is not normalized to 1
+                ppgpp: If True, normalizes delta affinities to be on the same
+                        scale as ppGpp normalized affinities since delta_aff is
+                        calculated based on basal_aff which is not normalized to 1
 
         Returns:
-                delta_prob: matrix of probabilities changes expected with a TF
+                delta_aff: matrix of affinities changes expected with a TF
                         binding to a promoter for each gene (n genes, m TFs)
         """
 
-        ppgpp_scaling = self.basal_prob[self.delta_prob["deltaI"]]
+        ppgpp_scaling = self.basal_aff[self.delta_aff["deltaI"]]
         ppgpp_scaling[ppgpp_scaling == 0] = 1
         scaling_factor = ppgpp_scaling if ppgpp else 1.0
-        delta_prob = sparse.csr_matrix(
+        delta_aff = sparse.csr_matrix(
             (
-                self.delta_prob["deltaV"] / scaling_factor,
-                (self.delta_prob["deltaI"], self.delta_prob["deltaJ"]),
+                self.delta_aff["deltaV"] / scaling_factor,
+                (self.delta_aff["deltaI"], self.delta_aff["deltaJ"]),
             ),
-            shape=self.delta_prob["shape"],
+            shape=self.delta_aff["shape"],
         )
 
         if dense:
-            delta_prob = delta_prob.toarray()
+            delta_aff = delta_aff.toarray()
 
-        return delta_prob
+        return delta_aff
 
     def _build_lookups(self, raw_data):
         """

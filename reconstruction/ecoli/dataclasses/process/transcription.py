@@ -917,6 +917,14 @@ class Transcription(object):
             tu["id"]: sorted(tu["evidence"]) for tu in raw_data.transcription_units
         }
 
+        # Calculate transcriptional affintiies from synthesis probabilities,
+        # growth rate, and replication coordinates
+        # (in basal conditions, are normalized to add to 1)
+        copy_number = sim_data.process.replication.get_average_copy_number
+        n_avg_copy = copy_number(sim_data.condition_to_doubling_time["with_aa"],
+                                 replication_coordinate)
+        transcr_aff = synth_prob / n_avg_copy
+
         rna_data = np.zeros(
             n_rnas,
             dtype=[
@@ -995,12 +1003,15 @@ class Transcription(object):
             for (cistron_index, rna_id) in enumerate(self.rna_data["id"])
         }
 
-        # Set basal expression and synthesis probabilities - conditional values
+        # Set basal expression, synthesis probabilities, and transcription affinities - conditional values
         # are set in the parca.
         self.rna_expression = {}
         self.rna_synth_prob = {}
+        self.rna_transcr_aff = {}
         self.rna_expression["basal"] = expression / expression.sum()
         self.rna_synth_prob["basal"] = synth_prob / synth_prob.sum()
+        self.rna_transcr_aff["basal"] = transcr_aff / transcr_aff.sum()
+
 
     def cistron_id_to_rna_indexes(self, cistron_id):
         """
@@ -1696,23 +1707,23 @@ class Transcription(object):
             self.attenuation_k[i, j] = 1 / k
         self.attenuation_k = 1 / k_units * self.attenuation_k
 
-        # Adjust basal synthesis probabilities to account for less synthesis
+        # Adjust basal transcription affinities to account for less synthesis
         # due to attenuation
         condition = "basal"
-        basal_prob = sim_data.process.transcription_regulation.basal_prob
-        delta_prob = sim_data.process.transcription_regulation.get_delta_prob_matrix()
+        basal_aff = sim_data.process.transcription_regulation.basal_aff
+        delta_aff = sim_data.process.transcription_regulation.get_delta_aff_matrix()
         p_promoter_bound = np.array(
             [
                 sim_data.pPromoterBound[condition][tf]
                 for tf in sim_data.process.transcription_regulation.tf_ids
             ]
         )
-        delta = delta_prob @ p_promoter_bound
+        delta = delta_aff @ p_promoter_bound
         basal_stop_prob = self.get_attenuation_stop_probabilities(
             get_trna_conc(condition)
         )
-        basal_synth_prob = (basal_prob + delta)[self.attenuated_rna_indices]
-        self.attenuation_basal_prob_adjustments = basal_synth_prob * (
+        basal_synth_aff = (basal_aff + delta)[self.attenuated_rna_indices]
+        self.attenuation_basal_aff_adjustments = basal_synth_aff * (
             1 / (1 - basal_stop_prob) - 1
         )
 
@@ -1992,7 +2003,7 @@ class Transcription(object):
         ## Probabilities need to be unnormalized to match the scale of delta prob
         ## This includes not having get_delta_prob_matrix normalized for ppGpp
         tf_adjustments = {}
-        delta_prob = sim_data.process.transcription_regulation.get_delta_prob_matrix(
+        delta_aff = sim_data.process.transcription_regulation.get_delta_aff_matrix(
             ppgpp=False
         )
         adjusted_mask = (
@@ -2007,12 +2018,12 @@ class Transcription(object):
                     for tf in sim_data.process.transcription_regulation.tf_ids
                 ]
             )
-            delta = delta_prob @ p_promoter_bound
-            condition_prob = (
-                sim_data.process.transcription_regulation.basal_prob + delta
+            delta = delta_aff @ p_promoter_bound
+            condition_aff = (
+                sim_data.process.transcription_regulation.basal_aff + delta
             )
             tf_adjustments[condition] = (
-                delta[adjusted_mask] / condition_prob[adjusted_mask]
+                delta[adjusted_mask] / condition_aff[adjusted_mask]
             )
 
         # Solve least squares fit for expression of each component of RNAP and ribosomes
@@ -2058,7 +2069,7 @@ class Transcription(object):
         ppgpp_conc = sim_data.growth_rate_parameters.get_ppGpp_conc(
             sim_data.condition_to_doubling_time[condition]
         )
-        old_prob, factor = self.synth_prob_from_ppgpp(
+        old_aff, factor = self.synth_aff_from_ppgpp(
             ppgpp_conc, sim_data.process.replication.get_average_copy_number
         )
 
@@ -2069,28 +2080,29 @@ class Transcription(object):
                 for tf in sim_data.process.transcription_regulation.tf_ids
             ]
         )
-        delta_prob_no_ppgpp = (
-            sim_data.process.transcription_regulation.get_delta_prob_matrix(ppgpp=False)
+        delta_aff_no_ppgpp = (
+            sim_data.process.transcription_regulation.get_delta_aff_matrix(ppgpp=False)
         )
-        delta_prob_with_ppgpp = (
-            sim_data.process.transcription_regulation.get_delta_prob_matrix(ppgpp=True)
+        delta_aff_with_ppgpp = (
+            sim_data.process.transcription_regulation.get_delta_aff_matrix(ppgpp=True)
         )
-        delta_no_ppgpp = delta_prob_no_ppgpp @ p_promoter_bound
-        delta_with_ppgpp = delta_prob_with_ppgpp @ p_promoter_bound
+        delta_no_ppgpp = delta_aff_no_ppgpp @ p_promoter_bound
+        delta_with_ppgpp = delta_aff_with_ppgpp @ p_promoter_bound
 
-        # Calculate the required probability to match expression without ppGpp
-        new_prob = (
-            normalize(self.rna_expression[condition] * factor) + delta_no_ppgpp
-        ) / (1 + delta_with_ppgpp)
-        new_prob[new_prob < 0] = old_prob[new_prob < 0]
-        new_prob = normalize(new_prob)
+        # Calculate the required affinity to match expression without ppGpp
+        new_aff = (sim_data.process.transcription_regulation.basal_aff
+                    + delta_no_ppgpp) / (1 + delta_with_ppgpp)
+
+        new_aff[new_aff < 0] = old_aff[new_aff < 0]
+        #new_prob = normalize(new_prob)
 
         # Determine adjustments to the current ppGpp expression to scale
         # to the expected expression
         with np.errstate(invalid="ignore", divide="ignore"):
-            adjustment = new_prob / old_prob
+            adjustment = new_aff / old_aff
         adjustment[~np.isfinite(adjustment)] = 1
 
+        # TODO: probably change this part when changing to using affinities instead?
         # Scale free and bound expression and renormalize ppGpp regulated expression
         self.exp_free *= adjustment
         self.exp_ppgpp *= adjustment
@@ -2150,9 +2162,9 @@ class Transcription(object):
         f_ppgpp = self.fraction_rnap_bound_ppgpp(ppgpp)
         return normalize(self.exp_free * (1 - f_ppgpp) + self.exp_ppgpp * f_ppgpp)
 
-    def synth_prob_from_ppgpp(self, ppgpp, copy_number, balanced_rRNA_prob=True):
+    def synth_aff_from_ppgpp(self, ppgpp, copy_number, balanced_rRNA_prob=True):
         """
-        Calculates the synthesis probability of each gene at a given concentration
+        Calculates the synthesis affinity of each gene at a given concentration
         of ppGpp.
 
         Args:
@@ -2163,8 +2175,9 @@ class Transcription(object):
                     of rRNA promoters equal to one another
 
         Returns
-                prob (ndarray[float]): normalized synthesis probability for each gene
-                factor (ndarray[float]): factor to adjust expression to probability for each gene
+                aff (ndarray[float]): normalized transcription affinity for each gene
+                factor (ndarray[float]): factor to adjust expression to probability for each gene,
+                which is then normalized (so that mRNAs have the same sum) to obtain affinity
 
         Note:
                 copy_number should be sim_data.process.replication.get_average_copy_number
@@ -2186,14 +2199,17 @@ class Transcription(object):
 
         # Return values
         factor = loss / n_avg_copy
-        prob = normalize(
-            (self.exp_free * (1 - f_ppgpp) + self.exp_ppgpp * f_ppgpp) * factor
-        )
+        aff = (self.exp_free * (1 - f_ppgpp) + self.exp_ppgpp * f_ppgpp) * factor
+        is_mRNA = self.rna_data['is_mRNA']
+        # Normalize affinities so that they are equal to the per-copy fraction of mRNA
+        # synthesis that a given gene occupies.
+        aff = aff * (np.sum(self.rna_transcr_aff[is_mRNA] * n_avg_copy[is_mRNA])
+              / np.sum(aff[is_mRNA] * n_avg_copy[is_mRNA]))
 
         if balanced_rRNA_prob:
-            prob[self.rna_data["is_rRNA"]] = prob[self.rna_data["is_rRNA"]].mean()
+            aff[self.rna_data["is_rRNA"]] = aff[self.rna_data["is_rRNA"]].mean()
 
-        return prob, factor
+        return aff, factor
 
     def get_rnap_active_fraction_from_ppGpp(self, ppgpp):
         f_ppgpp = self.fraction_rnap_bound_ppgpp(ppgpp)
