@@ -13,9 +13,7 @@
     "mass_distribution": false,
     "emitter" : {
         "type": "parquet",
-        "config": {
-            "out_dir": "/scratch/groups/mcovert/vecoli"
-        }
+        "out_dir": "/scratch/groups/mcovert/vecoli"
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}}

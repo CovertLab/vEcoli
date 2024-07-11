@@ -4,7 +4,7 @@
     "parca_options": {
         "cpus": 1
     },
-    "generations": 1,
+    "generations": 2,
     "n_init_sims": 1,
     "single_daughters": true,
     "emitter" : {
