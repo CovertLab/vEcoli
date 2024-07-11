@@ -87,7 +87,6 @@ def run_ecoli_with_metabolism_redux_classic(
 
     sim.seed = 12
 
-
     # # simplify working with uptake
     # sim.initial_state['environment']['exchange_data']['constrained'] = {}
     # sim.initial_state['environment']['exchange_data']['unconstrained'].add('GLC[p]')
@@ -172,6 +171,7 @@ def test_ecoli_with_metabolism_redux(
     # run simulation and add asserts to output
     sim.run()
 
+
 @pytest.mark.slow
 def test_ecoli_with_metabolism_redux_div(
     filename="metabolism_redux",
@@ -187,7 +187,6 @@ def test_ecoli_with_metabolism_redux_div(
     sim.build_ecoli()
 
     sim.run()
-
 
     query = []
     agents = sim.query()["agents"].keys()
@@ -250,14 +249,17 @@ def test_ecoli_with_metabolism_classic_div(
     sim.emitter = emitter
 
     # this means that sims will not create conflicting random indices
-    sim.seed += int(sim.initial_state['agents']['0']['global_time'])
+    sim.seed += int(sim.initial_state["agents"]["0"]["global_time"])
 
     sim.build_ecoli()
 
     sim.run()
 
     # assert division occured
-    assert len(sim.query()['agents']) == 3, "Cell did not divide in metabolism division test"
+    assert (
+        len(sim.query()["agents"]) == 3
+    ), "Cell did not divide in metabolism division test"
+
 
 def run_ecoli_with_default_metabolism(
     filename="default",
@@ -291,13 +293,13 @@ def run_ecoli_with_default_metabolism(
 
 
 experiment_library = {
-    '2': run_ecoli_with_metabolism_redux,
-    '2a': run_ecoli_with_metabolism_redux_classic,
-    '3': test_ecoli_with_metabolism_redux,
-    '3a': test_ecoli_with_metabolism_classic,
-    '4': test_ecoli_with_metabolism_redux_div,
-    '4a': test_ecoli_with_metabolism_classic_div,
-    '5': run_ecoli_with_default_metabolism,
+    "2": run_ecoli_with_metabolism_redux,
+    "2a": run_ecoli_with_metabolism_redux_classic,
+    "3": test_ecoli_with_metabolism_redux,
+    "3a": test_ecoli_with_metabolism_classic,
+    "4": test_ecoli_with_metabolism_redux_div,
+    "4a": test_ecoli_with_metabolism_classic_div,
+    "5": run_ecoli_with_default_metabolism,
 }
 
 
@@ -321,6 +323,7 @@ def save_sim_output(folder, query, sim, save_model=False):
         f = open(folder + "agent_steps.pkl", "wb")
         dill.dump(sim.ecoli_experiment.steps["agents"][agent], f)
         f.close()
+
 
 # run experiments with command line arguments: python ecoli/experiments/metabolism_redux_sim.py -n exp_id
 if __name__ == "__main__":
