@@ -9,9 +9,7 @@
     "single_daughters": true,
     "emitter" : {
         "type": "parquet",
-        "config": {
-            "out_dir": "out"
-        }
+        "out_dir": "out"
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}}
