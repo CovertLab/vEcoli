@@ -142,11 +142,11 @@ def main():
         config_file = args.config
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
-    if "out_uri" not in config["emitter"]["config"]:
-        out_uri = os.path.abspath(config["emitter"]["config"]["out_dir"])
+    if "out_uri" not in config["emitter"]:
+        out_uri = os.path.abspath(config["emitter"]["out_dir"])
         gcs_bucket = True
     else:
-        out_uri = config["emitter"]["config"]["out_uri"]
+        out_uri = config["emitter"]["out_uri"]
         assert (
             parse.urlparse(out_uri).scheme == "gcs"
             or parse.urlparse(out_uri).scheme == "gs"

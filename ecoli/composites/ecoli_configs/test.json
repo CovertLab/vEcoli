@@ -9,9 +9,7 @@
     "single_daughters": true,
     "emitter" : {
         "type": "parquet",
-        "config": {
-            "out_dir": "out"
-        }
+        "out_dir": "out"
     },
     "variants": {
         "new_gene_internal_shift": {
