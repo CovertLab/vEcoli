@@ -196,7 +196,6 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--experiment_id",
-                "-id",
                 action="store",
                 help=(
                     "ID for this experiment. A UUID will be generated if "
@@ -206,17 +205,17 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--emitter",
-                "-e",
                 action="store",
-                choices=["timeseries", "database", "print", "null", "shared_ram"],
+                choices=["timeseries", "print", "parquet", "null"],
                 help=(
-                    "Emitter to use. Timeseries uses RAMEmitter, database "
-                    "emits to MongoDB, and print emits to stdout."
+                    "Emitter to use. Timeseries uses RAMEmitter, print emits to"
+                    " stdout, and parquet (recommended) saves output to a"
+                    " directory on disk specified using --emitter-arg (e.g."
+                    " --emitter-arg out_dir='out')"
                 ),
             )
             self.parser.add_argument(
                 "--emitter_arg",
-                "-ea",
                 action="store",
                 nargs="*",
                 type=key_value_pair,
@@ -226,34 +225,22 @@ class SimConfig:
                 ),
             )
             self.parser.add_argument(
-                "--seed", "-s", action="store", type=int, help="Random seed."
-            )
-            self.parser.add_argument(
-                "--initial_state",
-                "-t0",
-                action="store",
-                help=(
-                    "Name of the initial state to load from (corresponding "
-                    "initial state file must be present in data folder)."
-                ),
+                "--seed", action="store", type=int, help="Random seed."
             )
             self.parser.add_argument(
                 "--total_time",
-                "-t",
                 action="store",
                 type=float,
                 help="Time to run the simulation for.",
             )
             self.parser.add_argument(
                 "--generations",
-                "-g",
                 action="store",
                 type=int,
                 help="Number of generations to run the simulation for.",
             )
             self.parser.add_argument(
                 "--log_updates",
-                "-u",
                 action="store_true",
                 help=(
                     "Save updates from each process if this flag is set, "
@@ -264,8 +251,9 @@ class SimConfig:
                 "--raw_output",
                 action="store_true",
                 help=(
-                    "Whether to return data in raw format (dictionary "
-                    "where keys are times, values are states)."
+                    "Whether to return data in raw format (dictionary"
+                    " where keys are times, values are states). Requires"
+                    " timeseries emitter (RAMEmitter)."
                 ),
             )
             self.parser.add_argument(
@@ -274,13 +262,7 @@ class SimConfig:
             self.parser.add_argument(
                 "--sim_data_path",
                 default=None,
-                help="Path to the sim_data to use for this experiment.",
-            )
-            self.parser.add_argument(
-                "--parallel",
-                action="store_true",
-                default=False,
-                help="Run processes in parallel.",
+                help="Path to the sim_data (pickle from ParCa) to use for this experiment.",
             )
             self.parser.add_argument(
                 "--profile",
@@ -292,18 +274,17 @@ class SimConfig:
                 "--initial_state_file",
                 action="store",
                 default="",
-                help='Name of initial state file (no ".json") under data/',
+                help='Name of initial state file (omit ".json" extension) under data/',
             )
             self.parser.add_argument(
                 "--initial_state_overrides",
                 action="store",
                 nargs="*",
-                help='Name of initial state overrides (no ".json") under '
+                help='Name of initial state overrides (omit ".json" extension) under '
                 "data/overrides",
             )
             self.parser.add_argument(
                 "--daughter_outdir",
-                "--daughter-outdir",
                 action="store",
                 help="Directory in which to store daughter cell state JSONs.",
             )
@@ -387,10 +368,10 @@ class SimConfig:
         cli_config = {
             key: value
             for key, value in vars(args).items()
-            if value and key not in ("config", "parallel", "no_parallel")
+            if value and key != "config"
         }
-        if "parallel" in vars(args):
-            cli_config["parallel"] = args.parallel
+        if args.raw_output and args.emitter != "timeseries":
+            raise RuntimeError("Raw output requires timeseries emitter.")
         self.merge_config_dicts(self._config, cli_config)
 
     def update_from_dict(self, dict_config: dict[str, Any]):
@@ -795,10 +776,22 @@ class EcoliSim:
         metadata = self.get_metadata()
         metadata["output_metadata"] = self.get_output_metadata()
         # make the experiment
-        emitter_config = {"type": self.emitter}
-        # TODO: Fix this
-        # for key, value in self.emitter_arg:
-        #     emitter_config[key] = value
+        if isinstance(self.emitter, str):
+            emitter_config = {"type": self.emitter}
+            if self.emitter_arg is not None:
+                for key, value in self.emitter_arg:
+                    emitter_config[key] = value
+            if self.emitter == "parquet":
+                if ("out_dir" not in emitter_config) and (
+                    "out_uri" not in emitter_config):
+                    raise RuntimeError("Must provide out_dir or out_uri"
+                        " as emitter argument for parquet emitter.")
+        elif isinstance(self.emitter, dict):
+            emitter_config = self.emitter
+        else:
+            raise RuntimeError("Emitter option must either be a string"
+                " representing the emitter type or a dictionary with the"
+                " emitter type as well as any emitter config options.")
         experiment_config = {
             "description": self.description,
             "metadata": metadata,
@@ -811,7 +804,7 @@ class EcoliSim:
             "emit_topology": self.emit_topology,
             "emit_processes": self.emit_processes,
             "emit_config": self.emit_config,
-            "emitter": self.emitter,
+            "emitter": emitter_config,
             "initial_global_time": self.initial_global_time,
         }
         if self.experiment_id:
@@ -822,7 +815,7 @@ class EcoliSim:
                 self.experiment_id_base = self.experiment_id
             if self.suffix_time:
                 self.experiment_id = datetime.now().strftime(
-                    f"{self.experiment_id_base}_%d/%m/%Y %H:%M:%S"
+                    f"{self.experiment_id_base}_%d-%m-%Y_%H-%M-%S"
                 )
             # Special characters can break Hive partitioning so quote them
             self.experiment_id = parse.quote_plus(self.experiment_id)
@@ -1012,20 +1005,11 @@ def extract_metadata(ports_schema: dict[str, Any], properties: bool = False):
 def main():
     """
     Runs a simulation with CLI options.
-
-    .. note::
-        Parallelizing processes (e.g. ``--parallel``) is not recommended
-        because the overhead outweighs any performance advantage. This could
-        change in the future if a computationally intensive process is
-        introduced that makes the model faster to run in parallel
-        instead of sequentially.
     """
-    # import multiprocessing; multiprocessing.set_start_method('spawn')
     ecoli_sim = EcoliSim.from_cli()
     ecoli_sim.build_ecoli()
     ecoli_sim.run()
 
 
-# python ecoli/experiments/ecoli_master_sim.py
 if __name__ == "__main__":
     main()
