@@ -204,6 +204,12 @@ class SimConfig:
                 ),
             )
             self.parser.add_argument(
+                "--no_suffix_time",
+                action="store",
+                help=r"Do not append current time as'%d-%m-%Y_%H-%M-%S'"
+                    " to experiment ID.",
+            )
+            self.parser.add_argument(
                 "--emitter",
                 action="store",
                 choices=["timeseries", "print", "parquet", "null"],
