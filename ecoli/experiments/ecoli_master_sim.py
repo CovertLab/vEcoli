@@ -207,7 +207,7 @@ class SimConfig:
                 "--no_suffix_time",
                 action="store",
                 help=r"Do not append current time as'%d-%m-%Y_%H-%M-%S'"
-                    " to experiment ID.",
+                " to experiment ID.",
             )
             self.parser.add_argument(
                 "--emitter",
@@ -372,9 +372,7 @@ class SimConfig:
         # Then override the configuration file with any command-line
         # options.
         cli_config = {
-            key: value
-            for key, value in vars(args).items()
-            if value and key != "config"
+            key: value for key, value in vars(args).items() if value and key != "config"
         }
         if args.raw_output and args.emitter != "timeseries":
             raise RuntimeError("Raw output requires timeseries emitter.")
@@ -789,15 +787,20 @@ class EcoliSim:
                     emitter_config[key] = value
             if self.emitter == "parquet":
                 if ("out_dir" not in emitter_config) and (
-                    "out_uri" not in emitter_config):
-                    raise RuntimeError("Must provide out_dir or out_uri"
-                        " as emitter argument for parquet emitter.")
+                    "out_uri" not in emitter_config
+                ):
+                    raise RuntimeError(
+                        "Must provide out_dir or out_uri"
+                        " as emitter argument for parquet emitter."
+                    )
         elif isinstance(self.emitter, dict):
             emitter_config = self.emitter
         else:
-            raise RuntimeError("Emitter option must either be a string"
+            raise RuntimeError(
+                "Emitter option must either be a string"
                 " representing the emitter type or a dictionary with the"
-                " emitter type as well as any emitter config options.")
+                " emitter type as well as any emitter config options."
+            )
         experiment_config = {
             "description": self.description,
             "metadata": metadata,

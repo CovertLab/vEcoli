@@ -38,9 +38,10 @@ process analysisParca {
     script:
     """
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py -c $config \
-        --sim-data-path=$kb/simData.cPickle \
-        --validation-data-path=$kb/validationData.cPickle \
-        -o \$(pwd)
+        --sim_data_path=$kb/simData.cPickle \
+        --validation_data_path=$kb/validationData.cPickle \
+        -o \$(pwd) \
+        -t parca
     """
 
     stub:
