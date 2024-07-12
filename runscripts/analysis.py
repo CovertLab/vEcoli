@@ -288,11 +288,6 @@ def main():
     # Establish DuckDB connection
     conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("n_cpus"))
     history_sql, config_sql = get_dataset_sql(out_uri)
-    # SQL template for retrieving unique column combinations for cell subsets
-    id_template = (
-        "SELECT DISTINCT ON({cols}) {cols}"
-        f" FROM ({config_sql}) WHERE {duckdb_filter}"
-    )
     # If no explicit analysis type given, run all types in config JSON
     if config["analysis_types"] is None:
         config["analysis_types"] = [
@@ -309,11 +304,16 @@ def main():
         cols = ANALYSIS_TYPES[analysis_type]
         query_strings = {}
         if len(cols) > 0:
-            data_ids = conn.sql(id_template.format(cols=cols)).fetchall()
+            joined_cols = ", ".join(cols)
+            data_ids = conn.sql(f"SELECT DISTINCT ON({joined_cols}) {joined_cols}"
+                f" FROM ({config_sql}) WHERE {duckdb_filter}").fetchall()
             for data_id in data_ids:
-                data_filters = " AND ".join(
-                    [f"{col} = {v}" for col, v in zip(cols, data_id)]
-                )
+                data_filters = []
+                for col, col_val in zip(cols, data_id):
+                    if FILTERS[col] is str:
+                        col_val = f"'{col_val}'"
+                    data_filters.append(f"{col}={col_val}")
+                data_filters = " AND ".join(data_filters)
                 query_strings[data_filters] = (
                     f"SELECT * FROM ({history_sql}) WHERE {data_filters}",
                     f"SELECT * FROM ({config_sql}) WHERE {data_filters}",
