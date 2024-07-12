@@ -16,15 +16,16 @@ process analysisSingle {
     """
     mkdir -p plots
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py -c $config \\
-        --sim-data-path "$sim_data" \\
-        --validation-data-path "$kb/validationData.cPickle" \\
+        --sim_data_path "$sim_data" \\
+        --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
         --lineage_seed $lineage_seed \\
         --generation $generation \\
         --agent_id "$agent_id" \\
-        --variant-metadata-path ${variant_metadata} \\
-        -o \$(pwd)/plots
+        --variant_metadata_path ${variant_metadata} \\
+        -o \$(pwd)/plots \\
+        -t single
     """
 
     stub:
@@ -52,14 +53,15 @@ process analysisMultiDaughter {
     """
     mkdir -p plots
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py -c $config \\
-        --sim-data-path "$sim_data" \\
-        --validation-data-path "$kb/validationData.cPickle" \\
+        --sim_data_path "$sim_data" \\
+        --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
         --lineage_seed $lineage_seed \\
         --generation $generation \\
-        --variant-metadata-path ${variant_metadata} \\
-        -o \$(pwd)/plots
+        --variant_metadata_path ${variant_metadata} \\
+        -o \$(pwd)/plots \\
+        -t multidaughter
     """
 
     stub:
@@ -87,13 +89,14 @@ process analysisMultiGeneration {
     """
     mkdir -p plots
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py -c $config \\
-        --sim-data-path "$sim_data" \\
-        --validation-data-path "$kb/validationData.cPickle" \\
+        --sim_data_path "$sim_data" \\
+        --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
         --lineage_seed $lineage_seed \\
-        --variant-metadata-path ${variant_metadata} \\
-        -o \$(pwd)/plots
+        --variant_metadata_path ${variant_metadata} \\
+        -o \$(pwd)/plots \\
+        -t multigeneration
     """
 
     stub:
@@ -121,12 +124,13 @@ process analysisMultiSeed {
     """
     mkdir -p plots
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py -c $config \\
-        --sim-data-path "$sim_data" \\
-        --validation-data-path "$kb/validationData.cPickle" \\
+        --sim_data_path "$sim_data" \\
+        --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
-        --variant-metadata-path ${variant_metadata} \\
-        -o \$(pwd)/plots
+        --variant_metadata_path ${variant_metadata} \\
+        -o \$(pwd)/plots \\
+        -t multiseed
     """
 
     stub:
@@ -152,12 +156,13 @@ process analysisMultiVariant {
     """
     mkdir -p plots
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py -c $config \\
-        --sim-data-path "${sim_data.join("\" \"")}" \\
-        --validation-data-path "$kb/validationData.cPickle" \\
+        --sim_data_path "${sim_data.join("\" \"")}" \\
+        --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant ${variant.join(" ")} \\
-        --variant-metadata-path ${variant_metadata} \\
-        -o \$(pwd)/plots
+        --variant_metadata_path ${variant_metadata} \\
+        -o \$(pwd)/plots \\
+        -t multivariant
     """
 
     stub:
