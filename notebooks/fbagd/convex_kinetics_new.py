@@ -422,3 +422,19 @@ class BiochemicalReactionNetwork:
         dmdt_recon_sim = S_matrix @ v_recon_sim
 
         return v_recon_sim, dmdt_recon_sim
+
+
+# helper functions
+def get_reaction_schematic(S_matrix, reaction_names, metabolite_names, specific_reaction=None):
+    n_met, n_rxn = S_matrix.shape
+
+    # index reaction names
+    rxn_idx = reaction_names.index(specific_reaction) if specific_reaction else None
+
+    # find the metabolites involved in the reaction with rxn_idx
+    met_idxs = np.nonzero(S_matrix[:, rxn_idx])[0]
+
+    # create reaction schematic
+    schematic = {metabolite_names[met_idx]: S_matrix[met_idx, rxn_idx] for met_idx in met_idxs}
+
+    return schematic
