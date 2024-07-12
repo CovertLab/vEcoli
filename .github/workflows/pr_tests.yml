@@ -70,4 +70,4 @@ jobs:
         make clean compile
     - name: Two generations
       run: |
-      python runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
+      python runscripts/workflow.py --config ecoli/composites/ecoli_configs/two_generations.json
