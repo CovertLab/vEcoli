@@ -7,7 +7,7 @@ from typing import Union
 
 import numpy as np
 from scipy import sparse
-
+from wholecell.utils import units
 
 class TranscriptionRegulation(object):
     """
@@ -53,6 +53,11 @@ class TranscriptionRegulation(object):
         # Values set after promoter fitting in parca with calculateRnapRecruitment()
         self.basal_aff = None
         self.delta_aff = None
+        self.raw_binding_rates = None
+        self.raw_unbinding_rates = None
+
+        # TODO: add raw_data files storing the binding and unbinding rates, and a function
+        #  to read them in and store them as attributes here
 
     def p_promoter_bound_tf(self, tfActive, tfInactive):
         """
@@ -100,6 +105,37 @@ class TranscriptionRegulation(object):
             delta_aff = delta_aff.toarray()
 
         return delta_aff
+
+    def get_tf_binding_unbinding_matrices(self, sim_data, dense=False) -> (Union[sparse.csr_matrix, np.ndarray],
+            Union[sparse.csr_matrix, np.ndarray]):
+        """
+        Returns the binding and unbinding rate matrices mapping each TF to each binding site (TU promoter for now).
+        TODO: change to binding sites instead of by each TU
+        """
+
+        # TODO: change this shape when changing to binding sites instead of by each TU
+        assert self.raw_binding_rates["shape"] == self.raw_unbinding_rates["shape"]
+
+        binding_rates = sparse.csr_matrix(
+            (
+                self.raw_binding_rates["bindingV"],
+                (self.raw_binding_rates["bindingI"], self.raw_binding_rates["bindingJ"])
+            ),
+            shape=self.raw_binding_rates["shape"]
+        )
+        unbinding_rates = sparse.csr_matrix(
+            (
+                self.raw_unbinding_rates["unbindingV"],
+                (self.raw_unbinding_rates["unbindingI"], self.raw_unbinding_rates["unbindingJ"])
+            ),
+            shape=self.raw_unbinding_rates["shape"]
+        )
+
+        if dense:
+            binding_rates = binding_rates.toarray()
+            unbinding_rates = unbinding_rates.toarray()
+
+        return binding_rates, unbinding_rates
 
     def _build_lookups(self, raw_data):
         """

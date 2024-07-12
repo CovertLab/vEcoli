@@ -1054,15 +1054,15 @@ class BuildNetwork(object):
         rna_ids = self.sim_data.process.transcription.rna_data["id"]
         cistron_ids = self.sim_data.process.transcription.cistron_data["id"]
 
-        # Get delta_prob matrix from sim_data
-        delta_prob = self.sim_data.process.transcription_regulation.delta_prob
+        # Get delta_aff matrix from sim_data
+        delta_aff = self.sim_data.process.transcription_regulation.delta_aff
 
         # Build dict that maps TFs to indexes of transcription units they
         # regulate
         TF_to_TU_idx = {}
 
         for i, tf in enumerate(tf_ids):
-            TF_to_TU_idx[tf] = delta_prob["deltaI"][delta_prob["deltaJ"] == i]
+            TF_to_TU_idx[tf] = delta_aff["deltaI"][delta_aff["deltaJ"] == i]
 
         # Build dict that maps RNA IDs to gene IDs
         cistron_id_to_gene_id = {}

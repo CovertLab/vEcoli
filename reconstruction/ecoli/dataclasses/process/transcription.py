@@ -7,6 +7,7 @@ TODO: handle ppGpp and DksA-ppGpp regulation separately
 
 from functools import cache
 from typing import cast
+import copy
 
 import numpy as np
 
@@ -917,14 +918,6 @@ class Transcription(object):
             tu["id"]: sorted(tu["evidence"]) for tu in raw_data.transcription_units
         }
 
-        # Calculate transcriptional affintiies from synthesis probabilities,
-        # growth rate, and replication coordinates
-        # (in basal conditions, are normalized to add to 1)
-        copy_number = sim_data.process.replication.get_average_copy_number
-        n_avg_copy = copy_number(sim_data.condition_to_doubling_time["with_aa"],
-                                 replication_coordinate)
-        transcr_aff = synth_prob / n_avg_copy
-
         rna_data = np.zeros(
             n_rnas,
             dtype=[
@@ -1003,14 +996,14 @@ class Transcription(object):
             for (cistron_index, rna_id) in enumerate(self.rna_data["id"])
         }
 
-        # Set basal expression, synthesis probabilities, and transcription affinities - conditional values
+        # Set basal expression and synthesis probabilities - conditional values
         # are set in the parca.
         self.rna_expression = {}
         self.rna_synth_prob = {}
-        self.rna_transcr_aff = {}
         self.rna_expression["basal"] = expression / expression.sum()
         self.rna_synth_prob["basal"] = synth_prob / synth_prob.sum()
-        self.rna_transcr_aff["basal"] = transcr_aff / transcr_aff.sum()
+        # Initialize transcription affinities, values are set in the parca.
+        self.rna_transcr_aff = {}
 
 
     def cistron_id_to_rna_indexes(self, cistron_id):
@@ -2001,7 +1994,7 @@ class Transcription(object):
 
         # Adjustments for TFs
         ## Probabilities need to be unnormalized to match the scale of delta prob
-        ## This includes not having get_delta_prob_matrix normalized for ppGpp
+        ## This includes not having get_delta_aff_matrix normalized for ppGpp
         tf_adjustments = {}
         delta_aff = sim_data.process.transcription_regulation.get_delta_aff_matrix(
             ppgpp=False
@@ -2090,11 +2083,11 @@ class Transcription(object):
         delta_with_ppgpp = delta_aff_with_ppgpp @ p_promoter_bound
 
         # Calculate the required affinity to match expression without ppGpp
-        new_aff = (sim_data.process.transcription_regulation.basal_aff
-                    + delta_no_ppgpp) / (1 + delta_with_ppgpp)
+        new_aff = copy.deepcopy(sim_data.process.transcription_regulation.basal_aff)
+            #(sim_data.process.transcription_regulation.basal_aff
+             #       + delta_no_ppgpp) / (1 + delta_with_ppgpp)
 
         new_aff[new_aff < 0] = old_aff[new_aff < 0]
-        #new_prob = normalize(new_prob)
 
         # Determine adjustments to the current ppGpp expression to scale
         # to the expected expression
@@ -2107,6 +2100,7 @@ class Transcription(object):
         self.exp_free *= adjustment
         self.exp_ppgpp *= adjustment
         self._normalize_ppgpp_expression()
+        # TODO: what to do if exp_free has a gene already at 0, but it's not at 0 in basal_aff?
 
     def _normalize_ppgpp_expression(self):
         """
@@ -2201,10 +2195,12 @@ class Transcription(object):
         factor = loss / n_avg_copy
         aff = (self.exp_free * (1 - f_ppgpp) + self.exp_ppgpp * f_ppgpp) * factor
         is_mRNA = self.rna_data['is_mRNA']
+
         # Normalize affinities so that they are equal to the per-copy fraction of mRNA
         # synthesis that a given gene occupies.
-        aff = aff * (np.sum(self.rna_transcr_aff[is_mRNA] * n_avg_copy[is_mRNA])
-              / np.sum(aff[is_mRNA] * n_avg_copy[is_mRNA]))
+        basal_condition = 'basal'
+        aff = aff * np.sum(self.rna_transcr_aff[basal_condition][is_mRNA] * n_avg_copy[is_mRNA]) \
+              / np.sum(aff[is_mRNA] * n_avg_copy[is_mRNA])
 
         if balanced_rRNA_prob:
             aff[self.rna_data["is_rRNA"]] = aff[self.rna_data["is_rRNA"]].mean()

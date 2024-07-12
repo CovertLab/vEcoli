@@ -225,9 +225,9 @@ class LoadSimData:
             # gene expression program and marR (CPLX0-7710) is inactivated
             # by complexation with tetracycline
             treg_alias.tf_ids += ["PD00365", "CPLX0-7710"]
-            treg_alias.delta_prob["shape"] = (
-                treg_alias.delta_prob["shape"][0],
-                treg_alias.delta_prob["shape"][1] + 2,
+            treg_alias.delta_aff["shape"] = (
+                treg_alias.delta_aff["shape"][0],
+                treg_alias.delta_aff["shape"][1] + 2,
             )
             treg_alias.tf_to_tf_type["PD00365"] = "0CS"
             treg_alias.tf_to_tf_type["CPLX0-7710"] = "1CS"
@@ -268,14 +268,14 @@ class LoadSimData:
                 ]
             )
 
-            treg_alias.delta_prob["deltaI"] = np.concatenate(
-                [treg_alias.delta_prob["deltaI"], new_deltaI]
+            treg_alias.delta_aff["deltaI"] = np.concatenate(
+                [treg_alias.delta_aff["deltaI"], new_deltaI]
             )
-            treg_alias.delta_prob["deltaJ"] = np.concatenate(
-                [treg_alias.delta_prob["deltaJ"], new_deltaJ]
+            treg_alias.delta_aff["deltaJ"] = np.concatenate(
+                [treg_alias.delta_aff["deltaJ"], new_deltaJ]
             )
-            treg_alias.delta_prob["deltaV"] = np.concatenate(
-                [treg_alias.delta_prob["deltaV"], new_deltaV]
+            treg_alias.delta_aff["deltaV"] = np.concatenate(
+                [treg_alias.delta_aff["deltaV"], new_deltaV]
             )
 
             # Add mass data for tetracycline, marR-tet, and 30s-tet
@@ -477,10 +477,10 @@ class LoadSimData:
                 bulk_mol_alias.bulk_data = UnitStructArray(bulk_data, bulk_units)
 
                 # Add filler transcription data for duplex RNAs to prevent errors
-                treg_alias.basal_prob = np.append(treg_alias.basal_prob, 0)
-                treg_alias.delta_prob["shape"] = (
-                    treg_alias.delta_prob["shape"][0] + 1,
-                    treg_alias.delta_prob["shape"][1],
+                treg_alias.basal_aff = np.append(treg_alias.basal_aff, 0)
+                treg_alias.delta_aff["shape"] = (
+                    treg_alias.delta_aff["shape"][0] + 1,
+                    treg_alias.delta_aff["shape"][1],
                 )
 
                 # Set flag so miscRNA duplexes are degraded together with mRNAs
@@ -669,7 +669,8 @@ class LoadSimData:
             "_parallel": parallel,
             "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
             "rna_ids": self.sim_data.process.transcription.rna_data["id"],
-            "delta_aff": self.sim_data.process.transcription_regulation.delta_aff,
+            "raw_binding_rates": self.sim_data.process.transcription_regulation.raw_binding_rates,
+            "raw_unbinding_rates": self.sim_data.process.transcription_regulation.raw_unbinding_rates,
             "n_avogadro": self.sim_data.constants.n_avogadro,
             "cell_density": self.sim_data.constants.cell_density,
             "p_promoter_bound_tf": self.sim_data.process.transcription_regulation.p_promoter_bound_tf,

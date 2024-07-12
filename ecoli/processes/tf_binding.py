@@ -48,7 +48,9 @@ class TfBinding(Step):
     defaults = {
         "tf_ids": [],
         "rna_ids": [],
-        "delta_aff": {"deltaI": [], "deltaJ": [], "deltaV": []},
+        "raw_binding_rates": {"bindingI": [], "bindingJ": [], "bindingV": []},
+        "raw_unbinding_rates": {"unbindingI": [], "unbindingJ": [], "unbindingV": []},
+        "get_binding_unbinding_matrices": None,
         "n_avogadro": 6.02214076e23 / units.mol,
         "cell_density": 1100 * units.g / units.L,
         # Calculate promoter binding probability when not 0CS TF
@@ -86,17 +88,19 @@ class TfBinding(Step):
         self.rna_ids = self.parameters["rna_ids"]
 
         # Build dict that maps TFs to transcription units they regulate
-        self.delta_aff = self.parameters["delta_aff"]
+        self.raw_binding_rates = self.parameters["raw_binding_rates"]
+        self.raw_unbinding_rates = self.parameters["raw_unbinding_rates"]
+        self.get_binding_unbinding_matrices = self.parameters["get_binding_unbinding_matrices"]
         self.TF_to_TU_idx = {}
 
-        # TODO: change this to include other binding sites
+        # TODO: change this when switching to binding sites
         for i, tf in enumerate(self.tf_ids):
-            self.TF_to_TU_idx[tf] = self.delta_aff["deltaI"][
-                self.delta_aff["deltaJ"] == i
+            self.TF_to_TU_idx[tf] = self.raw_binding_rates["bindingI"][
+                self.raw_binding_rates["bindingJ"] == i
             ]
 
         # Get total counts of transcription units
-        self.n_TU = self.delta_aff["shape"][0]
+        self.n_TU = self.binding_rates["shape"][0]
 
         # Get constants
         self.n_avogadro = self.parameters["n_avogadro"]
@@ -245,15 +249,8 @@ class TfBinding(Step):
         # Rates of unbinding and binding for a certain TF to a binding site on a certain TU
         # TODO: modify so its for a certain TF onto a binding site, and a second matrix
         #  for associating each binding site to a certain TU
-        # TODO: make so you get this from transcription_regulation sim_data object
-        binding_rate_matrix = np.zeros((self.n_TF, self.n_TU))
-        unbinding_rate_matrix = np.zeros((self.n_TF, self.n_TU))
-        purR_idx = np.where(self.tf_ids == 'CPLX-123')[0][0]
-        purC_idx = np.where(self.rna_ids == 'TU00055[c]')[0][0]
         # TODO: get actual second-order rate constant, also what are units supposed to be?
         # TODO: Consider concentration of binding site on DNA, etc.?
-        binding_rate_matrix[purR_idx, purC_idx] = 0.33 / units.min
-        unbinding_rate_matrix[purR_idx, purC_idx] = 0.1 / units.min
 
         # Get active tf counts
         active_tf_idxs = np.array([self.active_tf_idx[tf_id] for tf_id in self.tf_ids])
@@ -263,8 +260,9 @@ class TfBinding(Step):
         #if np.sum(active_tf_counts) + np.sum(bound_TF) == 0:
 
         # Get binding and unbinding rates based on present promoters
-        binding_rates = binding_rate_matrix[:, TU_index]
-        unbinding_rates = unbinding_rate_matrix[:, TU_index]
+        raw_binding_rates_matrix, raw_unbinding_rates_matrix = self.get_binding_unbinding_matrices(dense=True)
+        binding_rates = raw_binding_rates_matrix[:, TU_index]
+        unbinding_rates = raw_unbinding_rates_matrix[:, TU_index]
         # TODO: figure out whether can simplify using these nonzero stuff?
         # binding_rates_nonzero_idxs = np.nonzero(binding_rates)
         # unbinding_rates_nonzero_idxs = np.nonzero(unbinding_rates)
@@ -288,7 +286,7 @@ class TfBinding(Step):
 
             # Determine reaction time
             r1 = self.random_state.rand()
-            rxn_time += 1/total_rates * -1 * np.log(r1)
+            rxn_time += 1/total_rates * np.log(1/r1)
             # If we surpass the current timestep, don't perform reaction
             if rxn_time > timestep.asNumber(units.min):
                 break

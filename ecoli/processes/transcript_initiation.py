@@ -213,7 +213,7 @@ class TranscriptInitiation(PartitionedProcess):
                 dense=True, ppgpp=self.parameters["ppgpp_regulation"]
             )
         else:
-            # make delta_prob_matrix without adjustments
+            # make delta_aff_matrix without adjustments
             self.delta_aff_matrix = scipy.sparse.csr_matrix(
                 (
                     self.delta_aff["deltaV"],
@@ -382,29 +382,32 @@ class TranscriptInitiation(PartitionedProcess):
                 # Adjust synthesis probabilities depending on environment
                 synthProbFractions = self.rnaSynthProbFractions[current_media_id]
 
-                # Create masks for different types of RNAs
-                is_mrna = np.isin(TU_index, self.idx_mRNA)
-                is_trna = np.isin(TU_index, self.idx_tRNA)
-                is_rrna = np.isin(TU_index, self.idx_rRNA)
-                is_rprotein = np.isin(TU_index, self.idx_rprotein)
-                is_rnap = np.isin(TU_index, self.idx_rnap)
-                is_fixed = is_trna | is_rrna | is_rprotein | is_rnap
+                # # Create masks for different types of RNAs
+                # is_mrna = np.isin(TU_index, self.idx_mRNA)
+                # is_trna = np.isin(TU_index, self.idx_tRNA)
+                # is_rrna = np.isin(TU_index, self.idx_rRNA)
+                # is_rprotein = np.isin(TU_index, self.idx_rprotein)
+                # is_rnap = np.isin(TU_index, self.idx_rnap)
+                # is_fixed_prob = is_trna | is_rrna | is_rprotein | is_rnap
 
-                # Rescale initiation probabilities based on type of RNA
-                mRNA_rescale_factor = synthProbFractions["mRna"] / self.promoter_init_probs[is_mrna].sum()
-                self.promoter_init_probs[is_mrna] *= mRNA_rescale_factor
-                tRNA_rescale_factor = synthProbFractions["tRna"] / self.promoter_init_probs[is_trna].sum()
-                self.promoter_init_probs[is_trna] *= tRNA_rescale_factor
-                rRNA_rescale_factor = synthProbFractions["rRna"] / self.promoter_init_probs[is_rrna].sum()
-                self.promoter_init_probs[is_rrna] *= rRNA_rescale_factor
+                # Process here: we must adjust affinities so that resulting synthesis probabilities for
+                # the special groups above are met. Affinities are useful if they are generally kept
+                # constant, and so we'll keep non-fixed mRNA affinities constant. That is, they have a
+                # fixed synthesis probability, but are the non-fixed affinities.
 
-                # Rescale initiation affinities for tRNAs and rRNAs accordingly,
-                # while keeping the mRNA fraction constant since we care more about affinities
-                # for those
-                self.promoter_init_affs[is_trna] *= tRNA_rescale_factor / mRNA_rescale_factor
-                self.promoter_init_affs[is_rrna] *= rRNA_rescale_factor / mRNA_rescale_factor
+                # # Save original affinity sum for later use
+                # original_aff_sum = self.promoter_init_affs.sum()
 
-                # Set fixed synthesis probabilities for RProteins and RNAPs
+                # # Rescale initiation affinities for tRNAs and rRNAs accordingly,
+                # # while keeping the mRNA fraction constant since we care more about affinities
+                # # for those
+                # mRNA_rescale_factor = synthProbFractions["mRna"] / self.promoter_init_probs[is_mrna].sum()
+                # tRNA_rescale_factor = synthProbFractions["tRna"] / self.promoter_init_probs[is_trna].sum()
+                # rRNA_rescale_factor = synthProbFractions["rRna"] / self.promoter_init_probs[is_rrna].sum()
+                # self.promoter_init_affs[is_trna] *= tRNA_rescale_factor / mRNA_rescale_factor
+                # self.promoter_init_affs[is_rrna] *= rRNA_rescale_factor / mRNA_rescale_factor
+
+                # Set fixed synthesis probabiltiies for RProteins and RNAPs
                 self._rescale_initiation_affs(
                     np.concatenate((self.idx_rprotein, self.idx_rnap)),
                     np.concatenate(
@@ -414,25 +417,16 @@ class TranscriptInitiation(PartitionedProcess):
                         )
                     ),
                     TU_index,
+                    group_fixed_indexes=[self.idx_tRNA, self.idx_rRNA],
+                    group_fixed_probs=[synthProbFractions["tRNA"], synthProbFractions["rRNA"]]
                 )
 
-                assert self.promoter_init_probs[is_fixed].sum() < 1.0
+                # TODO: what to do about this assert?
+                #assert self.promoter_init_affs[is_fixed_prob].sum() < original_aff_sum
 
-                # Scale remaining synthesis probabilities accordingly
-                scaleTheRestBy = (
-                    1.0 - self.promoter_init_probs[is_fixed].sum()
-                ) / self.promoter_init_probs[~is_fixed].sum()
-                self.promoter_init_probs[~is_fixed] *= scaleTheRestBy
-
-                # Scale affinities for rprotein and RNAPs accordingly
-                # TODO: check if this is right
-                affs_sum = self.promoter_init_affs.sum()
-                self.promoter_init_affs[self.idx_rprotein] = \
-                    affs_sum * self.rnaSynthProbRProtein[current_media_id]
-                self.promoter_init_affs[self.idx_rnap] = \
-                    affs_sum * self.rnaSynthProbRnaPolymerase[current_media_id]
-                self.promoter_init_affs[is_fixed] /= scaleTheRestBy
-
+                # Normalize affinities again to get synthesis probabilities
+                self.promoter_init_probs = (self.promoter_init_affs
+                                            / self.promoter_init_affs.sum())
 
         # If there are no chromosomes in the cell, set all probs to zero
         else:
@@ -681,7 +675,8 @@ class TranscriptInitiation(PartitionedProcess):
 
         return activation_prob
 
-    def _rescale_initiation_affs(self, fixed_indexes, fixed_synth_probs, TU_index):
+    def _rescale_initiation_affs(self, fixed_indexes, fixed_synth_probs,  TU_index,
+                                 group_fixed_indexes=None, group_fixed_probs=None):
         """
         Rescales the initiation affinities of indicated promoters such that the
         total synthesis probabilities of certain types of RNAs are fixed to
@@ -689,23 +684,44 @@ class TranscriptInitiation(PartitionedProcess):
         promoters for RNA A, whose synthesis probability should be fixed to
         0.1, each promoter is given an affinity such that its total initiation
         probability is 0.05.
+        Group fixed indexes and group fixed probs are for gene groups (like rRNAs or tRNAs)
+        whose total synthesis probability are set, and the resulting RNAs are scaled to fit that.
         """
+
+        # Avoids setting empty lists as arguments.
+        if group_fixed_indexes is None:
+            group_fixed_indexes = []
+            group_fixed_probs = []
+
         # Solve equation: for controlled genes, aff * copy = proba * sum(aff * copy for all genes)
         # Let aff * copy = k. See fitExpressionAffinities in the parca (fit_sim_data_1.py)
         # for a more detailed description.
-        fixed_all_mask = (TU_index in fixed_indexes)
+        all_fixed_indexes = np.concatenate(tuple(group_fixed_indexes))
+        all_fixed_indexes = np.concatenate((fixed_indexes, all_fixed_indexes))
+        fixed_all_mask = (TU_index in all_fixed_indexes)
         sum_other_affinities = self.promoter_init_affs[~fixed_all_mask].sum()
-        b = sum_other_affinities * fixed_synth_probs
-        num_fixed_TUs = len(fixed_indexes)
-        M = np.tile(-1 * fixed_synth_probs, (num_fixed_TUs, 1)).T
-        for i in range(num_fixed_TUs):
+
+        all_fixed_probs = np.concatenate((fixed_synth_probs, group_fixed_probs))
+        b = sum_other_affinities * all_fixed_probs
+
+        num_fixed = len(fixed_indexes) + len(group_fixed_indexes)
+        M = np.tile(-1 * all_fixed_probs, (num_fixed, 1)).T
+        for i in range(num_fixed):
             M[i, i] += 1
         solved_ks = np.linalg.solve(M, b)
+        fixed_ks = solved_ks[:len(fixed_indexes)]
+        group_fixed_ks = solved_ks[len(fixed_indexes):]
 
         # Set each promoter's affinity so that the sum is equal to k, for each fixed type.
-        for idx, (TU_idx, synth_prob) in enumerate(zip(fixed_indexes, fixed_synth_probs)):
+        for idx, TU_idx in enumerate(fixed_indexes):
             fixed_mask = TU_index == TU_idx
-            self.promoter_init_affs[fixed_mask] = solved_ks[idx] / fixed_mask.sum()
+            self.promoter_init_affs[fixed_mask] = fixed_ks[idx] / fixed_mask.sum()
+
+        # Scale group indexes's affinities to match the required sum.
+        for idx, group_idxs in enumerate(group_fixed_indexes):
+            fixed_mask = (TU_index in group_idxs)
+            self.promoter_init_affs[fixed_mask] *= (group_fixed_ks[idx]
+                            / self.promoter_init_affs[fixed_mask].sum())
 
 
 def test_transcript_initiation(return_data=False):
@@ -950,8 +966,8 @@ def test_transcript_initiation(return_data=False):
         "rnaLengths": np.array([x[2] for x in rna_data.fullArray()]),
         "rnaPolymeraseElongationRateDict": {"minimal": 50 * units.nt / units.s},
         "make_elongation_rates": make_elongation_rates,
-        "basal_prob": np.array([1e-7, 1e-7, 1e-7, 1e-7, 1e-6, 1e-6, 1e-6, 1e-5, 1e-5]),
-        "delta_prob": {
+        "basal_aff": np.array([1e-7, 1e-7, 1e-7, 1e-7, 1e-6, 1e-6, 1e-6, 1e-5, 1e-5]),
+        "delta_aff": {
             "deltaV": [-1e-3, -1e-5, -1e-6, 1e-7, 1e-6, 1e-6, 1e-5],
             "deltaI": [0, 1, 2, 3, 4, 5, 6],
             "deltaJ": [0, 1, 2, 3, 0, 1, 2],

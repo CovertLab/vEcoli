@@ -99,6 +99,7 @@ def fitSimData_1(raw_data, **kwargs):
     sim_data, cell_specs = set_conditions(sim_data, cell_specs, **kwargs)
     sim_data, cell_specs = final_adjustments(sim_data, cell_specs, **kwargs)
 
+    import ipdb; ipdb.set_trace()
     if sim_data is None:
         raise ValueError(
             'sim_data is not specified.  Check that the'
@@ -586,6 +587,7 @@ def buildBasalCellSpecifications(
     - Average mass values of the cell
     - cistron expression
     - RNA expression and synthesis probabilities
+    - RNA transcriptional affinties
 
     Returns
     --------
@@ -599,6 +601,8 @@ def buildBasalCellSpecifications(
             'doubling_time' (float with units) - cell doubling time
             'synthProb' (array of floats) - synthesis probability for each RNA,
                     total normalized to 1
+            'transcrAff' (array of floats) - transcription affinities for each RNA,
+                    total normalized to 1 in basal condition
             'avgCellDryMassInit' (float with units) - average initial cell dry mass
             'fitAvgSolubleTargetMolMass' (float with units) - the adjusted dry mass
                     of the soluble fraction of a cell
@@ -676,131 +680,131 @@ def buildBasalCellSpecifications(
     return cell_specs
 
 
-def buildTfConditionCellSpecifications(
-    sim_data,
-    tf,
-    variable_elongation_transcription=True,
-    variable_elongation_translation=False,
-    disable_ribosome_capacity_fitting=False,
-    disable_rnapoly_capacity_fitting=False,
-):
-    """
-    Creates cell specifications for a given transcription factor by
-    fitting expression. Will set for the active and inactive TF condition.
-    Relies on expressionConverge() to set the expression and masses.
-    Uses fold change data relative to the 'basal' condition to determine
-    expression for a given TF.
-
-    Inputs
-    ------
-    - tf (str) - label for the transcription factor to fit (eg. 'CPLX-125')
-    - disable_ribosome_capacity_fitting (bool) - if True, ribosome expression
-    is not fit
-    - disable_rnapoly_capacity_fitting (bool) - if True, RNA polymerase
-    expression is not fit
-
-    Requires
-    --------
-    - Metabolite concentrations based on nutrients for the TF
-    - Adjusted 'basal' cistron expression
-    - Doubling time for the TF
-    - Fold changes in expression for each gene given the TF
-
-    Returns
-    --------
-    - dict {tf + '__active'/'__inactive': dict} with the following keys in each dict:
-            'concDict' {metabolite_name (str): concentration (float with units)} -
-                    dictionary of concentrations for each metabolite with a concentration
-            'expression' (array of floats) - expression for each RNA, total normalized to 1
-            'doubling_time' (float with units) - cell doubling time
-            'synthProb' (array of floats) - synthesis probability for each RNA,
-                    total normalized to 1
-            'cistron_expression' (array of floats) - hypothetical expression for
-                    each RNA cistron, calculated from basal cistron expression levels
-                    and fold change data
-            'fit_cistron_expression' (array of floats) - hypothetical expression for
-                    each RNA cistron post-fit, total normalized to 1, if all
-                    transcription units were monocistronic
-            'avgCellDryMassInit' (float with units) - average initial cell dry mass
-            'fitAvgSolubleTargetMolMass' (float with units) - the adjusted dry mass
-                    of the soluble fraction of a cell
-            - bulkContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
-                    for expected counts based on expression of all bulk molecules
-    """
-
-    cell_specs = {}
-    for choice in ["__active", "__inactive"]:
-        conditionKey = tf + choice
-        conditionValue = sim_data.conditions[conditionKey]
-
-        # Get expression for the condition based on fold changes over 'basal'
-        # condition if the condition is not the same as 'basal'
-        fcData = {}
-        if choice == "__active" and conditionValue != sim_data.conditions["basal"]:
-            fcData = sim_data.tf_to_fold_change[tf]
-        if choice == "__inactive" and conditionValue != sim_data.conditions["basal"]:
-            fcDataTmp = sim_data.tf_to_fold_change[tf].copy()
-            for key, value in fcDataTmp.items():
-                fcData[key] = 1.0 / value
-        expression, cistron_expression = expressionFromConditionAndFoldChange(
-            sim_data.process.transcription,
-            conditionValue["perturbations"],
-            fcData,
-        )
-
-        # Get metabolite concentrations for the condition
-        concDict = sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients(
-            media_id=conditionValue["nutrients"]
-        )
-        concDict.update(
-            sim_data.mass.getBiomassAsConcentrations(
-                sim_data.condition_to_doubling_time[conditionKey]
-            )
-        )
-
-        # Create dictionary for the condition
-        cell_specs[conditionKey] = {
-            "concDict": concDict,
-            "expression": expression,
-            "doubling_time": sim_data.condition_to_doubling_time.get(
-                conditionKey, sim_data.condition_to_doubling_time["basal"]
-            ),
-        }
-
-        # Determine expression and synthesis probabilities
-        (
-            expression,
-            synthProb,
-            fit_cistron_expression,
-            avgCellDryMassInit,
-            fitAvgSolubleTargetMolMass,
-            bulkContainer,
-            concDict,
-        ) = expressionConverge(
-            sim_data,
-            cell_specs[conditionKey]["expression"],
-            cell_specs[conditionKey]["concDict"],
-            cell_specs[conditionKey]["doubling_time"],
-            sim_data.process.transcription.rna_data["Km_endoRNase"],
-            conditionKey=conditionKey,
-            variable_elongation_transcription=variable_elongation_transcription,
-            variable_elongation_translation=variable_elongation_translation,
-            disable_ribosome_capacity_fitting=disable_ribosome_capacity_fitting,
-            disable_rnapoly_capacity_fitting=disable_rnapoly_capacity_fitting,
-        )
-
-        # Store calculated values
-        cell_specs[conditionKey]["expression"] = expression
-        cell_specs[conditionKey]["synthProb"] = synthProb
-        cell_specs[conditionKey]["cistron_expression"] = cistron_expression
-        cell_specs[conditionKey]["fit_cistron_expression"] = fit_cistron_expression
-        cell_specs[conditionKey]["avgCellDryMassInit"] = avgCellDryMassInit
-        cell_specs[conditionKey]["fitAvgSolubleTargetMolMass"] = (
-            fitAvgSolubleTargetMolMass
-        )
-        cell_specs[conditionKey]["bulkContainer"] = bulkContainer
-
-    return cell_specs
+# def buildTfConditionCellSpecifications(
+#     sim_data,
+#     tf,
+#     variable_elongation_transcription=True,
+#     variable_elongation_translation=False,
+#     disable_ribosome_capacity_fitting=False,
+#     disable_rnapoly_capacity_fitting=False,
+# ):
+#     """
+#     Creates cell specifications for a given transcription factor by
+#     fitting expression. Will set for the active and inactive TF condition.
+#     Relies on expressionConverge() to set the expression and masses.
+#     Uses fold change data relative to the 'basal' condition to determine
+#     expression for a given TF.
+#
+#     Inputs
+#     ------
+#     - tf (str) - label for the transcription factor to fit (eg. 'CPLX-125')
+#     - disable_ribosome_capacity_fitting (bool) - if True, ribosome expression
+#     is not fit
+#     - disable_rnapoly_capacity_fitting (bool) - if True, RNA polymerase
+#     expression is not fit
+#
+#     Requires
+#     --------
+#     - Metabolite concentrations based on nutrients for the TF
+#     - Adjusted 'basal' cistron expression
+#     - Doubling time for the TF
+#     - Fold changes in expression for each gene given the TF
+#
+#     Returns
+#     --------
+#     - dict {tf + '__active'/'__inactive': dict} with the following keys in each dict:
+#             'concDict' {metabolite_name (str): concentration (float with units)} -
+#                     dictionary of concentrations for each metabolite with a concentration
+#             'expression' (array of floats) - expression for each RNA, total normalized to 1
+#             'doubling_time' (float with units) - cell doubling time
+#             'synthProb' (array of floats) - synthesis probability for each RNA,
+#                     total normalized to 1
+#             'cistron_expression' (array of floats) - hypothetical expression for
+#                     each RNA cistron, calculated from basal cistron expression levels
+#                     and fold change data
+#             'fit_cistron_expression' (array of floats) - hypothetical expression for
+#                     each RNA cistron post-fit, total normalized to 1, if all
+#                     transcription units were monocistronic
+#             'avgCellDryMassInit' (float with units) - average initial cell dry mass
+#             'fitAvgSolubleTargetMolMass' (float with units) - the adjusted dry mass
+#                     of the soluble fraction of a cell
+#             - bulkContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+#                     for expected counts based on expression of all bulk molecules
+#     """
+#
+#     cell_specs = {}
+#     for choice in ["__active", "__inactive"]:
+#         conditionKey = tf + choice
+#         conditionValue = sim_data.conditions[conditionKey]
+#
+#         # Get expression for the condition based on fold changes over 'basal'
+#         # condition if the condition is not the same as 'basal'
+#         fcData = {}
+#         if choice == "__active" and conditionValue != sim_data.conditions["basal"]:
+#             fcData = sim_data.tf_to_fold_change[tf]
+#         if choice == "__inactive" and conditionValue != sim_data.conditions["basal"]:
+#             fcDataTmp = sim_data.tf_to_fold_change[tf].copy()
+#             for key, value in fcDataTmp.items():
+#                 fcData[key] = 1.0 / value
+#         expression, cistron_expression = expressionFromConditionAndFoldChange(
+#             sim_data.process.transcription,
+#             conditionValue["perturbations"],
+#             fcData,
+#         )
+#
+#         # Get metabolite concentrations for the condition
+#         concDict = sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients(
+#             media_id=conditionValue["nutrients"]
+#         )
+#         concDict.update(
+#             sim_data.mass.getBiomassAsConcentrations(
+#                 sim_data.condition_to_doubling_time[conditionKey]
+#             )
+#         )
+#
+#         # Create dictionary for the condition
+#         cell_specs[conditionKey] = {
+#             "concDict": concDict,
+#             "expression": expression,
+#             "doubling_time": sim_data.condition_to_doubling_time.get(
+#                 conditionKey, sim_data.condition_to_doubling_time["basal"]
+#             ),
+#         }
+#
+#         # Determine expression and synthesis probabilities
+#         (
+#             expression,
+#             synthProb,
+#             fit_cistron_expression,
+#             avgCellDryMassInit,
+#             fitAvgSolubleTargetMolMass,
+#             bulkContainer,
+#             concDict,
+#         ) = expressionConverge(
+#             sim_data,
+#             cell_specs[conditionKey]["expression"],
+#             cell_specs[conditionKey]["concDict"],
+#             cell_specs[conditionKey]["doubling_time"],
+#             sim_data.process.transcription.rna_data["Km_endoRNase"],
+#             conditionKey=conditionKey,
+#             variable_elongation_transcription=variable_elongation_transcription,
+#             variable_elongation_translation=variable_elongation_translation,
+#             disable_ribosome_capacity_fitting=disable_ribosome_capacity_fitting,
+#             disable_rnapoly_capacity_fitting=disable_rnapoly_capacity_fitting,
+#         )
+#
+#         # Store calculated values
+#         cell_specs[conditionKey]["expression"] = expression
+#         cell_specs[conditionKey]["synthProb"] = synthProb
+#         cell_specs[conditionKey]["cistron_expression"] = cistron_expression
+#         cell_specs[conditionKey]["fit_cistron_expression"] = fit_cistron_expression
+#         cell_specs[conditionKey]["avgCellDryMassInit"] = avgCellDryMassInit
+#         cell_specs[conditionKey]["fitAvgSolubleTargetMolMass"] = (
+#             fitAvgSolubleTargetMolMass
+#         )
+#         cell_specs[conditionKey]["bulkContainer"] = bulkContainer
+#
+#     return cell_specs
 
 
 def buildCombinedConditionCellSpecifications(
@@ -2893,6 +2897,7 @@ def expressionFromConditionAndFoldChange(transcription, condPerturbations, tfFCs
 
 
 def fitExpressionAffinities(sim_data, cell_specs):
+    # TODO: probably move the transcription affinity stuff earlier, into basal_specs or condition_specs functions?
     rich_condition = 'with_aa'
     minimal_condition = 'basal'
 
@@ -2903,20 +2908,20 @@ def fitExpressionAffinities(sim_data, cell_specs):
     is_purC = (sim_data.process.transcription.rna_data["id"] == purC_tu_id)
     rna_transcr_aff = sim_data.process.transcription.rna_transcr_aff
 
-    # def calculateMinimalAffinities(sim_data, cell_specs):
-    #     # Get specific doubling time for basal condition
-    #     tau = cell_specs[minimal_condition]["doubling_time"].asNumber(units.min)
-    #
-    #     # Calculate average copy number of gene for basal condition
-    #     rna_coords = sim_data.process.transcription.rna_data["replication_coordinate"]
-    #     avg_copy_nums = sim_data.process.replication.get_average_copy_number(
-    #         tau, rna_coords
-    #     )
-    #
-    #     # Compute affinities as the probability per gene copy, a_basal = p_basal / copy_basal
-    #     minimal_affinities = (sim_data.process.transcription.rna_synth_prob[minimal_condition]
-    #                        / avg_copy_nums)
-    #     affinities[minimal_condition] = minimal_affinities
+    def calculateMinimalAffinities(sim_data, cell_specs):
+        # Get specific doubling time for basal condition
+        tau = cell_specs[minimal_condition]["doubling_time"].asNumber(units.min)
+
+        # Calculate average copy number of gene for basal condition
+        rna_coords = sim_data.process.transcription.rna_data["replication_coordinate"]
+        avg_copy_nums = sim_data.process.replication.get_average_copy_number(
+            tau, rna_coords
+        )
+
+        # Compute affinities as the probability per gene copy, a_basal = p_basal / copy_basal
+        minimal_affinities = (sim_data.process.transcription.rna_synth_prob[minimal_condition]
+                           / avg_copy_nums)
+        rna_transcr_aff[minimal_condition] = minimal_affinities
 
     def setConditionProbs(sim_data, cell_specs):
         rich_synth_probs = sim_data.process.transcription.rna_synth_prob[rich_condition]
@@ -2925,46 +2930,49 @@ def fitExpressionAffinities(sim_data, cell_specs):
         # TODO: check does this actually modify sim_data rna_synth_prob?
         rich_synth_probs[~is_purC] *= (1 - rich_synth_probs[is_purC]) / np.sum(rich_synth_probs[~is_purC])
 
-    def calculateRichAffinities(sim_data, cell_specs, is_regulated_rna):
-        # Set up system of equations: a1 * copy1 = p1 * sum(a1 * copy1)
-        rich_affinities = copy.deepcopy(rna_transcr_aff[minimal_condition])
+    def calculateConditionAffinities(sim_data, cell_specs, is_regulated_rna):
+        for condition in sorted(cell_specs):
+            if condition == 'basal':
+                continue
+            # Set up system of equations: a1 * copy1 = p1 * sum(a1 * copy1)
+            new_affinities = copy.deepcopy(rna_transcr_aff[minimal_condition])
 
-        # Get specific doubling time for rich condition
-        tau = cell_specs[rich_condition]["doubling_time"].asNumber(units.min)
+            # Get specific doubling time for rich condition
+            tau = cell_specs[condition]["doubling_time"].asNumber(units.min)
 
-        # Calculate average copy number of gene for basal condition
-        rna_coords = sim_data.process.transcription.rna_data["replication_coordinate"]
-        avg_copy_nums = sim_data.process.replication.get_average_copy_number(
-            tau, rna_coords
-        )
+            # Calculate average copy number of gene for basal condition
+            rna_coords = sim_data.process.transcription.rna_data["replication_coordinate"]
+            avg_copy_nums = sim_data.process.replication.get_average_copy_number(
+                tau, rna_coords
+            )
 
-        # Solve equation: for regulated genes, aff * copy = proba * sum(aff * copy for all genes)
-        # Let aff * copy = k. Then, for all regulated i, k_i = p_i * (sum(k_j regulated) + sum(k_j unregulated))
-        # k_i - p_i * sum(k_j regulated) = p_i * sum(k_j unregulated). Let C = sum(k_j unregulated)
-        # sum over j regulated of (-p_i k_j) + k_i = C * p_i
-        # Or, M k = C p, where p is a vector of all regulated p_i's, k is a vector of all regulated k's,
-        # and M is a iXi matrix which in the i'th row, has -p_i on all columns except 1 - p_i on the i'th column.
+            # Solve equation: for regulated genes, aff * copy = proba * sum(aff * copy for all genes)
+            # Let aff * copy = k. Then, for all regulated i, k_i = p_i * (sum(k_j regulated) + sum(k_j unregulated))
+            # k_i - p_i * sum(k_j regulated) = p_i * sum(k_j unregulated). Let C = sum(k_j unregulated)
+            # sum over j regulated of (-p_i k_j) + k_i = C * p_i
+            # Or, M k = C p, where p is a vector of all regulated p_i's, k is a vector of all regulated k's,
+            # and M is a iXi matrix which in the i'th row, has -p_i on all columns except 1 - p_i on the i'th column.
 
-        unregulated_affinities = rich_affinities[~is_regulated_rna]
-        unregulated_copy_nums = avg_copy_nums[~is_regulated_rna]
-        unregulated_ks_sum = np.dot(unregulated_affinities, unregulated_copy_nums)
-        regulated_probas = (sim_data.process.transcription.rna_synth_prob[rich_condition]
-                            [is_regulated_rna])
-        b = unregulated_ks_sum * regulated_probas
+            unregulated_affinities = new_affinities[~is_regulated_rna]
+            unregulated_copy_nums = avg_copy_nums[~is_regulated_rna]
+            unregulated_ks_sum = np.dot(unregulated_affinities, unregulated_copy_nums)
+            regulated_probas = (sim_data.process.transcription.rna_synth_prob[rich_condition]
+                                [is_regulated_rna])
+            b = unregulated_ks_sum * regulated_probas
 
-        num_reg_rnas = len(regulated_probas)
-        M = np.tile(-1 * regulated_probas, (num_reg_rnas, 1)).T
-        for i in range(num_reg_rnas):
-            M[i, i] += 1
+            num_reg_rnas = len(regulated_probas)
+            M = np.tile(-1 * regulated_probas, (num_reg_rnas, 1)).T
+            for i in range(num_reg_rnas):
+                M[i, i] += 1
 
-        solved_ks = np.linalg.solve(M, b)
+            solved_ks = np.linalg.solve(M, b)
 
-        # Back-calculate affinities from k = copy * aff
-        solved_reg_affinities = solved_ks / avg_copy_nums[is_regulated_rna]
-        rich_affinities[is_regulated_rna] = solved_reg_affinities
+            # Back-calculate affinities from k = copy * aff
+            solved_reg_affinities = solved_ks / avg_copy_nums[is_regulated_rna]
+            new_affinities[is_regulated_rna] = solved_reg_affinities
 
-        # Store in dictionary
-        rna_transcr_aff[rich_condition] = rich_affinities
+            # Store in dictionary
+            rna_transcr_aff[condition] = new_affinities
 
     def construct_r_vector(sim_data, cell_specs, is_regulated_rna):
         # Returns the r vector, and the col_name_to_index. This includes rna__alpha, which holds the affinity without any TF bound
@@ -2981,8 +2989,9 @@ def fitExpressionAffinities(sim_data, cell_specs):
             rna_transcr_aff[minimal_condition][~is_purC]):
             rna_id_no_loc = rna_id[:-3]
             col_name = rna_id_no_loc + "__alpha"
-            r.append(aff)
             col_name_to_index[col_name] = len(r)
+            r.append(aff)
+
 
         # Add genes that are regulated TODO: make general, don't use purR_active
         for rna_id, idx in zip(rna_ids[is_purC], np.where(is_purC)[0]):
@@ -2995,27 +3004,34 @@ def fitExpressionAffinities(sim_data, cell_specs):
             # That is to say, [1, pP] = rna_transcr_aff
             M = []
             b = []
-            for condition in sim_data.pPromoterBound:
+            # TODO: make this to account for all conditions instead of just the two
+            for condition in ['basal', 'with_aa']:
                 M.append([1, pPromoterBound[condition][purR_active]])
-                b.append(rna_transcr_aff[condition][is_purC][idx])
+                b.append(rna_transcr_aff[condition][idx])
 
             solution = np.linalg.solve(M, b)
             alpha = solution[0]
             delta = solution[1]
 
-            r.append(alpha)
             col_name_to_index[col_name_basal] = len(col_name_to_index)
-            r.append(delta)
+            r.append(alpha)
             col_name_to_index[col_name_delta] = len(col_name_to_index)
+            r.append(delta)
 
         return r, col_name_to_index
 
     is_regulated_rna = np.array([len(sim_data.relation.rna_id_to_regulating_tfs[rnaId]) > 0
                                  for rnaId in sim_data.process.transcription.rna_data['id']])
     setConditionProbs(sim_data, cell_specs)
-    #calculateMinimalAffinities(sim_data, cell_specs)
-    calculateRichAffinities(sim_data, cell_specs, is_regulated_rna)
+    calculateMinimalAffinities(sim_data, cell_specs)
+    calculateConditionAffinities(sim_data, cell_specs, is_regulated_rna)
 
+    # Calculate binding and unbinding rates of TFs with promoters
+    raw_binding_rates, raw_unbinding_rates = calculateTfBindingUnbindingRates(sim_data, cell_specs)
+    sim_data.process.transcription_regulation.raw_binding_rates = raw_binding_rates
+    sim_data.process.transcription_regulation.raw_unbinding_rates = raw_unbinding_rates
+
+    # Calculate probability each TF binds to its promoters TODO: change this to be a matrix for each TF with each promoter
     pPromoterBound = calculatePromoterBoundProbability(sim_data, cell_specs)
     sim_data.pPromoterBound = pPromoterBound
 
@@ -3986,6 +4002,57 @@ def fitLigandConcentrations(sim_data, cell_specs):
         sim_data.process.equilibrium.set_rev_rate(boundId + "[c]", kdNew * fwdRate)
 
 
+def calculateTfBindingUnbindingRates(sim_data, cell_specs):
+    """
+    Stores the binding and unbinding rates for all TFs to all promoters as a matrix.
+
+    Requires
+    --------
+    - Rates of TFs binding to promoters (sim_data)
+
+    Returns
+    --------
+    - raw_binding_rates: a dictionary representing a CSR matrix, whose 'bindingV' term stores the binding rates,
+    'bindingI' term stores the TF indexes those rates correspond to, and 'bindingJ' stores the TU indexes,
+    and 'shape' stores the overall shape (n_TFs, n_TUs).
+    - raw_unbinding_rates: a dictionary representing a CSR matrix, whose 'unbindingV' term stores the unbinding rates,
+    'unbindingI' term stores the TF indexes those rates correspond to, and 'unbindingJ' stores the TU indexes,
+    and 'shape' stores the overall shape (n_TFs, n_TUs).
+    """
+
+    # Right now, just has purR binding to purC promoter
+    tf_ids = sim_data.process.transcription_regulation.tf_ids
+    rna_ids = sim_data.process.transcription.rna_data['id']
+    purR_idx = np.where(np.array(tf_ids) == 'CPLX-123')[0][0]
+    purC_idx = np.where(rna_ids == 'TU00055[c]')[0][0]
+
+    # TODO: Consider concentration of binding site on DNA, etc.? Also second-order rate constant, what
+    #  are units supposed to be?
+    bindingV = [0.33 / units.min]
+    bindingI = [purC_idx]
+    bindingJ = [purR_idx]
+    binding_shape = (len(tf_ids), len(rna_ids))
+
+    unbindingV = [0.1 / units.min]
+    unbindingI = bindingI
+    unbindingJ = bindingJ
+    unbinding_shape = binding_shape
+
+    raw_binding_rates = {
+        'bindingV': bindingV,
+        'bindingI': bindingI,
+        'bindingJ': bindingJ,
+        'shape': binding_shape
+    }
+    raw_unbinding_rates = {
+        'unbindingV': unbindingV,
+        'unbindingI': unbindingI,
+        'unbindingJ': unbindingJ,
+        'shape': unbinding_shape
+    }
+
+    return raw_binding_rates, raw_unbinding_rates
+
 def calculatePromoterBoundProbability(sim_data, cell_specs):
     """
     #     Calculate the probability that a transcription factor is bound to its
@@ -4006,8 +4073,16 @@ def calculatePromoterBoundProbability(sim_data, cell_specs):
     #     """
 
     pPromoterBound = {}
-    pPromoterBound['basal']['CPLX-123'] = 0.0
-    pPromoterBound['with_aa']['CPLX-123'] = 1.0
+    for condition in sorted(cell_specs):
+        pPromoterBound[condition] = {}
+        for tf in sorted(sim_data.tf_to_active_inactive_conditions):
+            if tf == 'CPLX-123':
+                if condition == 'with_aa':
+                    pPromoterBound[condition][tf] = 1.0
+                else:
+                    pPromoterBound[condition][tf] = 0.0
+            else:
+                pPromoterBound[condition][tf] = 0.0
 
     return pPromoterBound
 
@@ -4291,7 +4366,7 @@ def calculateRnapRecruitment(sim_data, cell_specs):
     # Adjust any negative basal probabilities to 0
     basal_aff[basal_aff < 0] = 0
 
-    # Add basal_prob vector and delta_prob matrix to sim_data
+    # Add basal_aff vector and delta_aff matrix to sim_data
     transcription_regulation.basal_aff = basal_aff
     transcription_regulation.delta_aff = {
         "deltaI": deltaI,
