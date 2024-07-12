@@ -374,8 +374,6 @@ class SimConfig:
         cli_config = {
             key: value for key, value in vars(args).items() if value and key != "config"
         }
-        if args.raw_output and args.emitter != "timeseries":
-            raise RuntimeError("Raw output requires timeseries emitter.")
         self.merge_config_dicts(self._config, cli_config)
 
     def update_from_dict(self, dict_config: dict[str, Any]):
