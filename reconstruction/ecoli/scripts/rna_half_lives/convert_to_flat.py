@@ -58,9 +58,11 @@ def get_symbols_to_ids() -> tuple[dict[str, str], set[str]]:
     IDs that gets used in later data import functions.
 
     Returns:
-            symbols_to_ids: Dictionary that maps gene/transcription unit symbols
-            to gene/transcription unit IDs used by the model.
-            all_gene_ids: Set of all gene IDs used by the model.
+        2-element tuple containing
+
+        - **symbols_to_ids**: Dictionary that maps gene/transcription unit symbols
+          to gene/transcription unit IDs used by the model.
+        - **all_gene_ids**: Set of all gene IDs used by the model.
     """
     symbols_to_ids = {}
     ids_to_synonyms = {}
@@ -130,12 +132,12 @@ def get_chen_half_lives(symbols_to_ids: dict[str, str]) -> dict[str, float]:
     model are skipped.
 
     Args:
-            symbols_to_ids: Dictionary that maps gene/transcription unit symbols
+        symbols_to_ids: Dictionary that maps gene/transcription unit symbols
             to gene/transcription unit IDs used by the model.
 
     Returns:
-            id_to_half_life: Dictionary that maps gene/transcription unit IDs to
-            their half lives (in minutes) reported by Chen et al.
+        Dictionary that maps gene/transcription unit IDs to
+        their half lives (in minutes) reported by Chen et al.
     """
     id_to_half_life = {}
 
@@ -164,12 +166,12 @@ def get_bernstein_half_lives(symbols_to_ids: dict[str, str]) -> dict[str, float]
     Bernstein et al. only reports half-lives of monocistronic RNAs.
 
     Args:
-            symbols_to_ids: Dictionary that maps gene/transcription unit symbols
+        symbols_to_ids: Dictionary that maps gene/transcription unit symbols
             to gene/transcription unit IDs used by the model.
 
     Returns:
-            id_to_half_life: Dictionary that maps gene IDs to their RNA half lives
-            (in minutes) reported by Bernstein et al.
+        Dictionary that maps gene IDs to their RNA half lives
+        (in minutes) reported by Bernstein et al.
     """
     id_to_half_life = {}
 

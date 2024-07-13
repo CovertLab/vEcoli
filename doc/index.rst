@@ -21,10 +21,6 @@ Vivarium *E. coli* project is a port of the |text|_ to the `Vivarium framework <
 .. toctree::
    :maxdepth: 2
 
-   Processes <reference/processes>
-   Composites <reference/composites>
-   Experiments <reference/experiments>
-   tutorials
    docs
    reference/stores
    API Reference <reference/api_ref.rst>

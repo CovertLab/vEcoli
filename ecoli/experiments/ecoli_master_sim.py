@@ -636,7 +636,7 @@ class EcoliSim:
 
         Adds spatial environment if ``config['spatial_environment']`` is
         ``True``. Spatial environment config options are loaded from
-        ``config['spatial_environment_config]``. See
+        ``config['spatial_environment_config`]``. See
         ``ecoli/composites/ecoli_configs/spatial.json`` for an example.
 
         .. note::
@@ -710,7 +710,7 @@ class EcoliSim:
     def save_states(self, daughter_outdir: str = ""):
         """
         Runs the simulation while saving the states of specific
-        timesteps to JSONs. Automatically invoked by
+        timesteps to files named ``data/vivecoli_t{time}.json``. Invoked by
         :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.run`
         if ``config['save'] == True``. State is saved as a JSON that
         can be reloaded into a simulation as described in
@@ -745,7 +745,8 @@ class EcoliSim:
                         daughter_outdir, f"daughter_state_{i}.json"
                     )
                     write_json(daughter_path, agent_state)
-                print(f"Divided at t = {self.ecoli_experiment.global_time}.")
+                print(f"Divided at t = {self.ecoli_experiment.global_time} after"
+                      f"{self.ecoli_experiment.global_time - self.initial_global_time} sec.")
                 with open("division_time.sh", "w") as f:
                     f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 sys.exit()
@@ -779,20 +780,20 @@ class EcoliSim:
         metadata["output_metadata"] = self.get_output_metadata()
         # make the experiment
         if isinstance(self.emitter, str):
-            emitter_config = {"type": self.emitter}
+            self.emitter_config = {"type": self.emitter}
             if self.emitter_arg is not None:
                 for key, value in self.emitter_arg:
-                    emitter_config[key] = value
+                    self.emitter_config[key] = value
             if self.emitter == "parquet":
-                if ("out_dir" not in emitter_config) and (
-                    "out_uri" not in emitter_config
+                if ("out_dir" not in self.emitter_config) and (
+                    "out_uri" not in self.emitter_config
                 ):
                     raise RuntimeError(
                         "Must provide out_dir or out_uri"
                         " as emitter argument for parquet emitter."
                     )
         elif isinstance(self.emitter, dict):
-            emitter_config = self.emitter
+            self.emitter_config = self.emitter
         else:
             raise RuntimeError(
                 "Emitter option must either be a string"
@@ -811,7 +812,7 @@ class EcoliSim:
             "emit_topology": self.emit_topology,
             "emit_processes": self.emit_processes,
             "emit_config": self.emit_config,
-            "emitter": emitter_config,
+            "emitter": self.emitter_config,
             "initial_global_time": self.initial_global_time,
         }
         if self.experiment_id:
@@ -851,7 +852,7 @@ class EcoliSim:
         # Clean up unnecessary references
         self.generated_initial_state = None
         self.ecoli_experiment.initial_state = None
-        del metadata, experiment_config, emitter_config
+        del metadata, experiment_config
         self.ecoli = None
 
         # run the experiment
@@ -869,7 +870,8 @@ class EcoliSim:
                         self.daughter_outdir, f"daughter_state_{i}.json"
                     )
                     write_json(daughter_path, agent_state)
-                print(f"Divided at t = {self.ecoli_experiment.global_time}.")
+                print(f"Divided at t = {self.ecoli_experiment.global_time} after"
+                      f"{self.ecoli_experiment.global_time - self.initial_global_time} sec.")
                 with open("division_time.sh", "w") as f:
                     f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 sys.exit()
@@ -881,7 +883,10 @@ class EcoliSim:
 
     def query(self, query: Optional[list[tuple[str]]] = None):
         """
-        Query emitted data.
+        Query data that was emitted to RAMEmitter (``config['emitter'] == 'timeseries'``).
+        For the Parquet emitter, query sim output with an analysis script run using
+        :py:mod:`runscripts.analysis` or with ad-hoc DuckDB SQL queries built using
+        :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql` as a base.
 
         Args:
             query: List of tuple-style paths in the simulation state to
@@ -899,6 +904,11 @@ class EcoliSim:
               lists of the simulation state value over time (e.g.
               ``{'data': [..., ..., ...]}``).
         """
+        if self.emitter_config["type"] != "timeseries":
+            raise RuntimeError("Query method only works for timeseries emitter."
+                " For Parquet emitter, either write an analysis script to be run"
+                " using runscripts/analysis.py or build off the DuckDB SQL query"
+                " returned by ecoli.library.parquet_emitter.get_dataset_sql.")
         # Retrieve queried data (all if not specified)
         if self.raw_output:
             return self.ecoli_experiment.emitter.get_data(query)
@@ -918,8 +928,7 @@ class EcoliSim:
     def get_metadata(self) -> dict[str, Any]:
         """
         Compiles all simulation settings, git hash, and process list into a single
-        dictionary. Called by
-        :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.to_json_string`.
+        dictionary.
         """
         # create metadata of this experiment to be emitted,
         # namely the config of this EcoliSim object
@@ -941,8 +950,13 @@ class EcoliSim:
     def get_output_metadata(self) -> dict[str, Any]:
         """
         Filters all ports schemas to include only output metadata
-        located at the path ('_properties', 'metadata') for each schema.
+        located at the path ``('_properties', 'metadata')`` for each schema.
         See :py:meth:`~ecoli.library.schema.listener_schema` for usage details.
+
+        This dictionary of output metadata is flattened (see :py:func:`~ecoli.library.parquet_emitter.flatten_dict`)
+        into columns with prefix :py:data:`~ecoli.library.parquet_emitter.METADATA_PREFIX`
+        and emitted as part of the simulation config by the Parquet emitter. It can
+        be retrieved later using :py:func:`~ecoli.library.parquet_emitter.get_field_metadata`.
         """
         if self.divide:
             processes_and_steps = self.ecoli.processes["agents"][self.agent_id]

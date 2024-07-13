@@ -1375,12 +1375,14 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         each amino acid. Uses self.process.aa_from_trna mapping to distribute
         from amino acids to tRNA based on the fraction that each tRNA species
         makes up for all tRNA species that code for the same amino acid.
+
         Args:
             n_aa: counts of each amino acid to distribute to each tRNA
             n_trna: counts of each tRNA to determine the distribution
             limited: optional, if True, limits the amino acids
                 distributed to each tRNA to the number of tRNA that are
                 available (n_trna)
+
         Returns:
             Distributed counts for each tRNA
         """
@@ -1681,6 +1683,7 @@ def calculate_trna_charging(
 
     Returns:
         5-element tuple containing
+
         - **new_fraction_charged**: fraction of total tRNA that is charged for each
           amino acid species
         - **v_rib**: ribosomal elongation rate in units of uM/s

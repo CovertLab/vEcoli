@@ -125,7 +125,7 @@ class Ecoli(Composer):
         1. ``config['initial_state']``
 
         2. Load the JSON file at ``f'data/{config['initial_state_file]}.json'``
-        using :py:func:`~ecoli.states.wcecoli_state.get_state_from_file`.
+        using :py:func:`~ecoli.library.json_state.get_state_from_file`.
 
         3. Generate initial state from simulation data object (see
         :py:meth:`~ecoli.library.sim_data.LoadSimData.generate_initial_state`)

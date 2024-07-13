@@ -15,6 +15,7 @@ relevant attributes that consist of:
 :Helpers: Other useful helper functions
 
 .. _bulk:
+
 --------------
 Bulk Molecules
 --------------
@@ -47,12 +48,15 @@ with the following named fields:
         ``reconstruction/ecoli/flat/compartments.tsv`` file (see
         `Cell Component Ontology <http://brg.ai.sri.com/CCO/downloads/cco.html>`_)
     2. ``count`` (:py:attr:`numpy.int64`): Counts of bulk molecules
-        Instead of the full structured array, the ``evolve_state`` method of partitioned
-        processes receive a one-dimensional array of partitioned counts (see :ref:`partitioning`).
+        Note that the :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` 
+        method of :py:class:`~ecoli.processes.partition.PartitionedProcess` does not see the full
+        structured array with named fields through its bulk port and instead sees a 1D array of
+        partitioned counts from the allocator (see :ref:`partitioning`).
     3. ``{}_submass`` (:py:attr:`numpy.float64`): Field for each submass
         Eight submasses are rRNA, tRNA, mRNA, miscRNA, nonspecific_RNA, protein, metabolite, water, DNA
 
 .. _initialization:
+
 Initialization
 ==============
 To create the initial value for this store, the model will go through 
@@ -60,11 +64,11 @@ the following three options in order:
 
     1. Load custom initial state
         Set ``initial_state`` option for 
-        :py:mod:`~ecoli.experiments.ecoli_master_sim`
+        :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
 
     2. Load from saved state JSON
         Set ``initial_state_file`` option for 
-        :py:mod:`~ecoli.experiments.ecoli_master_sim`
+        :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
 
     3. Generate from ``sim_data``
         :py:meth:`~ecoli.library.sim_data.LoadSimData.generate_initial_state` 
@@ -73,6 +77,7 @@ the following three options in order:
 
 
 .. _partitioning:
+
 Partitioning
 ============
 
@@ -126,7 +131,7 @@ each timestep, we can make use of a special subclass of the typical Vivarium
 are actually instances of :py:class:`~vivarium.core.process.Step`. These Steps 
 are configured to run in user-configured "execution layers" by way of a ``flow`` 
 that is included in the simulation configuration (see 
-:py:mod:`~ecoli.experiemnts.ecoli_master_sim`).
+:py:mod:`~ecoli.experiments.ecoli_master_sim`).
 
 A ``flow`` is a dictionary that specifies the dependencies for each Step. For 
 example, if a user wants Step B to run only after Step A has updated the 
@@ -161,6 +166,7 @@ will run with a view of the state that was updated by Step A, and finally
 Step D will run with a view of the state that was updated by every other step.
 
 .. _implementation:
+
 Implementation
 --------------
 All partitioned processes are instances of the 
@@ -216,12 +222,7 @@ evolvers into four execution layers in the final model:
     The :py:class:`~ecoli.processes.partition.Requester` and 
     :py:class:`~ecoli.processes.partition.Evolver` for each partitioned process 
     share the same :py:class:`~ecoli.processes.partition.PartitionedProcess` 
-    instance. This allows instance variables  
-    (see 
-    :py:data:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation.aa_supply`
-    for an example in 
-    :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`)
-    to be updated and shared between the 
+    instance. This allows instance variables to be updated and shared between the 
     :py:meth:`~ecoli.processes.partition.PartitionedProcess.calculate_request` 
     and :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` 
     methods of each :py:class:`~ecoli.processes.partition.PartitionedProcess`.
@@ -290,7 +291,7 @@ molecule). All unique molecules will have the following named fields:
 
     1. ``unique_index`` (:py:class:`int`): Unique identifier for each unique molecule
         When processes add new unique molecules, the helper function 
-        :py:func:`ecoli.library.schema.create_unqiue_indexes` is used to generate 
+        :py:func:`ecoli.library.schema.create_unique_indexes` is used to generate 
         unique indices for each molecule to be added.
     2. ``_entryState`` (:py:attr:`numpy.int8`): 1 for active row, 0 for inactive row
         When unique molecules are deleted (e.g. RNA degradation), all of their data, 

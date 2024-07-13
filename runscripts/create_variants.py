@@ -24,8 +24,6 @@ def parse_variants(
 ) -> list[dict[str, Any]]:
     """
     Parse parameters for a variant specified under ``variants`` key of config.
-    See :py:func:`~.test_parse_variants` for an sample ``variant_config`` and
-    what it gets parsed into.
 
     Args:
         variant_config: Dictionary of the form::
@@ -143,9 +141,8 @@ def apply_and_save_variants(
 
     Args:
         sim_data: Simulation data object to modify
-        param_dicts: Return vale of :py:func:`~.parse_variants`
-        variant_name: Name of variant function in
-            :py:data:`~ecoli.variant.VARIANT_REGISTRY`
+        param_dicts: Return value of :py:func:`~.parse_variants`
+        variant_name: Name of variant function file in ``ecoli/variants`` folder
         outdir: Path to folder where variant ``sim_data`` pickles are saved
     """
     variant_mod = importlib.import_module(f"ecoli.variants.{variant_name}")
