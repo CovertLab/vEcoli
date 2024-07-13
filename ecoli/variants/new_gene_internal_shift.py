@@ -6,16 +6,20 @@ if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
 
-def get_new_gene_ids_and_indices(sim_data):
+def get_new_gene_ids_and_indices(
+    sim_data: "SimulationDataEcoli"
+) -> tuple[list[str], list[int], list[str], list[int]]:
     """
     Determines the indices of new gene cistrons and proteins using the new
     gene flag in sim_data.
 
     Returns:
-        new_gene_cistron_ids: names of new gene cistrons
-        new_gene_indices: indices in rna_data table for new gene cistrons
-        new_monomer_ids: names of new gene monomers
-        new_monomer_indices: indices in monomer_data table for new monomers
+        4-element tuple containing
+
+        - **new_gene_cistron_ids**: names of new gene cistrons
+        - **new_gene_indices**: indices in rna_data table for new gene cistrons
+        - **new_monomer_ids**: names of new gene monomers
+        - **new_monomer_indices**: indices in monomer_data table for new monomers
     """
     cistron_sim_data = sim_data.process.transcription.cistron_data.struct_array
     monomer_sim_data = sim_data.process.translation.monomer_data.struct_array

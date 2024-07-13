@@ -3,13 +3,14 @@ Plot one value per index via heatmap for
 new_gene_expression_and_translation_efficiency variant.
 
 Possible Plots:
+
 - Percent of sims that successfully reached a given generation number
 - Average doubling time
 - Average cell volume, mass, dry cell mass, mRNA mass, protein mass
 - Average translation efficiency, weighted by cistron count
 - Average mRNA count, monomer count, mRNA mass fraction, protein mass fraction,
-    RNAP portion, and ribosome portion for a capacity gene to measure burden on
-    overall host expression
+  RNAP portion, and ribosome portion for a capacity gene to measure burden on
+  overall host expression
 - Average new gene copy number
 - Average new gene mRNA count
 - Average new gene mRNA mass fraction
@@ -21,18 +22,18 @@ Possible Plots:
 - Average new gene initialization rate for RNAP and ribosomes
 - Average new gene initialization probabilities for RNAP and ribosomes
 - Average count and portion of new gene ribosome initialization events per time
-    step
+  step
 - Average number and proportion of RNAP on new genes at a given time step
 - Average number and proportion of ribosomes on new gene mRNAs at a given time
-    step
+  step
 - Average number and proportion of RNAP making rRNAs at a given time step
 - Average number and proportion of RNAP and ribosomes making RNAP subunits at
-    a given time step
+  a given time step
 - Average number and proportion of RNAP and ribosomes making ribosomal proteins
-    at a given time step
+  at a given time step
 - Average fraction of time new gene is overcrowded by RNAP and Ribosomes
 - Average overcrowding probability ratio for new gene RNA synthesis and
-    polypeptide initiation
+  polypeptide initiation
 - Average max_p probabilities for RNA synthesis and polypeptide initiation
 - Average number of overcrowded genes for RNAP and Ribosomes
 - Average number of total, active, and free ribosomes
@@ -76,17 +77,19 @@ FONT_SIZE = 9
 
 """
 Dashboard Flag
-0: Separate Only (Each plot is its own file)
-1: Dashboard Only (One file with all plots)
-2: Both Dashboard and Separate
+
+- 0: Separate Only (Each plot is its own file)
+- 1: Dashboard Only (One file with all plots)
+- 2: Both Dashboard and Separate
 """
 DASHBOARD_FLAG = 2
 
 """
 Standard Deviations Flag
-True: Plot an additional copy of all plots with standard deviation displayed
-    insted of the average
-False: Plot no additional plots
+
+- True: Plot an additional copy of all plots with standard deviation displayed
+  insted of the average
+- False: Plot no additional plots
 """
 STD_DEV_FLAG = True
 
