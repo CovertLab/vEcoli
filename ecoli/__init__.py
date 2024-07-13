@@ -4,7 +4,6 @@ from vivarium.core.registry import (
     serializer_registry,
 )
 
-from ecoli.library.clickhouse_emitter import ClickHouseEmitter
 from ecoli.library.parquet_emitter import ParquetEmitter
 from ecoli.library.schema import (
     divide_binomial,
@@ -37,7 +36,6 @@ import faulthandler
 
 faulthandler.enable()
 
-emitter_registry.register("clickhouse", ClickHouseEmitter)
 emitter_registry.register("parquet", ParquetEmitter)
 
 # register :term:`updaters`
