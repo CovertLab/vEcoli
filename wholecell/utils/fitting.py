@@ -46,7 +46,7 @@ def countsFromMassAndExpression(
     mass: float,
     mws: npt.NDArray[np.float64],
     relativeExpression: npt.NDArray[np.float64],
-    nAvogadro: float
+    nAvogadro: float,
 ) -> npt.NDArray[np.float64]:
     """
     Args:
@@ -54,7 +54,7 @@ def countsFromMassAndExpression(
         mws: Molecular weights of each species
         relativeExpression: Relative expression of each species
         nAvogadro: Avogadro's number
-    
+
     Returns:
         Counts of each molecule
     """
@@ -136,7 +136,7 @@ def masses_and_counts_for_homeostatic_target(
 
     Returns:
         2-element tuple containing
-        
+
         - **masses**: The mass associated with each molecular species,
         - **counts**: The counts associated with each molecular species
     """

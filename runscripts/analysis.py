@@ -305,8 +305,10 @@ def main():
         query_strings = {}
         if len(cols) > 0:
             joined_cols = ", ".join(cols)
-            data_ids = conn.sql(f"SELECT DISTINCT ON({joined_cols}) {joined_cols}"
-                f" FROM ({config_sql}) WHERE {duckdb_filter}").fetchall()
+            data_ids = conn.sql(
+                f"SELECT DISTINCT ON({joined_cols}) {joined_cols}"
+                f" FROM ({config_sql}) WHERE {duckdb_filter}"
+            ).fetchall()
             for data_id in data_ids:
                 data_filters = []
                 for col, col_val in zip(cols, data_id):
