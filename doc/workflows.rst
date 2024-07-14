@@ -1,6 +1,24 @@
-# Configuring Vivarium-ecoli Simulations
+================
+vEcoli Workflows
+================
 
-Simulations of the Ecoli composite can be configured using the command-line interface (CLI), `.json` configuration files, or programmatically through an object-oriented interface. JSON configuration files live in `data/ecoli_configs`.
+--------------
+Workflow Steps
+--------------
+
+A typical simulation workflow has four main steps:
+
+1. Run the parameter calculator (:py:mod:`runscripts.parca`) to generate simulation parameters from raw data.
+2. Create one or more variants (:py:mod:`runscripts.create_variants`) of the simulation parameters.
+3. Simulate cells (:py:mod:`ecoli.experiments.ecoli_master_sim`).
+4. Aggregate simulation results with analysis scripts (:py:mod:`runscripts.analysis`).
+
+While each of these steps can be run individually by invoking their associated scripts,
+it is common to run them in sequence using :py:mod:`runscripts.workflow`. 
+Each of these steps is orchestrated by a script (linked above) and each script  The linked scripts for each step take their own set of configuration options, some of which are exposed as command line arguments that can be listed by running the script with `-h` (e.g. `python runscripts/analysis.py -h`). 
+
+Configuration options for vEcoli workflows are almost universally controlled through JSON files., or programmatically through an object-oriented interface. JSON configuration files live in `data/ecoli_configs`.
+     `--config` Configuration options for vEcoli workflows are almost universally controlled through JSON files., or programmatically through an object-oriented interface. JSON configuration files live in `data/ecoli_configs`.
 
 Configuration through the CLI affords easy access to the most important settings, whereas the programmatic and JSON approaches offer access to all settings.
 
