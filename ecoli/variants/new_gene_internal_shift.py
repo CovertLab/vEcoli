@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 
 def get_new_gene_ids_and_indices(
-    sim_data: "SimulationDataEcoli"
+    sim_data: "SimulationDataEcoli",
 ) -> tuple[list[str], list[int], list[str], list[int]]:
     """
     Determines the indices of new gene cistrons and proteins using the new

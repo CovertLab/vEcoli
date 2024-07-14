@@ -113,12 +113,11 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
             ``gcs://`` or ``gs://`` for Google Cloud Storage bucket)
 
     Returns:
-        Tuple of DuckDB SQL strings::
-            
-            (
-                SQL query for sim output (see :py:func:`~.read_stacked_columns`),
-                SQL query for sim configs (see :py:func:`~.get_field_metadata` and :py:func:`~.get_config_value`)
-            )
+        2-element tuple containing
+
+        - **history_sql**: SQL query for sim output (see :py:func:`~.read_stacked_columns`),
+        - **config_sql**: SQL query for sim configs (see :py:func:`~.get_field_metadata`
+          and :py:func:`~.get_config_value`)
 
     """
     return (
@@ -708,7 +707,7 @@ class ParquetEmitter(Emitter):
             3. Write unified schema to ``_metadata`` file in current sim output folder
             4. Write unified schema to ``_metadata`` file in output folder for
                 sim of same experiment ID + :py:data:`~.EXPERIMENT_SCHEMA_SUFFIX`
-        
+
         Unless more than 10 simulations finish at the exact same time, the ``_metadata``
         file in the folder for experiment ID + :py:data:`~.EXPERIMENT_SCHEMA_SUFFIX`
         should contain a schema that unifies the output of all finished simulations.

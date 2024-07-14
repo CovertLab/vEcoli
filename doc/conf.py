@@ -157,7 +157,7 @@ autodoc_mock_imports = [
     "sklearn",
     "libpysal",
     "splot",
-    "polars"
+    "polars",
 ]
 # Move typehints from signature into description
 autodoc_typehints = "description"
@@ -200,9 +200,7 @@ def run_apidoc(_):
     exclude_paths = [
         (
             os.path.join(cur_dir, path)
-            for path in (
-                "../ecoli/experiments/ecoli_master_sim_tests.py",
-            )
+            for path in ("../ecoli/experiments/ecoli_master_sim_tests.py",)
         ),
         (),
         (),

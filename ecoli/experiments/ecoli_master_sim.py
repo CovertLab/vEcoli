@@ -745,8 +745,10 @@ class EcoliSim:
                         daughter_outdir, f"daughter_state_{i}.json"
                     )
                     write_json(daughter_path, agent_state)
-                print(f"Divided at t = {self.ecoli_experiment.global_time} after"
-                      f"{self.ecoli_experiment.global_time - self.initial_global_time} sec.")
+                print(
+                    f"Divided at t = {self.ecoli_experiment.global_time} after"
+                    f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
+                )
                 with open("division_time.sh", "w") as f:
                     f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 sys.exit()
@@ -870,8 +872,10 @@ class EcoliSim:
                         self.daughter_outdir, f"daughter_state_{i}.json"
                     )
                     write_json(daughter_path, agent_state)
-                print(f"Divided at t = {self.ecoli_experiment.global_time} after"
-                      f"{self.ecoli_experiment.global_time - self.initial_global_time} sec.")
+                print(
+                    f"Divided at t = {self.ecoli_experiment.global_time} after"
+                    f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
+                )
                 with open("division_time.sh", "w") as f:
                     f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 sys.exit()
@@ -905,10 +909,12 @@ class EcoliSim:
               ``{'data': [..., ..., ...]}``).
         """
         if self.emitter_config["type"] != "timeseries":
-            raise RuntimeError("Query method only works for timeseries emitter."
+            raise RuntimeError(
+                "Query method only works for timeseries emitter."
                 " For Parquet emitter, either write an analysis script to be run"
                 " using runscripts/analysis.py or build off the DuckDB SQL query"
-                " returned by ecoli.library.parquet_emitter.get_dataset_sql.")
+                " returned by ecoli.library.parquet_emitter.get_dataset_sql."
+            )
         # Retrieve queried data (all if not specified)
         if self.raw_output:
             return self.ecoli_experiment.emitter.get_data(query)
