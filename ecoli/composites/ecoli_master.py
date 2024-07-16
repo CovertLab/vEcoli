@@ -240,6 +240,9 @@ class Ecoli(Composer):
                     :py:meth:`~ecoli.library.sim_data.LoadSimData.get_config_by_name`,
                     or the string ``"default"`` to indicate that the
                     ``defaults`` attribute of the process should be used as its config.
+                    In the case of a dictionary config, the dictionary will be merged
+                    with the result of :py:meth:`~ecoli.library.sim_data.LoadSimData.get_config_by_name`
+                    if possible, or the ``defaults`` attribute if not. 
 
                 * ``processes``:
                     Mapping of all process names (:py:class:`str`)
@@ -554,20 +557,14 @@ class Ecoli(Composer):
                     )
                 # Only the bulk ports should be included in the request
                 # and allocate topologies
-                topology[f"{process_id}_requester"]["request"] = {
-                    "bulk": (
-                        "request",
-                        process_id,
-                        "bulk",
-                    )
-                }
-                topology[f"{process_id}_evolver"]["allocate"] = {
-                    "bulk": (
-                        "allocate",
-                        process_id,
-                        "bulk",
-                    )
-                }
+                topology[f"{process_id}_requester"]["request"] = (
+                    "request",
+                    process_id
+                )
+                topology[f"{process_id}_evolver"]["allocate"] = (
+                    "allocate",
+                    process_id
+                )
                 topology[f"{process_id}_requester"]["next_update_time"] = (
                     "next_update_time",
                     process_id,
@@ -808,14 +805,18 @@ def get_ecoli_partition_topology_plot_settings():
 
 
 def ecoli_topology_plot(config=None):
-    if not config:
-        config = {}
     """Make a topology plot of Ecoli"""
-    agent_id_config = {"agent_id": "1"}
-    ecoli = Ecoli({**agent_id_config, **config})
+    # Import here to avoid circular import
+    from ecoli.experiments.ecoli_master_sim import EcoliSim, SimConfig
+    default_config = SimConfig()
+    if config is not None:
+        default_config.update_from_dict(config)
+    config = default_config.to_dict()
+    sim = EcoliSim(config)
+    sim.build_ecoli()
     settings = get_ecoli_partition_topology_plot_settings()
     topo_plot = plot_topology(
-        ecoli,
+        sim.ecoli,
         filename="topology",
         out_dir="out/composites/ecoli_master",
         settings=settings,
