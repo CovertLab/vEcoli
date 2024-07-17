@@ -1,6 +1,6 @@
-================
-vEcoli Workflows
-================
+=========
+Workflows
+=========
 
 --------------
 Workflow Steps

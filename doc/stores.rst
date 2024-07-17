@@ -2,17 +2,56 @@
 Stores
 ======
 
-Stores are upgraded dictionaries that store the simulation state. The 
-descriptions for each type of store below are prefaced by a series of 
-relevant attributes that consist of:
+Stores are upgraded dictionaries that store the simulation state. They can
+be nested within one another to form a store hierarchy. The core stores in
+vEcoli comprise the following simplified store hierarchy::
 
-:Path: Location of the store for use in process topologies
-:Updater: Function used to apply updates to the store
+    |-- bulk
+    |-- unique
+    |   |-- active_replisomes
+    |   |-- active_ribosome
+    |   |-- active_RNAPs
+    |   |-- chromosome_domains
+    |   |-- chromosomal_segments
+    |   |-- full_chromosomes
+    |   |-- DnaA_boxes
+    |   |-- genes
+    |   |-- oriCs
+    |   |-- promoters
+    |   |-- RNAs
+    |-- listeners
+    |   |-- mass
+    |   |   |-- dry_mass
+    |   |   |-- cell_mass
+    |   |   |-- ...
+    |   |-- replication_data
+    |   |   |-- fork_coordinates
+    |   |   |-- fork_domains
+    |   |   |-- ...
+    |   |-- ...
+
+Individual stores in this hierarchy are identified using tuples representing
+their path inside the nested hierarchy. For example, the dry mass listener store
+has the tuple path ``("listeners", "mass", "dry_mass")``. There are three top-level
+stores corresponding to the three main types of simulation data: bulk, unique, and
+listeners. The following sections provide descriptions for each of these store types
+prefaced by a series of relevant attributes including:
+
+:Path: Tuple path of the store (e.g. for use in process topologies)
+:Updater: Function used to apply updates to the store. Click on the linked API
+    documentation to see the format that updates to the store must be given in.
 :Divider: Function used to split the store during cell division
 :Serializer: Instance of :py:class:`vivarium.core.registry.Serializer` 
     used to serialize store data before being emitted
-:Schema: Helper function for store in ``ports_schema`` methods
+:Schema: Helper function to create store schema in ``ports_schema`` methods
 :Helpers: Other useful helper functions
+
+.. WARNING::
+    The store values that ``vivarium-core`` shows to processes when running them
+    are **NOT** copies, so processes must be careful not to unintentionally
+    modify mutable values. The Numpy arrays in the bulk and unique molecules stores
+    are made read-only for extra protection (see ``WRITEABLE``
+    flag in :py:attr:`numpy.ndarray.flags`).
 
 .. _bulk:
 
@@ -20,7 +59,7 @@ relevant attributes that consist of:
 Bulk Molecules
 --------------
 
-:Path: ``('bulk',)``
+:Path: ``("bulk",)``
 :Updater: :py:func:`ecoli.library.schema.bulk_numpy_updater`
 :Divider: :py:func:`ecoli.library.schema.divide_bulk`
 :Serializer: :py:class:`ecoli.library.schema.get_bulk_counts`
@@ -28,17 +67,9 @@ Bulk Molecules
 :Helpers: :py:func:`ecoli.library.schema.bulk_name_to_idx`,
     :py:func:`ecoli.library.schema.counts`
 
-.. WARNING::
-    ``vivarium-core`` **does not** copy store values so processes must
-    be careful not to unintentionally modify mutable values. The bulk 
-    molecules array is read-only for extra protection (see ``WRITEABLE`` 
-    flag in :py:attr:`numpy.ndarray.flags`).
-
-.. note::
-    Bulk molecules are named as such because they represent species for 
-    which all molecules are treated as interchangeable (e.g. water).
-
-The bulk molecules store consists of a 
+Bulk molecules are named as such because they represent species for 
+which all molecules are treated as interchangeable (e.g. water). The bulk
+molecules store holds a
 `structured Numpy array <https://numpy.org/doc/stable/user/basics.rec.html>`_ 
 with the following named fields:
 
@@ -93,41 +124,40 @@ applied once all processes have run.
 
 This setup has a potential problem: two processes may both decide to deplete 
 the count of the same molecule, resulting in a final count that is negative. 
-To prevent this from happening, the model forces processes to communicate 
-their bulk molecule requests to a special allocator process 
+To prevent this from happening, the model forces processes to first request
+counts of bulk molecules via special process-specific ``request`` stores. These
+stores are read by a special allocator process 
 (:py:class:`~ecoli.processes.allocator.Allocator`). The allocator process 
-will divide the bulk molecules so that each process sees a functional count 
-that is proportional to their request.
+then divides the bulk molecules so that each process sees a functional count 
+proportional to its request.
 
 For example, if process A requests 100 of molecule X and process B requests 
 400 of molecule X but the cell only has 400 molecules of X, the allocator 
-will divde the molecules as follows:
+will divide the molecules as follows:
 
 - Process A: :math:`\frac{100}{100 + 400} * 400 = 80` molecules of X 
 - Process B: :math:`\frac{400}{100 + 400} * 400 = 320` molecules of X
 
-.. note::
-    Processes in the model are more dependent on one another than in this 
-    simplified example.
-
-For example, since molecule binding and complexation 
-events occur on timescales much shorter than the default 1 second 
-simulation timestep, we run :py:class:`~ecoli.processes.tf_unbinding.TfUnbinding`, 
-update the simulation state, then run 
-:py:class:`~ecoli.processes.equilibrium.Equilibrium` and 
-:py:class:`~ecoli.processes.two_component_system.TwoComponentSystem`, 
-update the simulation state, and finally run 
-:py:class:`~ecoli.processes.tf_binding.TfBinding`, 
-and update the simulation state. This allows transcription factors that are 
-currently bound to promoters a chance to form complexes or participate in 
-other reactions, better reflecting the transient binding dynamics of real cells.
-
 Steps and Flows
 ---------------
-To allow processes to run with a pre-specified order within 
+In our model, many processes are dependent one another to an even greater extent
+than that imposed by this request/allocate partitioning scheme. For example, since
+molecule binding and complexation events occur on timescales much shorter than the
+default 1 second simulation timestep, :py:class:`~ecoli.processes.equilibrium.Equilibrium`
+and :py:class:`~ecoli.processes.two_component_system.TwoComponentSystem`
+must wait for :py:class:`~ecoli.processes.tf_unbinding.TfUnbinding` to update
+the simulation state by freeing currently bound transcription factors. This allows
+all transcription factors a chance to form complexes
+or participate in other reactions, better reflecting the transient binding dynamics
+of real cells. :py:class:`~ecoli.processes.tf_binding.TfBinding` must wait for these
+new active transcription factor counts,
+:py:class:`~ecoli.processes.transcript_initiation.TranscriptInitiation`
+must wait for the counts of transcription factors bound to promoters, and so on.
+
+To allow processes to run in a pre-specified order within 
 each timestep, we can make use of a special subclass of the typical Vivarium 
 :py:class:`~vivarium.core.process.Process` class: 
-:py:class:`~vivarium.core.process.Step`. All "processes" in the model 
+:py:class:`~vivarium.core.process.Step`. Almost all "processes" in the model 
 are actually instances of :py:class:`~vivarium.core.process.Step`. These Steps 
 are configured to run in user-configured "execution layers" by way of a ``flow`` 
 that is included in the simulation configuration (see 
@@ -141,13 +171,13 @@ simulation state, the user can include Step A as a dependency of Step B::
         "Step B": [("Step A",)]
     }
 
-.. note::
-    Dependencies must be in the form of paths like those that you would find 
-    in a topology.
+Steps can have multiple dependencies (e.g. ``[("Step A",), ("Step B",)]``)
+and each dependency must be in the form of a tuple path. All processes are
+top-level stores so these paths are usually just ``("process name",)``.
 
 Vivarium will parse the ``flow`` to construct a directed acyclic graph  
 and figure out the order in which to run steps by stratifying them into 
-"execution layers". For example, consider the following ``flow``::
+execution layers. For example, consider the following ``flow``::
 
     {
         "Step B": [("Step A",)],
@@ -187,36 +217,38 @@ In the model, each partitioned process is used to create two separate steps:
 a :py:class:`~ecoli.processes.partition.Requester` and an 
 :py:class:`~ecoli.processes.partition.Evolver`. For each execution layer 
 in the ``flow`` given to :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`, 
-:py:class:`~ecoli.composites.ecoli_master.Ecoli` will arrange the requesters and 
-evolvers into four execution layers in the final model: 
+:py:class:`~ecoli.composites.ecoli_master.Ecoli` will create Requesters, Evolvers,
+and other required Steps arranged to be executed in the following order:
 
-1. Requesters: 
-    Each will call the 
+1. Requesters:
+    Each calls the 
     :py:meth:`~ecoli.processes.partition.PartitionedProcess.calculate_request`
     method of a :py:class:`~ecoli.processes.partition.PartitionedProcess` 
-    in said layer and write its requests to a process-specific ``request`` store
+    in said layer and writes its requests to a process-specific ``request`` store
 
-2. Allocator: 
-    An instance of :py:class:`~ecoli.processes.allocator.Allocator` 
-    that reads all ``request`` stores for processes in execution layer, 
-    proportionally allocates bulk molecules to processes according to requests, 
-    and writes allocated counts to process-specific ``allocate`` stores
+2. Allocator:
+    Once all Requesters in said layer have finished writing their requests, an
+    instance of :py:class:`~ecoli.processes.allocator.Allocator` 
+    reads all the written ``request`` stores and proportionally allocates bulk
+    molecules to processes, writing allocated counts to process-specific
+    ``allocate`` stores
 
-3. Evolvers: 
-    Each will replace all views into the ``bulk`` store with the counts allocated 
-    to its corresponding :py:class:`~ecoli.processes.partition.PartitionedProcess` 
-    in its ``allocate`` store, call the 
+3. Evolvers:
+    Each swaps the Numpy structured array of unpartitioned bulk counts in the
+    ``bulk`` port with the 1D array of allocated counts in its corresponding
+    ``allocate`` store, calls the
     :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` 
     method of its :py:class:`~ecoli.processes.partition.PartitionedProcess`, 
-    update the bulk molecule counts, and send unique molecule updates 
+    updates the bulk molecule counts, and sends unique molecule updates 
     to be accumulated by each unique molecule updater 
     (see :py:class:`~ecoli.library.schema.UniqueNumpyUpdater`)
 
 4. Unique updater: 
     An instance of 
-    :py:class:`~ecoli.processes.unique_update.UniqueUpdate` that tells 
+    :py:class:`~ecoli.processes.unique_update.UniqueUpdate` that tells the
     unique molecule updaters to apply accumulated updates 
-    (see :py:class:`~ecoli.library.schema.UniqueNumpyUpdater` for details)
+    (see :py:class:`~ecoli.library.schema.UniqueNumpyUpdater` for why we accumulate
+    updates and wait to apply them after all Evolvers in an execution layer have run)
 
 .. note::
     The :py:class:`~ecoli.processes.partition.Requester` and 
@@ -224,66 +256,71 @@ evolvers into four execution layers in the final model:
     share the same :py:class:`~ecoli.processes.partition.PartitionedProcess` 
     instance. This allows instance variables to be updated and shared between the 
     :py:meth:`~ecoli.processes.partition.PartitionedProcess.calculate_request` 
-    and :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` 
+    and :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state`
     methods of each :py:class:`~ecoli.processes.partition.PartitionedProcess`.
 
-Accessing Non-partitioned Counts
+Accessing Non-Partitioned Counts
 --------------------------------
-There are certain processes that require access to the total, non-partitioned 
-count of certain bulk molecules. For example, 
-:py:class:`~ecoli.processes.metabolism.Metabolism` needs to know the total 
-counts to all amino acids to accurately implement tRNA charging. To give these 
+There are certain partitioned processes that require access to the total, non-partitioned 
+counts of certain bulk molecules in their
+:py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` methods. For example, 
+:py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation` needs to know
+the total counts to all amino acids to accurately implement tRNA charging. To give these 
 processes access to non-partitioned counts, an additional port is added to 
 their ``ports_schema`` methods and topologies that is also connected to the 
 bulk molecules store. By convention, this port is called ``bulk_total`` to 
-differentiate it from the partitioned ``bulk`` port. Evolvers will overwrite 
-the partitioned ``bulk`` port with the allocated bulk molecule counts while 
-leaving the ``bulk_total`` port untouched, giving their associated 
-:py:class:`~ecoli.processes.partition.PartitionedProcess` instances access to 
-the unpartitioned bulk molecule counts in their 
-:py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` methods. 
+differentiate it from the partitioned ``bulk`` port. As noted in :ref:`implementation`,
+Evolvers overwrite port named ``bulk`` with the allocated bulk counts. Due to being
+named ``bulk_total`` instead of ``bulk``, the non-partitioned port value is left
+untouched and allows the Evolver to read non-partitioned counts at will (i.e.
+inside the :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` method
+of its associated :py:class:`~ecoli.processes.partition.PartitionedProcess`).
 
 
 Indexing
 ========
 Processes typically use the :py:func:`ecoli.library.schema.bulk_name_to_idx` helper function 
 to get the indices for a set of molecules (e.g. all NTPs). These indices are typically cached 
-as instance attributes (e.g. ``self.ntp_idx``) in the ``next_update`` method of a process.
+as instance attributes (e.g. ``self.ntp_idx``) in the ``calculate_request`` method of a
+:py:class:`~ecoli.processes.partition.PartitionedProcess`. This way, we can ensure
+that all the necessary indices are retrieved the very first time the
+:py:class:`~ecoli.processes.partition.Requester` for that process is
+run, making it available to the :py:class:`~ecoli.processes.partition.Evolver`
+(which shares the same :py:class:`~ecoli.processes.partition.PartitionedProcess`)
+and subsequent runs of the Requester. See the branch beginning ``if self.proton_idx is None``
+in :py:meth:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation.calculate_request`
+for an example.
 
 Though counts can be directly retrieved from the Numpy structured array (e.g. 
-``states['bulk']['count'][self.ntp_idx]``), partitioned processes do not have access to the 
-Numpy structured array in their ``evolve_state`` methods due to how partitioning was 
-implemented in the model (see :ref:`implementation`). To standardize count 
-access across processes, the helper function 
-:py:func:`ecoli.library.schema.counts` can handle both of these scenarios and 
-also guarantees that the returned counts can be safely edited without 
-unintentionally mutating the source array.
+``states["bulk"]["count"][self.ntp_idx]``), this method of access does not workflow
+for :py:class:`~ecoli.processes.partition.Evolver` (i.e. inside the
+:py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` method)
+because they automatically replace the non-partitioned Numpy structured array
+of bulk counts with the 1D array of partitioned bulk counts for that process
+(see :ref:`implementation`). To standardize count access across the
+:py:meth:`~ecoli.processes.partition.PartitionedProcess.calculate_request` and
+:py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` methods,
+the helper function :py:func:`ecoli.library.schema.counts` can handle both of
+these scenarios and also guarantees that the returned counts can be safely
+edited without unintentionally mutating the source array.
 
 
 ----------------
 Unique Molecules
 ----------------
 
-:Path: ``('unique',)``
+:Path: ``("unique",)``
 :Updater: :py:meth:`ecoli.library.schema.UniqueNumpyUpdater.updater`
 :Dividers: See :py:data:`ecoli.library.schema.UNIQUE_DIVIDERS`
 :Serializer: :py:class:`ecoli.library.schema.get_unique_fields`
 :Schema: :py:func:`ecoli.library.schema.numpy_schema`
 :Helpers: :py:func:`ecoli.library.schema.attrs`
 
-.. WARNING::
-    ``vivarium-core`` **does not** copy store values so processes must
-    be careful not to unintentionally modify mutable values. Each unique 
-    molecule array is read-only for extra protection (see ``WRITEABLE`` 
-    flag in :py:attr:`numpy.ndarray.flags`).
-
-.. note::
-    Unique molecules are named as such because they represent species for 
-    which individual molecules are not treated as interchangeable (e.g. 
-    different RNA molecules may have different sequences).
-
-The unique molecules store contains a substore for each unique molecule (e.g. 
-RNA, active RNAP, etc.). Each unique molecule substore contains a 
+Unique molecules are named as such because they represent species for 
+which individual molecules are not treated as interchangeable (e.g. 
+different RNA molecules may have different sequences). The unique molecules
+store holds substores for each unique molecule (e.g. ``("unique", "RNAs")``,
+``("unique", "active_RNAPs")``). Each unique molecule substore contains a 
 `structured Numpy array <https://numpy.org/doc/stable/user/basics.rec.html>`_ 
 with a variety of named fields, each representing an attribute of interest 
 for that class of unique molecules (e.g. ``coordinates`` for a ``gene`` unique 
@@ -314,4 +351,55 @@ Accessing
 =========
 Processes use the :py:func:`ecoli.library.schema.attrs` helper function to access 
 any number of attributes for all active (``_entryState`` is 1) unique molecules 
-of a given type (e.g. RNA, active RNAP, etc.).  
+of a given type (e.g. RNA, active RNAP, etc.).
+
+
+---------
+Listeners
+---------
+
+:Path: ``("listeners",)``
+:Updater: :py:func:`~vivarium.core.registry.update_set`
+:Divider: None (leave value as is upon division)
+:Serializer: None by default (leave value as is) but will automatically
+    use registered serializers for data that is of a type that cannot be
+    automatically serialized to JSON by ``orjson``. For example,
+    listeners holding values with Unum units will be serialized by
+    :py:class:`~ecoli.library.serialize.UnumSerializer`, which is
+    registered in ``ecoli/__init__.py``.
+:Schema: :py:func:`ecoli.library.schema.listener_schema`
+:Helpers: None
+
+The listeners store contains many substores that hold data which is saved
+for downstream analyses. For example, the ``("listeners", "mass")`` substore
+contains substores for various masses of interest, such as ``cell_mass``,
+``dry_mass``, ``protein_mass``, etc.
+
+.. tip::
+    When possible, we recommend that you put all stores whose data
+    you wish to save inside the listeners store. This is to ensure
+    consistency across the model and helps keep stores organized.
+
+Initialization
+==============
+Listener stores are initialized at the start of a simulation with their
+default values as specified in the
+:py:meth:`~vivarium.core.process.Process.ports_schema` methods of
+the processes that connect to them. Refer to
+:py:func:`ecoli.library.schema.listener_schema` for information about how
+to configure this default value as well as attach useful metadata to
+specific listener values.
+
+Listener stores must contain data of the same type or data that is configured
+be configured to serialized to the same type for the duration of a simulation
+(``None`` allowed for null values). This is becuase the Parquet storage format
+used to persist simulation output to disk is a columnar format that requires
+columns to have static data types. Some leeway is allowed for ``None`` (null)
+values in nested types. For example, ``[]`` and ``[0]`` both work fine for a
+column containing 1D lists of integers.
+
+.. warning::
+    Double check the data type of default values for listeners. For example,
+    a listener of float values with a default value of ``0`` will incorrectly
+    coerce all subsequent values to integers in the saved output. The correct
+    default value in this case is ``0.0``.

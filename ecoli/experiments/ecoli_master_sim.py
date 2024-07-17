@@ -5,7 +5,7 @@ Interface for configuring and running **single-cell** E. coli simulations.
     Simulations can be configured to divide through this interface, but
     full colony-scale simulations are best run using the
     :py:mod:`~ecoli.experiments.ecoli_engine_process` module for efficient
-    multithreading.
+    multiprocessing.
 """
 # mypy: disable-error-code=attr-defined
 
@@ -41,6 +41,20 @@ from ecoli.processes.registries import topology_registry
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.schema import not_a_process
 
+
+LIST_KEYS_TO_MERGE = (
+    "save_times",
+    "add_processes",
+    "exclude_processes",
+    "processes",
+    "engine_process_reports",
+    "initial_state_overrides",
+)
+"""
+Special configuration keys that are list values which are concatenated
+together when they are found in multiple sources (e.g. default JSON and
+user-specified JSON) instead of being directly overriden.
+"""
 
 class TimeLimitError(RuntimeError):
     """Error raised when ``fail_at_total_time`` is True and simulation
@@ -155,6 +169,9 @@ def prepare_save_state(state: dict[str, Any]) -> None:
 
 class SimConfig:
     default_config_path = os.path.join(CONFIG_DIR_PATH, "default.json")
+    """
+    Path to default JSON configuration file.
+    """
 
     def __init__(
         self,
@@ -206,7 +223,7 @@ class SimConfig:
             self.parser.add_argument(
                 "--no_suffix_time",
                 action="store",
-                help=r"Do not append current time as'%d-%m-%Y_%H-%M-%S'"
+                help="Do not append current time as '_day-month-year_hour-minute-second'"
                 " to experiment ID.",
             )
             self.parser.add_argument(
@@ -326,15 +343,6 @@ class SimConfig:
             d1: Config to mutate by merging in ``d2``.
             d2: Config to merge into ``d1``.
         """
-        # Handle config keys that need special handling.
-        LIST_KEYS_TO_MERGE = (
-            "save_times",
-            "add_processes",
-            "exclude_processes",
-            "processes",
-            "engine_process_reports",
-            "initial_state_overrides",
-        )
         for key in LIST_KEYS_TO_MERGE:
             d2.setdefault(key, [])
             d2[key].extend(d1.get(key, []))
