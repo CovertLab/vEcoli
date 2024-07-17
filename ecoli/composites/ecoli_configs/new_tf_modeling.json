@@ -20,14 +20,14 @@
     "initial_state_overrides": [],
     "initial_state": {},
     "time_step": 1.0,
-    "total_time": 10800.0,
+    "total_time": 60.0,
     "initial_global_time": 0.0,
 
     "variants": {},
     "n_init_sims": 1,
     "generations": null,
     "single_daughters": true,
-    "daughter_outdir": "NewTFModelingTestSim",
+    "daughter_outdir": "out",
     "lineage_seed": 0,
 
     "parca_options": {
@@ -70,7 +70,7 @@
     "save_times": [],
 
     "add_processes" : [],
-    "exclude_processes" : [],
+    "exclude_processes" : ["ecoli-tf-unbinding"],
     "swap_processes" : {},
     "profile": false,
     "processes": [
@@ -79,6 +79,8 @@
         "bulk-timeline",
         "media_update",
         "exchange_data",
+
+        "ecoli-tf-unbinding",
 
         "ecoli-equilibrium",
         "ecoli-two-component-system",
@@ -113,9 +115,17 @@
     ],
     "process_configs": {
         "global_clock": {"time_step": 1},
-        "replication_data_listener": {"time_step": 1}},
-        "ecoli-metabolism": {"mechanistic_aa_transport": false},
-
+        "replication_data_listener": {"time_step": 1},
+        "ecoli-metabolism": {
+            "mechanistic_aa_transport": false
+        },
+        "ecoli-polypeptide-elongation": {
+            "mechanistic_aa_transport": false,
+            "mechanistic_translation_supply": false,
+            "aa_supply_in_charging": false,
+            "translation_supply": false
+        }
+    },
     "topology": {
         "bulk-timeline": {
             "bulk": ["bulk"],
@@ -132,9 +142,11 @@
         "media_update": [["post-division-mass-listener"]],
         "exchange_data": [["media_update"]],
 
-        "ecoli-equilibrium": [],
-        "ecoli-two-component-system": [],
-        "ecoli-rna-maturation": [],
+        "ecoli-tf-unbinding": [["media_update"]],
+
+        "ecoli-equilibrium": [["ecoli-tf-unbinding"]],
+        "ecoli-two-component-system": [["ecoli-tf-unbinding"]],
+        "ecoli-rna-maturation": [["ecoli-tf-unbinding"]],
 
         "ecoli-tf-binding": [["ecoli-equilibrium"]],
 

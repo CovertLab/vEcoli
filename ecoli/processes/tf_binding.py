@@ -31,7 +31,6 @@ NAME = "ecoli-tf-binding"
 TOPOLOGY = {
     "promoters": ("unique", "promoter"),
     "bulk": ("bulk",),
-    #"bulk_total": ("bulk",),
     "listeners": ("listeners",),
     "timestep": ("timestep",),
     "next_update_time": ("next_update_time", "tf_binding"),
@@ -154,7 +153,6 @@ class TfBinding(Step):
         return {
             "promoters": numpy_schema("promoters", emit=self.parameters["emit_unique"]),
             "bulk": numpy_schema("bulk"),
-            "bulk_total": numpy_schema("bulk"),
             "listeners": {
                 "rna_synth_prob": listener_schema(
                     {
@@ -288,7 +286,8 @@ class TfBinding(Step):
             r1 = self.random_state.rand()
             rxn_time += 1/total_rates * np.log(1/r1)
             # If we surpass the current timestep, don't perform reaction
-            if rxn_time > timestep.asNumber(units.min):
+            # TODO: where to get the units of timstep?
+            if rxn_time > (timestep * units.s).asNumber(units.min):
                 break
 
             # Choose whether to bind or unbind

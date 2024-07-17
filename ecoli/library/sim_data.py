@@ -56,6 +56,7 @@ class LoadSimData:
         trna_attenuation: bool = True,
         variable_elongation_transcription: bool = True,
         variable_elongation_translation: bool = False,
+        # TODO: the four False's below were true, should change in config instead
         mechanistic_translation_supply: bool = True,
         mechanistic_aa_transport: bool = True,
         translation_supply: bool = True,
@@ -671,6 +672,7 @@ class LoadSimData:
             "rna_ids": self.sim_data.process.transcription.rna_data["id"],
             "raw_binding_rates": self.sim_data.process.transcription_regulation.raw_binding_rates,
             "raw_unbinding_rates": self.sim_data.process.transcription_regulation.raw_unbinding_rates,
+            "get_binding_unbinding_matrices": self.sim_data.process.transcription_regulation.get_tf_binding_unbinding_matrices,
             "n_avogadro": self.sim_data.constants.n_avogadro,
             "cell_density": self.sim_data.constants.cell_density,
             "p_promoter_bound_tf": self.sim_data.process.transcription_regulation.p_promoter_bound_tf,

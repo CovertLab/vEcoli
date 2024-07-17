@@ -1057,7 +1057,6 @@ class Metabolism(object):
         """
 
         aa_conc = aa_conc.asNumber(METABOLITE_CONCENTRATION_UNITS)
-
         aa_supply = self.fraction_supply_rate
         aa_import = aa_present * self.fraction_import_rate
         aa_synthesis = 1 / (1 + aa_conc / self.KI_aa_synthesis)
