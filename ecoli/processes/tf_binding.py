@@ -337,7 +337,7 @@ class TfBinding(Step):
             submass: attrs(states["promoters"], [submass])[0] + mass_diffs[:, i]
             for submass, i in self.submass_indices.items()
         }
-        update["promoters"] = {"set": {"bound_TF": bound_TF_new, **submass_update}}
+        update["promoters"] = {"set": {"bound_TF": bound_TF_new.astype(bool), **submass_update}}
 
         # Update active TFs
         delta_active_TF = active_tf_counts - active_tf_counts_original

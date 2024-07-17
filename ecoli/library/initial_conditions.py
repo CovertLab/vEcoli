@@ -803,7 +803,6 @@ def initialize_transcription_factors(
     # Build dict that maps TFs to transcription units they regulate
     transcription_regulation = sim_data.process.transcription_regulation
     raw_binding_rates = transcription_regulation.raw_binding_rates
-    raw_unbinding_rates = transcription_regulation.raw_unbinding_rates
     get_binding_unbinding_matrices = transcription_regulation.get_tf_binding_unbinding_matrices
     TF_to_TU_idx = {}
 

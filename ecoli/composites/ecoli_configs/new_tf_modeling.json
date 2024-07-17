@@ -80,8 +80,6 @@
         "media_update",
         "exchange_data",
 
-        "ecoli-tf-unbinding",
-
         "ecoli-equilibrium",
         "ecoli-two-component-system",
         "ecoli-rna-maturation",
@@ -134,11 +132,9 @@
         "media_update": [["post-division-mass-listener"]],
         "exchange_data": [["media_update"]],
 
-        "ecoli-tf-unbinding": [["media_update"]],
-
-        "ecoli-equilibrium": [["ecoli-tf-unbinding"]],
-        "ecoli-two-component-system": [["ecoli-tf-unbinding"]],
-        "ecoli-rna-maturation": [["ecoli-tf-unbinding"]],
+        "ecoli-equilibrium": [],
+        "ecoli-two-component-system": [],
+        "ecoli-rna-maturation": [],
 
         "ecoli-tf-binding": [["ecoli-equilibrium"]],
 
