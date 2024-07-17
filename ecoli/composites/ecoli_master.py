@@ -290,6 +290,10 @@ class Ecoli(Composer):
                     Boolean option that only matters if ``division`` is true.
                     Adds :py:class:`~ecoli.processes.cell_division.MarkDPeriod`
                     if true.
+                
+                * ``generations``:
+                    If not ``None`` and ``divide`` is ``True``, adds
+                    :py:class:`~ecoli.processes.cell_division.StopAfterDivision`
 
         Returns:
             Tuple consisting of a mapping of process names to fully initialized
