@@ -99,7 +99,6 @@ def fitSimData_1(raw_data, **kwargs):
     sim_data, cell_specs = set_conditions(sim_data, cell_specs, **kwargs)
     sim_data, cell_specs = final_adjustments(sim_data, cell_specs, **kwargs)
 
-    import ipdb; ipdb.set_trace()
     if sim_data is None:
         raise ValueError(
             'sim_data is not specified.  Check that the'
@@ -489,15 +488,15 @@ def final_adjustments(sim_data, cell_specs, **kwargs):
         sim_data, condition="with_aa", n_seeds=5
     )
     sim_data.process.metabolism.set_phenomological_supply_constants(sim_data)
-    sim_data.process.metabolism.set_mechanistic_supply_constants(
-        sim_data, cell_specs, average_basal_container, average_with_aa_container
-    )
-    sim_data.process.metabolism.set_mechanistic_export_constants(
-        sim_data, cell_specs, average_basal_container
-    )
-    sim_data.process.metabolism.set_mechanistic_uptake_constants(
-        sim_data, cell_specs, average_with_aa_container
-    )
+    # sim_data.process.metabolism.set_mechanistic_supply_constants(
+    #     sim_data, cell_specs, average_basal_container, average_with_aa_container
+    # )
+    # sim_data.process.metabolism.set_mechanistic_export_constants(
+    #     sim_data, cell_specs, average_basal_container
+    # )
+    # sim_data.process.metabolism.set_mechanistic_uptake_constants(
+    #     sim_data, cell_specs, average_with_aa_container
+    # )
 
     # Set ppGpp reaction parameters
     sim_data.process.transcription.set_ppgpp_kinetics_parameters(
@@ -4028,12 +4027,12 @@ def calculateTfBindingUnbindingRates(sim_data, cell_specs):
 
     # TODO: Consider concentration of binding site on DNA, etc.? Also second-order rate constant, what
     #  are units supposed to be?
-    bindingV = [0.33 / units.min]
-    bindingI = [purC_idx]
-    bindingJ = [purR_idx]
-    binding_shape = (len(tf_ids), len(rna_ids))
+    bindingV = np.array([(0.33 / units.min).asNumber(1/units.min)])
+    bindingI = np.array([purC_idx])
+    bindingJ = np.array([purR_idx])
+    binding_shape = (len(rna_ids), len(tf_ids))
 
-    unbindingV = [0.1 / units.min]
+    unbindingV = [(0.1 / units.min).asNumber(1/units.min)]
     unbindingI = bindingI
     unbindingJ = bindingJ
     unbinding_shape = binding_shape

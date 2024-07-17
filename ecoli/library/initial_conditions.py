@@ -861,8 +861,8 @@ def initialize_transcription_factors(
 
     # Calculate final binding rates accounting for reactant concentrations
     raw_binding_rates_matrix, raw_unbinding_rates_matrix = get_binding_unbinding_matrices(dense=True)
-    binding_rates = raw_binding_rates_matrix[:, TU_index]
-    unbinding_rates = raw_unbinding_rates_matrix[:, TU_index]
+    binding_rates = raw_binding_rates_matrix[TU_index, :]
+    unbinding_rates = raw_unbinding_rates_matrix[TU_index, :]
     binding_rates_final = np.multiply(binding_rates, active_tf_view)
     # TODO: later, when more than one binding site at once, can do num_total - bound_TF instead of ~bound_TF
     binding_rates_final = np.multiply(binding_rates_final, ~bound_TF)
@@ -894,9 +894,9 @@ def initialize_transcription_factors(
                                                  nonzero_probas)
 
             # Decrement the TF (given by row index), and increase the bound TF
-            assert active_tf_view[rxn_index[0]] > 0
+            assert active_tf_view[rxn_index[1]] > 0
             assert bound_TF[rxn_index[0], rxn_index[1]] == False
-            active_tf_view[rxn_index[0]] -= 1
+            active_tf_view[rxn_index[1]] -= 1
             bound_TF[rxn_index[0], rxn_index[1]] = True
         else:
             # Choose a reaction to perform
@@ -906,7 +906,7 @@ def initialize_transcription_factors(
                                                  nonzero_probas)
 
             # Increment the TF (given by row index), and decrease the bound TF
-            active_tf_view[rxn_index[0]] += 1
+            active_tf_view[rxn_index[1]] += 1
             bound_TF[rxn_index[0], rxn_index[1]] = False
 
         # Recalculate binding rates for next step
@@ -1089,7 +1089,7 @@ def initialize_transcription(
         ),
         TU_index,
         group_fixed_indexes=[idx_tRNA, idx_rRNA],
-        group_fixed_probs=[synth_prob_fractions["tRNA"], synth_prob_fractions["rRNA"]]
+        group_fixed_probs=[synth_prob_fractions["tRna"], synth_prob_fractions["rRna"]]
     )
 
     # TODO: what to do about this assert?
@@ -1908,7 +1908,7 @@ def rescale_initiation_affs(init_affs, fixed_indexes, fixed_synth_probs, TU_inde
     # for a more detailed description.
     all_fixed_indexes = np.concatenate(tuple(group_fixed_indexes))
     all_fixed_indexes = np.concatenate((fixed_indexes, all_fixed_indexes))
-    fixed_all_mask = (TU_index in all_fixed_indexes)
+    fixed_all_mask = np.isin(TU_index, all_fixed_indexes)
     sum_other_affinities = init_affs[~fixed_all_mask].sum()
 
     all_fixed_probs = np.concatenate((fixed_synth_probs, group_fixed_probs))
@@ -1929,7 +1929,7 @@ def rescale_initiation_affs(init_affs, fixed_indexes, fixed_synth_probs, TU_inde
 
     # Scale group indexes's affinities to match the required sum.
     for idx, group_idxs in enumerate(group_fixed_indexes):
-        fixed_mask = (TU_index in group_idxs)
+        fixed_mask = np.isin(TU_index, group_idxs)
         init_affs[fixed_mask] *= (group_fixed_ks[idx] / init_affs[fixed_mask].sum())
 
 

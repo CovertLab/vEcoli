@@ -106,7 +106,7 @@ class TranscriptionRegulation(object):
 
         return delta_aff
 
-    def get_tf_binding_unbinding_matrices(self, sim_data, dense=False) -> (Union[sparse.csr_matrix, np.ndarray],
+    def get_tf_binding_unbinding_matrices(self, dense=False) -> (Union[sparse.csr_matrix, np.ndarray],
             Union[sparse.csr_matrix, np.ndarray]):
         """
         Returns the binding and unbinding rate matrices mapping each TF to each binding site (TU promoter for now).

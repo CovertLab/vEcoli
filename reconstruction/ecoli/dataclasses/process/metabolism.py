@@ -996,6 +996,50 @@ class Metabolism(object):
             - f_exported
         )
 
+        # Add aa_enzymes attribute to be used later, code copied from set_mechanistic_supply_constants
+        dependencies = {}
+        for aa in aa_ids:
+            for downstream_aa in self.aa_synthesis_pathways[aa]["downstream"]:
+                if units.isfinite(
+                        self.aa_synthesis_pathways[downstream_aa]["km, degradation"]
+                ):
+                    dependencies.setdefault(aa, set()).add(downstream_aa)
+
+        ordered_aa_ids = []
+        for _ in aa_ids:  # limit number of iterations number of amino acids in case there are cyclic links
+            for aa in sorted(set(aa_ids) - set(ordered_aa_ids)):
+                for downstream_aa in dependencies.get(aa, set()):
+                    if downstream_aa not in ordered_aa_ids:
+                        break
+                else:
+                    ordered_aa_ids.append(aa)
+
+        n_aas = len(aa_ids)
+        if len(ordered_aa_ids) != n_aas:
+            raise RuntimeError(
+                "Could not determine amino acid order to calculate dependencies first."
+                " Make sure there are no cyclical pathways for amino acids that can degrade."
+            )
+
+        aa_enzymes = []
+        for amino_acid in ordered_aa_ids:
+            data = self.aa_synthesis_pathways[amino_acid]
+            fwd_enzymes = data["enzymes"]
+            rev_enzymes = data["reverse enzymes"]
+            aa_enzymes += fwd_enzymes + rev_enzymes
+
+        self.aa_enzymes = np.unique(aa_enzymes)
+
+        # Set other names, copied from set_mechanistic_import_constants and set_mechanistic_export constants
+        self.aa_to_importers, self.aa_to_importers_matrix, self.aa_importer_names = (
+            self.get_aa_to_transporters_mapping_data(sim_data)
+        )
+
+        self.aa_to_exporters, self.aa_to_exporters_matrix, self.aa_exporter_names = (
+            self.get_aa_to_transporters_mapping_data(sim_data, export=True)
+        )
+
+
     def aa_supply_scaling(self, aa_conc: Unum, aa_present: Unum) -> np.ndarray[float]:
         """
         Called during polypeptide_elongation process

@@ -100,7 +100,7 @@ class TfBinding(Step):
             ]
 
         # Get total counts of transcription units
-        self.n_TU = self.binding_rates["shape"][0]
+        self.n_TU = self.raw_binding_rates["shape"][1]
 
         # Get constants
         self.n_avogadro = self.parameters["n_avogadro"]
@@ -261,8 +261,8 @@ class TfBinding(Step):
 
         # Get binding and unbinding rates based on present promoters
         raw_binding_rates_matrix, raw_unbinding_rates_matrix = self.get_binding_unbinding_matrices(dense=True)
-        binding_rates = raw_binding_rates_matrix[:, TU_index]
-        unbinding_rates = raw_unbinding_rates_matrix[:, TU_index]
+        binding_rates = raw_binding_rates_matrix[TU_index, :]
+        unbinding_rates = raw_unbinding_rates_matrix[TU_index, :]
         # TODO: figure out whether can simplify using these nonzero stuff?
         # binding_rates_nonzero_idxs = np.nonzero(binding_rates)
         # unbinding_rates_nonzero_idxs = np.nonzero(unbinding_rates)
@@ -302,14 +302,14 @@ class TfBinding(Step):
                 rxn_index = self.random_state.choice(np.array(x for x in zip(nonzero_indices)),
                                                      nonzero_probas)
 
-                # Decrement the TF (given by row index), and increase the bound TF
-                assert active_tf_counts[rxn_index[0]] > 0
+                # Decrement the TF (given by column index), and increase the bound TF
+                assert active_tf_counts[rxn_index[1]] > 0
                 assert bound_TF_new[rxn_index[0], rxn_index[1]] == False
-                active_tf_counts[rxn_index[0]] -= 1
+                active_tf_counts[rxn_index[1]] -= 1
                 bound_TF_new[rxn_index[0], rxn_index[1]] = True
 
                 # Record the reaction
-                n_binding_events[rxn_index[0]] += 1
+                n_binding_events[rxn_index[1]] += 1
 
             else:
                 # Choose a reaction to perform
@@ -318,12 +318,12 @@ class TfBinding(Step):
                 rxn_index = self.random_state.choice(np.array(x for x in zip(nonzero_indices)),
                                                      nonzero_probas)
 
-                # Increment the TF (given by row index), and decrease the bound TF
-                active_tf_counts[rxn_index[0]] += 1
+                # Increment the TF (given by column index), and decrease the bound TF
+                active_tf_counts[rxn_index[1]] += 1
                 bound_TF_new[rxn_index[0], rxn_index[1]] = False
 
                 # Record the reaction
-                n_unbinding_events[rxn_index[0]] += 1
+                n_unbinding_events[rxn_index[1]] += 1
 
             # Recalculate binding rates for next step
             binding_rates_final = np.multiply(binding_rates, active_tf_counts)
