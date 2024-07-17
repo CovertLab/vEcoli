@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict
+from typing import Any, cast, List, Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -19,8 +19,8 @@ from ecoli.analysis.antibiotics_colony import (
 
 def plot_colony_growth(
     data: pd.DataFrame,
-    ax: plt.Axes = None,
-    axs: List[plt.Axes] = None,
+    ax: Optional[plt.Axes] = None,
+    axs: Optional[List[plt.Axes]] = None,
     antibiotic: str = "Tet.",
     antibiotic_col: str = "Initial external tet.",
     mic: float = 3.375,
@@ -72,6 +72,7 @@ def plot_colony_growth(
 
     if axs:
         ax = axs[0]
+    ax = cast(plt.Axes, ax)
     sns.lineplot(
         data=data,
         x="Time",
@@ -165,8 +166,11 @@ def plot_colony_growth(
         ax_2.scatter([10**log10_mic], [0], c=(0, 0.4, 1), facecolors="none")
         ax_2.set_ylim(-0.01, 1.01)
         ax_2.set_xticks(
-            np.append(ax_2.get_xticks(), 10**log10_mic),
-            np.append(ax_2.get_xticklabels(), [f"MIC:\n{np.round(10**log10_mic, 1)}"]),
+            np.append(cast(np.ndarray, ax_2.get_xticks()), 10**log10_mic),
+            np.append(
+                cast(np.ndarray, ax_2.get_xticklabels()),
+                [f"MIC:\n{np.round(10**log10_mic, 1)}"],
+            ),
         )
         for ticklabel in ax_2.get_xticklabels():
             if ticklabel.get_text() == f"MIC:\n{np.round(10**log10_mic, 1)}":
@@ -177,9 +181,9 @@ def plot_colony_growth(
 
 def plot_mrna_fc(
     data: pd.DataFrame,
-    ax: plt.Axes = None,
-    genes_to_plot: List[str] = None,
-    highlight_genes: Dict[str, tuple] = None,
+    ax: plt.Axes,
+    genes_to_plot: list[str],
+    highlight_genes: Optional[dict[str, tuple]] = None,
 ) -> None:
     """Plot scatter plot of simulated and experimental log2 fold change for
     final mRNA concentrations of key genes regulated during tetracycline exposure.
@@ -232,7 +236,7 @@ def plot_mrna_fc(
     )
     relative_data = relative_data.join(tet_degenes, how="inner").reset_index()
     relative_data = relative_data.rename(columns={"index": "Gene"})
-    palette = {gene: "k" for gene in relative_data["Gene"].unique()}
+    palette: dict[str, Any] = {gene: "k" for gene in relative_data["Gene"].unique()}
     if highlight_genes:
         palette = {**palette, **highlight_genes}
     sns.scatterplot(
@@ -273,8 +277,8 @@ def plot_mrna_fc(
 
 def plot_protein_synth_inhib(
     data: pd.DataFrame,
-    ax: plt.Axes = None,
-    literature: pd.DataFrame = None,
+    ax: plt.Axes,
+    literature: pd.DataFrame,
 ):
     """Plot scatter plot of normalized % protein synthesis inhibition across a
     variety of tetracycline concentrations.
@@ -299,7 +303,11 @@ def plot_protein_synth_inhib(
     sampled_time = sampled_time.sort_values("Time")
 
     grouped_agents = sampled_time.groupby(["Condition", "Seed", "Agent ID"])
-    normed_data = {"Condition": [], "Normed delta": [], "Tetracycline": []}
+    normed_data: dict[str, Any] = {
+        "Condition": [],
+        "Normed delta": [],
+        "Tetracycline": [],
+    }
     for (condition, seed, agent_id), agent_data in grouped_agents:
         protein_deltas = np.diff(agent_data.loc[:, "Protein mass"])
         # Ignore final timestep (protein mass deltas require two timepoints)
@@ -329,7 +337,7 @@ def plot_protein_synth_inhib(
     normed_data["Source"] = ["This model"] * len(normed_data)
     normed_data = normed_data.loc[:, ["Percent inhibition", "Tetracycline", "Source"]]
     normed_data = normed_data.loc[normed_data.loc[:, "Tetracycline"] > 0, :]
-    palette = {"This model": (0, 0.4, 1)}
+    palette: dict[str, Any] = {"This model": (0, 0.4, 1)}
     if literature is not None:
         gray = 0.3
         for source in literature.loc[:, "Source"].unique():
@@ -544,8 +552,8 @@ def plot_death_timescale_analysis(
     )
     axs[0].set_xlabel("Ampicillin (mg/L)", fontsize=9)
     axs[0].set_ylabel("Avg. generations to lysis", fontsize=9)
-    axs[0].set_yticks([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], fontsize=8)
-    axs[0].set_xticks([0, 2, 4, 6, 8], [0, 2, 4, 6, 8], fontsize=8)
+    axs[0].set_yticks(["0", "1", "2", "3", "4"], ["0", "1", "2", "3", "4"], fontsize=8)
+    axs[0].set_xticks(["0", "2", "4", "6", "8"], ["0", "2", "4", "6", "8"], fontsize=8)
     ylim = axs[0].get_ylim()
     axs[0].text(
         8,
@@ -584,6 +592,6 @@ def plot_death_timescale_analysis(
         horizontalalignment="left",
     )
     sns.despine(ax=axs[0], offset=3, trim=True)
-    axs[0].set_yticks([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], fontsize=8)
-    axs[0].set_xticks([0, 2, 4, 6, 8], [0, 2, 4, 6, 8], fontsize=8)
+    axs[0].set_yticks(["0", "1", "2", "3", "4"], ["0", "1", "2", "3", "4"], fontsize=8)
+    axs[0].set_xticks(["0", "2", "4", "6", "8"], ["0", "2", "4", "6", "8"], fontsize=8)
     plt.tight_layout()

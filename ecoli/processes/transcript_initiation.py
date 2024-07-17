@@ -300,6 +300,7 @@ class TranscriptInitiation(PartitionedProcess):
                             self.rna_data["id"],
                         ),
                         "total_rna_init": 0,
+                        "max_p": 0.0,
                     }
                 ),
                 "ribosome_data": listener_schema(
@@ -452,7 +453,7 @@ class TranscriptInitiation(PartitionedProcess):
                     "target_rna_synth_prob": np.zeros(self.n_TUs),
                     "rna_synth_aff": np.zeros(self.n_TUs),
                     "actual_rna_synth_prob": np.zeros(self.n_TUs),
-                    "tu_is_overcrowded": np.zeros(self.n_TUs),
+                    "tu_is_overcrowded": np.zeros(self.n_TUs, dtype=np.bool_),
                     "total_rna_init": 0,
                     "max_p": 0.0,
                 },

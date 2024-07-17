@@ -3,12 +3,14 @@
 Exchanges molecules at pre-set rates through a single port
 """
 
+from typing import Any
+
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
 
 class Exchanger(Process):
-    defaults = {"exchanges": {}}
+    defaults: dict[str, Any] = {"exchanges": {}}
 
     def __init__(self, parameters=None):
         """Exchanger Stub Process

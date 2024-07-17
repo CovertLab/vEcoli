@@ -137,28 +137,32 @@ Removing a process removes the corresponding topology entry automatically, and s
 
 ### Schema Overrides
 
-One powerful feature of the JSON configuration approach is the ability to override the port schemas specified by processes. To do so, one simply adds a `"_schema"` key to the configuration. In the following example, we have overwritten the schema for how the `"ecoli-equilibrium"` process affects the `"PD00413[c]"` molecule, in this case to temporarily avert a bug in which `"PD00413[c]"` goes below zero.
+One powerful feature of the JSON configuration approach is the ability to override the port schemas specified by processes. To do so, one simply adds a `"_schema"` key to the config for a process under `"process_configs"`. In the following example, we have overwritten the schema for how the `"ecoli-mass-listener"` process divides the cell mass.
 
 ```
-"_schema": {
-        "ecoli-equilibrium": {
-            "molecules": {
-                "PD00413[c]": {"_updater": "nonnegative_accumulate"}
+"process_configs": {
+    "ecoli-mass-listener": {
+        "_schema": {
+            "listeners": {
+                "mass": {"cell_mass": {"_divider": "set"}}
             }
         }
-    },
+    }
+},
 ```
 
 Schema overrides can also be used to emit data that would normally not be emitted, by setting `"_emit"` to `True`.
 
 ```
-"_schema": {
-        "ecoli-equilibrium": {
-            "molecules": {
-                "PD00413[c]": {"_emit": True}
+"process_configs": {
+    "ecoli-mass-listener": {
+        "_schema": {
+            "unique": {
+                "active_ribosome": {"_emit": true}
             }
         }
-    },
+    }
+},
 ```
 
 ### Additional Settings
@@ -169,8 +173,6 @@ Schema overrides can also be used to emit data that would normally not be emitte
 - `"progress_bar"` : (boolean) whether to show the progress bar
 - `"agent_id"`
 - `"parallel"`
-- `"daughter_path"`
-- `"agents_path"`
 - `"division"`
 - `"divide"`
 

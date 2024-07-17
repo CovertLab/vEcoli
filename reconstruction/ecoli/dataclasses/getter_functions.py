@@ -7,6 +7,7 @@ import re
 
 from Bio.Seq import Seq
 import numpy as np
+import numpy.typing as npt
 
 from reconstruction.ecoli.dataclasses.molecule_groups import POLYMERIZED_FRAGMENT_PREFIX
 from wholecell.utils import units
@@ -66,16 +67,14 @@ class GetterFunctions(object):
         self._build_compartments(raw_data, sim_data)
         self._build_genomic_coordinates(raw_data)
 
-    def get_sequences(self, ids):
-        # type: (Union[List[str], np.ndarray]) -> List[str]
+    def get_sequences(self, ids: list[str] | np.ndarray) -> list[str]:
         """
         Return a list of sequences of the molecules with the given IDs.
         """
         assert isinstance(ids, (list, np.ndarray))
         return [self._sequences[mol_id] for mol_id in ids]
 
-    def get_mass(self, mol_id):
-        # type: (str) -> Any
+    def get_mass(self, mol_id: str):
         """
         Return the total mass of the molecule with a given ID.
         """
@@ -85,8 +84,7 @@ class GetterFunctions(object):
             * self._all_total_masses[self._compartment_tag.sub("", mol_id)]
         )
 
-    def get_masses(self, mol_ids):
-        # type: (Union[List, np.ndarray]) -> Any
+    def get_masses(self, mol_ids: list | np.ndarray):
         """
         Return an array of total masses of the molecules with the given IDs.
         """
@@ -97,8 +95,7 @@ class GetterFunctions(object):
         ]
         return self._mass_units * np.array(masses)
 
-    def get_submass_array(self, mol_id):
-        # type: (str) -> Any
+    def get_submass_array(self, mol_id: str):
         """
         Return the submass array of the molecule with a given ID.
         """
@@ -108,8 +105,7 @@ class GetterFunctions(object):
             * self._all_submass_arrays[self._compartment_tag.sub("", mol_id)]
         )
 
-    def get_compartment(self, mol_id):
-        # type: (str) -> List[List[str]]
+    def get_compartment(self, mol_id: str) -> list[list[str]]:
         """
         Returns the list of one-letter codes for the compartments that the
         molecule with the given ID can exist in.
@@ -117,8 +113,7 @@ class GetterFunctions(object):
         assert isinstance(mol_id, str)
         return self._all_compartments[mol_id]
 
-    def get_compartments(self, ids):
-        # type: (Union[List[str], np.ndarray]) -> List[List[str]]
+    def get_compartments(self, ids: list[str] | np.ndarray) -> list[list[str]]:
         """
         Returns a list of the list of one-letter codes for the compartments
         that each of the molecules with the given IDs can exist in.
@@ -126,31 +121,27 @@ class GetterFunctions(object):
         assert isinstance(ids, (list, np.ndarray))
         return [self._all_compartments[x] for x in ids]
 
-    def get_compartment_tag(self, id_):
-        # type: (str) -> str
+    def get_compartment_tag(self, id_: str) -> str:
         """
         Look up a molecule id and return a compartment suffix tag like '[c]'.
         """
         return f"[{self._all_compartments[id_][0]}]"
 
-    def is_valid_molecule(self, mol_id):
-        # type: (str) -> bool
+    def is_valid_molecule(self, mol_id: str) -> bool:
         """
         Returns True if the molecule with the given ID is a valid molecule (has
         both a submass array and a compartment tag).
         """
         return mol_id in self._all_submass_arrays and mol_id in self._all_compartments
 
-    def get_all_valid_molecules(self):
-        # type: () -> list
+    def get_all_valid_molecules(self) -> list[str]:
         """
         Returns a list of all molecule IDs with assigned submass arrays and
         compartments.
         """
         return sorted(self._all_submass_arrays.keys() & self._all_compartments.keys())
 
-    def get_genomic_coordinates(self, site_id):
-        # type: (str) -> Tuple[int, int]
+    def get_genomic_coordinates(self, site_id: str) -> tuple[int, int]:
         """
         Returns the genomic coordinates of the left and right ends of a DNA site
         given the ID of the site.
@@ -158,16 +149,14 @@ class GetterFunctions(object):
         assert isinstance(site_id, str)
         return self._all_genomic_coordinates[site_id]
 
-    def get_miscrnas_with_singleton_tus(self):
-        # type: () -> list
+    def get_miscrnas_with_singleton_tus(self) -> list[str]:
         """
         Returns a list of all miscRNA IDs with corresponding single-gene
         transcription units.
         """
         return sorted(self._miscrna_id_to_singleton_tu_id.keys())
 
-    def get_singleton_tu_id(self, rna_id):
-        # type: (str) -> (str)
+    def get_singleton_tu_id(self, rna_id: str) -> str:
         """
         Returns the ID of the single-gene transcription unit corresponding to
         the given miscRNA ID, if such a transcription unit exists. This is
@@ -333,8 +322,9 @@ class GetterFunctions(object):
                 # Remove internal stop codons
                 self._sequences[protein["id"]] = Seq(protein["seq"].replace("*", ""))
 
-    def _build_submass_array(self, mw, submass_name):
-        # type: (float, str) -> np.ndarray
+    def _build_submass_array(
+        self, mw: float, submass_name: str
+    ) -> npt.NDArray[np.float64]:
         """
         Converts a scalar molecular weight value to an array of submasses,
         given the name of the submass category that the molecule belongs to.

@@ -27,10 +27,11 @@ import io
 import os
 import sys
 import time
-from typing import cast, IO
+from typing import Any, cast, IO
 from urllib import request
 
 import numpy as np
+import numpy.typing as npt
 
 from wholecell.io import tsv
 
@@ -162,8 +163,7 @@ KOCHANOWSKI_MEDIA = {
 }
 
 
-def lempp_concentrations():
-    # type: () -> Dict[str, float]
+def lempp_concentrations() -> dict[str, float]:
     """
     Load Lempp data for average metabolite concentrations at the first time point.
 
@@ -196,8 +196,7 @@ def lempp_concentrations():
     return kegg_to_ecocyc(met_conc)
 
 
-def park_concentrations():
-    # type: () -> Dict[str, float]
+def park_concentrations() -> dict[str, float]:
     """
     Load Park data for reported metabolite concentrations.
 
@@ -228,16 +227,17 @@ def park_concentrations():
     return kegg_to_ecocyc(met_conc)
 
 
-def load_kochanowski(filename):
-    # type: (str) -> Tuple[Dict[str, np.ndarray], np.ndarray]
+def load_kochanowski(
+    filename: str,
+) -> tuple[dict[str, npt.NDArray[np.float64]], npt.NDArray[np.str_]]:
     """
     Load Kochanowski data (absolute or relative).
 
     Args:
-            filename: path to file to load
+        filename: path to file to load
 
     Returns:
-            met_conc: WCM ID to concentration (absolute or relative)
+        met_conc: WCM ID to concentration (absolute or relative)
     """
 
     met_conc = {}
@@ -265,13 +265,12 @@ def load_kochanowski(filename):
     return met_conc, condition_headers
 
 
-def kochanowski_concentrations():
-    # type: () -> Dict[str, float]
+def kochanowski_concentrations() -> dict[str, float]:
     """
     Load absolute Kochanowski concentration data in the glucose condition.
 
     Returns:
-            met_conc: WCM ID to concentration (in M)
+        met_conc: WCM ID to concentration (in M)
     """
 
     raw_data, headers = load_kochanowski(KOCHANOWSKI_ABSOLUTE_INPUT)
@@ -286,8 +285,7 @@ def kochanowski_concentrations():
     return met_conc
 
 
-def sander_concentrations():
-    # type: () -> Dict[str, float]
+def sander_concentrations() -> dict[str, float]:
     """
     Load Sander data for amino acid concentrations.
 
@@ -316,16 +314,15 @@ def sander_concentrations():
     return met_conc
 
 
-def kegg_to_ecocyc(data):
-    # type: (Dict[str, Any]) -> Dict[str, Any]
+def kegg_to_ecocyc(data: dict[str, Any]) -> dict[str, Any]:
     """
     Convert a dictionary with KEGG ID keys to a dictionary with EcoCyc ID keys.
 
     Args:
-            data: dictionary to convert KEGG molecule IDs to EcoCyc IDs
+        data: dictionary to convert KEGG molecule IDs to EcoCyc IDs
 
     Returns:
-            new_data: new dictionary with EcoCyc IDs
+        new_data: new dictionary with EcoCyc IDs
     """
 
     kegg_ids = list(data.keys())
@@ -348,14 +345,13 @@ def kegg_to_ecocyc(data):
     return new_data
 
 
-def save_concentrations(conc, label):
-    # type: (Dict[str, float], str) -> None
+def save_concentrations(conc: dict[str, float], label: str):
     """
     Save EcoCyc ID concentrations to a file.
 
     Args:
-            conc: ID to concentration (in M)
-            label: column and filename dataset label (author)
+        conc: ID to concentration (in M)
+        label: column and filename dataset label (author)
     """
 
     output = ABSOLUTE_OUTPUT_FILE.format(label.lower())
