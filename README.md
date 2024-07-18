@@ -26,6 +26,9 @@ into a [complete simulation](ecoli/experiments/ecoli_master_sim.py).
 > attempt to follow the same instructions after setting up 
 > [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install).
 
+> **Note:** The instructions to set up the model on Sherlock are different and documented
+> under the "Sherlock" sub-heading in the "Workflows" documentation page.
+
 pyenv lets you install and switch between multiple Python releases and multiple "virtual 
 environments", each with its own pip packages. Using pyenv, create a virtual environment 
 and install Python 3.11.3. For a tutorial on how to install pyenv and other dependencies,

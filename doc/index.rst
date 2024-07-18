@@ -1,7 +1,8 @@
 Welcome to Vivarium *E. coli*'s documentation!
 ==============================================
 
-Vivarium *E. coli* project is a port of the |text|_ to the `Vivarium framework <https://vivarium-collective.github.io>`_.
+Vivarium *E. coli* is a port of the |text|_ to the `Vivarium framework <https://vivarium-collective.github.io>`_.
+We recommend new users read through the sections below in order.
 
 ..
    Comment: We need to use text substitution because ReST does not

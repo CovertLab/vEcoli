@@ -2,10 +2,6 @@
 Workflows
 =========
 
---------------
-Workflow Steps
---------------
-
 A typical simulation workflow has four main steps:
 
 1. Run the parameter calculator (:py:mod:`runscripts.parca`) to generate simulation parameters from raw data.
@@ -13,205 +9,590 @@ A typical simulation workflow has four main steps:
 3. Simulate cells (:py:mod:`ecoli.experiments.ecoli_master_sim`).
 4. Aggregate simulation results with analysis scripts (:py:mod:`runscripts.analysis`).
 
-While each of these steps can be run individually by invoking their associated scripts,
-it is common to run them in sequence using :py:mod:`runscripts.workflow`. 
-Each of these steps is orchestrated by a script (linked above) and each script  The linked scripts for each step take their own set of configuration options, some of which are exposed as command line arguments that can be listed by running the script with `-h` (e.g. `python runscripts/analysis.py -h`). 
+While each of these steps can be run manually by invoking their associated scripts,
+it is common to run them in an automatically coordinated Nextflow workflow
+using :py:mod:`runscripts.workflow`.
 
-Configuration options for vEcoli workflows are almost universally controlled through JSON files., or programmatically through an object-oriented interface. JSON configuration files live in `data/ecoli_configs`.
-     `--config` Configuration options for vEcoli workflows are almost universally controlled through JSON files., or programmatically through an object-oriented interface. JSON configuration files live in `data/ecoli_configs`.
+As mentioned in :ref:`json_config`, the preferred method for supplying configuration
+options to runscripts is via a JSON configuration file specified using the ``--config``
+command-line option. Please check the configuration JSON located at
+:py:attr:`~ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path`
+for the most up-to-date default configuration options.
 
-Configuration through the CLI affords easy access to the most important settings, whereas the programmatic and JSON approaches offer access to all settings.
+.. note::
+    Remember that when creating your own JSON configuration
+    file, you only need to include the configuration options whose values are
+    different from the defaults.
 
-Default settings, which are overridden by the CLI and custom JSONs, may be found in `ecoli/composites/ecoli_configs/default.json`. This file should be edited with care if at all, since missing defaults may result in an error.
+Below, we explore each runscript in further detail, including the
+configuration options unique to each.
 
+-----
+ParCa
+-----
 
-## CLI
+The parameter calculator (or ParCa) is a Python script that performs certain computations
+on raw, curated experimental data (located in the ``reconstruction/ecoli/flat`` folder)
+to generate the parameters expected by processes in our model. It packages these parameters
+in a pickled :py:class:`~reconstruction.ecoli.simulation_data.SimulationDataEcoli` object
+whose path must be given via the ``sim_data_path`` configuration option to all runscripts
+in ``runscripts/`` and to experiment modules in ``ecoli/experiments`` (default used by
+:py:mod:`runscripts.workflow` is :py:mod:`~ecoli.experiments.ecoli_master_sim`).
 
-Running a simulation through the CLI gives access to most commonly used settings, which are summarized below.
+The code responsible for loading data from the raw flat files is orchestrated by
+:py:class:`~reconstruction.ecoli.knowledge_base_raw.KnowledgeBaseEcoli`. The actual logic
+of the ParCa is mostly contained with a single file: :py:mod:`~reconstruction.ecoli.fit_sim_data_1`.
+The main interface for running the ParCa is :py:mod:`runscripts.parca`.
 
-For the most up-to-date documentation, run `ecoli_master_sim.py` with the help (`-h`) flag:
+Configuration
+=============
 
-```
-python ecoli/experiments/ecoli_master_sim.py -h
-```
+Configuration options for the ParCa are all located in a dictionary under the
+``parca_options`` key inside a JSON configuration file. They include:
 
-```
-usage: ecoli_master_sim.py [-h] [--config CONFIG] [--experiment_id EXPERIMENT_ID] [--emitter {timeseries,database,print}]
-                           [--seed SEED] [--initial_state INITIAL_STATE] [--total_time TOTAL_TIME] [--generations GENERATIONS]
-                           [--log_updates] [--raw_output]
-                           [path_to_sim_data [path_to_sim_data ...]]
-```
+- ``cpus``: Number of CPU cores to parallelize parts of the ParCa over
+- ``outdir``: Path to directory (local or absolute) for output pickle files
+- ``operons``: If True, calculate parameters with operon gene structure
+- ``ribosome_fitting``: If False, ribosome expression is not fit to protein synthesis demands
+- ``rnapoly_fitting``: If False, RNA polymerase expression is not fit to protein synthesis demands
+- ``remove_rrna_operons``: If True, do not include rRNAs in operon gene structures.
+- ``remove_rrff``: If True, remove rrfF gene that encodes for the extra 5S rRNA in the rrnD operon
+- ``stable_rrna``: If True, set degradation rates of mature rRNAs
+  to the values calculated from the half-life in sim_data.constants. If False,
+  set degradation rates of mature rRNAs to the average reported degradation rates of mRNAs.
+- ``new_genes``: String folder name in ``reconstruction/ecoli/flat/new_gene_data``
+  containing necessary flat files to add new gene(s) to the model (see templates in
+  ``reconstruction/ecoli/flat/new_gene_data/template``). By default, ``off`` does
+  nothing.
+- ``debug_parca``: If True, fit only one arbitrarily-chosen transcription
+  factor in order to speed up a debug cycle.
+- ``save_intermediates``: Save intermediate pickle files for each major
+  step of the ParCa (:py:func:`~reconstruction.ecoli.fit_sim_data_1.initialize`,
+  :py:func:`~reconstruction.ecoli.fit_sim_data_1.input_adjustments`,
+  :py:func:`~reconstruction.ecoli.fit_sim_data_1.basal_specs`,
+  :py:func:`~reconstruction.ecoli.fit_sim_data_1.tf_condition_specs`,
+  :py:func:`~reconstruction.ecoli.fit_sim_data_1.fit_condition`,
+  :py:func:`~reconstruction.ecoli.fit_sim_data_1.promoter_binding`,
+  :py:func:`~reconstruction.ecoli.fit_sim_data_1.adjust_promoters`,
+  :py:func:`~reconstruction.ecoli.fit_sim_data_1.set_conditions`,
+  :py:func:`~reconstruction.ecoli.fit_sim_data_1.final_adjustments`).
+- ``intermediates_directory``: Path to folder where intermediate pickle files
+  should be saved or loaded.
+- ``load_intermediate``: The function name of the ParCa step to load
+  sim_data and cell_specs from; functions prior to and including this
+  will be skipped but all following functions will run. Can only be used
+  if all ParCa steps up to and including named step were previously run
+  successfully with ``save_intermediates`` set to True.
+- ``variable_elongation_transcription``: If True, enable variable elongation
+  for transcription.
+- ``variable_elongation_translation``: If True, enable variable elongation
+  for translation.
 
-### Positional arguments
+--------
+Variants
+--------
 
-- `path_to_sim_data`: Path to the sim_data to use for this experiment.
+In many cases, we would like to use the model to answer biological questions that
+require running the model with different parameters. For example, we may want to
+see how a cell responds differently when grown in different media conditions.
+Since most process parameters in our model come from the pickled
+:py:class:`~reconstruction.ecoli.simulation_data.SimulationDataEcoli` generated by
+the ParCa, we need an easy way to modify this object. The
+:py:mod:`runscripts.create_variants` script was designed for that purpose.
 
-### Optional arguments
+Template
+========
 
-- `--config CONFIG`, `-c CONFIG`: path to a config file (`.json`) to use. Defaults to `data/ecoli_configs/default.json`. Settings from this file can be overridden with further command-line arguments.
-- `--experiment_id EXPERIMENT_ID`, `-id EXPERIMENT_ID`: ID for this experiment. A UUID will be generated if this argument is not used and `"experiment_id"` is `null` in the configuration file.
-- `--emitter`, `-e`: Emitter to use. Options are `timeseries`, `database`, and `print`. Timeseries uses RAMEmitter, database emits to MongoDB, and print emits to stdout.
-- `--seed SEED`, `-s SEED`  Random seed.
-- `--initial_state INITIAL_STATE`, `-t0 INITIAL_STATE`: Name of the initial state to load from (corresponding initial state file must be present in data folder).
-- `--total_time TOTAL_TIME`, `-t TOTAL_TIME`: Time to run the simulation for.
-- `--generations GENERATIONS`, `-g GENERATIONS`: Number of generations to run the simulation for.
-- `--log_updates`, `-u`: Save updates from each process if this flag is set, e.g. for use with blame plot.
-- `--raw_output`: Whether to return data in raw format (dictionary where keys are times, values are states). Some analyses may not work with this flag set.
+In essence, this script runs a "variant function" with one or more input
+parameter combinations, with each invocation independently modifying the
+baseline :py:class:`~reconstruction.ecoli.simulation_data.SimulationDataEcoli`
+object in some way. Variant functions are contained within Python files
+located in the ``ecoli.variants`` folder. They all have an ``apply_variant``
+function that follows the following template:
 
-## JSON
+.. code-block:: python
 
-Configuring a simulation from JSON allows access much more complete access to simulation settings. This includes the ability to add/remove/swap processes, modify topology, and even change how individual molecules are updated or emitted (see **Schema Overrides**).
+    from typing import Any, TYPE_CHECKING
 
-Not all settings need to be provided in a custom configuration file. Settings not given default to values from `ecoli/composites/ecoli_configs/default.json`.
+    # This if statement prevents Python from unnecessarily importing this
+    # object when it is only needed for type hinting
+    if TYPE_CHECKING:
+        from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
-### Basic Settings
+    def apply_variant(
+        sim_data: "SimulationDataEcoli", params: dict[str, Any]
+    ) -> "SimulationDataEcoli":
+        """
+        Modify sim_data using parameters from params dictionary.
 
-The following settings correspond exactly to the options available through the CLI (described above).
+        Args:
+            sim_data: Simulation data to modify
+            params: Parameter dictionary of the following format::
 
-- `"experiment_id"`
-- `"sim_data_path"`
-- `"emitter"`
-- `"log_updates"`
-- `"raw_output"`
-- `"seed"`
-- `"initial_state"`
-- `"time_step"`
-- `"total_time"`
-- `"generations"`
+                {
+                    "{name of parameter}": {type of parameter},
+                    ...
+                }
 
+        Returns:
+            Simulation data with the following attributes modified::
 
-### Processes and Topology
+                {attributes of sim_data that this function changes}
 
-Processes to be used in a simulation are listed under the `"processes"` key, and these are wired to stores as specified with the `"topology"` key (or default topology in the `topology_registry`, see note below). One can configure a custom set of processes with custom topology using by overriding the values for `"processes"` and `"topology"` in `default.json`.
+        """
+        # Modify sim_data as you see fit using params. Following is example
+        sim_data.attribute = params["param_1"]
+        return sim_data
 
-```{json}
-{
-    "processes": [
-        "ecoli-tf-binding",
-        "ecoli-transcript-initiation",
-        ...
-        "ecoli-mass"
-    ],
-    "topology": {
-    }
-}
-```
+Configuration
+=============
 
-> ***Note: Topology Registry***
->
-> The topology key in `default.json` is actually empty, because default topologies come from the `topology_registry` (in `ecoli.processes.registries`). This is essentially a dictionary which associates the name of a process with its typical topology. Canonical processes register their default topology towards the top of the file.
+When running :py:mod:`runscripts.create_variants`, users must specify the
+variant function to use under the ``variants`` key in the configuration JSON
+following the general template::
 
-However, typically one wishes to modify these only slightly, e.g. by adding a process, removing a process, or swapping a process for an alternative version of itself. As such, the following keys can be used to modify the processes as declared in `default.json`:
-
-- `"add_processes"` : List of processes to add to the simulation
-- `"exclude_processes"` : List of processes to remove from the simulation
-- `"swap_processes"` : Dictionary where keys are processes in the default configuration, and values are processes to replace these with.
-
-> ***Note: Adding Processes***
->
-> In order for `EcoliSimulation` to use new or alternative processes, a few requirements need to be met. First, the new process should have its `.name` set (to something that does not conflict with existing processes). Second, the new process needs to be *registered* with the *process registry* (do this in `ecoli/processes/__init__.py`). Finally, one needs to specify the configuration of this process using the `"process_configs"` key (see below). If not specified, vivarium-ecoli will default to trying to load the process configuration from `sim_data` (see `LoadSimData.get_config_by_name`).
-
-Adding a process requires adding a corresponding topology to the topology dictionary. Luckily, due to the way EcoliSimulation merges user settings with the default, one can simply specify topology of added processes without restating topology of processes kept from the default. For example:
-
-```
-{
-    "add_processes" : ["clock"],
-    "topology" : {
-        "clock" : {
-            "global_time" : ["global_time"]
-        }
-    },
-    "process_configs" :{
-        "clock" : {
-            "time_step" : 2.0,
-        }
-    }
-}
-```
-
-would add a `vivarium.processes.clock.Clock` process to the default configuration, without affecting the wiring of other processes.
-
-Note that we used the `"process_configs"` key to initialize the `Clock` process with a timestep of 2. Besides providing an explicit configuration as we did above, we could also have written
-
-```
-"process_configs" :{
-    "clock" : "default"
-}
-```
-
-to use the default configuration for `Clock`, or 
-
-```
-"process_configs" :{
-    "clock" : "sim_data"
-}
-```
-
-to attempt to load a configuration for `Clock` from sim_data using `LoadSimData.get_config_by_name()` (which would fail in this case). Attempting to load from sim_data is the default behavior if a process config is not specified. 
-
-> ***Note:*** when specifying an explicit process config, as in the first case where we set the timestep to 2, this explicit override actually gets deep-merged with (a) the config from sim_data, if it exists, or (b) the default process config, if it does not. This allows one to override only specific entries in the config.
-
-Removing a process removes the corresponding topology entry automatically, and swapping a process keeps the same topology as the original process (unless overridden by the user).
-
-### Schema Overrides
-
-One powerful feature of the JSON configuration approach is the ability to override the port schemas specified by processes. To do so, one simply adds a `"_schema"` key to the config for a process under `"process_configs"`. In the following example, we have overwritten the schema for how the `"ecoli-mass-listener"` process divides the cell mass.
-
-```
-"process_configs": {
-    "ecoli-mass-listener": {
-        "_schema": {
-            "listeners": {
-                "mass": {"cell_mass": {"_divider": "set"}}
+    {
+        "variants": {
+            "{name of variant function}": {
+                {variant function parameters}
             }
         }
     }
-},
-```
 
-Schema overrides can also be used to emit data that would normally not be emitted, by setting `"_emit"` to `True`.
+The name of each variant function is the name of the file containing its
+``apply_variant`` function. For example, to use the variant function
+:py:mod:`ecoli.variants.new_gene_internal_shift`, provide the name
+``new_gene_internal_shift``. If the ``variants`` key points to an
+empty dictionary (no variants), then only the only "variant" saved
+by :py:mod:`runscripts.create_variants` is the unmodified simulation
+data object.
 
-```
-"process_configs": {
-    "ecoli-mass-listener": {
-        "_schema": {
-            "unique": {
-                "active_ribosome": {"_emit": true}
-            }
+.. warning::
+    Only one variant function is supported at a time.
+
+If you would like to modify the simulation data object using multiple
+variant functions, create a new variant function that invokes the desired
+combination of ``apply_variants`` methods from other variant functions.
+
+The format of the variant function parameters is described in
+:py:func:`~runscripts.create_variants.parse_variants`. By using the
+``op`` key, you can concisely generate a large array of parameter
+combinations, each of which results in the creation of a variant of the
+:py:class:`~reconstruction.ecoli.simulation_data.SimulationDataEcoli`
+object.
+
+.. _variant_output:
+
+Output
+======
+
+These variant simulation data objects are pickled and saved in the
+directory given in the ``outdir`` key of the configuration JSON.
+They all have file names of the format ``{index}.cPickle``, where
+index is an integer. The unmodified simulation data object is always
+saved as ``0.cPickle``. The identity of the other indices can be
+determined by referencing the ``metadata.json`` file that is also
+saved in ``outdir``. This JSON maps the variant function name to a
+mapping from each index to the exact parameter
+dictionary passed to the variant function to create the
+variant simulation data saved with that index as its file name. See
+:py:func:`~runscripts.create_variants.apply_and_save_variants` for
+more details.
+
+-----------
+Simulations
+-----------
+
+Refer to :ref:`/experiments.rst` for more information about the main
+script for running single-cell simulations,
+:py:mod:`~ecoli.experiments.ecoli_master_sim`.
+
+--------
+Analyses
+--------
+
+The :py:mod:`runscripts.analysis` script is the main interface for running
+analyses on simulation output data. Importantly, to use this interface,
+simulations must be run (whether with :py:mod:`~ecoli.experiments.ecoli_master_sim`
+or :py:mod:`runscripts.workflow`) with the ``emitter`` option set to ``parquet``
+and an output directory set using the ``out_dir`` or ``out_uri`` key under the
+``emitter_arg`` option (see :ref:`json_config`). This tells vivarium-core to use
+:py:mod:`~ecoli.library.parquet_emitter.ParquetEmitter` to save the simulation
+output as Hive partitioned Parquet files. See :ref:`/output.rst` for more
+details on Parquet and DuckDB, the primary library used to interact with the
+saved files.
+
+Analysis scripts must be one of the following types and placed into the
+corresponding folder:
+
+- :py:mod:`~ecoli.analysis.single`: Limited to data for a single simulated cell
+- :py:mod:`~ecoli.analysis.multidaughter`: Limited to data for daughter cell(s)
+  of a single mother cell
+- :py:mod:`~ecoli.analysis.multigeneration`: Limited to data for all cells across
+  many generations for a given initial seed, variant simulation data object, and
+  workflow run (same experiment ID, see :ref:`/experiments.rst`)
+- :py:mod:`~ecoli.analysis.multiseed`: Limited to data for all cells across many
+  generations and initial seeds for a given variant simulation data object and
+  workflow run
+- :py:mod:`~ecoli.analysis.multivariant`: Limited to data for all cells across
+  many generations, initial seeds, and variant simulation data objects for a given
+  workflow run
+- :py:mod:`~ecoli.analysis.multiexperiment`: Limited to data for all cells across
+  many generations, initial seeds, variant simulation data objects, and workflow runs
+
+.. note::
+    These categories represent upper bounds on the data that can be accessed.
+
+A ``multiseed`` analysis, for example, can choose to only read data
+from cells between generations 4 and 8 from the cells with the same
+experiment ID, variant simulation data object, and initial seed that
+it has access to.
+
+.. _analysis_config:
+
+Configuration
+=============
+
+The :py:mod:`runscripts.analysis` script accepts the following configuration
+options under the ``analysis_options`` key:
+
+- ``single``, ``multidaughter``, ``multigeneration``, ``multiseed``, ``multivariant``
+  ``multiexperiment``: Can pick one or more analysis types to run. Under each analysis
+  type is a sub-dictionary of the following format::
+
+        {
+            "{analysis name}": {optional dictionary of analysis parameters},
+            # Example:
+            "mass_fraction_summary": {"font_size": 12}
         }
-    }
-},
-```
+    
+  The name of an analysis is simply its file name without the ``.py`` extension.
+- ``experiment_id``, ``variant``, ``lineage_seed``, ``generation``, ``agent_id``:
+  List of experiment IDs, variant indices, etc. to filter data to before running
+  analyses. Note that experiment IDs and agent IDs are strings while the rest are
+  integers. ``experiment_id`` is required while the others are optional. If not
+  provided, :py:mod:`runscripts.analysis` simply does not filter data by variant
+  indices, initial seeds, etc. before running analyses.
+- ``variant_range``, ``lineage_seed_range``, ``generation_range``: List of length
+  2 where the first element is the start and the second element is the end (exclusive)
+  of a range of variant indices, initial seeds, or generations to filter data to
+  before running analyses. Overrides corresponding non-range options.
+- ``sim_data_path``: List of string paths to simulation data pickle files. If multiple
+  variants are given via ``variant`` or ``variant_range``, you must provide same number
+  of paths in the same order using this option. This option is mainly meant for internal use.
+  For a simpler alternative that also works if multiple experiment IDs are given with
+  ``experiment_id`` (variant indices may correspond to completely different variant
+  simulation data objects in different workflow runs), see ``variant_data_dir``.
+- ``variant_metadata_path``: String path to ``metadata.json`` file saved by
+  :py:mod:`runscripts.create_variants` (see :ref:`variant_output`). This option is mainly
+  intended for internal use. For a simpler alternative that also works if multiple
+  experiment IDs are given via ``experiment_id``, see ``variant_data_dir``.
+- ``variant_data_dir``: List of string paths to one or more directories containing
+  variant simulation data pickles and metadata saved by :py:mod:`runscripts.create_variants`.
+  Must provide one path for each experiment ID in ``experiment_ID`` and in the
+  same order.
+- ``validation_data_path``: List of string paths to validation data pickle files
+  (generated by ParCa). Can pass any number of paths in any order and they will be
+  passed as is to analysis script ``plot`` functions.
+- ``outdir``: Local (relative or abosolute) path to directory that serves as a prefix
+  to the ``outdir`` argument for analysis script ``plot`` functions
+  (see :ref:`analysis_template`) and a copy of the configuration options
+  used to run :py:mod:`runscripts.analysis` is saved as ``metadata.json``.
+- ``n_cpus``: Number of CPU cores to let DuckDB use
+- ``analysis_types``: List of analysis types to run. By default (if this option
+  is not used), all analyses provided under all the analysis type keys are run
+  on all possible subsets of the data after applying the data filters given using
+  ``experiment_id``, ``variant``, etc. For example, say 2 experiment IDs are
+  given with ``experiment_id``, 2 variants with ``variant``, 2 seeds with ``lineage_seed``,
+  2 generations with ``generation``, and 2 agent IDs with ``agent_id``. Analyses under
+  the ``multiexperiment`` key (if any) will each run once with all data passing this filter.
+  The ``multivariant`` analyses will each run twice, first with filtered data for one
+  experiment ID then with filtered data for the other. The ``multiseed`` analyses will
+  each run 4 times (2 exp IDs * 2 variants), the ``multigeneration`` analyses 8 times
+  (4 * 2 seeds), the ``multidaughter`` analyses 16 times (8 * 2 generations), and the
+  ``single`` analyses 32 times (16 * 2 agent IDs). If you only want to run the ``single``
+  and ``multivariant`` analyses, specify ``["single", "multivariant"]`` using this option.
 
-### Additional Settings
 
-- `"partition"` : (boolean) whether to use partitioning model (NOT YET IMPLEMENTED)
-- `"description"` : (string) description of the experiment
-- `"suffix_time"` : (boolean) whether to suffix custom experiment IDs with time of simulation, to avoid conflict in the database
-- `"progress_bar"` : (boolean) whether to show the progress bar
-- `"agent_id"`
-- `"parallel"`
-- `"division"`
-- `"divide"`
+.. _analysis_template::
 
-## Programmatic Interface
+Template
+========
 
-Running simulations within code, one should use the `EcoliSim` class from `ecoli.experiments.ecoli_master_sim`. This class represents a simulation of the whole-cell *E. coli* model, along with its settings. 
+All analysis scripts must contain a ``plot`` function with the following signature:
 
-```
-# Make simulation with default.json
-sim = EcoliSim.from_file()  # Can also pass in a path to JSON config
+.. code-block:: python
 
-# Modify simulation settings
-sim.experiment_id = "Demo"
-sim.total_time = 10
-...
-# Build and run the experiment
-sim.build_ecoli()
-sim.run()
-data_out = sim.query()
-```
+    from typing import Any, TYPE_CHECKING
 
-All of the settings available to be modified from JSON are also accessible as fields of the `EcoliSim` object. If at any point you wish to access the full simulation config, `sim.config` offers an up-to-date configuration including all changes made through this OOP interface.
+    if TYPE_CHECKING:
+        from duckdb import DuckDBPyConnection
 
-After running a simulation, the `Ecoli` composite generated can be accessed with `sim.ecoli`.
+    def plot(
+        params: dict[str, Any],
+        conn: "DuckDBPyConnection",
+        history_sql: str,
+        config_sql: str,
+        sim_data_paths: dict[str, dict[int, str]],
+        validation_data_paths: list[str],
+        outdir: str,
+        variant_metadata: dict[str, dict[int, Any]],
+        variant_names: dict[str, str],
+    ):
+        """
+        Args:
+            params: Dictionary of parameters given under analysis
+                name in configuration JSON.
+            conn: DuckDB database connection, automatically created
+                by runscripts/analysis.py with appropriate settings.
+            history_sql: DuckDB SQL query that filters simulation
+                output data to subset appropriate for analysis type
+                (e.g. single cell for ``single`` analyses).
+            config_sql: DuckDB SQL query that filters simulation
+                config data to subset appropriate for analyis type.
+            sim_data_paths: Mapping from experiment IDs to mapping
+                from variant indices to variant simulation data
+                pickle paths. Generated by runscripts/analysis.py
+                either using:
+
+                    - Combination of  ``sim_data_path``, ``variant``,
+                      ``variant_metadata_path``, and ``experiment_id``
+                      configuration options
+                    - Trawling directories in ``variant_data_dir`` and
+                      matching discovered variants with experiment IDs
+                      given in ``experiment_id`` (preferred route for
+                      most use cases)
+
+            validation_data_paths: List of validation data pickle
+                paths taken directly from ``validation_data_path``
+                configuration option.
+            outdir: String path equal to ``outdir`` configuration option
+                prepended to Hive partitioned directory representing data
+                filters applied to ``history_sql``. For example, a ``single``
+                analysis script run on data for experiment ID "test",
+                variant index 1, lineage seed 3, generation 2, and agent ID
+                "00" will get: ``{outdir}/experiment_id=test/variant=1/
+                lineage_seed=3/generation=2/agent_id=00``. By convention,
+                analysis scripts should save their outputs in this folder.
+            variant_metadata: Mapping from experiment IDs to mapping
+                from variant indices to parameters used to create variant
+                simulation data object. Generated by runscripts/analysis.py
+                in one of the same two methods used for sim_data_paths.
+            variant_names: Mapping from experiment IDs to name of variant
+                function used to generate variant simulation data objects
+                for workflow run. Generated by runscripts/analysis.py
+                in one of the same two methods used for sim_data_paths.
+        """
+
+Refer to :ref:`/output.rst` for more information about how
+to use DuckDB to read and analyze simulation output inside
+analysis scripts.
+
+---------
+Workflows
+---------
+
+`Nextflow <https://www.nextflow.io>`_ is a piece of software that abstracts the
+complexity of orchestrating complex workflows on a variety of supported
+platforms, including personal computers, computing clusters, and even cloud
+computing services. :py:mod:`runscripts.workflow` uses the template Nextflow
+workflow scripts located in the ``runscripts/nextflow`` folder along with
+an input configuration JSON to create and run a complete workflow with all of
+the steps described above.
+
+Configuration
+=============
+All the previously covered configuration options also apply to the configuration
+JSON supplied to :py:mod:`runscripts.workflow`. Those options govern the behavior
+of the corresponding step in the workflow. For example, running
+:py:mod:`runscripts.workflow` with ``n_cpus`` under ``parca_options``
+set to 4 will start the workflow by running the ParCa with 4 CPUs.
+
+After creating some number of variant simulation data objects with
+:py:mod:`runscripts.create_variants`, the workflow automatically
+starts at least one cell simulation for each variant using
+:py:mod:`~ecoli.experiments.ecoli_master_sim`. The exact number
+of simulations started per variant is configured by the following
+top-level configuration options:
+
+- ``n_init_sims``: Number of replicate simulations to run for each variant,
+  where replicates differ in the initial seed used to initialize them
+- ``lineage_seed``: Each integer in the half-open interval
+  ``[lineage_seed, lineage_seed + n_init_sims)`` is used to initialize
+  the first generation of a lineage, where a lineage is defined
+  as a group of cell simulations with the same first generation initial
+  seed (called a lineage seed) and variant simulation data object
+- ``generations``: Integer number of generations to run each cell lineage
+- ``single_daughters``: If False, simulates both daughter cells (append ``0``
+  to mother agent ID to get one daughter agent ID and ``1`` to get other) after
+  cell division. Otherwise, continue lineage with one arbitrary daughter cell
+  state (append ``0`` to mother agent ID to get daughter agent ID)
+
+This means that if a workflow is run with ``n_init_sims`` set to 4, ``generations``
+set to 10, ``single_daughters`` set to True, and ``variant_options``
+configured to create 4 different variant simulation data objects (5 including
+baseline, unmodified ``0.cPickle``, see :ref:`variant_output`),
+``4 * 10 * 1 * 5 = 200`` total simulations will run. This is assuming no lineages fail
+before reaching 10 generations due to ``fail_at_total_time`` (see :ref:`json_config`)
+or some other uncaught exception.
+
+Unlike when running :py:mod:`runscripts.analysis` manually, the configuration JSON
+supplied to :py:mod:`runscripts.workflow` only needs to provide the names and
+parameters for analysis scripts to run using the analysis type options (e.g.
+``single``, ``multivariant``, etc.) and can omit the other options documented
+in :ref:`analysis_config`. This is because the Nextflow workflow is configured
+to automatically pass the other required parameters like the paths to the variant
+simulation data pickles created by :py:mod:`runscripts.create_variants` earlier
+in the worklow.
+
+--------
+Sherlock
+--------
+
+.. note::
+    The following information is intended for members of the Covert Lab only.
+
+After cloning the model repository to your home directory, skip the other steps
+in the README until reaching the instructions to install Nextflow. After installing
+Nextflow in your home directory, add the following lines to your ``~/.bash_profile``,
+then close and reopen your ssh connection:
+
+.. code-block:: bash
+
+    # Legacy environment variables so old scripts work
+    export PI_HOME=$GROUP_HOME
+    export PI_SCRATCH=$GROUP_SCRATCH
+
+    # Load group-wide settings
+    if [ -f "${PI_HOME}/etc/bash_profile" ]; then
+        . "${PI_HOME}/etc/bash_profile"
+    fi
+
+    # Environment variable required by pyenv
+    export PYENV_ROOT="${PI_HOME}/pyenv"
+
+    # Environment modules used by vEcoli
+    module load system git/2.45.1 parallel
+    module load wcEcoli/python3
+
+    # Need Java for nextflow
+    module load java/18.0.2
+
+    export PYTHONPATH="$HOME/vEcoli"
+
+    if [ -d "${PYENV_ROOT}" ]; then
+        export PATH="${PYENV_ROOT}/bin:${PATH}"
+        eval "$(pyenv init -)"
+        eval "$(pyenv virtualenv-init -)"
+    fi
+
+    export PATH=$PATH:$HOME/.local/bin
+
+    # Use one thread for OpenBLAS (better performance and reproducibility)
+    export OMP_NUM_THREADS=1
+
+Finally, inside the cloned repository, run ``pyenv local viv-ecoli``
+to load the Python virtual environment with all required packages installed.
+
+For convenience, :py:mod:`runscripts.workflow` accepts a boolean top-level
+configuration option ``sherlock``. If set to True, :py:mod:`runscripts.workflow`
+can be run on a login node to automatically submit a job that will run the
+Nextflow workflow orchestrator with a 7-day time limit on the lab's dedicated
+partition (job should start fairly quickly and never get preempted by other
+users). The workflow orchestrator will automatically submit jobs for each step
+in the workflow: one for the ParCa, one to create variants, one for each cell,
+and one for each analysis.
+
+Importantly, the emitter output directory (see description of ``emitter_arg``
+in :ref:`json_config`) should be an absolute path to somewhere in your
+``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``). The path must
+be absolute because Nextflow does not resolve environment variables like
+``$SCRATCH`` in paths.
+
+.. warning::
+    Running the workflow on Sherlock sets a 2 hour limit on all jobs in the
+    workflow, including analyses. Analysis scripts that take more than
+    2 hours to run should be excluded from workflow configurations and manually
+    run using :py:mod:`runscripts.analysis` afterwards.
+
+.. _progress:
+
+--------
+Progress
+--------
+
+There are three main ways to monitor a workflow's progress.
+
+#. Check the command-line output of the Nextflow orchestrator. On a
+   personal computer, Nextflow will periodically print its progress
+   to the command line. On Sherlock, this output is written to the
+   ``slurm-{job ID}.out`` file in the directory you started the workflow from.
+#. Open the file named ``trace-{start timestamp}.txt`` in the directory
+   you started the workflow from. This file contains useful
+   information about completed processes.
+#. Open the file named ``.nextflow.log`` in the directory you started the
+   workflow from. This is a fairly verbose and technical log
+   that may be useful for debugging purposes.
+
+.. _fault_tolerance:
+
+---------------
+Fault Tolerance
+---------------
+
+------
+Output
+------
+
+A completed workflow will have the following directory structure underneath
+the output directory specified via ``out_dir`` or ``out_uri`` under the
+``emitter_arg`` option in the configuration JSON (see :ref:`json_config`):
+
+- ``{experiment ID}``: Folder in output directory named the experiment ID
+  for the workflow. Allows many workflows to use the same output directory
+  without overwriting data as long as they have different experiment IDs.
+
+    - ``history``: Hive-partitioned Parquet files of
+      simulation output. See :ref:`/output.rst`.
+    - ``configuration``: Hive-partitioned Parquet files
+      of simulation configs. See :ref:`/output.rst`.
+    - ``parca``: Pickle files saved by :py:mod:`runscripts.parca`.
+
+        - ``simData.cPickle``: :py:class:`~reconstruction.ecoli.simulation_data.SimulationDataEcoli`
+        - ``validationData.cPickle``: :py:class:`~validation.ecoli.validation_data.ValidationDataEcoli`
+        - ``rawData.cPickle``: :py:class:`~reconstruction.ecoli.knowledge_base_raw.KnowledgeBaseEcoli`
+        - ``rawValidationData.cPickle``: :py:class:`~validation.ecoli.validation_data_raw.ValidationDataRawEcoli`
+
+    - ``variant_sim_data``: Output of :py:mod:`runscripts.create_variants`.
+
+        - ``0.cPickle``: Unmodified, baseline simulation data object.
+        - ``metadata.json``: Mapping from variant function name to mapping from variant
+          indices to parameter dictionaries used to create them.
+        - ``1.cPickle``, ``2.cPickle``, etc: Variant simulation data objects, if any.
+
+    - ``daughter_states``: Hive-partitioned (with experiment ID partition omitted
+      because all files are for the same experiment ID) directory structure containing
+      daughter cell initial states as JSON files.
+    - ``analysis``: Hive-partitioned (with experiment ID partition omitted because
+      all files are for the same experiment ID) directory structure containing
+      output of analysis scripts in folder named ``plot`` at the level corresponding
+      to the analysis type (e.g. ``multigeneration`` analysis output will be
+      in sub-folders of the format ``variant={}/lineage_seed={}/plot``). Each ``plot``
+      folder also contains a ``metadata.json`` file with the configuration.
+      options passed to :py:mod:`runscripts.analysis` for the output in that folder.
+    - ``nextflow``: Nextflow-related files.
+
+        - ``main.nf``: Nextflow workflow script.
+        - ``nextflow.config``: Nextflow workflow configuration.
+        - ``{experiment ID}_report.html``: Contains detailed information about workflow
+          run. Also serves to prevent users from accidentally running another workflow
+          with the same experiment ID and overwriting data. If a user wishes to do so,
+          they must first rename or delete this file.
+        - ``workflow_config.json``: Configuration JSON passed to
+          :py:mod:`runscripts.workflow`.
+        - ``nextflow_workdirs``: Contains all working directories for Nextflow jobs.
+          Required for resume functionality described in :ref:`fault_tolerance`. Can
+          also go to work directory for a job (consult files described in :ref:`progress`
+          or ``{experiment ID}_report.html``) and run ``bash .command.sh`` with
+          breakpoints set in the relevant code (``import ipdb; ipdb.set_trace()``)
+          for debugging.
