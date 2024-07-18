@@ -37,7 +37,7 @@ process analysisParca {
 
     script:
     """
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py -c $config \
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \
         --sim_data_path=$kb/simData.cPickle \
         --validation_data_path=$kb/validationData.cPickle \
         -o \$(pwd) \
@@ -66,7 +66,7 @@ process createVariants {
     script:
     """
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/create_variants.py \
-        -c $config --kb $kb -o \$(pwd)
+        --config $config --kb $kb -o \$(pwd)
     """
 
     stub:

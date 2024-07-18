@@ -104,7 +104,6 @@ def main():
     default_config = os.path.join(CONFIG_DIR_PATH, "default.json")
     parser.add_argument(
         "--config",
-        "-c",
         default=default_config,
         help=(
             "Path to configuration file for the simulation. "

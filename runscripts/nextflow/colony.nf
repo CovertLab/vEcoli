@@ -9,7 +9,7 @@ process colony {
 
     script:
     """
-    python /vivarium-ecoli/ecoli/experiments/ecoli_engine_process.py -c $config --sim_data_path $sim_data --initial_state_file $initial_state
+    python /vivarium-ecoli/ecoli/experiments/ecoli_engine_process.py --config $config --sim_data_path $sim_data --initial_state_file $initial_state
     STATUS=$?
     """
 

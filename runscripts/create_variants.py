@@ -242,7 +242,6 @@ def main():
     default_config = os.path.join(CONFIG_DIR_PATH, "default.json")
     parser.add_argument(
         "--config",
-        "-c",
         action="store",
         default=default_config,
         help=(
