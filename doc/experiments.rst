@@ -34,6 +34,8 @@ small ad-hoc test simulations or for creating your own experiment file (see
 the other two and only offers access to a few key configuration options. It is
 mainly intended for internal use (e.g. in Nextflow workflow scripts).
 
+.. _json_config:
+
 -----------------
 JSON Config Files
 -----------------
@@ -346,6 +348,49 @@ Here are some general rules to remember when writing JSON files:
 - Comments are not allowed
 - Tuples (e.g. in topologies or flows) are written as lists (``["bulk"]`` instead of ``("bulk",)``)
 
+----------------
+Schema Overrides
+----------------
+
+One powerful feature of the JSON configuration approach is the ability to override the port schemas
+specified by processes. To do so, one simply adds a ``_schema`` key to the config for a process
+under the ``process_configs`` option. In the following example, we have overridden the schema for
+how the `"ecoli-mass-listener"` process divides the cell mass.
+
+.. code-block::
+
+    "process_configs": {
+        "ecoli-mass-listener": {
+            "_schema": {
+                "listeners": {
+                    "mass": {"cell_mass": {"_divider": "set"}}
+                }
+            }
+        }
+    }
+
+
+Another use of schema overrides is to emit data that would normally not be emitted
+by setting ``_emit`` to ``True``.
+
+.. code-block::
+
+    "process_configs": {
+        "ecoli-mass-listener": {
+            "_schema": {
+                "unique": {
+                    "active_ribosome": {"_emit": true}
+                }
+            }
+        }
+    }
+
+.. warning::
+    Vivarium includes internal checks to ensure that all ports connected to a
+    store give the same or compatible (no conflicting keys) schemas for that store.
+    This means that if you would like to override the schema for a store with many
+    connecting ports, you will likely need to override the ports schemas for all
+    relevant ports. 
 
 ------------------
 Colony Simulations

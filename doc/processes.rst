@@ -15,6 +15,33 @@ or :py:class:`~vivarium.core.process.Step`.
 For now, we will ignore the differences
 between these two base classes and refer to both as processes.
 
+------------
+Registration
+------------
+
+In order for a process to be recognized by our main simulation runscript
+(:py:mod:`~ecoli.experiments.ecoli_master_sim`) by name, it must register
+itself in a few key places. First, a process must be registered in the
+:py:data:`~vivarium.core.registry.process_registry` in the ``ecoli/processes/__init__.py``
+file.
+
+Second, it should register its topology in :py:data:`~ecoli.processes.registries.topology_registry`.
+This is usally accomplished by having the following lines at the top of the
+process file::
+
+   from ecoli.processes.registries import topology_registry
+
+   topology_registry.register({process name}, {process topology})
+
+This second condition is not strictly necessary as topologies for
+processes can be manually supplied at runtime using the ``topology``
+configuration key (see :ref:`sim_config`). The topologies specified
+using this configuration option always take precedence over any
+topologies registered for a given process in the topology registry.
+The topology registry is mainly a convenience designed to keep all
+code for a process inside the process file (as oppsed to having the
+topologies for processes in the configuration JSON files).
+
 ----------
 Parameters
 ----------

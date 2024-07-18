@@ -1,6 +1,6 @@
-==========================
-Working with Documentation
-==========================
+=============
+Documentation
+=============
 
 We write documentation in plain text that utilizes the `reStructured
 Text <https://www.sphinx-doc.org/rest.html>`_ markup language. You can

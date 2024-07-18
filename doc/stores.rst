@@ -4,31 +4,38 @@ Stores
 
 Stores are upgraded dictionaries that store the simulation state. They can
 be nested within one another to form a store hierarchy. The core stores in
-vEcoli comprise the following simplified store hierarchy::
+vEcoli comprise the following simplified store hierarchy:
 
-    |-- bulk
-    |-- unique
-    |   |-- active_replisomes
-    |   |-- active_ribosome
-    |   |-- active_RNAPs
-    |   |-- chromosome_domains
-    |   |-- chromosomal_segments
-    |   |-- full_chromosomes
-    |   |-- DnaA_boxes
-    |   |-- genes
-    |   |-- oriCs
-    |   |-- promoters
-    |   |-- RNAs
-    |-- listeners
-    |   |-- mass
-    |   |   |-- dry_mass
-    |   |   |-- cell_mass
-    |   |   |-- ...
-    |   |-- replication_data
-    |   |   |-- fork_coordinates
-    |   |   |-- fork_domains
-    |   |   |-- ...
-    |   |-- ...
+- ``bulk``
+- ``unique``
+
+    - ``active_replisomes``
+    - ``active_ribosome``
+    - ``active_RNAPs``
+    - ``chromosome_domains``
+    - ``chromosomal_segments``
+    - ``full_chromosomes``
+    - ``DnaA_boxes``
+    - ``genes``
+    - ``oriCs``
+    - ``promoters``
+    - ``RNAs``
+
+- ``listeners``
+
+    - ``mass``
+
+        - ``dry_mass``
+        - ``cell_mass``
+        - ...
+
+    - ``replication_data``
+
+        - ``fork_coordinates``
+        - ``fork_domains``
+        - ...
+
+    - ...
 
 Individual stores in this hierarchy are identified using tuples representing
 their path inside the nested hierarchy. For example, the dry mass listener store

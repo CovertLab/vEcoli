@@ -133,10 +133,10 @@ def apply_and_save_variants(
 ):
     """
     Applies variant function to ``sim_data`` with each parameter dictionary
-    in ``param_dicts``. Saves each variant as ``variant_name_{i}``
+    in ``param_dicts``. Saves each variant as ``{i}.cPickle``
     in ``outdir``, where ``i`` is the index of the parameter dictionary in
     ``param_dicts`` used to create that variant. Also saves ``metadata.json``
-    in ``outdir`` that maps each ``variant_name_{i}`` to the parameter
+    in ``outdir`` that maps each ``{i}`` to the parameter
     dictionary used to create it.
 
     Args:
