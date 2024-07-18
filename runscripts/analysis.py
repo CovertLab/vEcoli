@@ -302,6 +302,9 @@ def main():
         # subset identified for current analysis type
         cols = ANALYSIS_TYPES[analysis_type]
         query_strings = {}
+        # Figure out what Hive partition in main output directory
+        # to store outputs for analyses run on this cell subset
+        curr_outdir = config["outdir"]
         if len(cols) > 0:
             joined_cols = ", ".join(cols)
             data_ids = conn.sql(
@@ -311,6 +314,8 @@ def main():
             for data_id in data_ids:
                 data_filters = []
                 for col, col_val in zip(cols, data_id):
+                    curr_outdir = os.path.join(curr_outdir, f"{col}={col_val}")
+                    # Quote string Hive partition values for DuckDB query
                     if FILTERS[col] is str:
                         col_val = f"'{col_val}'"
                     data_filters.append(f"{col}={col_val}")
@@ -324,6 +329,7 @@ def main():
                 f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
             )
+        os.makedirs(curr_outdir, exist_ok=True)
         for analysis_name in config[analysis_type]:
             analysis_mod = importlib.import_module(
                 f"ecoli.analysis.{analysis_type}.{analysis_name}"
@@ -337,7 +343,7 @@ def main():
                     config_q,
                     sim_data_dict,
                     config["validation_data_path"],
-                    config["outdir"],
+                    curr_outdir,
                     variant_metadata,
                     variant_names,
                 )
