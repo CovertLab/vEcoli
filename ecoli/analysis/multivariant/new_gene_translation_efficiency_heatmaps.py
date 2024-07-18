@@ -1135,7 +1135,7 @@ def plot(
     validation_data_paths: list[str],
     outdir: str,
     variant_metadata: dict[str, dict[int, Any]],
-    variant_names: list[str],
+    variant_names: dict[str, str],
 ):
     """
     Create either a single multi-heatmap plot or 1+ separate heatmaps of data

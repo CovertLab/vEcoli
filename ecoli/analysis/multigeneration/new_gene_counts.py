@@ -23,7 +23,7 @@ def plot(
     validation_data_paths: list[str],
     outdir: str,
     variant_metadata: dict[str, dict[int, Any]],
-    variant_names: list[str],
+    variant_names: dict[str, str],
 ):
     # Determine new gene ids
     with open_arbitrary_sim_data(sim_data_dict) as f:
