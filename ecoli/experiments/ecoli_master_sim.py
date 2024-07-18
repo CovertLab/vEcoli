@@ -168,10 +168,8 @@ def prepare_save_state(state: dict[str, Any]) -> None:
 
 
 class SimConfig:
+    #: Path to default JSON configuration file.
     default_config_path = os.path.join(CONFIG_DIR_PATH, "default.json")
-    """
-    Path to default JSON configuration file.
-    """
 
     def __init__(
         self,

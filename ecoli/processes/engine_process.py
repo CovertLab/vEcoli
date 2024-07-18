@@ -1,4 +1,4 @@
-r"""
+"""
 =============
 EngineProcess
 =============
@@ -28,19 +28,19 @@ the outer simulation process (here, process ``A``) expects the data to be
 
 .. code-block:: text
 
-      ________________/\
-     /               /  \       EngineProcess
-dummy_store     +---+    +-------------------------+
-  :  :..........| A |    |                         |
-  :             +---+    |        /\               |
-  :                      |       /  \              |
-  :                      |  +---+    store1        |
-  :                      |  | B |       ^          |
-  :                      |  +---+       |          |
-  :                      |              |          |
-  :................tunnel_in <----- next_update    |
-                         |                         |
-                         +-------------------------+
+             ________________
+            /      |         \    EngineProcess
+    dummy_store  +---+    +-------------------------+
+        :  :.....| A |    |                         |
+        :        +---+    |        /\               |
+        :                 |       /  \              |
+        :                 |  +---+    store1        |
+        :                 |  | B |       ^          |
+        :                 |  +---+       |          |
+        :                 |              |          |
+        :.............tunnel_in <-- next_update     |
+                          |                         |
+                          +-------------------------+
 
 Here is another example where a tunnel connects an inside process
 (``B``) to an outside store (``store2``). We call this a "tunnel out"
@@ -57,7 +57,7 @@ the outer simulation and what paths those outer simulation stores have.
 
 .. code-block:: text
 
-         /\
+         /\\
         /  \        EngineProcess
        /    +-------------------------+
     store2  |                         |
