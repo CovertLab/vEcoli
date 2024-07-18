@@ -54,7 +54,7 @@ def run_ecoli_with_metabolism_redux(
 
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
-    filename="metabolism_redux_classic_rich_media",
+    filename="metabolism_redux_classic", # do not change this name
     total_time=1300,
     divide=True,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
