@@ -77,7 +77,7 @@ def plot(
     validation_data_paths: list[str],
     outdir: str,
     variant_metadata: dict[str, dict[int, Any]],
-    variant_names: list[str],
+    variant_names: dict[str, str],
 ):
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data: "SimulationDataEcoli" = pickle.load(f)

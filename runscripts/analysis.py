@@ -39,7 +39,7 @@ must be unique for each subset of the data given to that analysis type as input.
 
 def parse_variant_data_dir(
     experiment_id: list[str], variant_data_dir: list[str]
-) -> tuple[dict[str, dict[int, Any]], dict[str, dict[int, str]], list[str]]:
+) -> tuple[dict[str, dict[int, Any]], dict[str, dict[int, str]], dict[str, str]]:
     """
     For each experiment ID and corresponding variant sim data directory,
     load the variant metadata JSON and parse the variant sim data file
@@ -52,22 +52,22 @@ def parse_variant_data_dir(
             create_variants.py, one for each experiment ID, in order
 
     Returns:
-        Tuple containing two nested dictionaries and a list::
+        Tuple containing three dictionaries::
 
             (
                 {experiment_id: {variant_id: variant_metadata, ...}, ...},
                 {experiment_id: {variant_id: variant_sim_data_path, ...}, ...}
-                [variant_name_for_experiment_id, ...]
+                {experiment_id: variant_name, ...}
             )
     """
     variant_metadata = {}
     sim_data_dict = {}
-    variant_names = []
+    variant_names = {}
     for e_id, v_data_dir in zip(experiment_id, variant_data_dir):
         with open_output_file(os.path.join(v_data_dir, "metadata.json")) as f:
             v_metadata = json.load(f)
             variant_name = list(v_metadata.keys())[0]
-            variant_names.append(variant_name)
+            variant_names[e_id] = variant_name
             variant_metadata[e_id] = {
                 int(k): v for k, v in v_metadata[variant_name].items()
             }
@@ -130,8 +130,8 @@ def main():
         "--sim_data_path",
         nargs="*",
         help="Path to the sim_data pickle(s) to use. If multiple variants given"
-        " via --variant or --variant-range, must provide same number"
-        " of paths here in same order. Alternatively, see --variant-data-dir.",
+        " via --variant or --variant_range, must provide same number"
+        " of paths here in same order. Alternatively, see --variant_data_dir.",
     )
     parser.add_argument(
         "--validation_data_path",
@@ -147,14 +147,14 @@ def main():
     parser.add_argument(
         "--variant_metadata_path",
         help="Path to JSON file with variant metadata from create_variants.py."
-        " Required with --sim-data-path. Otherwise, see --variant-data-dir.",
+        " Required with --sim_data_path. Otherwise, see --variant_data_dir.",
     )
     parser.add_argument(
         "--variant_data_dir",
         nargs="*",
         help="Path(s) to one or more directories containing variant sim data"
-        " and metadata from create_variants.py. Supersedes --sim-data-path and"
-        " --variant-metadata-path. If >1 experiment IDs, this is required and"
+        " and metadata from create_variants.py. Supersedes --sim_data_path and"
+        " --variant_metadata_path. If >1 experiment IDs, this is required and"
         " must have the same length and order as the given experiment IDs.",
     )
     parser.add_argument(
@@ -254,17 +254,17 @@ def main():
     if len(config["experiment_id"]) > 1:
         assert (
             "variant_data_dir" in config
-        ), "Must provide --variant-data-dir for each experiment ID."
+        ), "Must provide --variant_data_dir for each experiment ID."
         assert len(config["variant_data_dir"]) == len(
             config["experiment_id"]
-        ), "Must provide --variant-data-dir for each experiment ID."
+        ), "Must provide --variant_data_dir for each experiment ID."
     if "variant_data_dir" in config:
         if "variant_metadata_path" in config:
             warnings.warn(
-                "Ignoring --variant-metadata-path in favor of" " --variant-data-dir"
+                "Ignoring --variant_metadata_path in favor of" " --variant_data_dir"
             )
         if "sim_data_path" in config:
-            warnings.warn("Ignoring --sim-data-path in favor of" " --variant-data-dir")
+            warnings.warn("Ignoring --sim_data_path in favor of" " --variant_data_dir")
         variant_metadata, sim_data_dict, variant_names = parse_variant_data_dir(
             config["experiment_id"], config["variant_data_dir"]
         )
@@ -282,7 +282,7 @@ def main():
                 zip(config["variant"], config["sim_data_path"])
             )
         }
-        variant_names = [variant_name]
+        variant_names = {config["experiment_id"][0]: variant_name}
 
     # Establish DuckDB connection
     conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("n_cpus"))
