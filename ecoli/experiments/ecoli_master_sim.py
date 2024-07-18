@@ -202,7 +202,6 @@ class SimConfig:
             self.parser = argparse.ArgumentParser(description="ecoli_master")
             self.parser.add_argument(
                 "--config",
-                "-c",
                 action="store",
                 default=self.default_config_path,
                 help=(

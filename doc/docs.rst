@@ -11,10 +11,10 @@ can also read it as plain text.
 Reading Documentation
 ---------------------
 
-You're welcome to read the plain text documentation in this folder, but
-you'll probably enjoy the pretty HTML version more. We use GitHub
+You're welcome to read the plain text documentation in the ``docs`` folder,
+but you'll probably enjoy the pretty HTML version more. We use GitHub
 Actions to build the HTML and deploy it to GitHub Pages here:
-https://covertlab.github.io/vivarium-ecoli.
+https://covertlab.github.io/vEcoli.
 
 If you want to generate the HTML documentation yourself, check out the
 instructions on building documentation :ref:`below <building-docs>`.
@@ -25,6 +25,10 @@ Writing Documentation
 
 Where to Write
 ==============
+
+The source code for the non-API documentation is in reStructuredText (``.rst``)
+files located in the ``docs`` folder of the repository. Please feel free to edit
+those files to fix errors, add information, and clarify things as you see fit.
 
 API Reference Documentation
 ---------------------------
@@ -38,8 +42,8 @@ titles on each page.
 
 .. note::
   From the compiled HTML reference documentation, you can click on
-   ``[source]`` to see the source code, including the docstrings. This
-   can be helpful for looking up reStructuredText syntax.
+  ``[source]`` to see the source code, including the docstrings. This
+  can be helpful for looking up reStructuredText syntax.
 
 .. WARNING::
    For each class, include at most one of the class and constructor

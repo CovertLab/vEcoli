@@ -11,6 +11,8 @@ disk (i.e. not using ``timeseries`` in-memory emitter), then simulations
 or workflows with the same experiment ID will overwrite data from any past
 simulations or workflows with the same experiment ID.
 
+.. _sim_config:
+
 -------------
 Configuration
 -------------
@@ -18,7 +20,7 @@ Configuration
 :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` offers three methods
 for configuring simulations:
 
-#. Using a JSON configuration file via the command-line option ``--config`` or ``-c``
+#. Using a JSON configuration file via the command-line option ``--config``
 #. Using the object-oriented interface
 #. Using command-line options
 
@@ -43,7 +45,7 @@ the command line. The configuration options are always loaded in the following o
 
 #. The options in the default JSON config file (located at
    :py:data:`~ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path`)
-#. The options in the JSON config file specified via ``--config`` or ``-c``
+#. The options in the JSON config file specified via ``--config``
    in the command line.
 #. The other options specified via the command line.
 
@@ -58,7 +60,7 @@ Notice that the options in the default JSON config file are always loaded
 first. This means that if you would like to run a simulation or workflow
 that leaves some of these options alone, you can simply omit those options
 from the JSON config file that you create and pass to the runscript
-via ``--config`` or ``-c``.
+via ``--config``.
 
 Below is an annotated copy of the default simulation-related configuration
 options from the default JSON config file (see the file located at
@@ -339,7 +341,7 @@ Here are some general rules to remember when writing JSON files:
 
 - String must be enclosed in double quotes (not single quotes)
 - Booleans are lowercase
-- None values are written as (unquoted) null
+- None values are written as (unquoted) ``null``
 - Trailing commas are not allowed
 - Comments are not allowed
 - Tuples (e.g. in topologies or flows) are written as lists (``["bulk"]`` instead of ``("bulk",)``)
@@ -395,6 +397,23 @@ become much more useful in the context of colony simulations:
 
 .. _create_experiment:
 
---------------------------
-Create Your Own Experiment
---------------------------
+---------------
+Create Your Own
+---------------
+
+For more control over a simulation than what is provided by the default
+:py:mod:`~ecoli.experiments.ecoli_master_sim` experiment (as well as the
+workflow runscript :py:mod:`runscripts.workflow`, see :ref:`/workflows.rst`),
+you can create your own experiment file. Some examples of custom experiment
+files in the ``ecoli/experiments`` folder include:
+
+- :py:mod:`~ecoli.experiments.tet_amp_sim`: Modifies the initial state to add
+  new bulk molecules (see :ref:`bulk`) for antibiotics-related molecules and
+  adds two transcription factor binding sites to all promoters for MarA and MarR.
+  Also adds command-line options for external concentration of tetracycline and
+  ampicillin.
+- :py:mod:`~ecoli.experiments.metabolism_redux_sim`: Replaces the default metabolism
+  process (:py:class:`~ecoli.processes.metabolism.Metabolism`) with experimental
+  alternatives (e.g. :py:class:`~ecoli.processes.metabolism_redux_classic.MetabolismReduxClassic`).
+  Makes use of the object-oriented interface for sim configuration mentioned
+  in :ref:`sim_config` (e.g. ``sim.total_time = 100``).
