@@ -10,7 +10,8 @@ process analysisSingle {
     path variant_metadata
 
     output:
-    path '*'
+    path 'plots/*'
+    path 'plots/metadata.json'
 
     script:
     """
@@ -26,12 +27,22 @@ process analysisSingle {
         --variant_metadata_path ${variant_metadata} \\
         -o \$(pwd)/plots \\
         -t single
+    cd plots
+    cd experiment_id=*
+    cd variant=*
+    cd lineage_seed=*
+    cd generation=*
+    cd agent_id=*
+    mv * ../../../../..
+    cd ../../../../..
+    rm -rf experiment_id=*
     """
 
     stub:
     """
     mkdir -p plots
     echo -e "Single\n\n"$sim_data"\n\n"$kb/validationData.cPickle"\n\n"$experiment_id"\n\n"$variant"\n\n$lineage_seed\n\n$generation\n\n$agent_id" > plots/test.txt
+    touch plots/metadata.json
     """
 }
 
@@ -47,7 +58,8 @@ process analysisMultiDaughter {
     path variant_metadata
 
     output:
-    path '*'
+    path 'plots/*'
+    path 'plots/metadata.json'
 
     script:
     """
@@ -62,12 +74,21 @@ process analysisMultiDaughter {
         --variant_metadata_path ${variant_metadata} \\
         -o \$(pwd)/plots \\
         -t multidaughter
+    cd plots
+    cd experiment_id=*
+    cd variant=*
+    cd lineage_seed=*
+    cd generation=*
+    mv * ../../../..
+    cd ../../../..
+    rm -rf experiment_id=*
     """
 
     stub:
     """
     mkdir -p plots
     echo -e "Multicell\n\n"$sim_data"\n\n"$experiment_id"\n\n"$variant"\n\n$lineage_seed\n\n$generation" > plots/test.txt
+    touch plots/metadata.json
     """
 }
 
@@ -83,7 +104,8 @@ process analysisMultiGeneration {
     path variant_metadata
 
     output:
-    path '*'
+    path 'plots/*'
+    path 'plots/metadata.json'
 
     script:
     """
@@ -97,12 +119,20 @@ process analysisMultiGeneration {
         --variant_metadata_path ${variant_metadata} \\
         -o \$(pwd)/plots \\
         -t multigeneration
+    cd plots
+    cd experiment_id=*
+    cd variant=*
+    cd lineage_seed=*
+    mv * ../../..
+    cd ../../..
+    rm -rf experiment_id=*
     """
 
     stub:
     """
     mkdir -p plots
     echo -e "Multigeneration\n\n"$sim_data"\n\n"$experiment_id"\n\n"$variant"\n\n$lineage_seed\n\n" > plots/test.txt
+    touch plots/metadata.json
     """
 }
 
@@ -118,7 +148,8 @@ process analysisMultiSeed {
     path variant_metadata
 
     output:
-    path '*'
+    path 'plots/*'
+    path 'plots/metadata.json'
 
     script:
     """
@@ -131,12 +162,19 @@ process analysisMultiSeed {
         --variant_metadata_path ${variant_metadata} \\
         -o \$(pwd)/plots \\
         -t multiseed
+    cd plots
+    cd experiment_id=*
+    cd variant=*
+    mv * ../..
+    cd ../..
+    rm -rf experiment_id=*
     """
 
     stub:
     """
     mkdir -p plots
     echo -e "Multiseed\n\n"$sim_data"\n\n"$experiment_id"\n\n"$variant"" > plots/test.txt
+    touch plots/metadata.json
     """
 }
 
@@ -150,7 +188,8 @@ process analysisMultiVariant {
     path variant_metadata
 
     output:
-    path '*'
+    path 'plots/*'
+    path 'plots/metadata.json'
 
     script:
     """
@@ -163,11 +202,17 @@ process analysisMultiVariant {
         --variant_metadata_path ${variant_metadata} \\
         -o \$(pwd)/plots \\
         -t multivariant
+    cd plots
+    cd experiment_id=*
+    mv * ..
+    cd ..
+    rm -rf experiment_id=*
     """
 
     stub:
     """
     mkdir -p plots
     echo -e "Multivariant\n\n"${sim_data.join("\" \"")}"\n\n"$experiment_id"\n\n"${variant.join("\" \"")}"" > plots/test.txt
+    touch plots/metadata.json
     """
 }
