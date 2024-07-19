@@ -11,7 +11,7 @@ import pytest
 
 # vivarium-ecoli imports
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.library.json_state import get_state_from_file
 
 
 import numpy as np
@@ -64,7 +64,7 @@ def run_ecoli_with_metabolism_redux_classic(
     name="metabolism-redux-classic-rich",
     raw_output=False,
     save=True,
-    save_times=[1, 200, 400, 1300],
+    save_times=[1, 10, 200, 400, 1300],
     condition="with_aa",  # basal, with_aa
     fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
 ):

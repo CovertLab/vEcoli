@@ -1,51 +1,59 @@
 from typing import Any, TYPE_CHECKING
 
+from ecoli.variants.condition import apply_variant as condition_variant
+
 if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
 
-def get_new_gene_indices(sim_data):
+def get_new_gene_ids_and_indices(sim_data):
     """
-    Determines the indices of new gene mRNAs and proteins using the new
+    Determines the indices of new gene cistrons and proteins using the new
     gene flag in sim_data.
 
     Returns:
-        new_gene_mRNA_indices: indices in rna_data table for new gene mRNAs
+        new_gene_cistron_ids: names of new gene cistrons
+        new_gene_indices: indices in rna_data table for new gene cistrons
+        new_monomer_ids: names of new gene monomers
         new_monomer_indices: indices in monomer_data table for new monomers
     """
-    mRNA_sim_data = sim_data.process.transcription.cistron_data.struct_array
+    cistron_sim_data = sim_data.process.transcription.cistron_data.struct_array
     monomer_sim_data = sim_data.process.translation.monomer_data.struct_array
-    new_gene_mRNA_ids = mRNA_sim_data[mRNA_sim_data["is_new_gene"]]["id"].tolist()
-    mRNA_monomer_id_dict = dict(
+    new_gene_cistron_ids = cistron_sim_data[cistron_sim_data["is_new_gene"]][
+        "id"
+    ].tolist()
+    cistron_monomer_id_dict = dict(
         zip(monomer_sim_data["cistron_id"], monomer_sim_data["id"])
     )
-    new_gene_monomer_ids = [
-        mRNA_monomer_id_dict.get(mRNA_id) for mRNA_id in new_gene_mRNA_ids
+    new_monomer_ids = [
+        cistron_monomer_id_dict.get(cistron_id) for cistron_id in new_gene_cistron_ids
     ]
-    if len(new_gene_mRNA_ids) == 0:
+    if len(new_gene_cistron_ids) == 0:
         raise Exception(
             "This variant  is intended to be run on simulations "
-            "where the new gene option was enabled, but no new gene mRNAs were "
+            "where the new gene option was enabled, but no new gene cistrons were "
             "found."
         )
-    if len(new_gene_monomer_ids) == 0:
+    if len(new_monomer_ids) == 0:
         raise Exception(
             "This variant is intended to be run on simulations where"
             " the new gene option was enabled, but no new gene proteins "
             "were found."
         )
-    assert len(new_gene_monomer_ids) == len(
-        new_gene_mRNA_ids
-    ), "number of new gene monomers and mRNAs should be equal"
+    assert len(new_monomer_ids) == len(
+        new_gene_cistron_ids
+    ), "number of new gene monomers and cistrons should be equal"
     rna_data = sim_data.process.transcription.rna_data
-    mRNA_idx_dict = {rna[:-3]: i for i, rna in enumerate(rna_data["id"])}
-    new_gene_indices = [mRNA_idx_dict.get(mRNA_id) for mRNA_id in new_gene_mRNA_ids]
+    cistron_idx_dict = {rna[:-3]: i for i, rna in enumerate(rna_data["id"])}
+    new_gene_indices = [
+        cistron_idx_dict.get(cistron_id) for cistron_id in new_gene_cistron_ids
+    ]
     monomer_idx_dict = {monomer: i for i, monomer in enumerate(monomer_sim_data["id"])}
     new_monomer_indices = [
-        monomer_idx_dict.get(monomer_id) for monomer_id in new_gene_monomer_ids
+        monomer_idx_dict.get(monomer_id) for monomer_id in new_monomer_ids
     ]
 
-    return new_gene_indices, new_monomer_indices
+    return new_gene_cistron_ids, new_gene_indices, new_monomer_ids, new_monomer_indices
 
 
 def modify_new_gene_exp_trl(
@@ -69,7 +77,7 @@ def modify_new_gene_exp_trl(
         translation_efficiency: Translation efficiency for new genes
     """
     # Determine ids and indices of new genes
-    new_gene_indices, new_monomer_indices = get_new_gene_indices(sim_data)
+    _, new_gene_indices, _, new_monomer_indices = get_new_gene_ids_and_indices(sim_data)
 
     # Modify expression and translation efficiency for new genes
     for gene_idx, monomer_idx in zip(new_gene_indices, new_monomer_indices):
@@ -80,7 +88,7 @@ def modify_new_gene_exp_trl(
 
 
 def apply_variant(
-    sim_data: "SimulationDataEcoli", params: dict[str, list[Any]]
+    sim_data: "SimulationDataEcoli", params: dict[str, Any]
 ) -> "SimulationDataEcoli":
     """
     Modify sim_data so new gene expression and translation efficiency
@@ -119,18 +127,14 @@ def apply_variant(
 
     """
     # Set media condition
-    sim_data.condition = params["condition"]
-    sim_data.external_state.current_timeline_id = params["condition"]
-    sim_data.external_state.saved_timelines[params["condition"]] = [
-        (0, sim_data.conditions[params["condition"]]["nutrients"])
-    ]
+    sim_data = condition_variant(sim_data, params)
 
     # Initialize internal shift dictionary
-    sim_data.internal_shift_dict = {}
+    sim_data.internal_shift_dict = {}  # type: ignore[attr-defined]
 
     # Add the new gene induction to the internal_shift instructions
     if params["induction_gen"] != -1:
-        sim_data.internal_shift_dict[params["induction_gen"]] = (
+        sim_data.internal_shift_dict[params["induction_gen"]] = (  # type: ignore[attr-defined]
             modify_new_gene_exp_trl,
             (params["exp_trl_eff"]["exp"], params["exp_trl_eff"]["trl_eff"]),
         )
@@ -139,7 +143,7 @@ def apply_variant(
             "New genes are knocked out by default, so induction should happen"
             " before knockout."
         )
-        sim_data.internal_shift_dict[params["knockout_gen"]] = (
+        sim_data.internal_shift_dict[params["knockout_gen"]] = (  # type: ignore[attr-defined]
             modify_new_gene_exp_trl,
             (0, params["exp_trl_eff"]["trl_eff"]),
         )

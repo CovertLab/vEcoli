@@ -16,17 +16,25 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from vivarium.core.emitter import DatabaseEmitter
+from vivarium.core.serialize import deserialize_value
 from vivarium.library.dict_utils import get_value_from_path
 from vivarium.library.topology import convert_path_style
+from vivarium.library.units import remove_units
 
-from ecoli.analysis.db import access_counts_old, deserialize_and_remove_units
-from ecoli.plots.snapshots import format_snapshot_data, get_tag_ranges, plot_tags
-
+from ecoli.analysis.colony.snapshots import (
+    format_snapshot_data,
+    get_tag_ranges,
+    plot_tags,
+)
 from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR, PATHS_TO_LOAD
 
 
 PERIPLASMIC_VOLUME_FRACTION = 0.2
 PERIPLASMIC_VARS = ["OmpF monomer", "TolC monomer", "AmpC monomer"]
+
+
+def deserialize_and_remove_units(d):
+    return remove_units(deserialize_value(d))
 
 
 def make_snapshot_and_hist_plot(
@@ -204,29 +212,19 @@ def make_snapshot_and_hist_plot(
 
 def get_data(experiment_id, time, molecules, host, port, cpus, verbose):
     # Prepare molecule paths for access_counts()
-    monomers = [m[-1] for m in molecules if m[-2] == "monomer"]
-    mrnas = [m[-1] for m in molecules if m[-2] == "mrna"]
-    inner_paths = [
-        path for path in molecules if path[-1] not in mrnas and path[-1] not in monomers
-    ]
-    outer_paths = [("data", "dimensions")]
+    # monomers = [m[-1] for m in molecules if m[-2] == "monomer"]
+    # mrnas = [m[-1] for m in molecules if m[-2] == "mrna"]
+    # inner_paths = [
+    #     path for path in molecules if path[-1] not in mrnas and path[-1] not in monomers
+    # ]
+    # outer_paths = [("data", "dimensions")]
 
     if verbose:
         print(f"Accessing data for experiment {experiment_id}...")
 
-    # Query database
-    data = access_counts_old(
-        experiment_id=experiment_id,
-        monomer_names=monomers,
-        mrna_names=mrnas,
-        inner_paths=inner_paths,
-        outer_paths=outer_paths,
-        host=host,
-        port=port,
-        start_time=time,
-        end_time=time,
-        cpus=cpus,
-    )
+    # TODO: Retrieve data using DuckDB
+    raise NotImplementedError("Still need to update to use DuckDB!")
+    data = {}
 
     with concurrent.futures.ProcessPoolExecutor(cpus) as executor:
         # Prepare to deserialize data

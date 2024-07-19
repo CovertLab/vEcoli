@@ -3,8 +3,10 @@ Functions to initialize molecule states from sim_data.
 """
 
 import numpy as np
+import numpy.typing as npt
 from numpy.lib import recfunctions as rfn
 from typing import Any
+from unum import Unum
 
 from ecoli.library.schema import attrs, bulk_name_to_idx, create_unique_indexes, counts
 from ecoli.processes.polypeptide_elongation import (
@@ -1651,14 +1653,18 @@ def initialize_translation(
 
 
 def determine_chromosome_state(
-    tau: float,
-    replichore_length: float,
+    tau: Unum,
+    replichore_length: Unum,
     n_max_replisomes: int,
     place_holder: int,
-    cell_mass: float,
-    critical_mass: float,
+    cell_mass: Unum,
+    critical_mass: Unum,
     replication_rate: float,
-) -> dict[str, dict[str, np.ndarray[int]]]:
+) -> tuple[
+    dict[str, npt.NDArray[np.int32]],
+    dict[str, npt.NDArray[Any]],
+    dict[str, npt.NDArray[np.int32]],
+]:
     """
     Calculates the attributes of oriC's, replisomes, and chromosome domains on
     the chromosomes at the beginning of the cell cycle.

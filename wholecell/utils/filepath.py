@@ -9,6 +9,7 @@ import json
 import io
 import os
 import subprocess
+from typing import Any, Optional, Generator
 
 import wholecell
 
@@ -26,8 +27,7 @@ MATPLOTLIBRC_FILE = os.path.join(ROOT_PATH, "matplotlibrc")
 TIMESTAMP_PATTERN = r"\d{8}\.\d{6}(?:\.\d{6})?"
 
 
-def makedirs(path, *paths):
-    # type: (str, str) -> str
+def makedirs(path: str, *paths: str) -> str:
     """Join one or more path components, make that directory path (using the
     default mode 0o0777), and return the full path.
 
@@ -42,8 +42,7 @@ def makedirs(path, *paths):
     return full_path
 
 
-def timestamp(dt=None):
-    # type: (Optional[datetime.datetime]) -> str
+def timestamp(dt: Optional[datetime.datetime] = None) -> str:
     """Construct a datetime-timestamp from `dt` [default = `now()`], such as
     we use to timestamp a simulation output directory.
     """
@@ -53,40 +52,43 @@ def timestamp(dt=None):
     return dt.strftime("%Y%m%d.%H%M%S")
 
 
-def verify_file_exists(file_path, message=""):
-    # type: (str, str) -> None
+def verify_file_exists(file_path: str, message: str = ""):
     """Raise an IOError if file_path isn't an existing file."""
     if not os.path.isfile(file_path):
         raise IOError(errno.ENOENT, 'Missing file "{}".  {}'.format(file_path, message))
 
 
-def verify_dir_exists(dir_path, message=""):
-    # type: (str, str) -> None
+def verify_dir_exists(dir_path: str, message: str = ""):
     """Raise an IOError if dir_path isn't an existing directory."""
     if not os.path.isdir(dir_path):
         raise IOError(errno.ENOENT, 'Missing dir "{}".  {}'.format(dir_path, message))
 
 
-def run_cmd2(tokens, trim=True, timeout=TIMEOUT, env=None, input_=None):
-    # type: (Sequence[str], bool, Optional[int], Optional[dict], Optional[str]) -> Tuple[str, str]
+def run_cmd2(
+    tokens: list[str],
+    trim: bool = True,
+    timeout: int = TIMEOUT,
+    env: Optional[dict] = None,
+    input_: Optional[str] = None,
+) -> tuple[str, str]:
     """Run a shell command-line (in token list form) and return a tuple
     containing its (stdout, stderr).
     This does not expand filename patterns or environment variables or do other
     shell processing steps.
 
     Args:
-            tokens: The command line as a list of string tokens.
-            trim: Whether to trim off trailing whitespace. This is useful
-                    because the outputs usually end with a newline.
-            timeout: timeout in seconds; None for no timeout.
-            env: optional environment variables for the new process to use instead
-                    of inheriting the current process' environment.
-            input_: input for any prompts that may appear (passed to the subprocess' stdin)
+        tokens: The command line as a list of string tokens.
+        trim: Whether to trim off trailing whitespace. This is useful
+            because the outputs usually end with a newline.
+        timeout: timeout in seconds; None for no timeout.
+        env: optional environment variables for the new process to use instead
+            of inheriting the current process' environment.
+        input_: input for any prompts that may appear (passed to the subprocess' stdin)
     Returns:
-            The command's stdout and stderr strings.
+        The command's stdout and stderr strings.
     Raises:
-            OSError (e.g. FileNotFoundError [Python 3] or PermissionError),
-              subprocess.SubprocessError (TimeoutExpired or CalledProcessError)
+        OSError (e.g. FileNotFoundError [Python 3] or PermissionError),
+        subprocess.SubprocessError (TimeoutExpired or CalledProcessError)
     """
     out = subprocess.run(
         tokens,
@@ -103,30 +105,40 @@ def run_cmd2(tokens, trim=True, timeout=TIMEOUT, env=None, input_=None):
     return out.stdout, out.stderr
 
 
-def run_cmd(tokens, trim=True, timeout=TIMEOUT, env=None, input_=None):
-    # type: (Sequence[str], bool, Optional[int], Optional[dict], Optional[str]) -> str
+def run_cmd(
+    tokens: list[str],
+    trim: bool = True,
+    timeout: int = TIMEOUT,
+    env: Optional[dict] = None,
+    input_: Optional[str] = None,
+) -> str:
     """Run a shell command-line (in token list form) and return its stdout.
     See run_cmd2().
     """
     return run_cmd2(tokens, trim=trim, timeout=timeout, env=env, input_=input_)[0]
 
 
-def run_cmdline(line, trim=True, timeout=TIMEOUT, input_=None, fallback=None):
-    # type: (str, bool, Optional[int], Optional[str], Optional[str]) -> Optional[str]
+def run_cmdline(
+    line: str,
+    trim: bool = True,
+    timeout: int = TIMEOUT,
+    input_: Optional[str] = None,
+    fallback: Optional[str] = None,
+) -> Optional[str]:
     """Run a shell command-line string then return its output or fallback if it
     failed. This does not expand filename patterns or environment variables or
     do other shell processing steps like quoting.
 
     Args:
-            line: The command line as a string to split.
-            trim: Whether to trim off trailing whitespace. This is useful
-                    because the subprocess output usually ends with a newline.
-            timeout: timeout in seconds; None for no timeout.
-            input_: input for any prompts that may appear (passed to the subprocess' stdin)
-            fallback: Return this if the subprocess fails, e.g. trying to run git
-                    in a Docker Image that has no git repo.
+        line: The command line as a string to split.
+        trim: Whether to trim off trailing whitespace. This is useful
+            because the subprocess output usually ends with a newline.
+        timeout: timeout in seconds; None for no timeout.
+        input_: input for any prompts that may appear (passed to the subprocess' stdin)
+        fallback: Return this if the subprocess fails, e.g. trying to run git
+            in a Docker Image that has no git repo.
     Returns:
-            The command's output string, or None if it couldn't even run.
+        The command's output string, or None if it couldn't even run.
     """
     try:
         return run_cmd(tokens=line.split(), trim=trim, input_=input_, timeout=timeout)
@@ -155,15 +167,13 @@ def git_branch():
     )
 
 
-def write_file(filename, content):
-    # type: (str, str) -> None
+def write_file(filename: str, content: str):
     """Write text string `content` as a utf-8 text file."""
     with io.open(filename, "w", encoding="utf-8") as f:
         f.write(str(content))
 
 
-def write_json_file(filename, obj, indent=4):
-    # type: (str, Any, int) -> None
+def write_json_file(filename: str, obj: Any, indent: int = 4):
     """Write `obj` to a file in a pretty JSON format. This supports Unicode."""
     # Indentation puts a newline after each ',' so suppress the space there.
     message = (
@@ -179,15 +189,15 @@ def write_json_file(filename, obj, indent=4):
     write_file(filename, message)
 
 
-def read_json_file(filename):
-    # type: (str) -> Any
+def read_json_file(filename: str) -> Any:
     """Read and parse JSON file. This supports Unicode."""
     with io.open(filename, encoding="utf-8") as f:
         return json.load(f)
 
 
-def iter_variants(variant_type, first_index, last_index):
-    # type: (str, int, int) -> Generator[Tuple[int, str], None, None]
+def iter_variants(
+    variant_type: str, first_index: int, last_index: int
+) -> Generator[tuple[int, str], None, None]:
     """Generate Variant subdirs (index, name) over [first .. last] inclusive."""
     # TODO(jerry): Return a list instead of generating items?
     for i in range(first_index, last_index + 1):

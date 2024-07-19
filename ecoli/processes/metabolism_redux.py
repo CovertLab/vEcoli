@@ -3,8 +3,9 @@ MetabolismRedux
 """
 
 import numpy as np
+import numpy.typing as npt
 import time
-from typing import Callable
+from typing import Callable, cast, Optional
 from unum import Unum
 import warnings
 from scipy.sparse import csr_matrix
@@ -680,7 +681,7 @@ class MetabolismRedux(Step):
         ).astype(int)
 
     def getBiomassAsConcentrations(
-        self, doubling_time: Unum, rp_ratio: float = None
+        self, doubling_time: Unum, rp_ratio: Optional[float] = None
     ) -> dict[str, Unum]:
         """
         Caches the result of the sim_data function to improve performance since
@@ -708,7 +709,7 @@ class MetabolismRedux(Step):
         self,
         counts_to_molar: Unum,
         count_diff: dict[str, float],
-        amino_acid_counts: np.ndarray[float],
+        amino_acid_counts: dict[str, int],
     ) -> dict[str, Unum]:
         """
         Finds new amino acid concentration targets based on difference in
@@ -775,17 +776,17 @@ class NetworkFlowModel:
 
     def __init__(
         self,
-        stoich_arr: Iterable[dict],
-        metabolites: Iterable[list],
-        reactions: Iterable[list],
+        stoich_arr: npt.NDArray[np.int64],
+        metabolites: Iterable[str],
+        reactions: Iterable[str],
         homeostatic_metabolites: Iterable[str],
         kinetic_reactions: Iterable[str],
         get_mass: Callable[[str], Unum],
         gam: float = 0,
-        active_constraints_mask: np.ndarray = None,
+        active_constraints_mask: Optional[npt.NDArray[np.bool_]] = None,
     ):
         self.S_orig = csr_matrix(stoich_arr.astype(np.int64))
-        self.S_exch = None
+        self.S_exch = np.zeros(0)
         self.n_mets, self.n_orig_rxns = self.S_orig.shape
         self.mets = metabolites
         self.met_map = {metabolite: i for i, metabolite in enumerate(metabolites)}
@@ -816,7 +817,7 @@ class NetworkFlowModel:
 
         self.active_constraints_mask = active_constraints_mask
 
-    def set_up_exchanges(self, exchanges: Iterable[str], uptakes: Iterable[str]):
+    def set_up_exchanges(self, exchanges: set[str], uptakes: set[str]):
         """Set up exchange reactions for the network flow model. Exchanges allow certain metabolites to have flow out of
         the system. Uptakes allow certain metabolites to also have flow into the system."""
         all_exchanges = exchanges.copy()
@@ -825,8 +826,8 @@ class NetworkFlowModel:
         # All exchanges can secrete but only uptakes go in both directions
         self.S_exch = np.zeros((self.n_mets, len(exchanges) + len(uptakes)))
         self.exchanges = []
-        self.secretion_idx = []
-        self.exchange_masses = []
+        secretion_idx = []
+        exchange_masses = []
         exch_idx = 0
         for met in all_exchanges:
             exch_name = met + " exchange"
@@ -835,36 +836,38 @@ class NetworkFlowModel:
             if met in uptakes:
                 self.S_exch[met_idx, exch_idx] = 1
                 self.exchanges.append(exch_name)
-                self.exchange_masses.append(exch_mass)
+                exchange_masses.append(exch_mass)
                 exch_idx += 1
             self.exchanges.append(exch_name + " rev")
-            self.secretion_idx.append(exch_idx)
-            self.exchange_masses.append(-exch_mass)
+            secretion_idx.append(exch_idx)
+            exchange_masses.append(-exch_mass)
             self.S_exch[met_idx, exch_idx] = -1
             exch_idx += 1
 
-        self.S_exch = csr_matrix(self.S_exch)
+        self.S_exch = cast(csr_matrix, csr_matrix(self.S_exch))
 
         _, self.n_exch_rxns = self.S_exch.shape
 
-        self.secretion_idx = np.array(self.secretion_idx, dtype=int)
-        self.exchange_masses = np.array(self.exchange_masses)
+        self.secretion_idx = np.array(secretion_idx, dtype=int)
+        self.exchange_masses = np.array(exchange_masses)
 
     def solve(
         self,
-        homeostatic_concs: Iterable[float] = None,
-        homeostatic_dm_targets: Iterable[float] = None,
+        homeostatic_concs: Iterable[float],
+        homeostatic_dm_targets: Iterable[float],
         ngam_target: float = 0,
-        kinetic_targets: Iterable[float] = None,
-        binary_kinetic_idx: Iterable[int] = None,
-        objective_weights: Mapping[str, float] = None,
-        aa_uptake_package: Mapping[str, float] = None,
+        kinetic_targets: Optional[npt.NDArray[np.float64]] = None,
+        binary_kinetic_idx: Optional[list[int]] = None,
+        objective_weights: Optional[Mapping[str, float]] = None,
+        aa_uptake_package: Optional[Mapping[str, float]] = None,
         upper_flux_bound: float = 100,
         # ortools > 9.5 required for Python 3.11 but will only
         # get support in the 9/2023 release of cvxpy
         solver=cp.GLOP,
     ) -> FlowResult:
         """Solve the network flow model for fluxes and dm/dt values."""
+        # Mypy fixes
+        objective_weights = cast(Mapping[str, float], objective_weights)
         # Convert to array
         homeostatic_concs = np.array(homeostatic_concs)
         homeostatic_dm_targets = np.array(homeostatic_dm_targets)
@@ -918,6 +921,8 @@ class NetworkFlowModel:
                 e[self.secretion_idx] @ -self.exchange_masses[self.secretion_idx]
             )
         if "kinetics" in objective_weights:
+            # Mypy fixes
+            kinetic_targets = cast(npt.NDArray[np.float64], kinetic_targets)
             # Fix divide by zero
             nonzero_kinetic_targets = kinetic_targets[:, 1].copy()
             nonzero_kinetic_targets[nonzero_kinetic_targets == 0] = 1

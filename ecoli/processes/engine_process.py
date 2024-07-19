@@ -62,6 +62,7 @@ information with the outside simulation.
 
 import copy
 import warnings
+from typing import Any
 
 import numpy as np
 from vivarium.core.composer import Composer
@@ -132,7 +133,7 @@ class SchemaStub(Step):
     simulation.
     """
 
-    defaults = {
+    defaults: dict[str, Any] = {
         "ports_schema": {},
     }
 
@@ -204,7 +205,13 @@ class EngineProcess(Process):
 
         # Since unique numpy updater is an class method, internal
         # deepcopying in vivarium-core causes this warning to appear
-        warnings.filterwarnings("ignore", message="Incompatible schema assignment at ")
+        warnings.filterwarnings(
+            "ignore",
+            message="Incompatible schema "
+            "assignment at .+ Trying to assign the value <bound method "
+            "UniqueNumpyUpdater\.updater .+ to key updater, which already "
+            "has the value <bound method UniqueNumpyUpdater\.updater",
+        )
         self.sim = Engine(
             processes=processes,
             steps=steps,

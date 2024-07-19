@@ -177,7 +177,7 @@ class get_bulk_counts(Serializer):
 class get_unique_fields(Serializer):
     """Serializer for unique molecules."""
 
-    def serialize(unique: np.ndarray) -> np.ndarray:
+    def serialize(unique: np.ndarray) -> list[np.ndarray]:
         """
         Args:
             unique: Numpy structured array of attributes for one unique molecule
@@ -313,7 +313,7 @@ def get_free_indices(
 
     if n_free_indices < n_objects:
         old_size = result.size
-        n_new_entries = max(np.int64(old_size * 0.1), n_objects - n_free_indices)
+        n_new_entries = max(int(old_size * 0.1), n_objects - n_free_indices)
 
         result = np.append(result, np.zeros(int(n_new_entries), dtype=result.dtype))
 
@@ -479,7 +479,7 @@ def listener_schema(elements: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
 
 
 # :term:`dividers`
-def divide_binomial(state: float) -> List[float]:
+def divide_binomial(state: int) -> tuple[int, int]:
     """Binomial Divider
 
     Args:
@@ -495,7 +495,7 @@ def divide_binomial(state: float) -> List[float]:
     random_state = np.random.RandomState(seed=seed)
     counts_1 = random_state.binomial(state, 0.5)
     counts_2 = state - counts_1
-    return [counts_1, counts_2]
+    return counts_1, counts_2
 
 
 def divide_bulk(state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -521,7 +521,7 @@ def divide_bulk(state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     daughter_2["count"] = counts - daughter_1["count"]
     daughter_1.flags.writeable = False
     daughter_2.flags.writeable = False
-    return [daughter_1, daughter_2]
+    return daughter_1, daughter_2
 
 
 # TODO: Create a store for growth rate noise simulation parameter
@@ -586,12 +586,12 @@ def divide_ribosomes_by_RNA(
         assert np.count_nonzero(np.logical_and(d1_bool, d2_bool)) == 0
 
         ribosomes = values[values["_entryState"].view(np.bool_)]
-        return [ribosomes[d1_bool], ribosomes[d2_bool]]
+        return ribosomes[d1_bool], ribosomes[d2_bool]
 
-    return [np.zeros(0, dtype=values.dtype), np.zeros(0, dtype=values.dtype)]
+    return np.zeros(0, dtype=values.dtype), np.zeros(0, dtype=values.dtype)
 
 
-def divide_domains(state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def divide_domains(state: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
     """Divider function for chromosome domains. Ensures that all chromosome
     domains associated with a full chromosome go to the same daughter cell
     that the full chromosome does.
@@ -660,7 +660,7 @@ def divide_by_domain(
     # this assert when checking division of domains
     if "child_domains" not in values.dtype.names:
         assert d1_bool.sum() + d2_bool.sum() == len(values)
-    return [values[d1_bool], values[d2_bool]]
+    return values[d1_bool], values[d2_bool]
 
 
 def divide_RNAs_by_domain(
@@ -739,19 +739,19 @@ def divide_RNAs_by_domain(
         assert np.count_nonzero(np.logical_and(d1_bool, d2_bool)) == 0
 
         rnas = values[values["_entryState"].view(np.bool_)]
-        return [rnas[d1_bool], rnas[d2_bool]]
+        return rnas[d1_bool], rnas[d2_bool]
 
-    return [np.zeros(0, dtype=values.dtype), np.zeros(0, dtype=values.dtype)]
+    return np.zeros(0, dtype=values.dtype), np.zeros(0, dtype=values.dtype)
 
 
 def empty_dict_divider(values):
     """Divider function that sets both daughter cell states to empty dicts."""
-    return [{}, {}]
+    return {}, {}
 
 
 def divide_set_none(values):
     """Divider function that sets both daughter cell states to ``None``."""
-    return [None, None]
+    return None, None
 
 
 def remove_properties(schema: Dict[str, Any], properties: List[str]) -> Dict[str, Any]:

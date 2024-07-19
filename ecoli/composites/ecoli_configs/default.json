@@ -22,6 +22,7 @@
     "time_step": 1.0,
     "total_time": 10800.0,
     "initial_global_time": 0.0,
+    "fail_at_total_time": false,
 
     "variants": {},
     "n_init_sims": 1,
@@ -48,14 +49,10 @@
         "variable_elongation_translation": false
     },
 
-    "analysis_options": {},
-
     "gcloud": null,
 
     "agent_id": "0",
     "parallel": false,
-    "daughter_path": [],
-    "agents_path": ["..", "..", "agents"],
     "divide": true,
     "d_period": true,
     "division_threshold": true,
@@ -164,7 +161,6 @@
         "unique_molecule_counts": [["ecoli-metabolism"]],
         "ribosome_data_listener": [["ecoli-metabolism"]]
     },
-    "_schema": {},
     "engine_process_reports": [
         ["listeners"]
     ],

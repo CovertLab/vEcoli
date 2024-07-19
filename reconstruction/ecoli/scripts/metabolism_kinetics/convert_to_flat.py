@@ -7,7 +7,7 @@ Converts kinetics spreadsheet from 'E. coli WCM kinetic equations' google sheet
 Process to generate updated file:
 - Download latest data from google sheets and save as kinetics.tsv in this
 directory (File -> Download -> Tab-separated values (.tsv, current sheet))
-- Run this script: `runscripts/reconstruction/metabolism_kinetics/convert_to_flat.py`
+- Run this script: `reconstruction/metabolism_kinetics/convert_to_flat.py`
 """
 
 import io
