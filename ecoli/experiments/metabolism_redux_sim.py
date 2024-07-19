@@ -57,12 +57,12 @@ def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic", # do not change this name
     total_time=1300,
     divide=True,
-    # initial_state_file='wcecoli_t0', # 'met_division_test_state',
+    initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries',
     # this is the name of the out file you will create
-    name="metabolism-redux-classic-1",
+    name="metabolism-redux-classic-3",
     raw_output=False,
     save=True,
     save_times=[1, 200, 400, 1300],
@@ -76,7 +76,7 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
-    # sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+    sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
     sim.save = save
     sim.save_times = save_times
