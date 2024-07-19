@@ -15,7 +15,7 @@ from ecoli.library.schema import numpy_schema, bulk_name_to_idx
 
 class Exchange(Process):
     name = "ecoli-exchange"
-    defaults = {"exchanges": {}}
+    defaults: dict[str, dict] = {"exchanges": {}}
 
     def __init__(self, parameters=None):
         """Exchange Stub Process

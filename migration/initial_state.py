@@ -1,7 +1,7 @@
 import numpy as np
 
 from ecoli.library.sim_data import LoadSimData, SIM_DATA_PATH_NO_OPERONS
-from ecoli.library.wcecoli_state import get_state_from_file
+from ecoli.library.json_state import get_state_from_file
 
 
 def compare_states(viv_state, wc_state):

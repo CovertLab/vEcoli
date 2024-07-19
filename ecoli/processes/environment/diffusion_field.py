@@ -28,7 +28,7 @@ from ecoli.library.lattice_utils import (
     ExchangeAgent,
     make_diffusion_schema,
 )
-from ecoli.plots.snapshots import plot_snapshots
+from ecoli.analysis.colony.snapshots import plot_snapshots
 
 NAME = "diffusion_field"
 

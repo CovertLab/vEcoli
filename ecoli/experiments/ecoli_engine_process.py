@@ -31,7 +31,7 @@ from ecoli.experiments.ecoli_master_sim import (
 from ecoli.library.logging_tools import write_json
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.schema import not_a_process
-from ecoli.library.wcecoli_state import get_state_from_file
+from ecoli.library.json_state import get_state_from_file
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.environment.lysis import Lysis
@@ -411,10 +411,13 @@ def run_simulation(config):
 
     # Since unique numpy updater is an class method, internal
     # deepcopying in vivarium-core causes this warning to appear
-    warnings.filterwarnings("ignore", message="Incompatible schema "
-            "assignment at .+ Trying to assign the value <bound method "
-            "UniqueNumpyUpdater\.updater .+ to key updater, which already "
-            "has the value <bound method UniqueNumpyUpdater\.updater")
+    warnings.filterwarnings(
+        "ignore",
+        message="Incompatible schema "
+        "assignment at .+ Trying to assign the value <bound method "
+        "UniqueNumpyUpdater\.updater .+ to key updater, which already "
+        "has the value <bound method UniqueNumpyUpdater\.updater",
+    )
     engine = Engine(
         processes=composite.processes,
         topology=composite.topology,

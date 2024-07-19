@@ -8,7 +8,7 @@ from vivarium.core.serialize import deserialize_value
 from vivarium.library.units import remove_units
 
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-from ecoli.plots.snapshots import plot_snapshots
+from ecoli.analysis.colony.snapshots import plot_snapshots
 
 
 def test_antibiotics_tetracycline():

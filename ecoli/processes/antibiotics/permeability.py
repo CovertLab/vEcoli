@@ -1,12 +1,14 @@
 import numpy as np
 from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
-from ecoli.library.wcecoli_state import get_state_from_file
+from ecoli.library.json_state import get_state_from_file
 from ecoli.processes.bulk_timeline import BulkTimelineProcess
 from vivarium.core.emitter import timeseries_from_data
 from vivarium.core.engine import Engine
 from vivarium.core.process import Step
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
+
+from typing import Any
 
 # TODO: Recompute average surface area with corrected formula
 # To calculate SA_AVERAGE, we calculated the average surface area of the model up until division.
@@ -39,7 +41,7 @@ INNER_BILAYER_TET_PERM = 3 * 1e-6 * units.cm / units.sec
 
 class Permeability(Step):
     name = "permeability"
-    defaults = {
+    defaults: dict[str, Any] = {
         "porin_ids": [],
         "diffusing_molecules": [],
     }

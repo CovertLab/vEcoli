@@ -7,6 +7,7 @@ Interface for configuring and running **single-cell** E. coli simulations.
     :py:mod:`~ecoli.experiments.ecoli_engine_process` module for efficient
     multithreading.
 """
+# mypy: disable-error-code=attr-defined
 
 import argparse
 import copy
@@ -41,6 +42,13 @@ from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.schema import not_a_process
 
 
+class TimeLimitError(RuntimeError):
+    """Error raised when ``fail_at_total_time`` is True and simulation
+    reaches ``total_time``."""
+
+    pass
+
+
 def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
     """JSON files allow lists but do not allow tuples. This function
     transforms the list paths in topologies loaded from JSON into
@@ -53,7 +61,7 @@ def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Topology with tuple paths (e.g. ``['bulk']`` turns into ``('bulk',)``)
     """
-    tuplified_topology = {}
+    tuplified_topology: dict[str, Any] = {}
     for k, v in topology.items():
         if isinstance(v, dict):
             tuplified_topology[k] = tuplify_topology(v)
@@ -67,23 +75,22 @@ def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
 def get_git_revision_hash() -> str:
     """Returns current Git hash for model repository to include in metadata
     that is emitted when starting a simulation."""
-    return subprocess.check_output(
-        ["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"]
-        ).decode("ascii").strip()
+    return (
+        subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"])
+        .decode("ascii")
+        .strip()
+    )
 
 
 def get_git_status() -> str:
     """Returns Git status of model repository to include in metadata that is
     emitted when starting a simulation.
     """
-    status_str = (
-        subprocess.check_output(
-            ["git", "-C", CONFIG_DIR_PATH, "status", "--porcelain"])
+    return (
+        subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "status", "--porcelain"])
         .decode("ascii")
         .strip()
     )
-    status = status_str.split("\n")
-    return status
 
 
 def report_profiling(stats: pstats.Stats) -> None:
@@ -96,13 +103,15 @@ def report_profiling(stats: pstats.Stats) -> None:
     _, stats_keys = stats.get_print_list(
         ("(next_update)|(calculate_request)|(evolve_state)",)
     )
-    summed_stats = {}
+    summed_stats: dict[tuple[str, str, str], int] = {}
     for key in stats_keys:
         key_stats = stats.stats[key]
         _, _, _, cumtime, _ = key_stats
-        path, line, func = key
+        path, line, func = key.split(" ")
         path = os.path.basename(path)
-        summed_stats[(path, line, func)] = summed_stats.get((path, func), 0) + cumtime
+        summed_stats[(path, line, func)] = (
+            summed_stats.get((path, line, func), 0) + cumtime
+        )
     summed_stats_inverse_map = {time: key for key, time in summed_stats.items()}
     print("\nPer-process profiling:\n")
     for time in sorted(summed_stats_inverse_map.keys())[::-1]:
@@ -112,7 +121,7 @@ def report_profiling(stats: pstats.Stats) -> None:
     stats.sort_stats("cumtime").print_stats(20)
 
 
-def key_value_pair(argument_string: str) -> tuple[str, str]:
+def key_value_pair(argument_string: str) -> list[str]:
     """Parses key-value pairs specified as strings of the form ``key=value``
     via CLI. See ``emitter_arg`` option in
     :py:class:`~ecoli.experiments.ecoli_master_sim.SimConfig`.
@@ -312,6 +321,12 @@ class SimConfig:
                 action="store",
                 help="Initial time in context of whole lineage.",
             )
+            self.parser.add_argument(
+                "--fail_at_total_time",
+                action="store_true",
+                default=False,
+                help="Simulation will raise TimeLimitException upon reaching total_time.",
+            )
 
     @staticmethod
     def merge_config_dicts(d1: dict[str, Any], d2: dict[str, Any]) -> None:
@@ -422,7 +437,6 @@ class EcoliSim:
                 or :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.from_cli`
         """
         # Do some datatype pre-processesing
-        config["agents_path"] = tuple(config["agents_path"])
         config["processes"] = {process: None for process in config["processes"]}
 
         # Keep track of base experiment id
@@ -504,7 +518,7 @@ class EcoliSim:
 
     def _retrieve_processes(
         self,
-        processes: list[str],
+        processes: dict[str, str],
         add_processes: list[str],
         exclude_processes: list[str],
         swap_processes: dict[str, str],
@@ -593,14 +607,6 @@ class EcoliSim:
                 deep_merge(process_topology, tuplify_topology(topology[process]))
             result[process] = process_topology
 
-        # Add log_update ports if log_updates is True
-        if log_updates:
-            for process, ports in result.items():
-                result[process]["log_update"] = (
-                    "log_update",
-                    process,
-                )
-
         return result
 
     def _retrieve_process_configs(
@@ -618,7 +624,7 @@ class EcoliSim:
         Returns:
             Mapping of process names to process configs.
         """
-        result = {}
+        result: dict[str, Any] = {}
         for process in processes:
             result[process] = process_configs.get(process)
             if result[process] is None:
@@ -825,10 +831,13 @@ class EcoliSim:
 
         # Since unique numpy updater is an class method, internal
         # deepcopying in vivarium-core causes this warning to appear
-        warnings.filterwarnings("ignore", message="Incompatible schema "
+        warnings.filterwarnings(
+            "ignore",
+            message="Incompatible schema "
             "assignment at .+ Trying to assign the value <bound method "
-            "UniqueNumpyUpdater\.updater .+ to key updater, which already "
-            "has the value <bound method UniqueNumpyUpdater\.updater")
+            "UniqueNumpyUpdater.updater .+ to key updater, which already "
+            "has the value <bound method UniqueNumpyUpdater.updater",
+        )
         self.ecoli_experiment = Engine(**experiment_config)
 
         # Only emit designated stores if specified
@@ -867,8 +876,10 @@ class EcoliSim:
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
+        if self.fail_at_total_time:
+            raise TimeLimitError(f"Exceeded maximum simulation time: {self.total_time}")
 
-    def query(self, query: list[tuple[str]] = None):
+    def query(self, query: Optional[list[tuple[str]]] = None):
         """
         Query emitted data.
 
@@ -927,15 +938,6 @@ class EcoliSim:
         metadata["time"] = datetime.now()
         return metadata
 
-    def to_json_string(self) -> str:
-        """
-        Serializes simulation setting dictionary along with git hash and
-        final list of process names. Called by
-        :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.export_json`.
-
-        """
-        return str(serialize_value(self.get_metadata()))
-
     def get_output_metadata(self) -> dict[str, Any]:
         """
         Filters all ports schemas to include only output metadata
@@ -950,7 +952,7 @@ class EcoliSim:
             processes_and_steps = self.ecoli.processes
             processes_and_steps.update(self.ecoli.steps)
             topologies = self.ecoli.topology
-        output_metadata = {}
+        output_metadata: dict[str, Any] = {}
         for proc_name, proc in processes_and_steps.items():
             proc_ports_schema = proc.get_schema()
             extracted = extract_metadata(proc_ports_schema)
@@ -971,7 +973,7 @@ class EcoliSim:
             filename: Filepath and name for saved JSON (include ``.json``).
         """
         with open(filename, "w") as f:
-            f.write(self.to_json_string())
+            json.dump(serialize_value(self.get_metadata()), f)
 
 
 def extract_metadata(ports_schema: dict[str, Any], properties: bool = False):

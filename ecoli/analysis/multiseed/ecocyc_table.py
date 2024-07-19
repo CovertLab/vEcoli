@@ -22,6 +22,8 @@ from scipy.stats import pearsonr
 from ecoli.library.parquet_emitter import (
     get_config_value,
     get_field_metadata,
+    open_arbitrary_sim_data,
+    open_output_file,
     num_cells,
     read_stacked_columns,
     skip_n_gens,
@@ -71,15 +73,15 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
-    sim_data_paths: dict[int, list[str]],
+    sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[int, Any],
-    variant_name: str,
+    variant_metadata: dict[str, dict[int, Any]],
+    variant_names: list[str],
 ):
-    with open(next(iter(sim_data_paths.values())), "rb") as f:
+    with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data: "SimulationDataEcoli" = pickle.load(f)
-    with open(validation_data_paths[0], "rb") as f:
+    with open_output_file(validation_data_paths[0]) as f:
         validation_data = pickle.load(f)
 
     media_name = sim_data.conditions[sim_data.condition]["nutrients"]
@@ -136,13 +138,12 @@ def plot(
             f"list_select(bulk, {uncharged_tRNA_idx}) AS uncharged_tRNAs, "
             f"list_select(bulk, {rRNA_idx}) AS rRNAs, "
             f"list_select(bulk, {ribo_subunit_idx}) AS ribo_subunits",
-            None,
-            None,
-            None,
-            None,
+            "listeners__unique_molecule_counts__active_ribosome",
+            "listeners__enzyme_kinetics__counts_to_molar",
+            "listeners__mass__dry_mass",
+            "listeners__rna_counts__mRNA_cistron_counts",
         ],
         remove_first=True,
-        return_sql=True,
         order_results=False,
     )
     rna_data = conn.sql(
@@ -202,7 +203,6 @@ def plot(
         history_sql,
         ["listeners__rna_synth_prob__gene_copy_number"],
         remove_first=True,
-        return_sql=True,
         order_results=False,
     )
     gene_copy_data = conn.sql(
@@ -268,7 +268,7 @@ def plot(
         )["rna-count-avg"]
         start_idx += add_idx
     rna_data = rna_data.with_columns(
-        **{
+        **{  # type: ignore[arg-type]
             "relative-rna-count-to-total-rna-type-counts": rel_to_type_count,
             "relative-rna-mass-to-total-rna-type-mass": rel_to_type_mass,
             "relative-rna-count-to-total-rna-counts": rna_data.select(
@@ -329,7 +329,6 @@ def plot(
             "listeners__monomer_counts",
         ],
         remove_first=True,
-        return_sql=True,
         order_results=False,
     )
     # Load tables and attributes for proteins
@@ -425,7 +424,7 @@ def plot(
         )
 
         columns["validation-count"] = "A floating point number"
-        values.append(protein_counts_val)
+        values.append(pl.Series(protein_counts_val))
 
         protein_val_exists = np.logical_not(np.isnan(protein_counts_val))
         r, _ = pearsonr(
@@ -450,11 +449,10 @@ def plot(
         [
             # Extract only complex bulk counts to reduce RAM usage
             f"list_select(bulk, {complex_idx}) AS complex_counts",
-            None,
-            None,
+            "listeners__enzyme_kinetics__counts_to_molar",
+            "listeners__mass__dry_mass",
         ],
         remove_first=True,
-        return_sql=True,
         order_results=False,
     )
     complex_data = conn.sql(
@@ -527,7 +525,6 @@ def plot(
             "listeners__mass__cell_mass",
             "listeners__mass__dry_mass",
         ],
-        return_sql=True,
         order_results=False,
     )
     flux_data = conn.sql(

@@ -8,7 +8,7 @@ the files under reconstruction/ecoli/flat.
 
 import argparse
 import os
-import requests
+import requests  # type: ignore[import-untyped]
 import time
 
 from wholecell.utils.filepath import ROOT_PATH
@@ -58,7 +58,7 @@ def parse_args():
     Parses command line arguments.
 
     Returns:
-            argparse.Namespace object: parsed arguments and values
+        argparse.Namespace object: parsed arguments and values
     """
     parser = argparse.ArgumentParser(
         description="Script to import latest"

@@ -1,6 +1,6 @@
 from vivarium.core.engine import Engine
 from ecoli.composites.ecoli_master import Ecoli
-from ecoli.plots.blame import blame_plot
+from ecoli.analysis.single.blame import blame_plot
 
 
 def run_division(agent_id="1", total_time=60):

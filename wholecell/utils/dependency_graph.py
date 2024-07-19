@@ -1,5 +1,7 @@
 """Tools for working with dependency graphs"""
 
+from typing import Iterable
+
 
 class InvalidDependencyGraphError(Exception):
     """Exception for invalid dependency graphs"""
@@ -27,10 +29,9 @@ class DependencyGraph(object):
     def __init__(self):
         # type: () -> None
         """Initialize dependencies to empty dictionary"""
-        self.dependencies = {}  # type: Dict[str, List[str]]
+        self.dependencies: dict[str, list[str]] = {}
 
-    def add_nodes(self, nodes):
-        # type: (Iterable[str]) -> None
+    def add_nodes(self, nodes: Iterable[str]):
         """Add nodes with no dependencies
 
         Arguments:
@@ -39,8 +40,7 @@ class DependencyGraph(object):
         for node in nodes:
             self.dependencies[node] = []
 
-    def add_dep_relation(self, a, b):
-        # type: (str, str) -> None
+    def add_dep_relation(self, a: str, b: str):
         """Add an edge such that a depends on b
 
         If a or b does not exist yet as a node, it will be created.
@@ -53,8 +53,7 @@ class DependencyGraph(object):
         if b not in self.dependencies:
             self.dependencies[b] = []
 
-    def get_topological_ordering(self):
-        # type: () -> List[str]
+    def get_topological_ordering(self) -> list[str]:
         """Get a topological ordering of the nodes
 
         Returns:
@@ -66,14 +65,15 @@ class DependencyGraph(object):
                 InvalidDependencyGraphError: If the graph contains a cycle
         """
         explored = {name: ExplorationStatus.UNEXPLORED for name in self.dependencies}
-        reverse_ordering = []  # type: List[str]
+        reverse_ordering: list[str] = []
         for node in self.dependencies:
             if explored[node] != ExplorationStatus.EXPLORED:
                 self._topo_sort_dfs(node, explored, reverse_ordering)
         return reverse_ordering
 
-    def _topo_sort_dfs(self, node, explored, reverse_ordering):
-        # type: (str, Dict[str, int], List[str]) -> None
+    def _topo_sort_dfs(
+        self, node: str, explored: dict[str, int], reverse_ordering: list[str]
+    ):
         explored[node] = ExplorationStatus.EXPLORING
         for dependency in self.dependencies[node]:
             if explored[dependency] == ExplorationStatus.UNEXPLORED:

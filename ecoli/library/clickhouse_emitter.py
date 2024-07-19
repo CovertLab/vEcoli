@@ -3,7 +3,7 @@ import tempfile
 import pathlib
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Mapping, BinaryIO
+from typing import Any, cast, Mapping, BinaryIO
 
 import clickhouse_connect
 import orjson
@@ -123,7 +123,7 @@ class ClickHouseEmitter(Emitter):
             **connection_args, settings={"allow_experimental_object_type": 1}
         )
         self.executor = ThreadPoolExecutor()
-        self.curr_fields = []
+        self.curr_fields: list[str] = []
         self.fallback_serializer = make_fallback_serializer_function()
         # Write emits to temp file and send to ClickHouse in batches
         # Use a named temporary file so can call zstd on it separately
@@ -193,7 +193,9 @@ class ClickHouseEmitter(Emitter):
             self.temp_file.write("\n".encode("utf-8"))
         self.batched_emits += 1
         if self.batched_emits % self.emits_to_batch == 0:
-            self.executor.submit(push_to_db, self.temp_file, self.client)
+            self.executor.submit(
+                push_to_db, cast(BinaryIO, self.temp_file), self.client
+            )
             self.temp_file = tempfile.NamedTemporaryFile(
                 dir=self.outdir, prefix=self.experiment_id
             )
