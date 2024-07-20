@@ -49,7 +49,7 @@ jobs:
             --experiment_id "parca_2" --daughter_outdir "out/parca_2" \
             --sim_data_path "out/parca_2/kb/simData.cPickle" --fail_at_total_time && fg
         python runscripts/debug/diff_simouts.py -o "out" "parca_1" "parca_2"
-  2 Gens:
+  Two-gens:
     runs-on: macos-latest
     strategy:
       matrix:
