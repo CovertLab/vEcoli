@@ -220,6 +220,7 @@ class SimConfig:
             self.parser.add_argument(
                 "--no_suffix_time",
                 action="store_true",
+                default=False,
                 help="Do not append current time as '_day-month-year_hour-minute-second'"
                 " to experiment ID.",
             )
