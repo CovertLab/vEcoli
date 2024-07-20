@@ -23,8 +23,10 @@ class GlobalClock(Process):
         advances by the same amount of time and processes that do not rely on
         this manual time stepping stay in sync with the ones that do.
         """
-        return min(next_update_time - states["global_time"] for next_update_time
-                   in states["next_update_time"].values())
+        return min(
+            next_update_time - states["global_time"]
+            for next_update_time in states["next_update_time"].values()
+        )
 
     def next_update(self, timestep, states):
         """
