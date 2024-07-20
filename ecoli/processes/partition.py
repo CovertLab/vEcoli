@@ -53,7 +53,7 @@ class Requester(Step):
         store and the ``global_time`` store. If the next update time is
         less than or equal to the global time, the process runs. If the
         next update time is ever earlier than the global time, this usually
-        indicates that the global clock process is runnnig with too large
+        indicates that the global clock process is running with too large
         a timestep, preventing accurate timekeeping.
         """
         if states["next_update_time"] <= states["global_time"]:

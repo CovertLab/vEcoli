@@ -20,13 +20,14 @@ by the parameter calculator or [ParCa](reconstruction/ecoli/fit_sim_data_1.py) t
 model parameters (e.g. transcription probabilities). These parameters are used to configure [processes](ecoli/processes) that are linked together
 into a [complete simulation](ecoli/experiments/ecoli_master_sim.py).
 
-For more details, refer to the [user guide](https://covertlab.github.io/vivarium-ecoli/index.html).
-
 ## Installation
 
 > **Note:** The following instructions assume a Linux or MacOS system. Windows users can
 > attempt to follow the same instructions after setting up 
 > [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install).
+
+> **Note:** The instructions to set up the model on Sherlock are different and documented
+> under the "Sherlock" sub-heading in the "Workflows" documentation page.
 
 pyenv lets you install and switch between multiple Python releases and multiple "virtual 
 environments", each with its own pip packages. Using pyenv, create a virtual environment 
@@ -84,7 +85,5 @@ This will run the following basic simulation workflow:
 
 
 ## Next Steps
-For details on configuring simulations or workflows, 
-see the [configurations README](readmes/ecoli_configurations.md).
-For a walkthrough of a typical model development cycle, see
-the [walkthrough notebook](notebooks/workflow.ipynb).
+Check out the [user guide](https://covertlab.github.io/vEcoli/) for a high-level
+tutorial of model development, details on key model components, and low-level API documentation.

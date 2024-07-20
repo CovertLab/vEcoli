@@ -32,7 +32,7 @@ def plot(
     validation_data_paths: list[str],
     outdir: str,
     variant_metadata: dict[str, dict[int, Any]],
-    variant_name: str,
+    variant_names: dict[str, str],
 ):
     assert (
         num_cells(conn, config_sql) == 1

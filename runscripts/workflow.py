@@ -288,11 +288,11 @@ def main():
         config["suffix_time"] = False
 
     # Resolve output directory
-    if "out_uri" not in config["emitter"]["config"]:
-        out_uri = os.path.abspath(config["emitter"]["config"]["out_dir"])
-        config["emitter"]["config"]["out_dir"] = out_uri
+    if "out_uri" not in config["emitter"]:
+        out_uri = os.path.abspath(config["emitter"]["out_dir"])
+        config["emitter"]["out_dir"] = out_uri
     else:
-        out_uri = config["emitter"]["config"]["out_uri"]
+        out_uri = config["emitter"]["out_uri"]
     filesystem, outdir = fs.FileSystem.from_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
     out_uri = os.path.join(out_uri, experiment_id, "nextflow")
