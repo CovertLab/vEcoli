@@ -33,6 +33,9 @@ jobs:
     - name: Compile Cython components
       run: |
         make clean compile
+    - name: Set PYTHONPATH
+      run: |
+        echo "PYTHONPATH=." >> $GITHUB_ENV
     - name: Test ParCa reproducibility
       run: |
         python runscripts/parca.py -c 3 -o out/parca_1
@@ -67,10 +70,15 @@ jobs:
         pip install -r requirements.txt
     - name: Install nextflow
       run: |
-        curl -s https://get.sdkman.io | bash
+        curl -s https://get.nextflow.io | bash
+        chmod +x nextflow
+        echo "PATH=.:$PATH" >> $GITHUB_ENV
     - name: Compile Cython components
       run: |
         make clean compile
+    - name: Set PYTHONPATH
+      run: |
+        echo "PYTHONPATH=." >> $GITHUB_ENV
     - name: Two generations
       run: |
         python runscripts/workflow.py --config ecoli/composites/ecoli_configs/two_generations.json
