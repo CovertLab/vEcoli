@@ -2,7 +2,12 @@ Welcome to Vivarium *E. coli*'s documentation!
 ==============================================
 
 Vivarium *E. coli* is a port of the |text|_ to the `Vivarium framework <https://vivarium-collective.github.io>`_.
-We recommend new users read through the sections below in order.
+For more scientific details about the model, refer to the
+`documentation <https://github.com/CovertLab/wcEcoli/tree/master/docs/processes>`_
+for the model as well its corresponding publication
+(`10.1126/science.aav3751 <https://www.science.org/doi/10.1126/science.aav3751>`_).
+This website covers how the model was implemented using Vivarium and describes the user interface
+for developing and running the model. We recommend new users read through the sections below in order.
 
 ..
    Comment: We need to use text substitution because ReST does not
