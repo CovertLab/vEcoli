@@ -17,11 +17,11 @@ to that store. By default, we always emit data for:
 
 - Bulk molecules store located at ``("bulk",)``: The
   :py:func:`~ecoli.library.schema.numpy_schema` helper function that we use
-  to create the schema for ports to bulk and unique molecule stores automatically
+  to create the schema for ports to the bulk store automatically
   sets ``_emit`` to True when the ``name`` argument is ``bulk``.
 - Listeners located at ``("listeners",)``: The
   :py:func:`~ecoli.library.schema.listener_schema` helper function that we use
-  to create the schema for ports to stores located somewhere in the store hierarchy
+  to create the schema for ports to stores located somewhere in the hierarchy
   under the ``listener`` store automatically sets ``_emit`` to True
 
 .. _serializing_emits:
@@ -44,6 +44,8 @@ vivarium-core allows users to specify custom serializers either on a per-store b
 For details about reading data back after it has been saved, refer to
 :ref:`ram_read` for the in-memory data format and :ref:`parquet_read`
 for the persistent storage format.
+
+.. _ram_emitter:
 
 -----------------
 In-Memory Emitter
@@ -90,6 +92,8 @@ of the :py:class:`~vivarium.core.registry.Serializer` instance whose
 :py:meth:`~vivarium.core.registry.Serializer.can_deserialize` method returns
 True on the data to deserialize.
 
+.. _parquet_emitter:
+
 ---------------
 Parquet Emitter
 ---------------
@@ -108,19 +112,19 @@ In Hive partitioning, certain keys in data are used to partition the data into f
 In the vEcoli Parquet emitter, the keys used for this purpose are the experiment ID,
 variant index, lineage seed (initial seed for cell lineage), generation, and agent ID.
 These keys uniquely identify a single cell simulation, meaning each simulation process
-will write data to its own folder in final output with a path like::
+will write data to its own folder in the final output with a path like::
 
     experiment_id={}/variant={}/lineage_seed={}/generation={}/agent_id={}
 
 This allows workflows that run simulations with many variant simulation data objects,
 lineage seeds, generations, and agent IDs to all write data to the same main output
-folder without overwriting any data.
+folder without simulations overwriting one another.
 
 Parquet Files
 =============
 
 Because Parquet is a tabular file format (think in terms of columns like a Pandas
-DataFrame), additional serialization steps must be taken after the data to save
+DataFrame), additional serialization steps must be taken after the emit data
 has been converted to JSON format in accordance with :ref:`serializing_emits`.
 The Parquet emitter (:py:class:`~ecoli.library.parquet_emitter.ParquetEmitter`)
 first calls :py:func:`~ecoli.library.parquet_emitter.flatten_dict` in order to
@@ -200,11 +204,11 @@ Schemas constructed with the :py:func:`~ecoli.library.schema.listener_schema` he
 function can populate this metdata concisely. These metadata values are compiled for
 all stores in the simulation state hierarchy by
 :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`. In the
-saved configuration Parquet file, the metadata values will be located under
+saved configuration Parquet file, the metadata values will be located in
 columns with names equal to the double-underscore concatenated store path
 prefixed by ``output_metadata__``. For convenience, the
 :py:func:`~ecoli.library.parquet_emitter.get_field_metadata` can be used in
-analysis scripts to read back this metadata.
+analysis scripts to read this metadata.
 
 ``history``
 -----------
@@ -213,13 +217,13 @@ Each simulation will save Parquet files containing serialized simulation output 
 inside its corresponding Hive partition under the ``history`` folder. The columns in
 these Parquet files come from flattening the hierarchy of emitted stores. To leverage
 Parquet's columnar compression and efficient reading, we batch many time steps worth
-of emits into a temporary file before reading them into a
+of emits into a temporary newline-delimited JSON file before reading them into a
 `PyArrow <https://arrow.apache.org/docs/python/index.html>`_ table where each row
-contains the column values for a single time step. This PyArrow table can then be
+contains the column values for a single time step. This PyArrow table is then
 written to a Parquet file named ``{batch size * number of batches}.pq`` (e.g.
 ``400.pq``, ``800.pq``, etc. for a batch size of 400). The default batch size of
 400 has been tuned for our current model but can be adjusted via ``emits_to_batch``
-under the ``emitter_arg`` option in configuration JSONs.
+under the ``emitter_arg`` option in a configuration JSON.
 
 .. _parquet_read:
 
@@ -240,19 +244,19 @@ to read data using DuckDB. These include:
   ``config_sql`` that reads data from Parquet files with filters applied when
   run using :py:mod:`runscripts.analysis`.
 - :py:func:`~ecoli.library.parquet_emitter.num_cells`: Quickly get a count of
-  the number of cells worth of data included in a SQL query
+  the number of cells whose data is included in a SQL query
 - :py:func:`~ecoli.library.parquet_emitter.skip_n_gens`: Add a filter to an SQL
   query to skip the first N generations worth of data
-- :py:func:`~ecoli.library.parquet_emitter.ndlist_to_ndarray`: Convert a Parquet
+- :py:func:`~ecoli.library.parquet_emitter.ndlist_to_ndarray`: Convert a PyArrow
   column of nested lists into a N-D Numpy array
 - :py:func:`~ecoli.library.parquet_emitter.ndarray_to_ndlist`: Convert a N-D Numpy
-  array into a Parquet column of nested lists
+  array into a PyArrow column of nested lists
 - :py:func:`~ecoli.library.parquet_emitter.ndidx_to_duckdb_expr`: Get a DuckDB SQL
   expression which can be included in a ``SELECT`` statement that uses Numpy-style
   indexing to retrieve values from a nested list Parquet column
 - :py:func:`~ecoli.library.parquet_emitter.named_idx`: Get a DuckDB SQL expression
-  which can be included in a ``SELECT`` statement that extracts certain indices
-  of values from a nested list Parquet column and returns them as new named columns
+  which can be included in a ``SELECT`` statement that extracts values at certain indices
+  from each row of a nested list Parquet column and returns them as individually named columns
 - :py:func:`~ecoli.library.parquet_emitter.get_field_metadata`: Read saved store
   metadata (see :ref:`configuration_parquet`)
 - :py:func:`~ecoli.library.parquet_emitter.get_config_value`: Read option from
@@ -264,7 +268,7 @@ to read data using DuckDB. These include:
   to large to read into memory all at once).
 
 .. warning::
-    Parquet lists are 1-indexed. The :py:func:`~ecoli.library.parquet_emitter.ndidx_to_duckdb_expr`
+    Parquet lists are 1-indexed. :py:func:`~ecoli.library.parquet_emitter.ndidx_to_duckdb_expr`
     and :py:func:`~ecoli.library.parquet_emitter.named_idx` automatically add 1 to
     user-supplied indices.
 
@@ -274,7 +278,7 @@ Construct SQL Queries
 The true power of DuckDB is unlocked when SQL queries are iteratively constructed. This can be
 accomplished in one of two ways:
 
-- For simpler queries, you can wrap a complete DuckDB SQL expression in parenthesis to use as
+- For simpler queries, you can wrap a complete DuckDB SQL expression in parentheses to use as
   the input table to another query. For example, to calculate the average cell and dry mass for
   over all time steps for all cells accessible to an analysis script:
 
@@ -286,7 +290,7 @@ accomplished in one of two ways:
             )
         )
     
-  In this case, ``history_sql`` can be slotted in programmatically using an f-string.
+  ``history_sql`` can be slotted in programmatically using an f-string.
 - For more advanced, multi-step queries, you can use
   `common table expressions <https://duckdb.org/docs/sql/query_syntax/with.html>`_ (CTEs).
   For example, to run the same query above but first averaging over all time steps

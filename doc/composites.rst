@@ -3,7 +3,7 @@ Composites
 ==========
 
 :py:class:`~ecoli.composites.ecoli_master.Ecoli` is a so-called composer
-that is responsible for aggregating all the Processes, Steps, topologies,
+that is responsible for aggregating Processes, Steps, topologies,
 and the flow for the Steps into a unified "composite" model that vivarium-core
 is able to run. Unlike a typical Vivarium composer which simply collects all
 these pieces, the :py:class:`ecoli.composites.ecoli_master.Ecoli` composer
@@ -28,7 +28,7 @@ The :py:meth:`~ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps`
 method of the :py:class:`~ecoli.composites.ecoli_master.Ecoli` composer is responsible
 for creating these two Steps, the :py:class:`~ecoli.processes.allocator.Allocator` steps
 sandwiched between them in each execution layer, and the
-:py:class:`~ecoli.processes.unique_update.UniqueUpdate` Steps the run at the very end
+:py:class:`~ecoli.processes.unique_update.UniqueUpdate` Steps that run at the very end
 of each execution layer. It is also responsible for updating the flow to arrange
 these Steps in the order described in :ref:`implementation`. As an end-user, all you
 have to do to add a new partitioned process is ensure that it inherits from
@@ -91,7 +91,7 @@ to visualize these updates.
 
 .. warning::
     This feature should only be turned for debugging purposes and
-    only when using the in-memory emitter (``timeseries``).
+    only when using the in-memory emitter (see :ref:`ram_emitter`).
 
 -------------
 Initial State

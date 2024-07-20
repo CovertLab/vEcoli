@@ -49,8 +49,8 @@ prefaced by a series of relevant attributes including:
     documentation to see the format that updates to the store must be given in.
 :Divider: Function used to split the store during cell division
 :Serializer: Instance of :py:class:`vivarium.core.registry.Serializer` 
-    used to serialize store data before being emitted
-:Schema: Helper function to create store schema in ``ports_schema`` methods
+    used to serialize store data before being emitted (see :ref:`serializing_emits`)
+:Schema: Helper function to create store schema in process ``ports_schema`` methods
 :Helpers: Other useful helper functions
 
 .. WARNING::
@@ -80,13 +80,13 @@ molecules store holds a
 `structured Numpy array <https://numpy.org/doc/stable/user/basics.rec.html>`_ 
 with the following named fields:
 
-    1. ``id`` (:py:class:`str`): Names of bulk molecules as pulled from `EcoCyc <https://ecocyc.org/>`_
+    1. ``id`` (:py:class:`str`): Names of bulk molecules pulled from `EcoCyc <https://ecocyc.org/>`_
         Each end with a bracketed "location tag" (e.g. ``[c]``) containing
-        one of the abbreviations defined in the 
+        one of the abbreviations defined in the
         ``reconstruction/ecoli/flat/compartments.tsv`` file (see
         `Cell Component Ontology <http://brg.ai.sri.com/CCO/downloads/cco.html>`_)
     2. ``count`` (:py:attr:`numpy.int64`): Counts of bulk molecules
-        Note that the :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` 
+        Note that the :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state`
         method of :py:class:`~ecoli.processes.partition.PartitionedProcess` does not see the full
         structured array with named fields through its bulk port and instead sees a 1D array of
         partitioned counts from the allocator (see :ref:`partitioning`).
@@ -98,11 +98,12 @@ with the following named fields:
 Initialization
 ==============
 To create the initial value for this store, the model will go through 
-the following three options in order:
+the following three options in order of preference:
 
     1. Load custom initial state
         Set ``initial_state`` option for 
         :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
+        (see :ref:`json_config`)
 
     2. Load from saved state JSON
         Set ``initial_state_file`` option for 
@@ -133,7 +134,7 @@ This setup has a potential problem: two processes may both decide to deplete
 the count of the same molecule, resulting in a final count that is negative. 
 To prevent this from happening, the model forces processes to first request
 counts of bulk molecules via special process-specific ``request`` stores. These
-stores are read by a special allocator process 
+stores are read by an allocator process 
 (:py:class:`~ecoli.processes.allocator.Allocator`). The allocator process 
 then divides the bulk molecules so that each process sees a functional count 
 proportional to its request.
@@ -153,7 +154,7 @@ molecule binding and complexation events occur on timescales much shorter than t
 default 1 second simulation timestep, :py:class:`~ecoli.processes.equilibrium.Equilibrium`
 and :py:class:`~ecoli.processes.two_component_system.TwoComponentSystem`
 must wait for :py:class:`~ecoli.processes.tf_unbinding.TfUnbinding` to update
-the simulation state by freeing currently bound transcription factors. This allows
+the simulation state by freeing currently bound transcription factors. This gives
 all transcription factors a chance to form complexes
 or participate in other reactions, better reflecting the transient binding dynamics
 of real cells. :py:class:`~ecoli.processes.tf_binding.TfBinding` must wait for these
@@ -162,7 +163,7 @@ new active transcription factor counts,
 must wait for the counts of transcription factors bound to promoters, and so on.
 
 To allow processes to run in a pre-specified order within 
-each timestep, we can make use of a special subclass of the typical Vivarium 
+each timestep, we can make use of a subclass of the typical Vivarium 
 :py:class:`~vivarium.core.process.Process` class: 
 :py:class:`~vivarium.core.process.Step`. Almost all "processes" in the model 
 are actually instances of :py:class:`~vivarium.core.process.Step`. These Steps 
@@ -225,30 +226,28 @@ a :py:class:`~ecoli.processes.partition.Requester` and an
 :py:class:`~ecoli.processes.partition.Evolver`. For each execution layer 
 in the ``flow`` given to :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`, 
 :py:class:`~ecoli.composites.ecoli_master.Ecoli` will create Requesters, Evolvers,
-and other required Steps arranged to be executed in the following order:
+and other required Steps and arrange them to be executed in the following order:
 
 1. Requesters:
-    Each calls the 
+    Each calls the
     :py:meth:`~ecoli.processes.partition.PartitionedProcess.calculate_request`
-    method of a :py:class:`~ecoli.processes.partition.PartitionedProcess` 
+    method of a :py:class:`~ecoli.processes.partition.PartitionedProcess`
     in said layer and writes its requests to a process-specific ``request`` store
 
 2. Allocator:
     Once all Requesters in said layer have finished writing their requests, an
-    instance of :py:class:`~ecoli.processes.allocator.Allocator` 
+    instance of :py:class:`~ecoli.processes.allocator.Allocator`
     reads all the written ``request`` stores and proportionally allocates bulk
     molecules to processes, writing allocated counts to process-specific
     ``allocate`` stores
 
 3. Evolvers:
     Each swaps the Numpy structured array of unpartitioned bulk counts in the
-    ``bulk`` port with the 1D array of allocated counts in its corresponding
+    ``bulk`` port with the 1D array of allocated counts in the corresponding
     ``allocate`` store, calls the
     :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` 
     method of its :py:class:`~ecoli.processes.partition.PartitionedProcess`, 
-    updates the bulk molecule counts, and sends unique molecule updates 
-    to be accumulated by each unique molecule updater 
-    (see :py:class:`~ecoli.library.schema.UniqueNumpyUpdater`)
+    and returns updates to the bulk molecule counts and unique molecule stores
 
 4. Unique updater: 
     An instance of 
@@ -277,11 +276,9 @@ processes access to non-partitioned counts, an additional port is added to
 their ``ports_schema`` methods and topologies that is also connected to the 
 bulk molecules store. By convention, this port is called ``bulk_total`` to 
 differentiate it from the partitioned ``bulk`` port. As noted in :ref:`implementation`,
-Evolvers overwrite port named ``bulk`` with the allocated bulk counts. Due to being
+Evolvers overwrite the port named ``bulk`` with the allocated bulk counts. Due to being
 named ``bulk_total`` instead of ``bulk``, the non-partitioned port value is left
-untouched and allows the Evolver to read non-partitioned counts at will (i.e.
-inside the :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` method
-of its associated :py:class:`~ecoli.processes.partition.PartitionedProcess`).
+untouched and allows the Evolver to read non-partitioned counts at will.
 
 
 Indexing
@@ -299,7 +296,7 @@ in :py:meth:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation.calcu
 for an example.
 
 Though counts can be directly retrieved from the Numpy structured array (e.g. 
-``states["bulk"]["count"][self.ntp_idx]``), this method of access does not workflow
+``states["bulk"]["count"][self.ntp_idx]``), this method of access does not work
 for :py:class:`~ecoli.processes.partition.Evolver` (i.e. inside the
 :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` method)
 because they automatically replace the non-partitioned Numpy structured array
@@ -373,7 +370,7 @@ Listeners
     automatically serialized to JSON by ``orjson``. For example,
     listeners holding values with Unum units will be serialized by
     :py:class:`~ecoli.library.serialize.UnumSerializer`, which is
-    registered in ``ecoli/__init__.py``.
+    registered in ``ecoli/__init__.py``. See :ref:`serializing_emits`.
 :Schema: :py:func:`ecoli.library.schema.listener_schema`
 :Helpers: None
 
@@ -389,18 +386,17 @@ contains substores for various masses of interest, such as ``cell_mass``,
 
 Initialization
 ==============
-Listener stores are initialized at the start of a simulation with their
-default values as specified in the
+Listener stores are initialized at the start of a simulation with the
+default values specified in the
 :py:meth:`~vivarium.core.process.Process.ports_schema` methods of
 the processes that connect to them. Refer to
 :py:func:`ecoli.library.schema.listener_schema` for information about how
 to configure this default value as well as attach useful metadata to
 specific listener values.
 
-Listener stores must contain data of the same type or data that is configured
-be configured to serialized to the same type for the duration of a simulation
-(``None`` allowed for null values). This is becuase the Parquet storage format
-used to persist simulation output to disk is a columnar format that requires
+Listener stores must contain data of the same type (or data that is serialized
+to the same type) for the duration of a simulation. This is becuase the Parquet
+storage format (see :ref:`parquet_emitter`) is a columnar format that requires
 columns to have static data types. Some leeway is allowed for ``None`` (null)
 values in nested types. For example, ``[]`` and ``[0]`` both work fine for a
 column containing 1D lists of integers.

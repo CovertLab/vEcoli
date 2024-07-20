@@ -1,7 +1,7 @@
-"""Composite for simulations with EngineProcess cells in an environment.
+"""
+Composite for simulations with EngineProcess cells in an environment.
 
 .. note::
-
     This composite requires a config with the spatial environment
     enabled.
 """
@@ -54,6 +54,7 @@ class EcoliInnerWrapper(Composite):
 class EcoliInnerSim(Composer):
     """Inner composer to be used with
     :py:class:`~ecoli.processes.engine_process.EngineProcess."""
+
     defaults = {
         "agent_id": "0",
         "seed": 0,
@@ -69,8 +70,8 @@ class EcoliInnerSim(Composer):
         as the inner simulation in an EngineProcess.
 
         This requires caching the initial state generated in the course
-        of calling :py:meth:`~ecoli.experiments.EcoliSim.build_ecoli` and
-        wrapping the returned composite using :py:class:`~.EcoliInnerWrapper`
+        of calling :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.build_ecoli`
+        and wrapping the returned composite using :py:class:`~.EcoliInnerWrapper`
         to ensure that the cached initial state is returned when the
         ``initial_state`` method is called on the composite.
 
@@ -153,6 +154,7 @@ class EcoliEngineProcess(Composer):
     includes the :py:class:`~ecoli.processes.environment.lysis.Lysis`
     Step when given a non-empty ``lysis_config``.
     """
+
     defaults = {
         "agent_id": "0",
         "seed": 0,

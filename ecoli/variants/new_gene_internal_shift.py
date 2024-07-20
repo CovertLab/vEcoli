@@ -23,15 +23,15 @@ def get_new_gene_ids_and_indices(
     """
     cistron_sim_data = sim_data.process.transcription.cistron_data.struct_array
     monomer_sim_data = sim_data.process.translation.monomer_data.struct_array
-    new_gene_cistron_ids = cast(list[str],
-        cistron_sim_data[cistron_sim_data["is_new_gene"]][
-        "id"
-    ].tolist())
+    new_gene_cistron_ids = cast(
+        list[str], cistron_sim_data[cistron_sim_data["is_new_gene"]]["id"].tolist()
+    )
     cistron_monomer_id_dict = dict(
         zip(monomer_sim_data["cistron_id"], monomer_sim_data["id"])
     )
     new_monomer_ids = [
-        cast(str, cistron_monomer_id_dict.get(cistron_id)) for cistron_id in new_gene_cistron_ids
+        cast(str, cistron_monomer_id_dict.get(cistron_id))
+        for cistron_id in new_gene_cistron_ids
     ]
     if len(new_gene_cistron_ids) == 0:
         raise Exception(
@@ -51,7 +51,8 @@ def get_new_gene_ids_and_indices(
     rna_data = sim_data.process.transcription.rna_data
     cistron_idx_dict = {rna[:-3]: i for i, rna in enumerate(rna_data["id"])}
     new_gene_indices = [
-        cast(int, cistron_idx_dict.get(cistron_id)) for cistron_id in new_gene_cistron_ids
+        cast(int, cistron_idx_dict.get(cistron_id))
+        for cistron_id in new_gene_cistron_ids
     ]
     monomer_idx_dict = {monomer: i for i, monomer in enumerate(monomer_sim_data["id"])}
     new_monomer_indices = [
