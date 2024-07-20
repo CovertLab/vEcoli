@@ -56,6 +56,7 @@ together when they are found in multiple sources (e.g. default JSON and
 user-specified JSON) instead of being directly overriden.
 """
 
+
 class TimeLimitError(RuntimeError):
     """Error raised when ``fail_at_total_time`` is True and simulation
     reaches ``total_time``."""

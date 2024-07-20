@@ -6,10 +6,20 @@ Experiments
 interface for configuring and running single-cell simulations. We refer
 to simulations as experiments, and all simulations (or batches
 of simulations run in a single workflow, see :ref:`/workflows.rst`) are
-identified via a unique experiment ID. If data is being persisted to
-disk (i.e. not using ``timeseries`` in-memory emitter), then simulations
-or workflows with the same experiment ID will overwrite data from any past
-simulations or workflows with the same experiment ID.
+identified via a unique experiment ID. 
+
+.. warning::
+    If data is being persisted to disk (see :ref:`parquet_emitter`), simulations
+    or workflows will overwrite data from any past simulations or workflows with
+    the same experiment ID.
+
+When running workflows with :py:mod:`runscripts.workflow` (see :ref:`/workflows.rst`),
+users are prevented from accidentally overwriting data by ``nextflow``, the software
+used to run the workflow. Specifically, nextflow generates an HTML execution report
+in the output folder for a given experiment ID (see :ref:`output`)
+and will refuse to run another workflow with the same experiment ID unless
+that execution report is renamed, moved, or deleted.
+
 
 .. _sim_config:
 
@@ -43,25 +53,26 @@ JSON Config Files
 The :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` class relies upon
 the helper :py:class:`~ecoli.experiments.ecoli_master_sim.SimConfig` class to load
 configuration options from JSON files and merge them with options specified via
-the command line. The configuration options are always loaded in the following order:
+the command line. The configuration options are always loaded in the following order,
+with options loaded later on overriding those from earlier sources:
 
 #. The options in the default JSON config file (located at
    :py:data:`~ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path`)
 #. The options in the JSON config file specified via ``--config``
    in the command line.
-#. The other options specified via the command line.
+#. The options specified via the command line.
 
 In most cases, configuration options that appear in more than one
-of the above sources are successively overriden. The sole exceptions
-are configuration options listed in
+of the above sources are successively overriden in their entirety. The sole
+exceptions are configuration options listed in
 :py:attr:`~ecoli.experiments.ecoli_master_sim.LIST_KEYS_TO_MERGE`. These
-options hold list values that are concatenated with one another instead
-of being overriden.
+options hold lists of values that are concatenated with one another instead
+of being wholly overriden.
 
 Notice that the options in the default JSON config file are always loaded
 first. This means that if you would like to run a simulation or workflow
 that leaves some of these options alone, you can simply omit those options
-from the JSON config file that you create and pass to the runscript
+from the JSON config file that you create and pass to your runscript of choice
 via ``--config``.
 
 Below is an annotated copy of the default simulation-related configuration
@@ -82,7 +93,7 @@ documented in :ref:`/workflows.rst`.
         # String that uniquely identifies simulation (or workflow if passed
         # as input to runscripts/workflow.py). Avoid special characters as we
         # quote experiment IDs using urlparse.parse.quote_plus, which may make
-        # experiment IDs with special characters hard to decipher.
+        # experiment IDs with special characters hard to deciphe later.
         "experiment_id": "experiment_id_one"
         # Whether to append date and time to experiment ID in the following format
         # experiment_id_%d-%m-%Y_%H-%M-%S.
@@ -91,7 +102,7 @@ documented in :ref:`/workflows.rst`.
         "description": "",
         # Whether to display vivarium-core progress bar
         "progress_bar" : true,
-        # Path to pickle file output by parameter calculator (runscripts/parca.py).
+        # Path to pickle file output from parameter calculator (runscripts/parca.py).
         # Only used for single sim run with ecoli/experiments/ecoli_master_sim.py.
         # Ignored when run with runscripts/workflow.py because each simulation is
         # automatically run with the appropriate variant/baseline simulation data.
@@ -101,8 +112,8 @@ documented in :ref:`/workflows.rst`.
         # to Parquet files on disk (good for workflows and more in-depth analyses)
         "emitter" : "timeseries",
         # If choosing "parquet" emitter, must provide "out_dir" with path (relative
-        # or absolute) to output folder or "out_uri" with URI for Google Cloud Storage
-        # bucket. ONLY CHOOSE ONE.
+        # or absolute) to output folder OR "out_uri" with URI for Google Cloud Storage
+        # bucket. Only provide one of the above.
         "emitter_arg": {"out_dir": "out"},
         # See API documentation on vivarium-core for vivarium.core.engine.Engine.
         # Can usually leave as false.
@@ -115,7 +126,7 @@ documented in :ref:`/workflows.rst`.
         "log_updates" : false,
         # Controls output format for ecoli.experiments.ecoli_master_sim.EcoliSim.query.
         # Should only be used if choosing "timeseries" emitter. See API documentation
-        # for the function above for more information.
+        # for the query function for more information.
         "raw_output" : true,
         # Initial seed used to generate the seeds that are used to initialize
         # the psuedorandom number generators in the model. Only used for single
@@ -345,9 +356,9 @@ documented in :ref:`/workflows.rst`.
         }
     }
 
-Here are some general rules to remember when writing JSON files:
+Here are some general rules to remember when writing your own JSON config files:
 
-- String must be enclosed in double quotes (not single quotes)
+- Strings must be enclosed in double quotes (not single quotes)
 - Booleans are lowercase
 - None values are written as (unquoted) ``null``
 - Trailing commas are not allowed
@@ -359,7 +370,7 @@ Output
 ------
 
 If ``emitter`` was set to ``parquet``, then folders containing the simulation output are
-created as described in :ref:`/output.rst`.
+created as described in :ref:`parquet_emitter`.
 
 If ``division`` is set to True, :py:mod:`~ecoli.experiments.ecoli_master_sim` will
 save the initial states of the two daughter cells resulting from cell division
@@ -412,8 +423,7 @@ by setting ``_emit`` to ``True``.
     Vivarium includes internal checks to ensure that all ports connected to a
     store give the same or compatible (no conflicting keys) schemas for that store.
     This means that if you would like to override the schema for a store with many
-    connecting ports, you will likely need to override the ports schemas for all
-    relevant ports. 
+    connecting ports, you will need to override the schemas for all the relevant ports.
 
 ------------------
 Colony Simulations

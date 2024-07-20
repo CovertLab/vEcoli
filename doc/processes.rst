@@ -20,12 +20,12 @@ Registration
 ------------
 
 In order for a process to be recognized by our main simulation runscript
-(:py:mod:`~ecoli.experiments.ecoli_master_sim`) by name, it must register
-itself in a few key places. First, a process must be registered in the
+(:py:mod:`~ecoli.experiments.ecoli_master_sim`) by name, it must be registered
+in a few key places. First, a process must be registered in the
 :py:data:`~vivarium.core.registry.process_registry` in the ``ecoli/processes/__init__.py``
 file.
 
-Second, it should register its topology in :py:data:`~ecoli.processes.registries.topology_registry`.
+Second, its topology must be registered in :py:data:`~ecoli.processes.registries.topology_registry`.
 This is usally accomplished by having the following lines at the top of the
 process file::
 
@@ -66,7 +66,7 @@ instead of :py:class:`~vivarium.core.process.Process` or :py:class:`~vivarium.co
 During sim initialization, :py:meth:`~ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps`
 uses each :py:class:`~ecoli.processes.partition.PartitionedProcess` to create two
 processes that inherit from :py:class:`~vivarium.core.process.Step` and have the required
-:py:meth:`~vivarium.core.process.Process.next_update` methods: a
+:py:meth:`~vivarium.core.process.Process.next_update` method: a
 :py:class:`~ecoli.processes.partition.Requester` and an
 :py:class:`~ecoli.processes.partition.Evolver`. These processes share an initialized
 :py:class:`~ecoli.processes.partition.PartitionedProcess` instance, meaning
@@ -106,30 +106,27 @@ the ``time_step`` key in the parameter dictionary. However, most processes
 in vEcoli inherit from :py:class:`~vivarium.core.process.Step` and not
 :py:class:`~vivarium.core.process.Process`. Instead of running with a
 certain time step, Steps, by default, are run at the end of every time
-step where at least one :py:class:`~vivarium.core.process.Process`
-ran. Since we only used Steps instead of Processes in order to enforce
-a certain execution order within time steps, we need to somehow allow
-Steps to run with something like a time step.
+step where at least one :py:class:`~vivarium.core.process.Process` ran.
 
-To achieve this, we:
+To change this to allow our Steps to run with a time step like a
+Process, we:
 
 #. Added a top-level store to hold the global simulation time step at ``("timestep",)``.
 #. Added a top-level store to hold the global time at ``("global_time",)`` with a
-   default value of this store is 0.
+   default value of 0.
 #. Added a store for each process located at ``("next_update_time", "process_name")``
    which has a default value of ``("timestep",)``.
 #. Added logic to the :py:meth:`~vivarium.core.process.Process.next_update`
-   methods (or :py:meth:`~ecoli.processes.partition.PartitionedProcess.calculate_request`
-   or :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state`
+   methods (:py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state`
    for partitioned processes) to increment ``("next_update_time", "process_name")``
    by ``("timestep",)`` every time the Step is run.
 #. Added a :py:class:`~ecoli.processes.global_clock.GlobalClock` process
    that calculates the smallest difference between the current ``("global_time",)``
    and each Step's ``("next_update_time", "process_name")``. This process has a
    custom :py:meth:`~vivarium.core.process.Process.calculate_timestep` method
-   to tell vivarium-core to only run this process after this minimum time
-   difference has elapsed in vivarium-core's internal simulation clock. At that
-   time, this process advances ``("global_time",)`` by that minimum time difference.
+   to tell vivarium-core to only run this process after its internal simulation
+   clock reaches the soonest update time for another process. At that
+   time, this process advances ``("global_time",)`` to match the internal clock.
    Taken together, these actions guarantee that we never accidentally
    skip over a Step's scheduled update time and also that our manual
    time stepping scheme stays perfectly in sync with vivarium-core's built-in
@@ -148,7 +145,7 @@ Steps in the same ``("timestep",)`` store, a Process or Step only needs to modif
 this store for all Steps to register this change. Conversely, say we wanted to have
 each Step run with its own time step instead of a global time step.
 We could implement this by simply changing the topologies of each Step to connect
-to a dedicated time step store ``("timestep", "process_name")``, unlinking time steps
+to a dedicated time step store ``("timestep", "process_name")``, unlinking the time steps
 for each Step.
 
 .. note::
