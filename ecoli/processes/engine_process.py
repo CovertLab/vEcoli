@@ -114,8 +114,7 @@ def _get_path_net_depth(path: tuple[str]) -> int:
 
 
 def cap_tunneling_paths(
-    topology: dict[str, Any],
-    outer: tuple[str, ...]=tuple()
+    topology: dict[str, Any], outer: tuple[str, ...] = tuple()
 ) -> dict[tuple[str, ...], str]:
     """
     For ports in the inner simulation that point to stores
@@ -224,7 +223,7 @@ class EngineProcess(Process):
         """
         Process that wraps a Vivarium simulation by taking the following options
         in its parameter dictionary:
-        
+
         - ``inner_composer``: a composer for the inner simulation
         - ``inner_composer_config``: a configuration dictionary for that composer
         - ``outer_composer``: a composer that can be used upon division to create a new
@@ -586,7 +585,8 @@ def _inverse_update(
     initial_state: Any,
     final_state: Any,
     store: Store,
-    updater_registry_reverse: dict[Callable, str]):
+    updater_registry_reverse: dict[Callable, str],
+):
     """
     Given a dictionary containing the current values contained inside a potentially
     nested store and a dictionary containing the final values inside that same
@@ -600,7 +600,7 @@ def _inverse_update(
         store: Store (potentially nested) that we are trying to mutate
         updater_registry_reverse: A mapping from updater functions to the string
             names they are registered as in :py:attr:`~vivarium.core.registry.updater_registry`
-    
+
     Returns:
         Update dictionary that when used to update ``store`` by calling its (or its sub-stores)
         updaters, causes its values to change from ``initial_state`` to ``final_state``

@@ -242,7 +242,7 @@ class Ecoli(Composer):
                     ``defaults`` attribute of the process should be used as its config.
                     In the case of a dictionary config, the dictionary will be merged
                     with the result of :py:meth:`~ecoli.library.sim_data.LoadSimData.get_config_by_name`
-                    if possible, or the ``defaults`` attribute if not. 
+                    if possible, or the ``defaults`` attribute if not.
 
                 * ``processes``:
                     Mapping of all process names (:py:class:`str`)
@@ -290,7 +290,7 @@ class Ecoli(Composer):
                     Boolean option that only matters if ``division`` is true.
                     Adds :py:class:`~ecoli.processes.cell_division.MarkDPeriod`
                     if true.
-                
+
                 * ``generations``:
                     If not ``None`` and ``divide`` is ``True``, adds
                     :py:class:`~ecoli.processes.cell_division.StopAfterDivision`
@@ -561,14 +561,8 @@ class Ecoli(Composer):
                     )
                 # Only the bulk ports should be included in the request
                 # and allocate topologies
-                topology[f"{process_id}_requester"]["request"] = (
-                    "request",
-                    process_id
-                )
-                topology[f"{process_id}_evolver"]["allocate"] = (
-                    "allocate",
-                    process_id
-                )
+                topology[f"{process_id}_requester"]["request"] = ("request", process_id)
+                topology[f"{process_id}_evolver"]["allocate"] = ("allocate", process_id)
                 topology[f"{process_id}_requester"]["next_update_time"] = (
                     "next_update_time",
                     process_id,
@@ -812,6 +806,7 @@ def ecoli_topology_plot(config=None):
     """Make a topology plot of Ecoli"""
     # Import here to avoid circular import
     from ecoli.experiments.ecoli_master_sim import EcoliSim, SimConfig
+
     default_config = SimConfig()
     if config is not None:
         default_config.update_from_dict(config)
