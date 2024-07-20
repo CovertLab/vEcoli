@@ -177,6 +177,12 @@ documented in :ref:`/workflows.rst`.
         # Whether to add processes and associated topologies for cell
         # division. See "Division Modifications" heading in "Composites" docs.
         "divide": true,
+        # Local or absolute path to directory where initial states for daughter
+        # cells are saved as JSONs named ``daughter_state_0.json`` and
+        # ``daughter_state_1.json``. These can be moved to the ``data``
+        # folder and passed as ``initial_state_file`` to run simulations
+        # of the daughter cells.
+        "daughter_outdir": "out",
         # Whether to add process and associated topology for triggering division
         # after a D period has elapsed following the completion of chromosome
         # replication. If False, division is triggered when the store located
@@ -347,6 +353,23 @@ Here are some general rules to remember when writing JSON files:
 - Trailing commas are not allowed
 - Comments are not allowed
 - Tuples (e.g. in topologies or flows) are written as lists (``["bulk"]`` instead of ``("bulk",)``)
+
+------
+Output
+------
+
+If ``emitter`` was set to ``parquet``, then folders containing the simulation output are
+created as described in :ref:`/output.rst`.
+
+If ``division`` is set to True, :py:mod:`~ecoli.experiments.ecoli_master_sim` will
+save the initial states of the two daughter cells resulting from cell division
+in ``daughter_outdir`` as JSON files. These files can be moved to the ``data``
+folder and passed as ``initial_state_file`` to simulate the daughter cells.
+Additionally, the file ``division_time.sh`` will be created in the folder where
+you started the simulation. This script, when run, sets the environment variable
+``division_time`` to the time at which the cell divided. It is intended for internal
+use when running a simulation workflow with :py:mod:`runscripts.workflow`, allowing
+Nextflow to correctly set the ``initial_global_time`` for daughter cell simulations.
 
 ----------------
 Schema Overrides

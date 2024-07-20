@@ -23,6 +23,10 @@ We recommend new users read through the sections below in order.
    This documentation is very much a work in progress. It likely
    contains errors and poor formatting.
 
+.. tip::
+   Any text formatted like :py:mod:`~runscripts.workflow` is a clickable link
+   to detailed API documentation.
+
 .. toctree::
    :maxdepth: 2
 
