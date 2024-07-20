@@ -88,6 +88,8 @@ Configuration options for the ParCa are all located in a dictionary under the
 - ``variable_elongation_translation``: If True, enable variable elongation
   for translation.
 
+.. _variants:
+
 --------
 Variants
 --------
@@ -207,6 +209,9 @@ Refer to :ref:`/experiments.rst` for more information about the main
 script for running single-cell simulations,
 :py:mod:`~ecoli.experiments.ecoli_master_sim`.
 
+
+.. _analysis_scripts:
+
 --------
 Analyses
 --------
@@ -247,6 +252,12 @@ A ``multiseed`` analysis, for example, can choose to only read data
 from cells between generations 4 and 8 from the cells with the same
 experiment ID, variant simulation data object, and initial seed that
 it has access to.
+
+.. tip::
+  If you would like to use an analysis script with many different scopes,
+  instead of duplicating the entire script in each analysis type
+  folder, you can just create stub files in the appropriate folders
+  that simply import the ``plot`` function from a main analysis script.
 
 .. _analysis_config:
 
@@ -314,7 +325,7 @@ options under the ``analysis_options`` key:
   and ``multivariant`` analyses, specify ``["single", "multivariant"]`` using this option.
 
 
-.. _analysis_template::
+.. _analysis_template:
 
 Template
 ========
@@ -539,6 +550,40 @@ There are three main ways to monitor a workflow's progress.
 ---------------
 Fault Tolerance
 ---------------
+
+Nextflow workflows can be configured to be highly fault tolerant. The following
+is a list workflow behaviors enabled in our model to handle unexpected errors.
+
+- When running on Sherlock, jobs that fail with exit codes 140 (hit job
+  limits for RAM or runtime) or 143 (job was preempted by another user)
+  are automatically retried up to a maximum of 3 tries. For the resources
+  limit error code (140), Nextflow will automatically request more RAM
+  and a higher runtime limit with each attempt: ``4 * {attempt num}``
+  GB of memory and ``2 * {attempt num}`` hours of runtime. See the
+  ``sherlock`` profile in ``runscripts/nextflow/config.template``.
+- Additionally, some jobs may fail on Sherlock due to issues submitting
+  them to the SLURM scheduler. Nextflow was configured to limit the rate
+  of job sumission and job queue polling to keep these failures to a
+  minimum. Furthermore, jobs that fail to submit are automatically
+  retried with a relatively long 5 minute delay to hopefully Avoid
+  any transient scheduler issues.
+- Jobs that fail for any reason other than the Sherlock reasons described
+  above are ignored. This is mainly to allow a workflow to finish running
+  all programmed cell simulations even if some cells fail, terminating their
+  corresponding lineages. For example, if generation 6 for a given initial
+  seed and variant simulation data failed, then generation 7+ for that lineage
+  cannot run but the lineages for different initial seeds and/or variant
+  simulation data can still continue to run.
+- If you realize that a code issue is the cause of job failure(s), stop
+  the workflow run if it is not already (e.g. ``control + c``, ``scancel``,
+  etc.), make the necessary code fixes, and rerun :py:mod:`runscripts.workflow`
+  with the same configuration JSON and the ``--resume`` command-line argument.
+  Nextflow will intelligently resume workflow execution from the last successful
+  job in each chain of job dependencies (e.g. generation 7 of a cell lineage
+  depends on generation 6, :py:mod:`runscripts.create_variants` depends on
+  :py:mod:`runscripts.parca`, etc).
+
+.. _output:
 
 ------
 Output

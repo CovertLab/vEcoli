@@ -961,7 +961,8 @@ class EcoliSim:
     def get_output_metadata(self) -> dict[str, Any]:
         """
         Filters all ports schemas to include only output metadata
-        located at the path ``('_properties', 'metadata')`` for each schema.
+        located at the path ``('_properties', 'metadata')`` for each schema by
+        invoking :py:func:`~.extract_metadata`.
         See :py:meth:`~ecoli.library.schema.listener_schema` for usage details.
 
         This dictionary of output metadata is flattened (see :py:func:`~ecoli.library.parquet_emitter.flatten_dict`)
