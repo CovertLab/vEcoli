@@ -35,9 +35,9 @@ jobs:
         make clean compile
     - name: Test ParCa reproducibility
       run: |
-        python runscript/parca.py -c 3 -o out/parca_1
-        python runscript/parca.py -c 3 -o out/parca_2
-        python runscript/debug/compare_pickles.py out/parca_1/kb out/parca_2/kb
+        python runscripts/parca.py -c 3 -o out/parca_1
+        python runscripts/parca.py -c 3 -o out/parca_2
+        python runscripts/debug/compare_pickles.py out/parca_1/kb out/parca_2/kb
     - name: Test simulation reproducibility
       run: |
         python ecoli/experiments/ecoli_master_sim.py \
@@ -65,6 +65,9 @@ jobs:
         pip install --upgrade pip wheel
         pip install numpy==1.26.4 mypy
         pip install -r requirements.txt
+    - name: Install nextflow
+      run: |
+        curl -s https://get.sdkman.io | bash
     - name: Compile Cython components
       run: |
         make clean compile
