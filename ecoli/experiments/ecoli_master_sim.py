@@ -219,7 +219,7 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--no_suffix_time",
-                action="store",
+                action="store_true",
                 help="Do not append current time as '_day-month-year_hour-minute-second'"
                 " to experiment ID.",
             )
@@ -828,7 +828,7 @@ class EcoliSim:
             # with suffix_time = True.
             if not self.experiment_id_base:
                 self.experiment_id_base = self.experiment_id
-            if self.suffix_time:
+            if self.suffix_time and not self.no_suffix_time:
                 self.experiment_id = datetime.now().strftime(
                     f"{self.experiment_id_base}_%d-%m-%Y_%H-%M-%S"
                 )
