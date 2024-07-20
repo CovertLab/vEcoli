@@ -205,7 +205,7 @@ def test_create_variants():
             [
                 "python",
                 "runscripts/create_variants.py",
-                "-c",
+                "--config",
                 "ecoli/composites/ecoli_configs/test_variant.json",
                 "--kb",
                 "test_create_variants/kb",
