@@ -19,7 +19,7 @@ from tqdm import tqdm
 from vivarium.core.emitter import Emitter
 from vivarium.core.serialize import make_fallback_serializer_function
 
-METADATA_PREFIX = "data__output_metadata__"
+METADATA_PREFIX = "output_metadata__"
 """
 In the config dataset, user-defined metadata for each store
 (see :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`)
@@ -366,7 +366,7 @@ def get_config_value(
     """
     return cast(
         tuple,
-        conn.sql(f'SELECT first("data__{field}") FROM ({config_subquery})').fetchone(),
+        conn.sql(f'SELECT first("{field}") FROM ({config_subquery})').fetchone(),
     )[0]
 
 
@@ -803,19 +803,18 @@ class ParquetEmitter(Emitter):
         """
         # Config will always be first emit
         if data["table"] == "configuration":
-            metadata = data["data"].pop("metadata")
-            data["data"] = {**metadata, **data["data"]}
-            data["time"] = data["data"].get("initial_global_time", 0.0)
+            data = {**data["data"].pop("metadata"), **data["data"]}
+            data["time"] = data.get("initial_global_time", 0.0)
             # Manually create filepaths with hive partitioning
             # Start agent ID with 1 to avoid leading zeros
-            agent_id = data["data"].get("agent_id", "1")
+            agent_id = data.get("agent_id", "1")
             quoted_experiment_id = parse.quote_plus(
-                data["data"].get("experiment_id", "default")
+                data.get("experiment_id", "default")
             )
             partitioning_keys = {
                 "experiment_id": quoted_experiment_id,
-                "variant": data["data"].get("variant", 0),
-                "lineage_seed": data["data"].get("lineage_seed", 0),
+                "variant": data.get("variant", 0),
+                "lineage_seed": data.get("lineage_seed", 0),
                 "generation": len(agent_id),
                 "agent_id": agent_id,
             }
@@ -841,7 +840,7 @@ class ParquetEmitter(Emitter):
             outfile = os.path.join(
                 self.outdir,
                 self.experiment_id,
-                data["table"],
+                "configuration",
                 self.partitioning_path,
                 "config.pq",
             )
