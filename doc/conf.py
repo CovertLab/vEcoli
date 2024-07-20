@@ -68,6 +68,18 @@ nitpick_ignore = [
     ("py:class", "any valid matplotlib color"),
     # Silence warning in ecoli.analysis.single.blame.SignNormalize
     ("py:class", "default: False"),
+    ("py:class", "numpy.float64"),
+    ("py:class", "numpy.int64"),
+    ("py:class", "numpy.int32"),
+    ("py:class", "numpy.bool_"),
+    ("py:class", "duckdb.duckdb.DuckDBPyConnection"),
+    ("py:class", "pyarrow.lib.Schema"),
+    ("py:class", "pyarrow._fs.FileSystem"),
+    ("py:class", "pyarrow.lib.FixedSizeListArray"),
+    ("py:class", "pyarrow.lib.Array"),
+    ("py:class", "pyarrow.lib.NativeFile"),
+    ("py:class", "pyarrow.lib.Table"),
+    ("py:class", "polars.Series"),
     # Silence warning in ecoli.processes.environment.field_timeline.FieldTimeline
     ("py:class", "vivarium.processes.timeline.TimelineProcess"),
 ]
@@ -105,6 +117,7 @@ intersphinx_mapping = {
     ),
     "numpy": ("https://numpy.org/doc/stable", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/dev", None),
 }
 
 
@@ -135,6 +148,16 @@ autodoc_mock_imports = [
     "Equation",
     "swiglpk",
     "seaborn",
+    "statsmodels",
+    "ete3",
+    "esda",
+    "hvplot",
+    "line_profiler",
+    "fsspec",
+    "sklearn",
+    "libpysal",
+    "splot",
+    "polars",
 ]
 # Move typehints from signature into description
 autodoc_typehints = "description"
@@ -157,19 +180,13 @@ def autodoc_skip_member_handler(app, what, name, obj, skip, options):
 def run_apidoc(_):
     cur_dir = os.path.abspath(os.path.dirname(__file__))
 
-    # Move tutorial notebooks into build directory
-    notebooks_dst = os.path.join(cur_dir, "notebooks")
-    notebooks_src = os.path.join(cur_dir, "..", "notebooks")
-    if os.path.exists(notebooks_dst):
-        shutil.rmtree(notebooks_dst)
-    shutil.copytree(notebooks_src, notebooks_dst)
-
     # Use sphinx-autodoc to create API documentation from docstrings
     module_paths = [
         os.path.join(cur_dir, "..", "ecoli"),
         os.path.join(cur_dir, "..", "reconstruction"),
         os.path.join(cur_dir, "..", "validation"),
         os.path.join(cur_dir, "..", "wholecell"),
+        os.path.join(cur_dir, "..", "runscripts"),
     ]
 
     apidoc_dirs = [
@@ -177,16 +194,15 @@ def run_apidoc(_):
         os.path.join(cur_dir, "reference", "api", "reconstruction"),
         os.path.join(cur_dir, "reference", "api", "validation"),
         os.path.join(cur_dir, "reference", "api", "wholecell"),
+        os.path.join(cur_dir, "reference", "api", "runscripts"),
     ]
 
     exclude_paths = [
         (
             os.path.join(cur_dir, path)
-            for path in (
-                "../ecoli/analysis",
-                "../ecoli/experiments/ecoli_master_sim_tests.py",
-            )
+            for path in ("../ecoli/experiments/ecoli_master_sim_tests.py",)
         ),
+        (),
         (),
         (),
         (),

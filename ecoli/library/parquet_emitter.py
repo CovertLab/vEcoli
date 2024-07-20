@@ -19,7 +19,7 @@ from tqdm import tqdm
 from vivarium.core.emitter import Emitter
 from vivarium.core.serialize import make_fallback_serializer_function
 
-METADATA_PREFIX = "data__output_metadata__"
+METADATA_PREFIX = "output_metadata__"
 """
 In the config dataset, user-defined metadata for each store
 (see :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`)
@@ -108,16 +108,17 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
     Creates DuckDB SQL strings for sim configs and outputs.
 
     Args:
-        out_dir: Path to directory containing ``history`` and
-            ``configuration`` subdirectories (URI beginning with ``gcs://``
-            or ``gs://`` if sim output in Google Cloud Storage)
+        out_dir: Path to output directory for workflows to retrieve data
+            for (relative or absolute local path OR URI beginning with
+            ``gcs://`` or ``gs://`` for Google Cloud Storage bucket)
 
     Returns:
-        Tuple of DuckDB SQL strings: first can be passed to
-            :py:func:`~.read_stacked_columns` to read one or more columns
-            of sim output by name, second can be passed to
-            :py:func:`~.get_field_metadata` or :py:func:`~.get_config_value`
-            to retrieve metadata / config options for sims
+        2-element tuple containing
+
+        - **history_sql**: SQL query for sim output (see :py:func:`~.read_stacked_columns`),
+        - **config_sql**: SQL query for sim configs (see :py:func:`~.get_field_metadata`
+          and :py:func:`~.get_config_value`)
+
     """
     return (
         f"""
@@ -243,7 +244,7 @@ def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> 
     Returns a DuckDB expression for a column equivalent to converting each row
     of ``name`` into an ndarray ``name_arr`` (:py:func:`~.ndlist_to_ndarray`)
     and getting ``name_arr[idx]``. ``idx`` can contain 1D lists of integers,
-    boolean masks, or ``":"`` (no 2D+ indices like x[[[1,2]]]). See also
+    boolean masks, or ``":"`` (no 2D+ indices like ``x[[[1,2]]]``). See also
     :py:func:`~named_idx` if pulling out a relatively small set of indices.
 
     .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
@@ -330,7 +331,9 @@ def get_field_metadata(
     conn: duckdb.DuckDBPyConnection, config_subquery: str, field: str
 ) -> list:
     """
-    Gets the saved metadata for a given field as a list.
+    Gets the saved metadata (see
+    :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`)
+    for a given field as a list.
 
     Args:
         conn: DuckDB connection
@@ -352,7 +355,9 @@ def get_config_value(
     conn: duckdb.DuckDBPyConnection, config_subquery: str, field: str
 ) -> Any:
     """
-    Gets the saved configuration option.
+    Gets the saved configuration option (anything in config JSON, with
+    double underscore concatenation for nested fields due to
+    :py:func:`~.flatten_dict`).
 
     Args:
         conn: DuckDB connection
@@ -361,7 +366,7 @@ def get_config_value(
     """
     return cast(
         tuple,
-        conn.sql(f'SELECT first("data__{field}") FROM ({config_subquery})').fetchone(),
+        conn.sql(f'SELECT first("{field}") FROM ({config_subquery})').fetchone(),
     )[0]
 
 
@@ -635,9 +640,8 @@ def flatten_dict(d: dict):
     """
     Flatten nested dictionary down to key-value pairs where each key
     concatenates all the keys needed to reach the corresponding value
-    in the input. Prunes empty dicts and lists. Allows each field in
-    emits to be written to, compressed, and encoded as its own column
-    in a Parquet file for efficient storage and retrieval.
+    in the input. Allows each leaf field in a nested emit to be turned
+    into a column in a Parquet file for efficient storage and retrieval.
     """
     results: list[tuple[str, Any]] = []
 
@@ -667,22 +671,20 @@ class ParquetEmitter(Emitter):
 
                 {
                     'type': 'parquet',
-                    'config': {
-                        'emits_to_batch': Number of emits per Parquet row
-                            group (default: 400),
-                        # Only pick ONE of the following
-                        'out_dir': local output directory (absolute/relative),
-                        'out_uri': Google Cloud storage bucket URI
-                    }
+                    'emits_to_batch': Number of emits per Parquet row
+                        group (optional, default: 400),
+                    # One of the following is REQUIRED
+                    'out_dir': local output directory (absolute/relative),
+                    'out_uri': Google Cloud storage bucket URI
                 }
 
         """
-        if "out_uri" not in config["config"]:
-            out_uri = os.path.abspath(config["config"]["out_dir"])
+        if "out_uri" not in config:
+            out_uri = os.path.abspath(config["out_dir"])
         else:
-            out_uri = config["config"]["out_uri"]
+            out_uri = config["out_uri"]
         self.filesystem, self.outdir = fs.FileSystem.from_uri(out_uri)
-        self.batch_size = config["config"].get("batch_size", 400)
+        self.batch_size = config.get("batch_size", 400)
         self.fallback_serializer = make_fallback_serializer_function()
         # Batch emits as newline-delimited JSONs in temporary file
         self.temp_data = tempfile.NamedTemporaryFile(delete=False)
@@ -695,16 +697,22 @@ class ParquetEmitter(Emitter):
         atexit.register(self._finalize)
 
     def _finalize(self):
-        """Convert remaining batched emits to Parquet at sim shutdown.
-        Read 10 most recent Parquet schema from ``_metadata`` file written
-        by other simulations with the same experiment ID, then unify
-        with the current simulation Parquet schema and write a ``_metadata``
-        file for the current simulation. Write same ``_metadata`` to Hive
-        partition of current experiment ID, variant 0, lineage_seed 0,
-        generation 1, and agent_id 1. This is the first file read by DuckDB
-        in the subquery generated by :py:func:`~.get_dataset_sql` and ensures
-        that even columns which are all NULL for some simulations are read as
-        the correct non-NULL type from other simulations."""
+        """Convert remaining batched emits to Parquet at sim shutdown. This also
+        writes a ``_metadata`` file containing a unified Parquet schema as follows::
+
+            1. Read up to 10 most recently written ``_metadata`` files from other
+                simulations of the same experiment ID
+            2. Unifies those schemas with current sim schema (e.g. column that is
+                NULL is current sim but float in another is promoted to float)
+            3. Write unified schema to ``_metadata`` file in current sim output folder
+            4. Write unified schema to ``_metadata`` file in output folder for
+                sim of same experiment ID + :py:data:`~.EXPERIMENT_SCHEMA_SUFFIX`
+
+        Unless more than 10 simulations finish at the exact same time, the ``_metadata``
+        file in the folder for experiment ID + :py:data:`~.EXPERIMENT_SCHEMA_SUFFIX`
+        should contain a schema that unifies the output of all finished simulations.
+        The subquery generated by :py:func:`~.get_dataset_sql` reads this file first
+        to ensure that all columns are read as the correct type."""
         outfile = os.path.join(
             self.outdir,
             self.experiment_id,
@@ -756,39 +764,58 @@ class ParquetEmitter(Emitter):
         experiment_schema_path = os.path.join(
             self.outdir, "history", self.experiment_id, EXPERIMENT_SCHEMA_SUFFIX
         )
+        self.filesystem.create_dir(os.path.dirname(experiment_schema_path))
         pq.write_metadata(
             unified_schema, experiment_schema_path, filesystem=self.filesystem
         )
 
     def emit(self, data: dict[str, Any]):
         """
-        Serializes emit data with ``orjson`` and writes newline-delimited
-        JSONs in a temporary file to be batched before conversion to Parquet.
+        Flattens emit dictionary by concatenating nested key names with double
+        underscores (:py:func:~.flatten_dict), serializes flattened emit with
+        ``orjson``, and writes newline-delimited JSONs in a temporary file to be
+        batched for some number of timesteps before conversion to Parquet by
+        :py:func:`~.json_to_parquet`.
 
-        The output directory consists of two hive-partitioned datasets: one for
-        sim metadata called ``configuration`` and another for sim output called
-        ``history``. The partitioning keys are, in order, experiment_id (str),
-        variant (int), lineage seed (int), generation (int), and agent_id (str).
+        The output directory (``config["out_dir"]`` or ``config["out_uri"]``) will
+        have the following structure::
 
-        By using a single output directory for many runs of a model, advanced
-        filtering and computation can be performed on data from all those
-        runs using PyArrow datasets (see :py:func:`~.get_datasets`).
+            {experiment_id}
+            |-- history
+            |   |-- experiment_id={experiment_id}
+            |   |   |-- variant={variant}
+            |   |   |   |-- lineage_seed={seed}
+            |   |   |   |   |-- generation={generation}
+            |   |   |   |   |   |-- agent_id={agent_id}
+            |   |   |   |   |   |   |-- _metadata (unified schema, see _finalize)
+            |   |   |   |   |   |   |-- 400.pq (batched emits)
+            |   |   |   |   |   |   |-- 800.pq
+            |   |   |   |   |   |   |-- ..
+            |-- configuration
+            |   |-- experiment_id={experiment_id}
+            |   |   |-- variant={variant}
+            |   |   |   |-- lineage_seed={seed}
+            |   |   |   |   |-- generation={generation}
+            |   |   |   |   |   |-- agent_id={agent_id}
+            |   |   |   |   |   |   |-- config.pq (sim config data)
+
+        This Hive-partioned directory structure can be efficiently filtered
+        and queried using DuckDB (see :py:func:`~.get_dataset_sql`).
         """
         # Config will always be first emit
         if data["table"] == "configuration":
-            metadata = data["data"].pop("metadata")
-            data["data"] = {**metadata, **data["data"]}
-            data["time"] = data["data"].get("initial_global_time", 0.0)
+            data = {**data["data"].pop("metadata"), **data["data"]}
+            data["time"] = data.get("initial_global_time", 0.0)
             # Manually create filepaths with hive partitioning
             # Start agent ID with 1 to avoid leading zeros
-            agent_id = data["data"].get("agent_id", "1")
+            agent_id = data.get("agent_id", "1")
             quoted_experiment_id = parse.quote_plus(
-                data["data"].get("experiment_id", "default")
+                data.get("experiment_id", "default")
             )
             partitioning_keys = {
                 "experiment_id": quoted_experiment_id,
-                "variant": data["data"].get("variant", 0),
-                "lineage_seed": data["data"].get("lineage_seed", 0),
+                "variant": data.get("variant", 0),
+                "lineage_seed": data.get("lineage_seed", 0),
                 "generation": len(agent_id),
                 "agent_id": agent_id,
             }
@@ -814,7 +841,7 @@ class ParquetEmitter(Emitter):
             outfile = os.path.join(
                 self.outdir,
                 self.experiment_id,
-                data["table"],
+                "configuration",
                 self.partitioning_path,
                 "config.pq",
             )

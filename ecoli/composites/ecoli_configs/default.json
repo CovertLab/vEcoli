@@ -111,7 +111,7 @@
         "global_clock"
     ],
     "process_configs": {
-        "global_clock": {"time_step": 1},
+        "global_clock": {},
         "replication_data_listener": {"time_step": 1}},
     "topology": {
         "bulk-timeline": {
@@ -121,7 +121,7 @@
         },
         "global_clock": {
             "global_time": ["global_time"],
-            "timestep": ["timestep"]
+            "next_update_time": ["next_update_time"]
         }
     },
     "flow": {

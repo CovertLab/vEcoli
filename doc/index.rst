@@ -1,7 +1,13 @@
 Welcome to Vivarium *E. coli*'s documentation!
 ==============================================
 
-Vivarium *E. coli* project is a port of the |text|_ to the `Vivarium framework <https://vivarium-collective.github.io>`_.
+Vivarium *E. coli* is a port of the |text|_ to the `Vivarium framework <https://vivarium-collective.github.io>`_.
+For more scientific details about the model, refer to the
+`documentation <https://github.com/CovertLab/wcEcoli/tree/master/docs/processes>`_
+for the model as well its corresponding publication
+(`10.1126/science.aav3751 <https://www.science.org/doi/10.1126/science.aav3751>`_).
+This website covers how the model was implemented using Vivarium and describes the user interface
+for developing and running the model. We recommend new users read through the sections below in order.
 
 ..
    Comment: We need to use text substitution because ReST does not
@@ -18,23 +24,23 @@ Vivarium *E. coli* project is a port of the |text|_ to the `Vivarium framework <
        by solid edges, while the orange nodes are connected to the blue
        nodes by broken edges.
 
-.. toctree::
-   :maxdepth: 2
-
-   Processes <reference/processes>
-   Composites <reference/composites>
-   Experiments <reference/experiments>
-   tutorials
-   docs
-   reference/stores
-   API Reference <reference/api_ref.rst>
-
 .. WARNING::
    This documentation is very much a work in progress. It likely
    contains errors and poor formatting.
 
-The scope of this project is to migrate the Whole Cell Model's processes, and therefore takes the model's sim_data as its starting point in the simulation pipeline. sim_data is a large configuration object created by the parameter calculator (ParCa). For this reason the ``reconstruction/`` and ``wholecell/utils/`` folders have been duplicated here as they are necessary to unpickle the serialized sim_data object. If a new sim_data object is required to be read, the corresponding wcEcoli folders will have to be synchronized.
+.. tip::
+   Any text formatted like :py:mod:`~runscripts.workflow` is a clickable link
+   to detailed API documentation.
 
-All state handling (previously handled by Bulk- and UniqueMolecules states/containers/views) and the actual running of the simulation (previously ``wholecell.sim.Simulation``) are now handled entirely by Vivarium's core engine and process interface.
+.. toctree::
+   :maxdepth: 2
 
-The new process classes can be found in ``ecoli/processes/*`` and are linked together using a Vivarium topology that is generated in ``ecoli/experiments/ecoli_master_sim.py``.
+   stores
+   processes
+   composites
+   experiments
+   workflows
+   output
+   tutorial
+   docs
+   API Reference <reference/api_ref.rst>

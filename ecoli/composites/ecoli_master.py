@@ -125,7 +125,7 @@ class Ecoli(Composer):
         1. ``config['initial_state']``
 
         2. Load the JSON file at ``f'data/{config['initial_state_file]}.json'``
-        using :py:func:`~ecoli.states.wcecoli_state.get_state_from_file`.
+        using :py:func:`~ecoli.library.json_state.get_state_from_file`.
 
         3. Generate initial state from simulation data object (see
         :py:meth:`~ecoli.library.sim_data.LoadSimData.generate_initial_state`)
@@ -240,6 +240,9 @@ class Ecoli(Composer):
                     :py:meth:`~ecoli.library.sim_data.LoadSimData.get_config_by_name`,
                     or the string ``"default"`` to indicate that the
                     ``defaults`` attribute of the process should be used as its config.
+                    In the case of a dictionary config, the dictionary will be merged
+                    with the result of :py:meth:`~ecoli.library.sim_data.LoadSimData.get_config_by_name`
+                    if possible, or the ``defaults`` attribute if not. 
 
                 * ``processes``:
                     Mapping of all process names (:py:class:`str`)
@@ -287,6 +290,10 @@ class Ecoli(Composer):
                     Boolean option that only matters if ``division`` is true.
                     Adds :py:class:`~ecoli.processes.cell_division.MarkDPeriod`
                     if true.
+                
+                * ``generations``:
+                    If not ``None`` and ``divide`` is ``True``, adds
+                    :py:class:`~ecoli.processes.cell_division.StopAfterDivision`
 
         Returns:
             Tuple consisting of a mapping of process names to fully initialized
@@ -554,20 +561,14 @@ class Ecoli(Composer):
                     )
                 # Only the bulk ports should be included in the request
                 # and allocate topologies
-                topology[f"{process_id}_requester"]["request"] = {
-                    "bulk": (
-                        "request",
-                        process_id,
-                        "bulk",
-                    )
-                }
-                topology[f"{process_id}_evolver"]["allocate"] = {
-                    "bulk": (
-                        "allocate",
-                        process_id,
-                        "bulk",
-                    )
-                }
+                topology[f"{process_id}_requester"]["request"] = (
+                    "request",
+                    process_id
+                )
+                topology[f"{process_id}_evolver"]["allocate"] = (
+                    "allocate",
+                    process_id
+                )
                 topology[f"{process_id}_requester"]["next_update_time"] = (
                     "next_update_time",
                     process_id,
@@ -808,14 +809,18 @@ def get_ecoli_partition_topology_plot_settings():
 
 
 def ecoli_topology_plot(config=None):
-    if not config:
-        config = {}
     """Make a topology plot of Ecoli"""
-    agent_id_config = {"agent_id": "1"}
-    ecoli = Ecoli({**agent_id_config, **config})
+    # Import here to avoid circular import
+    from ecoli.experiments.ecoli_master_sim import EcoliSim, SimConfig
+    default_config = SimConfig()
+    if config is not None:
+        default_config.update_from_dict(config)
+    config = default_config.to_dict()
+    sim = EcoliSim(config)
+    sim.build_ecoli()
     settings = get_ecoli_partition_topology_plot_settings()
     topo_plot = plot_topology(
-        ecoli,
+        sim.ecoli,
         filename="topology",
         out_dir="out/composites/ecoli_master",
         settings=settings,

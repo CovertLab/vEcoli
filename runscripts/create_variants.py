@@ -24,8 +24,6 @@ def parse_variants(
 ) -> list[dict[str, Any]]:
     """
     Parse parameters for a variant specified under ``variants`` key of config.
-    See :py:func:`~.test_parse_variants` for an sample ``variant_config`` and
-    what it gets parsed into.
 
     Args:
         variant_config: Dictionary of the form::
@@ -135,17 +133,16 @@ def apply_and_save_variants(
 ):
     """
     Applies variant function to ``sim_data`` with each parameter dictionary
-    in ``param_dicts``. Saves each variant as ``variant_name_{i}``
+    in ``param_dicts``. Saves each variant as ``{i}.cPickle``
     in ``outdir``, where ``i`` is the index of the parameter dictionary in
     ``param_dicts`` used to create that variant. Also saves ``metadata.json``
-    in ``outdir`` that maps each ``variant_name_{i}`` to the parameter
+    in ``outdir`` that maps each ``{i}`` to the parameter
     dictionary used to create it.
 
     Args:
         sim_data: Simulation data object to modify
-        param_dicts: Return vale of :py:func:`~.parse_variants`
-        variant_name: Name of variant function in
-            :py:data:`~ecoli.variant.VARIANT_REGISTRY`
+        param_dicts: Return value of :py:func:`~.parse_variants`
+        variant_name: Name of variant function file in ``ecoli/variants`` folder
         outdir: Path to folder where variant ``sim_data`` pickles are saved
     """
     variant_mod = importlib.import_module(f"ecoli.variants.{variant_name}")
@@ -208,7 +205,7 @@ def test_create_variants():
             [
                 "python",
                 "runscripts/create_variants.py",
-                "-c",
+                "--config",
                 "ecoli/composites/ecoli_configs/test_variant.json",
                 "--kb",
                 "test_create_variants/kb",
@@ -245,7 +242,6 @@ def main():
     default_config = os.path.join(CONFIG_DIR_PATH, "default.json")
     parser.add_argument(
         "--config",
-        "-c",
         action="store",
         default=default_config,
         help=(
