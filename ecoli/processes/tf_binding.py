@@ -99,7 +99,7 @@ class TfBinding(Step):
             ]
 
         # Get total counts of transcription units
-        self.n_TU = self.raw_binding_rates["shape"][1]
+        self.n_TU = self.raw_binding_rates["shape"][0]
 
         # Get constants
         self.n_avogadro = self.parameters["n_avogadro"]

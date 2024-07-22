@@ -5,8 +5,8 @@
     "description" : "",
     "progress_bar" : true,
     "sim_data_path": "NewTFModelingTestParca/kb/simData.cPickle",
-    "emitter" : "timeseries",
-    "emitter_arg": {},
+    "emitter" : "parquet",
+    "emitter_arg": {"out_dir": "NewTFModelingTestSim"},
     "emit_topology" : false,
     "emit_processes" : false,
     "emit_config" : false,
@@ -27,7 +27,7 @@
     "n_init_sims": 1,
     "generations": null,
     "single_daughters": true,
-    "daughter_outdir": "out",
+    "daughter_outdir": "NewTFModelingTestSim",
     "lineage_seed": 0,
 
     "parca_options": {
