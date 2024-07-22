@@ -3,6 +3,7 @@ from typing import Any, TYPE_CHECKING
 if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
+
 def apply_variant(
     sim_data: "SimulationDataEcoli", params: dict[str, Any]
 ) -> "SimulationDataEcoli":
