@@ -15,44 +15,44 @@ node:
 
 .. code-block:: python
 
-        new_node = Node()
+    new_node = Node()
 
 adds attributes (``**attr``), which include "node_class", "node_type", "node_id",
 "name", and "synonyms":
 
 .. code-block:: python
 
-        new_node.read_attributes(**attr)
+    new_node.read_attributes(**attr)
 
 and appends the node to the node list:
 
 .. code-block:: python
 
-        self.node_list.append(new_node)
+    self.node_list.append(new_node)
 
 The relevant edges that connect the new node to other nodes also need to be
 specified:
 
 .. code-block:: python
 
-        new_edge = Edge("Edge Type")
+    new_edge = Edge("Edge Type")
 
 The source and destination ids for that edge are added with an attribute:
 
 .. code-block:: python
 
-        attr = {
-                'src_id': source_id,
-                'dst_id': destination_id,
-                }
+    attr = {
+            'src_id': source_id,
+            'dst_id': destination_id,
+            }
 
-        new_edge.read_attributes(**attr)
+    new_edge.read_attributes(**attr)
 
 and the edge is then added to the edge list:
 
 .. code-block:: python
 
-        self.edge_list.append(new_edge)
+    self.edge_list.append(new_edge)
 
 With a complete node and edge list, you are ready to add dynamics data to each
 node. This is done in read_dynamics.py. You first need to choose appropriate
@@ -67,7 +67,7 @@ which assigns that node dynamics from listener output:
 
 .. code-block:: python
 
-        node.read_dynamics(dynamics, dynamics_units)
+    node.read_dynamics(dynamics, dynamics_units)
 """
 
 from collections import Counter
@@ -182,14 +182,15 @@ class BuildNetwork(object):
 
     def __init__(self, sim_data_file, output_dir, check_sanity=False):
         """
+        TODO: have check_sanity looks for disconnected nodes, and edges
+        with non-existent nodes.
+
         Args:
-                sim_data_file: path to the variant sim_data pickle file used for
+            sim_data_file: path to the variant sim_data pickle file used for
                 building the network.
-                output_dir: output directory for the node list and edge list files.
-                check_sanity: if set to True, checks if there are any nodes with
+            output_dir: output directory for the node list and edge list files.
+            check_sanity: if set to True, checks if there are any nodes with
                 duplicate IDs in the network.
-                        # TODO: have check_sanity looks for disconnected nodes, and edges
-                        # with non-existent nodes.
         """
         # Open simulation data and save as attribute
         with open(sim_data_file, "rb") as f:
