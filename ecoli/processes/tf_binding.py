@@ -285,21 +285,24 @@ class TfBinding(Step):
             # Determine reaction time
             r1 = self.random_state.rand()
             rxn_time += 1/total_rates * np.log(1/r1)
+
             # If we surpass the current timestep, don't perform reaction
             # TODO: where to get the units of timstep?
-            if rxn_time > (timestep * units.s).asNumber(units.min):
+            if rxn_time > (self.parameters["time_step"] * units.s).asNumber(units.min):
                 break
 
             # Choose whether to bind or unbind
-            to_bind = self.random_state.choice([0, 1], [total_unbind_rates / total_rates,
+            to_bind = self.random_state.choice([0, 1], p=[total_unbind_rates / total_rates,
                                                         total_bind_rates / total_rates])
 
             if to_bind:
                 # Choose a reaction to perform
                 nonzero_indices = np.nonzero(binding_rates_final)
                 nonzero_probas = binding_rates_final[nonzero_indices]
-                rxn_index = self.random_state.choice(np.array(x for x in zip(nonzero_indices)),
-                                                     nonzero_probas)
+                nonzero_probas = nonzero_probas / np.sum(nonzero_probas)
+                nonzero_indices_t = np.transpose(nonzero_indices)
+                chosen_idx = self.random_state.choice(len(nonzero_indices_t), p=nonzero_probas)
+                rxn_index = nonzero_indices_t[chosen_idx]
 
                 # Decrement the TF (given by column index), and increase the bound TF
                 assert active_tf_counts[rxn_index[1]] > 0
@@ -309,13 +312,14 @@ class TfBinding(Step):
 
                 # Record the reaction
                 n_binding_events[rxn_index[1]] += 1
-
             else:
                 # Choose a reaction to perform
                 nonzero_indices = np.nonzero(unbinding_rates_final)
                 nonzero_probas = unbinding_rates_final[nonzero_indices]
-                rxn_index = self.random_state.choice(np.array(x for x in zip(nonzero_indices)),
-                                                     nonzero_probas)
+                nonzero_probas = nonzero_probas / np.sum(nonzero_probas)
+                nonzero_indices_t = np.transpose(nonzero_indices)
+                chosen_idx = self.random_state.choice(len(nonzero_indices_t), p=nonzero_probas)
+                rxn_index = nonzero_indices_t[chosen_idx]
 
                 # Increment the TF (given by column index), and decrease the bound TF
                 active_tf_counts[rxn_index[1]] += 1
