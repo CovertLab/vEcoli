@@ -355,7 +355,5 @@ def main():
     with open(os.path.join(config["outdir"], "metadata.json"), "w") as f:
         json.dump(config, f)
 
-
-
 if __name__ == "__main__":
     main()
