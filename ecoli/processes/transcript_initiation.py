@@ -245,7 +245,6 @@ class TranscriptInitiation(PartitionedProcess):
         self.idx_tRNA = self.parameters["idx_tRNA"]
         self.idx_rprotein = self.parameters["idx_rprotein"]
         self.idx_rnap = self.parameters["idx_rnap"]
-
         # Synthesis probabilities for different categories of genes
         self.rnaSynthProbFractions = self.parameters["rnaSynthProbFractions"]
         self.rnaSynthProbRProtein = self.parameters["rnaSynthProbRProtein"]
@@ -295,6 +294,10 @@ class TranscriptInitiation(PartitionedProcess):
                     {
                         "target_rna_synth_prob": [0.0],
                         "actual_rna_synth_prob": [0.0],
+                        "rna_synth_aff": (
+                            [0.0] * self.n_TUs,
+                            self.rna_data["id"]
+                        ),
                         "tu_is_overcrowded": (
                             [False] * self.n_TUs,
                             self.rna_data["id"],
@@ -374,39 +377,10 @@ class TranscriptInitiation(PartitionedProcess):
             # Adjust affinities to not be negative
             self.promoter_init_affs[self.promoter_init_affs < 0] = 0.0
 
-            # Normalize affinities to get synthesis probabilities
-            self.promoter_init_probs = (self.promoter_init_affs
-                                       / self.promoter_init_affs.sum())
-
             # TODO: fix this part
             if not self.ppgpp_regulation:
                 # Adjust synthesis probabilities depending on environment
                 synthProbFractions = self.rnaSynthProbFractions[current_media_id]
-
-                # # Create masks for different types of RNAs
-                # is_mrna = np.isin(TU_index, self.idx_mRNA)
-                # is_trna = np.isin(TU_index, self.idx_tRNA)
-                # is_rrna = np.isin(TU_index, self.idx_rRNA)
-                # is_rprotein = np.isin(TU_index, self.idx_rprotein)
-                # is_rnap = np.isin(TU_index, self.idx_rnap)
-                # is_fixed_prob = is_trna | is_rrna | is_rprotein | is_rnap
-
-                # Process here: we must adjust affinities so that resulting synthesis probabilities for
-                # the special groups above are met. Affinities are useful if they are generally kept
-                # constant, and so we'll keep non-fixed mRNA affinities constant. That is, they have a
-                # fixed synthesis probability, but are the non-fixed affinities.
-
-                # # Save original affinity sum for later use
-                # original_aff_sum = self.promoter_init_affs.sum()
-
-                # # Rescale initiation affinities for tRNAs and rRNAs accordingly,
-                # # while keeping the mRNA fraction constant since we care more about affinities
-                # # for those
-                # mRNA_rescale_factor = synthProbFractions["mRna"] / self.promoter_init_probs[is_mrna].sum()
-                # tRNA_rescale_factor = synthProbFractions["tRna"] / self.promoter_init_probs[is_trna].sum()
-                # rRNA_rescale_factor = synthProbFractions["rRna"] / self.promoter_init_probs[is_rrna].sum()
-                # self.promoter_init_affs[is_trna] *= tRNA_rescale_factor / mRNA_rescale_factor
-                # self.promoter_init_affs[is_rrna] *= rRNA_rescale_factor / mRNA_rescale_factor
 
                 # Set fixed synthesis probabiltiies for RProteins and RNAPs
                 self._rescale_initiation_affs(
@@ -425,9 +399,9 @@ class TranscriptInitiation(PartitionedProcess):
                 # TODO: what to do about this assert?
                 #assert self.promoter_init_affs[is_fixed_prob].sum() < original_aff_sum
 
-                # Normalize affinities again to get synthesis probabilities
-                self.promoter_init_probs = (self.promoter_init_affs
-                                            / self.promoter_init_affs.sum())
+            # Normalize affinities to get synthesis probabilities
+            self.promoter_init_probs = (self.promoter_init_affs
+                                        / self.promoter_init_affs.sum())
 
         # If there are no chromosomes in the cell, set all probs to zero
         else:

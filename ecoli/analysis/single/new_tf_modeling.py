@@ -41,6 +41,9 @@ def plot(
     purC_rna_name = "purC TU"
     purC_gene_name = "purC gene"
     purC_rna_synth_prob_name = purC_rna_name + " synth prob"
+    purC_rna_synth_aff_name = purC_rna_name + " synth aff"
+    purC_per_copy_synth_prob_name = purC_rna_synth_prob_name + " per copy"
+    purC_per_copy_synth_aff_name = purC_rna_synth_aff_name + " per copy"
     purR_bound_name = "purR dimer-hypoxanthine complex"
     purR_unbound_name = "free purR dimer"
     purR_free_name = "free purR monomer"
@@ -130,8 +133,12 @@ def plot(
     purC_gene = named_idx(
         "listeners__rna_synth_prob__gene_copy_number", [purC_gene_name], [purC_gene_idx]
     )
-    purC_mRNA_synth_prob = named_idx(
+    # TODO: could look at target rna synth prob too, if wanted.
+    purC_rna_synth_prob = named_idx(
         "listeners__rna_synth_prob__actual_rna_synth_prob", [purC_rna_synth_prob_name], [purC_tu_idx]
+    )
+    purC_rna_synth_aff = named_idx(
+        "listeners__rna_synth_prob__rna_synth_aff", [purC_rna_synth_aff_name], [purC_tu_idx]
     )
     purR_bulk = named_idx(
         "bulk", purR_bulk_names, purR_bulk_idxs
@@ -162,14 +169,16 @@ def plot(
          "listeners__rna_counts__mRNA_counts",
          "listeners__rna_synth_prob__gene_copy_number",
          "listeners__rna_synth_prob__actual_rna_synth_prob",
+         "listeners__rna_synth_prob__rna_synth_aff",
          "bulk",
          "listeners__enzyme_kinetics__metabolite_counts_final",
          "listeners__rna_synth_prob__n_binding_events",
          "listeners__rna_synth_prob__n_unbinding_events",
          "listeners__rna_synth_prob__n_bound_promoters",
          "listeners__rna_synth_prob__n_available_promoters"],
-        [purC_mRNA, purC_purR_monomers, purC_gene, purC_mRNA_synth_prob, purR_bulk, hypoxanthine_metab_counts,
-         purR_tf_binding, purR_tf_unbinding, purR_tf_bound_promoters, purR_tf_available_promoters],
+        [purC_mRNA, purC_purR_monomers, purC_gene, purC_rna_synth_prob, purC_rna_synth_aff,
+         purR_bulk, hypoxanthine_metab_counts, purR_tf_binding, purR_tf_unbinding,
+         purR_tf_bound_promoters, purR_tf_available_promoters],
         conn=conn,
     )
     # purR_bound_to_purC_data = read_stacked_columns(
@@ -193,6 +202,12 @@ def plot(
             (n_avogadro / cell_density).asNumber(units.L / (units.fg * units.mol))).alias("counts_to_mols"))
     # TODO: maybe a better way of doing units, cell_mass is in fg, but rn just converting the n_avo/cell_density to units.fg instead
     purC_dataframe = purC_dataframe.with_columns(purC_dataframe[hypoxanthine_name].cast(float) / cell_mass_dataframe["counts_to_mols"])
+    purC_dataframe = purC_dataframe.with_columns((purC_dataframe[purC_rna_synth_aff_name] / purC_dataframe[purC_gene_name].cast(float)).alias(
+        purC_per_copy_synth_aff_name
+    ))
+    purC_dataframe = purC_dataframe.with_columns((purC_dataframe[purC_rna_synth_prob_name] / purC_dataframe[purC_gene_name].cast(float)).alias(
+        purC_per_copy_synth_prob_name
+    ))
 
     fig, axs = plt.subplots(9, figsize=(45, 30))
     axs[0].plot(purC_dataframe["time"], purC_dataframe[purC_rna_name])
@@ -204,29 +219,36 @@ def plot(
     axs[2].plot(purC_dataframe["time"], purC_dataframe[purC_gene_name])
     axs[2].set_title(purC_gene_name+" copies")
 
-    axs[3].plot(purC_dataframe["time"], purC_dataframe[purC_rna_synth_prob_name])
+    axs[3].plot(purC_dataframe["time"], purC_dataframe[purC_rna_synth_prob_name], label="total")
+    axs[3].plot(purC_dataframe["time"], purC_dataframe[purC_per_copy_synth_prob_name], label="per gene copy")
     axs[3].set_title(purC_rna_synth_prob_name)
+    axs[3].legend()
 
-    for x in purR_bulk_names:
-        axs[4].plot(purC_dataframe["time"], purC_dataframe[x], label=x)
-    axs[4].plot(purC_dataframe["time"], purC_dataframe[purR_monomer_name], label=purR_monomer_name)
-    # TODO: check, if a purR is bound to DNA, is it still counted in bulk molecules?
-    axs[4].plot(purC_dataframe["time"], purC_dataframe[purR_tf_bound_promoters_name], label=purR_tf_bound_promoters_name)
-    axs[4].set_title("purR counts")
+    axs[4].plot(purC_dataframe["time"], purC_dataframe[purC_rna_synth_aff_name], label="total")
+    axs[4].plot(purC_dataframe["time"], purC_dataframe[purC_per_copy_synth_aff_name], label="per gene copy")
+    axs[4].set_title(purC_rna_synth_aff_name)
     axs[4].legend()
 
-    axs[5].plot(purC_dataframe["time"], purC_dataframe[hypoxanthine_name])
-    axs[5].set_title("Hypoxanthine concentration")
+    for x in purR_bulk_names:
+        axs[5].plot(purC_dataframe["time"], purC_dataframe[x], label=x)
+    axs[5].plot(purC_dataframe["time"], purC_dataframe[purR_monomer_name], label=purR_monomer_name)
+    # TODO: check, if a purR is bound to DNA, is it still counted in bulk molecules?
+    axs[5].plot(purC_dataframe["time"], purC_dataframe[purR_tf_bound_promoters_name], label=purR_tf_bound_promoters_name)
+    axs[5].set_title("purR counts")
+    axs[5].legend()
 
-    axs[6].plot(purC_dataframe["time"], purC_dataframe[purR_tf_binding_name], label=purR_tf_binding_name)
-    axs[6].plot(purC_dataframe["time"], purC_dataframe[purR_tf_unbinding_name], label=purR_tf_unbinding_name)
-    axs[6].legend()
-    axs[6].set_title("PurR total binding and unbinding events")
+    axs[6].plot(purC_dataframe["time"], purC_dataframe[hypoxanthine_name])
+    axs[6].set_title("Hypoxanthine concentration")
 
-    axs[7].plot(purC_dataframe["time"], purC_dataframe[purR_tf_bound_promoters_name], label=purR_tf_bound_promoters_name)
-    axs[7].plot(purC_dataframe["time"], purC_dataframe[purR_tf_avail_promoters_name], label=purR_tf_avail_promoters_name)
+    axs[7].plot(purC_dataframe["time"], purC_dataframe[purR_tf_binding_name], label=purR_tf_binding_name)
+    axs[7].plot(purC_dataframe["time"], purC_dataframe[purR_tf_unbinding_name], label=purR_tf_unbinding_name)
     axs[7].legend()
-    axs[7].set_title("Promoters that purR can bind")
+    axs[7].set_title("PurR total binding and unbinding events")
+
+    axs[8].plot(purC_dataframe["time"], purC_dataframe[purR_tf_bound_promoters_name], label=purR_tf_bound_promoters_name)
+    axs[8].plot(purC_dataframe["time"], purC_dataframe[purR_tf_avail_promoters_name], label=purR_tf_avail_promoters_name)
+    axs[8].legend()
+    axs[8].set_title("purR-binding promoters")
 
     # axs[8].plot(purC_dataframe["time"], purR_bound_to_purC_dataframe["listeners__rna_synth_prob__n_bound_TF_per_TU"])
     # axs[8].set_title("purR bound to purC")

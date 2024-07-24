@@ -14,7 +14,7 @@
     "analysis_options": {
         "single": {"new_tf_modeling": {}},
         "outdir": "NewTFModelingTestSim/plots",
-        "experiment_id": ["bb636ce8-4956-11ef-a788-acde48001122"],
+        "experiment_id": ["2a0739ec-49fa-11ef-91ae-acde48001122"],
         "variant_data_dir": ["NewTFModelingTestVariants"],
         "validation_data_path": ["NewTFModelingTestParca/kb/validationData.cPickle"]
     },
