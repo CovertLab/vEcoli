@@ -5,4 +5,4 @@
 "new_gene_exp_ppgpp_baseline"	3.610996561760185e-10			"This value was chosen using 0.01 read counts for RNAseq counts for a single new gene and reading ParCa output"
 "new_gene_reg_basal_prob_baseline"	8.92401929277839e-10			"This value was chosen using 0.01 read counts for RNAseq counts for a single new gene and reading ParCa output"
 "new_gene_reg_basal_aff_baseline"	8.92401929277839e-10			"This value was chosen by matching the basal_prob since they should be similar in basal conditions"
-"new_gene_reg_transcr_aff_baseline"	8.92401929277839e-10			"This value was chosen to match new_gene_reg_basal_aff_baseline since they should be equal without regulation"
+"new_gene_reg_synth_aff_baseline"	8.92401929277839e-10			"This value was chosen to match new_gene_reg_basal_aff_baseline since they should be equal without regulation"

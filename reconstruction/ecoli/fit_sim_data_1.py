@@ -2913,7 +2913,7 @@ def fitExpressionAffinities(sim_data, cell_specs):
     purC_tu_id = 'TU00055[c]'
     purC_fc = 1/3
     is_purC = (sim_data.process.transcription.rna_data["id"] == purC_tu_id)
-    rna_transcr_aff = sim_data.process.transcription.rna_transcr_aff
+    rna_synth_aff = sim_data.process.transcription.rna_synth_aff
 
     def calculateMinimalAffinities(sim_data, cell_specs):
         # Get specific doubling time for basal condition
@@ -2928,7 +2928,7 @@ def fitExpressionAffinities(sim_data, cell_specs):
         # Compute affinities as the probability per gene copy, a_basal = p_basal / copy_basal
         minimal_affinities = (sim_data.process.transcription.rna_synth_prob[minimal_condition]
                            / avg_copy_nums)
-        rna_transcr_aff[minimal_condition] = minimal_affinities
+        rna_synth_aff[minimal_condition] = minimal_affinities
 
     def setConditionProbs(sim_data, cell_specs):
         rich_synth_probs = sim_data.process.transcription.rna_synth_prob[rich_condition]
@@ -2942,7 +2942,7 @@ def fitExpressionAffinities(sim_data, cell_specs):
             if condition == 'basal':
                 continue
             # Set up system of equations: a1 * copy1 = p1 * sum(a1 * copy1)
-            new_affinities = copy.deepcopy(rna_transcr_aff[minimal_condition])
+            new_affinities = copy.deepcopy(rna_synth_aff[minimal_condition])
 
             # Get specific doubling time for rich condition
             tau = cell_specs[condition]["doubling_time"].asNumber(units.min)
@@ -2979,7 +2979,7 @@ def fitExpressionAffinities(sim_data, cell_specs):
             new_affinities[is_regulated_rna] = solved_reg_affinities
 
             # Store in dictionary
-            rna_transcr_aff[condition] = new_affinities
+            rna_synth_aff[condition] = new_affinities
 
     def construct_r_vector(sim_data, cell_specs, is_regulated_rna):
         # Returns the r vector, and the col_name_to_index. This includes rna__alpha, which holds the affinity without any TF bound
@@ -2993,7 +2993,7 @@ def fitExpressionAffinities(sim_data, cell_specs):
         rna_ids = sim_data.process.transcription.rna_data["id"]
         # Add genes that are not regulated (TODO: include the ones regulated by other 22)
         for rna_id, aff in zip(rna_ids[~is_purC],
-            rna_transcr_aff[minimal_condition][~is_purC]):
+            rna_synth_aff[minimal_condition][~is_purC]):
             rna_id_no_loc = rna_id[:-3]
             col_name = rna_id_no_loc + "__alpha"
             col_name_to_index[col_name] = len(r)
@@ -3007,14 +3007,14 @@ def fitExpressionAffinities(sim_data, cell_specs):
             col_name_basal = rna_id_no_loc + "__alpha"
             col_name_delta = rna_id_no_loc + "__" + purR_active
 
-            # For each condition, rna_transcr_aff[condition] = alpha + pP * delta, solve for alpha and delta
-            # That is to say, [1, pP] = rna_transcr_aff
+            # For each condition, rna_synth_aff[condition] = alpha + pP * delta, solve for alpha and delta
+            # That is to say, [1, pP] = rna_synth_aff
             M = []
             b = []
             # TODO: make this to account for all conditions instead of just the two
             for condition in ['basal', 'with_aa']:
                 M.append([1, pPromoterBound[condition][purR_active]])
-                b.append(rna_transcr_aff[condition][idx])
+                b.append(rna_synth_aff[condition][idx])
 
             solution = np.linalg.solve(M, b)
             alpha = solution[0]

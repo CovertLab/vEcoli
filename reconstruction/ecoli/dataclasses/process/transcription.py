@@ -1002,8 +1002,8 @@ class Transcription(object):
         self.rna_synth_prob = {}
         self.rna_expression["basal"] = expression / expression.sum()
         self.rna_synth_prob["basal"] = synth_prob / synth_prob.sum()
-        # Initialize transcription affinities, values are set in the parca.
-        self.rna_transcr_aff = {}
+        # Initialize rna synthesis affinities, values are set in the parca.
+        self.rna_synth_aff = {}
 
 
     def cistron_id_to_rna_indexes(self, cistron_id):
@@ -2199,7 +2199,7 @@ class Transcription(object):
         # Normalize affinities so that they are equal to the per-copy fraction of mRNA
         # synthesis that a given gene occupies.
         basal_condition = 'basal'
-        aff = aff * np.sum(self.rna_transcr_aff[basal_condition][is_mRNA] * n_avg_copy[is_mRNA]) \
+        aff = aff * np.sum(self.rna_synth_aff[basal_condition][is_mRNA] * n_avg_copy[is_mRNA]) \
               / np.sum(aff[is_mRNA] * n_avg_copy[is_mRNA])
 
         if balanced_rRNA_prob:

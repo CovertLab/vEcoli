@@ -365,8 +365,8 @@ class SimulationDataEcoli(object):
             recruitment_mask = np.array(
                 [i == gene_index for i in transcription_regulation.delta_aff["deltaI"]]
             )
-            for transcr_aff in transcription.rna_transcr_aff.values():
-                transcr_aff[gene_index] *= factor
+            for synth_aff in transcription.rna_synth_aff.values():
+                synth_aff[gene_index] *= factor
             for synth_prob in transcription.rna_synth_prob.values():
                 synth_prob[gene_index] *= factor
             for exp in transcription.rna_expression.values():
@@ -418,16 +418,16 @@ class SimulationDataEcoli(object):
         new_gene_reg_basal_aff_baseline = transcription.new_gene_expression_baselines[
             "new_gene_reg_basal_aff_baseline"
         ]
-        new_gene_transcr_aff_baseline = transcription.new_gene_expression_baselines[
-            "new_gene_reg_transcr_aff_baseline"
+        new_gene_synth_aff_baseline = transcription.new_gene_expression_baselines[
+            "new_gene_reg_synth_aff_baseline"
         ]
 
         for gene_index, factor in zip(gene_indices, factors):
             recruitment_mask = np.array(
                 [i == gene_index for i in transcription_regulation.delta_aff["deltaI"]]
             )
-            for transcr_aff in transcription.rna_transcr_aff.values():
-                transcr_aff[gene_index] = new_gene_transcr_aff_baseline * factor
+            for synth_aff in transcription.rna_synth_aff.values():
+                synth_aff[gene_index] = new_gene_synth_aff_baseline * factor
             for synth_prob in transcription.rna_synth_prob.values():
                 synth_prob[gene_index] = new_gene_rna_synth_prob_baseline * factor
 
