@@ -181,10 +181,13 @@ def main():
         config = json.load(f)
     if args.config is not None:
         config_file = args.config
-        with open(os.path.join(args.config), "r") as f:
+        with open(os.path.join(config_file), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
     if "out_uri" not in config["emitter"]:
-        out_uri = os.path.abspath(config["emitter"]["out_dir"])
+        if "out_dir" in config["emitter"]:
+            out_uri = os.path.abspath(config["emitter"]["out_dir"])
+        else:
+            out_uri = os.path.abspath(config["emitter_args"]["out_dir"])
         gcs_bucket = True
     else:
         out_uri = config["emitter"]["out_uri"]
@@ -288,7 +291,7 @@ def main():
     conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("n_cpus"))
     history_sql, config_sql = get_dataset_sql(out_uri)
     # If no explicit analysis type given, run all types in config JSON
-    if config["analysis_types"] is None:
+    if "analysis_types" not in config:
         config["analysis_types"] = [
             analysis_type for analysis_type in ANALYSIS_TYPES if analysis_type in config
         ]
@@ -351,6 +354,7 @@ def main():
     # Save copy of config JSON with parameters for plots
     with open(os.path.join(config["outdir"], "metadata.json"), "w") as f:
         json.dump(config, f)
+
 
 
 if __name__ == "__main__":
