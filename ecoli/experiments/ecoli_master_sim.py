@@ -784,7 +784,7 @@ class EcoliSim:
         if isinstance(self.emitter, str):
             self.emitter_config = {"type": self.emitter}
             if self.emitter_arg is not None:
-                for key, value in self.emitter_arg:
+                for key, value in self.emitter_arg.items():
                     self.emitter_config[key] = value
             if self.emitter == "parquet":
                 if ("out_dir" not in self.emitter_config) and (
@@ -792,7 +792,7 @@ class EcoliSim:
                 ):
                     raise RuntimeError(
                         "Must provide out_dir or out_uri"
-                        " as emitter argument for parquet emitter."
+                        " as emitter argument fo r parquet emitter."
                     )
         elif isinstance(self.emitter, dict):
             self.emitter_config = self.emitter
