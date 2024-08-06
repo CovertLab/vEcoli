@@ -816,36 +816,12 @@ def initialize_transcription_factors(
 
     # Get views into bulk molecule representations of transcription factors
     active_tf_view = np.zeros(len(tf_ids), dtype=int)
-    inactive_tf_view = np.zeros(len(tf_ids), dtype=int)
     active_tf_view_idx = np.zeros(len(tf_ids), dtype=int)
-    inactive_tf_view_idx = np.zeros(len(tf_ids), dtype=int)
 
     for i, tf in enumerate(tf_ids):
         tf_idx = bulk_name_to_idx(tf + "[c]", bulk_state["id"])
         active_tf_view[i] = bulk_state["count"][tf_idx]
         active_tf_view_idx[i] = tf_idx
-
-        if tf_to_tf_type[tf] == "1CS":
-            if tf == sim_data.process.transcription_regulation.active_to_bound[tf]:
-                inactive_tf_idx = bulk_name_to_idx(
-                    sim_data.process.equilibrium.get_unbound(tf + "[c]"),
-                    bulk_state["id"],
-                )
-                inactive_tf_view[i] = bulk_state["count"][inactive_tf_idx]
-            else:
-                inactive_tf_idx = bulk_name_to_idx(
-                    sim_data.process.transcription_regulation.active_to_bound[tf]
-                    + "[c]",
-                    bulk_state["id"],
-                )
-                inactive_tf_view[i] = bulk_state["count"][inactive_tf_idx]
-        elif tf_to_tf_type[tf] == "2CS":
-            inactive_tf_idx = bulk_name_to_idx(
-                sim_data.process.two_component_system.active_to_inactive_tf[tf + "[c]"],
-                bulk_state["id"],
-            )
-            inactive_tf_view[i] = bulk_state["count"][inactive_tf_idx]
-        inactive_tf_view_idx[i] = inactive_tf_idx
 
     # Get masses of active transcription factors
     tf_indexes = [np.where(bulk_state["id"] == tf_id + "[c]")[0][0] for tf_id in tf_ids]

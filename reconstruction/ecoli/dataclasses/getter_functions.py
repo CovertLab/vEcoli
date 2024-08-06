@@ -632,7 +632,8 @@ class GetterFunctions(object):
         complex_id_to_stoich = {}
 
         for rxn in itertools.chain(
-            raw_data.complexation_reactions, raw_data.equilibrium_reactions
+            raw_data.complexation_reactions, raw_data.equilibrium_reactions,
+            raw_data.tf_ligand_binding_reactions
         ):
             # Get the ID of the complex and the stoichiometry of subunits
             complex_ids = []
@@ -908,7 +909,8 @@ class GetterFunctions(object):
         complex_id_to_subunit_ids = {}
 
         for rxn in itertools.chain(
-            raw_data.complexation_reactions, raw_data.equilibrium_reactions
+            raw_data.complexation_reactions, raw_data.equilibrium_reactions,
+            raw_data.tf_ligand_binding_reactions,
         ):
             # Get the ID of the complex and the stoichiometry of subunits
             complex_id = None

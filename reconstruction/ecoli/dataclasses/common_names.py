@@ -45,7 +45,8 @@ class CommonNames(object):
 
         # Get common names of protein complexes
         for rxn in itertools.chain(
-            raw_data.complexation_reactions, raw_data.equilibrium_reactions
+            raw_data.complexation_reactions, raw_data.equilibrium_reactions,
+            raw_data.tf_ligand_binding_reactions
         ):
             if rxn["common_name"] is not None and len(rxn["common_name"]) > 0:
                 complex_name = None

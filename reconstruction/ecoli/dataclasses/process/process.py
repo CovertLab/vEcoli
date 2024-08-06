@@ -5,6 +5,7 @@ SimulationData process associated data
 from .chromosome_structure import ChromosomeStructure
 from .complexation import Complexation
 from .equilibrium import Equilibrium
+from .tf_ligand_binding import TFLigandBinding
 from .metabolism import Metabolism
 from .replication import Replication
 from .rna_decay import RnaDecay
@@ -21,6 +22,7 @@ class Process(object):
         self.chromosome_structure = ChromosomeStructure(raw_data, sim_data)
         self.complexation = Complexation(raw_data, sim_data)
         self.equilibrium = Equilibrium(raw_data, sim_data)
+        self.tf_ligand_binding = TFLigandBinding(raw_data, sim_data)
         self.metabolism = Metabolism(raw_data, sim_data)
         self.replication = Replication(raw_data, sim_data)
         self.rna_decay = RnaDecay(raw_data, sim_data)

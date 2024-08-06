@@ -12,6 +12,7 @@ from ecoli.processes.polypeptide_elongation import PolypeptideElongation
 from ecoli.processes.complexation import Complexation
 from ecoli.processes.two_component_system import TwoComponentSystem
 from ecoli.processes.equilibrium import Equilibrium
+from ecoli.processes.tf_ligand_binding import TFLigandBinding
 from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.metabolism_redux import MetabolismRedux
@@ -73,6 +74,7 @@ process_registry.register(PolypeptideElongation.name, PolypeptideElongation)
 process_registry.register(Complexation.name, Complexation)
 process_registry.register(TwoComponentSystem.name, TwoComponentSystem)
 process_registry.register(Equilibrium.name, Equilibrium)
+process_registry.register(TFLigandBinding.name, TFLigandBinding)
 process_registry.register(ProteinDegradation.name, ProteinDegradation)
 process_registry.register(Metabolism.name, Metabolism)
 process_registry.register(MetabolismRedux.name, MetabolismRedux)

@@ -573,6 +573,7 @@ class LoadSimData:
             "ecoli-complexation": self.get_complexation_config,
             "ecoli-two-component-system": self.get_two_component_system_config,
             "ecoli-equilibrium": self.get_equilibrium_config,
+            "ecoli-tf-ligand-binding": self.get_tf_ligand_binding_config,
             "ecoli-protein-degradation": self.get_protein_degradation_config,
             "ecoli-metabolism": self.get_metabolism_config,
             "ecoli-metabolism-redux": self.get_metabolism_redux_config,
@@ -675,11 +676,9 @@ class LoadSimData:
             "get_binding_unbinding_matrices": self.sim_data.process.transcription_regulation.get_tf_binding_unbinding_matrices,
             "n_avogadro": self.sim_data.constants.n_avogadro,
             "cell_density": self.sim_data.constants.cell_density,
-            "p_promoter_bound_tf": self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
-            "tf_to_tf_type": self.sim_data.process.transcription_regulation.tf_to_tf_type,
-            "active_to_bound": self.sim_data.process.transcription_regulation.active_to_bound,
-            "get_unbound": self.sim_data.process.equilibrium.get_unbound,
-            "active_to_inactive_tf": self.sim_data.process.two_component_system.active_to_inactive_tf,
+            #"p_promoter_bound_tf": self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
+            # TODO: not sure if will need this later
+            #"tf_to_tf_type": self.sim_data.process.transcription_regulation.tf_to_tf_type,
             "bulk_molecule_ids": self.sim_data.internal_state.bulk_molecules.bulk_data[
                 "id"
             ],
@@ -1120,6 +1119,30 @@ class LoadSimData:
         }
 
         return equilibrium_config
+
+    def get_tf_ligand_binding_config(self, time_step=1, parallel=False):
+        tf_ligand_binding_config = {
+            "time_step": time_step,
+            "_parallel": parallel,
+            "n_avogadro": self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
+            "cell_density": self.sim_data.constants.cell_density.asNumber(
+                units.g / units.L
+            ),
+            "stoich_matrix": self.sim_data.process.tf_ligand_binding.stoich_matrix().astype(
+                np.int64
+            ),
+            "ligand_idxs": self.sim_data.process.tf_ligand_binding.ligand_idxs,
+            "bound_tf_idxs": self.sim_data.process.tf_ligand_binding.bound_tf_idxs,
+            "unbound_tf_idxs": self.sim_data.process.tf_ligand_binding.unbound_tf_idxs,
+            "molecule_names": self.sim_data.process.tf_ligand_binding.molecule_names,
+            "ligand_bound_fraction": self.sim_data.process.tf_ligand_binding.ligand_bound_fraction,
+            "req_from_fluxes": self.sim_data.process.tf_ligand_binding.req_from_fluxes,
+            "reaction_ids": self.sim_data.process.tf_ligand_binding.reaction_ids,
+            "seed": self._seedFromName("TFLigandBinding"),
+            "emit_unique": self.emit_unique,
+        }
+
+        return tf_ligand_binding_config
 
     def get_protein_degradation_config(self, time_step=1, parallel=False):
         protein_degradation_config = {
