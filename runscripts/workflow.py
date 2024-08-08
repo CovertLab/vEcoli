@@ -210,7 +210,7 @@ def generate_code(config):
             config.get("analysis_options", {}),
         )
     else:
-        sim_imports, sim_workflow = generate_colony(seed, n_init_sims)
+        sim_imports, sim_workflow = generate_colony(seed)
     return "\n".join(sim_imports), "\n".join(sim_workflow)
 
 
