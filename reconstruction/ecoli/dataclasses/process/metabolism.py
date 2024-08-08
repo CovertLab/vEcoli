@@ -317,6 +317,7 @@ class Metabolism(object):
         # compartments according to those given in the biomass objective.  Or,
         # if there is no compartment, assign it to the cytoplasm.
 
+        # TODO: add a source here for the hypoxanthine part
         concentration_sources = [
             "Park Concentration",
             "Lempp Concentration",
@@ -3204,6 +3205,7 @@ class ConcentrationUpdates(object):
             "VAL[c]": 2.0,
         }
 
+        # TODO: do something with tf-ligand-binding reactions in addition to equilibrium reactions maybe?
         self.molecule_set_amounts = self._add_molecule_amounts(
             equilibriumReactions, self.default_concentrations_dict
         )
@@ -3243,6 +3245,9 @@ class ConcentrationUpdates(object):
                         concDict[mol_id] *= conc_change
 
             for moleculeName, setAmount in self.molecule_set_amounts.items():
+                # TODO: Might need to check conflicts with hypoxanthine or adenine, for example,
+                # if they have a relative amount set, but are also a ligand. This is only
+                # if we restore some of the molecule_set_amounts functionality as before.
                 if (
                     moleculeName in imports
                     and (
@@ -3294,19 +3299,23 @@ class ConcentrationUpdates(object):
 
     def _add_molecule_amounts(self, equilibriumReactions, concDict):
         moleculeSetAmounts = {}
-        for reaction in equilibriumReactions:
-            # We only want to do this for species with standard Michaelis-Menten kinetics initially
-            if len(reaction["stoichiometry"]) != 3:
-                continue
 
-            moleculeName = [
-                mol_id
-                for mol_id in reaction["stoichiometry"].keys()
-                if mol_id in self._all_metabolite_ids
-            ][0]
-            amountToSet = 1e-4
-            moleculeSetAmounts[moleculeName + "[p]"] = amountToSet * self.units
-            moleculeSetAmounts[moleculeName + "[c]"] = amountToSet * self.units
+        # Temporarily disabled because fitLigandConcentrations in parca is temporarily disabled with new
+        # tf modeling, not sure if will bring back in some form later.
+        # for reaction in equilibriumReactions:
+        #     # We only want to do this for species with standard Michaelis-Menten kinetics initially
+        #     if len(reaction["stoichiometry"]) != 3:
+        #         continue
+            # TODO: restore in some form maybe? Taking it out now because we're not fitting ligand
+            # concentrations when fitting TFs in the parca as of now.
+            # moleculeName = [
+            #     mol_id
+            #     for mol_id in reaction["stoichiometry"].keys()
+            #     if mol_id in self._all_metabolite_ids
+            # ][0]
+            # amountToSet = 1e-4
+            # moleculeSetAmounts[moleculeName + "[p]"] = amountToSet * self.units
+            # moleculeSetAmounts[moleculeName + "[c]"] = amountToSet * self.units
 
         for moleculeName, scaleFactor in self.molecule_scale_factors.items():
             moleculeSetAmounts[moleculeName] = (
