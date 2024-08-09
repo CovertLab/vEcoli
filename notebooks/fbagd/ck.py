@@ -5,7 +5,7 @@ from scipy.special import logsumexp
 from scipy.sparse import csr_matrix
 
 
-class ConvexKineticsNew:
+class CKNew:
 
     def __init__(self):
         pass
@@ -205,16 +205,14 @@ class ConvexKineticsNew:
 
 
     def create_objective_function(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, y_s, y_p,
-                                  denom_expr, dmdt=None, l=0.001, e=0.0001, f=1, g = 0.000001, c_prior = 8):
+                                  denom_expr, dmdt=None, l=0.001, e=0.000001, f=1, g = 0.00000001, c_prior = 8):
 
         loss = 0
 
-        l1 = 100*cp.sum(cp.hstack([cfwd, crev])) + cp.sum(cp.hstack([-Km_s, -Km_p]))  # regularization
+        l1 = cp.sum(cp.hstack([cfwd]))
+        l2 = cp.sum(cp.hstack([crev])) + cp.sum(cp.hstack([-Km_s, -Km_p]))  # regularization
         l1_c = cp.sum(cp.hstack([c]))  # weak regularization for concentrations
         prior = cp.norm1(cp.hstack([cp.vec(c) - c_prior]))
-        # prior = cp.norm1(cp.hstack([cfwd, crev, cp.vec(c)-c_prior])) + cp.norm1(cp.hstack([-Km_s, -Km_p]))  # prior
-        # reg3 = cp.sum(cp.huber(cp.hstack([y_s, y_p]), 1))  # issue with matrix
-        # reg4 = cp.sum(cp.max(cp.abs(cp.hstack([y_s, y_p])) - 3, 0)) # deadzone regularization
 
 
         if Km_i:
@@ -226,15 +224,20 @@ class ConvexKineticsNew:
         #     loss += cp.norm1(cp.pos(cp.log_sum_exp(LSE_expr[i])))
         for i in range(len(denom_expr)):
             loss += f * denom_expr[i]
-        loss += l * l1 + e * prior + g * l1_c
+        loss += (l * l1
+                  + e * prior
+                 # + g * l1_c
+                 )
 
         return loss
 
     def set_parameter_bounds(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, LSE_expr, cd_f=None,
-                             lower_bound=-12, upper_bound=12):
+                             lower_bound=-24, upper_bound=16, c_lower=8, c_upper=24):
 
-        constr = [cp.hstack([cfwd, crev, cp.vec(c), Km_s, Km_p]) >= lower_bound,
-                  cp.hstack([cfwd, crev, cp.vec(c), Km_s, Km_p]) <= upper_bound,]
+        constr = [cp.hstack([cfwd, crev, Km_s, Km_p]) >= lower_bound,
+                  cp.hstack([cfwd, crev, Km_s, Km_p]) <= upper_bound,]
+
+        constr.extend([cp.vec(c) >= c_lower, cp.vec(c) <= c_upper])
 
         if cd_f:
             constr.extend([cd_f >= -7])
