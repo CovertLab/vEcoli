@@ -55,10 +55,6 @@ class TfBinding(Step):
         # Calculate promoter binding probability when not 0CS TF
         #"p_promoter_bound_tf": lambda active, inactive: float(active)
         #/ (float(active) + float(inactive)),
-        "tf_to_tf_type": {},
-        "active_to_bound": {},
-        "get_unbound": lambda tf: "",
-        "active_to_inactive_tf": {},
         "bulk_molecule_ids": [],
         "bulk_mass_data": np.array([[]]) * units.g / units.mol,
         "seed": 0,
@@ -106,26 +102,12 @@ class TfBinding(Step):
         self.cell_density = self.parameters["cell_density"]
 
         # Create dictionaries and method
-        #self.p_promoter_bound_tf = self.parameters["p_promoter_bound_tf"]
-        self.tf_to_tf_type = self.parameters["tf_to_tf_type"]
-
-        self.active_to_bound = self.parameters["active_to_bound"]
-        self.get_unbound = self.parameters["get_unbound"]
-        self.active_to_inactive_tf = self.parameters["active_to_inactive_tf"]
+        # TODO: not sure if will need later
+        #self.tf_to_tf_type = self.parameters["tf_to_tf_type"]
 
         self.active_tfs = {}
-        self.inactive_tfs = {}
-
         for tf in self.tf_ids:
             self.active_tfs[tf] = tf + "[c]"
-
-            if self.tf_to_tf_type[tf] == "1CS":
-                if tf == self.active_to_bound[tf]:
-                    self.inactive_tfs[tf] = self.get_unbound(tf + "[c]")
-                else:
-                    self.inactive_tfs[tf] = self.active_to_bound[tf] + "[c]"
-            elif self.tf_to_tf_type[tf] == "2CS":
-                self.inactive_tfs[tf] = self.active_to_inactive_tf[tf + "[c]"]
 
         self.bulk_mass_data = self.parameters["bulk_mass_data"]
 
@@ -211,10 +193,7 @@ class TfBinding(Step):
                 tf_id: bulk_name_to_idx(tf_name, bulk_ids)
                 for tf_id, tf_name in self.active_tfs.items()
             }
-            # self.inactive_tf_idx = {
-            #     tf_id: bulk_name_to_idx(tf_name, bulk_ids)
-            #     for tf_id, tf_name in self.inactive_tfs.items()
-            # }
+
             if "PD00365" in self.tf_ids:
                 self.marR_idx = bulk_name_to_idx(self.marR_name, bulk_ids)
                 self.marR_tet_idx = bulk_name_to_idx(self.marR_tet, bulk_ids)
