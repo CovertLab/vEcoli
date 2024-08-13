@@ -158,15 +158,17 @@ class TFLigandBinding(object):
         self._stoichMatrixJ = np.array(stoichMatrixJ)
         self._stoichMatrixV = np.array(stoichMatrixV)
 
-        self.molecule_names = np.array(molecules)
-        self.bound_tf_idxs = np.array([np.where(self.molecule_names == x)[0][0] for x in bound_tf_ids])
-        self.unbound_tf_idxs = np.array([np.where(self.molecule_names == x)[0][0] for x in unbound_tf_ids])
-        self.ligand_idxs = np.array([np.where(self.molecule_names == x)[0][0] for x in ligand_ids])
+        self.molecule_names = molecules
+        self.bound_tf_idxs = np.array([self.molecule_names.index(x) for x in bound_tf_ids])
+        self.unbound_tf_idxs = np.array([self.molecule_names.index(x) for x in unbound_tf_ids])
+        self.ligand_idxs = np.array([self.molecule_names.index(x) for x in ligand_ids])
 
+        # TODO (Albert): should probably just save either the ids or the idxs as attributes, not both
         self.reaction_ids = reaction_ids
         self.ligand_ids = ligand_ids
+        self.bound_tf_ids = bound_tf_ids
+        self.unbound_tf_ids = unbound_tf_ids
 
-        # TODO: these are duplicate with equilibrium process, should unify somewhere in code?
         # Mass balance matrix
         self._stoichMatrixMass = np.array(stoichMatrixMass)
         self.balance_matrix = self.stoich_matrix() * self.mass_matrix()
@@ -202,8 +204,7 @@ class TFLigandBinding(object):
         self._make_matrices()
 
     def ligand_bound_fraction(self, ligand_conc):
-        # TODO: move the cutoff constants like 0.05 to raw data. And probably think of a more unified way
-        # to do this?
+        # TODO: make the cutoff in a systematic way rather than just 0.05
         active_fracs = []
         for i, conc in enumerate(ligand_conc):
             reaction_id = self.reaction_ids[i]
@@ -250,6 +251,41 @@ class TFLigandBinding(object):
         """
         return np.sum(self.balance_matrix, axis=0)
 
+    def stoich_matrix_monomers(self):
+        """
+        Builds a stoichiometric matrix where each column is a reaction that
+        forms a complex directly from its constituent monomers. This will be
+        different from stoich_matrix if some reactions in tf_ligand_binding
+        involve the binding of a ligand to a complex which itself is also
+        formed through ligand binding in tf_ligand_binding.
+        """
+        stoichMatrixMonomersI = []
+        stoichMatrixMonomersJ = []
+        stoichMatrixMonomersV = []
+
+        for colIdx, id_complex in enumerate(self.bound_tf_ids):
+            D = self.get_monomers(id_complex)
+
+            rowIdx = self.molecule_names.index(id_complex)
+            stoichMatrixMonomersI.append(rowIdx)
+            stoichMatrixMonomersJ.append(colIdx)
+            stoichMatrixMonomersV.append(1.0)
+
+            for subunitId, subunitStoich in zip(D["subunitIds"], D["subunitStoich"]):
+                rowIdx = self.molecule_names.index(subunitId)
+                stoichMatrixMonomersI.append(rowIdx)
+                stoichMatrixMonomersJ.append(colIdx)
+                stoichMatrixMonomersV.append(-1.0 * subunitStoich)
+
+        stoichMatrixMonomersI = np.array(stoichMatrixMonomersI)
+        stoichMatrixMonomersJ = np.array(stoichMatrixMonomersJ)
+        stoichMatrixMonomersV = np.array(stoichMatrixMonomersV)
+        shape = (stoichMatrixMonomersI.max() + 1, stoichMatrixMonomersJ.max() + 1)
+
+        out = np.zeros(shape, np.float64)
+        out[stoichMatrixMonomersI, stoichMatrixMonomersJ] = stoichMatrixMonomersV
+        return out
+
     def get_monomers(self, cplxId):
         """
         Returns subunits for a complex (or any ID passed). If the ID passed is
@@ -263,26 +299,6 @@ class TFLigandBinding(object):
             "subunitIds": np.array(list(info.keys())),
             "subunitStoich": np.array(list(info.values())),
         }
-
-    def get_metabolite(self, cplxId):
-        D = self.get_monomers(cplxId)
-        if len(D["subunitIds"]) > 2:
-            raise Exception(
-                "Calling this function only makes sense for reactions with 2 reactants"
-            )
-        for subunit in D["subunitIds"]:
-            if subunit in self.ligand_ids:
-                return subunit
-
-    def get_metabolite_coeff(self, cplxId):
-        D = self.get_monomers(cplxId)
-        if len(D["subunitIds"]) > 2:
-            raise Exception(
-                "Calling this function only makes sense for reactions with 2 reactants"
-            )
-        for subunit, stoich in zip(D["subunitIds"], D["subunitStoich"]):
-            if subunit in self.ligand_ids:
-                return stoich
 
     def _findRow(self, product, speciesList):
         try:

@@ -70,7 +70,7 @@ class TFLigandBinding(PartitionedProcess):
 
         # Build views
         # moleculeNames: list of molecules that are being iterated over size: 94
-        self.molecule_names = self.parameters["molecule_names"]
+        self.molecule_names = np.array(self.parameters["molecule_names"])
         self.molecule_idx = None
         # The indexes of molecules corresponding to the stoichMatrix columns
         # (NOT bulk molecule counts)
@@ -218,7 +218,7 @@ class TFLigandBinding(PartitionedProcess):
         update = {
             "bulk": [(self.molecule_idx, delta_molecules)],
             "listeners": {
-                "tf_ligand_binding_listener": {
+                "tf_ligand_binding": {
                     "actual_reaction_rates": delta_molecules[self.bound_tf_idxs]
                     / states["timestep"],
                     "target_bound_tfs": self.target_bound_tfs,

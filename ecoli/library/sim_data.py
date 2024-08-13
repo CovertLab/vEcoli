@@ -1501,6 +1501,8 @@ class LoadSimData:
             "complexation_complex_ids": self.sim_data.process.complexation.ids_complexes,
             "equilibrium_molecule_ids": self.sim_data.process.equilibrium.molecule_names,
             "equilibrium_complex_ids": self.sim_data.process.equilibrium.ids_complexes,
+            "tf_ligand_binding_molecule_ids": self.sim_data.process.tf_ligand_binding.molecule_names,
+            "tf_ligand_binding_complex_ids": self.sim_data.process.tf_ligand_binding.bound_tf_ids,
             "monomer_ids": self.sim_data.process.translation.monomer_data[
                 "id"
             ].tolist(),
@@ -1529,6 +1531,7 @@ class LoadSimData:
             # assembly of unique molecules
             "complexation_stoich": self.sim_data.process.complexation.stoich_matrix_monomers(),
             "equilibrium_stoich": self.sim_data.process.equilibrium.stoich_matrix_monomers(),
+            "tf_ligand_binding_stoich": self.sim_data.process.tf_ligand_binding.stoich_matrix_monomers(),
             "two_component_system_stoich": self.sim_data.process.two_component_system.stoich_matrix_monomers(),
             "emit_unique": self.emit_unique,
         }
