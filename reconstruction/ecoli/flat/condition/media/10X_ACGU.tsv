@@ -1,0 +1,7 @@
+# 10X ACGU
+# https://www.genome.wisc.edu/resources/protocols/ezmedium.htm
+"molecule id"	"concentration (units.mmol / units.L)"
+"ADENINE"	2.0
+"CYTOSINE"	2.0
+"URACIL"	2.0
+"GUANINE"	2.0
