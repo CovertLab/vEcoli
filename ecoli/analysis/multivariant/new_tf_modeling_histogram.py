@@ -12,34 +12,26 @@ import csv
 from duckdb import DuckDBPyConnection
 import numpy as np
 import polars as pl
+import matplotlib.pyplot as plt
 from typing import Any, cast
 
 from ecoli.library.parquet_emitter import (
     read_stacked_columns,
     ndlist_to_ndarray,
     open_arbitrary_sim_data,
+    get_field_metadata
 )
 from reconstruction.ecoli.fit_sim_data_1 import SimulationDataEcoli
 
-IGNORE_FIRST_N_GENS = 1
+
+IGNORE_FIRST_N_GENS = 0
 """
 Indicate which generation the data should start being collected from (sometimes 
 this number should be greater than 0 because the first few generations may not 
 be representative of the true dynamics occuring in the cell).
 """
 
-
-def save_file(out_dir, filename, columns, values):
-    output_file = os.path.join(out_dir, filename)
-    print(f"Saving data to {output_file}")
-    with open(output_file, "w") as f:
-        writer = csv.writer(f)
-        # Header for columns
-        writer.writerow(columns)
-        # Data rows
-        for i in range(values.shape[0]):
-            writer.writerow(values[i, :])
-
+COLORS = ['b', 'r', 'k', 'g']
 
 def plot(
     params: dict[str, Any],
@@ -58,95 +50,168 @@ def plot(
     include monomers whose counts are greater than ``params["filter_num"]``
     (default 0) and saves under ``{outdir}/saved_data/filtered_data``.
     """
-    # Create saving paths
-    save_dir = os.path.join(outdir, "saved_data")
-    unfiltered_dir = os.path.join(save_dir, "unfiltered_data")
-    filtered_dir = os.path.join(save_dir, "filtered_data")
-    os.makedirs(unfiltered_dir, exist_ok=True)
-    os.makedirs(filtered_dir, exist_ok=True)
 
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data: "SimulationDataEcoli" = pickle.load(f)
-    mRNA_sim_data = sim_data.process.transcription.cistron_data.struct_array
-    monomer_sim_data = sim_data.process.translation.monomer_data.struct_array
-    new_gene_mRNA_ids = mRNA_sim_data[mRNA_sim_data["is_new_gene"]]["id"].tolist()
-    mRNA_monomer_id_dict = dict(
-        zip(monomer_sim_data["cistron_id"], monomer_sim_data["id"])
+
+    # So what I need is: for each cell, get the average of the total mRNA in the cell,
+    # the fraction which purC occupies. This makes sense for a single time-point. For the
+    # entire generation, we could either average this fraction across all time-points;
+    # or take the sum of purC over the sum of total mRNA. The idea of the plot is,
+    # here is purC expression levels when purR is on or off. Let's just do the averaged
+    # fraction over time as of now.
+    # And need to get it for each individual cell.
+
+    # TODO: could do it for some monomer metric as well?
+
+    purC_rna_id = "TU00055[c]"
+    purC_mRNA_idxs = cast(
+        list[list[int]], get_indexes(conn, config_sql, "mRNA", [[purC_rna_id]])
     )
-    new_gene_monomer_ids = [
-        cast(str, mRNA_monomer_id_dict.get(mRNA_id)) for mRNA_id in new_gene_mRNA_ids
-    ]
-    all_monomer_ids = monomer_sim_data["id"]
-    original_monomer_ids = all_monomer_ids[
-        ~np.isin(all_monomer_ids, new_gene_monomer_ids)
-    ]
-    monomer_idx_dict = {monomer: i for i, monomer in enumerate(all_monomer_ids)}
-    original_monomer_idx = [
-        cast(int, monomer_idx_dict.get(monomer_id))
-        for monomer_id in original_monomer_ids
-    ]
+
+    custom_sql = get_per_cell_gene_count_fraction_sql(
+        purC_mRNA_idxs, "listeners__rna_counts__mRNA_counts", "mRNA"
+    )
 
     subquery = read_stacked_columns(
-        history_sql, ["listeners__monomer_counts"], order_results=False
-    )
-    avg_monomer_per_variant = conn.sql(f"""
-        WITH unnested_counts AS (
-            SELECT unnest(listeners__monomer_counts) AS monomer_counts,
-                generate_subscripts(listeners__monomer_counts, 1)
-                    AS monomer_idx, variant
-            FROM ({subquery})
-        ),
-        -- Get average counts per monomer per variant
-        average_counts AS (
-            SELECT avg(monomer_counts) AS avg_counts, variant, monomer_idx
-            FROM unnested_counts
-            GROUP BY variant, monomer_idx
-        )
-        -- Organize average counts into lists, one row per variant
-        SELECT list(avg_counts ORDER BY monomer_idx)
-            AS avg_monomer_counts, variant
-        FROM average_counts
-        GROUP BY variant
-        ORDER BY variant
-        """).pl()
+        history_sql=history_sql,
+        columns=["listeners__rna_counts__mRNA_counts"],
+        remove_first=True,
 
-    # Extract average counts that are greater than some threshold (default: 0)
-    filter_num = params.get("filter_num", 0)
-    control_variant = avg_monomer_per_variant["variant"][0]
-    # For each non-baseline variant, save two CSV files, each with three columns:
-    # monomer IDs, baseline average monomer count, variant average monomer count.
-    # First CSV file includes all monomers. Second removes new genes and filters
-    # out monomers whose average count < params["filter_num"] in either variant.
-    for exp_variant in avg_monomer_per_variant["variant"][1:]:
-        file_suffix = f"var_{exp_variant}_startGen_{IGNORE_FIRST_N_GENS}.csv"
-        variant_pair = avg_monomer_per_variant.filter(
-            pl.col("variant").is_in([control_variant, exp_variant])
-        ).sort("variant")
-        avg_monomer_counts = ndlist_to_ndarray(
-            variant_pair["avg_monomer_counts"].to_arrow()
+    )
+    data = conn.sql(custom_sql.format(subquery=subquery)).arrow().to_pylist()
+
+    avg_fracs = np.array([x["avg_frac"] for x in data])
+    variants = np.array([x["variant"] for x in data])
+
+    fig, axs = plt.subplots(2)
+
+    for i, var in enumerate(np.unique(variants)):
+        var_fracs = avg_fracs[(variants==var)]
+        axs[0].hist(var_fracs, bins=20, alpha=0.5, lw=3, color=COLORS[i], label="variant "+str(i))
+    axs[0].set_title("Histogram of time-average fraction of mRNA counts that are purC mRNA, for different variants")
+    axs[0].legend()
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(outdir, "new_tf_modeling_histogram.pdf"))
+
+
+def get_per_cell_gene_count_fraction_sql(
+    gene_indices: list[int] | list[list[int]], column: str, index_type: str
+) -> str:
+    """
+    Construct generic SQL query that gets the average per cell of a select
+    set of indices from a 1D list column divided by the total of all elements
+    per row of that list column.
+
+    Args:
+        gene_indices: Indices to extract from 1D list column to get ratios for
+        column: Name of 1D list column
+        index_type: Can either be ``monomer`` or ``mRNA``. For ``monomer``,
+            function works exactly as described above. For ``mRNA``,
+            ``gene_indices`` will be a list of lists of mRNA indices. This is
+            because one gene can have to multiple mRNAs (transcription units).
+            Therefore, we sum the elements corresponding to each gene before
+            proceeding (see :py:func:`~.get_rnas_combined_as_genes_projection`).
+    """
+    if index_type == "monomer":
+        list_to_unnest = f"list_select({column}, {gene_indices})"
+    else:
+        list_to_unnest = (
+            "["
+            + ", ".join(
+                [
+                    f"list_sum(list_select({column}, {idx_for_one_gene}))"
+                    for idx_for_one_gene in gene_indices
+                ]
+            )
+            + "]"
         )
-        # Save unfiltered data
-        col_labels = ["all_monomer_ids", "var_0_avg_PCs", f"var_{exp_variant}_avg_PCs"]
-        values = np.concatenate((all_monomer_ids.T, avg_monomer_counts.T), axis=1)
-        save_file(
-            unfiltered_dir, f"wcm_full_monomers_{file_suffix}", col_labels, values
+    return f"""
+        WITH list_counts AS (
+            SELECT {list_to_unnest} AS selected_counts, list_sum({column})
+                AS total_counts, experiment_id, variant, lineage_seed,
+                generation, agent_id
+            FROM ({{subquery}})
+        ),
+        unnested_fracs AS (
+            SELECT unnest(selected_counts) / total_counts AS gene_fracs,
+                generate_subscripts(selected_counts, 1) AS gene_idx,
+                experiment_id, variant, lineage_seed, generation, agent_id
+            FROM list_counts
         )
-        # Do not include new genes in filtered counts
-        avg_monomer_counts = avg_monomer_counts[:, original_monomer_idx]
-        var0_filter_PCs_idxs = np.nonzero(avg_monomer_counts[0] > filter_num)
-        var1_filter_PCs_idxs = np.nonzero(avg_monomer_counts[1] > filter_num)
-        shared_filtered_PC_idxs = np.intersect1d(
-            var0_filter_PCs_idxs, var1_filter_PCs_idxs
-        )
-        avg_monomer_counts = avg_monomer_counts[:, shared_filtered_PC_idxs]
-        filtered_ids = original_monomer_ids[shared_filtered_PC_idxs]
-        # Save filtered data
-        col_labels = [
-            "filtered_monomer_ids",
-            "var_0_avg_PCs",
-            f"var_{exp_variant}_avg_PCs",
-        ]
-        values = np.concatenate((filtered_ids.T, avg_monomer_counts.T), axis=1)
-        save_file(
-            filtered_dir, f"wcm_filter_monomers_{file_suffix}", col_labels, values
+        SELECT avg(gene_fracs) AS avg_frac,
+            experiment_id, variant, lineage_seed, generation, agent_id, gene_idx
+        FROM unnested_fracs
+        GROUP BY experiment_id, variant, lineage_seed,
+            generation, agent_id, gene_idx
+        """
+
+def get_indexes(
+    conn: DuckDBPyConnection,
+    config_sql: str,
+    index_type: str,
+    ids: list[str] | list[list[str]],
+) -> list[int | None] | list[list[int | None]]:
+    """
+    Retrieve DuckDB indices of a given type for a set of IDs. Note that
+    DuckDB lists are 1-indexed.
+
+    Args:
+        conn: DuckDB database connection
+        config_sql: DuckDB SQL query for sim config data (see
+            :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql`)
+        index_type: Type of indices to return (one of ``cistron``,
+            ``RNA``, ``mRNA``, or ``monomer``)
+        ids: List of IDs to get indices for (must be monomer IDs
+            if ``index_type`` is ``monomer``, else mRNA IDs)
+
+    Returns:
+        List of requested indexes
+    """
+    if index_type == "cistron":
+        # Extract cistron indexes for each new gene
+        cistron_idx_dict = {
+            cis: i + 1
+            for i, cis in enumerate(
+                get_field_metadata(
+                    conn, config_sql, "listeners__rnap_data__rna_init_event_per_cistron"
+                )
+            )
+        }
+        return [cistron_idx_dict.get(cistron) for cistron in ids]
+    elif index_type == "RNA":
+        # Extract RNA indexes for each new gene
+        RNA_idx_dict = {
+            rna: i + 1
+            for i, rna in enumerate(
+                get_field_metadata(
+                    conn, config_sql, "listeners__rna_synth_prob__target_rna_synth_prob"
+                )
+            )
+        }
+        return [[RNA_idx_dict.get(rna_id) for rna_id in rna_ids] for rna_ids in ids]
+    elif index_type == "mRNA":
+        # Extract mRNA indexes for each new gene
+        mRNA_idx_dict = {
+            rna: i + 1
+            for i, rna in enumerate(
+                get_field_metadata(
+                    conn, config_sql, "listeners__rna_counts__mRNA_counts"
+                )
+            )
+        }
+        return [[mRNA_idx_dict.get(rna_id) for rna_id in rna_ids] for rna_ids in ids]
+    elif index_type == "monomer":
+        # Extract protein indexes for each new gene
+        monomer_idx_dict = {
+            monomer: i + 1
+            for i, monomer in enumerate(
+                get_field_metadata(conn, config_sql, "listeners__monomer_counts")
+            )
+        }
+        return [monomer_idx_dict.get(monomer_id) for monomer_id in ids]
+    else:
+        raise Exception(
+            "Index type " + index_type + " has no instructions for data extraction."
         )
