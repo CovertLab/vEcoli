@@ -77,6 +77,8 @@ LIST_OF_DICT_FILENAMES = [
     "tf_one_component_bound.tsv",
     "tf_ligand_binding_reactions.tsv",
     "tf_ligand_binding_reaction_params.tsv",
+    "tf_binding_sites.tsv",
+    "tf_binding_site_rates.tsv",
     "translation_efficiency.tsv",
     "trna_charging_reactions.tsv",
     "trna_charging_reactions_added.tsv",
