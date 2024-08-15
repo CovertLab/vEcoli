@@ -18,6 +18,12 @@ class TranscriptionRegulation(object):
         # Build lookups
         self._build_lookups(raw_data)
 
+        # Build tf-binding site dictionaries
+        self._build_tf_binding_sites(raw_data)
+
+        # Build tf binding and unbinding rate matrices
+        self._build_tf_binding_unbinding_rates(raw_data)
+
         # Store list of transcription factor IDs
         self.tf_ids = list(sorted(sim_data.tf_to_active_inactive_conditions.keys()))
 
@@ -53,11 +59,6 @@ class TranscriptionRegulation(object):
         # Values set after promoter fitting in parca with calculateRnapRecruitment()
         self.basal_aff = None
         self.delta_aff = None
-        self.raw_binding_rates = None
-        self.raw_unbinding_rates = None
-
-        # TODO: add raw_data files storing the binding and unbinding rates, and a function
-        #  to read them in and store them as attributes here
 
     def p_promoter_bound_tf(self, tfActive, tfInactive):
         """
@@ -109,26 +110,23 @@ class TranscriptionRegulation(object):
     def get_tf_binding_unbinding_matrices(self, dense=False) -> (Union[sparse.csr_matrix, np.ndarray],
             Union[sparse.csr_matrix, np.ndarray]):
         """
-        Returns the binding and unbinding rate matrices mapping each TF to each binding site (TU promoter for now).
-        TODO: change to binding sites instead of by each TU
+        Returns the binding and unbinding rate matrices mapping each TF to each binding site.
         """
-
-        # TODO: change this shape when changing to binding sites instead of by each TU
-        assert self.raw_binding_rates["shape"] == self.raw_unbinding_rates["shape"]
+        assert self._binding_rates_shape == self._unbinding_rates_shape
 
         binding_rates = sparse.csr_matrix(
             (
-                self.raw_binding_rates["bindingV"],
-                (self.raw_binding_rates["bindingI"], self.raw_binding_rates["bindingJ"])
+                self._binding_rates_v,
+                (self._binding_rates_i, self._binding_rates_j)
             ),
-            shape=self.raw_binding_rates["shape"]
+            shape=self._binding_rates_shape
         )
         unbinding_rates = sparse.csr_matrix(
             (
-                self.raw_unbinding_rates["unbindingV"],
-                (self.raw_unbinding_rates["unbindingI"], self.raw_unbinding_rates["unbindingJ"])
+                self._unbinding_rates_v,
+                (self._unbinding_rates_i, self._unbinding_rates_j)
             ),
-            shape=self.raw_unbinding_rates["shape"]
+            shape=self._unbinding_rates_shape
         )
 
         if dense:
@@ -136,6 +134,38 @@ class TranscriptionRegulation(object):
             unbinding_rates = unbinding_rates.toarray()
 
         return binding_rates, unbinding_rates
+
+    def _build_tf_binding_unbinding_rates(self, raw_data):
+        """
+        Builds and saves arrays encoding csr matrices of binding and unbinding rates of TFs
+        to TF-binding sites. The full matrix can be obtained with self.get_tf_binding_unbinding_matrices.
+        """
+
+        self._binding_rates_i = []
+        self._binding_rates_j = []
+        self._binding_rates_v = []
+        self._binding_rates_shape = (len(self.tf_binding_site_ids), len(self.tf_ids))
+
+        self._unbinding_rates_i = []
+        self._unbinding_rates_j = []
+        self._unbinding_rates_v = []
+        self._unbinding_rates_shape = (len(self.tf_binding_site_ids), len(self.tf_ids))
+        for row in raw_data.tf_binding_site_rates:
+            binding_site_id = row["binding_site_id"]
+            tf_id = row["TF"]
+            binding_rate = row["binding_rate"]
+            unbinding_rate = row["unbinding_rate"]
+
+            binding_site_idx = self.tf_binding_site_ids.index(binding_site_id)
+            tf_idx = self.tf_ids.index(tf_id)
+
+            self._binding_rates_i.append(binding_site_idx)
+            self._binding_rates_j.append(tf_idx)
+            self._binding_rates_v.append(binding_rate)
+
+            self._unbinding_rates_i.append(binding_site_idx)
+            self._unbinding_rates_j.append(tf_idx)
+            self._unbinding_rates_v.append(unbinding_rate)
 
     def _build_lookups(self, raw_data):
         """
@@ -160,3 +190,80 @@ class TranscriptionRegulation(object):
             for x in raw_data.transcription_factors
             if len(x["activeId"]) > 0
         }
+
+    def _build_oric_terc_coordinates(self, raw_data, sim_data):
+        """
+        Builds coordinates of oriC and terC that are used when calculating
+        genomic positions of tf-binding sites relative to the origin
+        """
+        # Get coordinates of oriC and terC
+        oric_left, oric_right = sim_data.getter.get_genomic_coordinates(
+            sim_data.molecule_ids.oriC_site
+        )
+        terc_left, terc_right = sim_data.getter.get_genomic_coordinates(
+            sim_data.molecule_ids.terC_site
+        )
+        self._oric_coordinate = round((oric_left + oric_right) / 2)
+        self._terc_coordinate = round((terc_left + terc_right) / 2)
+        self._genome_length = len(raw_data.genome_sequence)
+
+    def _get_relative_coordinates(self, coordinates):
+        """
+        Returns the genomic coordinates of a given gene coordinate relative
+        to the origin of replication.
+        """
+        if coordinates < self._terc_coordinate:
+            relative_coordinates = (
+                self._genome_length - self._oric_coordinate + coordinates
+            )
+        elif coordinates < self._oric_coordinate:
+            relative_coordinates = coordinates - self._oric_coordinate + 1
+        else:
+            relative_coordinates = coordinates - self._oric_coordinate
+
+        return relative_coordinates
+
+    def _build_tf_binding_sites(self, raw_data):
+        """
+        Builds dictionaries for mapping binding site ids
+        to the TUs they regulate, and to the TF that binds them. These are converted
+        into mapping matrices for use in the model in relation.py.
+        Also stores a list of binding-site ids, and a list of relative genomic coordinates
+        of the ids in the same order.
+        """
+        tu_to_genes = {
+            x["id"]: x["genes"] for x in raw_data.transcription_units
+        }
+        gene_to_tus = {}
+        for tu in tu_to_genes:
+            for gene in tu_to_genes[tu]:
+                if gene not in gene_to_tus:
+                    gene_to_tus[gene] = []
+
+                gene_to_tus[gene].append(tu)
+
+        # Note: have checked that every entity in "regulated_TUs_or_genes"
+        # is either a gene or TU within one of the raw data flat files. If
+        # it's not in tu_to_genes or gene_to_tus, it's because it corresponds
+        # to a removed TU.
+        tf_bind_site_to_tus = {}
+        tf_bind_site_to_tfs = {}
+        for row in raw_data.tf_binding_sites:
+            curated_tus = []
+            tus_or_genes = row["regulated_TUs_or_genes"]
+            for x in tus_or_genes:
+                if x in tu_to_genes:
+                    curated_tus.append(x)
+                elif x in gene_to_tus:
+                    curated_tus.extend(gene_to_tus[x])
+
+            tf_bind_site_to_tus[row["binding_site_id"]] = curated_tus
+            tf_bind_site_to_tfs[row["binding_site_id"]] = row["binding_TFs"]
+
+        self.tf_bind_site_to_tus = tf_bind_site_to_tus
+        self.tf_bind_site_to_tfs = tf_bind_site_to_tfs
+        self.tf_binding_site_ids = list(sorted(tf_bind_site_to_tus.keys()))
+
+        tf_bind_site_to_coords = {x["binding_site_id"]: x["coordinates"]
+                                  for x in raw_data.tf_binding_sites}
+        self.tf_binding_site_coords = np.array([tf_bind_site_to_coords[x] for x in self.tf_binding_site_ids])
