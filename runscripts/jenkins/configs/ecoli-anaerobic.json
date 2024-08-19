@@ -1,0 +1,24 @@
+{
+    "experiment_id": "Daily with AA",
+    "single_daughters": true,
+    "generations": 8,
+    "fail_at_total_time": true,
+    "trna_attenuation": false,
+    "ppgpp_regulation": false,
+    "mechanistic_translation_supply": false,
+    "mechanistic_aa_transport": false,
+    "aa_supply_in_charging": false,
+    "d_period_division": false,
+    "mechanistic_replisome": true,
+    "mass_distribution": false,
+    "emitter" : {
+        "type": "parquet",
+        "out_dir": "/scratch/groups/mcovert/vecoli"
+    },
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}}
+    },
+    "variants": {
+        "condition": {"condition": "no_oxygen"}
+    }
+}

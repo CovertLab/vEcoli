@@ -52,16 +52,17 @@ if PLOT_COMPARISON:
     OUTPUT_COMPARISON_PLOT_FILE = os.path.join(OUT_DIR, "chen_bernstein_comparison.png")
 
 
-def get_symbols_to_ids():
-    # type: () -> Tuple[Dict[str, str], Set[str]]
+def get_symbols_to_ids() -> tuple[dict[str, str], set[str]]:
     """
     Builds a mapping from gene/transcription unit symbols to their corresponding
     IDs that gets used in later data import functions.
 
     Returns:
-            symbols_to_ids: Dictionary that maps gene/transcription unit symbols
-            to gene/transcription unit IDs used by the model.
-            all_gene_ids: Set of all gene IDs used by the model.
+        2-element tuple containing
+
+        - **symbols_to_ids**: Dictionary that maps gene/transcription unit symbols
+          to gene/transcription unit IDs used by the model.
+        - **all_gene_ids**: Set of all gene IDs used by the model.
     """
     symbols_to_ids = {}
     ids_to_synonyms = {}
@@ -124,20 +125,19 @@ def get_symbols_to_ids():
     return symbols_to_ids, all_gene_ids
 
 
-def get_chen_half_lives(symbols_to_ids):
-    # type: (Dict[str, str]) -> Dict[str, float]
+def get_chen_half_lives(symbols_to_ids: dict[str, str]) -> dict[str, float]:
     """
     Reads RNA half lives reported by Chen et al., and stores them in a
     dictionary. Any gene/transcription unit listed that does not exist in the
     model are skipped.
 
     Args:
-            symbols_to_ids: Dictionary that maps gene/transcription unit symbols
+        symbols_to_ids: Dictionary that maps gene/transcription unit symbols
             to gene/transcription unit IDs used by the model.
 
     Returns:
-            id_to_half_life: Dictionary that maps gene/transcription unit IDs to
-            their half lives (in minutes) reported by Chen et al.
+        Dictionary that maps gene/transcription unit IDs to
+        their half lives (in minutes) reported by Chen et al.
     """
     id_to_half_life = {}
 
@@ -159,20 +159,19 @@ def get_chen_half_lives(symbols_to_ids):
     return id_to_half_life
 
 
-def get_bernstein_half_lives(symbols_to_ids):
-    # type: (Dict[str, str]) -> Dict[str, float]
+def get_bernstein_half_lives(symbols_to_ids: dict[str, str]) -> dict[str, float]:
     """
     Reads RNA half lives reported by Bernstein et al., and stores them in a
     dictionary. Any gene listed that does not exist in the model are skipped.
     Bernstein et al. only reports half-lives of monocistronic RNAs.
 
     Args:
-            symbols_to_ids: Dictionary that maps gene/transcription unit symbols
+        symbols_to_ids: Dictionary that maps gene/transcription unit symbols
             to gene/transcription unit IDs used by the model.
 
     Returns:
-            id_to_half_life: Dictionary that maps gene IDs to their RNA half lives
-            (in minutes) reported by Bernstein et al.
+        Dictionary that maps gene IDs to their RNA half lives
+        (in minutes) reported by Bernstein et al.
     """
     id_to_half_life = {}
 
@@ -196,8 +195,11 @@ def get_bernstein_half_lives(symbols_to_ids):
     return id_to_half_life
 
 
-def build_half_life_table(chen_half_lives, bernstein_half_lives, all_gene_ids):
-    # type: (Dict[str, float], Dict[str, float], Set[str]) -> None
+def build_half_life_table(
+    chen_half_lives: dict[str, float],
+    bernstein_half_lives: dict[str, float],
+    all_gene_ids: set[str],
+):
     """
     Builds the RNA half-life flat file that is used as raw_data for the
     simulation using the data from the two papers. If data for a gene exists in
@@ -236,8 +238,9 @@ def build_half_life_table(chen_half_lives, bernstein_half_lives, all_gene_ids):
             writer.writerow([f'"{row[0]}"', f"{row[1]}"])
 
 
-def compare_half_lives(chen_half_lives, bernstein_half_lives):
-    # type: (Dict[str, float], Dict[str, float]) -> None
+def compare_half_lives(
+    chen_half_lives: dict[str, float], bernstein_half_lives: dict[str, float]
+):
     """
     Generates a scatter plot that compares the half-lives of RNAs reported in
     both Chen et al. and Bernstein et al.

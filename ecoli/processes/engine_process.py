@@ -1,4 +1,4 @@
-r"""
+"""
 =============
 EngineProcess
 =============
@@ -13,48 +13,68 @@ be wired to an inside store. We handle this with _tunnels_.
 Here is a state hierarchy showing how a tunnel connects an outside
 process (``A``) to an inside store (``store1``). We call this a "tunnel
 in" because the exterior process is tunneling into EngineProcess to see
-an internal store.
+an internal store. Essentially, EngineProcess has a port for the tunnel
+in that connects to some store in the outer simulation here called
+``dummy_store``. The process ``A`` connects to that same store. When
+the ``next_update`` method of EngineProcess runs, the value of ``store1``
+in the inner simulation is read and copied through the tunnel in port
+to ``dummy_store``, where it can be read by process ``A``. Conversely,
+if process ``A`` modifies the value of ``dummy_store``, the ``next_update``
+method of EngineProcess ensures that ``store1`` reflects that change the
+next time it is run. It is the user's responsibility to define the topology
+of EngineProcess such that the tunnel in port points to the store where
+the outer simulation process (here, process ``A``) expects the data to be
+(here, ``dummy_store``).
 
 .. code-block:: text
 
-         /\
-        /  \         EngineProcess
-    +---+   +-------------------------+
-    | A |   |                         |
-    +---+   |        /\               |
-      :     |       /  \              |
-      :     |  +---+    store1        |
-   ...:     |  | B |       ^          |
-   :        |  +---+       |          |
-   :        |              |          |
-   :..tunnel_outer <----- next_update |
-            |                         |
-            +-------------------------+
+             ________________
+            /      |         \    EngineProcess
+    dummy_store  +---+    +-------------------------+
+        :  :.....| A |    |                         |
+        :        +---+    |        /\               |
+        :                 |       /  \              |
+        :                 |  +---+    store1        |
+        :                 |  | B |       ^          |
+        :                 |  +---+       |          |
+        :                 |              |          |
+        :.............tunnel_in <-- next_update     |
+                          |                         |
+                          +-------------------------+
 
 Here is another example where a tunnel connects an inside process
 (``B``) to an outside store (``store2``). We call this a "tunnel out"
 because the interior process is tunneling outside of EngineProcess to
-see an external store.
+see an external store. In this case, EngineProcess has a port for the
+tunnel out that connects to ``store2`` in the outer simulation. When
+the ``next_update`` method of EngineProcess is called, the value of
+``store2`` is read and copied to a store in the inner simulation
+(here, ``dummy_store``) where it is read by process ``B``. Unlike
+tunnels in, all tunnels out are automatically created and wired
+because EngineProcess only needs to have the complete inner simulation
+topology to know exactly what inner process ports connect to stores in
+the outer simulation and what paths those outer simulation stores have.
 
 .. code-block:: text
 
-         /\
-        /  \         EngineProcess
+         /\\
+        /  \        EngineProcess
        /    +-------------------------+
     store2  |                         |
       :     |        /\               |
       :     |       /  \              |
-      :     |  +---+    tunnel_inner  |
+      :     |  +---+    dummy_store   |
    ...:     |  | B |.......:    ^     |
    :        |  +---+            |     |
    :        |                   |     |
-   :..tunnel_outer <----- next_update |
+   :..tunnel_out <----- next_update   |
             |                         |
             +-------------------------+
 
 In these diagrams, processes are boxes, stores are labeled nodes in the
-tree, solid lines show the state hierarchy, and dotted lines show the
-topology wiring.
+tree, solid lines show the state hierarchy, dotted lines show the
+topology wiring, and ``tunnel_out``/``tunnel_in`` are ports for
+EngineProcess.
 
 These tunnels are the only way that the EngineProcess exchanges
 information with the outside simulation.
@@ -62,6 +82,7 @@ information with the outside simulation.
 
 import copy
 import warnings
+from typing import Any, Callable
 
 import numpy as np
 from vivarium.core.composer import Composer
@@ -69,7 +90,7 @@ from vivarium.core.emitter import get_emitter, SharedRamEmitter
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process, Step
 from vivarium.core.registry import updater_registry, divider_registry
-from vivarium.core.store import DEFAULT_SCHEMA
+from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in
 
 from ecoli.library.sim_data import RAND_MAX
@@ -78,7 +99,11 @@ from ecoli.library.updaters import inverse_updater_registry
 from ecoli.processes.cell_division import daughter_phylogeny_id
 
 
-def _get_path_net_depth(path):
+def _get_path_net_depth(path: tuple[str]) -> int:
+    """
+    Resolve a tuple path to figure out its depth, subtracting one for
+    every ".." encountered.
+    """
     depth = 0
     for node in path:
         if node == "..":
@@ -88,7 +113,28 @@ def _get_path_net_depth(path):
     return depth
 
 
-def cap_tunneling_paths(topology, outer=tuple()):
+def cap_tunneling_paths(
+    topology: dict[str, Any], outer: tuple[str, ...] = tuple()
+) -> dict[tuple[str, ...], str]:
+    """
+    For ports in the inner simulation that point to stores
+    outside, this function caps those stores to point to a
+    dummy store that is populated with the value of the actual
+    store in the outer simulation in the :py:meth:`~EngineProcess.next_update`
+    method of :py:class:`~.EngineProcess`.
+
+    Args:
+        topology: Topology of inner simulation in :py:class:`~.EngineProcess`.
+            Mutated in place such that ports pointing to stores located
+            outside the inner simulation are capped and instead point
+            to top-level stores called "port_name_tunnel"
+        outer: Current port path inside topology (for recursively
+            travelling topology with this function)
+
+    Returns:
+        Mapping from paths to ports that were capped as described above
+        to the names of the new top-level stores they point to.
+    """
     tunnels = {}
     caps = []
     for key, val in topology.items():
@@ -115,11 +161,7 @@ def cap_tunneling_paths(topology, outer=tuple()):
 
 
 class SchemaStub(Step):
-    """Stub process for providing schemas to an inner simulation. Run as
-    a Step otherwise its timestep could influence when other Steps run.
-    For example, if a SchemaStub was a process with timestep 1 while all
-    other processes had timestep 2, Steps like mass listener would run
-    after every second instead of every 2 seconds, wasting time.
+    """Stub process for providing schemas to an inner simulation.
 
     When using :py:class:`ecoli.processes.engine_process.EngineProcess`,
     there may be processes in the outer simulation whose schemas you are
@@ -130,9 +172,14 @@ class SchemaStub(Step):
     The process takes a single parameter, ``ports_schema``, whose value
     is the process's ports schema to be provided to the inner
     simulation.
+
+    We run these as Steps otherwise they could influence when other Steps run.
+    For example, if a SchemaStub was a Process with timestep 1 while all
+    other Processes had timestep 2, Steps like mass listener would run
+    after every second instead of every 2 seconds, which may not be desired.
     """
 
-    defaults = {
+    defaults: dict[str, Any] = {
         "ports_schema": {},
     }
 
@@ -173,6 +220,40 @@ class EngineProcess(Process):
     # TODO: Handle name clashes between tunnels.
 
     def __init__(self, parameters=None):
+        """
+        Process that wraps a Vivarium simulation by taking the following options
+        in its parameter dictionary:
+
+        - ``inner_composer``: a composer for the inner simulation
+        - ``inner_composer_config``: a configuration dictionary for that composer
+        - ``outer_composer``: a composer that can be used upon division to create a new
+          EngineProcess (including a new inner simulation using the inner composer) plus
+          as any other processes that make up a single simulation
+        - ``outer_composer_config``: a configuration dictionary for that composer
+        - ``tunnels_in``: a mapping from port names to paths of stores in the
+          inner simulation that processes in the outer simulation would like
+          access to. :py:class:`~ecoli.experiments.ecoli_engine_process.EcoliEngineProcess`
+          has a custom :py:meth:`~vivarium.core.composer.Composer.generate_topology`
+          method to ensure that each port name is wired to a user-specified store
+          in the outer simulation. Then, every time the :py:meth:`~.EngineProcess`
+          is run, the value from the outer simulation store is copied to the store
+          located at the path in the inner simulation, the inner simulation is
+          incremented, and the final value of the store in the inner simulation
+          is copied to the store that the port points to in the outer simulation.
+          This allows outer simulation processes to indirectly read and modify the
+          value of stores in the inner simulation.
+        - ``stub_schemas``: a mapping from process names to a mapping from
+          paths in the inner simulation to the schema to use for the store at that
+          path. See :py:class:`~.StubSchemas` for more details.
+        - ``tunnel_out_schemas``: a mapping from names of ports for tunnels out
+          to schemas to use for the stores that those ports point to. Helpful
+          for ensuring consistency in schemas specified for these stores.
+
+        These options allow EngineProcess to create a full inner simulation,
+        increment it in sync with the process time step and the rest of the
+        outer simulation, and read/modify values in both the inner and outer
+        simulations over time.
+        """
         parameters = parameters or {}
         super().__init__(parameters)
         # Pass config to generate() to avoid deep copy
@@ -204,7 +285,13 @@ class EngineProcess(Process):
 
         # Since unique numpy updater is an class method, internal
         # deepcopying in vivarium-core causes this warning to appear
-        warnings.filterwarnings("ignore", message="Incompatible schema assignment at ")
+        warnings.filterwarnings(
+            "ignore",
+            message="Incompatible schema "
+            "assignment at .+ Trying to assign the value <bound method "
+            "UniqueNumpyUpdater\.updater .+ to key updater, which already "
+            "has the value <bound method UniqueNumpyUpdater\.updater",
+        )
         self.sim = Engine(
             processes=processes,
             steps=steps,
@@ -237,6 +324,14 @@ class EngineProcess(Process):
         }
 
     def create_emitter(self):
+        """
+        Since EngineProcesses are often parallelized with multiprocessing,
+        we wait to create an emitter for each EngineProcess instance until
+        multiprocessing is initiated to avoid unusual locking or other issues.
+
+        This is the first thing called by :py:meth:`~.EngineProcess.next_update`
+        the first time it is run.
+        """
         if isinstance(self.parameters["inner_emitter"], str):
             self.emitter_config = {"type": self.parameters["inner_emitter"]}
         else:
@@ -275,6 +370,13 @@ class EngineProcess(Process):
         return schema
 
     def initial_state(self, config=None):
+        """
+        To ensure that the stores pointed to by the tunnel in ports accurately
+        reflect the values of the stores they tunnel to in the inner simulation,
+        we define a custom :py:meth:`~vivarium.core.process.Process.initial_state`
+        method for EngineProcess that populates those stores at the start of the
+        simulation with their corresponding inner simulation store values.
+        """
         state = {}
         # We ignore tunnels out because those are to stores like fields
         # or dimensions that are outside the cell and therefore don't
@@ -284,6 +386,11 @@ class EngineProcess(Process):
         return state
 
     def calculate_timestep(self, states):
+        """
+        The time step for EngineProcess is always set to be the shortest
+        time step for an inner simulation process. This ensures that we never
+        accidentally skip over a scheduled update for a Process/Step.
+        """
         timestep = np.inf
         for proc_path, process in self.sim.process_paths.items():
             _, proc_state = self.sim._process_state(proc_path)
@@ -317,6 +424,26 @@ class EngineProcess(Process):
             super().send_command(command, args, kwargs)
 
     def next_update(self, timestep, states):
+        """
+        Update the inner simulation store values for tunnels in and out then
+        emit the inner simulation state. We emit at the start of
+        next_update() because the inner simulation is in-sync with the
+        outer simulation only after the stores in the internal state
+        that tunnel out have been synchronized with their corresponding
+        stores in the outer simulation.
+
+        Increment the inner simulation by the shortest time possible to
+        guarantee at least one Process/Step ran. If division is enabled,
+        check to see if the division variable has reached the threshold.
+        If so, divide the cell state into two daughter states and create
+        two new inner simulations using the inner composer configuration,
+        the outer composer, and the outer composer configuration.
+
+        Finally, figure out what updates to apply to the outer simulation
+        stores for tunnels in/out in order to mutate them the same way that
+        their corresponding stores in the inner simulation were mutated (if
+        at all) over the course of the increment in inner simulation time.
+        """
         # Create emitter only after all pickling/unpickling/forking
         if not self.emitter:
             self.create_emitter()
@@ -454,7 +581,30 @@ class EngineProcess(Process):
         return update
 
 
-def _inverse_update(initial_state, final_state, store, updater_registry_reverse):
+def _inverse_update(
+    initial_state: Any,
+    final_state: Any,
+    store: Store,
+    updater_registry_reverse: dict[Callable, str],
+):
+    """
+    Given a dictionary containing the current values contained inside a potentially
+    nested store and a dictionary containing the final values inside that same
+    store, calculate an update that can be passed such that calling the updater
+    of said store with the calculated update causes the values in the store
+    to change from their current values to the provided final values.
+
+    Args:
+        initial_state: Current values (potentially nested) in store
+        final_state: Final values (potentially nested) in store that we desire
+        store: Store (potentially nested) that we are trying to mutate
+        updater_registry_reverse: A mapping from updater functions to the string
+            names they are registered as in :py:attr:`~vivarium.core.registry.updater_registry`
+
+    Returns:
+        Update dictionary that when used to update ``store`` by calling its (or its sub-stores)
+        updaters, causes its values to change from ``initial_state`` to ``final_state``
+    """
     # Handle the base case where we are on a leaf node.
     if not store.inner:
         if isinstance(store.updater, str):

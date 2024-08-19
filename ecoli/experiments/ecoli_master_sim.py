@@ -4,9 +4,10 @@ Interface for configuring and running **single-cell** E. coli simulations.
 .. note::
     Simulations can be configured to divide through this interface, but
     full colony-scale simulations are best run using the
-    :py:mod:`~ecoli.composites.ecoli_engine_process` module for efficient
-    multithreading.
+    :py:mod:`~ecoli.experiments.ecoli_engine_process` module for efficient
+    multiprocessing.
 """
+# mypy: disable-error-code=attr-defined
 
 import argparse
 import copy
@@ -18,6 +19,7 @@ import json
 import warnings
 from datetime import datetime
 from typing import Optional, Dict, Any
+from urllib import parse
 
 import numpy as np
 from vivarium.core.engine import Engine
@@ -40,6 +42,28 @@ from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.schema import not_a_process
 
 
+LIST_KEYS_TO_MERGE = (
+    "save_times",
+    "add_processes",
+    "exclude_processes",
+    "processes",
+    "engine_process_reports",
+    "initial_state_overrides",
+)
+"""
+Special configuration keys that are list values which are concatenated
+together when they are found in multiple sources (e.g. default JSON and
+user-specified JSON) instead of being directly overriden.
+"""
+
+
+class TimeLimitError(RuntimeError):
+    """Error raised when ``fail_at_total_time`` is True and simulation
+    reaches ``total_time``."""
+
+    pass
+
+
 def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
     """JSON files allow lists but do not allow tuples. This function
     transforms the list paths in topologies loaded from JSON into
@@ -52,7 +76,7 @@ def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Topology with tuple paths (e.g. ``['bulk']`` turns into ``('bulk',)``)
     """
-    tuplified_topology = {}
+    tuplified_topology: dict[str, Any] = {}
     for k, v in topology.items():
         if isinstance(v, dict):
             tuplified_topology[k] = tuplify_topology(v)
@@ -66,20 +90,22 @@ def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
 def get_git_revision_hash() -> str:
     """Returns current Git hash for model repository to include in metadata
     that is emitted when starting a simulation."""
-    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+    return (
+        subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"])
+        .decode("ascii")
+        .strip()
+    )
 
 
 def get_git_status() -> str:
     """Returns Git status of model repository to include in metadata that is
     emitted when starting a simulation.
     """
-    status_str = (
-        subprocess.check_output(["git", "status", "--porcelain"])
+    return (
+        subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "status", "--porcelain"])
         .decode("ascii")
         .strip()
     )
-    status = status_str.split("\n")
-    return status
 
 
 def report_profiling(stats: pstats.Stats) -> None:
@@ -92,13 +118,15 @@ def report_profiling(stats: pstats.Stats) -> None:
     _, stats_keys = stats.get_print_list(
         ("(next_update)|(calculate_request)|(evolve_state)",)
     )
-    summed_stats = {}
+    summed_stats: dict[tuple[str, str, str], int] = {}
     for key in stats_keys:
         key_stats = stats.stats[key]
         _, _, _, cumtime, _ = key_stats
-        path, line, func = key
+        path, line, func = key.split(" ")
         path = os.path.basename(path)
-        summed_stats[(path, line, func)] = summed_stats.get((path, func), 0) + cumtime
+        summed_stats[(path, line, func)] = (
+            summed_stats.get((path, line, func), 0) + cumtime
+        )
     summed_stats_inverse_map = {time: key for key, time in summed_stats.items()}
     print("\nPer-process profiling:\n")
     for time in sorted(summed_stats_inverse_map.keys())[::-1]:
@@ -108,7 +136,7 @@ def report_profiling(stats: pstats.Stats) -> None:
     stats.sort_stats("cumtime").print_stats(20)
 
 
-def key_value_pair(argument_string: str) -> tuple[str, str]:
+def key_value_pair(argument_string: str) -> list[str]:
     """Parses key-value pairs specified as strings of the form ``key=value``
     via CLI. See ``emitter_arg`` option in
     :py:class:`~ecoli.experiments.ecoli_master_sim.SimConfig`.
@@ -141,6 +169,7 @@ def prepare_save_state(state: dict[str, Any]) -> None:
 
 
 class SimConfig:
+    #: Path to default JSON configuration file.
     default_config_path = os.path.join(CONFIG_DIR_PATH, "default.json")
 
     def __init__(
@@ -172,7 +201,6 @@ class SimConfig:
             self.parser = argparse.ArgumentParser(description="ecoli_master")
             self.parser.add_argument(
                 "--config",
-                "-c",
                 action="store",
                 default=self.default_config_path,
                 help=(
@@ -183,7 +211,6 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--experiment_id",
-                "-id",
                 action="store",
                 help=(
                     "ID for this experiment. A UUID will be generated if "
@@ -193,17 +220,17 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--emitter",
-                "-e",
                 action="store",
-                choices=["timeseries", "database", "print", "null", "shared_ram"],
+                choices=["timeseries", "print", "parquet", "null"],
                 help=(
-                    "Emitter to use. Timeseries uses RAMEmitter, database "
-                    "emits to MongoDB, and print emits to stdout."
+                    "Emitter to use. Timeseries uses RAMEmitter, print emits to"
+                    " stdout, and parquet (recommended) saves output to a"
+                    " directory on disk specified using --emitter-arg (e.g."
+                    " --emitter-arg out_dir='out')"
                 ),
             )
             self.parser.add_argument(
                 "--emitter_arg",
-                "-ea",
                 action="store",
                 nargs="*",
                 type=key_value_pair,
@@ -213,34 +240,22 @@ class SimConfig:
                 ),
             )
             self.parser.add_argument(
-                "--seed", "-s", action="store", type=int, help="Random seed."
-            )
-            self.parser.add_argument(
-                "--initial_state",
-                "-t0",
-                action="store",
-                help=(
-                    "Name of the initial state to load from (corresponding "
-                    "initial state file must be present in data folder)."
-                ),
+                "--seed", action="store", type=int, help="Random seed."
             )
             self.parser.add_argument(
                 "--total_time",
-                "-t",
                 action="store",
                 type=float,
                 help="Time to run the simulation for.",
             )
             self.parser.add_argument(
                 "--generations",
-                "-g",
                 action="store",
                 type=int,
                 help="Number of generations to run the simulation for.",
             )
             self.parser.add_argument(
                 "--log_updates",
-                "-u",
                 action="store_true",
                 help=(
                     "Save updates from each process if this flag is set, "
@@ -251,8 +266,9 @@ class SimConfig:
                 "--raw_output",
                 action="store_true",
                 help=(
-                    "Whether to return data in raw format (dictionary "
-                    "where keys are times, values are states)."
+                    "Whether to return data in raw format (dictionary"
+                    " where keys are times, values are states). Requires"
+                    " timeseries emitter (RAMEmitter)."
                 ),
             )
             self.parser.add_argument(
@@ -261,13 +277,7 @@ class SimConfig:
             self.parser.add_argument(
                 "--sim_data_path",
                 default=None,
-                help="Path to the sim_data to use for this experiment.",
-            )
-            self.parser.add_argument(
-                "--parallel",
-                action="store_true",
-                default=False,
-                help="Run processes in parallel.",
+                help="Path to the sim_data (pickle from ParCa) to use for this experiment.",
             )
             self.parser.add_argument(
                 "--profile",
@@ -279,18 +289,17 @@ class SimConfig:
                 "--initial_state_file",
                 action="store",
                 default="",
-                help='Name of initial state file (no ".json") under data/',
+                help='Name of initial state file (omit ".json" extension) under data/',
             )
             self.parser.add_argument(
                 "--initial_state_overrides",
                 action="store",
                 nargs="*",
-                help='Name of initial state overrides (no ".json") under '
+                help='Name of initial state overrides (omit ".json" extension) under '
                 "data/overrides",
             )
             self.parser.add_argument(
                 "--daughter_outdir",
-                "--daughter-outdir",
                 action="store",
                 help="Directory in which to store daughter cell state JSONs.",
             )
@@ -301,6 +310,18 @@ class SimConfig:
                 "--lineage_seed",
                 action="store",
                 help="Seed used for first cell in lineage.",
+            )
+            self.parser.add_argument(
+                "--initial_global_time",
+                type=float,
+                action="store",
+                help="Initial time in context of whole lineage.",
+            )
+            self.parser.add_argument(
+                "--fail_at_total_time",
+                action="store_true",
+                default=False,
+                help="Simulation will raise TimeLimitException upon reaching total_time.",
             )
 
     @staticmethod
@@ -314,15 +335,6 @@ class SimConfig:
             d1: Config to mutate by merging in ``d2``.
             d2: Config to merge into ``d1``.
         """
-        # Handle config keys that need special handling.
-        LIST_KEYS_TO_MERGE = (
-            "save_times",
-            "add_processes",
-            "exclude_processes",
-            "processes",
-            "engine_process_reports",
-            "initial_state_overrides",
-        )
         for key in LIST_KEYS_TO_MERGE:
             d2.setdefault(key, [])
             d2[key].extend(d1.get(key, []))
@@ -360,12 +372,8 @@ class SimConfig:
         # Then override the configuration file with any command-line
         # options.
         cli_config = {
-            key: value
-            for key, value in vars(args).items()
-            if value and key not in ("config", "parallel", "no_parallel")
+            key: value for key, value in vars(args).items() if value and key != "config"
         }
-        if "parallel" in vars(args):
-            cli_config["parallel"] = args.parallel
         self.merge_config_dicts(self._config, cli_config)
 
     def update_from_dict(self, dict_config: dict[str, Any]):
@@ -412,7 +420,6 @@ class EcoliSim:
                 or :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.from_cli`
         """
         # Do some datatype pre-processesing
-        config["agents_path"] = tuple(config["agents_path"])
         config["processes"] = {process: None for process in config["processes"]}
 
         # Keep track of base experiment id
@@ -494,7 +501,7 @@ class EcoliSim:
 
     def _retrieve_processes(
         self,
-        processes: list[str],
+        processes: dict[str, str],
         add_processes: list[str],
         exclude_processes: list[str],
         swap_processes: dict[str, str],
@@ -583,14 +590,6 @@ class EcoliSim:
                 deep_merge(process_topology, tuplify_topology(topology[process]))
             result[process] = process_topology
 
-        # Add log_update ports if log_updates is True
-        if log_updates:
-            for process, ports in result.items():
-                result[process]["log_update"] = (
-                    "log_update",
-                    process,
-                )
-
         return result
 
     def _retrieve_process_configs(
@@ -608,7 +607,7 @@ class EcoliSim:
         Returns:
             Mapping of process names to process configs.
         """
-        result = {}
+        result: dict[str, Any] = {}
         for process in processes:
             result[process] = process_configs.get(process)
             if result[process] is None:
@@ -637,7 +636,7 @@ class EcoliSim:
 
         Adds spatial environment if ``config['spatial_environment']`` is
         ``True``. Spatial environment config options are loaded from
-        ``config['spatial_environment_config]``. See
+        ``config['spatial_environment_config`]``. See
         ``ecoli/composites/ecoli_configs/spatial.json`` for an example.
 
         .. note::
@@ -711,7 +710,7 @@ class EcoliSim:
     def save_states(self, daughter_outdir: str = ""):
         """
         Runs the simulation while saving the states of specific
-        timesteps to JSONs. Automatically invoked by
+        timesteps to files named ``data/vivecoli_t{time}.json``. Invoked by
         :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.run`
         if ``config['save'] == True``. State is saved as a JSON that
         can be reloaded into a simulation as described in
@@ -746,7 +745,12 @@ class EcoliSim:
                         daughter_outdir, f"daughter_state_{i}.json"
                     )
                     write_json(daughter_path, agent_state)
-                print(f"Divided at t = {self.ecoli_experiment.global_time}.")
+                print(
+                    f"Divided at t = {self.ecoli_experiment.global_time} after"
+                    f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
+                )
+                with open("division_time.sh", "w") as f:
+                    f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 sys.exit()
             time_elapsed = self.save_times[i]
             state = self.ecoli_experiment.state.get_value(condition=not_a_process)
@@ -777,10 +781,27 @@ class EcoliSim:
         metadata = self.get_metadata()
         metadata["output_metadata"] = self.get_output_metadata()
         # make the experiment
-        emitter_config = {"type": self.emitter}
-        # TODO: Fix this
-        # for key, value in self.emitter_arg:
-        #     emitter_config[key] = value
+        if isinstance(self.emitter, str):
+            self.emitter_config = {"type": self.emitter}
+            if self.emitter_arg is not None:
+                for key, value in self.emitter_arg:
+                    self.emitter_config[key] = value
+            if self.emitter == "parquet":
+                if ("out_dir" not in self.emitter_config) and (
+                    "out_uri" not in self.emitter_config
+                ):
+                    raise RuntimeError(
+                        "Must provide out_dir or out_uri"
+                        " as emitter argument for parquet emitter."
+                    )
+        elif isinstance(self.emitter, dict):
+            self.emitter_config = self.emitter
+        else:
+            raise RuntimeError(
+                "Emitter option must either be a string"
+                " representing the emitter type or a dictionary with the"
+                " emitter type as well as any emitter config options."
+            )
         experiment_config = {
             "description": self.description,
             "metadata": metadata,
@@ -793,7 +814,7 @@ class EcoliSim:
             "emit_topology": self.emit_topology,
             "emit_processes": self.emit_processes,
             "emit_config": self.emit_config,
-            "emitter": self.emitter,
+            "emitter": self.emitter_config,
             "initial_global_time": self.initial_global_time,
         }
         if self.experiment_id:
@@ -804,14 +825,22 @@ class EcoliSim:
                 self.experiment_id_base = self.experiment_id
             if self.suffix_time:
                 self.experiment_id = datetime.now().strftime(
-                    f"{self.experiment_id_base}_%d/%m/%Y %H:%M:%S"
+                    f"{self.experiment_id_base}_%d-%m-%Y_%H-%M-%S"
                 )
+            # Special characters can break Hive partitioning so quote them
+            self.experiment_id = parse.quote_plus(self.experiment_id)
             experiment_config["experiment_id"] = self.experiment_id
         experiment_config["profile"] = self.profile
 
         # Since unique numpy updater is an class method, internal
         # deepcopying in vivarium-core causes this warning to appear
-        warnings.filterwarnings("ignore", message="Incompatible schema assignment at ")
+        warnings.filterwarnings(
+            "ignore",
+            message="Incompatible schema "
+            "assignment at .+ Trying to assign the value <bound method "
+            "UniqueNumpyUpdater.updater .+ to key updater, which already "
+            "has the value <bound method UniqueNumpyUpdater.updater",
+        )
         self.ecoli_experiment = Engine(**experiment_config)
 
         # Only emit designated stores if specified
@@ -825,7 +854,7 @@ class EcoliSim:
         # Clean up unnecessary references
         self.generated_initial_state = None
         self.ecoli_experiment.initial_state = None
-        del metadata, experiment_config, emitter_config
+        del metadata, experiment_config
         self.ecoli = None
 
         # run the experiment
@@ -843,15 +872,25 @@ class EcoliSim:
                         self.daughter_outdir, f"daughter_state_{i}.json"
                     )
                     write_json(daughter_path, agent_state)
-                print(f"Divided at t = {self.ecoli_experiment.global_time}.")
+                print(
+                    f"Divided at t = {self.ecoli_experiment.global_time} after"
+                    f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
+                )
+                with open("division_time.sh", "w") as f:
+                    f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 sys.exit()
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
+        if self.fail_at_total_time:
+            raise TimeLimitError(f"Exceeded maximum simulation time: {self.total_time}")
 
-    def query(self, query: list[tuple[str]] = None):
+    def query(self, query: Optional[list[tuple[str]]] = None):
         """
-        Query emitted data.
+        Query data that was emitted to RAMEmitter (``config['emitter'] == 'timeseries'``).
+        For the Parquet emitter, query sim output with an analysis script run using
+        :py:mod:`runscripts.analysis` or with ad-hoc DuckDB SQL queries built using
+        :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql` as a base.
 
         Args:
             query: List of tuple-style paths in the simulation state to
@@ -869,6 +908,13 @@ class EcoliSim:
               lists of the simulation state value over time (e.g.
               ``{'data': [..., ..., ...]}``).
         """
+        if self.emitter_config["type"] != "timeseries":
+            raise RuntimeError(
+                "Query method only works for timeseries emitter."
+                " For Parquet emitter, either write an analysis script to be run"
+                " using runscripts/analysis.py or build off the DuckDB SQL query"
+                " returned by ecoli.library.parquet_emitter.get_dataset_sql."
+            )
         # Retrieve queried data (all if not specified)
         if self.raw_output:
             return self.ecoli_experiment.emitter.get_data(query)
@@ -888,8 +934,7 @@ class EcoliSim:
     def get_metadata(self) -> dict[str, Any]:
         """
         Compiles all simulation settings, git hash, and process list into a single
-        dictionary. Called by
-        :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.to_json_string`.
+        dictionary.
         """
         # create metadata of this experiment to be emitted,
         # namely the config of this EcoliSim object
@@ -905,22 +950,20 @@ class EcoliSim:
                 "need to be replicated."
             )
         metadata["processes"] = [k for k in metadata["processes"].keys()]
+        metadata["time"] = datetime.now()
         return metadata
-
-    def to_json_string(self) -> str:
-        """
-        Serializes simulation setting dictionary along with git hash and
-        final list of process names. Called by
-        :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.export_json`.
-
-        """
-        return str(serialize_value(self.get_metadata()))
 
     def get_output_metadata(self) -> dict[str, Any]:
         """
         Filters all ports schemas to include only output metadata
-        located at the path ('_properties', 'metadata') for each schema.
+        located at the path ``('_properties', 'metadata')`` for each schema by
+        invoking :py:func:`~.extract_metadata`.
         See :py:meth:`~ecoli.library.schema.listener_schema` for usage details.
+
+        This dictionary of output metadata is flattened (see :py:func:`~ecoli.library.parquet_emitter.flatten_dict`)
+        into columns with prefix :py:data:`~ecoli.library.parquet_emitter.METADATA_PREFIX`
+        and emitted as part of the simulation config by the Parquet emitter. It can
+        be retrieved later using :py:func:`~ecoli.library.parquet_emitter.get_field_metadata`.
         """
         if self.divide:
             processes_and_steps = self.ecoli.processes["agents"][self.agent_id]
@@ -930,7 +973,7 @@ class EcoliSim:
             processes_and_steps = self.ecoli.processes
             processes_and_steps.update(self.ecoli.steps)
             topologies = self.ecoli.topology
-        output_metadata = {}
+        output_metadata: dict[str, Any] = {}
         for proc_name, proc in processes_and_steps.items():
             proc_ports_schema = proc.get_schema()
             extracted = extract_metadata(proc_ports_schema)
@@ -951,7 +994,7 @@ class EcoliSim:
             filename: Filepath and name for saved JSON (include ``.json``).
         """
         with open(filename, "w") as f:
-            f.write(self.to_json_string())
+            json.dump(serialize_value(self.get_metadata()), f)
 
 
 def extract_metadata(ports_schema: dict[str, Any], properties: bool = False):
@@ -990,20 +1033,11 @@ def extract_metadata(ports_schema: dict[str, Any], properties: bool = False):
 def main():
     """
     Runs a simulation with CLI options.
-
-    .. note::
-        Parallelizing processes (e.g. ``--parallel``) is not recommended
-        because the overhead outweighs any performance advantage. This could
-        change in the future if a computationally intensive process is
-        introduced that makes the model faster to run in parallel
-        instead of sequentially.
     """
-    # import multiprocessing; multiprocessing.set_start_method('spawn')
     ecoli_sim = EcoliSim.from_cli()
     ecoli_sim.build_ecoli()
     ecoli_sim.run()
 
 
-# python ecoli/experiments/ecoli_master_sim.py
 if __name__ == "__main__":
     main()

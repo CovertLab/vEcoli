@@ -30,7 +30,6 @@ GROW_DIVIDE_DEFAULTS = {
         "..",
         "agents",
     ),
-    "daughter_path": tuple(),
     "_schema": {
         "growth": {
             "variables": {
@@ -49,11 +48,9 @@ class GrowDivide(Composer):
 
     def generate_processes(self, config):
         # division config
-        daughter_path = config["daughter_path"]
         agent_id = config["agent_id"]
         division_config = dict(
             config.get("division", {}),
-            daughter_path=daughter_path,
             agent_id=agent_id,
             composer=self,
         )

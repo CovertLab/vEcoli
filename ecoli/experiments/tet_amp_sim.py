@@ -5,11 +5,11 @@ from scipy import constants
 
 from vivarium.library.units import units
 
-from ecoli.composites.ecoli_engine_process import run_simulation
+from ecoli.experiments.ecoli_engine_process import run_simulation
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
 from ecoli.library.parameters import param_store
 from ecoli.library.logging_tools import write_json
-from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.library.json_state import get_state_from_file
 
 AVOGADRO = constants.N_A / units.mol
 

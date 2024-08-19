@@ -49,7 +49,7 @@ def make_configuration(reactions: dict) -> dict:
         Dictionary of partition and reaction_cofactor entries for each reaction
     """
 
-    rate_law_configuration = {}
+    rate_law_configuration: dict[str, dict[str, Any]] = {}
     # gets all potential interactions between the reactions
     for reaction_id, specs in reactions.items():
         enzymes = specs["catalyzed by"]
@@ -149,7 +149,9 @@ def construct_convenience_rate_law(
 
     # if reversible, determine direction by looking at stoichiometry
     if kcat_r:
-        coeff = [stoichiometry[mol] for mol in cofactors_sets]
+        coeff = [
+            stoichiometry[mol] for cofactors in cofactors_sets for mol in cofactors
+        ]
         positive_coeff = [c > 0 for c in coeff]
         if all(positive_coeff):  # if all coeffs are positive
             kcat = -kcat_r  # use reverse rate
@@ -229,7 +231,9 @@ def make_rate_laws(
             sub-dictionary with kinetic rate law functions for each enzyme
     """
 
-    rate_laws = {reaction_id: {} for reaction_id in list(reactions.keys())}
+    rate_laws: dict[str, dict] = {
+        reaction_id: {} for reaction_id in list(reactions.keys())
+    }
     for reaction_id, specs in reactions.items():
         stoichiometry = specs.get("stoichiometry")
         # reversible = specs.get('is reversible') # TODO (eran) -- add reversibility based on specs

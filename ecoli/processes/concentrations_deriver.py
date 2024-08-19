@@ -8,7 +8,7 @@ AVOGADRO = N_A / units.mol
 
 
 class ConcentrationsDeriver(Step):
-    defaults = {
+    defaults: dict[str, list[str]] = {
         # Bulk molecule names supplied separately so
         # they can be pulled out the Numpy array
         "bulk_variables": [],

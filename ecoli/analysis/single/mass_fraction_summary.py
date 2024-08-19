@@ -1,8 +1,11 @@
 import os
-from typing import Any
+from typing import Any, cast
 
-import hvplot.polars
+from duckdb import DuckDBPyConnection
 import polars as pl
+import hvplot.polars
+
+from ecoli.library.parquet_emitter import num_cells, read_stacked_columns
 
 hvplot.extension("matplotlib")
 
@@ -22,23 +25,17 @@ COLORS = ["#%02x%02x%02x" % (color[0], color[1], color[2]) for color in COLORS_2
 
 def plot(
     params: dict[str, Any],
-    config_lf: pl.LazyFrame,
-    history_lf: pl.LazyFrame,
-    sim_data_paths: list[str],
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    config_sql: str,
+    sim_data_paths: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
+    variant_metadata: dict[str, dict[int, Any]],
+    variant_names: dict[str, str],
 ):
     assert (
-        config_lf.collect(streaming=True).n_unique(
-            subset=[
-                "experiment_id",
-                "variant",
-                "generation",
-                "lineage_seed",
-                "agent_id",
-            ]
-        )
-        == 1
+        num_cells(conn, config_sql) == 1
     ), "Mass fraction summary plot requires single-cell data."
 
     mass_columns = {
@@ -48,33 +45,25 @@ def plot(
         "mRNA": "listeners__mass__mRna_mass",
         "DNA": "listeners__mass__dna_mass",
         "Small Mol.s": "listeners__mass__smallMolecule_mass",
+        "Dry": "listeners__mass__dry_mass",
     }
-    other_columns = {
-        "Time (min)": (pl.col("time") - pl.col("time").min()) / 60,
-        "Total dry mass": "listeners__mass__dry_mass",
+    mass_data = read_stacked_columns(
+        history_sql, list(mass_columns.values()), conn=conn
+    )
+    mass_data = pl.DataFrame(mass_data)
+    fractions = {
+        k: (mass_data[v] / mass_data["listeners__mass__dry_mass"]).mean()
+        for k, v in mass_columns.items()
     }
-
-    mass_data = (
-        history_lf.select(**other_columns, **mass_columns)
-        .sort("Time (min)")
-        .collect(streaming=True)
-    )
-    fractions = (
-        mass_data[list(mass_columns.keys())] / mass_data["Total dry mass"]
-    ).mean()
-    mass_data = mass_data.select(
-        "Time (min)",
-        mass_data["Total dry mass"] / mass_data[0, "Total dry mass"],
-        *(mass_data[col] / mass_data[0, col] for col in mass_columns),
-    )
-
-    mass_data = mass_data.rename(
-        {
-            label: "{} ({:.3f})".format(label, fractions[0, label])
-            for label in mass_columns
-        }
-    )
-    plot_namespace = mass_data.plot
+    new_columns = {
+        "Time (min)": (mass_data["time"] - mass_data["time"].min()) / 60,
+        **{
+            f"{k} ({cast(float, fractions[k]):.3f})": mass_data[v] / mass_data[v][0]
+            for k, v in mass_columns.items()
+        },
+    }
+    mass_fold_change = pl.DataFrame(new_columns)
+    plot_namespace = mass_fold_change.plot
     # hvplot.output(backend='matplotlib')
     plotted_data = plot_namespace.line(
         x="Time (min)",

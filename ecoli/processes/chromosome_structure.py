@@ -9,6 +9,7 @@ Chromosome Structure
 """
 
 import numpy as np
+import numpy.typing as npt
 import warnings
 from vivarium.core.process import Step
 
@@ -867,14 +868,14 @@ class ChromosomeStructure(Step):
 
     def _compute_new_segment_attributes(
         self,
-        old_boundary_molecule_indexes: np.ndarray[int],
-        old_boundary_coordinates: np.ndarray[int],
-        old_linking_numbers: np.ndarray[int],
-        new_molecule_indexes: np.ndarray[int],
-        new_molecule_coordinates: np.ndarray[int],
+        old_boundary_molecule_indexes: npt.NDArray[np.int64],
+        old_boundary_coordinates: npt.NDArray[np.int64],
+        old_linking_numbers: npt.NDArray[np.int64],
+        new_molecule_indexes: npt.NDArray[np.int64],
+        new_molecule_coordinates: npt.NDArray[np.int64],
         spans_oriC: bool,
         spans_terC: bool,
-    ) -> dict[str, np.ndarray[int]]:
+    ) -> dict[str, npt.NDArray[np.int64]]:
         """
         Calculates the updated attributes of chromosomal segments belonging to
         a specific chromosomal domain, given the previous and current

@@ -76,7 +76,7 @@ class EnzymeKinetics(Process):
     """
 
     name = NAME
-    defaults = {
+    defaults: dict[str, dict] = {
         "reactions": {},
         "kinetic_parameters": {},
     }

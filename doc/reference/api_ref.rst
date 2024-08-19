@@ -7,5 +7,6 @@ API Reference
 
    api/ecoli/ecoli
    api/reconstruction/reconstruction
+   api/runscripts/runscripts
    api/validation/validation
    api/wholecell/wholecell
