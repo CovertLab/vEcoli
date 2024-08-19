@@ -282,6 +282,7 @@ experiment_library = {
 }
 
 
+
 def save_sim_output(folder, query, sim, save_model=False):
     agents = sim.query()['agents'].keys()
     for agent in agents:
