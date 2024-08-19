@@ -12,10 +12,10 @@ import pytest
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 from ecoli.library.json_state import get_state_from_file
 
-from wholecell.utils import units
 
 import numpy as np
-import pathlib, datetime
+import pathlib
+import datetime
 import dill
 
 def run_ecoli_with_metabolism_redux(
@@ -48,7 +48,7 @@ def run_ecoli_with_metabolism_redux(
 
     query = []
     folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
-    # save_sim_output(folder, query, sim, save_model=True)
+    save_sim_output(folder, query, sim, save_model=True)
 
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
@@ -280,7 +280,6 @@ experiment_library = {
     '4': test_ecoli_with_metabolism_redux_div,
     '5': run_ecoli_with_default_metabolism,
 }
-
 
 
 def save_sim_output(folder, query, sim, save_model=False):
