@@ -205,13 +205,13 @@ class CKNew:
 
 
     def create_objective_function(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, y_s, y_p,
-                                  denom_expr, dmdt=None, l=0.001, e=0.000001, f=1, g = 0.00000001, c_prior = 8):
+                                  denom_expr, dmdt=None, l_w=0.001, e=0.000001, f=1, g = 0.00000001, c_prior = 8):
 
         loss = 0
 
         l1 = cp.sum(cp.hstack([cfwd]))
-        l2 = cp.sum(cp.hstack([crev])) + cp.sum(cp.hstack([-Km_s, -Km_p]))  # regularization
-        l1_c = cp.sum(cp.hstack([c]))  # weak regularization for concentrations
+        # l2 = cp.sum(cp.hstack([crev])) + cp.sum(cp.hstack([-Km_s, -Km_p]))  # regularization
+        # l1_c = cp.sum(cp.hstack([c]))  # weak regularization for concentrations
         prior = cp.norm1(cp.hstack([cp.vec(c) - c_prior]))
 
 
@@ -224,8 +224,8 @@ class CKNew:
         #     loss += cp.norm1(cp.pos(cp.log_sum_exp(LSE_expr[i])))
         for i in range(len(denom_expr)):
             loss += f * denom_expr[i]
-        loss += (l * l1
-                  + e * prior
+        loss += (l_w * l1
+                 + e * prior
                  # + g * l1_c
                  )
 
@@ -316,9 +316,9 @@ class CKNew:
 
             for i in range(n_rxn):
                 # sum terms are separate in logsumexp. one per saturation term (row in C_alpha, C_beta)
-                n_term_s = np.sum(d_alpha == i)
-                n_term_p = np.sum(d_beta == i)
-                n_term = n_term_s + n_term_p
+                # n_term_s = np.sum(d_alpha == i)
+                # n_term_p = np.sum(d_beta == i)
+                # n_term = n_term_s + n_term_p
 
                 Km_s_idx = np.nonzero(S_s_nz[1, :] == i)
                 S_s_idx = S_s_nz[0, S_s_nz[1, :] == i]  # negate -1 entries
@@ -362,11 +362,11 @@ class BiochemicalReactionNetwork:
     def forward_step(self, cn, nE, S_matrix, cfwd, crev, Km_s, Km_p, Km_i, Km_a, S_s_nz, S_p_nz, S_s_mol, S_p_mol,
                      S_b, C_alpha, C_beta, d_alpha, d_beta, n_rxn, met_s_nz, met_p_nz, met_i_nz, met_a_nz, debug=True, noise=0):
 
-        sat_expr = []
+        # sat_expr = []
         nfwd_sat = np.zeros(n_rxn)
         nback_sat = np.zeros(n_rxn)
         nsat = np.zeros(n_rxn)
-        v_cur = np.zeros(n_rxn)
+        # v_cur = np.zeros(n_rxn)
 
         S_x = csr_matrix(S_b)
         C_alpha_x = csr_matrix(C_alpha)
