@@ -60,8 +60,10 @@ class RnapData(Step):
                         "active_rnap_unique_indexes": [],
                         "active_rnap_on_stable_RNA_indexes": [],
                         "active_rnap_n_bound_ribosomes": [],
-                        # 'rna_init_event_per_cistron': ([0] * len(self.cistron_ids),
-                        #     self.cistron_ids)
+                        "rna_init_event_per_cistron": (
+                            [0] * len(self.cistron_ids),
+                            self.cistron_ids,
+                        ),
                     }
                 )
             },
@@ -138,11 +140,9 @@ class RnapData(Step):
                         ]
                     ),
                     # Calculate hypothetical RNA initiation events per cistron
-                    # Turned this off because it is a very large emit that can
-                    # be easily calculated after the simulation is complete
-                    # 'rna_init_event_per_cistron': \
-                    #     self.cistron_tu_mapping_matrix.dot(
-                    #         states['listeners']['rnap_data']['rna_init_event']),
+                    "rna_init_event_per_cistron": self.cistron_tu_mapping_matrix.dot(
+                        states["listeners"]["rnap_data"]["rna_init_event"]
+                    ),
                 }
             },
             "next_update_time": states["global_time"] + states["timestep"],

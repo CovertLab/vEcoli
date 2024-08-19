@@ -36,6 +36,7 @@ example, see :py:class:`DeathFreezeState`.
 """
 
 import os
+from typing import Any
 
 from vivarium.core.composition import (
     simulate_composite,
@@ -131,7 +132,7 @@ DETECTOR_CLASSES = {
 
 class DeathFreezeState(Process):
     name = "death"
-    defaults = {
+    defaults: dict[str, Any] = {
         "detectors": tuple(),
         "to_remove": tuple(),
         "to_add": None,

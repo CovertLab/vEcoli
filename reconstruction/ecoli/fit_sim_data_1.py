@@ -12,6 +12,7 @@ import os
 import pickle
 import time
 import traceback
+from typing import Callable
 
 from stochastic_arrow import StochasticSystem
 from cvxpy import Variable, Problem, Minimize, norm
@@ -27,8 +28,10 @@ from wholecell.utils.fitting import normalize, masses_and_counts_for_homeostatic
 
 
 # Fitting parameters
-FITNESS_THRESHOLD = 1e-9
-MAX_FITTING_ITERATIONS = 300
+# NOTE: This threshold is arbitrary and was relaxed from 1e-9
+# to 1e-8 to fix failure to converge after scipy/scipy#20168
+FITNESS_THRESHOLD = 1e-8
+MAX_FITTING_ITERATIONS = 150
 N_SEEDS = 10
 
 # Parameters used in fitPromoterBoundProbability()
@@ -504,8 +507,13 @@ def final_adjustments(sim_data, cell_specs, **kwargs):
     return sim_data, cell_specs
 
 
-def apply_updates(func, args, labels, dest, cpus):
-    # type: (Callable[..., dict], List[tuple], List[str], dict, int) -> None
+def apply_updates(
+    func: Callable[..., dict],
+    args: list[tuple],
+    labels: list[str],
+    dest: dict,
+    cpus: int,
+):
     """
     Use multiprocessing (if cpus > 1) to apply args to a function to get
     dictionary updates for a destination dictionary.

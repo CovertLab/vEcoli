@@ -19,7 +19,7 @@ from ecoli.processes.environment.reaction_diffusion_field import ReactionDiffusi
 from ecoli.composites.environment.grow_divide import GrowDivideExchange, GrowDivide
 
 # plots
-from ecoli.plots.snapshots import (
+from ecoli.analysis.colony.snapshots import (
     format_snapshot_data,
     get_agent_ids,
     plot_snapshots,

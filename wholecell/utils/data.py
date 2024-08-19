@@ -3,10 +3,10 @@ Miscellaneous data structure utilities.
 """
 
 import os
+from typing import Any, Mapping, Iterable
 
 
-def dissoc(mapping, keys):
-    # type: (Mapping, Iterable) -> dict
+def dissoc(mapping: Mapping, keys: Iterable) -> dict:
     """Dissociate: Return a new dict like `mapping` without the given `keys`.
     See also `dissoc_strict()`.
     """
@@ -17,8 +17,7 @@ def dissoc(mapping, keys):
     return result
 
 
-def dissoc_strict(mapping, keys):
-    # type: (Mapping, Iterable) -> dict
+def dissoc_strict(mapping: Mapping, keys: Iterable) -> dict:
     """Dissociate: Return a new dict like `mapping` without the given `keys`.
     Raises a KeyError if any of these keys are not in the given mapping.
     """
@@ -29,8 +28,7 @@ def dissoc_strict(mapping, keys):
     return result
 
 
-def expand_keyed_env_vars(data):
-    # type: (Any) -> Any
+def expand_keyed_env_vars(data: Any) -> Any:
     """If data is a dict, return a new dict where each _keyed environment
     '$VARIABLE' value is expanded into a non-underscore entry, e.g.:
 
@@ -52,15 +50,15 @@ def expand_keyed_env_vars(data):
     return copy
 
 
-def select_keys(mapping, keys, **kwargs):
-    # type: (Mapping[str, Any], Iterable[str], **Any) -> Dict[str, Any]
+def select_keys(
+    mapping: Mapping[str, Any], keys: Iterable[str], **kwargs: Any
+) -> dict[str, Any]:
     """Return a dict of the selected keys from mapping plus the kwargs."""
     result = {key: mapping[key] for key in keys}
     result.update(**kwargs)
     return result
 
 
-def startswith(obj, prefix):
-    # type: (Any, str) -> bool
+def startswith(obj: Any, prefix: str) -> bool:
     """Return True if obj is a string that starts with the given prefix."""
     return isinstance(obj, str) and obj.startswith(prefix)

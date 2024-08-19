@@ -441,6 +441,7 @@ class PolypeptideInitiation(PartitionedProcess):
                     "target_prob_translation_per_transcript": target_protein_init_prob,
                     "actual_prob_translation_per_transcript": actual_protein_init_prob,
                     "mRNA_is_overcrowded": is_overcrowded,
+                    "max_p": max_p,
                     "max_p_per_protein": max_p_per_protein,
                     "is_n_ribosomes_to_activate_reduced": is_n_ribosomes_to_activate_reduced,
                 }

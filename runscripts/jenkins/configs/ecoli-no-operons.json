@@ -1,0 +1,16 @@
+{
+    "experiment_id": "Daily no operons",
+    "single_daughters": true,
+    "generations": 4,
+    "fail_at_total_time": true,
+    "emitter" : {
+        "type": "parquet",
+        "out_dir": "/scratch/groups/mcovert/vecoli"
+    },
+    "parca_options": {
+        "operons": false
+    },
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}}
+    }
+}

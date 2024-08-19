@@ -10,7 +10,9 @@ from its Python package.
 """
 
 import numpy as np
+import numpy.typing as npt
 import unum
+from typing import Optional
 
 from wholecell.utils import units as units_pkg
 
@@ -20,8 +22,7 @@ class UnitStructArray(object):
     units are being used while loading constants.
     """
 
-    def __init__(self, struct_array, units):
-        # type: (np.ndarray, Dict[str, Optional[str]]) -> None
+    def __init__(self, struct_array: npt.ArrayLike, units: dict[str, Optional[str]]):
         self._validate(struct_array, units)
 
         self.struct_array = struct_array
