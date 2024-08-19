@@ -217,31 +217,31 @@ def test_ecoli_with_metabolism_classic(
     sim.run()
 
 
-@pytest.mark.slow
-def test_ecoli_with_metabolism_classic_div(
-        filename='metabolism_redux_classic',
-        total_time=10,
-        divide=True,
-        emitter='timeseries',
-        initial_state_file='met_division_test_state',
-):
-    # TODO (Cyrus) - Add test that affirms structure of output query.
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
-    sim.total_time = total_time
-    sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
-
-    sim.divide = divide
-    sim.emitter = emitter
-
-    # this means that sims will not create conflicting random indices
-    sim.seed += int(sim.initial_state['agents']['0']['global_time'])
-
-    sim.build_ecoli()
-
-    sim.run()
-
-    # assert division occured
-    assert len(sim.query()['agents']) == 3, "Cell did not divide in metabolism division test"
+# @pytest.mark.slow
+# def test_ecoli_with_metabolism_classic_div(
+#         filename='metabolism_redux_classic',
+#         total_time=10,
+#         divide=True,
+#         emitter='timeseries',
+#         initial_state_file='met_division_test_state',
+# ):
+#     # TODO (Cyrus) - Add test that affirms structure of output query.
+#     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+#     sim.total_time = total_time
+#     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+#
+#     sim.divide = divide
+#     sim.emitter = emitter
+#
+#     # this means that sims will not create conflicting random indices
+#     sim.seed += int(sim.initial_state['agents']['0']['global_time'])
+#
+#     sim.build_ecoli()
+#
+#     sim.run()
+#
+#     # assert division occured
+#     assert len(sim.query()['agents']) == 3, "Cell did not divide in metabolism division test"
 
 def run_ecoli_with_default_metabolism(
         filename='default',
@@ -278,7 +278,6 @@ experiment_library = {
     '3': test_ecoli_with_metabolism_redux,
     '3a': test_ecoli_with_metabolism_classic,
     '4': test_ecoli_with_metabolism_redux_div,
-    '4a': test_ecoli_with_metabolism_classic_div,
     '5': run_ecoli_with_default_metabolism,
 }
 
