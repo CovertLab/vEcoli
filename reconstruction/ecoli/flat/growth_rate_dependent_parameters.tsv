@@ -1,3 +1,4 @@
+# All values are from Table 3 of Dennis & Bremer (2008)
 "doublingTime (units.min)"	"fractionActiveRnap"	"stableRnaPerTotalRnaSynthesized"	"fractionActiveRnapSynthesizingStableRna"	"ratioRProteinToTotalProtein"	"distanceBetweenRibosomesOnMRna (units.nt)"	"ribosomeElongationRate (units.aa/units.s)"	"rnaPolymeraseElongationRate (units.nt/units.s)"	"fractionActiveRibosome"	"ppGpp_conc (units.pmol/units.ug)"	"RNAP_per_cell"
 100	0.17	0.41	0.24	0.090	79	12	39	0.80	0.316	1500
 60	0.20	0.52	0.36	0.114	85	16	45	0.80	0.219	2800
