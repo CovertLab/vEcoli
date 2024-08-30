@@ -43,7 +43,6 @@ class Transcription(object):
     def __init__(self, raw_data, sim_data):
         self.max_time_step = min(MAX_TIME_STEP, PROCESS_MAX_TIME_STEP)
 
-        self._build_ppgpp_regulation(raw_data, sim_data)
         self._build_oric_terc_coordinates(raw_data, sim_data)
         self._build_cistron_data(raw_data, sim_data)
         self._build_rna_data(raw_data, sim_data)
@@ -53,6 +52,7 @@ class Transcription(object):
         self._build_attenuation(raw_data, sim_data)
         self._build_elongation_rates(raw_data, sim_data)
         self._build_new_gene_data(raw_data, sim_data)
+
 
     def __getstate__(self):
         """Return the state to pickle with transcriptionSequences removed and
@@ -88,6 +88,9 @@ class Transcription(object):
                 ppgpp_regulated_genes (ndarray[str]): cistron ID of regulated genes
                 ppgpp_fold_changes (ndarray[float]): log2 fold change for each gene
                         in ppgpp_regulated_genes
+                _ppgpp_unset_mask (list[bool]): flag for genes with unset ppGpp fold changes
+                        that are mainly rRNAs, tRNAs, etc. that have synthesis affinity
+                        ratios directly set during ppGpp K_m fitting
                 _ppgpp_growth_parameters: parameters for interpolate.splev
                         to estimate growth rate from ppGpp concentration
         """
@@ -100,9 +103,6 @@ class Transcription(object):
         # Flag to check when ppGpp regulated expression has been set
         # see set_ppgpp_expression()
         self._ppgpp_expression_set = False
-
-        # Determine KM for ppGpp binding to RNAP
-        self._solve_ppgpp_km(raw_data, sim_data)
 
         # Read regulation data from raw_data
         # Treats ppGpp and DksA-ppGpp regulation the same
@@ -173,12 +173,11 @@ class Transcription(object):
         # Replace fold changes without data with the average
         fold_changes = np.array(fold_changes)
         average_positive_fc = fold_changes[fold_changes > 0].mean()
-        fold_changes[(fold_changes == 0) & (regulation_direction < 0)] = (
-            self._fit_ppgpp_fc
-        )
         fold_changes[(fold_changes == 0) & (regulation_direction > 0)] = (
             average_positive_fc
         )
+        unset_mask = (fold_changes == 0) & (regulation_direction < 0)
+        self._ppgpp_unset_mask = unset_mask
         self.ppgpp_fold_changes = fold_changes
 
         # Predict growth rate from ppGpp level
@@ -214,22 +213,9 @@ class Transcription(object):
                     fold_changes.min(), fold_changes.max()
                 )
             )
-            print("Supplement value (FC-): {:.2f}".format(self._fit_ppgpp_fc))
+            #print("Supplement value (FC-): {:.2f}".format(self._fit_ppgpp_fc)) TODO: what to do about this?
             print("Supplement value (FC+): {:.2f}".format(average_positive_fc))
 
-        # Calculate the expected active fraction when RNAP is bound to ppGpp or free
-        doubling_times = units.min * np.linspace(25, 100, 10)
-        ppgpp = sim_data.growth_rate_parameters.get_ppGpp_conc(doubling_times)
-        fraction_active = sim_data.growth_rate_parameters.get_fraction_active_rnap(
-            doubling_times
-        )
-        fraction_bound = self.fraction_rnap_bound_ppgpp(ppgpp)
-        A = np.vstack((fraction_bound, 1 - fraction_bound)).T
-        self.fraction_active_rnap_bound, self.fraction_active_rnap_free = (
-            np.linalg.lstsq(A, fraction_active, rcond=None)[0]
-        )
-        assert 0 < self.fraction_active_rnap_bound < 1
-        assert 0 < self.fraction_active_rnap_free < 1
 
     def _build_oric_terc_coordinates(self, raw_data, sim_data):
         """
@@ -996,13 +982,18 @@ class Transcription(object):
             for (cistron_index, rna_id) in enumerate(self.rna_data["id"])
         }
 
+        # For use in transcription_regulation process
+        self.unnormalized_mRNA_rna_exp_sum = np.sum(expression[is_mRNA])
+
         # Set basal expression and synthesis probabilities - conditional values
         # are set in the parca.
         self.rna_expression = {}
         self.rna_synth_prob = {}
         self.rna_expression["basal"] = expression / expression.sum()
         self.rna_synth_prob["basal"] = synth_prob / synth_prob.sum()
-        # Initialize rna synthesis affinities, values are set in the parca.
+        # Initialize rna synthesis affinities, values are set in the parca
+        # (can't set basal affinities here since depends on copy numbers from
+        # replication dataclass)
         self.rna_synth_aff = {}
 
 
@@ -1760,6 +1751,32 @@ class Transcription(object):
             variable_elongation,
         )
 
+    def set_ppgpp_parameters(self, raw_data, sim_data):
+        """
+        Solves for ppGpp parameters like Km and fraction active RNAP.
+
+        Attributes set:
+                self.fraction_active_rnap_bound (float)
+                self.fraction_active_rnap_free (float)
+        """
+        # Solves for ppGpp parameters
+        self._solve_ppgpp_km(raw_data, sim_data)
+
+        # Calculate the expected active fraction when RNAP is bound to ppGpp or free
+        doubling_times = units.min * np.linspace(25, 100, 10)
+        ppgpp = sim_data.growth_rate_parameters.get_ppGpp_conc(doubling_times)
+        fraction_active = sim_data.growth_rate_parameters.get_fraction_active_rnap(
+            doubling_times
+        )
+        fraction_bound = self.fraction_rnap_bound_ppgpp(ppgpp)
+        A = np.vstack((fraction_bound, 1 - fraction_bound)).T
+        self.fraction_active_rnap_bound, self.fraction_active_rnap_free = (
+            np.linalg.lstsq(A, fraction_active, rcond=None)[0]
+        )
+        assert 0 < self.fraction_active_rnap_bound < 1
+        assert 0 < self.fraction_active_rnap_free < 1
+        # TODO: eventually merge with _solve_ppgpp_km
+
     def _solve_ppgpp_km(self, raw_data, sim_data):
         """
         Solves for general expression rates for bound and free RNAP and
@@ -1770,13 +1787,16 @@ class Transcription(object):
         Assumes a Hill coefficient of 2 for ppGpp binding to RNAP.
 
         Attributes set:
-                _fit_ppgpp_fc (float): log2 fold change in stable RNA expression
-                        from a fast doubling time to a slow doubling time based on
+                _fit_ppgpp_aff_fc (float): log2 fold change in stable RNA
+                        affinity between ppGpp-bound and free RNAP based on
                         the rates of bound and free RNAP expression found
                 _ppgpp_km_squared (float): squared and unitless KM value for
                         to limit computation needed for fraction bound
                 ppgpp_km (float with mol / volume units): KM for ppGpp binding
                         to RNAP
+
+        Notes: This is done at the cistron-level. ppGpp fold changes are converted into
+        TU-level fold changes later in set_ppgpp_expression().
         """
 
         # Data for different doubling times (100, 60, 40, 30, 24 min)
@@ -1784,110 +1804,155 @@ class Transcription(object):
             sim_data.constants.cell_density * sim_data.mass.cell_dry_mass_fraction
         )
         ppgpp = (
-            np.array(
-                [
+            np.array([
                     (d["ppGpp_conc"] * per_dry_mass_to_per_volume).asNumber(
-                        PPGPP_CONC_UNITS
-                    )
+                        PPGPP_CONC_UNITS)
                     for d in raw_data.growth_rate_dependent_parameters
-                ]
-            )
-            ** 2
+                ]) ** 2
         )
         rna = np.array([d["rnaMassFraction"] for d in raw_data.dry_mass_composition])
+        minimal_rRNA_mass_fraction = self._basal_rna_fractions["rRNA"]
+        rRNA_mass_frac = rna * minimal_rRNA_mass_fraction
+        # TODO: account for tRNAs here too maybe
+
+        # Get approximate number of rRNAs per cell
         mass_per_cell = np.array(
             [
                 d["averageDryMass"].asNumber(units.fg)
                 for d in raw_data.dry_mass_composition
             ]
         )
+        total_rRNA_mass = rRNA_mass_frac * mass_per_cell
+        # Assumes there's an equal number of each type of rRNA, which is not true but
+        # should approximately work because the seven operons are quite similar to each other
+        # in sequence and length, and we expect 5S, 16S, and 23S rRNAs to be produced proportionally
+        # to their abundance in each operon.
+        average_rRNA_mass = (np.mean(self.cistron_data['rRNA_mw'][self.cistron_data['is_rRNA']])
+                             / sim_data.constants.n_avogadro).asNumber(units.fg)
+        rRNA_per_cell = total_rRNA_mass / average_rRNA_mass
+
         rnap_per_cell = np.array(
             [d["RNAP_per_cell"] for d in raw_data.growth_rate_dependent_parameters]
         )
 
+        RNAP_active_fraction = np.array(
+            [d["fractionActiveRnap"] for d in raw_data.growth_rate_dependent_parameters]
+        )
+        rRNA_elong_rate = self.stable_RNA_elongation_rate
+        # Also assumes there's an equal number of each type of rRNA, see note above
+        rRNA_length = np.mean(self.cistron_data["length"][self.cistron_data["is_rRNA"]]).asNumber(units.nt)
+
+        # Get summed copy numbers of rRNAs and mRNAs
+        RNA_coords = self.rna_data["replication_coordinate"]
+        rRNA_coords = RNA_coords[self.rna_data['is_rRNA']]
+        mRNA_coords = RNA_coords[self.rna_data['is_mRNA']]
+        doubling_times = np.array(
+            [d["doublingTime"].asNumber(units.min) for d in raw_data.growth_rate_dependent_parameters]
+        )
+        copy_number = sim_data.process.replication.get_average_copy_number
+        sum_rRNA_copy = np.array([np.sum(
+            copy_number(
+                tau, rRNA_coords
+            ))
+            for tau in doubling_times]
+        )
+        sum_mRNA_copy = np.array([np.sum(
+            copy_number(
+                tau, mRNA_coords
+            ))
+            for tau in doubling_times]
+        )
+        mRNA_rRNA_copy_ratio = sum_mRNA_copy / sum_rRNA_copy
+
         # Variables for the objective
-        ## a1: rate of RNA production from free RNAP
-        ## a2: rate of RNA production from RNAP bound to ppGpp
+        ## y1: ratio of affinity for rRNAs to affinity for mRNAs for RNAP bound to ppGpp
+        ## y2: ratio of affinity for rRNAs to affinity for mRNAs for free RNAP
         ## km: KM of ppGpp binding to RNAP
-        a1s, a2s, kms = sp.symbols("a1 a2 km")
+        y1s, y2s, kms = sp.symbols("y1 y2 km")
 
         # Create objective to minimize
         ## Objective is squared difference between RNA created with different rates for RNAP bound
         ## to ppGpp and free RNAP compared to measured RNA in the cell for each measured doubling time.
         ## Use sp.exp to prevent negative parameter values, also improves stability for larger step size.
+        synth_capacity = rnap_per_cell * RNAP_active_fraction * rRNA_elong_rate / rRNA_length
+
         difference = (
-            rnap_per_cell
-            / mass_per_cell
-            * (
-                sp.exp(a1s) * (1 - ppgpp / (sp.exp(kms) + ppgpp))
-                + sp.exp(a2s) * ppgpp / (sp.exp(kms) + ppgpp)
+            rRNA_per_cell * np.log(2) / (doubling_times * 60)
+            - synth_capacity / (
+                    1 + mRNA_rRNA_copy_ratio /
+                    (
+                            sp.exp(y1s) * ppgpp / (sp.exp(kms) + ppgpp)
+                            + sp.exp(y2s) *
+                            (1 -
+                             (ppgpp / (sp.exp(kms) + ppgpp))
+                             )
+                     )
             )
-            - rna
         )
+
         J = difference.dot(difference)
 
         # Convert to functions for faster performance
-        dJda1 = sp.lambdify((a1s, a2s, kms), J.diff(a1s))
-        dJda2 = sp.lambdify((a1s, a2s, kms), J.diff(a2s))
-        dJdkm = sp.lambdify((a1s, a2s, kms), J.diff(kms))
-        J = sp.lambdify((a1s, a2s, kms), J)
+        dJdy1 = sp.lambdify((y1s, y2s, kms), J.diff(y1s))
+        dJdy2 = sp.lambdify((y1s, y2s, kms), J.diff(y2s))
+        dJdkm = sp.lambdify((y1s, y2s, kms), J.diff(kms))
+        J = sp.lambdify((y1s, y2s, kms), J)
 
         # Initial parameters
-        a1 = np.log(0.02)
-        a2 = np.log(0.01)
-        km = np.log(575)
-        step_size = 1.0
+        y1 = np.log(25)
+        y2 = np.log(720)
+        km = np.log(1200)
+        step_size = 1e-3
 
         # Use gradient descent to find
-        obj = J(a1, a2, km)
+        obj = J(y1, y2, km)
         old_obj = 100
-        step = 0
+        steps = 0
         max_step = 1e5
-        tol = 1e-6
+        tol = 1e-4
         rel_tol = 1e-9
-        while obj > tol and 1 - obj / old_obj > rel_tol:
-            a1 -= dJda1(a1, a2, km) * step_size
-            a2 -= dJda2(a1, a2, km) * step_size
-            km -= dJdkm(a1, a2, km) * step_size
+        while obj > tol and np.abs(1 - obj / old_obj) > rel_tol:
+            y1 -= dJdy1(y1, y2, km) * step_size
+            y2 -= dJdy2(y1, y2, km) * step_size
+            km -= dJdkm(y1, y2, km) * step_size
 
             old_obj = obj
-            obj = J(a1, a2, km)
+            obj = J(y1, y2, km)
 
-            step += 1
-            if step > max_step:
+            steps += 1
+            if steps > max_step:
+                import ipdb; ipdb.set_trace()
                 raise RuntimeError(
                     "Fitting ppGpp binding KM failed to converge."
                     " Check tolerances or maximum number of steps."
                 )
 
-        a1 = np.exp(a1)
-        a2 = np.exp(a2)
+        y1 = np.exp(y1)
+        y2 = np.exp(y2)
         km = np.exp(km)
-        f_low = ppgpp[-1] / (km + ppgpp[-1])
-        fc = np.log2(a2 / (a1 * (1 - f_low) + a2 * f_low))
 
-        self._fit_ppgpp_fc = fc
+        self._fit_ppGpp_aff_fc = np.log2(y1 / y2)
         self._ppgpp_km_squared = km
         self.ppgpp_km = np.sqrt(km) * PPGPP_CONC_UNITS
+        # TODO: optimize step_size, tol, rel_tol to get faster convergence
+        # TODO: modify so that we have active_fraction_ppgpp and active_fraction_free, and these are fit in this function as well
+        import ipdb; ipdb.set_trace()
 
-    def get_rna_fractions(self, ppgpp):
+    def get_rna_fractions(self, sim_data, doubling_time):
         """
-        Calculates expected RNA subgroup mass fractions based on ppGpp
-        concentration. If ppGpp expression has not been set yet, uses default
-        measured fractions.
+        Calculates expected RNA subgroup mass fractions based doubling time,
+        using the corresponding ppGpp concentration. If ppGpp expression
+        has not been set yet, uses default measured fractions.
 
         Args:
-                ppgpp (float with or without mol / volume units): concentration of
-                        ppGpp, if unitless, should represent the concentration of
-                        PPGPP_CONC_UNITS
+                doubling_time (float with units of time) - doubling time of the condition
 
         Returns:
                 dict[str, float]: mass fraction for each subgroup mass, values sum
                 to 1
         """
-
         if self._ppgpp_expression_set:
-            rna_exp = self.expression_from_ppgpp(ppgpp)
+            rna_exp = self.expression_from_doubling_time(sim_data, doubling_time)
             cistron_exp = self.cistron_tu_mapping_matrix.dot(rna_exp)
             mass = self.cistron_data["mw"] * cistron_exp
             mass = (mass / units.sum(mass)).asNumber()
@@ -1913,14 +1978,17 @@ class Transcription(object):
                 exp_free (ndarray[float]): expression for each TU when RNAP is not
                         bound to ppGpp
         """
+        minimal_dt = sim_data.condition_to_doubling_time["basal"]
+        rich_dt = sim_data.condition_to_doubling_time["with_aa"]
+
         ppgpp_aa = sim_data.growth_rate_parameters.get_ppGpp_conc(
-            sim_data.condition_to_doubling_time["with_aa"]
+            rich_dt
         )
-        ppgpp_basal = sim_data.growth_rate_parameters.get_ppGpp_conc(
-            sim_data.condition_to_doubling_time["basal"]
+        ppgpp_minimal = sim_data.growth_rate_parameters.get_ppGpp_conc(
+            minimal_dt
         )
         f_ppgpp_aa = self.fraction_rnap_bound_ppgpp(ppgpp_aa)
-        f_ppgpp_basal = self.fraction_rnap_bound_ppgpp(ppgpp_basal)
+        f_ppgpp_minimal = self.fraction_rnap_bound_ppgpp(ppgpp_minimal)
         cistron_id_to_idx = {
             cistron: i for i, cistron in enumerate(self.cistron_data["id"])
         }
@@ -1928,33 +1996,138 @@ class Transcription(object):
         # Since fold changes are reported for each cistron (gene), the FCs are
         # applied first to the expression levels of individual cistrons which
         # are converted back to TU expression levels through NNLS
-        cistron_exp = self.fit_cistron_expression["basal"]
+        minimal_aff_TUs = self.rna_synth_aff["basal"]
+        minimal_aff_cistrons = self.cistron_tu_mapping_matrix.dot(minimal_aff_TUs)
 
-        fcs = np.zeros(len(self.cistron_data))
-        for cistron_id, fc in zip(self.ppgpp_regulated_genes, self.ppgpp_fold_changes):
-            fcs[cistron_id_to_idx[cistron_id]] = fc
-
-        # Apply fold changes to expression levels of cistrons
-        cistron_exp_ppgpp = (
-            2**fcs * cistron_exp * (1 - f_ppgpp_aa) / (1 - f_ppgpp_basal)
-        ) / (
-            1
-            - 2**fcs
-            * (f_ppgpp_aa - f_ppgpp_basal * (1 - f_ppgpp_aa) / (1 - f_ppgpp_basal))
-        )
-        cistron_exp_free = (cistron_exp - cistron_exp_ppgpp * f_ppgpp_basal) / (
-            1 - f_ppgpp_basal
-        )
-        cistron_exp_free[cistron_exp_free < 0] = (
-            0  # fold change is limited by KM, can't have very high positive fold changes
+        # Ratio of synthprobs, x_ppGpp/x_free in doc. Assumes exp is proportional
+        # to synthprob, and so exp_fc = synthprob_ppGpp / synthprob_rich
+        # = x_ppGpp / (f_ppgpp x_ppgpp + (1-f_ppgpp) x_free)
+        synthprob_ratio = (1-f_ppgpp_aa) / (
+                (1 / 2**self.ppgpp_fold_changes) - f_ppgpp_aa
         )
 
-        # Map expression levels of cistrons to those of TUs through NNLS
-        self.exp_ppgpp, _ = self.fit_rna_expression(cistron_exp_ppgpp)
-        self.exp_free, _ = self.fit_rna_expression(cistron_exp_free)
-        self._normalize_ppgpp_expression()
+        def _affinities_from_fc_f_ppgpp(affs, fcs, f_ppgpp):
+            '''
+            Computes affinities for certain RNAs from log2 fold changes and affinities
+            in a certain condition.
+
+            Since aff = f_ppgpp * aff_ppgpp + (1-f_ppgpp) * aff_free
+            = f_ppgpp * aff_free * fc + (1-f_ppgpp) * aff_free
+            we can solve for aff_free and aff_ppgpp.
+
+            Inputs:
+                affs (ndarray[float]) - affinities in a particular condition
+                f_ppgpp (float) - fraction ppGpp-bound RNAP in a particular condition
+                fcs (ndarray[float]) or float - aff_ppgpp / aff_free for these RNAs
+
+
+            '''
+            aff_free = affs / (f_ppgpp * 2**fcs + (1 - f_ppgpp))
+            aff_ppgpp = aff_free * fcs
+
+            return aff_ppgpp, aff_free
+
+        # Calculate aff_ppgpp and aff_free for stable RNA cistrons using previously fit log2(fc)
+        unset_ids = self.ppgpp_regulated_genes[self._ppgpp_unset_mask]
+        unset_idxs = np.array([cistron_id_to_idx[cistron] for cistron in unset_ids])
+        unset_gene_minimal_affs = minimal_aff_cistrons[unset_idxs]
+
+        stable_RNA_aff_ppGpp, stable_RNA_aff_free = _affinities_from_fc_f_ppgpp(
+            unset_gene_minimal_affs, self._fit_ppGpp_aff_fc, f_ppgpp_minimal
+        )
+
+        # Calculate average affinity of mRNAs in minimal media
+        copy_numbers = sim_data.process.replication.get_average_copy_number
+        mRNA_cistron_coords = self.cistron_data["replication_coordinate"][
+            self.cistron_data["is_mRNA"]]
+        minimal_mRNA_copy = copy_numbers(minimal_dt, mRNA_cistron_coords)
+        avg_aff_minimal_mRNA = minimal_aff_cistrons[self.cistron_data["is_mRNA"]].dot(
+            minimal_mRNA_copy
+        ) / np.sum(minimal_mRNA_copy)
+
+        # Calculate relevant copy numbers
+        unset_gene_cistron_coords = self.cistron_data["replication_coordinate"][
+            unset_idxs
+        ]
+        stable_RNA_aa_copies = copy_numbers(rich_dt, unset_gene_cistron_coords)
+        sum_mRNA_aa_copies = np.sum(copy_numbers(rich_dt, mRNA_cistron_coords))
+
+        # Calculate the fcs in affinity for all ppGpp-regulated cistrons,
+        # inserting the stable RNA fc for the marked cistrons
+        # TODO: check what these marked cistrons are made of (self._ppgpp_unset_mask),
+        # anything important to growth, etc. other than stable RNAs?
+        # TODO: check all the log2's are correct throughout this
+        factor = (
+                avg_aff_minimal_mRNA * sum_mRNA_aa_copies +
+                stable_RNA_aff_free.dot(stable_RNA_aa_copies)
+                  ) / (
+                avg_aff_minimal_mRNA * sum_mRNA_aa_copies +
+                stable_RNA_aff_ppGpp.dot(stable_RNA_aa_copies)
+                  )
+        aff_fcs = np.log2(synthprob_ratio / factor)
+        aff_fcs[self._ppgpp_unset_mask] = self._fit_ppGpp_aff_fc
+
+        # Get array containing fcs for all cistrons overall
+        all_aff_fcs = np.zeros(len(self.cistron_data))
+        for cistron_id, fc in zip(self.ppgpp_regulated_genes, aff_fcs):
+            all_aff_fcs[cistron_id_to_idx[cistron_id]] = fc
+
+        # Calculate cistron-level aff_ppgpp and aff_free
+        all_cistron_aff_ppgpp, all_cistron_aff_free = _affinities_from_fc_f_ppgpp(
+            minimal_aff_cistrons, all_aff_fcs, f_ppgpp_minimal
+        )
+
+        # Convert to TU-level affinities with NNLS (overall scale for mRNAs shouldn't have
+        # changed too much since we got cistron-level affinities by multiplying by
+        # conversion matrix in the first place, without normalizing)
+        self.aff_ppgpp, _ = self.fit_rna_expression(all_cistron_aff_ppgpp)
+        self.aff_free, _ = self.fit_rna_expression(all_cistron_aff_free)
+
+        # Scale TU-level affinities to match original minimal-condition affinities
+        # TODO: check does anything change drastically here? might want to change if so (probably don't change even if so)
+        self.match_ppgpp_expression_to_target(minimal_aff_TUs, ppgpp_minimal)
 
         self._ppgpp_expression_set = True
+
+    def match_ppgpp_expression_to_target(self, target_affs, ppgpp_conc, target_idxs=None):
+        '''
+        Scales ppGpp-bound and free RNAP affinities equally to produce target_affs when ppGpp
+        levels are at ppGpp_conc. If target_idxs are provided, scales affinities for these
+        TUs; if not, scales for all (len(target_affs) must be total number of TUs then)
+
+        Modifies: TODO: write description here
+            aff_free
+            aff_ppgpp
+
+        Notes:
+            Uses synth_aff_from_ppgpp function.
+        '''
+
+        # Current synthesis affinities from ppGpp regulation
+        old_aff = self.synth_aff_from_ppgpp(ppgpp_conc)
+
+        if target_idxs is not None:
+            old_aff = old_aff[target_idxs]
+
+        # Determine adjustments to the current ppGpp affinities to scale
+        # to the expected affinities
+        with np.errstate(invalid="ignore", divide="ignore"):
+            adjustment = target_affs / old_aff
+        adjustment[~np.isfinite(adjustment)] = 1
+
+        # Scale free and bound expression
+        if target_idxs is not None:
+            self.aff_free[target_idxs] *= adjustment
+            self.aff_ppgpp[target_idxs] *= adjustment
+            # TODO: check that this modifies the ndarray
+        else:
+            self.aff_free *= adjustment
+            self.aff_ppgpp *= adjustment
+        # TODO: look at what's actually changing here, anything drastic?
+
+        # TODO: do we need these checks?
+        self.aff_free[self.aff_free < 0] = 0
+        self.aff_ppgpp[self.aff_ppgpp < 0] = 0
 
     def adjust_polymerizing_ppgpp_expression(self, sim_data):
         """
@@ -1975,132 +2148,125 @@ class Transcription(object):
                 of the math used in this section.
 
         TODO:
-                fit for all conditions and not just those specified below?
+                Try should it be just three conditions or all conditions?
+                Figure out how to adjust for TFs (or maybe we don't need to if
+                TF adjustments take place before this?)
         """
 
         # Fraction RNAP bound to ppGpp in different conditions
-        ppgpp_aa = sim_data.growth_rate_parameters.get_ppGpp_conc(
-            sim_data.condition_to_doubling_time["with_aa"]
-        )
-        ppgpp_basal = sim_data.growth_rate_parameters.get_ppGpp_conc(
-            sim_data.condition_to_doubling_time["basal"]
-        )
-        ppgpp_anaerobic = sim_data.growth_rate_parameters.get_ppGpp_conc(
-            sim_data.condition_to_doubling_time["no_oxygen"]
-        )
-        f_ppgpp_aa = self.fraction_rnap_bound_ppgpp(ppgpp_aa)
-        f_ppgpp_basal = self.fraction_rnap_bound_ppgpp(ppgpp_basal)
-        f_ppgpp_anaerobic = self.fraction_rnap_bound_ppgpp(ppgpp_anaerobic)
+        ppgpp_concs = np.array([
+            sim_data.growth_rate_parameters.get_ppGpp_conc(
+                sim_data.condition_to_doubling_time[condition]
+            )
+            for condition in sim_data.conditions
+        ])
 
-        # Adjustments for TFs
-        ## Probabilities need to be unnormalized to match the scale of delta prob
-        ## This includes not having get_delta_aff_matrix normalized for ppGpp
-        tf_adjustments = {}
-        delta_aff = sim_data.process.transcription_regulation.get_delta_aff_matrix(
-            ppgpp=False
-        )
+        f_ppgpps = np.array([
+            self.fraction_rnap_bound_ppgpp(ppgpp) for ppgpp in ppgpp_concs
+        ])
+
         adjusted_mask = (
             self.rna_data["includes_RNAP"]
             | self.rna_data["includes_ribosomal_protein"]
             | self.rna_data["is_rRNA"]
         )
-        for condition in ["with_aa", "basal", "no_oxygen"]:
-            p_promoter_bound = np.array(
-                [
-                    sim_data.pPromoterBound[condition][tf]
-                    for tf in sim_data.process.transcription_regulation.tf_ids
-                ]
-            )
-            delta = delta_aff @ p_promoter_bound
-            condition_aff = (
-                sim_data.process.transcription_regulation.basal_aff + delta
-            )
-            tf_adjustments[condition] = (
-                delta[adjusted_mask] / condition_aff[adjusted_mask]
-            )
 
-        # Solve least squares fit for expression of each component of RNAP and ribosomes
-        self._normalize_ppgpp_expression()  # Need to normalize first to get correct scale
-        F = np.array(
-            [
-                [1 - f_ppgpp_aa, f_ppgpp_aa],
-                [1 - f_ppgpp_basal, f_ppgpp_basal],
-                [1 - f_ppgpp_anaerobic, f_ppgpp_anaerobic],
-            ]
-        )
+        # Solve least squares fit for affinity of each component of RNAP and ribosomes
+        F = np.array([
+                [1 - f, f]
+                for f in f_ppgpps
+            ])
         Flst = np.linalg.inv(F.T.dot(F)).dot(F.T)
-        expression = np.array(
-            [
-                self.rna_expression["with_aa"][adjusted_mask]
-                * np.fmax(0, 1 - tf_adjustments["with_aa"]),
-                self.rna_expression["basal"][adjusted_mask]
-                * np.fmax(0, 1 - tf_adjustments["basal"]),
-                self.rna_expression["no_oxygen"][adjusted_mask]
-                * np.fmax(0, 1 - tf_adjustments["no_oxygen"]),
-            ]
-        )
-        adjusted_free, adjusted_ppgpp = Flst.dot(expression)
-        self.exp_free[adjusted_mask] = adjusted_free
-        self.exp_ppgpp[adjusted_mask] = adjusted_ppgpp
-        self._normalize_ppgpp_expression()
+        affinity = np.array([
+                self.rna_synth_aff[condition][adjusted_mask]
+                for condition in sim_data.conditions
+            ])
+        adjusted_free_aff, adjusted_ppgpp_aff = Flst.dot(affinity)
+
+        # Set free and ppGpp affinities
+        self.aff_free[adjusted_mask] = adjusted_free_aff
+        self.aff_ppgpp[adjusted_mask] = adjusted_ppgpp_aff
+
+        self.aff_free[self.aff_free < 0] = 0
+        self.aff_ppgpp[self.aff_ppgpp < 0] = 0
 
     def adjust_ppgpp_expression_for_tfs(self, sim_data):
-        """
-        Adjusts ppGpp regulated expression to get expression with and without
-        ppGpp regulation to match in basal condition and taking into account
-        the effect transcription factors will have.
+        # Get one-peak and two-peak data (without TFs bound, one-peak TUs should have
+        # their set affinity, and two-peak TUs should be set at their unbound affinity
+        one_peak_affs = sim_data.process.transcription_regulation["affinity"]
+        one_peak_TUs = sim_data.process.transcription_regulation["TU_idxs"]
+        two_peak_unbound_affs = sim_data.process.transcription_regulation["unbound_affinity"]
+        two_peak_TUs = sim_data.process.transcription_regulation["TU_idxs"]
 
-        TODO:
-                Should this not adjust polymerizing genes (adjusted_mask in
-                        adjust_polymerizing_ppgpp_expression) since they have already
-                        been adjusted for transcription factor effects?
-        """
+        # Combine into single arrays
+        target_affs = copy.deepcopy(one_peak_affs)
+        target_affs.extend(two_peak_unbound_affs)
+        target_TUs = copy.deepcopy(one_peak_TUs)
+        target_TUs.extend(two_peak_TUs)
 
-        condition = "basal"
-
-        # Current (unnormalized) probabilities from ppGpp regulation
-        ppgpp_conc = sim_data.growth_rate_parameters.get_ppGpp_conc(
-            sim_data.condition_to_doubling_time[condition]
+        # Let basal condition ppGpp-derived affinity for one-peak and two-peak genes match the targets
+        basal_ppgpp = sim_data.growth_rate_parameters.get_ppGpp_conc(
+            sim_data.condition_to_doubling_time["basal"]
         )
-        old_aff, factor = self.synth_aff_from_ppgpp(
-            ppgpp_conc, sim_data.process.replication.get_average_copy_number
-        )
+        self.match_ppgpp_expression_to_target(target_affs, basal_ppgpp, target_idxs=target_TUs)
 
-        # Calculate the average expected effect of TFs in basal condition
-        p_promoter_bound = np.array(
-            [
-                sim_data.pPromoterBound[condition][tf]
-                for tf in sim_data.process.transcription_regulation.tf_ids
-            ]
-        )
-        delta_aff_no_ppgpp = (
-            sim_data.process.transcription_regulation.get_delta_aff_matrix(ppgpp=False)
-        )
-        delta_aff_with_ppgpp = (
-            sim_data.process.transcription_regulation.get_delta_aff_matrix(ppgpp=True)
-        )
-        delta_no_ppgpp = delta_aff_no_ppgpp @ p_promoter_bound
-        delta_with_ppgpp = delta_aff_with_ppgpp @ p_promoter_bound
-
-        # Calculate the required affinity to match expression without ppGpp
-        new_aff = copy.deepcopy(sim_data.process.transcription_regulation.basal_aff)
-            #(sim_data.process.transcription_regulation.basal_aff
-             #       + delta_no_ppgpp) / (1 + delta_with_ppgpp)
-
-        new_aff[new_aff < 0] = old_aff[new_aff < 0]
-
-        # Determine adjustments to the current ppGpp expression to scale
-        # to the expected expression
-        with np.errstate(invalid="ignore", divide="ignore"):
-            adjustment = new_aff / old_aff
-        adjustment[~np.isfinite(adjustment)] = 1
-
-        # TODO: probably change this part when changing to using affinities instead?
-        # Scale free and bound expression and renormalize ppGpp regulated expression
-        self.exp_free *= adjustment
-        self.exp_ppgpp *= adjustment
-        self._normalize_ppgpp_expression()
-        # TODO: what to do if exp_free has a gene already at 0, but it's not at 0 in basal_aff?
+    # def adjust_ppgpp_expression_for_tfs(self, sim_data):
+    #     """
+    #     Adjusts ppGpp regulated expression to get expression with and without
+    #     ppGpp regulation to match in basal condition and taking into account
+    #     the effect transcription factors will have.
+    #
+    #     TODO:
+    #             Should this not adjust polymerizing genes (adjusted_mask in
+    #                     adjust_polymerizing_ppgpp_expression) since they have already
+    #                     been adjusted for transcription factor effects?
+    #     """
+    #
+    #     condition = "basal"
+    #
+    #     # Current (unnormalized) probabilities from ppGpp regulation
+    #     ppgpp_conc = sim_data.growth_rate_parameters.get_ppGpp_conc(
+    #         sim_data.condition_to_doubling_time[condition]
+    #     )
+    #     old_aff, factor = self.synth_aff_from_ppgpp(
+    #         ppgpp_conc, sim_data.process.replication.get_average_copy_number
+    #     )
+    #
+    #     # Calculate the average expected effect of TFs in basal condition
+    #     p_promoter_bound = np.array(
+    #         [
+    #             sim_data.pPromoterBound[condition][tf]
+    #             for tf in sim_data.process.transcription_regulation.tf_ids
+    #         ]
+    #     )
+    #     delta_aff_no_ppgpp = (
+    #         sim_data.process.transcription_regulation.get_delta_aff_matrix(ppgpp=False)
+    #     )
+    #     delta_aff_with_ppgpp = (
+    #         sim_data.process.transcription_regulation.get_delta_aff_matrix(ppgpp=True)
+    #     )
+    #     delta_no_ppgpp = delta_aff_no_ppgpp @ p_promoter_bound
+    #     delta_with_ppgpp = delta_aff_with_ppgpp @ p_promoter_bound
+    #
+    #     # Calculate the required affinity to match expression without ppGpp
+    #     new_aff = copy.deepcopy(sim_data.process.transcription_regulation.basal_aff)
+    #         #(sim_data.process.transcription_regulation.basal_aff
+    #          #       + delta_no_ppgpp) / (1 + delta_with_ppgpp)
+    #
+    #     new_aff[new_aff < 0] = old_aff[new_aff < 0]
+    #
+    #     # Determine adjustments to the current ppGpp expression to scale
+    #     # to the expected expression
+    #     with np.errstate(invalid="ignore", divide="ignore"):
+    #         adjustment = new_aff / old_aff
+    #     adjustment[~np.isfinite(adjustment)] = 1
+    #
+    #     # TODO: probably change this part when changing to using affinities instead?
+    #     # Scale free and bound expression and renormalize ppGpp regulated expression
+    #     self.exp_free *= adjustment
+    #     self.exp_ppgpp *= adjustment
+    #     self._normalize_ppgpp_expression()
+    #     # TODO: what to do if exp_free has a gene already at 0, but it's not at 0 in basal_aff?
 
     def _normalize_ppgpp_expression(self):
         """
@@ -2136,76 +2302,87 @@ class Transcription(object):
                 float: fraction of RNAP that will be bound to ppGpp
         """
 
+        # TODO: incorporate active fraction into this
         if units.hasUnit(ppgpp):
             ppgpp = ppgpp.asNumber(PPGPP_CONC_UNITS)
 
         return ppgpp**2 / (self._ppgpp_km_squared + ppgpp**2)
 
-    def expression_from_ppgpp(self, ppgpp):
-        """
-        Calculates the expression of each gene at a given concentration of ppGpp.
+    def expression_from_doubling_time(self, sim_data, doubling_time, avgCellDryMassInit=None, Km=None):
+        '''
+        Calculates expression of each gene at the ppGpp concentration corresponding to a given doubling time.
+        First calculates affinities from ppgpp, converts to synthesis
+        probabilities with copy numbers from doubling time, and synthesis probabilities to
+        expression with loss rates of RNAs.
 
-        Args:
-                ppgpp (float with or without mol / volume units): concentration of ppGpp,
-                        if unitless, should represent the concentration of PPGPP_CONC_UNITS
+        Inputs
+        ------
+        - doubling_time (float with units of time) - doubling time of the condition
 
-        Returns:
-                ndarray[float]: normalized expression for each gene
-        """
+        Returns
+        --------
+        - expression (array of floats) - derived expression for each RNA,
+        normalized to 1
 
-        f_ppgpp = self.fraction_rnap_bound_ppgpp(ppgpp)
-        return normalize(self.exp_free * (1 - f_ppgpp) + self.exp_ppgpp * f_ppgpp)
+        Notes
+        ------
+        - uses synth_aff_from_ppgpp function
+        TODO: use avgCellDryMassInit and Km to account for endoRNAses (used where Km is not None),
+        see synth_aff_prob_from_exp(). Need to get loss rates, but without actual counts somehow,
+        maybe some iterative procedure if not overkill? Also need to get avgCellDryMassInit before
+        actually having expression.
+        - copy_number should be sim_data.process.replication.get_average_copy_number, sending this
+        improves efficiency by getting rid of pickling step
+        '''
+        transcription = sim_data.process.transcription
+        # Calculate synthesis affinities
+        ppgpp = sim_data.growth_rate_parameters.get_ppGpp_conc(doubling_time)
+        synth_aff = sim_data.process.transcription.synth_aff_from_ppgpp(ppgpp)
 
-    def synth_aff_from_ppgpp(self, ppgpp, copy_number, balanced_rRNA_prob=True):
+        # Calculate synthesis probabilities
+        rna_coords = transcription.rna_data["replication_coordinate"]
+        tau = doubling_time.asNumber(units.min)
+        copy_numbers = sim_data.process.replication.get_average_copy_number(tau, rna_coords)
+
+        synth_prob = synth_aff * copy_numbers
+        synth_prob = normalize(synth_prob)
+
+        ## Calculate expression
+        # TODO: account for endoRNAses, right now it makes the assumption
+        #  that Km=None and follows the loss rate assumption from
+        #  netLossRateFromDilutionDegradationRNALinear()
+        deg_rates = transcription.rna_data["deg_rate"]
+        loss_rate = (np.log(2) / doubling_time + deg_rates)
+
+        expression = synth_prob / loss_rate
+        expression = normalize(expression)
+
+        return expression
+
+    def synth_aff_from_ppgpp(self, ppgpp, balanced_rRNA_prob=True):
         """
         Calculates the synthesis affinity of each gene at a given concentration
         of ppGpp.
 
         Args:
                 ppgpp (float with mol / volume units): concentration of ppGpp
-                copy_number (Callable[float, int]): function that gives the expected copy
-                        number given a doubling time and gene replication coordinate
-                balanced_rRNA_prob (bool): if True, set synthesis probabilities
+                balanced_rRNA_prob (bool): if True, set synthesis affinities
                     of rRNA promoters equal to one another
 
         Returns
-                aff (ndarray[float]): normalized transcription affinity for each gene
-                factor (ndarray[float]): factor to adjust expression to probability for each gene,
-                which is then normalized (so that mRNAs have the same sum) to obtain affinity
-
-        Note:
-                copy_number should be sim_data.process.replication.get_average_copy_number
-                but saving the function handle as a class attribute prevents pickling of sim_data
-                without additional handling
+                aff (ndarray[float]): synthesis affinity for each gene
         """
 
         ppgpp = ppgpp.asNumber(PPGPP_CONC_UNITS)
         f_ppgpp = self.fraction_rnap_bound_ppgpp(ppgpp)
 
-        y = fitting.interpolate_linearized_fit(ppgpp, *self._ppgpp_growth_parameters)
-        growth = max(cast(float, y), 0.0)
-        tau = np.log(2) / growth / 60
-        loss = growth + self.rna_data["deg_rate"].asNumber(1 / units.s)
-        # Use the wildtype replication coordinates that were used to calculate
-        # exp_free and exp_ppgpp, instead of coordinates that can be adjusted
-        # via variants
-        n_avg_copy = copy_number(tau, self.rna_data["wt_replication_coordinate"])
-
-        # Return values
-        factor = loss / n_avg_copy
-        aff = (self.exp_free * (1 - f_ppgpp) + self.exp_ppgpp * f_ppgpp) * factor
-        is_mRNA = self.rna_data['is_mRNA']
-
-        # Normalize affinities so that they are equal to the per-copy fraction of mRNA
-        # synthesis that a given gene occupies.
-        basal_condition = 'basal'
-        aff = aff * np.sum(self.rna_synth_aff[basal_condition][is_mRNA] * n_avg_copy[is_mRNA]) \
-              / np.sum(aff[is_mRNA] * n_avg_copy[is_mRNA])
+        # TODO: make this involve active fraction of RNAPs too
+        aff = self.aff_free * f_ppgpp + self.aff_ppgpp * (1 - f_ppgpp)
 
         if balanced_rRNA_prob:
             aff[self.rna_data["is_rRNA"]] = aff[self.rna_data["is_rRNA"]].mean()
 
-        return aff, factor
+        return aff
 
     def get_rnap_active_fraction_from_ppGpp(self, ppgpp):
         f_ppgpp = self.fraction_rnap_bound_ppgpp(ppgpp)

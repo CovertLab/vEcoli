@@ -82,6 +82,7 @@ class SimulationDataEcoli(object):
         self.external_state = ExternalState(raw_data, self)
         self.process = Process(raw_data, self)
         self.internal_state = InternalState(raw_data, self)
+        self.process.transcription.set_ppgpp_parameters(raw_data, self)
 
         # Relations between data classes (can depend on data classes)
         # Relations cannot depend on each other
