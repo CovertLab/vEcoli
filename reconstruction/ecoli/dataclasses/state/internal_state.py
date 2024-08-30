@@ -309,10 +309,11 @@ class InternalState(object):
         # from the origin. This value does not change after the molecule is initialized.
         # - domain_index (32-bit int): Domain index of the chromosome domain that the binding site
         # belongs to. This value is used to split the binding sites at cell division and DNA replication.
-        # - bound_TF (boolean array of length n_tf): A boolean array that
-        # shows which TFs the binding site is bound to. Note that while one binding site can only bind one
-        # TF at once, in some cases (mainly TFs that bind both in both ligand bound and free forms, although
-        # these are not yet implemented in the model) it has multiple choices of TFs to bind.
+        # - bound_TF (32-bit int): An integer that specifies the index of the TF that is bound to the binding
+        # site. -1 is the flag for no TF being bound. We assume that only one TF can bind at a time. Note that,
+        # for the vast majority of binding-sites, only one type of TF can bind, but for some cases (e.g. dual
+        # activator/repressor TFs), EcoCyc has annotated that more than one type of TF molecule can bind.
+        # TODO: where to put this global flag for no TF being bound?
 
         n_tf = len(sim_data.process.transcription_regulation.tf_ids)
 
@@ -321,7 +322,7 @@ class InternalState(object):
             "tf_binding_site_index": "i8",
             "coordinates": "i8",
             "domain_index": "i8",
-            "bound_TF": ("?", n_tf)
+            "bound_TF": "i8",
         }
 
         self.unique_molecule.add_to_unique_state(
