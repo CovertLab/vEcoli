@@ -46,15 +46,11 @@ class TfBinding(Step):
     topology = TOPOLOGY
     defaults = {
         "tf_ids": [],
-        "rna_ids": [],
-        "raw_binding_rates": {"bindingI": [], "bindingJ": [], "bindingV": []},
-        "raw_unbinding_rates": {"unbindingI": [], "unbindingJ": [], "unbindingV": []},
         "get_binding_unbinding_matrices": None,
+        "tf_binding_site_unbound_idx": -1,
+        "get_tf_binding_site_to_TU_matrix": None,
         "n_avogadro": 6.02214076e23 / units.mol,
         "cell_density": 1100 * units.g / units.L,
-        # Calculate promoter binding probability when not 0CS TF
-        #"p_promoter_bound_tf": lambda active, inactive: float(active)
-        #/ (float(active) + float(inactive)),
         "bulk_molecule_ids": [],
         "bulk_mass_data": np.array([[]]) * units.g / units.mol,
         "seed": 0,
@@ -76,26 +72,32 @@ class TfBinding(Step):
     def __init__(self, parameters=None):
         super().__init__(parameters)
 
+
+        # TF-regulation gives binding_site_num x tf_num binding and unbinding rates.
+        # What we want to do is: for unbinding, since it's slow (we assume for now),
+        # can simply get whether the binding site is occupied, and then based on the
+        # unbinding rate, each has a probability of falling off during the timestep,
+        # and then we can calculate that.
+        # For binding: usually it's fast, maybe we could do a Gillespie.
+
         # Get IDs of transcription factors
         self.tf_ids = self.parameters["tf_ids"]
         self.n_TF = len(self.tf_ids)
 
-        self.rna_ids = self.parameters["rna_ids"]
-
-        # Build dict that maps TFs to transcription units they regulate
-        self.raw_binding_rates = self.parameters["raw_binding_rates"]
-        self.raw_unbinding_rates = self.parameters["raw_unbinding_rates"]
         self.get_binding_unbinding_matrices = self.parameters["get_binding_unbinding_matrices"]
-        self.TF_to_TU_idx = {}
-
-        # TODO: change this when switching to binding sites
-        for i, tf in enumerate(self.tf_ids):
-            self.TF_to_TU_idx[tf] = self.raw_binding_rates["bindingI"][
-                self.raw_binding_rates["bindingJ"] == i
-            ]
+        self.tf_unbound_idx = self.parameters["tf_binding_site_unbound_idx"]
 
         # Get total counts of transcription units
-        self.n_TU = self.raw_binding_rates["shape"][0]
+        #self.n_TU = self.raw_binding_rates["shape"][0]
+        # Get total number of binding sites that a given TF can bind to, by looking at binding matrices
+        binding_rates, _ = self.get_binding_unbinding_matrices()
+        can_bind = (binding_rates.asNumber() > 0.).astype(int)
+        self.n_binding_sites_per_TF = np.sum(can_bind, axis=0)
+
+        # Get tf-binding-site to TUs mapping matrix
+        self.get_tf_binding_site_to_TU_matrix = self.parameters["get_tf_binding_site_to_TU_matrix"]
+        tf_binding_site_to_TU_matrix = self.get_tf_binding_site_to_TU_matrix(dense=True)
+        self.n_TU = np.size(tf_binding_site_to_TU_matrix)[1]
 
         # Get constants
         self.n_avogadro = self.parameters["n_avogadro"]
@@ -114,7 +116,7 @@ class TfBinding(Step):
         # Build array of active TF masses
         self.bulk_molecule_ids = self.parameters["bulk_molecule_ids"]
         tf_indexes = [
-            np.where(self.bulk_molecule_ids == tf_id + "[c]")[0][0]
+            np.where(self.bulk_molecule_ids == self.active_tfs[tf_id])[0][0]
             for tf_id in self.tf_ids
         ]
         self.active_tf_masses = (
@@ -131,15 +133,17 @@ class TfBinding(Step):
             self.marR_tet = "marR-tet[c]"
         self.submass_indices = self.parameters["submass_indices"]
 
+        self.time_step = self.parameters["time_step"] * units.s # TODO: where to get units?
+
     def ports_schema(self):
         return {
-            "promoters": numpy_schema("promoters", emit=self.parameters["emit_unique"]),
+            "tf_binding_sites": numpy_schema("tf_binding_sites", emit=self.parameters["emit_unique"]),
             "bulk": numpy_schema("bulk"),
             "listeners": {
                 "rna_synth_prob": listener_schema(
                     {
-                        "n_available_promoters": ([0] * self.n_TF, self.tf_ids),
-                        "n_bound_promoters": ([0] * self.n_TF, self.tf_ids),
+                        "n_available_binding_sites": ([0] * self.n_TF, self.tf_ids),
+                        "n_bound_binding_sites": ([0] * self.n_TF, self.tf_ids),
                         "n_binding_events": ([0] * self.n_TF, self.tf_ids),
                         "n_unbinding_events": ([0] * self.n_TF, self.tf_ids),
                         # 900 KB, very large, comment out to halve emit size
@@ -147,16 +151,6 @@ class TfBinding(Step):
                             [[0] * self.n_TF] * self.n_TU,
                             self.rna_ids
                         ),
-                        #
-                        #
-                        # #"p_promoter_bound": ([0.0] * self.n_TF, self.tf_ids),
-                        # #"n_promoter_bound": ([0] * self.n_TF, self.tf_ids),
-                        # "n_actual_bound": ([0] * self.n_TF, self.tf_ids),
-                        # "n_available_promoters": ([0] * self.n_TF, self.tf_ids),
-                        # "n_bound_TF_per_TU": (
-                        #     [[0] * self.n_TF] * self.n_TU,
-                        #     self.rna_ids,
-                        #),
                     }
                 )
             },
@@ -197,25 +191,21 @@ class TfBinding(Step):
             if "PD00365" in self.tf_ids:
                 self.marR_idx = bulk_name_to_idx(self.marR_name, bulk_ids)
                 self.marR_tet_idx = bulk_name_to_idx(self.marR_tet, bulk_ids)
+        # TODO: restore marR regulation things
 
-        # If there are no promoters, return immediately
-        if states["promoters"]["_entryState"].sum() == 0:
-            return {"promoters": {}}
+        # If there are no tf-binidng-sites, return immediately
+        if states["tf_binding_sites"]["_entryState"].sum() == 0:
+            return {"tf_binding_sites": {}}
 
-        # Get attributes of all promoters
-        TU_index, bound_TF = attrs(states["promoters"], ["TU_index", "bound_TF"])
-        #
-        # # Calculate number of bound TFs for each TF prior to changes
-        # n_bound_TF = bound_TF.sum(axis=0)
+        # Get attributes of all TF-binding sites
+        binding_site_index, bound_TF = attrs(states["tf_binding_site"], [
+            "tf_binding_site_index", "bound_TF"])
 
-        # Initialize new bound_TF array TODO: do you need to copy?
-        bound_TF_new = copy.deepcopy(bound_TF)
+        new_bound_TF = copy.deepcopy(bound_TF)
+        binding_site_is_free = (new_bound_TF == self.tf_unbound_idx)
 
-        # Create vectors for storing values
-        #pPromotersBound = np.zeros(self.n_TF, dtype=np.float64)
-        #nPromotersBound = np.zeros(self.n_TF, dtype=int)
-        n_bound_promoters = np.zeros(self.n_TF, dtype=int)
-        n_available_promoters = np.zeros(self.n_TF, dtype=int)
+        n_available_binding_sites = np.zeros(self.n_TF, dtype=int)
+        n_bound_binding_sites = np.zeros(self.n_TF, dtype=int)
         n_binding_events = np.zeros(self.n_TF, dtype=int)
         n_unbinding_events = np.zeros(self.n_TF, dtype=int)
         n_bound_TF_per_TU = np.zeros((self.n_TU, self.n_TF), dtype=np.int16)
@@ -223,7 +213,7 @@ class TfBinding(Step):
         update = {"bulk": []}
 
 
-        # Rates of unbinding and binding for a certain TF to a binding site on a certain TU
+        # Rates of binding for a certain TF to a binding site on a certain TU
         # TODO: modify so its for a certain TF onto a binding site, and a second matrix
         #  for associating each binding site to a certain TU
         # TODO: get actual second-order rate constant, also what are units supposed to be?
@@ -238,8 +228,9 @@ class TfBinding(Step):
 
         # Get binding and unbinding rates based on present promoters
         raw_binding_rates_matrix, raw_unbinding_rates_matrix = self.get_binding_unbinding_matrices(dense=True)
-        binding_rates = raw_binding_rates_matrix[TU_index, :]
-        unbinding_rates = raw_unbinding_rates_matrix[TU_index, :]
+        binding_rates = raw_binding_rates_matrix[binding_site_index, :]
+        unbinding_rates = raw_unbinding_rates_matrix[binding_site_index, :]
+
         # TODO: figure out whether can simplify using these nonzero stuff?
         # binding_rates_nonzero_idxs = np.nonzero(binding_rates)
         # unbinding_rates_nonzero_idxs = np.nonzero(unbinding_rates)
@@ -248,109 +239,111 @@ class TfBinding(Step):
 
         # Calculate final binding rates accounting for reactant concentrations
         binding_rates_final = np.multiply(binding_rates, active_tf_counts)
-        # TODO: later, when more than one binding site at once, can do num_total - bound_TF instead of ~bound_TF
-        binding_rates_final = np.multiply(binding_rates_final, ~bound_TF_new)
-        unbinding_rates_final = np.multiply(unbinding_rates, bound_TF_new)
+        # TODO: how to ensure they're multiplying on the right axis?
+        binding_rates_final = np.multiply(binding_rates_final, binding_site_is_free)
 
-
-        # Run Gillespie simulation for the length of timestep
+        # Run Gillespie simulation for binding reactions for the length of timestep
         rxn_time = 0
-        while np.sum(binding_rates_final) + np.sum(unbinding_rates_final) > 0:
+        while np.sum(binding_rates_final) > 0:
             # Get binding rate sums
-            total_bind_rates = np.sum(binding_rates_final)
-            total_unbind_rates = np.sum(unbinding_rates_final)
-            total_rates = total_bind_rates + total_unbind_rates
+            total_rates = np.sum(binding_rates_final)
 
             # Determine reaction time
             r1 = self.random_state.rand()
             rxn_time += 1/total_rates * np.log(1/r1)
 
             # If we surpass the current timestep, don't perform reaction
-            # TODO: where to get the units of timstep?
-            if rxn_time > (self.parameters["time_step"] * units.s).asNumber(units.min):
+            if rxn_time > (self.time_step).asNumber(units.min):
                 break
 
-            # Choose whether to bind or unbind
-            to_bind = self.random_state.choice([0, 1], p=[total_unbind_rates / total_rates,
-                                                        total_bind_rates / total_rates])
+            # Choose a reaction to perform
+            nonzero_indices = np.nonzero(binding_rates_final)
+            nonzero_probas = binding_rates_final[nonzero_indices]
+            nonzero_probas = nonzero_probas / np.sum(nonzero_probas)
+            nonzero_indices = np.transpose(nonzero_indices)
+            chosen_idx = self.random_state.choice(len(nonzero_indices), p=nonzero_probas)
+            rxn_index = nonzero_indices[chosen_idx]
 
-            if to_bind:
-                # Choose a reaction to perform
-                nonzero_indices = np.nonzero(binding_rates_final)
-                nonzero_probas = binding_rates_final[nonzero_indices]
-                nonzero_probas = nonzero_probas / np.sum(nonzero_probas)
-                nonzero_indices_t = np.transpose(nonzero_indices)
-                chosen_idx = self.random_state.choice(len(nonzero_indices_t), p=nonzero_probas)
-                rxn_index = nonzero_indices_t[chosen_idx]
+            # Decrement the TF (given by column index), change the bound_TF
+            assert active_tf_counts[rxn_index[1]] > 0
+            assert (binding_site_is_free[rxn_index[0], rxn_index[1]] == True)
+            active_tf_counts[rxn_index[1]] -= 1
+            new_bound_TF[rxn_index[0]] = rxn_index[1]
+            binding_site_is_free[rxn_index[0]] = False
 
-                # Decrement the TF (given by column index), and increase the bound TF
-                assert active_tf_counts[rxn_index[1]] > 0
-                assert bound_TF_new[rxn_index[0], rxn_index[1]] == False
-                active_tf_counts[rxn_index[1]] -= 1
-                bound_TF_new[rxn_index[0], rxn_index[1]] = True
-
-                # Record the reaction
-                n_binding_events[rxn_index[1]] += 1
-            else:
-                # Choose a reaction to perform
-                nonzero_indices = np.nonzero(unbinding_rates_final)
-                nonzero_probas = unbinding_rates_final[nonzero_indices]
-                nonzero_probas = nonzero_probas / np.sum(nonzero_probas)
-                nonzero_indices_t = np.transpose(nonzero_indices)
-                chosen_idx = self.random_state.choice(len(nonzero_indices_t), p=nonzero_probas)
-                rxn_index = nonzero_indices_t[chosen_idx]
-
-                # Increment the TF (given by column index), and decrease the bound TF
-                active_tf_counts[rxn_index[1]] += 1
-                bound_TF_new[rxn_index[0], rxn_index[1]] = False
-
-                # Record the reaction
-                n_unbinding_events[rxn_index[1]] += 1
+            # Record the reaction
+            n_binding_events[rxn_index[1]] += 1
 
             # Recalculate binding rates for next step
             binding_rates_final = np.multiply(binding_rates, active_tf_counts)
-            binding_rates_final = np.multiply(binding_rates_final, ~bound_TF_new)
-            unbinding_rates_final = np.multiply(unbinding_rates, bound_TF_new)
+            binding_rates_final = np.multiply(binding_rates_final, binding_site_is_free)
 
-        # Update promoters bound_TF
-        delta_bound_TF = bound_TF_new.astype(np.int8) - bound_TF.astype(np.int8)
-        mass_diffs = delta_bound_TF.dot(self.active_tf_masses)
+        # Unbinding
+        final_unbinding_rates = []
+        for i, tf_idx in enumerate(bound_TF):
+            if tf_idx != self.tf_unbound_idx:
+                final_unbinding_rates.append(unbinding_rates[i, tf_idx])
+            else:
+                final_unbinding_rates.append(0./units.min)
+        # Only one TF can bind per site
+        unbinding_rates = np.sum(unbinding_rates, axis=1)
+        # Poisson distribution for probability of event occurring
+        unbinding_events = self.random_state.poisson(
+            self.time_step.asNumber(units.min) * unbinding_rates,
+            size=len(unbinding_rates))
+        # At most one event can occur
+        unbinding_events = (unbinding_events > 0)
+
+        # Update molecule counts
+        # TODO: remove these asserts when they've been checked to not occur
+        assert self.tf_unbound_idx not in new_bound_TF[unbinding_events]
+        new_bound_TF[unbinding_events] = self.tf_unbound_idx
+        unbound_tfs = bound_TF[unbinding_events]
+        assert self.tf_unbound_idx not in unbound_tfs
+        unbound_tf_counts = np.bincount(unbound_tfs, minlength=self.n_TF)
+        active_tf_counts += unbound_tf_counts
+
+        # Record reactions
+        n_unbinding_events += unbound_tf_counts
+
+        # Update tf-binding-site objects
+        mass_start = self.active_tf_masses[bound_TF, :]
+        mass_start[(bound_TF == self.tf_unbound_idx), :] = 0. * units.fg
+        mass_end = self.active_tf_masses[new_bound_TF, :]
+        mass_end[binding_site_is_free, :] = 0. * units.fg # TODO: get units from somewhere
+        mass_diffs = mass_end - mass_start
         submass_update = {
-            submass: attrs(states["promoters"], [submass])[0] + mass_diffs[:, i]
+            submass: attrs(states["tf_binding_sites"], [submass])[0] + mass_diffs[:, i]
             for submass, i in self.submass_indices.items()
         }
-        update["promoters"] = {"set": {"bound_TF": bound_TF_new.astype(bool), **submass_update}}
+        update["tf_binding_sites"] = {"set": {"bound_TF": new_bound_TF.astype(int), **submass_update}}
 
         # Update active TFs
         delta_active_TF = active_tf_counts - active_tf_counts_original
         update["bulk"].append((active_tf_idxs, delta_active_TF))
 
-
-        # So each timestep, certain promoters get bound, certain promoters are unbound.
-        # There's a certain number of total available promoters that could be bound.
-        # We'd want to get 1. For each TF, how many promoters it could bind to, how many promoters
-        # it has currently bound, and how many association/disociation events have occured.
-        # 2. For each TU, how many of each kind of TF is bound to it by the end.
-
         # Record end values for listeners
-        for tf_idx, tf_id in enumerate(self.tf_ids):
-            available_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])
-            n_available_promoters[tf_idx] = np.count_nonzero(available_promoters)
-            n_bound_TF_per_TU[:, tf_idx] = np.bincount(
-                TU_index[bound_TF_new[:, tf_idx]], minlength=self.n_TU
-            )
+        # Each timestep, certain tf-binding-sites get bound and unbound.
+        # There's a certain number of total available binding-sites that could be bound.
+        # We get 1. For each TF, how many binding-sites it could bind to, how many binding-sites
+        # it has currently bound, and how many binding/unbinding events have occurred.
+        # 2. For each TU, how many of each kind of TF is bound to it by the end.
+        n_bound_binding_sites = np.array([len(np.where(new_bound_TF == idx)[0])
+                                 for idx in range(self.n_TF)])
+        n_available_binding_sites = self.n_binding_sites_per_TF - n_bound_binding_sites
 
-        # TODO: might have to think about how to do this if more than one binding site per TU, etc.
-        n_bound_promoters = bound_TF_new.sum(axis=0)
+        tf_binding_site_to_TU_matrix = self.get_tf_binding_site_to_TU_matrix(dense=True)
+        for i in range(self.n_TU):
+            tfs_bound = new_bound_TF[tf_binding_site_to_TU_matrix[:, i]]
+            for tf_idx in tfs_bound:
+                if tf_idx != self.tf_unbound_idx:
+                    n_bound_TF_per_TU[i, tf_idx] += 1
 
         # Update listeners
         update["listeners"] = {
             "rna_synth_prob": {
-                #"p_promoter_bound": pPromotersBound,
-                #"n_promoter_bound": nPromotersBound,
-                #"n_actual_bound": nActualBound,
-                "n_available_promoters": n_available_promoters,
-                "n_bound_promoters": n_bound_promoters,
+                "n_available_binding_sites": n_available_binding_sites,
+                "n_bound_binding_sites": n_bound_binding_sites,
                 "n_binding_events": n_binding_events,
                 "n_unbinding_events": n_unbinding_events,
                 # 900 KB, very large, comment out to halve emit size
@@ -361,56 +354,11 @@ class TfBinding(Step):
         update["next_update_time"] = states["global_time"] + states["timestep"]
         return update
 
-        # TODO: should divide by total dna mass vs normal dna mass?
+        # TODO: maybe should divide by total dna mass vs normal dna mass?
 
-        # How would I make a stoichiometry? The species are active TFs, bound binding-sites, unbound binding-sites.
-        # The reactions are: one more active TF, one less bound binding-site, one more unbound binding-site.
-        # and one less active TF, one more bound binding-site, one less unbound binding-site
-        # The rates are given in binding_rates and unbinding_rates, which we need to correlate to these reactions.
-        # In the end, we need to read how many binding sites there are,
-
-        # # TODO: get actual value from Km from paper or smth like that
-        # # TODO: get it from from transcription_regulation reconstruction
-        # # (and do sparse matrix if it's too slow but probably fine)
-        # unbinding_rate_matrix[purR_idx, purC_idx] = 0.1 / units.min
-        #
-        # # TODO: right now assumes each TF binds only to one site per TU, and that
-        # # all resulting unbindings are independent. Would get more complicated if
-        # # a TU can have multiple binding sites for the same TF, or if we take into
-        # # account multiple TFs regulating the same TU, etc.
-        # unbinding_rates = unbinding_rate_matrix[:, TU_index]
-        # unbinding_rates = np.multiply(unbinding_rates, bound_TF)
-        # unbinding_events = np.random.poisson(unbinding_rates * timestep.asNumber(units.min))
-        # # Can't unbind more TFs than are there (also ensures we don't unbind TFs from places
-        # # where they couldn't have bound in the first place)
-        # unbound_too_much = (unbinding_events > bound_TF)
-        # unbinding_events[unbound_too_much] = bound_TF[unbound_too_much]
+        # # TODO: get actual binding/unbinding rates from Km from paper or smth like that
 
         # TODO: think about whether to do anything differently cuz of 0CS, 1CS?
-
-        #
-        # for tf_idx, tf_id in enumerate(self.tf_ids):
-        #     curr_tf_idx = self.active_tf_idx[tf_id]
-        #     active_tf_count = counts(states["bulk"], curr_tf_idx)
-        #     bound_tf_counts = n_bound_TF[tf_idx]
-        #
-        #     binding_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])
-        #     available_promoters = (binding_promoters & ~bound_TF)
-        #     n_available_promoters = np.count_nonzero(available_promoters)
-        #
-        #
-        #     if active_tf_count > 0 & n_available_promoters > 0:
-        #         # TODO: Calculate a rate to bind them and bind as needed
-        #         # TODO: figure out if there might be a problem with the allocator?
-
-            #if bound_tf_counts > 0:
-            #    unbinding_rates = unbinding_rate_matrix[tf_idx, ]
-
-
-                # TODO: Calculate a rate to unbind them and unbind as needed
-
-            # TODO: update a bound_tf_new array
-
             # # Free all DNA-bound transcription factors into free active
             # # transcription factors
             # curr_tf_idx = self.active_tf_idx[tf_id]

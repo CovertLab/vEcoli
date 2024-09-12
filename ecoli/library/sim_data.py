@@ -665,18 +665,16 @@ class LoadSimData:
 
         return chromosome_replication_config
 
-    def get_tf_config(self, time_step=1, parallel=False):
+    def get_tf_binding_config(self, time_step=1, parallel=False):
         tf_binding_config = {
             "time_step": time_step,
             "_parallel": parallel,
             "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
-            "rna_ids": self.sim_data.process.transcription.rna_data["id"],
-            "raw_binding_rates": self.sim_data.process.transcription_regulation.raw_binding_rates,
-            "raw_unbinding_rates": self.sim_data.process.transcription_regulation.raw_unbinding_rates,
             "get_binding_unbinding_matrices": self.sim_data.process.transcription_regulation.get_tf_binding_unbinding_matrices,
+            "tf_binding_site_unbound_idx": self.sim_data.process.transcription_regulation.unbound_tf_binding_site_idx,
+            "get_tf_binding_site_to_TU_matrix": self.sim_data.relation.tf_binding_site_to_tus_mapping,
             "n_avogadro": self.sim_data.constants.n_avogadro,
             "cell_density": self.sim_data.constants.cell_density,
-            #"p_promoter_bound_tf": self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
             # TODO: not sure if will need this later
             #"tf_to_tf_type": self.sim_data.process.transcription_regulation.tf_to_tf_type,
             "bulk_molecule_ids": self.sim_data.internal_state.bulk_molecules.bulk_data[
