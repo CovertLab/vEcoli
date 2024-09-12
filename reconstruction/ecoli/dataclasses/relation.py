@@ -14,8 +14,8 @@ class Relation(object):
         self._build_monomer_to_tu_mapping(raw_data, sim_data)
         self._build_RNA_to_tf_mapping(raw_data, sim_data)
         self._build_tf_to_RNA_mapping(raw_data, sim_data)
-        self._build_tf_binding_site_to_tf_mapping(raw_data, sim_data)
-        self._build_tf_binding_site_to_tu_mapping(raw_data, sim_data)
+        self._build_tf_binding_site_to_tfs_mapping(raw_data, sim_data)
+        self._build_tf_binding_site_to_tus_mapping(raw_data, sim_data)
 
     def _build_cistron_to_monomer_mapping(self, raw_data, sim_data):
         """

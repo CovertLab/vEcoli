@@ -96,6 +96,7 @@ def fitSimData_1(raw_data, **kwargs):
     sim_data, cell_specs = input_adjustments(sim_data, cell_specs, **kwargs)
     sim_data, cell_specs = basal_specs(sim_data, cell_specs, **kwargs)
     sim_data, cell_specs = tf_condition_specs(sim_data, cell_specs, **kwargs)
+    sim_data, cell_specs = set_regulation(sim_data, cell_specs, **kwargs)
     sim_data, cell_specs = fit_condition(sim_data, cell_specs, **kwargs)
     #sim_data, cell_specs = promoter_binding(sim_data, cell_specs, **kwargs)
     #sim_data, cell_specs = adjust_promoters(sim_data, cell_specs, **kwargs)
@@ -243,8 +244,7 @@ def basal_specs(
     )
 
     # Set expression based on ppGpp regulation from basal expression
-    sim_data.process.transcription.set_ppgpp_expression(sim_data)
-    # TODO (Travis): use ppGpp expression in condition fitting
+    sim_data.process.transcription.set_ppgpp_affinities(sim_data)
 
     # Modify other properties
     # Compute Km's
@@ -328,8 +328,10 @@ def set_regulation(sim_data, cell_specs, **kwargs):
     # Fit the affinites for one-peak and two-peak genes and store in
     # sim_data objects
     fit_one_two_peak_affinities(sim_data, cell_specs)
-    # TODO: should this be done here or later?
+    # TODO: should this adjustment be done here or later?
     sim_data.process.transcription.adjust_ppgpp_expression_for_tfs(sim_data)
+    # TODO: adjust the synth_aff, synth_prob, expression etc. in cell_specs and sim_data
+    #  since fit_condition and set_conditions uses these?
 
     return sim_data, cell_specs
 
@@ -496,7 +498,6 @@ def final_adjustments(sim_data, cell_specs, **kwargs):
 
     # Adjust ppGpp regulated expression after conditions have been fit for physiological constraints
     sim_data.process.transcription.adjust_polymerizing_ppgpp_expression(sim_data)
-    sim_data.process.transcription.adjust_ppgpp_expression_for_tfs(sim_data)
 
     # Set supply constants for amino acids based on condition supply requirements
     average_basal_container = create_bulk_container(sim_data, n_seeds=5)
@@ -930,6 +931,7 @@ def buildCombinedConditionCellSpecifications(
             sim_data.process.transcription,
             expression,
             cistron_expression,
+            condition_value["perturbations"]
         )
 
         # Create dictionary for the condition
@@ -953,8 +955,8 @@ def buildCombinedConditionCellSpecifications(
             cell_specs[conditionKey]["expression"],
             cell_specs[conditionKey]["concDict"],
             cell_specs[conditionKey]["doubling_time"],
-            sim_data.process.transcription.rna_data["Km_endoRNase"],
-            conditionKey=conditionKey,
+            conditionKey,
+            Km=sim_data.process.transcription.rna_data["Km_endoRNase"],
             variable_elongation_transcription=variable_elongation_transcription,
             variable_elongation_translation=variable_elongation_translation,
             disable_ribosome_capacity_fitting=disable_ribosome_capacity_fitting,
@@ -1099,7 +1101,7 @@ def expressionConverge(
         # Have expression match physiological constraints and normalize expression
         expression, fit_cistron_expression, cistron_expression_res, RNA_counts = (
             fitExpression(
-                sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km
+                sim_data, bulkContainer, doubling_time
             )
         )
 
@@ -1176,7 +1178,7 @@ def synth_prob_aff_from_exp(sim_data, bulk_container, avgCellDryMassInit, doubli
     copy_numbers = get_avg_copy_num(tau, rna_coords)
     mRNA_copy_num_sum = np.sum(copy_numbers[is_mRNA])
 
-    synth_aff = synth_prob * copy_numbers * (mRNA_copy_num_sum / mRNA_synth_prob_sum)
+    synth_aff = synth_prob / copy_numbers * (mRNA_copy_num_sum / mRNA_synth_prob_sum)
 
     return synth_prob, synth_aff
 
@@ -1200,7 +1202,7 @@ def fit_one_two_peak_affinities(sim_data, cell_specs):
 
     two_peak_bound_affinity = np.zeros(len(two_peak_TU_idxs))
     two_peak_unbound_affinity = np.zeros(len(two_peak_TU_idxs))
-    for i, condition_info in two_peak_condition:
+    for i, condition_info in enumerate(two_peak_condition):
         bound_condition = condition_info["bound"]
         unbound_condition = condition_info["unbound"]
 
@@ -1220,7 +1222,6 @@ def fit_one_two_peak_affinities(sim_data, cell_specs):
 
     two_peak_data["bound_affinity"] = two_peak_bound_affinity
     two_peak_data["unbound_affinity"] = two_peak_unbound_affinity
-    # TODO: ask difference between cell_specs and sim_data?
 
 def fitCondition(sim_data, spec, condition):
     """

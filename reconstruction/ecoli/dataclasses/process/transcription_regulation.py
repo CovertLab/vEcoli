@@ -12,6 +12,8 @@ from wholecell.utils import units
 from wholecell.utils.fast_nonnegative_least_squares import fast_nnls
 
 BASAL_CONDITION = "basal"
+# TODO: have this here or in internal_state file?
+UNBOUND_TF_BINDING_SITE_IDX = -1
 
 class TranscriptionRegulation(object):
     """
@@ -24,6 +26,9 @@ class TranscriptionRegulation(object):
 
         # Store list of transcription factor IDs
         self.tf_ids = list(sorted(sim_data.tf_to_active_inactive_conditions.keys()))
+
+        # Store index of tf_binding_site unique object specifying no TF is bound
+        self.unbound_tf_binding_site_idx = UNBOUND_TF_BINDING_SITE_IDX
 
         # Build tf-binding site dictionaries
         self._build_tf_binding_sites(raw_data)
@@ -74,6 +79,9 @@ class TranscriptionRegulation(object):
         # returns the expected affinity change for each TU? For purC, that'd look like:
         # there's an affinity when purR is bound to binding site, and an affinity when
         # purR is not bound to binding site. Hmm think!
+
+    # So: TFs will bind to their binding sites. We can get occupancies of all binding sites,
+    # then h
 
     def p_promoter_bound_tf(self, tfActive, tfInactive):
         """
@@ -396,7 +404,7 @@ class TranscriptionRegulation(object):
             tus_of_operons = sorted(list(tus_of_operons))
 
             # Get the cistron expression values
-            cistron_exp = transcription.cistron_data["basal"]
+            cistron_exp = transcription.cistron_expression["basal"]
             cistron_mRNA_sum = np.sum(cistron_exp[transcription.cistron_data["is_mRNA"]])
 
             cistron_operon_exp = np.zeros(len(cistrons_of_operons))
@@ -445,7 +453,7 @@ class TranscriptionRegulation(object):
 
         # Solve basal NNLS for two-peak genes
         two_peak_basal_TU_mRNA_frac, two_peak_basal_TU_idxs, two_peak_cistron_idx_to_operon_TUs = _solve_basal_nnls(
-            self.two_peak_gene_data["gene_id"], cistron_basal_mRNA_frac
+            self.two_peak_gene_data["regulated_gene_id"], cistron_basal_mRNA_frac
         )
         two_peak_basal_TU_idx_to_mRNA_frac = {idx: frac for idx, frac in zip(
             two_peak_basal_TU_idxs, two_peak_basal_TU_mRNA_frac)}
@@ -468,7 +476,7 @@ class TranscriptionRegulation(object):
             tu_idxs = sorted(list(tu_idxs))
 
             # Get the cistron-level expression values
-            cistron_exp = transcription.cistron_data["basal"]
+            cistron_exp = transcription.cistron_expression["basal"]
             cistron_mRNA_sum = np.sum(cistron_exp[transcription.cistron_data["is_mRNA"]])
             cistron_operon_exp = cistron_mRNA_sum * np.array(target_cistron_mRNA_frac)
 
@@ -483,7 +491,7 @@ class TranscriptionRegulation(object):
 
         # Solve NNLS for the non-basal condition peak for two-peak genes
         two_peak_other_TU_mRNA_frac, two_peak_other_TU_idxs = _solve_restricted_NNLS(
-            self.two_peak_gene_data["gene_id"], cistron_other_mRNA_frac
+            self.two_peak_gene_data["regulated_gene_id"], cistron_other_mRNA_frac
         )
         two_peak_other_TU_idx_to_mRNA_frac = {idx: frac for idx, frac in zip(
             two_peak_other_TU_idxs, two_peak_other_TU_mRNA_frac)}
@@ -495,7 +503,8 @@ class TranscriptionRegulation(object):
         bound_TU_mRNA_frac = []
 
         two_peak_cistron_idxs = [np.where(transcription.cistron_data["gene_id"]
-                                        == gene)[0][0] for gene in self.two_peak_gene_data["gene_id"]]
+                                        == gene)[0][0] for gene in self.two_peak_gene_data[
+            "regulated_gene_id"]]
 
         for TU_idx, is_bound in zip(two_peak_basal_TU_idxs, basal_is_bound):
             # Store bound and unbound mRNA expression fractions for TUs
