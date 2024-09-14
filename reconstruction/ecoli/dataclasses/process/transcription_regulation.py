@@ -70,10 +70,6 @@ class TranscriptionRegulation(object):
         self._initialize_one_peak_genes(raw_data)
         self._initialize_two_peak_genes(raw_data)
 
-        # Values set after promoter fitting in parca with calculateRnapRecruitment()
-        self.basal_aff = None
-        self.delta_aff = None
-
 
         # TODO: maybe add a function here which, given tf-binding site occupancies,
         # returns the expected affinity change for each TU? For purC, that'd look like:
@@ -367,11 +363,13 @@ class TranscriptionRegulation(object):
             "unbound_affinity": None,
             "bound_affinity": None,
             "condition": None,
+            "tf_binding_site_index": None,
         }
 
     def set_TF_reg_operons(self, sim_data):
         # First, for all one-peak genes, get the operons they're contained in,
         # and get all the TUs within this. Also get the subset of TUs that contain the gene.
+        # TODO: maybe restrict to only TUs that contain the one-peak gene?
 
         transcription = sim_data.process.transcription
 
@@ -433,7 +431,8 @@ class TranscriptionRegulation(object):
         self.one_peak_TU_data["mRNA_exp_frac"] = one_peak_TU_mRNA_frac
 
 
-        # Two-peak for basal condition
+        ## Two-peak genes
+        # Update two-peak affinites for basal condition
         cistron_basal_mRNA_frac = []
         cistron_other_mRNA_frac = []
         basal_is_bound = []
@@ -457,6 +456,67 @@ class TranscriptionRegulation(object):
         )
         two_peak_basal_TU_idx_to_mRNA_frac = {idx: frac for idx, frac in zip(
             two_peak_basal_TU_idxs, two_peak_basal_TU_mRNA_frac)}
+        # TODO: change "basal aff" for all these genes for some object that the parca uses to set ppGpp expression too
+
+        # Get the corresponding tf-binding-site and the TUs that it regulates
+        target_cistron_idxs = [np.where(transcription.cistron_data["gene_id"]
+                                        == gene)[0][0] for gene in self.two_peak_gene_data["regulated_gene_id"]]
+        tf_binding_site_TU_matrix = sim_data.relation.tf_binding_site_to_tus_mapping(dense=True)
+        tf_binding_site_TF_matrix = sim_data.relation.tf_binding_site_to_tfs_mapping(dense=True)
+
+        tu_regulation_info = {}
+        for i, idx in enumerate(target_cistron_idxs):
+            tf_binding_sites = set()
+            for TU_idx in transcription.cistron_id_to_rna_indexes(transcription.cistron_data["id"][idx]):
+                # Add tf-binding-sites that regulate each TU containing the cistron to a set
+                tf_binding_sites.update(np.where(tf_binding_site_TU_matrix[:, TU_idx] == 1)[0])
+            tf_binding_sites = list(tf_binding_sites)
+            # TODO: maybe could remove this assumption later
+            if len(tf_binding_sites) != 1:
+                raise ValueError("Two-peak cistron must be regulated by only one tf-binding-site")
+            tf_binding_site_idx = tf_binding_sites[0]
+
+            # Get TF that regulates these TUs (should only be one, and matches the TF idx in two_peak_gene_data)
+            regulating_TFs = np.where(tf_binding_site_TF_matrix[tf_binding_site_idx, :] == 1)[0]
+            regulated_TUs = np.where(tf_binding_site_TU_matrix[tf_binding_site_idx, :] == 1)[0]
+            if len(regulating_TFs) != 1:
+                raise ValueError("Two-peak cistron must be regulated by only one TF")
+            if regulating_TFs[0] != self.two_peak_gene_data["tf_idx"][i]:
+                raise ValueError("TF regulating two-peak cistron does not match TF from tf-binding-site data")
+            tf_idx = regulating_TFs[0]
+
+            # Get condition data
+            condition_data = self.two_peak_gene_data["condition"][i]
+
+            # Store data temporarily in a dictionary
+            for TU_idx in regulated_TUs:
+                tu_regulation_info[TU_idx] = (tf_idx, tf_binding_site_idx, condition_data)
+
+        two_peak_TU_idxs = np.array(sorted(list(tu_regulation_info.keys())))
+        self.two_peak_TU_data["regulated_TU_idx"] = two_peak_TU_idxs
+        self.two_peak_TU_data["tf_idx"] = np.array(
+            [tu_regulation_info[TU_idx][0]] for TU_idx in two_peak_TU_idxs
+        )
+        self.two_peak_TU_data["tf_binding_site_idx"] = np.array(
+            [tu_regulation_info[TU_idx][1]] for TU_idx in two_peak_TU_idxs
+        )
+        self.two_peak_TU_data["condition"] = np.array(
+            [tu_regulation_info[TU_idx][2]] for TU_idx in two_peak_TU_idxs
+        )
+
+        # Solve NNLS for other peak
+
+        # So, for a certain operon: some cistrons are two-peak, which means that the only TUs
+        # that contain it either have 0 or 1 regulator. So take all the TUs that contain it,
+        # then get the 1 regulator that controls it (and assert there's only 1).
+        # Then use this regulator to get all TUs that it regulates. These are the TUs
+        # whose expression can change to influence the two-peak one.
+        # TODO: how to do this?
+        # Then we'll do NNLS to fit the TU expression of these regulated TUs (restrict to these) to match
+        # the cistron expression of the two-peak cistrons (restrict to these). But we first need to subtract
+        # away the contribution from 0-regulator TUs to these cistrons.
+
+
 
         # Solve NNLS for other peak restricting to TUs containing the two-peak cistrons
         def _solve_restricted_NNLS(target_gene_ids, target_cistron_mRNA_frac):
@@ -497,8 +557,6 @@ class TranscriptionRegulation(object):
             two_peak_other_TU_idxs, two_peak_other_TU_mRNA_frac)}
 
         # Convert back into bound and unbound mRNA fracs, and get other data
-        two_peak_TU_tfs = []
-        two_peak_TU_condition = []
         unbound_TU_mRNA_frac = []
         bound_TU_mRNA_frac = []
 
@@ -518,19 +576,6 @@ class TranscriptionRegulation(object):
                     TU_idx, basal_mRNA_frac))
                 unbound_TU_mRNA_frac.append(basal_mRNA_frac)
 
-            # Store TF idxs and condition information
-            for i, cistron_idx in enumerate(two_peak_cistron_idxs):
-                if TU_idx in two_peak_cistron_idx_to_operon_TUs[cistron_idx]:
-                    two_peak_TU_tfs.append(self.two_peak_gene_data["tf_idx"][i])
-                    two_peak_TU_condition.append(self.two_peak_gene_data["condition"][i])
-                    continue
-
-        if len(two_peak_TU_tfs) != len(two_peak_basal_TU_idxs):
-            raise ValueError("Length of two-peak TFs does not match length of two-peak TU idxs")
-
         # Save data
-        self.two_peak_TU_data["regulated_TU_idx"] = np.array(two_peak_basal_TU_idxs)
-        self.two_peak_TU_data["tf_idx"] = np.array(two_peak_TU_tfs)
         self.two_peak_TU_data["unbound_mRNA_exp_frac"] = np.array(unbound_TU_mRNA_frac)
         self.two_peak_TU_data["bound_mRNA_exp_frac"] = np.array(bound_TU_mRNA_frac)
-        self.two_peak_TU_data["condition"] = np.array(two_peak_TU_condition)
