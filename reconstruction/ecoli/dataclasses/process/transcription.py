@@ -1707,7 +1707,7 @@ class Transcription(object):
         basal_aff = self.synth_aff_from_ppgpp(basal_ppgpp)
 
         two_peak_TU_data = sim_data.process.transcription_regulation.two_peak_TU_data
-        for i, TU_idx in enumerate(two_peak_TU_data['regulated_TU_idx']):
+        for i, TU_idx in enumerate(two_peak_TU_data['TU_idx']):
             condition_data = two_peak_TU_data['condition'][i]
             if condition in condition_data['bound']:
                 basal_aff[TU_idx] = two_peak_TU_data['bound_affinity'][i]
@@ -2215,7 +2215,7 @@ class Transcription(object):
         one_peak_affs = sim_data.process.transcription_regulation.one_peak_TU_data["affinity"]
         one_peak_TUs = sim_data.process.transcription_regulation.one_peak_TU_data["TU_idx"]
         two_peak_unbound_affs = sim_data.process.transcription_regulation.two_peak_TU_data["unbound_affinity"]
-        two_peak_TUs = sim_data.process.transcription_regulation.two_peak_TU_data["regulated_TU_idx"]
+        two_peak_TUs = sim_data.process.transcription_regulation.two_peak_TU_data["TU_idx"]
 
         # Combine into single arrays
         target_affs = np.concatenate((one_peak_affs, two_peak_unbound_affs), axis=0)

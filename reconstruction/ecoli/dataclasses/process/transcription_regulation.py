@@ -10,6 +10,7 @@ from scipy import sparse
 import itertools
 from wholecell.utils import units
 from wholecell.utils.fast_nonnegative_least_squares import fast_nnls
+from wholecell.utils.fitting import normalize
 
 BASAL_CONDITION = "basal"
 # TODO: have this here or in internal_state file?
@@ -356,7 +357,7 @@ class TranscriptionRegulation(object):
 
         # To be set in parca
         self.two_peak_TU_data = {
-            "regulated_TU_idx": None,
+            "TU_idx": None,
             "tf_idx": None,
             "unbound_mRNA_exp_frac": None,
             "bound_mRNA_exp_frac": None,
@@ -421,42 +422,62 @@ class TranscriptionRegulation(object):
 
             return TU_exp, tus_of_operons, cistron_idx_to_operon_TUs
 
-        # Solve basal NNLS for one-peak genes
+        def _update_basal_expression(TU_idxs, TU_mRNA_frac):
+            # Update RNA expression
+            basal_TU_exp = transcription.rna_expression["basal"]
+            basal_mRNA_TU_exp_sum = np.sum(basal_TU_exp[transcription.rna_data["is_mRNA"]])
+            basal_TU_exp[TU_idxs] = TU_mRNA_frac * basal_mRNA_TU_exp_sum
+            basal_TU_exp = normalize(basal_TU_exp)
+            # Update cistron expression
+            cistron_basal_exp = transcription.cistron_tu_mapping_matrix.dot(basal_TU_exp)
+            transcription.cistron_expression["basal"] = normalize(cistron_basal_exp)
+
+        # Solve basal NNLS for one-peak genes and update basal expression
         one_peak_TU_mRNA_frac, one_peak_TU_idxs, _ = _solve_basal_nnls(
             self.one_peak_gene_data["gene_id"], self.one_peak_gene_data["mRNA_exp_frac"]
         )
+        _update_basal_expression(one_peak_TU_idxs, one_peak_TU_mRNA_frac)
 
         # Save one-peak TUs and expression values
         self.one_peak_TU_data["TU_idx"] = np.array(one_peak_TU_idxs)
         self.one_peak_TU_data["mRNA_exp_frac"] = one_peak_TU_mRNA_frac
 
-
         ## Two-peak genes
+        # TODO: a little bit of inaccuracy here, against matching EcoMAC data, for the case where an unregulated TU contains a cistron
+        # that a regulated TU does too (e.g. for the cistron trpC): here we subtract the unregulated TU's
+        # mRNA expression fraction from the total target mRNA expression fraction to obtain the
+        # regulated TU's target mRNA expression fraction during both peaks. However, due to RNAP/r-protein
+        # physiological fitting, the mRNA expression fraction of unregulated TUs may change in different
+        # conditions, and so they would not contribute the same mRNA expression fraction that is subtracted
+        # here. Ideally, we would subtract the cistron contribution from relevant unregulated TUs during
+        # each iteration of fitting in the parca to obtain the desired expression of regulated TUs.
+        # However, since these cases should be relatively rare (TODO: check that it's rare),
+        #  we'll disregard this inaccuracy for now.
+
         # Update two-peak affinites for basal condition
         cistron_basal_mRNA_frac = []
         cistron_other_mRNA_frac = []
-        basal_is_bound = []
         for i, condition in enumerate(self.two_peak_gene_data["condition"]):
             if BASAL_CONDITION in condition["bound"]:
                 cistron_basal_mRNA_frac.append(self.two_peak_gene_data["bound_mRNA_exp_frac"][i])
                 cistron_other_mRNA_frac.append(self.two_peak_gene_data["unbound_mRNA_exp_frac"][i])
-                basal_is_bound.append(1)
             elif BASAL_CONDITION in condition["unbound"]:
                 cistron_basal_mRNA_frac.append(self.two_peak_gene_data["unbound_mRNA_exp_frac"][i])
                 cistron_other_mRNA_frac.append(self.two_peak_gene_data["bound_mRNA_exp_frac"][i])
-                basal_is_bound.append(0)
             else:
                 raise ValueError("Basal condition not in bound or unbound conditons for two-peak gene {}".format(
                     self.two_peak_gene_data["regulated_gene_id"][i]
                 ))
 
-        # Solve basal NNLS for two-peak genes
+        # Solve basal NNLS for two-peak genes (considers all TUs in the operons containing the two-peak cistrons),
+        # and then update basal expression in transcription for use during the parca
         two_peak_basal_TU_mRNA_frac, two_peak_basal_TU_idxs, two_peak_cistron_idx_to_operon_TUs = _solve_basal_nnls(
             self.two_peak_gene_data["regulated_gene_id"], cistron_basal_mRNA_frac
         )
         two_peak_basal_TU_idx_to_mRNA_frac = {idx: frac for idx, frac in zip(
             two_peak_basal_TU_idxs, two_peak_basal_TU_mRNA_frac)}
-        # TODO: change "basal aff" for all these genes for some object that the parca uses to set ppGpp expression too
+
+        _update_basal_expression(two_peak_basal_TU_idxs, two_peak_basal_TU_mRNA_frac)
 
         # Get the corresponding tf-binding-site and the TUs that it regulates
         target_cistron_idxs = [np.where(transcription.cistron_data["gene_id"]
@@ -492,90 +513,80 @@ class TranscriptionRegulation(object):
             for TU_idx in regulated_TUs:
                 tu_regulation_info[TU_idx] = (tf_idx, tf_binding_site_idx, condition_data)
 
-        two_peak_TU_idxs = np.array(sorted(list(tu_regulation_info.keys())))
-        self.two_peak_TU_data["regulated_TU_idx"] = two_peak_TU_idxs
+        two_peak_reg_TU_idxs = np.array(sorted(list(tu_regulation_info.keys())))
+        self.two_peak_TU_data["TU_idx"] = two_peak_reg_TU_idxs
         self.two_peak_TU_data["tf_idx"] = np.array(
-            [tu_regulation_info[TU_idx][0]] for TU_idx in two_peak_TU_idxs
+            [tu_regulation_info[TU_idx][0]] for TU_idx in two_peak_reg_TU_idxs
         )
         self.two_peak_TU_data["tf_binding_site_idx"] = np.array(
-            [tu_regulation_info[TU_idx][1]] for TU_idx in two_peak_TU_idxs
+            [tu_regulation_info[TU_idx][1]] for TU_idx in two_peak_reg_TU_idxs
         )
         self.two_peak_TU_data["condition"] = np.array(
-            [tu_regulation_info[TU_idx][2]] for TU_idx in two_peak_TU_idxs
+            [tu_regulation_info[TU_idx][2]] for TU_idx in two_peak_reg_TU_idxs
         )
 
+        # TODO: check that these calculations are right?
         # Solve NNLS for other peak
+        # Get all TUs that contain these cistrons
+        contain_cistron_TU_idxs = set()
+        for idx in target_cistron_idxs:
+            contain_cistron_TU_idxs.update(transcription.cistron_id_to_rna_indexes(transcription.cistron_data["id"][idx]))
+        contain_cistron_TU_idxs = sorted(list(contain_cistron_TU_idxs))
 
-        # So, for a certain operon: some cistrons are two-peak, which means that the only TUs
-        # that contain it either have 0 or 1 regulator. So take all the TUs that contain it,
-        # then get the 1 regulator that controls it (and assert there's only 1).
-        # Then use this regulator to get all TUs that it regulates. These are the TUs
-        # whose expression can change to influence the two-peak one.
-        # TODO: how to do this?
-        # Then we'll do NNLS to fit the TU expression of these regulated TUs (restrict to these) to match
-        # the cistron expression of the two-peak cistrons (restrict to these). But we first need to subtract
-        # away the contribution from 0-regulator TUs to these cistrons.
-
-
-
-        # Solve NNLS for other peak restricting to TUs containing the two-peak cistrons
-        def _solve_restricted_NNLS(target_gene_ids, target_cistron_mRNA_frac):
-            '''
-            Solves NNLS and normalizes to get the fraction of mRNA that TUs restricted to only
-            those containing the indicated target gene ids should have to match the indicated fraction of
-            cistron mRNA counts. TODO: make this description more readable
-            '''
-            target_cistron_idxs = [np.where(transcription.cistron_data["gene_id"]
-                                            == gene)[0][0] for gene in target_gene_ids]
-
-            # Get TUs that contain these cistrons
-            tu_idxs = set()
-            for idx in target_cistron_idxs:
-                tu_idxs.update(transcription.cistron_id_to_rna_indexes(transcription.cistron_data["id"][idx]))
-
-            tu_idxs = sorted(list(tu_idxs))
-
-            # Get the cistron-level expression values
-            cistron_exp = transcription.cistron_expression["basal"]
-            cistron_mRNA_sum = np.sum(cistron_exp[transcription.cistron_data["is_mRNA"]])
-            cistron_operon_exp = cistron_mRNA_sum * np.array(target_cistron_mRNA_frac)
-
-            # Solve NNLS for these operons
-            mapping_matrix_these_operons = transcription.cistron_tu_mapping_matrix[target_cistron_idxs, :
-                                           ][:, tu_idxs].toarray()
-
-            TU_exp, _ = fast_nnls(mapping_matrix_these_operons, cistron_operon_exp)
-            TU_exp /= transcription.unnormalized_mRNA_rna_exp_sum
-
-            return TU_exp, tu_idxs
-
-        # Solve NNLS for the non-basal condition peak for two-peak genes
-        two_peak_other_TU_mRNA_frac, two_peak_other_TU_idxs = _solve_restricted_NNLS(
-            self.two_peak_gene_data["regulated_gene_id"], cistron_other_mRNA_frac
+        # Get the target cistron-level target amount (unnormalized expression, at the level
+        # of mapping_matrix * TU expression)
+        # We make the assumption that the total amount of mRNA expression changes negligibly due
+        # to changes made to TU expression made here
+        cistron_exp_unnormalized = transcription.cistron_tu_mapping_matrix.toarray().dot(
+            transcription.rna_expression["basal"]
         )
-        two_peak_other_TU_idx_to_mRNA_frac = {idx: frac for idx, frac in zip(
-            two_peak_other_TU_idxs, two_peak_other_TU_mRNA_frac)}
+        cistron_exp_unnormalized_mRNA_sum = cistron_exp_unnormalized[transcription.cistron_data["is_mRNA"]]
+        cistron_total_target_amount = cistron_exp_unnormalized_mRNA_sum * np.array(cistron_other_mRNA_frac)
 
-        # Convert back into bound and unbound mRNA fracs, and get other data
+        # Subtract away contribution from relevant TUs that are not regulated
+        # (at the level of mapping_matrix * TU_expression)
+        fixed_TU_idxs = np.array([x for x in contain_cistron_TU_idxs if x not in
+                    two_peak_reg_TU_idxs])
+        fixed_TU_exp = transcription.rna_expression["basal"][fixed_TU_idxs]
+
+        mapping_matrix_target_cistrons = transcription.cistron_tu_mapping_matrix[target_cistron_idxs, :
+                                       ][:, fixed_TU_idxs].toarray()
+        fixed_TU_cistron_amount = mapping_matrix_target_cistrons.dot(fixed_TU_exp)
+        cistron_target_amount = cistron_total_target_amount - fixed_TU_cistron_amount
+        # Fix negative amounts at 0
+        # TODO: does this ever happen? check these cases if it does
+        cistron_target_amount[(cistron_target_amount < 0)] = 0.
+
+        # Solve for target TU expression fraction of mRNA for the other peak
+        # (first get unnormalized TU amount that recreates the previous cistron-level amounts,
+        # then divide by the total sum of TU amounts that recreates cistron-level amounts calculated
+        # in transcription object, to get the TU-level fraction of mRNA expression. This again makes
+        # the assumption that changes made to TU-expression have a negligible impact on the total
+        # sum of TU mRNA expression)
+        mapping_matrix_target_TU_cistrons = transcription.cistron_tu_mapping_matrix[target_cistron_idxs, :
+                                           ][:, two_peak_reg_TU_idxs].toarray()
+        two_peak_other_TU_exp, _ = fast_nnls(mapping_matrix_target_TU_cistrons, cistron_target_amount)
+        two_peak_other_TU_mRNA_frac = two_peak_other_TU_exp / transcription.unnormalized_mRNA_rna_exp_sum
+
+        # Convert back into bound and unbound mRNA fracs
         unbound_TU_mRNA_frac = []
         bound_TU_mRNA_frac = []
-
-        two_peak_cistron_idxs = [np.where(transcription.cistron_data["gene_id"]
-                                        == gene)[0][0] for gene in self.two_peak_gene_data[
-            "regulated_gene_id"]]
-
-        for TU_idx, is_bound in zip(two_peak_basal_TU_idxs, basal_is_bound):
-            # Store bound and unbound mRNA expression fractions for TUs
-            basal_mRNA_frac = two_peak_basal_TU_idx_to_mRNA_frac[TU_idx]
-            if is_bound:
-                unbound_TU_mRNA_frac.append(two_peak_other_TU_idx_to_mRNA_frac.get(
-                    TU_idx, basal_mRNA_frac))
-                bound_TU_mRNA_frac.append(basal_mRNA_frac)
+        for i, TU_idx in enumerate(two_peak_reg_TU_idxs):
+            # Determine if basal peak is bound or unbound
+            condition = self.two_peak_TU_data["condition"][i]
+            # Store bound and unbound mRNA fractions for each TU
+            if BASAL_CONDITION in condition["bound"]:
+                bound_TU_mRNA_frac.append(two_peak_basal_TU_idx_to_mRNA_frac[TU_idx])
+                unbound_TU_mRNA_frac.append(two_peak_other_TU_mRNA_frac[i])
+            elif BASAL_CONDITION in condition["unbound"]:
+                unbound_TU_mRNA_frac.append(two_peak_basal_TU_idx_to_mRNA_frac[TU_idx])
+                bound_TU_mRNA_frac.append(two_peak_other_TU_mRNA_frac[i])
             else:
-                bound_TU_mRNA_frac.append(two_peak_other_TU_idx_to_mRNA_frac.get(
-                    TU_idx, basal_mRNA_frac))
-                unbound_TU_mRNA_frac.append(basal_mRNA_frac)
+                raise ValueError("Basal condition not in bound or unbound conditions for TU {}".format(
+                    transcription.rna_data["id"][TU_idx]
+                ))
 
+        # TODO: maybe shorten code by combining some code with _solve_basal_NNLS and other-peak calculations
         # Save data
         self.two_peak_TU_data["unbound_mRNA_exp_frac"] = np.array(unbound_TU_mRNA_frac)
         self.two_peak_TU_data["bound_mRNA_exp_frac"] = np.array(bound_TU_mRNA_frac)

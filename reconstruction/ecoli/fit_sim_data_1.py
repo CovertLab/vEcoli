@@ -1197,7 +1197,7 @@ def fit_one_two_peak_affinities(sim_data, cell_specs):
 
     # Set two-peak affinities based on averages of different media conditions
     two_peak_data = sim_data.process.transcription_regulation.two_peak_TU_data
-    two_peak_TU_idxs = two_peak_data["regulated_TU_idx"]
+    two_peak_TU_idxs = two_peak_data["TU_idx"]
     two_peak_condition = two_peak_data["condition"]
 
     two_peak_bound_affinity = np.zeros(len(two_peak_TU_idxs))
@@ -1793,7 +1793,7 @@ def set_one_two_peak_expression(sim_data, expression, condition):
         new_expression[TU_idx] = total_mRNA_exp * mRNA_exp_frac
 
     # Set expression for two-peak genes
-    for i, TU_idx in enumerate(two_peak_TU_data["regulated_TU_idx"]):
+    for i, TU_idx in enumerate(two_peak_TU_data["TU_idx"]):
         condition_info = two_peak_TU_data["condition"][i]
         if condition in condition_info["bound"]:
             new_expression[TU_idx] = total_mRNA_exp * two_peak_TU_data["bound_mRNA_exp_frac"][i]
