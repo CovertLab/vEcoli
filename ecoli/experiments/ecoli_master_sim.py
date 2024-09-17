@@ -931,6 +931,17 @@ class EcoliSim:
         """
         deep_merge(self.config, other.config)
 
+
+    def override_config(self, config: dict[str, Any]):
+        """Overrides the current configuration with the provided dictionary.
+
+        Args:
+            config: Dictionary of configuration options to override the current
+                configuration.
+        """
+        deep_merge(self.config, config)
+
+
     def get_metadata(self) -> dict[str, Any]:
         """
         Compiles all simulation settings, git hash, and process list into a single
