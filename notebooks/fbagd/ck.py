@@ -1,3 +1,6 @@
+# Copyright (C) Cyrus Knudsen - all rights reserved.
+# Repository license does NOT apply to this file.
+
 import numpy as np
 import cvxpy as cp
 import itertools
