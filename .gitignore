@@ -61,3 +61,7 @@ cache/
 ##################
 .nextflow*
 nextflow_temp
+
+# Other files #
+##################
+/notebooks/fbagd/ck/
