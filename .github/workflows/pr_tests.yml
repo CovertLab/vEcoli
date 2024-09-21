@@ -38,8 +38,10 @@ jobs:
         echo "PYTHONPATH=." >> $GITHUB_ENV
     - name: Test ParCa reproducibility
       run: |
-        python runscripts/parca.py -c 3 -o out/parca_1
-        python runscripts/parca.py -c 3 -o out/parca_2
+        python runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
+            -c 3 -o out/parca_1
+        python runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
+            -c 3 -o out/parca_2
         python runscripts/debug/compare_pickles.py out/parca_1/kb out/parca_2/kb
     - name: Test simulation reproducibility
       run: |

@@ -30,6 +30,7 @@ profiles {
         process.maxRetries = 1
         // Check Google Cloud latest spot pricing / performance
         process.machineType = 't2d-standard-1'
+        workflow.failOnIgnore = true
     }
     sherlock {
         process.memory = {
@@ -78,10 +79,12 @@ profiles {
         // Write out job status to log file less frequently
         // than we check queue status (log correct and latest status)
         executor.dumpInterval = '6 min'
+        workflow.failOnIgnore = true
     }
     standard {
         process.executor = 'local'
         params.projectRoot = "${launchDir}"
         params.publishDir = "PUBLISH_DIR"
+        workflow.failOnIgnore = true
     }
 }

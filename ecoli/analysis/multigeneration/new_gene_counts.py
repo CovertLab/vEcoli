@@ -64,7 +64,7 @@ def plot(
         cast(int, mRNA_idx_dict.get(mRNA_id)) for mRNA_id in new_gene_mRNA_ids
     ]
 
-    # Extract proein indexes for each new gene
+    # Extract protein indexes for each new gene
     monomer_idx_dict = {
         monomer: i
         for i, monomer in enumerate(
