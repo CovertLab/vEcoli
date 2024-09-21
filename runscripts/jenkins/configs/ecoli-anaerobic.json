@@ -11,8 +11,8 @@
     "d_period_division": false,
     "mechanistic_replisome": true,
     "mass_distribution": false,
-    "emitter" : {
-        "type": "parquet",
+    "emitter": "parquet",
+    "emitter_arg": {
         "out_dir": "/scratch/groups/mcovert/vecoli"
     },
     "analysis_options": {
