@@ -369,7 +369,8 @@ class SimConfig:
         updates config.
         """
         args = self.parser.parse_args()
-        args.emitter_arg = parse_key_value_args(args.emitter_arg)
+        if args.emitter_arg is not None:
+            args.emitter_arg = parse_key_value_args(args.emitter_arg)
         # First load in a configuration file, if one was specified.
         config_path = getattr(args, "config", None)
         if config_path:
