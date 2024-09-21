@@ -183,15 +183,11 @@ def main():
         config_file = args.config
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
-    # Merge all emitter options under emitter_arg into emitter
-    if config["emitter_arg"] is not None:
-        for key, value in config["emitter_arg"].items():
-            config["emitter"][key] = value
-    if "out_uri" not in config["emitter"]:
-        out_uri = os.path.abspath(config["emitter"]["out_dir"])
+    if "out_uri" not in config["emitter_arg"]:
+        out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
         gcs_bucket = True
     else:
-        out_uri = config["emitter"]["out_uri"]
+        out_uri = config["emitter_arg"]["out_uri"]
         assert (
             parse.urlparse(out_uri).scheme == "gcs"
             or parse.urlparse(out_uri).scheme == "gs"

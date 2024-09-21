@@ -183,10 +183,11 @@ def main():
     SimConfig.merge_config_dicts(parca_options, cli_options)
     # If config defines a sim_data_path, skip ParCa
     if config["sim_data_path"] is not None:
-        if not os.path.exists(parca_options["outdir"]):
-            os.makedirs(parca_options["outdir"])
+        out_kb = os.path.join(parca_options["outdir"], "kb")
+        if not os.path.exists(out_kb):
+            os.makedirs(out_kb)
         print(f"{time.ctime()}: Skipping ParCa. Using {config['sim_data_path']}")
-        shutil.copy(config["sim_data_path"], parca_options["outdir"])
+        shutil.copy(config["sim_data_path"], out_kb)
     else:
         run_parca(parca_options)
 

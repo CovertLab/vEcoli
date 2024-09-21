@@ -136,7 +136,7 @@ def report_profiling(stats: pstats.Stats) -> None:
     stats.sort_stats("cumtime").print_stats(20)
 
 
-def key_value_pair(argument_string: str) -> list[str]:
+def parse_key_value_args(args_list: list[str]) -> dict[str, str]:
     """Parses key-value pairs specified as strings of the form ``key=value``
     via CLI. See ``emitter_arg`` option in
     :py:class:`~ecoli.experiments.ecoli_master_sim.SimConfig`.
@@ -147,10 +147,15 @@ def key_value_pair(argument_string: str) -> list[str]:
     Returns:
         ``[key, value]``
     """
-    split = argument_string.split("=")
-    if len(split) != 2:
-        raise ValueError("Key-value pair arguments must have exactly one `=`.")
-    return split
+    # Create an empty dictionary to store the parsed key-value pairs
+    parsed_dict = {}
+    for item in args_list:
+        if '=' in item:
+            key, value = item.split('=', 1)
+            parsed_dict[key] = value
+        else:
+            raise ValueError(f"Argument '{item}' is not in the form key=value")
+    return parsed_dict
 
 
 def prepare_save_state(state: dict[str, Any]) -> None:
@@ -233,7 +238,6 @@ class SimConfig:
                 "--emitter_arg",
                 action="store",
                 nargs="*",
-                type=key_value_pair,
                 help=(
                     "Key-value pairs, separated by `=`, to include in "
                     "emitter config."
@@ -365,6 +369,7 @@ class SimConfig:
         updates config.
         """
         args = self.parser.parse_args()
+        args.emitter_arg = parse_key_value_args(args.emitter_arg)
         # First load in a configuration file, if one was specified.
         config_path = getattr(args, "config", None)
         if config_path:
@@ -794,13 +799,11 @@ class EcoliSim:
                         "Must provide out_dir or out_uri"
                         " as emitter argument for parquet emitter."
                     )
-        elif isinstance(self.emitter, dict):
-            self.emitter_config = self.emitter
         else:
             raise RuntimeError(
-                "Emitter option must either be a string"
-                " representing the emitter type or a dictionary with the"
-                " emitter type as well as any emitter config options."
+                "Emitter option must be a string"
+                " representing the emitter type with any additional config"
+                " options under the emitter_arg key."
             )
         experiment_config = {
             "description": self.description,

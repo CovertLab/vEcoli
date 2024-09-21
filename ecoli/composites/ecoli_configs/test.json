@@ -7,8 +7,8 @@
     "generations": 10,
     "n_init_sims": 4,
     "single_daughters": true,
-    "emitter" : {
-        "type": "parquet",
+    "emitter": "parquet",
+    "emitter_arg": {
         "out_dir": "out"
     },
     "variants": {

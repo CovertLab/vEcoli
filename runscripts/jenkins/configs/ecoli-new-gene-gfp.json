@@ -3,8 +3,8 @@
     "single_daughters": true,
     "generations": 4,
     "fail_at_total_time": true,
-    "emitter" : {
-        "type": "parquet",
+    "emitter": "parquet",
+    "emitter_arg": {
         "out_dir": "/scratch/groups/mcovert/vecoli"
     },
     "parca_options": {
