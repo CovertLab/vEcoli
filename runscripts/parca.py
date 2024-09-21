@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import pickle
+import shutil
 import time
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
@@ -180,7 +181,14 @@ def main():
     cli_options.pop("config")
     parca_options = config.pop("parca_options")
     SimConfig.merge_config_dicts(parca_options, cli_options)
-    run_parca(parca_options)
+    # If config defines a sim_data_path, skip ParCa
+    if config["sim_data_path"] is not None:
+        if not os.path.exists(parca_options["outdir"]):
+            os.makedirs(parca_options["outdir"])
+        print(f"{time.ctime()}: Skipping ParCa. Using {config['sim_data_path']}")
+        shutil.copy(config["sim_data_path"], parca_options["outdir"])
+    else:
+        run_parca(parca_options)
 
 
 if __name__ == "__main__":
