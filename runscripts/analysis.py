@@ -183,6 +183,10 @@ def main():
         config_file = args.config
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
+    # Merge all emitter options under emitter_arg into emitter
+    if config["emitter_arg"] is not None:
+        for key, value in config["emitter_arg"].items():
+            config["emitter"][key] = value
     if "out_uri" not in config["emitter"]:
         out_uri = os.path.abspath(config["emitter"]["out_dir"])
         gcs_bucket = True
@@ -288,7 +292,7 @@ def main():
     conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("n_cpus"))
     history_sql, config_sql = get_dataset_sql(out_uri)
     # If no explicit analysis type given, run all types in config JSON
-    if config["analysis_types"] is None:
+    if "analysis_types" not in config:
         config["analysis_types"] = [
             analysis_type for analysis_type in ANALYSIS_TYPES if analysis_type in config
         ]
