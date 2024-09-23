@@ -331,7 +331,16 @@ def set_regulation(sim_data, cell_specs, **kwargs):
     # TODO: should this adjustment be done here or later?
     sim_data.process.transcription.adjust_ppgpp_expression_for_tfs(sim_data)
     # TODO: adjust the synth_aff, synth_prob, expression etc. in cell_specs and sim_data
-    #  since fit_condition and set_conditions uses these?
+    #  since fit_condition and set_conditions uses these
+
+    # Sets basal_aff vector for use in simulations with ppGpp option off
+    # TODO: should this be at end of parca?
+    basal_ppgpp = sim_data.growth_rate_parameters.get_ppGpp_conc(
+        sim_data.condition_to_doubling_time["basal"]
+    )
+    sim_data.process.transcription_regulation.basal_aff = sim_data.process.transcription.synth_aff_from_ppgpp(
+        basal_ppgpp
+    )
 
     return sim_data, cell_specs
 

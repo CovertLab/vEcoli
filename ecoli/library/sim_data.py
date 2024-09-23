@@ -701,8 +701,6 @@ class LoadSimData:
             "make_elongation_rates": self.sim_data.process.transcription.make_elongation_rates,
             "active_rnap_footprint_size": self.sim_data.process.transcription.active_rnap_footprint_size,
             "basal_aff": self.sim_data.process.transcription_regulation.basal_aff,
-            "delta_aff": self.sim_data.process.transcription_regulation.delta_aff,
-            "get_delta_aff_matrix": self.sim_data.process.transcription_regulation.get_delta_aff_matrix,
             "perturbations": getattr(self.sim_data, "genetic_perturbations", {}),
             "rna_data": self.sim_data.process.transcription.rna_data,
             "idx_rRNA": np.where(
@@ -737,6 +735,7 @@ class LoadSimData:
             "ppgpp": self.sim_data.molecule_ids.ppGpp,
             "synth_aff": self.sim_data.process.transcription.synth_aff_from_ppgpp,
             "copy_number": self.sim_data.process.replication.get_average_copy_number,
+            "two_peak_data": self.sim_data.process.transcription_regulation.two_peak_TU_data,
             "ppgpp_regulation": self.ppgpp_regulation,
             "get_rnap_active_fraction_from_ppGpp": self.sim_data.process.transcription.get_rnap_active_fraction_from_ppGpp,
             # attenuation
