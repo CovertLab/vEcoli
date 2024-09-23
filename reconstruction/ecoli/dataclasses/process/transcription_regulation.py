@@ -71,14 +71,8 @@ class TranscriptionRegulation(object):
         self._initialize_one_peak_genes(raw_data)
         self._initialize_two_peak_genes(raw_data)
 
-
-        # TODO: maybe add a function here which, given tf-binding site occupancies,
-        # returns the expected affinity change for each TU? For purC, that'd look like:
-        # there's an affinity when purR is bound to binding site, and an affinity when
-        # purR is not bound to binding site. Hmm think!
-
-    # So: TFs will bind to their binding sites. We can get occupancies of all binding sites,
-    # then h
+        # To be set in parca, used for simulations with ppGpp option off
+        self.basal_aff = None
 
     def p_promoter_bound_tf(self, tfActive, tfInactive):
         """
