@@ -616,7 +616,7 @@ def initialize_replication(
             "active_replisome", n_replisome, sim_data, unique_id_rng
         )
 
-    # Get coordinates of all genes, promoters and DnaA boxes
+    # Get coordinates of all genes, promoters, DnaA boxes, and tf-binding sites
     all_gene_coordinates = sim_data.process.transcription.cistron_data[
         "replication_coordinate"
     ]
@@ -626,6 +626,7 @@ def initialize_replication(
     all_DnaA_box_coordinates = sim_data.process.replication.motif_coordinates[
         "DnaA_box"
     ]
+    all_tf_binding_site_coordinates = sim_data.process.transcription_regulation.tf_binding_site_coords
 
     # Define function that initializes attributes of sequence motifs given the
     # initial state of the chromosome
@@ -728,7 +729,7 @@ def initialize_replication(
 
         return motif_index, motif_coordinates, motif_domain_index
 
-    # Use function to get attributes for promoters and DnaA boxes
+    # Use function to get attributes for promoters, DnaA boxes, and tf-binding sites
     TU_index, promoter_coordinates, promoter_domain_index = get_motif_attributes(
         all_promoter_coordinates
     )
@@ -738,12 +739,12 @@ def initialize_replication(
     _, DnaA_box_coordinates, DnaA_box_domain_index = get_motif_attributes(
         all_DnaA_box_coordinates
     )
+    tf_binding_site_index, tf_binding_site_coordinates, tf_binding_site_domain_index = get_motif_attributes(
+        all_tf_binding_site_coordinates
+    )
 
     # Add promoters as unique molecules and set attributes
-    # Note: the bound_TF attribute is properly initialized in the function
-    # initialize_transcription_factors
     n_promoter = len(TU_index)
-    n_tf = len(sim_data.process.transcription_regulation.tf_ids)
 
     unique_molecules["promoter"] = create_new_unique_molecules(
         "promoter",
@@ -753,7 +754,21 @@ def initialize_replication(
         domain_index=promoter_domain_index,
         coordinates=promoter_coordinates,
         TU_index=TU_index,
-        bound_TF=np.zeros((n_promoter, n_tf), dtype=bool),
+    )
+
+    # Add TF-binding sites as unique molecules and set attributes
+    # Note: the TF_bound attribute is properly initialized in the function
+    # initialize_transcription factors.
+    n_tf_binding_sites = len(tf_binding_site_index)
+    unique_molecules["tf_binding_site"] = create_new_unique_molecules(
+        "tf_binding_site",
+        n_tf_binding_sites,
+        sim_data,
+        unique_id_rng,
+        domain_index=tf_binding_site_domain_index,
+        coordinates=tf_binding_site_coordinates,
+        tf_binding_site_index=tf_binding_site_index,
+        bound_TF=sim_data.process.transcription_regulation.unbound_tf_binding_site_idx
     )
 
     # Add genes as unique molecules and set attributes
@@ -790,29 +805,13 @@ def initialize_transcription_factors(
     Initialize transcription factors that are bound to the chromosome. For each
     type of transcription factor, this function where and how many
     transcription factors should be bound to the chromosome using the binding
-    rates of each transcription factor and the number of available promoter sites.
-    The promoters' whose bound_TF attributes and submasses are updated correspondingly.
+    rates of each transcription factor and the number of available tf-binding sites.
+    The tf-binding sites' bound_TF attributes and submasses are updated correspondingly.
     """
     # Get transcription factor properties from sim_data
-    tf_ids = sim_data.process.transcription_regulation.tf_ids
-    tf_to_tf_type = sim_data.process.transcription_regulation.tf_to_tf_type
-    # TODO: maybe could just use these pPromoterBound instead of running Gillespie again? Unless
-    #  we want to keep pPromoterBound as being only for regulation and not for all binding?
-    p_promoter_bound_TF = sim_data.process.transcription_regulation.p_promoter_bound_tf
-
-    # TODO: change this after binding sites are implemented
-    # Build dict that maps TFs to transcription units they regulate
-    # Build dict that maps TFs to transcription units they regulate
     transcription_regulation = sim_data.process.transcription_regulation
-    raw_binding_rates = transcription_regulation.raw_binding_rates
-    get_binding_unbinding_matrices = transcription_regulation.get_tf_binding_unbinding_matrices
-    TF_to_TU_idx = {}
-
-    # TODO: change this when switching to binding sites
-    for i, tf in enumerate(tf_ids):
-        TF_to_TU_idx[tf] = raw_binding_rates["bindingI"][
-            raw_binding_rates["bindingJ"] == i
-            ]
+    tf_ids = transcription_regulation.tf_ids
+    #tf_to_tf_type = transcription_regulation.tf_to_tf_type
 
     # Get views into bulk molecule representations of transcription factors
     active_tf_view = np.zeros(len(tf_ids), dtype=int)
@@ -830,79 +829,67 @@ def initialize_transcription_factors(
         / sim_data.constants.n_avogadro
     ).asNumber(units.fg)
 
-    # Get TU indices of promoters
-    TU_index = unique_molecules["promoter"]["TU_index"]
+    # Get indices of TF-binding sites
+    tf_binding_site_index = unique_molecules["tf_binding_site"]["tf_binding_site_index"]
 
     # Initialize bound_TF array
-    bound_TF = np.zeros((len(TU_index), len(tf_ids)), dtype=bool)
+    bound_TF = np.ones(len(tf_binding_site_index), dtype=int)
+    bound_TF *= transcription_regulation.unbound_tf_binding_site_idx
 
-    # Calculate final binding rates accounting for reactant concentrations
-    raw_binding_rates_matrix, raw_unbinding_rates_matrix = get_binding_unbinding_matrices(dense=True)
-    binding_rates = raw_binding_rates_matrix[TU_index, :]
-    unbinding_rates = raw_unbinding_rates_matrix[TU_index, :]
-    binding_rates_final = np.multiply(binding_rates, active_tf_view)
-    # TODO: later, when more than one binding site at once, can do num_total - bound_TF instead of ~bound_TF
-    binding_rates_final = np.multiply(binding_rates_final, ~bound_TF)
-    unbinding_rates_final = np.multiply(unbinding_rates, bound_TF)
+    # TODO: get actual second-order rate constant, also what are units supposed to be?
+    # TODO: Consider concentration of binding site on DNA, etc.?
+    # Get binding and unbinding rates based on present tf-binding sites
+    raw_binding_rates_matrix, raw_unbinding_rates_matrix = transcription_regulation.get_binding_unbinding_matrices(dense=True)
+    binding_rates = raw_binding_rates_matrix[tf_binding_site_index, :]
+    unbinding_rates = raw_unbinding_rates_matrix[tf_binding_site_index, :]
+    rate_ratio = binding_rates / unbinding_rates
+    rate_ratio[~np.isfinite(rate_ratio)] = 0
 
-    rxn_time = 0
-    while np.sum(binding_rates_final) + np.sum(unbinding_rates_final) > 0:
-        # Get binding rate sums
-        total_bind_rates = np.sum(binding_rates_final)
-        total_unbind_rates = np.sum(unbinding_rates_final)
-        total_rates = total_bind_rates + total_unbind_rates
+    # TODO: this will prefer to bind TFs earlier rather than later in the ordering
+    # if two types of TFs can bind to the same binding site
+    for idx, tf_count in enumerate(active_tf_view):
+        # Let's say that at equilibrium, each binding site index i binds to this TF for f_i fraction of the time.
+        # Unbinding rate is f * rate1, binding rate is free * rate2 (free = 1 - sum(f_i)).
+        # So, for each tf-binidng site:
+        # f_i / ratio_i = 1 - sum(f_j) = free
+        # f_i + ratio_i * sum(f_j) = ratio_i
+        # so we solve a linear equation where the coefficient of i'th row is 1+ratio_i for i, and ratio_i for j.
+        # Then, each binding-site i has a certain f_i.
+        ratio = rate_ratio[:, idx]
+        # Take only nonzero rate ratios, or else linear matrix will be singular (infinite solutions)
+        nonzero_mask = (ratio != 0)
+        nonzero_ratios = ratio[nonzero_mask]
+        # Solve linear equation
+        M = np.zeros(len(nonzero_ratios), len(nonzero_ratios))
+        for k in range(len(nonzero_ratios)):
+            M[k, :] = nonzero_ratios[k]
+            M[k, k] += 1
+        fraction_bound = np.linalg.solve(M, nonzero_ratios)
 
-        # Determine reaction time
-        r1 = random_state.rand()
-        rxn_time += 1 / total_rates * np.log(1/r1)
-        # If we surpass the current timestep, don't perform reaction
-        if rxn_time > TF_INIT_RUN_TIME.asNumber(units.min):
-            break
+        # Distribute TFs according to these probabilities. If not enough TFs are present to fulfill binding,
+        # distribute the ones that are present.
+        is_bound = random_state.binomial(len(fraction_bound), fraction_bound)
+        if np.sum(is_bound) > tf_count:
+            is_bound = np.zeros(len(fraction_bound), dtype=bool)
+            is_bound[random_state.choice(len(fraction_bound), tf_count, p=fraction_bound, replace=False)] = 1
 
-        # Choose whether to bind or unbind
-        to_bind = random_state.choice([0, 1], [total_unbind_rates / total_rates,
-                                                    total_bind_rates / total_rates])
-
-        if to_bind:
-            # Choose a reaction to perform
-            nonzero_indices = np.nonzero(binding_rates_final)
-            nonzero_probas = binding_rates_final[nonzero_indices]
-            rxn_index = random_state.choice(np.array(x for x in zip(nonzero_indices)),
-                                                 nonzero_probas)
-
-            # Decrement the TF (given by row index), and increase the bound TF
-            assert active_tf_view[rxn_index[1]] > 0
-            assert bound_TF[rxn_index[0], rxn_index[1]] == False
-            active_tf_view[rxn_index[1]] -= 1
-            bound_TF[rxn_index[0], rxn_index[1]] = True
-        else:
-            # Choose a reaction to perform
-            nonzero_indices = np.nonzero(unbinding_rates_final)
-            nonzero_probas = unbinding_rates_final[nonzero_indices]
-            rxn_index = random_state.choice(np.array(x for x in zip(nonzero_indices)),
-                                                 nonzero_probas)
-
-            # Increment the TF (given by row index), and decrease the bound TF
-            active_tf_view[rxn_index[1]] += 1
-            bound_TF[rxn_index[0], rxn_index[1]] = False
-
-        # Recalculate binding rates for next step
-        binding_rates_final = np.multiply(binding_rates, active_tf_view)
-        binding_rates_final = np.multiply(binding_rates_final, ~bound_TF)
-        unbinding_rates_final = np.multiply(unbinding_rates, bound_TF)
+        # Update bound_TF array and TF counts
+        active_tf_view[idx] -= np.sum(is_bound)
+        bound_mask = np.zeros(len(nonzero_mask), dtype=bool)
+        bound_mask[nonzero_mask] = is_bound
+        bound_TF[bound_mask] = idx
 
     # Update active transcription factor counts
     bulk_state["count"][active_tf_view_idx] = active_tf_view
 
-    # Calculate masses of bound TFs
-    mass_diffs = bound_TF.dot(active_tf_masses)
+    # Update tf-binding-site objects
+    unique_molecules["tf_binding_sites"]["bound_TF"] = bound_TF
 
-    # Reset bound_TF attribute of promoters
-    unique_molecules["promoter"]["bound_TF"] = bound_TF
-
-    # Add mass_diffs array to promoter submass
+    mass_diff = active_tf_masses[bound_TF, :]
+    binding_site_is_free = (bound_TF == transcription_regulation.unbound_tf_binding_site_idx)
+    mass_diff[binding_site_is_free, :] = 0. * units.fg  # TODO: get units from somewhere
     for submass, i in sim_data.submass_name_to_index.items():
-        unique_molecules["promoter"][f"massDiff_{submass}"] = mass_diffs[:, i]
+        unique_molecules["tf_binding_sites"][f"massDiff_{submass}"] = mass_diff[:, i]
 
 
 def initialize_transcription(
@@ -949,9 +936,10 @@ def initialize_transcription(
     # Number of rnaPoly to activate
     n_RNAPs_to_activate = np.int64(frac_active_rnap * inactive_RNAP_counts)
 
+    # TODO: change this to use tf-binding sites
     # Get attributes of promoters
-    TU_index, bound_TF, domain_index_promoters = attrs(
-        unique_molecules["promoter"], ["TU_index", "bound_TF", "domain_index"]
+    TU_index, domain_index_promoters = attrs(
+        unique_molecules["promoter"], ["TU_index", "domain_index"]
     )
 
     ## Get initial transcription affinity and synthesis probability parameters
@@ -978,6 +966,7 @@ def initialize_transcription(
         dense=True, ppgpp=ppgpp_regulation
     )
 
+    # TODO: finish this stuff
     # Calculate probabilities of the RNAP binding to the promoters
     promoter_init_affs = basal_aff[TU_index] + ppgpp_scale * np.multiply(
         delta_aff_matrix[TU_index, :], bound_TF
@@ -1813,10 +1802,7 @@ def determine_chromosome_state(
 
     return oric_state, replisome_state, domain_state
 
-
-
-
-
+    # TODO: delete this
     def _rescale_initiation_affs(self, fixed_indexes, fixed_synth_probs,  TU_index,
                                  group_fixed_indexes=None, group_fixed_probs=None):
         """

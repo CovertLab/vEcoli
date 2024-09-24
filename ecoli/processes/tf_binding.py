@@ -226,7 +226,7 @@ class TfBinding(Step):
         # TODO: add this check in?
         #if np.sum(active_tf_counts) + np.sum(bound_TF) == 0:
 
-        # Get binding and unbinding rates based on present promoters
+        # Get binding and unbinding rates based on present tf-binding sites
         raw_binding_rates_matrix, raw_unbinding_rates_matrix = self.get_binding_unbinding_matrices(dense=True)
         binding_rates = raw_binding_rates_matrix[binding_site_index, :]
         unbinding_rates = raw_unbinding_rates_matrix[binding_site_index, :]
