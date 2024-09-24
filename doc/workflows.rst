@@ -88,6 +88,12 @@ Configuration options for the ParCa are all located in a dictionary under the
 - ``variable_elongation_translation``: If True, enable variable elongation
   for translation.
 
+.. note::
+  If the top-level ``sim_data_path`` option is not null, the ParCa is skipped
+  in favor of the pickled simulation data at the specified path. This applies
+  regardless of whether running with :py:mod:`runscripts.workflow` or
+  :py:mod:`runscripts.parca`.
+
 .. _variants:
 
 --------

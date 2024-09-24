@@ -268,8 +268,13 @@ def main():
         type=str,
         help="Path to folder where variant sim_data and metadata are written.",
     )
-    config = SimConfig(parser=parser)
-    config.update_from_cli()
+    args = parser.parse_args()
+    with open(default_config, "r") as f:
+        config = json.load(f)
+    if args.config is not None:
+        with open(os.path.join(args.config), "r") as f:
+            SimConfig.merge_config_dicts(config, json.load(f))
+    SimConfig.merge_config_dicts(config, vars(args))
 
     print("Loading sim_data...")
     with open(os.path.join(config["kb"], "simData.cPickle"), "rb") as f:
