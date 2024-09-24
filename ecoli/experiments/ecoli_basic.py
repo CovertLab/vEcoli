@@ -22,14 +22,14 @@ def run_default():
     sim.total_time = 2
     print(f'INITIAL PROCESS CONFIGS: {pf(sim.config["process_configs"])}')
 
-    # # update process configs
-    sim.override_config({
-        'process_configs': {
-            'ecoli-metabolism': {
-                'config': {}
-            }
-        }
-    })
+    # # TODO update process configs
+    # sim.override_config({
+    #     'process_configs': {
+    #         'ecoli-metabolism': {
+    #             'config': {}
+    #         }
+    #     }
+    # })
     # print(f'NEW PROCESS CONFIGS: {pf(sim.config["process_configs"])}')
 
     # build the ecoli model
@@ -53,7 +53,7 @@ def run_default():
     sim.run()
 
     # get the data
-    data = sim.emitter.get_data()
+    timeseries = sim.ecoli_experiment.emitter.get_timeseries()
 
 
 if __name__ == "__main__":
