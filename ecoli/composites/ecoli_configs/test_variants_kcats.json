@@ -1,0 +1,25 @@
+{
+    "experiment_id": "test_variants_kcats",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 4
+    },
+    "generations": 1,
+    "total_time": 3600,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter" : {
+        "type": "parquet",
+        "out_dir": "out"
+    },
+    "variants": {
+        "multiply_kcats": {
+            "enzyme_id": {"value": ["CPLX0-8160[i]"]},
+            "kcat_multiplier": {"value": [0.1,10.0]},
+            "op": "prod"
+        }
+    },
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}}
+    }
+}
