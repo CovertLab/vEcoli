@@ -25,6 +25,7 @@
     "fail_at_total_time": false,
 
     "variants": {},
+    "skip_baseline": false,
     "n_init_sims": 1,
     "generations": null,
     "single_daughters": true,
