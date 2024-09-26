@@ -1,0 +1,13 @@
+``ecoli.analysis.multigeneration``
+==================================
+.. automodule:: ecoli.analysis.multigeneration
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   ecoli.analysis.multigeneration.new_gene_counts

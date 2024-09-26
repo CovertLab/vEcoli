@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+        <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../antibiotics_colony.html">ecoli.analysis.antibiotics_colony</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">concurrent.futures</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span> <span class="nn">ecoli.analysis.antibiotics_colony.plot_utils</span> <span class="kn">import</span> <span class="n">prettify_axis</span>
+
+<span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1</span> <span class="kn">import</span> <span class="n">make_axes_locatable</span>
+<span class="kn">from</span> <span class="nn">vivarium.core.emitter</span> <span class="kn">import</span> <span class="n">DatabaseEmitter</span>
+<span class="kn">from</span> <span class="nn">vivarium.core.serialize</span> <span class="kn">import</span> <span class="n">deserialize_value</span>
+<span class="kn">from</span> <span class="nn">vivarium.library.dict_utils</span> <span class="kn">import</span> <span class="n">get_value_from_path</span>
+<span class="kn">from</span> <span class="nn">vivarium.library.topology</span> <span class="kn">import</span> <span class="n">convert_path_style</span>
+<span class="kn">from</span> <span class="nn">vivarium.library.units</span> <span class="kn">import</span> <span class="n">remove_units</span>
+
+<span class="kn">from</span> <span class="nn">ecoli.analysis.colony.snapshots</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">format_snapshot_data</span><span class="p">,</span>
+    <span class="n">get_tag_ranges</span><span class="p">,</span>
+    <span class="n">plot_tags</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">ecoli.analysis.antibiotics_colony</span> <span class="kn">import</span> <span class="n">COUNTS_PER_FL_TO_NANOMOLAR</span><span class="p">,</span> <span class="n">PATHS_TO_LOAD</span>
+
+
+<span class="n">PERIPLASMIC_VOLUME_FRACTION</span> <span class="o">=</span> <span class="mf">0.2</span>
+<span class="n">PERIPLASMIC_VARS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;OmpF monomer&quot;</span><span class="p">,</span> <span class="s2">&quot;TolC monomer&quot;</span><span class="p">,</span> <span class="s2">&quot;AmpC monomer&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="deserialize_and_remove_units">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot.html#ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot.deserialize_and_remove_units">[docs]</a>
+<span class="k">def</span> <span class="nf">deserialize_and_remove_units</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">remove_units</span><span class="p">(</span><span class="n">deserialize_value</span><span class="p">(</span><span class="n">d</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="make_snapshot_and_hist_plot">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot.html#ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot.make_snapshot_and_hist_plot">[docs]</a>
+<span class="k">def</span> <span class="nf">make_snapshot_and_hist_plot</span><span class="p">(</span>
+    <span class="n">timepoint_data</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="n">molecule</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tag_hsv</span><span class="o">=</span><span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generates a figure with a snapshot plot tagging the specified molecule,</span>
+<span class="sd">    and a smoothed density plot (using histogram) of the distribution of counts for that molecule</span>
+<span class="sd">    at that time.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        timepoint_data: data from one timepoint, in the form {time : {...data...}}</span>
+<span class="sd">        bounds: physical bounds for the snapshot plot</span>
+<span class="sd">        molecule: molecule to tag in the snapshot plot / histogram plot.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        fig, axes&quot;&quot;&quot;</span>
+
+    <span class="c1"># time = list(timepoint_data.keys())</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">timepoint_data</span><span class="p">[</span><span class="s2">&quot;Time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected only one timepoint, got </span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">condition</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">condition</span> <span class="o">=</span> <span class="n">condition</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">seed</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="n">condition</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Convert DataFrame data back to dictionary form for tag plot</span>
+    <span class="n">timepoint_data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">time</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;agents&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="n">agent_id</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;boundary&quot;</span><span class="p">:</span> <span class="n">boundary</span><span class="p">,</span>
+                    <span class="c1"># Convert from counts to uM</span>
+                    <span class="n">molecule</span><span class="p">:</span> <span class="p">(</span>
+                        <span class="p">(</span>
+                            <span class="n">molecule_count</span>
+                            <span class="o">/</span> <span class="p">(</span>
+                                <span class="n">boundary</span><span class="p">[</span><span class="s2">&quot;volume&quot;</span><span class="p">]</span>
+                                <span class="o">*</span> <span class="p">(</span>
+                                    <span class="n">PERIPLASMIC_VOLUME_FRACTION</span>
+                                    <span class="k">if</span> <span class="n">molecule</span> <span class="ow">in</span> <span class="n">PERIPLASMIC_VARS</span>
+                                    <span class="k">else</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">PERIPLASMIC_VOLUME_FRACTION</span>
+                                <span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="o">*</span> <span class="n">COUNTS_PER_FL_TO_NANOMOLAR</span>
+                        <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="mi">3</span>  <span class="c1"># Convert to uM</span>
+                    <span class="p">),</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">agent_id</span><span class="p">,</span> <span class="n">boundary</span><span class="p">,</span> <span class="n">molecule_count</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                    <span class="n">timepoint_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Agent ID&quot;</span><span class="p">],</span>
+                    <span class="n">timepoint_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Boundary&quot;</span><span class="p">],</span>
+                    <span class="n">timepoint_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">molecule</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="n">metadata</span><span class="p">[</span><span class="n">condition</span><span class="p">][</span><span class="n">seed</span><span class="p">][</span><span class="s2">&quot;fields&quot;</span><span class="p">][</span><span class="n">time</span><span class="p">],</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Get snapshot figure from plot_tags</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plot_tags</span><span class="p">(</span>
+        <span class="n">timepoint_data</span><span class="p">,</span>
+        <span class="n">bounds</span><span class="p">,</span>
+        <span class="n">snapshot_times</span><span class="o">=</span><span class="p">[</span><span class="n">time</span><span class="p">],</span>
+        <span class="n">tagged_molecules</span><span class="o">=</span><span class="p">[(</span><span class="n">molecule</span><span class="p">,)],</span>
+        <span class="n">show_timeline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">background_color</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
+        <span class="n">default_font_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">scale_bar_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># TODO: scale bar length looks wrong?</span>
+        <span class="n">min_color</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
+        <span class="n">tag_colors</span><span class="o">=</span><span class="p">{(</span><span class="n">molecule</span><span class="p">,):</span> <span class="n">tag_hsv</span><span class="p">},</span>
+        <span class="n">convert_to_concs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">xlim</span><span class="o">=</span><span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">42</span><span class="p">],</span>
+        <span class="n">ylim</span><span class="o">=</span><span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">42</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">tag_axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">get_axes</span><span class="p">()</span>
+    <span class="n">snapshot_ax</span> <span class="o">=</span> <span class="n">tag_axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Prettify axis labels</span>
+    <span class="n">snapshot_ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">ylabel</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">snapshot_ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">molecule</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">title</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">title</span><span class="p">)</span>
+
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_gridspec</span><span class="p">(</span>
+        <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">width_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">wspace</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">hspace</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Reposition axes, preparing to add hist plot below</span>
+    <span class="n">snapshot_ax</span><span class="o">.</span><span class="n">set_position</span><span class="p">(</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_position</span><span class="p">(</span><span class="n">fig</span><span class="p">))</span>
+    <span class="n">snapshot_ax</span><span class="o">.</span><span class="n">set_subplotspec</span><span class="p">(</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># Remove colorbar axes (recreating is easier than re-positioning)</span>
+    <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">fig</span><span class="o">.</span><span class="n">get_axes</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="o">!=</span> <span class="n">snapshot_ax</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+
+    <span class="c1"># re-create colorbar</span>
+    <span class="n">divider</span> <span class="o">=</span> <span class="n">make_axes_locatable</span><span class="p">(</span><span class="n">snapshot_ax</span><span class="p">)</span>
+    <span class="n">cax</span> <span class="o">=</span> <span class="n">divider</span><span class="o">.</span><span class="n">append_axes</span><span class="p">(</span><span class="s2">&quot;bottom&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;5%&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+
+    <span class="n">agents</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">format_snapshot_data</span><span class="p">(</span><span class="n">timepoint_data</span><span class="p">)</span>
+    <span class="n">tag_ranges</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_tag_ranges</span><span class="p">(</span>
+        <span class="n">agents</span><span class="p">,</span> <span class="p">[(</span><span class="n">molecule</span><span class="p">,)],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">False</span><span class="p">,</span> <span class="p">{(</span><span class="n">molecule</span><span class="p">,):</span> <span class="n">tag_hsv</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">min_tag</span><span class="p">,</span> <span class="n">max_tag</span> <span class="o">=</span> <span class="n">tag_ranges</span><span class="p">[(</span><span class="n">molecule</span><span class="p">,)]</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="n">min_tag</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">max_tag</span><span class="p">)</span>
+    <span class="n">cmap</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">LinearSegmentedColormap</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span>
+        <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">hsv_to_rgb</span><span class="p">(</span><span class="n">tag_hsv</span><span class="p">))]</span>
+    <span class="p">)</span>
+    <span class="n">mappable</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">ScalarMappable</span><span class="p">(</span><span class="n">norm</span><span class="p">,</span> <span class="n">cmap</span><span class="p">)</span>
+
+    <span class="n">cbar</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span>
+        <span class="n">mappable</span><span class="p">,</span>
+        <span class="n">cax</span><span class="o">=</span><span class="n">cax</span><span class="p">,</span>
+        <span class="n">orientation</span><span class="o">=</span><span class="s2">&quot;horizontal&quot;</span><span class="p">,</span>
+        <span class="n">ticks</span><span class="o">=</span><span class="p">[</span><span class="n">min_tag</span><span class="p">,</span> <span class="n">max_tag</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">format_tick</span><span class="p">(</span><span class="n">tick</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">tick</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">tick</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tick</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tick</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="n">cbar</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span>
+        <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">format_tick</span><span class="p">(</span><span class="n">min_tag</span><span class="p">)</span><span class="si">}</span><span class="s2"> μM&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">format_tick</span><span class="p">(</span><span class="n">max_tag</span><span class="p">)</span><span class="si">}</span><span class="s2"> μM&quot;</span><span class="p">],</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Add histogram plot</span>
+    <span class="n">hist_ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">grid</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># Get distribution of concentration across agents</span>
+    <span class="n">hist_data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">molecule</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span> <span class="p">[</span>
+            <span class="n">get_value_from_path</span><span class="p">(</span><span class="n">agent_data</span><span class="p">,</span> <span class="p">(</span><span class="n">molecule</span><span class="p">,))</span>
+            <span class="k">for</span> <span class="n">agent_data</span> <span class="ow">in</span> <span class="n">timepoint_data</span><span class="p">[</span><span class="n">time</span><span class="p">][</span><span class="s2">&quot;agents&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+    <span class="n">hist_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">hist_data</span><span class="p">)</span>
+
+    <span class="c1"># Plot histogram</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">hist_data</span><span class="p">,</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">molecule</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">ax</span><span class="o">=</span><span class="n">hist_ax</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">hsv_to_rgb</span><span class="p">(</span><span class="n">tag_hsv</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Aesthetics</span>
+    <span class="n">hist</span><span class="p">,</span> <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">hist_data</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+    <span class="n">hist_ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">hist_ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Cells&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">labelpad</span><span class="o">=-</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">hist_ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+        <span class="n">xticks</span><span class="o">=</span><span class="p">[</span><span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span>
+        <span class="n">xticklabels</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">format_tick</span><span class="p">(</span><span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="si">}</span><span class="s2"> μM&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">format_tick</span><span class="p">(</span><span class="n">bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="si">}</span><span class="s2"> μM&quot;</span><span class="p">],</span>
+        <span class="n">xlim</span><span class="o">=</span><span class="p">[</span><span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span>
+        <span class="n">yticks</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">hist</span><span class="p">)],</span>
+        <span class="n">ylim</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">hist</span><span class="p">)],</span>
+    <span class="p">)</span>
+    <span class="n">prettify_axis</span><span class="p">(</span>
+        <span class="n">hist_ax</span><span class="p">,</span>
+        <span class="n">label_fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>
+        <span class="n">ticklabel_fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">tick_format_x</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{:.1f}</span><span class="s2"> μM&quot;</span><span class="p">,</span>
+        <span class="n">tick_format_y</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{:.0f}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">hist_ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">min_tag</span><span class="p">,</span> <span class="n">max_tag</span><span class="p">],</span>
+        <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">format_tick</span><span class="p">(</span><span class="n">min_tag</span><span class="p">)</span><span class="si">}</span><span class="s2"> μM&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">format_tick</span><span class="p">(</span><span class="n">max_tag</span><span class="p">)</span><span class="si">}</span><span class="s2"> μM&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="c1"># hist_ax.set_box_aspect(1)</span>
+
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">fig</span><span class="o">.</span><span class="n">get_axes</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="get_data">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot.html#ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot.get_data">[docs]</a>
+<span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="n">experiment_id</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">molecules</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">cpus</span><span class="p">,</span> <span class="n">verbose</span><span class="p">):</span>
+    <span class="c1"># Prepare molecule paths for access_counts()</span>
+    <span class="c1"># monomers = [m[-1] for m in molecules if m[-2] == &quot;monomer&quot;]</span>
+    <span class="c1"># mrnas = [m[-1] for m in molecules if m[-2] == &quot;mrna&quot;]</span>
+    <span class="c1"># inner_paths = [</span>
+    <span class="c1">#     path for path in molecules if path[-1] not in mrnas and path[-1] not in monomers</span>
+    <span class="c1"># ]</span>
+    <span class="c1"># outer_paths = [(&quot;data&quot;, &quot;dimensions&quot;)]</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Accessing data for experiment </span><span class="si">{</span><span class="n">experiment_id</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+
+    <span class="c1"># TODO: Retrieve data using DuckDB</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Still need to update to use DuckDB!&quot;</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">with</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">cpus</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+        <span class="c1"># Prepare to deserialize data</span>
+        <span class="n">data_deserialized</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">deserialize_and_remove_units</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+        <span class="c1"># If verbose, add a progress bar</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">data_deserialized</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
+                <span class="n">data_deserialized</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Deserializing data&quot;</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Do the actual deserializing (lazy computation)</span>
+        <span class="n">data_deserialized</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data_deserialized</span><span class="p">)</span>
+
+    <span class="c1"># prep data, physical bounds for returning</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">data_deserialized</span><span class="p">))</span>
+    <span class="n">bounds</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">time</span><span class="p">][</span><span class="s2">&quot;dimensions&quot;</span><span class="p">][</span><span class="s2">&quot;bounds&quot;</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">bounds</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot.html#ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot.main">[docs]</a>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="s2">&quot;Generate snapshot and histogram figures for specified molecules.&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;experiment_id&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;ID of the experiment for which to make the figure(s).&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--molecule_paths&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-m&quot;</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Paths (in A&gt;B&gt;C form) of the molecule(s) for which to generate figure(s). &quot;</span>
+        <span class="s1">&#39;Can be preceded by an alias for that molecule, e.g. &quot;OmpF=monomer&gt;EG10671-MONOMER&quot;.&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--time&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-t&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Timepoint which to plot (defaults to last timepoint).&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--outdir&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-d&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;out/snapshot_hist_plots&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Directory in which to output the generated figures.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--svg&quot;</span><span class="p">,</span> <span class="s2">&quot;-s&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Save as svg.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--host&quot;</span><span class="p">,</span> <span class="s2">&quot;-o&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--port&quot;</span><span class="p">,</span> <span class="s2">&quot;-p&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">27017</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--local&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-l&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Locally saved dataframe file to run the plots on (if provided). &quot;</span>
+        <span class="s2">&quot;Setting this option overrides database options (experiment_id, host, port).&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--cpus&quot;</span><span class="p">,</span> <span class="s2">&quot;-c&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--verbose&quot;</span><span class="p">,</span> <span class="s2">&quot;-v&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># Covert molecule path styles, get names</span>
+    <span class="n">molecules</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">molecule_names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">molecule_paths</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># no alias given</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">convert_path_style</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">molecules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="n">molecule_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">molecules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">convert_path_style</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">molecule_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">local</span><span class="p">:</span>
+        <span class="c1"># Load data</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">local</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Agent ID&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;Seed&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">},</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>
+        <span class="c1"># Convert string to dictionary</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;Boundary&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;Boundary&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">)</span>
+
+        <span class="c1"># Get only desired columns</span>
+        <span class="n">paths_to_columns</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">PATHS_TO_LOAD</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">molecules</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">missing</span> <span class="ow">in</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">molecules</span> <span class="k">if</span> <span class="n">p</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">paths_to_columns</span><span class="p">]:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Path </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2"> is missing from locally saved dataframe.&quot;</span><span class="p">)</span>
+        <span class="n">keep_columns</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;Agent ID&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Dry mass&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Growth rate&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Time&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Seed&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Condition&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Boundary&quot;</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">paths_to_columns</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span>
+        <span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">keep_columns</span><span class="p">]</span>
+
+        <span class="c1"># Load metadata</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;Loading metadata; filename must have the form &lt;data_filename&gt;_metadata.&lt;data_ext&gt;&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">filename</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">local</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">_metadata.json&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># Get environmental bounds</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">seed</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="n">condition</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">bounds</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="n">condition</span><span class="p">][</span><span class="n">seed</span><span class="p">][</span><span class="s2">&quot;bounds&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Get max time if no time specified</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">time</span>
+        <span class="k">if</span> <span class="n">time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;No timepoint given, trying to infer and use final timepoint from data.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;If this fails, consider specifying an explicit timepoint.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">time</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;Time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+        <span class="c1"># Restrict data to come from only one timepoint</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">time</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Get max time if no time specified</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">time</span>
+        <span class="k">if</span> <span class="n">time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;No timepoint given, trying to infer and use final timepoint from data.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;If this fails, consider specifying an explicit timepoint.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;database&quot;</span><span class="p">:</span> <span class="s2">&quot;simulations&quot;</span><span class="p">}</span>
+            <span class="n">emitter</span> <span class="o">=</span> <span class="n">DatabaseEmitter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="n">db</span> <span class="o">=</span> <span class="n">emitter</span><span class="o">.</span><span class="n">db</span>
+
+            <span class="n">time</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="n">db</span><span class="o">.</span><span class="n">history</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="p">{</span><span class="s2">&quot;$match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">experiment_id</span><span class="p">}},</span>
+                        <span class="p">{</span><span class="s2">&quot;$project&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;data.time&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}},</span>
+                        <span class="p">{</span><span class="s2">&quot;$group&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;_id&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$max&quot;</span><span class="p">:</span> <span class="s2">&quot;$data.time&quot;</span><span class="p">}}},</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;time&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Get data from database</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">bounds</span> <span class="o">=</span> <span class="n">get_data</span><span class="p">(</span>
+            <span class="n">experiment_id</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">experiment_id</span><span class="p">,</span>
+            <span class="n">time</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">time</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>  <span class="c1"># only even timesteps have the data necessary</span>
+            <span class="n">molecules</span><span class="o">=</span><span class="n">molecules</span><span class="p">,</span>
+            <span class="n">host</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="p">,</span>
+            <span class="n">port</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+            <span class="n">cpus</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cpus</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># TODO: Get this in Dataframe format (see plot.py?)</span>
+
+    <span class="c1"># Generate one figure per molecule</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;font.family&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Arial&quot;</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;svg.fonttype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">molecule</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">molecule_names</span><span class="p">,</span> <span class="n">molecules</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Plotting snapshot + histogram for </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">molecule</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">make_snapshot_and_hist_plot</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="n">paths_to_columns</span><span class="p">[</span><span class="n">molecule</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">fig</span><span class="o">.</span><span class="n">set_size_inches</span><span class="p">(</span><span class="mf">2.25</span><span class="p">,</span> <span class="mf">2.9</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;snapshot_and_hist_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="s1">&#39;svg&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">args</span><span class="o">.</span><span class="n">svg</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;png&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2024, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

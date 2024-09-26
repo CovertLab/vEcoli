@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.antibiotics_colony.plot &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ecoli.analysis.antibiotics_colony.plot_utils" href="ecoli.analysis.antibiotics_colony.plot_utils.html" />
+    <link rel="prev" title="ecoli.analysis.antibiotics_colony.metrics" href="ecoli.analysis.antibiotics_colony.metrics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="ecoli.analysis.antibiotics_colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.antibiotics_colony</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.causality_network.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.causality_network</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.colony</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multidaughter.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multidaughter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multiexperiment.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multiexperiment</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multigeneration.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multigeneration</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multiseed.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multiseed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multivariant.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multivariant</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.single.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.single</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.composites.html"><code class="docutils literal notranslate"><span class="pre">ecoli.composites</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.experiments.html"><code class="docutils literal notranslate"><span class="pre">ecoli.experiments</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.library.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.processes.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.variants.html"><code class="docutils literal notranslate"><span class="pre">ecoli.variants</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../runscripts/runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.analysis.antibiotics_colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.antibiotics_colony</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.antibiotics_colony.plot</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/ecoli/ecoli.analysis.antibiotics_colony.plot.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-ecoli.analysis.antibiotics_colony.plot">
+<span id="ecoli-analysis-antibiotics-colony-plot"></span><h1><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.antibiotics_colony.plot</span></code><a class="headerlink" href="#module-ecoli.analysis.antibiotics_colony.plot" title="Link to this heading"></a></h1>
+<p>Script to make majority of figures in paper.
+Before running, extract colony_data.zip in the “data” folder.
+Mapping between filenames in “colony_data/sim_dfs” folder and
+simulation conditions in ecoli/analysis/antibiotics_colony/__init__.py.
+The __init__ file also constructs a dictionary of all columns in the saved
+CSV files (and gives their paths in the simulation store hierarchy).</p>
+<dl class="simple">
+<dt>Refer to these other scripts for the code to create remaining figures:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>ecoli/analysis/antibiotics_colony/subgen_gene_plots/</dt><dd><ul>
+<li><dl class="simple">
+<dt>count_subgen.py: counts for Fig. 1B</dt><dd><ul>
+<li><p>Run with “–data data/colony_data/glc_10000_expressome.csv”</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>make_fig_1b.py: create Fig. 1B</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>ecoli/analysis/antibiotics_colony/snapshot_and_hist_plot.py: Fig. 2E-F</dt><dd><ul>
+<li><p>Run with “–local data/colony_data/2022-12-08_00-35-28_562633+0000.csv”</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>ecoli/analysis/antibiotics_colony/tet_dry_mass.py: Fig. 3E</p></li>
+<li><dl class="simple">
+<dt>ecoli/analysis/antibiotics_colony/amp_plots.py: Fig. 4D-J, L</dt><dd><ul>
+<li><p>Run with “–glc_data data/colony_data/2022-12-08_00-33-56_581605+0000.csv”
+and “–amp_data data/colony_data/2022-12-08_17-03-56_357734+0000.csv”</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>ecoli/analysis/antibiotics_colony/spatial_autocorrelation.py: Fig. S4</dt><dd><ul>
+<li><p>Run with “data/colony_data/sim_dfs/2022-12-08_00-35-28_562633+0000.csv”</p></li>
+<li><p>Repeat with CSV files for other two baseline glucose simulations
+to get all Moran’s I and p-values in Table S1</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>ecoli/analysis/proteinCountsValidation.py: Fig. S2A</dt><dd><ul>
+<li><p>Run with “–avg_data data/colony_data/glc_10000_proteome_avgs.csv”</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>ecoli/analysis/centralCarbonMetabolismScatter.py: Fig. S2B</dt><dd><ul>
+<li><p>Run with “–numpy_data data/colony_data/glc_10000_fluxome.csv” and
+“–sim_df data/colony_data/2022-12-08_00-35-28_562633+0000.csv”</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.load_exp_data">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">load_exp_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">experiment_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#load_exp_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.load_exp_data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.main">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_1a">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_1a</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_1a"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_1a" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_2a">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_2a</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_2a"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_2a" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_2b_d">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_2b_d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_2b_d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_2b_d" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_3d_and_3m">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_3d_and_3m</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_3d_and_3m"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_3d_and_3m" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_3f_h">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_3f_h</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_3f_h"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_3f_h" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_3i_k">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_3i_k</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_3i_k"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_3i_k" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_3l">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_3l</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_3l"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_3l" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_4c">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_4c</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_4c"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_4c" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_4l">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_4l</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_4l"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_4l" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_4m">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_4m</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_4m"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_4m" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_4n">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_4n</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_4n"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_4n" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_s1">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_s1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_s1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_s1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_s10">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_s10</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_s10"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_s10" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_s3a">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_s3a</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_s3a"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_s3a" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_s3b">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_s3b</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_s3b"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_s3b" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_s5">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_s5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_s5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_s5" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_s6a">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_s6a</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_s6a"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_s6a" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_s6b">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_s6b</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_s6b"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_s6b" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_s7">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_s7</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_s7"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_s7" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_s8">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_s8</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_s8"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_s8" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.plot.make_figure_videos">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.plot.</span></span><span class="sig-name descname"><span class="pre">make_figure_videos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/plot.html#make_figure_videos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.plot.make_figure_videos" title="Link to this definition"></a></dt>
+<dd><p>One-off video of sub-generational ampC expression and cell death at MIC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/dev/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0.dev0+1523.gb9488218ae)"><em>pandas.DataFrame</em></a>)</p></li>
+<li><p><strong>metadata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><em>Any</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ecoli.analysis.antibiotics_colony.metrics.html" class="btn btn-neutral float-left" title="ecoli.analysis.antibiotics_colony.metrics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ecoli.analysis.antibiotics_colony.plot_utils.html" class="btn btn-neutral float-right" title="ecoli.analysis.antibiotics_colony.plot_utils" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2024, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
