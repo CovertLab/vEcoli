@@ -130,6 +130,7 @@ def apply_and_save_variants(
     param_dicts: list[dict[str, Any]],
     variant_name: str,
     outdir: str,
+    skip_baseline: bool,
 ):
     """
     Applies variant function to ``sim_data`` with each parameter dictionary
@@ -144,9 +145,12 @@ def apply_and_save_variants(
         param_dicts: Return value of :py:func:`~.parse_variants`
         variant_name: Name of variant function file in ``ecoli/variants`` folder
         outdir: Path to folder where variant ``sim_data`` pickles are saved
+        skip_baseline: Whether to save metadata for baseline sim_data
     """
     variant_mod = importlib.import_module(f"ecoli.variants.{variant_name}")
-    variant_metadata: dict[int, str | dict[str, Any]] = {0: "baseline"}
+    variant_metadata: dict[int, str | dict[str, Any]] = {}
+    if not skip_baseline:
+        variant_metadata[0] = "baseline"
     for i, params in enumerate(param_dicts):
         sim_data_copy = copy.deepcopy(sim_data)
         variant_metadata[i + 1] = params
@@ -280,9 +284,12 @@ def main():
     with open(os.path.join(config["kb"], "simData.cPickle"), "rb") as f:
         sim_data = pickle.load(f)
     os.makedirs(config["outdir"], exist_ok=True)
-    print("Saving baseline sim_data...")
-    with open(os.path.join(config["outdir"], "0.cPickle"), "wb") as f:
-        pickle.dump(sim_data, f)
+    if config["skip_baseline"]:
+        print("Skipping baseline sim_data...")
+    else:
+        print("Saving baseline sim_data...")
+        with open(os.path.join(config["outdir"], "0.cPickle"), "wb") as f:
+            pickle.dump(sim_data, f)
     variant_config = config.get("variants", {})
     if len(variant_config) > 1:
         raise RuntimeError(
@@ -296,7 +303,13 @@ def main():
         print("Parsing variants...")
         parsed_params = parse_variants(variant_params)
         print("Applying variants and saving variant sim_data...")
-        apply_and_save_variants(sim_data, parsed_params, variant_name, config["outdir"])
+        apply_and_save_variants(
+            sim_data,
+            parsed_params,
+            variant_name,
+            config["outdir"],
+            config["skip_baseline"],
+        )
     else:
         with open(os.path.join(config["outdir"], "metadata.json"), "w") as f:
             json.dump({None: {0: "baseline"}}, f)

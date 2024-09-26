@@ -150,8 +150,8 @@ def parse_key_value_args(args_list: list[str]) -> dict[str, str]:
     # Create an empty dictionary to store the parsed key-value pairs
     parsed_dict = {}
     for item in args_list:
-        if '=' in item:
-            key, value = item.split('=', 1)
+        if "=" in item:
+            key, value = item.split("=", 1)
             parsed_dict[key] = value
         else:
             raise ValueError(f"Argument '{item}' is not in the form key=value")
