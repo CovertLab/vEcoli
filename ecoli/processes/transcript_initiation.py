@@ -19,6 +19,7 @@ import numpy as np
 import scipy.sparse
 import matplotlib.pyplot as plt
 from typing import cast
+import copy
 
 from vivarium.core.composition import simulate_process
 
@@ -176,7 +177,8 @@ class TranscriptInitiation(PartitionedProcess):
                           "tf_idx": [],
                           "unbound_affinity": [],
                           "bound_affinity": [],
-                          "tf_binding_site_index": []}
+                          "tf_binding_site_index": []
+                          },
         "ppgpp_regulation": False,
         # attenuation
         "trna_attenuation": False,
@@ -334,6 +336,7 @@ class TranscriptInitiation(PartitionedProcess):
             Changes basal_aff for each two-peak gene, according to whether the right TF is bound to the
             corresponding TF-binding site for each TU.
             '''
+            final_aff = copy.deepcopy(basal_aff)
             for i, TU_idx in enumerate(self.two_peak_data['TU_idx']):
                 # Get indices of this TU
                 is_reg = (promoter_TU_index == TU_idx)
@@ -373,9 +376,10 @@ class TranscriptInitiation(PartitionedProcess):
                 TF_is_bound = np.array(TF_is_bound)
                 TU_tf_is_bound = is_reg[TF_is_bound]
                 TU_tf_not_bound = is_reg[~TF_is_bound]
-                basal_aff[TU_tf_is_bound] = self.two_peak_data["bound_affinity"]
-                basal_aff[TU_tf_not_bound] = self.two_peak_data["unbound_affinity"]
+                final_aff[TU_tf_is_bound] = self.two_peak_data["bound_affinity"]
+                final_aff[TU_tf_not_bound] = self.two_peak_data["unbound_affinity"]
 
+            return final_aff
 
         if states["full_chromosomes"]["_entryState"].sum() > 0:
             # Get attributes of tf-binding sites and promoters
@@ -417,7 +421,7 @@ class TranscriptInitiation(PartitionedProcess):
                 self.fracActiveRnap = self.fracActiveRnapDict[current_media_id]
                 #ppgpp_scale = 1
 
-            _apply_TF_effects(basal_aff, tf_binding_site_index, tf_binding_site_domain_index,
+            self.promoter_init_affs = _apply_TF_effects(basal_aff, tf_binding_site_index, tf_binding_site_domain_index,
                               tf_binding_site_bound_TF, promoter_TU_index, promoter_domain_index)
 
             # TODO: is this right? might need changing?

@@ -983,7 +983,7 @@ class Transcription(object):
             for (cistron_index, rna_id) in enumerate(self.rna_data["id"])
         }
 
-        # For use in transcription_regulation process
+        # For use in transcription_regulation sim_data object
         self.unnormalized_mRNA_rna_exp_sum = np.sum(expression[is_mRNA])
 
         # Set basal expression and synthesis probabilities - conditional values
