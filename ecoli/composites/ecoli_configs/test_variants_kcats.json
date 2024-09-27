@@ -4,12 +4,13 @@
     "parca_options": {
         "cpus": 4
     },
+    "sim_data_path": null,
     "generations": 1,
     "total_time": 3600,
     "n_init_sims": 1,
     "single_daughters": true,
-    "emitter" : {
-        "type": "parquet",
+    "emitter": "parquet",
+    "emitter_arg": {
         "out_dir": "out"
     },
     "variants": {
