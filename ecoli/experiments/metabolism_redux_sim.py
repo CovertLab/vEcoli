@@ -59,12 +59,12 @@ def run_ecoli_with_metabolism_redux_classic(
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries',
-    name="metabolism-redux-classic-rich",
+    name="convex_kinetics_rich",
     raw_output=False,
     save=True,
     save_times=[1, 10, 200, 400, 1300],
-    condition="acetate",  # basal, with_aa
-    fixed_media="minimal_acetate",  # minimal, minimal_plus_amino_acids
+    condition="with_aa",  # basal, with_aa
+    fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
