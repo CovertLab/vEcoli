@@ -413,7 +413,6 @@ class TranscriptionRegulation(object):
 
             TU_exp, _ = fast_nnls(mapping_matrix_these_operons, cistron_operon_exp)
             TU_exp /= transcription.unnormalized_mRNA_rna_exp_sum
-
             return TU_exp, tus_of_operons, cistron_idx_to_operon_TUs
 
         def _update_basal_expression(TU_idxs, TU_mRNA_frac):
@@ -474,10 +473,10 @@ class TranscriptionRegulation(object):
         _update_basal_expression(two_peak_basal_TU_idxs, two_peak_basal_TU_mRNA_frac)
 
         # Get the corresponding tf-binding-site and the TUs that it regulates
-        target_cistron_idxs = [np.where(transcription.cistron_data["gene_id"]
-                                        == gene)[0][0] for gene in self.two_peak_gene_data["regulated_gene_id"]]
-        tf_binding_site_TU_matrix = sim_data.relation.tf_binding_site_to_tus_mapping(dense=True)
-        tf_binding_site_TF_matrix = sim_data.relation.tf_binding_site_to_tfs_mapping(dense=True)
+        target_cistron_idxs = np.array([np.where(transcription.cistron_data["gene_id"]
+                                        == gene)[0][0] for gene in self.two_peak_gene_data["regulated_gene_id"]])
+        tf_binding_site_TU_matrix = sim_data.relation.tf_binding_site_to_tus_mapping()
+        tf_binding_site_TF_matrix = sim_data.relation.tf_binding_site_to_tfs_mapping()
 
         tu_regulation_info = {}
         for i, idx in enumerate(target_cistron_idxs):
@@ -489,6 +488,7 @@ class TranscriptionRegulation(object):
             # TODO: maybe could remove this assumption later
             if len(tf_binding_sites) != 1:
                 raise ValueError("Two-peak cistron must be regulated by only one tf-binding-site")
+
             tf_binding_site_idx = tf_binding_sites[0]
 
             # Get TF that regulates these TUs (should only be one, and matches the TF idx in two_peak_gene_data)
@@ -510,17 +510,17 @@ class TranscriptionRegulation(object):
         two_peak_reg_TU_idxs = np.array(sorted(list(tu_regulation_info.keys())))
         self.two_peak_TU_data["TU_idx"] = two_peak_reg_TU_idxs
         self.two_peak_TU_data["tf_idx"] = np.array(
-            [tu_regulation_info[TU_idx][0]] for TU_idx in two_peak_reg_TU_idxs
+            [tu_regulation_info[TU_idx][0] for TU_idx in two_peak_reg_TU_idxs]
         )
         self.two_peak_TU_data["tf_binding_site_idx"] = np.array(
-            [tu_regulation_info[TU_idx][1]] for TU_idx in two_peak_reg_TU_idxs
+            [tu_regulation_info[TU_idx][1] for TU_idx in two_peak_reg_TU_idxs]
         )
         self.two_peak_TU_data["condition"] = np.array(
-            [tu_regulation_info[TU_idx][2]] for TU_idx in two_peak_reg_TU_idxs
+            [tu_regulation_info[TU_idx][2] for TU_idx in two_peak_reg_TU_idxs]
         )
 
-        # TODO: check that these calculations are right?
-        # Solve NNLS for other peak
+        # Solve NNLS for other peak. We'll assume that the conversion factor between cistrons and TUs is the same
+        # regardless of condition
         # Get all TUs that contain these cistrons
         contain_cistron_TU_idxs = set()
         for idx in target_cistron_idxs:
@@ -531,21 +531,31 @@ class TranscriptionRegulation(object):
         # of mapping_matrix * TU expression)
         # We make the assumption that the total amount of mRNA expression changes negligibly due
         # to changes made to TU expression made here
-        cistron_exp_unnormalized = transcription.cistron_tu_mapping_matrix.toarray().dot(
-            transcription.rna_expression["basal"]
+        cistron_exp_unnormalized_sum = np.sum(
+            transcription.cistron_tu_mapping_matrix.toarray().dot(transcription.rna_expression["basal"])
         )
-        cistron_exp_unnormalized_mRNA_sum = cistron_exp_unnormalized[transcription.cistron_data["is_mRNA"]]
-        cistron_total_target_amount = cistron_exp_unnormalized_mRNA_sum * np.array(cistron_other_mRNA_frac)
+        #cistron_exp_unnormalized_mRNA_sum = np.sum(cistron_exp_unnormalized[transcription.cistron_data["is_mRNA"]])
+        #cistron_total_target_amount = cistron_exp_unnormalized_mRNA_sum * np.array(cistron_other_mRNA_frac)
+
+        cistron_exp = transcription.cistron_expression["basal"]
+        cistron_mRNA_sum = np.sum(cistron_exp[transcription.cistron_data["is_mRNA"]])
+        cistron_total_target_amount = cistron_mRNA_sum * np.array(cistron_other_mRNA_frac)
 
         # Subtract away contribution from relevant TUs that are not regulated
         # (at the level of mapping_matrix * TU_expression)
         fixed_TU_idxs = np.array([x for x in contain_cistron_TU_idxs if x not in
                     two_peak_reg_TU_idxs])
-        fixed_TU_exp = transcription.rna_expression["basal"][fixed_TU_idxs]
+        if len(fixed_TU_idxs) > 0:
+            # TODO: check these calculations are right when a real case pops up?
+            fixed_TU_exp = transcription.rna_expression["basal"][fixed_TU_idxs]
 
-        mapping_matrix_target_cistrons = transcription.cistron_tu_mapping_matrix[target_cistron_idxs, :
-                                       ][:, fixed_TU_idxs].toarray()
-        fixed_TU_cistron_amount = mapping_matrix_target_cistrons.dot(fixed_TU_exp)
+            mapping_matrix_target_cistrons = transcription.cistron_tu_mapping_matrix[target_cistron_idxs, :
+                                           ][:, fixed_TU_idxs].toarray()
+            fixed_TU_cistron_amount = (mapping_matrix_target_cistrons.dot(fixed_TU_exp) /
+                                       cistron_exp_unnormalized_sum)
+        else:
+            fixed_TU_cistron_amount = 0
+
         cistron_target_amount = cistron_total_target_amount - fixed_TU_cistron_amount
         # Fix negative amounts at 0
         # TODO: does this ever happen? check these cases if it does

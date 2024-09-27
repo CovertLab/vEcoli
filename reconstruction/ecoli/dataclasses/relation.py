@@ -203,7 +203,7 @@ class Relation(object):
         """
         tf_bind_site_to_tus = sim_data.process.transcription_regulation.tf_bind_site_to_tus
         tf_binding_site_ids = sim_data.process.transcription_regulation.tf_binding_site_ids
-        tu_ids = sim_data.process.transcription.rna_data["id"]
+        tu_ids = [x[:-3] for x in sim_data.process.transcription.rna_data["id"]]
 
         self._tf_binding_site_to_tus_i = []
         self._tf_binding_site_to_tus_j = []
