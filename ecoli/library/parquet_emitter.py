@@ -542,7 +542,7 @@ def read_stacked_columns(
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
     if projections is None:
-        projections = columns
+        projections = columns.copy()
     projections.append(id_cols)
     projections = ", ".join(projections)
     sql_query = f"SELECT {projections} FROM ({history_sql})"
