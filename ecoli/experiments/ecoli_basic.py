@@ -23,7 +23,7 @@ from vivarium.library.topology import assoc_path
 def run_default():
     sim = EcoliSim.from_file()
     sim.total_time = 2
-    print(f'INITIAL PROCESS CONFIGS: {pf(sim.config["process_configs"])}')
+
 
     # build the ecoli model
     # sim.build_ecoli()
@@ -42,6 +42,9 @@ def run_default():
         sim.process_configs, sim.processes
     )
 
+    # print the process configs
+    print(f'PROCESS CONFIGS: {pf(sim.config["process_configs"])}')
+
     # Prevent clashing unique indices by reseeding when loading
     # a saved state (assumed to have name 'vivecoli_t{save time}')
     initial_state_path = sim.config.get("initial_state_file", "")
@@ -57,17 +60,16 @@ def run_default():
     # ecoli_composer.load_sim_data.sim_data
     ecoli_composer.load_sim_data.sim_data.process.metabolism._kcats[0][0] = 0.01
 
-
     # rebuild the processes and steps with the new config
     ecoli_composer.processes_and_steps = ecoli_composer.generate_processes_and_steps(ecoli_composer.config)
 
     # set path at which agent is initialized
     path = tuple()
-    # if self.divide or self.spatial_environment:
-    #     path = (
-    #         "agents",
-    #         self.agent_id,
-    #     )
+    if sim.divide or sim.spatial_environment:
+        path = (
+            "agents",
+            sim.agent_id,
+        )
 
     # get initial state
     initial_cell_state = ecoli_composer.initial_state()
