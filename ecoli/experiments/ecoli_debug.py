@@ -56,9 +56,9 @@ def run_default():
     # TODO -- look at sim_data and make changes
     # ecoli_composer.load_sim_data.sim_data
     # ecoli_composer.load_sim_data.sim_data.process.metabolism._kcats[0][0] = 0.01
-    ecoli_composer.load_sim_data.sim_data.process.metabolism._kcats[386][0] = 0.001
-    ecoli_composer.load_sim_data.sim_data.process.metabolism._kcats[386][1] = 0.001
-    ecoli_composer.load_sim_data.sim_data.process.metabolism._kcats[386][2] = 0.001
+    # ecoli_composer.load_sim_data.sim_data.process.metabolism._kcats[386][0] = 0.001
+    # ecoli_composer.load_sim_data.sim_data.process.metabolism._kcats[386][1] = 0.001
+    # ecoli_composer.load_sim_data.sim_data.process.metabolism._kcats[386][2] = 0.001
 
 
     # rebuild the processes and steps with the new config
