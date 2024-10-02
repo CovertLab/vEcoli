@@ -181,16 +181,13 @@ def main():
         config = json.load(f)
     if args.config is not None:
         config_file = args.config
-        with open(os.path.join(config_file), "r") as f:
+        with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
-    if "out_uri" not in config["emitter"]:
-        if "out_dir" in config["emitter"]:
-            out_uri = os.path.abspath(config["emitter"]["out_dir"])
-        else:
-            out_uri = os.path.abspath(config["emitter_args"]["out_dir"])
+    if "out_uri" not in config["emitter_arg"]:
+        out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
         gcs_bucket = True
     else:
-        out_uri = config["emitter"]["out_uri"]
+        out_uri = config["emitter_arg"]["out_uri"]
         assert (
             parse.urlparse(out_uri).scheme == "gcs"
             or parse.urlparse(out_uri).scheme == "gs"
@@ -354,6 +351,7 @@ def main():
     # Save copy of config JSON with parameters for plots
     with open(os.path.join(config["outdir"], "metadata.json"), "w") as f:
         json.dump(config, f)
+
 
 if __name__ == "__main__":
     main()

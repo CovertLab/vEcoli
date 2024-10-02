@@ -88,6 +88,12 @@ Configuration options for the ParCa are all located in a dictionary under the
 - ``variable_elongation_translation``: If True, enable variable elongation
   for translation.
 
+.. note::
+  If the top-level ``sim_data_path`` option is not null, the ParCa is skipped
+  in favor of the pickled simulation data at the specified path. This applies
+  regardless of whether running with :py:mod:`runscripts.workflow` or
+  :py:mod:`runscripts.parca`.
+
 .. _variants:
 
 --------
@@ -167,7 +173,11 @@ The name of each variant function is the name of the file containing its
 ``new_gene_internal_shift``. If the ``variants`` key points to an
 empty dictionary (no variants), then only the only "variant" saved
 by :py:mod:`runscripts.create_variants` is the unmodified simulation
-data object.
+data object. Thus, when running a workflow with :py:mod:`runscripts.workflow`,
+at least one lineage of cells will always be run with the baseline
+``sim_data``. To avoid this (e.g. when running many batches of simulations
+with the same variant function), set the top-level ``skip_baseline`` option
+to ``True``.
 
 .. warning::
     Only one variant function is supported at a time.
@@ -199,11 +209,12 @@ Output
 The generated variant simulation data objects are pickled and saved in the
 directory given in the ``outdir`` key of the configuration JSON.
 They all have file names of the format ``{index}.cPickle``, where
-index is an integer. The unmodified simulation data object is always
-saved as ``0.cPickle``. The identity of the other indices can be
-determined by referencing the ``metadata.json`` file that is also
-saved in ``outdir``. This JSON maps the variant function name to a
-mapping from each index to the exact parameter
+index is an integer. If the top-level ``skip_baseline`` option is not set
+to ``True``, the unmodified simulation data object is always
+saved as ``0.cPickle``. Otherwise, the 0 index is skipped. The identity of
+the other indices can be determined by referencing the ``metadata.json``
+file that is also saved in ``outdir``. This JSON maps the variant function
+name to a mapping from each index to the exact parameter
 dictionary passed to the variant function to create the
 variant simulation data saved with that index as its file name. See
 :py:func:`~runscripts.create_variants.apply_and_save_variants` for
