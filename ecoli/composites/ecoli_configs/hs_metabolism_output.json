@@ -1,0 +1,22 @@
+{
+    "experiment_id": "test_installation",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 4
+    },
+    "generations": 1,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter" : {
+        "type": "parquet",
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "experiment_id": ["test_installation"],
+        "outdir": "out/test_installation/analyses",
+        "variant_data_dir": ["out/test_installation/variant_sim_data"],
+        "validation_data_path": ["out/test_installation/parca/kb/validationData.cPickle"],
+        "single": {"mass_fraction_summary": {},
+                   "FBA_per_timestep":  {}}
+    }
+}
