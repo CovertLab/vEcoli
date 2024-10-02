@@ -425,6 +425,18 @@ class MetabolismReduxClassic(Step):
         # because there are no enzymes to catalyze the rxn
         binary_kinetic_idx = np.where(~reaction_catalyst_counts.astype(np.bool_))
 
+        # Get reaction indices whose reaction is new (added in 2022)
+        # append reaction indices to binary_kinetic_idx
+        new_reaction_ids = self.parameters['fba_new_reaction_ids']
+        binary_reaction_idx = []
+        for idx,rxn in enumerate(self.reaction_names):
+            is_rxn_new = [new_rxn in rxn for new_rxn in new_reaction_ids]
+            if any(is_rxn_new):
+                binary_reaction_idx.append(idx)
+
+        # combined binary kinetic idx with binary reaction idx and remove overlaps
+        binary_kinetic_idx = (np.unique(np.append(binary_kinetic_idx[0], binary_reaction_idx)),)
+
         # TODO: Figure out how to handle changing media ID
 
         homeostatic_metabolite_concentrations = (

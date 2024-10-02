@@ -43,6 +43,7 @@ LIST_OF_DICT_FILENAMES = [
     "genes.tsv",
     "growth_rate_dependent_parameters.tsv",
     "linked_metabolites.tsv",
+    "metabolic_gene_annotation.tsv",
     "metabolic_reactions.tsv",
     "metabolic_reactions_added.tsv",
     "metabolic_reactions_modified.tsv",
