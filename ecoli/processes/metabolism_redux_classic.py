@@ -427,15 +427,17 @@ class MetabolismReduxClassic(Step):
 
         # Get reaction indices whose reaction is new (added in 2022)
         # append reaction indices to binary_kinetic_idx
-        new_reaction_ids = self.parameters['fba_new_reaction_ids']
+        new_reaction_ids = self.parameters["fba_new_reaction_ids"]
         binary_reaction_idx = []
-        for idx,rxn in enumerate(self.reaction_names):
+        for idx, rxn in enumerate(self.reaction_names):
             is_rxn_new = [new_rxn in rxn for new_rxn in new_reaction_ids]
             if any(is_rxn_new):
                 binary_reaction_idx.append(idx)
 
         # combined binary kinetic idx with binary reaction idx and remove overlaps
-        binary_kinetic_idx = (np.unique(np.append(binary_kinetic_idx[0], binary_reaction_idx)),)
+        binary_kinetic_idx = (
+            np.unique(np.append(binary_kinetic_idx[0], binary_reaction_idx)),
+        )
 
         # TODO: Figure out how to handle changing media ID
 
@@ -469,7 +471,8 @@ class MetabolismReduxClassic(Step):
             "kinetics": 0.0000001,
         }
         solution: FlowResult = self.network_flow_model.solve(
-            homeostatic_targets=target_homeostatic_dmdt,
+            homeostatic_concs=homeostatic_metabolite_concentrations,
+            homeostatic_dm_targets=target_homeostatic_dmdt,
             maintenance_target=maintenance_target,
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
@@ -642,7 +645,8 @@ class NetworkFlowModel:
 
     def solve(
         self,
-        homeostatic_targets: Optional[Iterable[float]] = None,
+        homeostatic_concs: Iterable[float],
+        homeostatic_dm_targets: Iterable[float],
         maintenance_target: float = 0,
         kinetic_targets: Optional[Iterable[float]] = None,
         binary_kinetic_idx: Optional[Iterable[int]] = None,
@@ -672,7 +676,10 @@ class NetworkFlowModel:
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
         loss = 0
-        loss += cp.norm1(dm[self.homeostatic_idx] - homeostatic_targets)
+        # Must normalize by metabolite concentrations to prevent negative counts
+        loss += cp.norm1(
+            (dm[self.homeostatic_idx] - homeostatic_dm_targets) / homeostatic_concs
+        )
         loss += (
             objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
             if "secretion" in objective_weights
