@@ -19,6 +19,7 @@ from wholecell.utils import units
 
 from ecoli.processes.registries import topology_registry
 import cvxpy as cp
+from ortools.glop.parameters_pb2 import GlopParameters
 from typing import Iterable, Mapping
 from dataclasses import dataclass
 
@@ -962,7 +963,13 @@ class NetworkFlowModel:
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
-        p.solve(solver=solver, verbose=False)
+        p.solve(
+            solver=solver,
+            verbose=False,
+            # Solver fails with default solution feasibility tolerance
+            # (1e-6) in acetate media (only affects validation, not solution) 
+            parameters_proto=GlopParameters(solution_feasibility_tolerance=1e-4),
+        )
         if p.status != "optimal":
             raise ValueError(
                 "Network flow model of metabolism did not "
