@@ -39,7 +39,7 @@ Then, run the following command in your terminal:
 
 Update `pip`, `setuptools` and `wheel` to avoid issues with these:
 
-    pip install --upgrade pip setuptools wheel
+    pip install --upgrade pip setuptools==73.0.1 wheel
 
 Now, install numpy (check `requirements.txt` for the exact version):
 
