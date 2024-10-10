@@ -365,6 +365,12 @@ Here are some general rules to remember when writing your own JSON config files:
 - Comments are not allowed
 - Tuples (e.g. in topologies or flows) are written as lists (``["bulk"]`` instead of ``("bulk",)``)
 
+.. note:: 
+    It is strongly recommended that ``fail_at_total_time`` be set to ``True``
+    when running multi-generation workflows. If a simulation reaches total time
+    without dividing, this results in a more informative error message instead
+    of a Nextflow error about missing daughter cell states.
+
 ------
 Output
 ------

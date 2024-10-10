@@ -4,6 +4,7 @@
     "parca_options": {
         "cpus": 4
     },
+    "fail_at_total_time": true,
     "sim_data_path": null,
     "generations": 1,
     "n_init_sims": 1,
