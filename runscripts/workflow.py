@@ -391,7 +391,8 @@ def main():
                 "-work-dir",
                 workdir,
                 "-resume" if args.resume else "",
-            ]
+            ],
+            check=True
         )
     elif nf_profile == "sherlock":
         batch_script = os.path.join(local_outdir, "nextflow_job.sh")
@@ -408,7 +409,7 @@ nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
         copy_to_filesystem(
             batch_script, os.path.join(outdir, "nextflow_job.sh"), filesystem
         )
-        subprocess.run(["sbatch", batch_script])
+        subprocess.run(["sbatch", batch_script], check=True)
     shutil.rmtree(local_outdir)
 
 
