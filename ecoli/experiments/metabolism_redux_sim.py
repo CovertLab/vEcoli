@@ -135,7 +135,7 @@ def run_colony(
     sim.condition = condition
     sim.fixed_media = fixed_media
 
-    for seed in [i for i in range(1, 4, 1)]:
+    for seed in [i for i in range(4, 9, 1)]:
         sim.seed = seed
 
         sim.build_ecoli()
