@@ -287,11 +287,14 @@ def get_mean_and_std_matrices(
     ]
     for variant, mean, std in data:
         variant_row, variant_col = variant_mapping[variant]
-        if num_digits_rounding is not None:
-            mean = np.round(mean, num_digits_rounding)
-            std = np.round(std, num_digits_rounding)
-        mean_matrix[variant_row][variant_col] = mean
-        std_matrix[variant_row][variant_col] = std
+        if mean is not None:
+            if num_digits_rounding is not None:
+                mean = np.round(mean, num_digits_rounding)
+            mean_matrix[variant_row][variant_col] = mean
+        if std is not None:
+            if num_digits_rounding is not None:
+                std = np.round(std, num_digits_rounding)
+            std_matrix[variant_row][variant_col] = std
     return np.array(mean_matrix), np.array(std_matrix)
 
 
@@ -1329,8 +1332,8 @@ def plot(
                     GROUP BY experiment_id, variant, lineage_seed
                 )
                 -- Boolean values must be explicitly cast to numeric for aggregation
-                SELECT variant, avg((max_generation > {COUNT_INDEX})::BIGINT) AS mean,
-                    stddev((max_generation > {COUNT_INDEX})::BIGINT) AS std
+                SELECT variant, avg((max_generation = {COUNT_INDEX})::BIGINT) AS mean,
+                    stddev((max_generation = {COUNT_INDEX})::BIGINT) AS std
                 FROM max_gen_per_seed
                 GROUP BY experiment_id, variant
                 """,
