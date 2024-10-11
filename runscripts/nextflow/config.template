@@ -86,5 +86,6 @@ profiles {
         params.projectRoot = "${launchDir}"
         params.publishDir = "PUBLISH_DIR"
         workflow.failOnIgnore = true
+        process.errorStrategy = 'ignore'
     }
 }
