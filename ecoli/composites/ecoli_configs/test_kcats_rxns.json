@@ -12,9 +12,9 @@
     "single_daughters": true,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "out"
+        "out_dir": "out"11
     },
-    "skip_baseline": true,
+    "skip_baseline": false,
     "variants": {
         "multiply_kcats_rxns": {
             "rxn_id": {"value": ["SUCCINATE-DEHYDROGENASE-UBIQUINONE-RXN-SUC/UBIQUINONE-8//FUM/CPD-9956.31."]},
