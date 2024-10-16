@@ -392,7 +392,7 @@ def main():
                 workdir,
                 "-resume" if args.resume else "",
             ],
-            check=True
+            check=True,
         )
     elif nf_profile == "sherlock":
         batch_script = os.path.join(local_outdir, "nextflow_job.sh")
