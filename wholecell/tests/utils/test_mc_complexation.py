@@ -2,10 +2,15 @@
 Test polymerize_new.py
 """
 
-from wholecell.utils.mc_complexation import (
-    mccBuildMatrices,
-    mccFormComplexesWithPrebuiltMatrices,
-)
+try:
+    from wholecell.utils.mc_complexation import (
+        mccBuildMatrices,
+        mccFormComplexesWithPrebuiltMatrices,
+    )
+except ImportError as exc:
+    raise RuntimeError(
+        "Failed to import Cython module. Try running 'make clean compile'."
+    ) from exc
 
 import numpy as np
 import numpy.testing as npt
