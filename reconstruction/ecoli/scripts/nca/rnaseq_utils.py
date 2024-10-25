@@ -802,7 +802,7 @@ class PlotComponents(object):
 
     def __init__(self, components, samples):
         self.components = np.array(components)
-        self.samples = np.array(samples)
+        self.samples = np.array(samples, dtype=bool)
         self.n_total = np.shape(samples)[0]
         self.total_freqs = np.sum(self.samples, axis=0)
         self.frac_cutoff = 0.75
@@ -813,6 +813,142 @@ class PlotComponents(object):
         self.components_dir = os.path.join(OUTPUT_DIR, 'component_plots')
         if not os.path.exists(self.components_dir):
             os.mkdir(self.components_dir)
+
+    def plot_statistics_with_special(self, expression, symbols, special_genes, special_components,
+                                     p_values_file, t_stats_file, diff_means_file, plot_file):
+        all_genes = []
+        all_components = []
+        p_values = []
+        t_stats = []
+        diff_means = []
+        with open(p_values_file, 'r') as f:
+            csv_reader = csv.reader(f, delimiter='\t')
+            row1 = next(csv_reader)
+            all_components = np.array(row1[1:])
+            for line in csv_reader:
+                all_genes.append(line[0])
+                p_values.append([float(x) for x in line[1:]])
+
+        with open(t_stats_file, 'r') as f:
+            csv_reader = csv.reader(f, delimiter='\t')
+            next(csv_reader)
+            for line in csv_reader:
+                t_stats.append([float(x) for x in line[1:]])
+
+        with open(diff_means_file, 'r') as f:
+            csv_reader = csv.reader(f, delimiter='\t')
+            next(csv_reader)
+            for line in csv_reader:
+                diff_means.append([float(x) for x in line[1:]])
+        all_genes = np.array(all_genes)
+        p_values = np.array(p_values)
+        t_stats = np.array(t_stats)
+        diff_means = np.array(diff_means)
+
+        standard_devs = []
+        for gene in all_genes:
+            symbol_idx = np.where(np.array(symbols) == gene)
+            standard_devs.append([
+                    np.std(expression[symbol_idx]) for i in range(len(all_components))
+            ])
+        standard_devs = np.array(standard_devs)
+
+        special_p = []
+        special_t = []
+        special_diff_means = []
+        special_gene_values = []
+        special_component_values = []
+        special_standard_devs = []
+        for gene, components in zip(special_genes, special_components):
+            if len(gene) > 0:
+                gene_idx = np.where(all_genes == gene)[0][0]
+                for comp in components:
+                    if comp in self.components:
+                        component_idx = np.where(all_components == comp)[0][0]
+                        special_p.append(p_values[gene_idx, component_idx])
+                        special_t.append(t_stats[gene_idx, component_idx])
+                        special_diff_means.append(diff_means[gene_idx, component_idx])
+                        special_standard_devs.append(standard_devs[gene_idx, component_idx])
+
+                        special_gene_values.append(gene)
+                        special_component_values.append(comp)
+
+        special_p = np.array(special_p)
+        special_diff_means = np.array(special_diff_means)
+        x = set(np.where(special_p > 1e-5)[0])
+        y = set(np.where(special_diff_means < 1)[0])
+        z = np.array(list(x.intersection(y)))
+        not_reg_special_genes = np.array(special_gene_values)[z]
+        not_reg_special_components = np.array(special_component_values)[z]
+        not_reg_special_standard_devs = np.array(special_standard_devs)[z]
+
+        fig, axs = plt.subplots(5, 2, figsize=(40, 100))
+        axs[0, 0].hist(np.log10(p_values).flatten(), bins=np.arange(-300, 0, 10))
+        axs[0, 0].set_title("All p-values")
+
+        axs[1, 0].hist(t_stats.flatten(), bins=np.arange(-100, 100, 1))
+        axs[1, 0].set_title("All t-statistics")
+
+        axs[2, 0].hist(diff_means.flatten(), bins=np.arange(-15, 15, 0.2))
+        axs[2, 0].set_title("All diff-means")
+
+        axs[0, 1].hist(np.log10(special_p), bins=np.arange(-300, 0, 10))
+        axs[0, 1].set_title("Special p-values")
+
+        axs[1, 1].hist(special_t, bins=np.arange(-100, 100, 1))
+        axs[1, 1].set_title("Special t-statistics")
+
+        axs[2, 1].hist(special_diff_means, bins=np.arange(-15, 15, 0.2))
+        axs[2, 1].set_title("Special diff-means")
+
+        axs[3, 0].hist(standard_devs.flatten(), bins=np.arange(0, 10, 0.1))
+        axs[3, 0].set_title("All standard devs")
+
+        axs[3, 1].hist(special_standard_devs, bins=np.arange(0, 10, 0.1))
+        axs[3, 1].set_title("Special standard devs")
+
+        axs[4, 0].scatter(np.log10(p_values).flatten(), diff_means.flatten(), s=0.1, c='b',
+                          label='all')
+        axs[4, 0].scatter(np.log10(special_p), special_diff_means, c='r', label='Special')
+        axs[4, 0].set_title("Diff-means vs p-values")
+        axs[4, 0].set_xlabel("log10(p-values)")
+        axs[4, 0].set_ylabel("Diff-means")
+        axs[4, 0].legend()
+
+        axs[4, 1].scatter(np.log10(p_values).flatten(), standard_devs, s=0.1, c='b',
+                          label='all')
+        axs[4, 1].scatter(np.log10(special_p), special_standard_devs, c='r', label='Special')
+        axs[4, 1].set_title("Standard-devs vs p-values")
+        axs[4, 1].set_xlabel("log10(p-values)")
+        axs[4, 1].set_ylabel("Standard-devs")
+        axs[4, 1].legend()
+
+
+        # TODO: mark the ones that are regulators on this plot
+        # TODO: goal is to say, can I make a cutoff using p-values, standard-devs, or diff-means, etc. that
+        # creates a criteria which is, if it fulfills this then I'll say it's unregulated by this component,
+        # and if it doesn't, then I'll say it is regulated by this component
+        # TODO: look at the ones that don't fit the criteria that are part of ColiNet
+        # The problem with a cutoff p-value is that randomly, it gets to quite low p-values as well, but if u
+        # make a rly low p-value, u might cut out some actual signal from actually regulated ones.
+        # TODO: look at where these random fluctuations coming from, might there be patterns? E.g., do they all come from
+        # LB cuz there're lots of samples there compared to the actual number of diff experiments, or smaller samples
+        # cuz experiment fluctuation makes it much more than what might be expected from random chance?
+        # That is to say, random fluctuations might produce similar results as actual regulation? Then what do we do in this case?
+        # Well, goal is still to make a criteria to identify one-peak genes for now. For two-peak genes, we can use EcoCyc knowledge.
+        plt.tight_layout()
+        plt.savefig(plot_file)
+        plt.close('all')
+        import ipdb; ipdb.set_trace()
+
+    def write_freq_components(self, write_file):
+        with open(write_file, 'w') as f:
+            writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            header = ['component', f'frequency (out of {np.shape(self.samples)[0]})']
+            writer.writerow(header)
+            for i, component in enumerate(self.components):
+                row = [component, np.sum(self.samples[:, i])]
+                writer.writerow(row)
 
     def exclude_component(self, expression, components_to_exclude):
         components_idxs = np.isin(self.components, components_to_exclude)
@@ -892,18 +1028,18 @@ class PlotComponents(object):
         for j, exp in enumerate(expression):
             axs[2, 2 * j].hist(exp, bins=self.n_bins(exp))
             axs[2, 2 * j].set_title("Total " + str(gene_names[j]))
-
-            axs[3, 2 * j].hist(exp[has_1_not_2], bins=self.n_bins(
-                exp[has_1_not_2]))
-            axs[3, 2 * j].set_title("Has " + str(exp_comp) + " not "
-                                                  + str(control_comp) + " " + str(
-                gene_names[j]))
-
-            axs[3, 2 * j + 1].hist(exp[has_2_not_1], bins=self.n_bins(
-                exp[has_2_not_1]))
-            axs[3, 2 * j + 1].set_title("Has " + str(control_comp) + " not "
-                                                  + str(exp_comp) + " " + str(
-                gene_names[j]))
+            if np.sum(has_1_not_2) > 0:
+                axs[3, 2 * j].hist(exp[has_1_not_2], bins=self.n_bins(
+                    exp[has_1_not_2]))
+                axs[3, 2 * j].set_title("Has " + str(exp_comp) + " not "
+                                                      + str(control_comp) + " " + str(
+                    gene_names[j]))
+            if np.sum(has_2_not_1) > 0:
+                axs[3, 2 * j + 1].hist(exp[has_2_not_1], bins=self.n_bins(
+                    exp[has_2_not_1]))
+                axs[3, 2 * j + 1].set_title("Has " + str(control_comp) + " not "
+                                                      + str(exp_comp) + " " + str(
+                    gene_names[j]))
 
         plt.tight_layout()
         plt.savefig(os.path.join(self.components_dir, plot_name))
@@ -957,8 +1093,138 @@ class PlotComponents(object):
         plt.savefig(os.path.join(self.components_dir, plot_name))
         plt.close('all')
 
+    def detect_reg(self, all_exp, gene_names, p_value_file, t_stats_file, diff_means_file):
+        # TODO: look at those components with 'nan', i.e. only 0 or 1 samples
+        #exclude_comp = ['bicyclomycin', 'clinostat - microgravity', 'nalidixic acid', 'azlocillin']
+        gene_regs = {}
+        # TODO: to look at what all the p-values are, u can get the p-value of each component for each gene.
+        # Try to see which are unregulated p-values, and which r regulated p-values.
+        # Or, get the max p-value for each gene?
+        p_values = np.zeros((len(gene_names), len(self.components)))
+        t_stats = np.zeros((len(gene_names), len(self.components)))
+        diff_means = np.zeros((len(gene_names), len(self.components)))
+        for i, gene in enumerate(gene_names):
+            exp = all_exp[i]
+            regs = []
+            for j, comp in enumerate(self.components):
+                #if comp == 'fumarate':
+                #if comp not in exclude_comp:
+                has_comp = np.array(self.samples[:, j], dtype=bool)
+                has_comp_exp = exp[has_comp]
+                no_comp_exp = exp[~has_comp]
+                #mean_has = np.mean(has_comp_exp)
+                #standard_dev_has = np.std(has_comp_exp)
+                #mean_no = np.mean(no_comp_exp)
+                #standard_dev_no = np.std(no_comp_exp)
+                result = stats.ttest_ind(has_comp_exp, no_comp_exp, equal_var=False)
+                #if np.abs(mean_has - mean_no) > max(standard_dev_has, standard_dev_no):
+                    #regs.append(comp)
+                p_values[i, j] = result.pvalue
+                t_stats[i, j] = result.statistic
+                diff_means[i, j] = np.abs(np.mean(has_comp_exp) - np.mean(no_comp_exp))
+            #gene_regs[gene] = regs
+            print(i)
+
+        p_values[np.isnan(p_values)] = 1.
+        t_stats[np.isnan(t_stats)] = 1.
+        diff_means[np.isnan(diff_means)] = 0
+
+        with open(p_value_file, 'w') as f:
+            writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            header = ['gene']
+            header.extend(list(self.components))
+            writer.writerow(header)
+            for i, gene in enumerate(gene_names):
+                row = [gene]
+                row.extend(p_values[i, :])
+                writer.writerow(row)
+
+        with open(t_stats_file, 'w') as f:
+            writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            header = ['gene']
+            header.extend(list(self.components))
+            writer.writerow(header)
+            for i, gene in enumerate(gene_names):
+                row = [gene]
+                row.extend(t_stats[i, :])
+                writer.writerow(row)
+
+        with open(diff_means_file, 'w') as f:
+            writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            header = ['gene']
+            header.extend(list(self.components))
+            writer.writerow(header)
+            for i, gene in enumerate(gene_names):
+                row = [gene]
+                row.extend(diff_means[i, :])
+                writer.writerow(row)
 
 
+    def classify_genes_by_reg(self, p_t_plot_file, p_values_file, t_stats_file, all_file, no_reg_file):
+        # TODO: look at those components with 'nan', i.e. only 0 or 1 samples
+        # exclude_comp = ['bicyclomycin', 'clinostat - microgravity', 'nalidixic acid', 'azlocillin']
+        gene_regs = {}
+        # TODO: to look at what all the p-values are, u can get the p-value of each component for each gene.
+        # Try to see which are unregulated p-values, and which r regulated p-values.
+        # Or, get the max p-value for each gene?
+        all_genes = []
+        p_values = []
+        t_stats = []
+        with open(p_values_file, 'r') as f:
+            csv_reader = csv.reader(f, delimiter='\t')
+            row1 = next(csv_reader)
+            all_components = np.array(row1[1:])
+            for line in csv_reader:
+                all_genes.append(line[0])
+                p_values.append([float(x) for x in line[1:]])
+
+        with open(t_stats_file, 'r') as f:
+            csv_reader = csv.reader(f, delimiter='\t')
+            next(csv_reader)
+            for line in csv_reader:
+                t_stats.append([float(x) for x in line[1:]])
+        p_values = np.array(p_values)
+        t_stats = np.array(t_stats)
+
+        def _plot_p_t():
+            fig, axs = plt.subplots(2, figsize=(20, 20))
+            axs[0].hist(np.log10(p_values).flatten(), bins=np.arange(-300, 0, 10))
+            axs[1].hist(t_stats.flatten(), bins=np.arange(-100, 100, 1))
+
+            plt.tight_layout()
+            plt.savefig(p_t_plot_file)
+            plt.close('all')
+
+        no_reg_genes = []
+        gene_regs = {}
+        t_stats_cutoff = 10
+        p_value_cutoff = 1e-30
+
+        for i, gene in enumerate(all_genes):
+            regs = []
+            for j, t_stat in enumerate(t_stats[i, :]):
+                if np.abs(t_stat) > t_stats_cutoff:
+                    if p_values[i, j] < p_value_cutoff:
+                        regs.append(all_components[j])
+            gene_regs[gene] = regs
+            if len(regs) == 0:
+                no_reg_genes.append(gene)
+
+        with open(all_file, 'w') as f:
+            writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            header = ['gene', 'regs']
+            writer.writerow(header)
+            for gene in gene_regs.keys():
+                writer.writerow([gene, gene_regs[gene]])
+
+        with open(no_reg_file, 'w') as f:
+            writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            header = ['gene']
+            writer.writerow(header)
+            for gene in gene_regs.keys():
+                if len(gene_regs[gene]) == 0:
+                    writer.writerow([gene])
+        import ipdb; ipdb.set_trace()
         # class CompareComponents(object):
         #     def __init__(self, components, overall):
         #         self.components = np.array(components)
@@ -992,6 +1258,180 @@ class PlotComponents(object):
         #         return cdfs, fraction_treatment
         #         # Another thing is to look at each component, and just look whether it deviates significantly from overall. Hmm.
         #         # TODO: depleted will contain most things.
+
+    def candidate_two_peak(self, gene_names, expression, all_regs_file, write_pt_file):
+        # Possible criteria: 1. when we separate it by some component, the two sides are statistically
+        # different from each other, 2. Within each subset of w/ or w/o component, there is no other
+        # component that segregates them, i.e. it seems unregulated, 3. Each peak is fairly narrow, with
+        # standard deviation below some value (?), or like shouldn't look like more peaks, have some visual
+        # inspection to help figure that out? maybe e.g. with araE?
+        # Possible problems: if one "peak" is too small, what to do? also, if might have issues due to
+        # lots of overlap between components. but maybe that's ok, we just do the best we can with identifying
+        # two-peak genes.
+        # Test: purC, bioBCDF should probably be two-peak genes.
+        # Other possibility: go with peak detection, so say 1. it seems to have actual two peaks, 2. some
+        # component seems to mesh with that two peaks?? not sure how that works... ok so maybe not?
+        # So maybe we can have a file that's like, for each gene-component pair, get the components that regulate in the
+        # has-peak and in the no-has peak?
+        # TODO: figure out what's going on with lacZ, like curate the samples, etc.
+        genes_to_reg = {}
+        with open(all_regs_file, 'r') as f:
+            csv_reader = csv.reader(f, delimiter='\t')
+            row1 = next(csv_reader)
+            for line in csv_reader:
+                gene = line[0]
+                regs = line[1][1:-1]
+                if len(regs) > 0:
+                    regs = regs.split(", ")
+                    genes_to_reg[gene] = [mol[1:-1] for mol in regs]
+
+        comp_to_second_comp = {}
+        for i, comp in enumerate(self.components):
+            comp_idx = np.where(self.components == comp)[0][0]
+            has_comp = np.array(self.samples[:, comp_idx], dtype=bool)
+            has_comp_samples = self.samples[has_comp, :]
+            no_comp_samples = self.samples[~has_comp, :]
+
+            # Find all second components that are neither always absent or always present
+            # for all samples including the first component, and not including the first component
+            has_second_comp_list = []
+            no_second_comp_list = []
+            for j, second_comp in enumerate(self.components):
+                has_second_comp = np.array(has_comp_samples[:, j], dtype=bool)
+                no_second_comp = np.array(no_comp_samples[:, j], dtype=bool)
+                if np.sum(has_second_comp) > 0 and np.sum(~has_second_comp) > 0:
+                    has_second_comp_list.append(second_comp)
+                if np.sum(no_second_comp) > 0 and np.sum(~no_second_comp) > 0:
+                    no_second_comp_list.append(second_comp)
+
+            comp_to_second_comp[comp] = (has_second_comp_list, no_second_comp_list)
+
+        data = {}
+        for i, gene in enumerate(gene_names):
+            #if gene in ['bioB', 'bioC', 'bioD', 'bioF', 'purC', 'purH', 'purM', 'purE', 'purR', 'purF', 'purT']:
+            if gene in genes_to_reg:
+                data[gene] = {}
+                exp = expression[i]
+                for comp in genes_to_reg[gene]:
+                    data[gene][comp] = {1: {}, 0: {}}
+                    comp_idx = np.where(self.components == comp)[0][0]
+                    has_comp = np.array(self.samples[:, comp_idx], dtype=bool)
+                    has_comp_exp = exp[has_comp]
+                    no_comp_exp = exp[~has_comp]
+
+                    has_comp_samples = self.samples[has_comp, :]
+                    no_comp_samples = self.samples[~has_comp, :]
+                    # For samples with the first component
+                    for second_comp in comp_to_second_comp[comp][0]:
+                        second_comp_idx = np.where(self.components == second_comp)[0][0]
+                        has_second_comp = has_comp_samples[:, second_comp_idx]
+                        # Expression for samples with first component, with or without second component
+                        has_second_comp_exp = has_comp_exp[has_second_comp]
+                        no_second_comp_exp = has_comp_exp[~has_second_comp]
+                        # Record the statistics
+                        result = stats.ttest_ind(has_second_comp_exp, no_second_comp_exp, equal_var=False)
+                        data[gene][comp][1][second_comp] = {"p": result.pvalue, "t": result.statistic}
+                    data[gene][comp][1]['standard_dev'] = np.std(has_comp_exp)
+
+                    # For samples without the first component
+                    for second_comp in comp_to_second_comp[comp][1]:
+                        second_comp_idx = np.where(self.components == second_comp)[0][0]
+                        has_second_comp = no_comp_samples[:, second_comp_idx]
+                        # Expression for samples without first component, with or without second component
+                        has_second_comp_exp = no_comp_exp[has_second_comp]
+                        no_second_comp_exp = no_comp_exp[~has_second_comp]
+                        # Record the statistics
+                        result = stats.ttest_ind(has_second_comp_exp, no_second_comp_exp, equal_var=False)
+                        data[gene][comp][0][second_comp] = {"p": result.pvalue, "t": result.statistic}
+                    data[gene][comp][0]['standard_dev'] = np.std(no_comp_exp)
+
+        with open(write_pt_file, 'w') as f:
+            writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            header = ['gene', 'first_comp', 'has_comp', 'second_comps', 'p-values', 't-statistics', 'standard_dev']
+            writer.writerow(header)
+            for gene in data:
+                for first_comp in data[gene]:
+                    for has_comp in data[gene][first_comp]:
+                        second_comps = list(data[gene][first_comp][has_comp].keys())
+                        second_comps.remove('standard_dev')
+                        writer.writerow([gene, first_comp, has_comp,
+                                         second_comps,
+                                         [data[gene][first_comp][has_comp][x]['p'] for x in second_comps],
+                                         [data[gene][first_comp][has_comp][x]['t'] for x in second_comps],
+                                         data[gene][first_comp][has_comp]['standard_dev']])
+
+    def identify_two_peak(self, pt_file, two_peak_write_file):
+        data = {}
+        with open(pt_file, 'r') as f:
+            csv_reader = csv.reader(f, delimiter='\t')
+            row1 = next(csv_reader)
+            for line in csv_reader:
+                gene = line[0]
+                first_comp = line[1]
+                has_comp = int(line[2])
+                second_comps = line[3]
+                p_values = line[4]
+                t_stats = line[5]
+                standard_dev = float(line[6])
+
+                second_comps = second_comps[1:-1]
+                if len(second_comps) > 0:
+                    second_comps = second_comps.split(", ")
+                    second_comps = [mol[1:-1] for mol in second_comps]
+                    p_values = p_values[1:-1].split(", ")
+                    p_values = [float(p) for p in p_values]
+                    t_stats = t_stats[1:-1].split(", ")
+                    t_stats = [float(t) for t in t_stats]
+                else:
+                    second_comps = []
+                    p_values = []
+                    t_stats = []
+
+                if gene not in data:
+                    data[gene] = {}
+                if first_comp not in data[gene]:
+                    data[gene][first_comp] = {}
+                data[gene][first_comp][has_comp] = {
+                    'second_comps': np.array(second_comps),
+                    'p_values': np.array(p_values),
+                    't_stats': np.array(t_stats),
+                    'standard_dev': standard_dev,
+                }
+
+        two_peak_gene_comp = []
+        for gene in data:
+            for first_comp in data[gene]:
+                has_first = data[gene][first_comp][1]
+                no_first = data[gene][first_comp][0]
+
+                # Get components that significantly separate each peak
+                has_sig_idxs = np.logical_and((has_first['p_values'] < 1e-30),
+                                          (np.abs(has_first['t_stats']) > 10))
+                has_sig_second_comps = has_first['second_comps'][has_sig_idxs]
+
+                no_sig_idxs = np.logical_and((no_first['p_values'] < 1e-30),
+                                          (np.abs(no_first['t_stats']) > 10))
+                no_sig_second_comps = no_first['second_comps'][no_sig_idxs]
+
+                if len(has_sig_second_comps) == 0 and len(no_sig_second_comps) == 0:
+                    if has_first['standard_dev'] < 1.0 and no_first['standard_dev'] < 1.0:
+                        two_peak_gene_comp.append((gene, first_comp, has_first['standard_dev'],
+                                                   no_first['standard_dev']))
+
+        with open(two_peak_write_file, 'w') as f:
+            writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+            header = ['gene', 'component', 'has_standard_dev', 'no_standard_dev']
+            writer.writerow(header)
+            for gene, comp, has_standard_dev, no_standard_dev in two_peak_gene_comp:
+                writer.writerow([gene, comp, has_standard_dev, no_standard_dev])
+
+        # TODO: write data onto a file about: or idk? some way to say like, if a gene indeed looks
+        # more complicated, what are the second components that separate the peaks produced by the first component?
+        # or smth along those lines, maybe using smth with low standard_dev, like if u only record down first components
+        # that separate into peaks with low standard_dev so u don't record down first components that are not corresponding
+        # well to the peaks or smth like that?? not sure TODO: think more about this bc could lead to discovery?? or also that's
+        # for more complex TF work so maybe could put off smth similar to later project??
+        import ipdb; ipdb.set_trace()
 
 class PeakDetection(object):
     def __init__(self):
@@ -1440,19 +1880,20 @@ class PeakDetection(object):
 class coliNetData(object):
     def __init__(self):
         data_dir = os.path.join(BASE_DIR, 'ColiNet-1.1')
-        names_dir = os.path.join(data_dir, 'coliInterFullNames.txt')
-        regs_dir = os.path.join(data_dir, 'coliInterFullVec.txt')
+        names_file = os.path.join(data_dir, 'coliInterFullNames.txt')
+        regs_file = os.path.join(data_dir, 'coliInterFullVec.txt')
+        reg_components_file = os.path.join(data_dir, "coliInterFullNames_annotated.txt")
 
         self.names_dict = {}
         operons = []
         tfs = []
         reg_direction = []
-        with open(names_dir, 'r') as f:
+        with open(names_file, 'r') as f:
             for line in f.readlines():
                 num, operon = line.split()
                 self.names_dict[int(num)] = operon
 
-        with open(regs_dir, 'r') as f:
+        with open(regs_file, 'r') as f:
             for line in f.readlines():
                 operon, tf, direction = line.split()
                 operons.append(int(operon))
@@ -1462,6 +1903,90 @@ class coliNetData(object):
         self.reg_data = {"operons": np.array(operons),
             "tfs": np.array(tfs), "reg_dir": np.array(reg_direction)}
 
+        reg_components = []
+        with open(reg_components_file, 'r') as f:
+            for line in f.readlines():
+                if "[" in line:
+                    start_index = line.index("[")
+                    stop_index = line.index("]")
+                    # It is, ["x"]. TODO: might change if consider multiple components later
+                    component = line[start_index + 2:stop_index-1]
+                    reg_components.append(component)
+                else:
+                    reg_components.append("")
+
+        self.reg_components_dict = {i+1: reg_components[i] for i in range(len(self.names_dict))}
+        # Record operons split into gene names and their regulating components
+        self.gene_names = None
+        self.gene_reg_components = None
+        self._split_names_to_genes()
+
+    def _operon_to_tf_idxs(self, operon_idx):
+        operon_reg = (self.reg_data["operons"] == operon_idx)
+        reg_tf_idxs = self.reg_data["tfs"][operon_reg]
+        return reg_tf_idxs
+
+    def _operon_to_reg_components(self, operon_idx):
+        reg_tf_idxs = self._operon_to_tf_idxs(operon_idx)
+        components = [self.reg_components_dict[idx] for idx in reg_tf_idxs
+                      if len(self.reg_components_dict[idx]) > 0]
+        return components
+
+    def _split_names_to_genes(self):
+        final_genes = []
+        final_reg_components = []
+        for i, operon in self.names_dict.items():
+            if operon == "gatR_1":
+                final_genes.append(operon)
+                final_reg_components.append(self._operon_to_reg_components(i))
+                continue
+            if operon == "gatYZABCDR_2":
+                genes = ["gatY", "gatZ", "gatA", "gatB", "gatC", "gatD", "gatR_2"]
+                final_genes.extend(genes)
+                for x in genes:
+                    final_reg_components.append(self._operon_to_reg_components(i))
+                continue
+            if operon == "hcaA1A2CBD_yphA":
+                genes = [
+                    "hcaA1", "hcaA2", "hcaC", "hcaB", "hcaD", "yphA"]
+                final_genes.extend(genes)
+                for x in genes:
+                    final_reg_components.append(self._operon_to_reg_components(i))
+                continue
+            if operon == "motABcheAW":
+                genes = ["motA", "motB", "cheA", "cheW"]
+                final_genes.extend(genes)
+                for x in genes:
+                    final_reg_components.append(self._operon_to_reg_components(i))
+                continue
+            if operon == "tarTapcheRBYZ":
+                genes = ["tar", "tap", "cheR", "cheB", "cheY", "cheZ"]
+                final_genes.extend(genes)
+                for x in genes:
+                    final_reg_components.append(self._operon_to_reg_components(i))
+
+            genes = operon.split("_")
+            converted_genes = []
+            for gene in genes:
+                if gene == "1H":
+                    continue
+                if gene == "2":
+                    continue
+                if gene == "b0725":
+                    continue # Phantom gene, source: Ecocyc
+                if gene == "b2060":
+                    converted_genes.append("wzc") # Source: Ecocyc
+                    final_reg_components.append(self._operon_to_reg_components(i))
+                if len(gene) > 4:
+                    for letter in gene[3:]:
+                        converted_genes.append(gene[:3] + letter)
+                        final_reg_components.append(self._operon_to_reg_components(i))
+                else:
+                    converted_genes.append(gene)
+                    final_reg_components.append(self._operon_to_reg_components(i))
+            final_genes.extend(converted_genes)
+        self.gene_names = final_genes
+        self.gene_reg_components = final_reg_components
 
     def get_simple_reg(self):
         # If an operon has only one regulator, then it appears once in "operons".

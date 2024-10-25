@@ -45,6 +45,7 @@ PRECISE2_SEQ_FILE = os.path.join(PRECISE2_SEQ_DIR, 'PRECISE2_counts.csv')
 
 # Output plots
 OUTPUT_DIR = os.path.join(BASE_DIR, 'plots')
+SAMPLE_REG_DIR = os.path.join(OUTPUT_DIR, "detect_sample_regs")
 
 # Constants for EM-GMM
 MAX_ITER = 1000
@@ -91,8 +92,8 @@ TIME_TO_TREATMENT = {"-300": "glu"}
 
 MEDIA_COMPOSITIONS = {}
 
-
-def load_data():
+def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=True, no_gene_perturb=True,
+                               no_nongrowing=True,):
     # Load sequencing data related genes
     #b_numbers = []
     symbols = []
@@ -112,6 +113,9 @@ def load_data():
     is_genetic = []
     is_WT = []
     gr = []
+    components = []
+
+    included_sample = []
     with open(SAMPLES_FILE) as f:
         reader = csv.reader(f, delimiter='\t')
         header = next(reader)
@@ -126,132 +130,182 @@ def load_data():
         gr_idx = header.index("Growth rate (1/h)")
 
         for i, line in enumerate(reader):
-            geos.append(line[geo_idx])
-            if line[author_idx] == '':
-                authors.append('Not found')
-            else:
-                authors.append(line[author_idx])
+            if no_rewiring:
+                if line[author_idx] == "M. Isalan":
+                    continue
 
-            if line[cel_idx] in REPLACE_GSM_STRAIN:
-                strains.append(REPLACE_GSM_STRAIN[line[cel_idx]])
-            elif line[strain_idx] in REPLACE_STRAIN:
-                strains.append(REPLACE_STRAIN[line[strain_idx]])
-            else:
-                strains.append(line[strain_idx])
-
-            if line[medium_idx] in REPlACE_MEDIA:
-                media.append(REPlACE_MEDIA[line[medium_idx]])
-            else:
-                media.append(line[medium_idx])
-
-            treatment = line[treatment_idxs[0]] + line[treatment_idxs[1]]
-            treatment = REPLACE_TREATMENT.get(treatment, treatment)
-            #if treatment in REPLACE_TREATMENT:
-            #    treatments.append(REPLACE_TREATMENT[treatment])
-            #else:
-            #    treatments.append(treatment)
-            time = line[treatment_idxs[2]]
-            time = REPLACE_TIME.get(time, time)
-            treatment = TIME_TO_TREATMENT.get(time, treatment)
-            #if time in TIME_TO_TREATMENT:
-            #    treatment = TIME_TO_TREATMENT[time]
-            #if line[treatment_idxs[2]] in REPLACE_TIME:
-            #    time.append(REPLACE_TIME[line[treatment_idxs[2]]])
-            #else:
-            #    time.append(line[treatment_idxs[2]])
-            gene = line[gene_perturb_idxs[0]] + line[gene_perturb_idxs[1]]
-            gene = REPLACE_GENE.get(gene, gene)
-            gene_perturb.append(gene)
-            #if gene in REPLACE_GENE:
-            #    gene_perturb.append(REPLACE_GENE[gene])
-            #else:
-            #    gene_perturb.append(gene)
-            if gene in GENE_TO_TREATMENT:
-                treatment = GENE_TO_TREATMENT[gene]
-                gene_perturb[-1] = ''
-
-            treatment_all = treatment+time
-            treatments.append(treatment_all)
-
-            is_env.append(int(line[perturb_flags[0]]))
-            is_genetic.append(int(line[perturb_flags[1]]))
-            is_WT.append(int(line[perturb_flags[2]]))
-            gr.append(float(line[gr_idx]))
-
-    seq_data = []
-    for filename in SEQ_FILES:
-        path = os.path.join(SEQ_DIR, filename)
-
-        with open(path, 'r') as f:
-            reader = csv.reader(f, delimiter='\t')
-            seq_data.append(list(reader))
-
-    data = np.hstack(seq_data).astype(np.float64)
-
-    return symbols, {
-        "geos": np.array(geos),
-        "authors": np.array(authors),
-        "strains": np.array(strains),
-        "media": np.array(media),
-        "treatments": np.array(treatments),
-        "gene_perturb": np.array(gene_perturb),
-        "is_env": np.array(is_env),
-        "is_genetic": np.array(is_genetic),
-        "is_WT": np.array(is_WT),
-        "gr": np.array(gr)}, data
-
-
-def load_data_exclude_rewiring(exclude_pathogen=True):
-    # Load sequencing data related genes
-    #b_numbers = []
-    symbols = []
-    with open(GENE_NAMES_FILE) as f:
-        reader = csv.reader(f, delimiter='\t')
-        for line in reader:
-            #b_numbers.append(line[1])
-            symbols.append(line[2])
-
-    geos = []
-    authors = []
-    strains = []
-    media = []
-    treatments = []
-    gene_perturb = []
-    is_env = []
-    is_genetic = []
-    is_WT = []
-    gr = []
-
-    not_rewiring = []
-    with open(SAMPLES_FILE) as f:
-        reader = csv.reader(f, delimiter='\t')
-        header = next(reader)
-        geo_idx = header.index("GEO accession")
-        cel_idx = header.index("CEL file name")
-        author_idx = header.index("Author")
-        strain_idx = header.index("Strain")
-        medium_idx = header.index("Medium")
-        treatment_idxs = (header.index("Treatment (value)"), header.index("Treatment (conditions)"), header.index("Time (min)"))
-        gene_perturb_idxs = (header.index("Gene perturbated"), header.index("Type of perturbation"))
-        perturb_flags = (header.index("Environmental perturbations"), header.index("Genetic perturbations"), header.index("Arrays in WT condition"))
-        gr_idx = header.index("Growth rate (1/h)")
-
-        for i, line in enumerate(reader):
-            if line[author_idx] == "M. Isalan":
-                continue
-            if exclude_pathogen:
+            if no_pathogen:
                 disease_strains = ['EDL933', '86-24', 'VS94',
                     'CFT073', 'UTI89', 'EHEC', 'KMD', 'B41',
                     'APEC']
-
                 if 'O157' in line[strain_idx]:
                     continue
                 if line[strain_idx] in disease_strains:
                     continue
-            if line[strain_idx] == "strain evolved":
-                continue
 
-            not_rewiring.append(i)
+            if no_evolved:
+                if line[strain_idx] == "strain evolved":
+                    continue
+                if line[author_idx] == "S.S. Fong":
+                    if line[treatment_idxs[2]] != "WT":
+                        continue
+                if line[author_idx] == "V. Portnoy":
+                    continue
+                if line[author_idx] == "D. Lee":
+                    # Paper says evolved stress
+                    continue
+
+
+            if no_gene_perturb:
+                gene_perturb_annotated_right = [
+                    "GSE21995", "GSE22829"
+                ]
+                if line[perturb_flags[1]] == "1":
+                    continue
+                if line[strain_idx] == "P4XB2":
+                    continue
+                if line[author_idx] == "G. Vemuri":
+                    if line[cel_idx] not in ["GSM510322", "GSM510323", "GSM510324"]:
+                        continue
+                if line[author_idx] == "D. Vinella":
+                    # Mislabeled two genotype perturbations as not a genotype perturbation
+                    continue
+
+                # TODO: whether to keep JM109 strain?
+
+            if no_nongrowing:
+                if line[author_idx] == "F. Haddadin":
+                    if line[treatment_idxs[2]] == "240":
+                        continue
+                    if line[gene_perturb_idxs[0]] == "IPTG":
+                        continue
+                if line[author_idx] == "M. Kohanski":
+                    if line[treatment_idxs[1]] in ['ampicillin', 'kanamycin', 'norfloxacin', 'spectinomycin']:
+                        continue
+                if line[author_idx] == "D. Dwyer":
+                    if line[treatment_idxs[1]] in ['norfloxacin', 'nor chelator',
+                                                    "UV", "MMC", "ciprofloxacin"]:
+                        continue
+                if "biofilm" in line[treatment_idxs[1]]:
+                    continue
+                if "stationary" in line[treatment_idxs[2]]:
+                    continue
+                if line[treatment_idxs[1]] == "glucose stat":
+                    continue
+                if line[treatment_idxs[1]] == "nitrofurazone":
+                    continue
+                if line[treatment_idxs[1]] == "HU":
+                    # TODO: maybe keep this? might be interesting to be able to see dna damage responses, etc.?
+                    continue
+                if line[treatment_idxs[1]] == "amp":
+                    continue
+                if line[treatment_idxs[1]] == "AI2":
+                    continue
+                if line[author_idx] == "J. Faith":
+                    if line[treatment_idxs[1]] == "nor":
+                        continue
+                if line[author_idx] == "J. Winkler":
+                    if line[treatment_idxs[1]] == "tetracycline":
+                        continue
+                if line[author_idx] == "H. Lee":
+                    # TODO: can't find publication, plus most are antibiotics, so just skip
+                    continue
+                    #if line[cel_idx] not in ["PR00099", "PR00100"]
+                    #if line[treatment_idxs[1]] in ["amp", "gent", "norf", "spec", "tetracycline"]:
+                if line[author_idx] == "T. Allen":
+                    if line[treatment_idxs[1]] in ["ciprofloxacin", "glu, heat shock"]:
+                        continue
+                    if line[treatment_idxs[1]] == "glu":
+                        if line[treatment_idxs[2]] in ["330", "480", "720"]:
+                            continue
+                if line[author_idx] == "M. Laubacher":
+                    if "mecillinam" in line[treatment_idxs[1]]:
+                        continue
+                    if "cefsulodin" in line[treatment_idxs[1]]:
+                        continue
+                if line[author_idx] == "A. Ito":
+                    if line[treatment_idxs[2]] == "stationary":
+                        continue
+                if line[author_idx] == "J. Oberto":
+                    if line[treatment_idxs[1]] in ["stationary", "transition"]:
+                        continue
+                if line[author_idx] == "Y. Asakura":
+                    # TODO: whether to keep the 0 time-point ones?
+                    continue
+                if line[author_idx] == "H. Alper":
+                    if line[treatment_idxs[0]] in ["20g/L 5g/L 1mM", "40g/L 5g/L 1mM"]:
+                        continue
+                if line[author_idx] == "J. Soini":
+                    # TODO: whether to keep this? the paper says high-cell densities
+                    continue
+                if line[author_idx] == "S. Shabala":
+                    # Paper says grown to early stationary phase
+                    continue
+                if line[author_idx] == "L. Nobre":
+                    if line[treatment_idxs[1]] == "CORM-2":
+                        # TODO: whether to keep? paper says it's 50% of MIC, cells still growing
+                        continue
+                if line[author_idx] == "M. Lin":
+                    if "ethanol" in line[treatment_idxs[1]]:
+                        # TODO: whether to keep ethanol here? also note, some of the samples
+                        # are under stationary condition, should remove those
+                        continue
+                if line[author_idx] == "C. Yang":
+                    # TODO: might want to keep this bc it includes the interesting phosphate starvation?
+                    # It's at early stationary phase though
+                    continue
+                if line[author_idx] == "T. Wood":
+                    if line[treatment_idxs[1]] in ["nalidixic acid", "azlocillin"]:
+                        # TODO: maybe keep this cuz cells r still growing despite these antibiotics?
+                        continue
+                # TODO: whether to keep H2O2 oxidative stress in Q. Ma paper?
+                if line[author_idx] == "T. Chen":
+                    # TODO: this is ethanol. Not sure if keep or change. IrrE deletion produces
+                    # big genome-wide effects
+                    continue
+                if line[author_idx] == "Y. HU":
+                    # Used erythromycin, which stops growth
+                    continue
+                #if line[author_idx] == "B. Mensa":
+                #    if line[treatment_idxs[1]] in ["polymyxin B", "PMX10070"]:
+                        # TODO: maybe still remove B. Mensa this? could help look at stress response,
+                        # but see what it looks like in actual graphs
+                        # genes. Causes only a slight
+                        # attenuation in growth.
+                        # Maybe keep all antimicrobials which don't kill or stop
+                        # growth completely?
+                        #continue
+                if line[geo_idx] == "GSE34275":
+                    # Paper says is actually staionary or long-term stationary phase growth
+                    continue
+                if line[author_idx] == "I. Keren":
+                    # TODO: pretty arbitrary, idk whether to keep? bc might be stationary phase after 5 hrs, idk.
+                    if int(line[treatment_idxs[2]]) > 300:
+                        continue
+
+
+            if line[gene_perturb_idxs[0]] == "ala2 supressor":
+                continue
+            if line[gene_perturb_idxs[0]] == "recombinant pPROEx-CAT":
+                continue
+            if line[author_idx] == "C. Cardinale":
+                if "bicyclomycin" in line[treatment_idxs[1]]:
+                    continue
+            if line[author_idx] == "Y. Yang":
+                if "PenG" in line[treatment_idxs[1]]:
+                    continue
+
+        # TODO: take glucose out of LB, but check where u should add it back in! Check each LB media to find what the added
+        # carbon source is, if there is one!
+        # K. Aggrawal what to do? (ok bc most r genotype so skip)
+        # TODO: J. Faith EMG2, LB has glucose concentration annotation
+        # what to do about J. Winkler tetracycline? not sure so keep out for now
+        # TODO: whether to keep antibiotic stuff like D. Dwyer?
+        # TODO: get all the 0 time and replace with nothing treatment, e.g. J. faith, etc.
+        # TODO: add fatty acids to yeast extract, BHI, etc.
+        # Fix arabinose/ampicillin co-presence, also maybe add K. Anderson ampicillin if the cells are still growign then?
+
+            included_sample.append(i)
             geos.append(line[geo_idx])
             if line[author_idx] == '':
                 authors.append('Not found')
@@ -267,10 +321,62 @@ def load_data_exclude_rewiring(exclude_pathogen=True):
 
             if line[medium_idx] in REPlACE_MEDIA:
                 media.append(REPlACE_MEDIA[line[medium_idx]])
+            elif line[author_idx] == "L. Nobre":
+                media.append("minimal medium salts")
             else:
                 media.append(line[medium_idx])
 
-            treatment = line[treatment_idxs[0]] + line[treatment_idxs[1]]
+
+            if line[author_idx] == "G. Kannan":
+                if line[treatment_idxs[2]] == "0":
+                    treatment = ""
+                    component = ""
+            elif line[author_idx] == "K. Aggarwal":
+                if line[treatment_idxs[0]] == "0mM":
+                    treatment = ""
+                    component = ""
+            elif line[author_idx] == "S. Harcum":
+                if line[gene_perturb_idxs[1]] == "IPTG":
+                    treatment = "IPTG"
+                    component = "IPTG"
+            elif line[author_idx] == "H. Alper":
+                if line[treatment_idxs[0]] == "0g/L 5g/L 1mM":
+                    treatment = "5g/L 1mM" + "D-glucose thiamine"
+                    component = "D-glucose thiamine"
+            elif line[author_idx] == "Y. Li":
+                if line[treatment_idxs[1]] == 'glucose saline':
+                    treatment = "4g/L" + "glucose"
+                    component = "glucose"
+            elif line[author_idx] == "L. Nobre":
+                if line[cel_idx] == "GSM351280":
+                    treatment = "anaerobic"
+                    component = "anaerobic"
+                elif line[cel_idx] == "GSM351282":
+                    treatment = "anaerobic"
+                    component = "anaerobic"
+            elif line[strain_idx] == "JM109":
+                # TODO: remove this, just used to check if strain JM109 makes a difference
+                treatment = "JM109"
+                component = "JM109"
+            elif line[author_idx] == "G. Vemuri":
+                treatment = "1g/L" + "glucose"
+                component = "glucose"
+            elif line[author_idx] == "L. Waters":
+                treatment = "10uMHighMnCl2"
+                component = "HighMn2+"
+                # TODO: make sure this is treated as highmn2+ in the final compositions,
+                # not just mn2+?
+            elif line[author_idx] == "J. Wang":
+                treatment = "furfural"
+                component = "furfural"
+            elif line[geo_idx] == "GSE37026":
+                if line[cel_idx] in ["GSM909096", "GSM909098", "GSM909100", "GSM909102"]:
+                    treatment = "colicin M"
+                    component = "colicin M"
+            else:
+                treatment = line[treatment_idxs[0]] + line[treatment_idxs[1]]
+                component = line[treatment_idxs[1]]
+
             treatment = REPLACE_TREATMENT.get(treatment, treatment)
             #if treatment in REPLACE_TREATMENT:
             #    treatments.append(REPLACE_TREATMENT[treatment])
@@ -298,11 +404,12 @@ def load_data_exclude_rewiring(exclude_pathogen=True):
 
             treatment_all = treatment+time
             treatments.append(treatment_all)
-
             is_env.append(int(line[perturb_flags[0]]))
             is_genetic.append(int(line[perturb_flags[1]]))
             is_WT.append(int(line[perturb_flags[2]]))
             gr.append(float(line[gr_idx]))
+
+            components.append(component)
 
     seq_data = []
     for filename in SEQ_FILES:
@@ -312,9 +419,164 @@ def load_data_exclude_rewiring(exclude_pathogen=True):
             seq_data.append(list(reader))
 
     data = np.hstack(seq_data).astype(np.float64)
-    data = data[:, not_rewiring]
+    data = data[:, included_sample]
 
-    return symbols, {
+    ### Make vectorized samples
+    dont_split = ["response control - water added", "response control - H2O2",
+                  "propylene glycol", "polymyxin B", "nalidixic acid",
+                  "negative control", "magnetic field - sinusoidal continuous",
+                  "magnetic field - sinusoidal intermittent", "magnetic field - powerline intermittent",
+                  "casamino acids", "heat shock", 'clinostat - microgravity', 'biofilm with R1drd19 plasmid',
+                  'acid shock', "pH 8.7", "KCl acid shift", "colicin M"]
+
+    convert_comp = {"norf": "norfloxacin",
+                    "iptg": "IPTG",
+                    "arab": "arabinose",
+                    "pH 8.7": "pH8.7",
+                    "response control - H2O2": "H2O2",
+                    "nor": "norfloxacin",
+                    "D-glucose": "glucose",
+                    "+O2": None,  # TODO: check this, should we default everything to aerobic
+                    "aerobic": None,  # TODO: check this
+                    "spec": "spectinomycin",
+                    "EtOH": "ethanol",  # TODO: check this
+                    "control": None,  # TODO: check this,
+                    "amp": "ampicillin",
+                    "negative control": None,  # TODO: check this,
+                    "acid shock": "pH2",  # for 10 min? TODO: check this
+                    "pH": "pH2",  # for 10 min?
+                    "gent": "gentamicin",
+                    "-O2": "anaerobic",
+                    "glu": "glucose",
+                    "ASN": "acidified-sodium-nitrate",
+                    "AI-3": "autoinducer-3",
+                    "saline": "NaCl",
+                    "KCl acid shift": "pH5.5",
+                    "gly": "glycerol",
+                    "AI2": "autoinducer-2",
+                    "temperature": "low-temp",
+                    "response control - water added": None,
+                    "H202": "H2O2",
+                    "MMC": "mitomycin-C",
+                    "Cm": "chloramphenicol",  # TODO: check whether they used Kanamycin in the exp too? https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2655446/
+                    "polymyxin B": "polymyxin-B",
+                    "glu,": "glucose",
+                    "chelator": "iron-chelator",
+                    "HU": "hydroxyurea",
+                    "pH7": None,
+
+                    }
+    all_split_components = []
+    for sample in components:
+        split_components = []
+        name = sample
+        for x in dont_split:
+            if x in name:
+                split_components.append(x)
+                name = name.replace(x, ' ')
+
+        split_components.extend(name.split())
+        all_split_components.append(split_components)
+
+    all_split_components_converted = []
+    for x in all_split_components:
+        all_split_components_converted.append([convert_comp.get(y, y) for y in x if y])
+
+    # Convert to compositions
+    media_comps = MediaComps()
+    all_components_converted = media_comps.convert_to_composition(all_split_components_converted)
+
+    # Get unique sets
+    unique_components = set()
+    for x in all_components_converted:
+        unique_components.update(x)
+
+    # Get media
+    for i, x in enumerate(media):
+        if authors[i] == "M. Laubacher" and x == "M9C":
+            media[i] = "LB"
+    unique_media = set(media)
+
+    # M9C for x yang is M9 with casamino acids and glucose: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2394867/
+    # M9C for m laubacher: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2258881/
+
+    # Media in ecocyc: BHI on metacyc, LB, M9, LB + glycerol (check),
+    # MOPS, M63, LB + HOMOPIPES (check), LB low salt (check), EZ defined rich medium,
+    # MES-LB (check), M9C (check),
+    # Not in ecocyc: BHI agar?, MOPS + M9 or M9 + MOPS + tannic acid (?),
+    # Terrific Broth, DMEM, K medium, modified complex (read paper),
+    # glucose-limited minimal media in chemostat (check), Davis MM
+
+    media_compositions = media_comps.media_comp
+    all_media_compounds = media_comps.all_compounds
+
+    media_components = [set(media_compositions[x].keys()) for x in media]
+    all_components_converted_set = [set(x) for x in all_components_converted]
+
+    for i, x in enumerate(media_components):
+        all_components_converted_set[i].update(x)
+
+    all_components_together = [list(x) for x in all_components_converted_set]
+
+    # Get all compounds
+    total_compounds = set(all_media_compounds)
+    total_compounds.update(unique_components)
+    total_compounds.remove(None)
+    total_compounds = np.array(list(total_compounds))
+
+    # TODO: add deoxyribose to LB or BHI, etc., generally clean up the media to be right
+    # TODO: add sulfate to LB, other small metabolites too that are present in M9, etc.
+    # TODO: LB with no glucose too for alternative carbon sources!
+    # TODO: ethanol? bicarbonate?
+    # TODO: do smth about the carbon source issue?
+    #carbon_sources = ['gluconate', 'sucrose', 'succinate', 'glucose', 'fumarate', 'mannitol', 'lactate',
+    #                  'propylene glycol', 'acetate', 'glycerol', 'citrate', 'arabinose', 'glycerophosphate', 'inositol',
+    #                  'proline']
+
+     #no_carbon_source = []
+     #for i, x in enumerate(all_components_together):
+     #   has_c = False
+     #   for y in carbon_sources:
+     #       if y in x:
+     #           has_c = True
+     #           break
+     #   if not has_c:
+     #       no_carbon_source.append(i)
+
+    #minimal_no_carbon = [i for i in no_carbon_source if media_converted[i] == "M9" or media_converted[i] == "MOPS"]
+    #chemical_minimal_no_carbon = [chemicals[i] for i in minimal_no_carbon]
+    # TODO: check these, also maybe redo the operations before with new chemicals maybe
+    #for i in minimal_no_carbon:
+    #    all_components_together[i].append('glucose')
+
+    # TODO: divide compounds into aas, carbon source, N source, antibiotic, etc.
+
+    # Vectorize the treatments
+    vectorized_treatments = np.zeros((len(all_components_together), len(total_compounds)))
+    for i, treat in enumerate(all_components_together):
+        vectorized_treatments[i, :] = np.isin(total_compounds, treat)
+
+    # Combine molecules that are always co-present
+    reduced_vectorized_treatments, inverse = np.unique(vectorized_treatments, axis=1, return_inverse=True)
+    # Where 1 appears in inverse, is where the 1-index pattern of reduced_vectorized_treatments' components appears in total_compounds
+    # So, for each number in inverse, combine the places where it is
+    reduced_total_components = []
+    for i in range(np.shape(reduced_vectorized_treatments)[1]):
+        overlapping_components = total_compounds[(inverse == i)]
+        if len(overlapping_components) > 1:
+            combined_name = ", ".join(overlapping_components)
+        else:
+            combined_name = overlapping_components[0]
+        reduced_total_components.append(combined_name)
+    reduced_total_components = np.array(reduced_total_components)
+    # TODO: Sucrose, Shabala is at v high molarity so osmotic stress, should check if Y. Yang is at normal levels of sucrose?
+    # in which case should add a component that marks osmotic stress?
+    ###
+
+    # TODO: fix the LB, which ones have glucose, etc.
+    # TODO: do smth about TPEN chelating zinc, so do u say 0 zinc in that or smth?
+    # TODO: find the ones that don't have Zn2+, don't have other v common components, r those real/usable lacking of these?
+    return (symbols, {
         "geos": np.array(geos),
         "authors": np.array(authors),
         "strains": np.array(strains),
@@ -324,7 +586,9 @@ def load_data_exclude_rewiring(exclude_pathogen=True):
         "is_env": np.array(is_env),
         "is_genetic": np.array(is_genetic),
         "is_WT": np.array(is_WT),
-        "gr": np.array(gr)}, data
+        "gr": np.array(gr)}, data,
+            reduced_vectorized_treatments,
+            reduced_total_components)
 
 def load_PRECISE2_data():
     seq_data = []
@@ -340,7 +604,7 @@ def load_PRECISE2_data():
 
 
 
-def test_treatments():
+def test_treatments(included_sample):
     chemicals = []
     times = []
     media = []
@@ -355,22 +619,11 @@ def test_treatments():
         time_idx = header.index("Time (min)")
         strain_idx = header.index("Strain")
         for i, line in enumerate(reader):
-            if line[author_idx] == "M. Isalan":
-                continue
-            disease_strains = ['EDL933', '86-24', 'VS94',
-                'CFT073', 'UTI89', 'EHEC', 'KMD', 'B41',
-                'APEC']
-            if 'O157' in line[strain_idx]:
-                continue
-            if line[strain_idx] in disease_strains:
-                continue
-            if line[strain_idx] == "strain evolved":
-                continue
-
-            chemicals.append(line[treatment_idx])
-            times.append(line[time_idx])
-            media.append(line[media_idx])
-            authors.append(line[author_idx])
+            if i in included_sample:
+                chemicals.append(line[treatment_idx])
+                times.append(line[time_idx])
+                media.append(line[media_idx])
+                authors.append(line[author_idx])
 
     times_converted = [REPLACE_TIME.get(x, x) for x in times]
     # TODO: get concentration, so if concentration is 0, should delete it.
@@ -383,16 +636,16 @@ def test_treatments():
                  'acid shock', "pH 8.7", "KCl acid shift"]
 
     convert_comp = {"norf": "norfloxacin",
-                      "iptg": "IPTG",
-                      "arab": "arabinose",
-                      "pH 8.7": "pH8.7",
-                      "response control - H2O2": "H2O2",
-                      "nor": "norfloxacin",
-                      "D-glucose": "glucose",
-                      "+O2": None, # TODO: check this, should we default everything to aerobic
-                      "aerobic": None, # TODO: check this
-                      "spec": "spectinomycin",
-                      "EtOH": "ethanol", # TODO: check this
+                    "iptg": "IPTG",
+                    "arab": "arabinose",
+                    "pH 8.7": "pH8.7",
+                    "response control - H2O2": "H2O2",
+                    "nor": "norfloxacin",
+                    "D-glucose": "glucose",
+                    "+O2": None, # TODO: check this, should we default everything to aerobic
+                    "aerobic": None, # TODO: check this
+                    "spec": "spectinomycin",
+                    "EtOH": "ethanol", # TODO: check this
                     "control": None, # TODO: check this,
                     "amp": "ampicillin",
                     "negative control": None, # TODO: check this,
@@ -413,7 +666,6 @@ def test_treatments():
                     "MMC": "mitomycin-C",
                     "Cm": "chloramphenicol", # TODO: check whether they used Kanamycin in the exp too? https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2655446/
                     "polymyxin B": "polymyxin-B",
-                    "aerobic": None, # TODO: check with markus?
                     "glu,": "glucose",
                     "chelator": "iron-chelator",
                     "HU": "hydroxyurea",
@@ -1712,7 +1964,6 @@ def one_peak_num_reg_histogram(all_genes, one_peak_file, plot_file, exclude_sigm
     plt.savefig(plot_file)
     plt.close('all')
 
-    import ipdb; ipdb.set_trace()
 
 def genes_reg_by_x(regulator, all_genes, one_peak_file, write_file):
     gene_names = []
@@ -1883,6 +2134,206 @@ def one_peak_reg_info(all_genes, one_peak_file, write_file, plot_file, exclude_s
     import ipdb; ipdb.set_trace()
 
 
+def comp_null_standard_dev_vs_reg(all_genes, gene_file, expression, plot_file, exclude_sigma=True):
+    gene_names = []
+    with open(gene_file, 'r') as f:
+        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+        for i, line in enumerate(reader):
+            if i > 0:
+                gene_names.append(line[0])
+    ecocyc = EcocycReg(BASE_DIR, exclude_sigma=exclude_sigma)
+
+    regulation = ecocyc.find_gene_regulation(all_genes)
+
+    special_regs = ['rpoD', 'hns', 'lrp', 'ihfA', 'ihfB', 'fis',
+                    'rpoE', 'rpoH', 'rpoS']
+
+    def _find_num_regs(genes):
+        num_regs = []
+        for gene in genes:
+            reg_info = regulation[gene]
+            if reg_info == "N/A":
+                num_regs.append(-1)
+            elif len(reg_info) == 0:
+                num_regs.append(0)
+            else:
+                reg_names = [x[0] for x in reg_info if x not in special_regs]
+                num_regs.append(len(reg_names))
+
+        return num_regs
+
+    standard_devs = np.std(expression, axis=1)
+    is_gene = np.isin(all_genes, gene_names)
+    standard_devs_genes = standard_devs[is_gene]
+    fig, axs = plt.subplots(2, figsize=(20, 20))
+    num_regs = _find_num_regs(gene_names)
+    axs[0].scatter(standard_devs_genes, num_regs, s=0.5)
+    axs[0].set_xlabel("Standard deviation of each gene")
+    axs[0].set_ylabel("Number of regulators of each gene (excluding special regs)")
+
+    plt.tight_layout()
+    plt.savefig(plot_file)
+    plt.close('all')
+    import ipdb; ipdb.set_trace()
+
+def write_one_peak_genes(all_genes, gene_file, expression, write_file):
+    gene_names = []
+    with open(gene_file, 'r') as f:
+        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+        for i, line in enumerate(reader):
+            if i > 0:
+                gene_names.append(line[0])
+
+    standard_devs = np.std(expression, axis=1)
+    is_gene = np.isin(all_genes, gene_names)
+    standard_devs_genes = standard_devs[is_gene]
+    one_peak_genes = np.array(gene_names)[standard_devs_genes < 0.6]
+
+    with open(write_file, 'w') as f:
+        writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+        header = ['gene']
+        writer.writerow(header)
+        for gene in one_peak_genes:
+            writer.writerow([gene])
+
+def two_peak_reg_analyze(all_genes, two_peak_file, plot_file, plot_file_reg, exclude_sigma=True):
+    excluded_components = ['selenate', 'formate', 'tannin-extract', 'propylene glycol',
+                           'MOPS', 'clinostat - microgravity', 'cefsulodin', 'mecillinam',
+                           'spectinomycin', 'kanamycin', 'tetracycline', 'CHIR-090',
+                           'PMX10070', 'lactate', 'polymyxin-B', 'DMSO', 'HOMOPIPES']#HOMOPIPES?
+
+    genes_to_components = {}
+    component_to_genes = {}
+    with open(two_peak_file, 'r') as f:
+        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+        next(reader)
+        for line in reader:
+            if line[1] in excluded_components:
+                continue
+            if line[0] not in genes_to_components:
+                genes_to_components[line[0]] = []
+            genes_to_components[line[0]].append(line[1])
+
+            if line[1] not in component_to_genes:
+                component_to_genes[line[1]] = []
+            component_to_genes[line[1]].append(line[0])
+
+    gene_names = list(genes_to_components.keys())
+    ecocyc = EcocycReg(BASE_DIR, exclude_sigma=exclude_sigma)
+    regulation = ecocyc.find_gene_regulation(all_genes)
+
+    def _get_num_reg(genes):
+        num_reg = []
+        for gene in genes:
+            reg_info = regulation[gene]
+            if reg_info == "N/A":
+                num_reg.append(-1)
+            else:
+                num_reg.append(len(reg_info))
+        # TODO: account for special regs like lrp, etc.
+        return np.array(num_reg)
+
+    two_peak_num_regs = _get_num_reg(gene_names)
+    all_num_regs = _get_num_reg(all_genes)
+    max_num_reg = max(np.max(two_peak_num_regs), np.max(all_num_regs))
+    two_peak_hist, bins = np.histogram(two_peak_num_regs, bins=np.arange(-1, max_num_reg + 1, 1))
+    two_peak_hist = two_peak_hist / np.sum(two_peak_hist)
+    all_hist, _ = np.histogram(all_num_regs, bins=np.arange(-1, max_num_reg + 1, 1))
+    all_hist = all_hist / np.sum(all_hist)
+
+    fig, axs = plt.subplots(2, figsize=(20, 10))
+    axs[0].bar(np.arange(0, 3 * (max_num_reg + 1), step=3),
+               two_peak_hist, width=1, align='edge', color='r',
+               tick_label=bins[:-1], label='Two-peak')
+    axs[0].bar(np.arange(1, 3 * (max_num_reg + 1) + 1, step=3),
+               all_hist, width=1, align='edge', color='b',
+               label='All')
+    axs[0].legend()
+    axs[0].set_title("Histogram of fraction of genes with n regulators")
+    axs[0].set_xlabel("Number of regulators")
+
+    plt.tight_layout()
+    plt.savefig(plot_file)
+    plt.close('all')
+
+    one_reg_genes = np.array(gene_names)[two_peak_num_regs == 1]
+
+    def _get_reg_gene_counts(genes):
+        reg_gene_names = []
+        for gene in genes:
+            reg_info = regulation[gene]
+            if reg_info == "N/A":
+                continue
+            if len(reg_info) > 0:
+                reg_names = [x[0] for x in reg_info]
+                reg_gene_names.extend(reg_names)
+
+        return np.unique(reg_gene_names, return_counts=True)
+
+    def _get_regulators(genes):
+        regulators = np.array(ecocyc.ecocyc_to_ecomac_names(ecocyc.regulators, all_genes))
+        is_regulator = np.isin(np.array(genes), regulators)
+
+        return is_regulator
+
+    is_regulator = _get_regulators(one_reg_genes)
+    all_is_regulator = _get_regulators(all_genes)
+    frac_regulator = np.sum(is_regulator) / len(is_regulator)
+    all_frac_regulator = np.sum(all_is_regulator) / len(all_is_regulator)
+
+    (reg_gene_names, reg_gene_counts) = _get_reg_gene_counts(gene_names)
+    (one_reg_gene_names, one_reg_gene_counts) = _get_reg_gene_counts(one_reg_genes)
+    (all_reg_gene_names, all_reg_gene_counts) = _get_reg_gene_counts(all_genes)
+
+    reg_gene_sort = np.argsort(reg_gene_counts)
+    reg_gene_counts = reg_gene_counts[reg_gene_sort]
+    reg_gene_names = reg_gene_names[reg_gene_sort]
+    reg_gene_name_to_count = {gene: count for gene, count in zip(reg_gene_names, reg_gene_counts)}
+
+    one_reg_gene_sort = np.argsort(one_reg_gene_counts)
+    one_reg_gene_counts = one_reg_gene_counts[one_reg_gene_sort]
+    one_reg_gene_names = one_reg_gene_names[one_reg_gene_sort]
+    one_reg_gene_name_to_count = {gene: count for gene, count in zip(one_reg_gene_names, one_reg_gene_counts)}
+
+    all_reg_gene_sort = np.argsort(all_reg_gene_counts)
+    all_reg_gene_names = all_reg_gene_names[all_reg_gene_sort]
+    all_reg_gene_counts = all_reg_gene_counts[all_reg_gene_sort]
+
+    fig, axs = plt.subplots(2, figsize=(100, 10))
+    axs[0].bar(np.arange(0, 3 * len(all_reg_gene_names), step=3),
+               all_reg_gene_counts, width=1, align='edge', color='r',
+               tick_label=all_reg_gene_names, label='All')
+    axs[0].bar(np.arange(1, 3 * len(all_reg_gene_names) + 1, step=3),
+               [reg_gene_name_to_count.get(gene, 0)
+                   for gene in all_reg_gene_names],
+               width=1, align='edge', color='b', label='Two-peak')
+    axs[0].set_title("Number of genes regulated by each regulator for two-peak genes")
+    axs[0].legend()
+
+    axs[1].bar(np.arange(0, 3 * len(all_reg_gene_names), step=3),
+               [reg_gene_name_to_count.get(gene, 0)
+                for gene in all_reg_gene_names], width=1, align='edge', color='r',
+                label='Two-peak all')
+    axs[1].bar(np.arange(1, 3 * len(all_reg_gene_names) + 1, step=3),
+               [one_reg_gene_name_to_count.get(gene, 0)
+                for gene in all_reg_gene_names],
+               tick_label=all_reg_gene_names,
+               width=1, align='edge', color='b', label='Two-peak one reg')
+    axs[1].set_title("Number of genes regulated by each regulator for two-peak one-reg genes")
+    axs[1].legend()
+
+    plt.tight_layout()
+    plt.savefig(plot_file_reg)
+    plt.close('all')
+    # For two-peak genes: some of them are annotated unregulated (opportunities for discovery), interesting what the component is.
+    # some of them are annotated with having 1 regulator (that's our hypothesis), where either the component matches the regulator or not
+    # some of them are annotated with having >1 that are either mostly firm (opportunities for discovery),
+    # some of them are annotated with having >1 where only 1 is firm. Where the component matches the regulator or not.
+    # To validate that two-peak genes are mainly single regulator: we should show that there's a big enrichment
+    # in having 1 regulator for which the component that regulates it is what we expect it to be?
+    # If a regulon's member is two-peak, we might expect other members of that regulon to be two-peak (tho not necessarily).
+
+    import ipdb; ipdb.set_trace()
 
 if __name__ == '__main__':
     #neg_autoreg, pos_autoreg, both_autoreg = ecocyc.find_autoregulated_genes()
@@ -1908,7 +2359,7 @@ if __name__ == '__main__':
        'treR', 'xapR', 'yjbK', 'zntR']
 
 
-
+    #load_data_exclude_rewiring()
 
     # ArsEFG changeed to ArsRBC
     # EmrR changed to mprA
@@ -2024,7 +2475,8 @@ if __name__ == '__main__':
 
         exclude = ['biofilm', 'stationary', 'transition', 'ethanol', 'Adaptive evolution',
             'formation', 'autoinducer-2', 'CORM-2', 'attachment', 'R1drd19 plasmid',
-            'maturation', 'heat shock']
+            'maturation', 'heat shock', 'PenG', 'zinc (II) oxide', 'norfloxacin']
+        # PenG makes L-form colonies, norfloxacin kills cells, zinc (II) oxide was that outlier magnetic field study (maybe put back)
         filtered_exp, filtered_components, filtered_samples = plot_components.exclude_component(exp,
                                                                 exclude)
 
@@ -2044,7 +2496,8 @@ if __name__ == '__main__':
                                        vectorized_samples=filtered_samples
                                        )
 
-    #plot_genes_filtered_components(purR_regulon_filtered, "purR_filtered", 'adenine', 'arginine')
+    #plot_genes_filtered_components(['lolB', 'chaC'], "lolB_chaC_filtered", 'fumarate', 'arginine')
+    #import ipdb; ipdb.set_trace()
     #dcuRS = ['dcuR', 'dcuS']
     #plot_genes_filtered_components(rbs_regulon, "rbsR_regulon_filtered", 'adenine', 'arginine')
 
@@ -2057,12 +2510,70 @@ if __name__ == '__main__':
         hist_from_exp(filtered_exp, gene_names, title)
 
     #plot_genes_filtered(["pepQ"], "pepQ")
-    #plot_genes_filtered_components(["pepQ", "trkH", "hemG"], "pepQ_operon_filtered", "arginine", "adenine")
+    #plot_genes_filtered_components(["msrA", "ytfT"], "check_znO", "zinc (II) oxide", "arginine")
+    #plot_genes_filtered_components(["msrA", "ytfT"], "check_bicarbonate", "bicarbonate", "arginine")
+    #plot_genes_filtered_components(["lolB", "dcuR"], "check_fumarate", "fumarate", "arginine")
+    #plot_genes_filtered_components(["potE", "znuA", 'nuoM', 'nuoG'], "check_homopipes", "HOMOPIPES", "pH5.5")
+    symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
 
-    #filtered_exp, _, _, gene_names = _get_filtered_data()
+    plot_components = PlotComponents(total_components, vectorized_samples)
+    #plot_components.write_freq_components(os.path.join(SAMPLE_REG_DIR, "freq_componentsv3"))
+    #plot_components.detect_reg(seq_data, symbols, os.path.join(SAMPLE_REG_DIR, "p_valuesv3"),
+    #                           os.path.join(SAMPLE_REG_DIR, "t_statsv3"),
+    #                           os.path.join(SAMPLE_REG_DIR, "diff_meansv3"))
+
+    coliNet = coliNetData()
+    colinet_genes = coliNet.gene_names
+
+    ecocyc = EcocycReg(BASE_DIR)
+    ecomac_names = ecocyc.ecocyc_to_ecomac_names(colinet_genes, symbols)
+
+    colinet_reg_components = coliNet.gene_reg_components
+    plot_components.plot_statistics_with_special(seq_data, symbols, ecomac_names, colinet_reg_components,
+                                                 os.path.join(SAMPLE_REG_DIR, "p_valuesv3"),
+                                                 os.path.join(SAMPLE_REG_DIR, "t_statsv3"),
+                                                 os.path.join(SAMPLE_REG_DIR, "diff_meansv3"),
+                                                 os.path.join(SAMPLE_REG_DIR, "stats_plot_with_coliNetv3"))
+    # So now, for each colinet gene, by which ligand do we expect it to be perturbed?
+    # And then can look p-values, t-stats, and diff-means for those?
+
+    import ipdb; ipdb.set_trace()
+
+
+    # genes_reg_by_x('argR', symbols, os.path.join(SAMPLE_REG_DIR, "one_peak_genes2"),
+    #                os.path.join(SAMPLE_REG_DIR, "one_peak_reg_by_argR2"))
+    #filtered_exp, filtered_components, filtered_samples, gene_names = _get_filtered_data()
+    #plot_components = PlotComponents(filtered_components, filtered_samples)
+    # plot_components.candidate_two_peak(gene_names, filtered_exp, os.path.join(SAMPLE_REG_DIR, "all_regs2"),
+    #                                    os.path.join(SAMPLE_REG_DIR, "two_peak_all_regs"))
+    #plot_components.identify_two_peak(os.path.join(SAMPLE_REG_DIR, "two_peak_all_regs"),
+    #                                  os.path.join(SAMPLE_REG_DIR, "two_peak_genes"))
+    #two_peak_reg_analyze(gene_names, os.path.join(SAMPLE_REG_DIR, "two_peak_genes"),
+    #                     os.path.join(SAMPLE_REG_DIR, "two_peak_num_reg_hist"),
+    #                     os.path.join(SAMPLE_REG_DIR, "two_peak_reg_data"))
+    # plot_components.detect_reg(filtered_exp, gene_names, os.path.join(SAMPLE_REG_DIR, "p_values2"),
+    #                           os.path.join(SAMPLE_REG_DIR, "t_statistics2"),
+    #                           os.path.join(SAMPLE_REG_DIR, "p_t_plot2"),
+    #                           os.path.join(SAMPLE_REG_DIR, "all_regs2"),
+    #                           os.path.join(SAMPLE_REG_DIR, "no_reg_genes2"))
+    # plot_components.classify_genes_by_reg(os.path.join(SAMPLE_REG_DIR, "p_t_plot2"),
+    #                                       os.path.join(SAMPLE_REG_DIR, "p_values2"),
+    #                                       os.path.join(SAMPLE_REG_DIR, "t_statistics2"),
+    #                                       os.path.join(SAMPLE_REG_DIR, "all_regs2"),
+    #                                        os.path.join(SAMPLE_REG_DIR, "no_reg_genes2"))
+    # comp_null_standard_dev_vs_reg(gene_names, os.path.join(SAMPLE_REG_DIR, "no_reg_genes2"),
+    #                                filtered_exp, os.path.join(SAMPLE_REG_DIR, "standard_dev_vs_reg2"))
+    # write_one_peak_genes(gene_names, os.path.join(SAMPLE_REG_DIR, "no_reg_genes2"),
+    #                       filtered_exp, os.path.join(SAMPLE_REG_DIR, "one_peak_genes2"))
+    # one_peak_num_reg_histogram(gene_names, os.path.join(SAMPLE_REG_DIR, "one_peak_genes2"),
+    #                             os.path.join(SAMPLE_REG_DIR, "one_peak_num_reg_hist2"))
+    # one_peak_reg_info(gene_names, os.path.join(SAMPLE_REG_DIR, "one_peak_genes2"),
+    #                    os.path.join(SAMPLE_REG_DIR, "one_peak_reg_info2"),
+    #                    os.path.join(SAMPLE_REG_DIR, "one_peak_reg_plot2"))
+
+    import ipdb; ipdb.set_trace()
     #get_candidate_one_peak(filtered_exp, gene_names, os.path.join(OUTPUT_DIR, "one_peak_standard_dev_0.7_twofold"),
                            #method='standard_dev')
-
     # Use a different method to get one-peak
     # Make the rankings plot
     # Make the histogram plot
@@ -2074,10 +2585,9 @@ if __name__ == '__main__':
 
     #sigma_factors = ['rpoD', 'rpoE', 'rpoN', 'rpoH', 'rpoS', 'fliA']
     #chbR_regulon = ['chbR', 'chbA', 'chbB', 'chbF', 'chbC', 'chbG']
-    symbols, sample_data, seq_data = load_data_exclude_rewiring()
+
     #crp_investigation(symbols)
-    #genes_reg_by_x('crp', symbols, os.path.join(OUTPUT_DIR, "one_peak_95%_2fold"),
-    #               os.path.join(OUTPUT_DIR, "one_peak_reg_by_crp_annotated"))
+
     #one_peak_reg_info(symbols, os.path.join(OUTPUT_DIR, 'one_peak_reg_by_crp_annotated'),
     #                  '', '')
     #ulaR_regulon = ['ulaR', 'ulaA', 'ulaC', 'ulaB', 'ulaD', 'ulaE', 'ulaF']
@@ -2121,13 +2631,17 @@ if __name__ == '__main__':
     # peaks = peak_finder.detect_peaks(exp[0], plot_name='araJ1010')
     # peak_finder.gene_data(symbols, exp, 'test_all_peaks', 'test_all_peaks.txt')
 
-    compare_tail_stimulon_enrichment("citF", 7.8, symbols, seq_data, sample_data)
+    compare_tail_stimulon_enrichment("ytfT", 8, symbols, seq_data, sample_data)
+    # TODO: left off coliNet at 257 (didn't do 257 yet), continue
+    # TODO: make molybdate/heptamolybdate into both called molybdate (and change the coliNet-annotated file too for molybdate (only have molybdate)
     import ipdb; ipdb.set_trace()
     # TODO: fix the norfloxacin ones that actually do have arabinose
     # TODO: make a fcn that can plot for any gene given any components
     # TODO: deal with the times, like if time is -300, then you shouldn't
     # actually include the component!
     # TODO: LB doens't have glucose
+
+
 
 
     # TODO: look at these AraA, figure out how to work with the samples and do smth with it!

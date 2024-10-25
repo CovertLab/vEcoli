@@ -1,5 +1,5 @@
 import requests
-import xmltodict
+#import xmltodict
 import pprint as pp
 from wholecell.utils import units
 
@@ -173,6 +173,16 @@ MEDIA_RECIPE = {
         "glucose": 2 * units.g / units.L,
         "peptone": 10 * units.g / units.L,
     },
+    "minimal medium salts": {
+        "disodium phosphate": None,
+        "monopotassium phosphate": None,
+        "sodium chloride": None,
+        "ammonium chloride": None,
+        "glucose": 20 * units.mmol / units.L,
+        "magnesium sulfate": 2 * units.mmol / units.L,
+        "calcium chloride": 100 * units.umol / units.L,
+        "casamino acids": None,
+    },
 }
 
 MEDIA_COMPOSITION = {
@@ -261,15 +271,15 @@ MEDIA_COMPOSITION = {
         "Cu2+": 10e-3 * units.umol / units.L,
         "heptamolybdate": 3e-3 * units.umol / units.L,
     },
-}
+    }
 
-MEDIA_COMPOSITION["M9C"] = {k:v for k, v in MEDIA_COMPOSITION["M9"].items()}
-MEDIA_COMPOSITION["M9C"].update({"glucose": 22.203 * units.mmol / units.L,
+MEDIA_RECIPE["M9C"] = {k:v for k, v in MEDIA_COMPOSITION["M9"].items()}
+MEDIA_RECIPE["M9C"].update({"glucose": 22.203 * units.mmol / units.L,
                                                            "casamino acids": 4 * units.g / units.L})
 MEDIA_RECIPE["LB + glycerol"] = {k:v for k, v in MEDIA_RECIPE["LB"].items()}
 MEDIA_RECIPE["LB + glycerol"].update({"glycerol": None}) # TODO: glycerol 10% v/v, also temperature was 30C
 MEDIA_RECIPE["LB low salt"] = {k:v for k, v in MEDIA_RECIPE["LB"].items()}
-MEDIA_RECIPE["LB low salt"].update({ "Na+": 5 * units.g / units.L, "chloride": 5 * units.g / units.L,})
+MEDIA_RECIPE["LB low salt"].update({"low salt": None})
 MEDIA_RECIPE["LB+HOMOPIPES"] = {k:v for k, v in MEDIA_RECIPE["LB"].items()}
 MEDIA_RECIPE["LB+HOMOPIPES"].update({"HOMOPIPES": 50 * units.mmol / units.L,})
 MEDIA_RECIPE["MES-LB"] = {k:v for k, v in MEDIA_RECIPE["LB"].items()}
@@ -277,6 +287,7 @@ MEDIA_RECIPE["MES-LB"].update({"MES": None})
 MEDIA_RECIPE["BHI Agar"] = {k:v for k, v in MEDIA_RECIPE["BHI"].items()}
 
 RECIPE_TO_COMPOSITION = {
+    "zinc (II) oxide": {"Zn2+": 1}, # TODO: I think it would dissolve at the paper's pH6.6-6.7? But also they probably put it in so that it provides Zn2+?
     "calcium chloride": {"Ca2+": 1, "chloride": 2},
     "iron (III) nitrate": {"Fe3+": 1, "nitrate": 3},
     "magnesium sulfate": {"Mg2+": 1, "sulfate": 1},
@@ -320,7 +331,7 @@ RECIPE_TO_COMPOSITION = {
     "acidified-sodium-nitrate": {"Na+": 1, "nitrate": 1, "low pH": None}, # TODO: pH
     "pantothenic acid": {"pantothenate": 1},
     "sodiumbenzoate": {"Na+": 1, "benzoate": 1},
-    "yeast extract": {"glucose": None, "phosphate": None, "Na+": None, "K+": None, "chloride": None, "Mg2+": None, "Ca2+": None,
+    "yeast extract": {"phosphate": None, "Na+": None, "K+": None, "chloride": None, "Mg2+": None, "Ca2+": None,
                       "ammonium": None,
                       "glycine": None, "alanine": None, "leucine": None, "methionine": None, "isoleucine": None, "valine": None,
                       "tryptophan": None, "proline": None, "tyrosine": None, "serine": None, "threonine": None, "cysteine": None,
@@ -331,7 +342,7 @@ RECIPE_TO_COMPOSITION = {
                       "cyanocobalamin": None, "choline": None, "Fe3+": None, "Mn2+": None, "Al3+": None, "Ni2+": None, "Cu2+": None, "Fe2+": None,
                       "Zn2+": None, "Co2+": None, "yeast extract other": None
                       }, # TODO: molybdate/heptamolybdate? boric acid, selenate/selenous acid? biarbonate? etc.
-                        # TODO: probably should take glucose out maybe?
+                        # TODO: whether to include glucose?
                         # TODO: ask about GSE21551, does the LB mahve glucose in it??
     "tryptone": {"glycine": None, "alanine": None, "leucine": None, "methionine": None, "isoleucine": None, "valine": None,
                       "tryptophan": None, "proline": None, "tyrosine": None, "serine": None, "threonine": None, "cysteine": None,
@@ -344,7 +355,7 @@ RECIPE_TO_COMPOSITION = {
     "casamino acids": {"glycine": None, "alanine": None, "leucine": None, "methionine": None, "isoleucine": None, "valine": None,
                       "tryptophan": None, "proline": None, "tyrosine": None, "serine": None, "threonine": None, "cysteine": None,
                       "histidine": None, "lysine": None, "arginine": None, "glutamine": None, "asparagine": None, "aspartate": None,
-                      "glutamate": None, "phenylalanine": None, "casamino-pecular": None},
+                      "glutamate": None, "phenylalanine": None, "casamino-peculiar": None},
     "amino acids": {"glycine": None, "alanine": None, "leucine": None, "methionine": None, "isoleucine": None, "valine": None,
                       "tryptophan": None, "proline": None, "tyrosine": None, "serine": None, "threonine": None, "cysteine": None,
                       "histidine": None, "lysine": None, "arginine": None, "glutamine": None, "asparagine": None, "aspartate": None,
@@ -375,7 +386,11 @@ RECIPE_TO_COMPOSITION = {
                       "cyanocobalamin": None, "choline": None, "Fe3+": None, "Mn2+": None, "Al3+": None, "Ni2+": None, "Cu2+": None, "Fe2+": None,
                       "Zn2+": None, "Co2+": None, "calf brain other": None
                       },
-    "biofilm with R1drd19 plasmid": {"biofilm": None, "R1drd19 plasmid": None}
+    "biofilm with R1drd19 plasmid": {"biofilm": None, "R1drd19 plasmid": None},
+    "pH5": {"acidic": None, "pH5": None},
+    "pH2": {"acidic": None, "pH2": None},
+    "pH8.7": {"basic": None, "pH8.7": None},
+    "pH8": {"basic": None, "pH8": None},
     }
 
 # Possibly relevant molecules:
