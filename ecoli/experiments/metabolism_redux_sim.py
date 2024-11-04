@@ -53,7 +53,7 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic",
-    total_time=1300,
+    total_time=10,
     divide=True,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
@@ -62,7 +62,7 @@ def run_ecoli_with_metabolism_redux_classic(
     name="convex_kinetics_minimal",
     raw_output=False,
     save=True,
-    save_times=[1, 10, 200, 400, 1300],
+    save_times=[1, 10],
     condition="basal",  # basal, with_aa
     fixed_media="minimal",  # minimal, minimal_plus_amino_acids
 ):
