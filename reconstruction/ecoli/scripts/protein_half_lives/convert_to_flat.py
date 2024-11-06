@@ -1,5 +1,5 @@
 """
-Extracts protein half-lives from Supplementary Table S2 of Nagar et. al.,
+Extracts protein half-lives from Supplementary Table S2 of Nagar et al.,
 "Harnessing Machine Learning to Unravel Protein Degradation in Escherichia coli"
 (2021).
 """
