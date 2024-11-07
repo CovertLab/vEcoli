@@ -1,0 +1,117 @@
+"gene"	"coliNet reg"	"coliNet reg diff-means"	"max diff-means reg"	"max diff-means"
+"aceB"	"{'acetate', 'acetate-aerobic'}"	2.254045029498526	"{'furfural'}"	2.846359451038577
+"aceA"	"{'acetate', 'acetate-aerobic'}"	2.9008532890855445	"{'acetate', 'acetate-aerobic'}"	2.9008532890855445
+"aceK"	"{'acetate', 'acetate-aerobic'}"	1.7784907522123898	"{'PMX10070'}"	2.0604488674579624
+"acs"	"{'acetate', 'acetate-aerobic'}"	2.988567064896756	"{'acetate', 'acetate-aerobic'}"	2.988567064896756
+"adhE"	"{'nitrate'}"	0.0961711190936736	"{'tannin-extract'}"	2.3035623008849573
+"araB"	"{'ampicillin', 'arabinose'}"	3.753682506154602	"{'ampicillin', 'arabinose'}"	3.753682506154602
+"araA"	"{'ampicillin', 'arabinose'}"	4.1804649286066	"{'ampicillin', 'arabinose'}"	4.1804649286066
+"araD"	"{'ampicillin', 'arabinose'}"	2.912907749876908	"{'ampicillin', 'arabinose'}"	2.912907749876908
+"araC"	"{'ampicillin', 'arabinose'}"	2.7932823338257045	"{'ampicillin', 'arabinose'}"	2.7932823338257045
+"araE"	"{'ampicillin', 'arabinose'}"	2.1203458345642527	"{'CHIR-090'}"	2.193455642540619
+"araF"	"{'ampicillin', 'arabinose'}"	0.7931662136878401	"{'fumarate-anaerobic', 'fumarate'}"	1.809187522123894
+"araG"	"{'ampicillin', 'arabinose'}"	1.0488508173313669	"{'CHIR-090'}"	1.8271440620384034
+"araJ"	"{'ampicillin', 'arabinose'}"	2.2572344165435734	"{'ampicillin', 'arabinose'}"	2.2572344165435734
+"caiF"	"{'anaerobic-no nitrate'}"	1.7001283412447261	"{'anaerobic-threonine'}"	2.213992082737432
+"dctA"	"{'succinate-aerobic', 'succinate'}"	1.7836952802359871	"{'fumarate-anaerobic', 'fumarate'}"	1.947518879056048
+"dcuB"	"{'nitrate'}"	0.5193479552362508	"{'fumarate-anaerobic', 'fumarate'}"	2.843334955752212
+"dcuB"	"{'fumarate-anaerobic', 'fumarate'}"	2.843334955752212	"{'fumarate-anaerobic', 'fumarate'}"	2.843334955752212
+"fumB"	"{'nitrate'}"	0.2896179303675037	"{'fumarate-anaerobic', 'fumarate'}"	2.309951002949852
+"fumB"	"{'fumarate-anaerobic', 'fumarate'}"	2.309951002949852	"{'fumarate-anaerobic', 'fumarate'}"	2.309951002949852
+"dmsA"	"{'anaerobic-no nitrate'}"	1.9681343539029523	"{'pH8'}"	2.4097922633136104
+"dmsB"	"{'anaerobic-no nitrate'}"	2.109203238396626	"{'pH8'}"	2.408849674556212
+"dmsC"	"{'anaerobic-no nitrate'}"	0.9122301503164554	"{'pH8'}"	0.9460178698224837
+"edd"	"{'gluconate'}"	1.6517339644970406	"{'DMSO'}"	2.1247761299852286
+"eda"	"{'gluconate'}"	1.0293399556213014	"{'furfural'}"	1.3095481849653794
+"fdnG"	"{'nitrate-anaerobic'}"	2.7707272337278113	"{'nitrate-anaerobic'}"	2.7707272337278113
+"fdnH"	"{'nitrate-anaerobic'}"	1.6639601923076928	"{'fumarate-anaerobic', 'fumarate'}"	1.9881528171091434
+"fdnI"	"{'nitrate-anaerobic'}"	2.1741635355029594	"{'nitrate-anaerobic'}"	2.1741635355029594
+"focA"	"{'anaerobic-no nitrate'}"	1.089824467299577	"{'tannin-extract'}"	1.972297389380529
+"pflB"	"{'anaerobic-no nitrate'}"	0.8666303270042182	"{'fumarate-anaerobic', 'fumarate'}"	2.406770575221241
+"frdA"	"{'fumarate-anaerobic', 'fumarate'}"	0.8384919616519184	"{'anaerobic-threonine'}"	1.7721853355580297
+"frdB"	"{'fumarate-anaerobic', 'fumarate'}"	0.16084246312684414	"{'pH8'}"	2.1359852218934883
+"frdC"	"{'fumarate-anaerobic', 'fumarate'}"	0.17194554572271237	"{'anaerobic-threonine'}"	2.019077722336988
+"frdD"	"{'fumarate-anaerobic', 'fumarate'}"	0.24508464601770008	"{'pH8'}"	1.7610630029585792
+"glpD"	"{'glycerol'}"	1.1633417414553087	"{'PMX10070'}"	2.683919030662709
+"glpF"	"{'glycerol'}"	1.9849676190476195	"{'acetate', 'acetate-aerobic'}"	3.223029026548671
+"glpK"	"{'glycerol'}"	1.2339248883589864	"{'acetate', 'acetate-aerobic'}"	3.104347389380532
+"glpT"	"{'glycerol'}"	0.9144971652576057	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	3.9622439358845263
+"glpQ"	"{'glycerol'}"	1.2001605686827048	"{'acetate', 'acetate-aerobic'}"	2.788700752212389
+"gntK"	"{'gluconate'}"	3.499686656804734	"{'gluconate'}"	3.499686656804734
+"gntT"	"{'gluconate'}"	3.2104894970414186	"{'gluconate'}"	3.2104894970414186
+"kdpA"	"{'K+', 'phosphate', 'Mg2+'}"	0.4827822339711325	"{'polymyxin-B'}"	1.4487851384767572
+"kdpB"	"{'K+', 'phosphate', 'Mg2+'}"	1.504475300436387	"{'PMX10070'}"	1.5106087438180031
+"kdpC"	"{'K+', 'phosphate', 'Mg2+'}"	0.45369477844914563	"{'CHIR-090'}"	1.3511825553914347
+"lacZ"	"{'IPTG'}"	0.07676106075864197	"{'PMX10070'}"	2.913812067260138
+"lacA"	"{'IPTG'}"	0.6346256696878108	"{'tannin-extract'}"	3.828239439528025
+"moaA"	"{'molybdate-anaerobic'}"	0.031500575682779086	"{'DMSO'}"	2.3805828606597714
+"moaB"	"{'molybdate-anaerobic'}"	0.3038137502985876	"{'chloride', 'Na+'}"	1.7637066913946597
+"moaC"	"{'molybdate-anaerobic'}"	0.03384592563102018	"{'DMSO'}"	1.303241821762679
+"moaD"	"{'molybdate-anaerobic'}"	0.25963260211800154	"{'fumarate-anaerobic', 'fumarate'}"	0.9148388643067857
+"moaE"	"{'molybdate-anaerobic'}"	0.004731792340153973	"{'tannin-extract'}"	0.9197318289085548
+"mtlA"	"{'mannitol'}"	2.08436374260355	"{'mannitol'}"	2.08436374260355
+"mtlD"	"{'mannitol'}"	1.505233446745562	"{'tannin-extract'}"	1.7886716666666658
+"mtlR"	"{'mannitol'}"	1.1248810207100597	"{'fumarate-anaerobic', 'fumarate'}"	1.2112942035398238
+"narG"	"{'nitrate-anaerobic'}"	2.7461157692307694	"{'nitrate-anaerobic'}"	2.7461157692307694
+"narH"	"{'nitrate-anaerobic'}"	2.8175174260355043	"{'tannin-extract'}"	2.8703359587020643
+"narJ"	"{'nitrate-anaerobic'}"	2.695556982248519	"{'nitrate-anaerobic'}"	2.695556982248519
+"narI"	"{'nitrate-anaerobic'}"	3.3674191420118333	"{'nitrate-anaerobic'}"	3.3674191420118333
+"narK"	"{'nitrate-anaerobic'}"	1.0018715236686386	"{'TPEN'}"	3.2250463072378146
+"nhaA"	"{'basic'}"	0.4901498178506376	"{'polymyxin-B'}"	1.1729004698318501
+"nirB"	"{'nitrate-anaerobic'}"	1.0042129733727823	"{'chloride', 'Na+'}"	1.7742829426310607
+"nirD"	"{'nitrate-anaerobic'}"	0.9720720710059183	"{'chloride', 'Na+'}"	2.071231236399605
+"nirC"	"{'nitrate-anaerobic'}"	0.022146375739644952	"{'colicin M'}"	1.0905865952027165
+"cysG"	"{'nitrate-anaerobic'}"	0.003362884615384587	"{'DMSO'}"	0.958369162973904
+"nrfA"	"{'anaerobic-no nitrate'}"	1.1659614161392398	"{'fumarate-anaerobic', 'fumarate'}"	2.103347699115046
+"nrfB"	"{'anaerobic-no nitrate'}"	1.409119235232069	"{'chloride', 'Na+'}"	1.5868183333333334
+"nrfC"	"{'anaerobic-no nitrate'}"	1.4440769435654008	"{'DMSO'}"	2.5070745642540606
+"nrfD"	"{'anaerobic-no nitrate'}"	0.7292135864978899	"{'tannin-extract'}"	1.473196784660768
+"nrfE"	"{'anaerobic-no nitrate'}"	0.4629850896624461	"{'chloride', 'Na+'}"	1.904194253214639
+"nrfF"	"{'anaerobic-no nitrate'}"	0.44982592827004275	"{'ampicillin', 'arabinose'}"	1.0712341900541595
+"nrfG"	"{'anaerobic-no nitrate'}"	0.5795809018987343	"{'PMX10070'}"	1.7152838822947594
+"nuoA"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	0.020767338032896987	"{'tannin-extract'}"	1.8783315634218294
+"nuoB"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	0.30576882846592746	"{'tannin-extract'}"	1.9527974631268439
+"nuoC"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	0.22449821752265642	"{'mannitol'}"	1.3742884319526638
+"nuoE"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	0.21121863376972172	"{'mannitol'}"	1.1263994378698232
+"nuoF"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	0.07213939073514553	"{'fumarate-anaerobic', 'fumarate'}"	2.175540132743361
+"nuoG"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	1.0312079221215154	"{'fumarate-anaerobic', 'fumarate'}"	2.2816932153392315
+"nuoH"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	0.2862210926485407	"{'fumarate-anaerobic', 'fumarate'}"	2.030103879056046
+"nuoI"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	0.04389914736488798	"{'fumarate-anaerobic', 'fumarate'}"	2.039442359882006
+"nuoJ"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	0.2009183165491777	"{'fumarate-anaerobic', 'fumarate'}"	1.2809838200589976
+"nuoK"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	0.10326937059416075	"{'mannitol'}"	1.3878145118343195
+"nuoL"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	0.20296974823766512	"{'fumarate-anaerobic', 'fumarate'}"	2.0909351622418857
+"nuoM"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	1.0694758241020477	"{'PMX10070'}"	2.177900158259149
+"nuoN"	"{'glycerophosphate', 'nitrate-aerobic', 'selenium'}"	0.8408959684457873	"{'tannin-extract'}"	1.5884717109144546
+"ompC"	"{'pH5'}"	0.490544182754185	"{'colicin M'}"	1.794229034175336
+"phnC"	"{'K+', 'phosphate', 'Mg2+'}"	1.137014268210808	"{'bicarbonate'}"	2.5490566097308482
+"phnD"	"{'K+', 'phosphate', 'Mg2+'}"	0.4363573749580407	"{'TPEN'}"	2.0648787198424445
+"phnF"	"{'K+', 'phosphate', 'Mg2+'}"	0.4629773548170517	"{'chloride', 'Na+'}"	1.603051948565776
+"phnG"	"{'K+', 'phosphate', 'Mg2+'}"	0.9218027374958044	"{'chloride', 'Na+'}"	2.0083884421365
+"phnH"	"{'K+', 'phosphate', 'Mg2+'}"	1.0719155840886199	"{'chloride', 'Na+'}"	1.8614566023738899
+"phnI"	"{'K+', 'phosphate', 'Mg2+'}"	2.873286294058409	"{'polymyxin-B'}"	3.3831096834817016
+"phnJ"	"{'K+', 'phosphate', 'Mg2+'}"	2.440122796240349	"{'chloride', 'Na+'}"	2.8985631355093986
+"phnK"	"{'K+', 'phosphate', 'Mg2+'}"	1.2779401544142335	"{'chloride', 'Na+'}"	2.35146365974283
+"phnL"	"{'K+', 'phosphate', 'Mg2+'}"	1.2687893353474315	"{'fumarate-anaerobic', 'fumarate'}"	2.0796403244837762
+"phnM"	"{'K+', 'phosphate', 'Mg2+'}"	1.2337074655924791	"{'CHIR-090'}"	1.5413126341703602
+"phnN"	"{'K+', 'phosphate', 'Mg2+'}"	0.19659664652568054	"{'tannin-extract'}"	0.962017079646019
+"phnO"	"{'K+', 'phosphate', 'Mg2+'}"	0.06994931856327646	"{'fumarate-anaerobic', 'fumarate'}"	1.1532469616519183
+"phnP"	"{'K+', 'phosphate', 'Mg2+'}"	0.08691774588788093	"{'chloride', 'Na+'}"	0.9347559396636989
+"phoA"	"{'K+', 'phosphate', 'Mg2+'}"	0.34658508056394943	"{'tannin-extract'}"	0.9077389233038353
+"phoB"	"{'K+', 'phosphate', 'Mg2+'}"	0.16561240684793432	"{'polymyxin-B'}"	1.789299386745796
+"phoR"	"{'K+', 'phosphate', 'Mg2+'}"	0.14081229271567608	"{'DMSO'}"	1.0242313540128007
+"phoE"	"{'K+', 'phosphate', 'Mg2+'}"	0.5409775008392099	"{'tannin-extract'}"	1.1071198377581117
+"pstS"	"{'K+', 'phosphate', 'Mg2+'}"	1.4413360775427986	"{'tannin-extract'}"	1.582741519174041
+"pstC"	"{'K+', 'phosphate', 'Mg2+'}"	0.6928357922121524	"{'tannin-extract'}"	1.0928764749262516
+"pstA"	"{'K+', 'phosphate', 'Mg2+'}"	0.0102543622020832	"{'tannin-extract'}"	1.194761371681416
+"pstB"	"{'K+', 'phosphate', 'Mg2+'}"	0.6917631235313877	"{'tannin-extract'}"	1.0162702212389387
+"phoU"	"{'K+', 'phosphate', 'Mg2+'}"	0.8430136975495142	"{'DMSO'}"	1.3003884145741011
+"tdcA"	"{'anaerobic-threonine'}"	0.4249439207585155	"{'acetate', 'acetate-aerobic'}"	0.9778414159292037
+"tdcB"	"{'anaerobic-threonine'}"	0.8896363583876248	"{'PMX10070'}"	2.104656018793273
+"tdcC"	"{'anaerobic-threonine'}"	0.7885967890248402	"{'nitrate-anaerobic'}"	1.0239446449704142
+"tdcD"	"{'anaerobic-threonine'}"	1.079577658244613	"{'nitrate-anaerobic'}"	1.2143862573964483
+"tdcE"	"{'anaerobic-threonine'}"	0.9075491090629804	"{'CHIR-090'}"	1.1530655785327433
+"tdcF"	"{'anaerobic-threonine'}"	0.9262199459717131	"{'fumarate-anaerobic', 'fumarate'}"	1.3897615929203546
+"zntA"	"{'TPEN'}"	1.6645726440177242	"{'bicarbonate'}"	1.9446868391994485
+"znuA"	"{'TPEN'}"	3.7565756376169386	"{'TPEN'}"	3.7565756376169386
+"znuB"	"{'TPEN'}"	0.4184523978335797	"{'HighMn2+'}"	1.3330503539822995
+"znuC"	"{'TPEN'}"	1.6219581486952244	"{'bicarbonate'}"	1.7666105590062102

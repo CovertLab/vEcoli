@@ -1,0 +1,230 @@
+"gene"	"coliNet reg"	"coliNet reg p-values"	"min p-values reg"	"min p-values"
+"ansB"	"{'anaerobic'}"	-7.199689836303687	"{'edta'}"	-29.631792549775984
+"appC"	"{'anaerobic'}"	-16.27443667659215	"{'anaerobic'}"	-16.27443667659215
+"appB"	"{'anaerobic'}"	-16.299211477142382	"{'anaerobic'}"	-16.299211477142382
+"appA"	"{'anaerobic'}"	-12.362026360475072	"{'anaerobic'}"	-12.362026360475072
+"appY"	"{'anaerobic'}"	-0.20649923703097064	"{'edta'}"	-44.6597496381093
+"arcA"	"{'anaerobic'}"	-3.6500888684933632	"{'anaerobic'}"	-3.6500888684933632
+"argC"	"{'arginine'}"	-46.08608370426946	"{'thiamine'}"	-52.766264985862875
+"argB"	"{'arginine'}"	-52.003929061194476	"{'arginine'}"	-52.003929061194476
+"argH"	"{'arginine'}"	-35.198904843820074	"{'thiamine'}"	-40.52291446590855
+"argD"	"{'arginine'}"	-46.052312925213116	"{'sulfate'}"	-49.81067863451247
+"argE"	"{'arginine'}"	-21.526183462019606	"{'adenine'}"	-22.66822595965915
+"argF"	"{'arginine'}"	-10.103700124902517	"{'thiamine'}"	-39.186609466789
+"argI"	"{'arginine'}"	-40.469366654399174	"{'thiamine'}"	-47.58167405042521
+"argR"	"{'arginine'}"	-3.416583525182715	"{'edta'}"	-13.738689605465618
+"aroF"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-31.638482915917855	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-31.638482915917855
+"tyrA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-18.593523494354784	"{'HOMOPIPES'}"	-24.129365038180264
+"aroG"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-70.20604614272831	"{'sulfate'}"	-78.74150544869849
+"aroH"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-15.844730474844303	"{'edta'}"	-30.932270719365167
+"aroL"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-32.96227174757305	"{'sulfate'}"	-34.64491247528205
+"aroL"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-32.96227174757305	"{'sulfate'}"	-34.64491247528205
+"yaiA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-13.207260892781575	"{'thiamine'}"	-17.819086447256833
+"yaiA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-13.207260892781575	"{'thiamine'}"	-17.819086447256833
+"aroM"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-10.384602428859043	"{'edta'}"	-68.05219542057824
+"aroM"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-10.384602428859043	"{'edta'}"	-68.05219542057824
+"aroP"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-68.08285019146152	"{'biotin', 'cyanocobalamin'}"	-84.88389107356723
+"asnA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-0.47944141273782126	"{'HOMOPIPES'}"	-13.449447647834706
+"asnC"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-15.105925088310721	"{'methionine'}"	-17.84266412386166
+"aspA"	"{'anaerobic'}"	-0.7823956114144324	"{'sulfate'}"	-52.35486538016454
+"betI"	"{'anaerobic'}"	-4.627153277907514	"{'thiamine'}"	-7.308327057099783
+"betI"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-4.253288243486504	"{'thiamine'}"	-7.308327057099783
+"betB"	"{'anaerobic'}"	-5.8178728087315	"{'thiamine'}"	-10.283122979712234
+"betB"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-7.306842146560539	"{'thiamine'}"	-10.283122979712234
+"betA"	"{'anaerobic'}"	-4.089958282858738	"{'boric acid'}"	-7.7828477419405395
+"betA"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-4.134245226184861	"{'boric acid'}"	-7.7828477419405395
+"betT"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-3.2492014733580064	"{'HOMOPIPES'}"	-5.147251506489802
+"bioA"	"{'biotin', 'cyanocobalamin'}"	-19.60642670989278	"{'biotin', 'cyanocobalamin'}"	-19.60642670989278
+"bioB"	"{'biotin', 'cyanocobalamin'}"	-40.93468409108212	"{'sulfate'}"	-51.270014547705834
+"bioF"	"{'biotin', 'cyanocobalamin'}"	-28.39138559795408	"{'sulfate'}"	-31.051004413215598
+"bioC"	"{'biotin', 'cyanocobalamin'}"	-1.192450066520279	"{'HOMOPIPES'}"	-32.26194154248749
+"bioD"	"{'biotin', 'cyanocobalamin'}"	-14.829575439351505	"{'sulfate'}"	-15.43464971443498
+"carA"	"{'arginine'}"	-35.269177356759926	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-39.264307718809945
+"carB"	"{'arginine'}"	-29.52950659396924	"{'adenine'}"	-35.00556654532217
+"cirA"	"{'iron'}"	-2.620997633114398	"{'anaerobic'}"	-10.780588294510657
+"codB"	"{'adenine'}"	-38.15770297590077	"{'cysteine'}"	-41.88884523155166
+"codA"	"{'adenine'}"	-29.043822613773006	"{'cysteine'}"	-31.42178847436895
+"cvpA"	"{'adenine'}"	-39.60053641579099	"{'molybdate'}"	-47.71951703923358
+"purF"	"{'adenine'}"	-35.70785704979957	"{'edta'}"	-48.53344705263424
+"ubiX"	"{'adenine'}"	-2.486278087203	"{'edta'}"	-21.78893894635456
+"cydA"	"{'anaerobic'}"	-4.457869950562012	"{'edta'}"	-17.292681849629243
+"cydB"	"{'anaerobic'}"	-8.593041876614452	"{'edta'}"	-54.685887624894605
+"cyoA"	"{'anaerobic'}"	-18.099350722724385	"{'anaerobic'}"	-18.099350722724385
+"cyoB"	"{'anaerobic'}"	-19.764614085674026	"{'anaerobic'}"	-19.764614085674026
+"cyoC"	"{'anaerobic'}"	-22.175444474958887	"{'anaerobic'}"	-22.175444474958887
+"cyoD"	"{'anaerobic'}"	-23.90126872326927	"{'anaerobic'}"	-23.90126872326927
+"cyoE"	"{'anaerobic'}"	-27.79936064000744	"{'anaerobic'}"	-27.79936064000744
+"cysB"	"{'cysteine'}"	-8.684223862608686	"{'edta'}"	-34.593856914271285
+"cysD"	"{'cysteine'}"	-43.1216571268927	"{'thiamine'}"	-44.81002090969449
+"cysN"	"{'cysteine'}"	-77.72600540125438	"{'thiamine'}"	-80.862201627091
+"cysC"	"{'cysteine'}"	-60.41975530784271	"{'thiamine'}"	-70.38052163108254
+"cysJ"	"{'cysteine'}"	-58.69181753949963	"{'cysteine'}"	-58.69181753949963
+"cysI"	"{'cysteine'}"	-62.24191969783796	"{'cysteine'}"	-62.24191969783796
+"cysH"	"{'cysteine'}"	-53.1137899723425	"{'thiamine'}"	-54.35577417525087
+"cysK"	"{'cysteine'}"	-84.76993884381571	"{'cysteine'}"	-84.76993884381571
+"cysP"	"{'cysteine'}"	-48.198432928986705	"{'cysteine'}"	-48.198432928986705
+"cysU"	"{'cysteine'}"	-39.58078229839212	"{'methionine'}"	-43.20174639743905
+"cysW"	"{'cysteine'}"	-32.10137512881772	"{'thiamine'}"	-34.1639575270938
+"cysA"	"{'cysteine'}"	-48.24961918777878	"{'thiamine'}"	-52.98405770709569
+"cysM"	"{'cysteine'}"	-76.63395548852759	"{'cysteine'}"	-76.63395548852759
+"dctA"	"{'anaerobic'}"	-7.745615620469524	"{'sulfate'}"	-27.351120825931286
+"deoC"	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-40.4140369298049	"{'biotin', 'cyanocobalamin'}"	-46.74272872390497
+"deoA"	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-36.4482301285325	"{'methionine'}"	-41.05889171395577
+"deoB"	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-60.026692890627146	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-63.14206903692332
+"deoD"	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-66.09295881961665	"{'methionine'}"	-68.19701795675499
+"entC"	"{'iron'}"	-1.7255102841834107	"{'Co2+'}"	-9.097703078194924
+"entE"	"{'iron'}"	-0.44001572833977903	"{'HOMOPIPES'}"	-19.25752133042886
+"entB"	"{'iron'}"	-2.459202625516116	"{'anaerobic'}"	-8.447885870770023
+"entA"	"{'iron'}"	-2.0294152934434346	"{'anaerobic'}"	-12.210924156036139
+"fabA"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-1.1707819800677295	"{'Ca2+'}"	-4.235294889012778
+"fadL"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-13.195942130323859	"{'anaerobic'}"	-26.789743430474672
+"fecA"	"{'iron'}"	-3.2383788860990013	"{'methionine'}"	-55.43139195980508
+"fecB"	"{'iron'}"	-6.734840032693112	"{'methionine'}"	-57.33135527180737
+"fecC"	"{'iron'}"	-4.877243330925706	"{'methionine'}"	-41.55756613159705
+"fecD"	"{'iron'}"	-6.024224290014652	"{'methionine'}"	-38.51679771652287
+"fecE"	"{'iron'}"	-5.632308408628969	"{'methionine'}"	-50.0656682413749
+"fecI"	"{'iron'}"	-1.89863724546218	"{'anaerobic'}"	-9.699466861450919
+"fecR"	"{'iron'}"	-0.49214878692124275	"{'edta'}"	-7.424319485496163
+"fepA"	"{'iron'}"	-3.624354153013289	"{'Co2+'}"	-6.569897526820589
+"entD"	"{'iron'}"	-2.1470214386144306	"{'Co2+'}"	-10.698344876480547
+"fepB"	"{'iron'}"	-0.5433794108072386	"{'edta'}"	-10.722626934804083
+"fepD"	"{'iron'}"	-0.8736765264572198	"{'edta'}"	-8.461081927281437
+"fepG"	"{'iron'}"	-1.0229655891014748	"{'HOMOPIPES'}"	-18.800368347432244
+"fepC"	"{'iron'}"	-0.07907535312084067	"{'glucose'}"	-5.227356741211821
+"fhuA"	"{'iron'}"	-0.29341445059503524	"{'anaerobic'}"	-14.222774284487299
+"fhuC"	"{'iron'}"	-0.14947980294874694	"{'edta'}"	-9.494203850633676
+"fhuD"	"{'iron'}"	-1.428499318685301	"{'HOMOPIPES'}"	-13.121135683436716
+"fhuB"	"{'iron'}"	-1.374827290620073	"{'HOMOPIPES'}"	-9.733852900648676
+"fnr"	"{'anaerobic'}"	-3.311074009108994	"{'boric acid'}"	-18.34732512977398
+"fumA"	"{'anaerobic'}"	-26.87903727367371	"{'anaerobic'}"	-26.87903727367371
+"fumC"	"{'anaerobic'}"	-24.395287633874954	"{'anaerobic'}"	-24.395287633874954
+"fur"	"{'iron'}"	-0.5718619881267398	"{'molybdate'}"	-7.797304114786734
+"gcvA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-1.3218997778591721	"{'edta'}"	-18.181304630484945
+"gcvT"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-17.41205626097671	"{'biotin', 'cyanocobalamin'}"	-33.158871524166784
+"gcvT"	"{'adenine'}"	-13.152485964888166	"{'biotin', 'cyanocobalamin'}"	-33.158871524166784
+"gcvT"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-17.41205626097671	"{'biotin', 'cyanocobalamin'}"	-33.158871524166784
+"gcvH"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-23.671217683660355	"{'biotin', 'cyanocobalamin'}"	-34.803881038906795
+"gcvH"	"{'adenine'}"	-18.863717875365	"{'biotin', 'cyanocobalamin'}"	-34.803881038906795
+"gcvH"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-23.671217683660355	"{'biotin', 'cyanocobalamin'}"	-34.803881038906795
+"gcvP"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-4.216993317456986	"{'thiamine'}"	-7.24882740907029
+"gcvP"	"{'adenine'}"	-1.8848909859991037	"{'thiamine'}"	-7.24882740907029
+"gcvP"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-4.216993317456986	"{'thiamine'}"	-7.24882740907029
+"glcD"	"{'anaerobic'}"	-20.56189286248774	"{'HOMOPIPES'}"	-58.90523151021989
+"glcF"	"{'anaerobic'}"	-2.2649778633872737	"{'glucose'}"	-7.526825627674896
+"glcG"	"{'anaerobic'}"	-3.520042141900701	"{'HOMOPIPES'}"	-9.293013264975395
+"glcB"	"{'anaerobic'}"	-12.65039288410879	"{'HOMOPIPES'}"	-29.097194392799356
+"glnB"	"{'adenine'}"	-5.375619219528063	"{'edta'}"	-26.046070380892825
+"gltA"	"{'anaerobic'}"	-1.005856511832879	"{'glucose'}"	-6.067593229344629
+"gltB"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-51.92623060354739	"{'thiamine'}"	-60.23071056958253
+"gltD"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-32.02156913075725	"{'thiamine'}"	-40.41845646714661
+"gltF"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-14.254698581989453	"{'edta'}"	-43.39668907041092
+"glyA"	"{'adenine'}"	-19.266642162012445	"{'methionine'}"	-20.71133256474118
+"glyA"	"{'methionine'}"	-20.71133256474118	"{'methionine'}"	-20.71133256474118
+"guaB"	"{'adenine'}"	-3.437371819748528	"{'molybdate'}"	-16.087961261545935
+"guaA"	"{'adenine'}"	-8.171505427869583	"{'edta'}"	-26.366592303301225
+"hypA"	"{'anaerobic'}"	-13.134363033002478	"{'edta'}"	-38.30185031227083
+"hypB"	"{'anaerobic'}"	-14.373716940281048	"{'edta'}"	-23.959996863065026
+"hypC"	"{'anaerobic'}"	-14.067164401931104	"{'edta'}"	-88.35080211588897
+"hypD"	"{'anaerobic'}"	-13.005232522869603	"{'edta'}"	-65.38863276784828
+"hypE"	"{'anaerobic'}"	-12.382007027951023	"{'edta'}"	-43.03816075045946
+"icd"	"{'anaerobic'}"	-11.918767263268334	"{'edta'}"	-89.53400658965542
+"iclR"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-0.5528610044545738	"{'HOMOPIPES'}"	-8.672934122170457
+"ilvI"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-95.12431782716925	"{'thiamine'}"	-99.9891266872782
+"ilvH"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-99.99988852087752	"{'thiamine'}"	-99.99999999984794
+"kbl"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-55.92876239214288	"{'sulfate'}"	-61.78006577292024
+"tdh"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-76.75827723245692	"{'thiamine'}"	-78.38166818065571
+"lldP"	"{'anaerobic'}"	-26.463929045788824	"{'anaerobic'}"	-26.463929045788824
+"lldR"	"{'anaerobic'}"	-34.8950867586536	"{'anaerobic'}"	-34.8950867586536
+"lldD"	"{'anaerobic'}"	-22.548767279475992	"{'sulfate'}"	-33.13755952678843
+"leuL"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-82.60799981248043	"{'sulfate'}"	-90.25444366186821
+"leuA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-95.09459624369535	"{'thiamine'}"	-97.67939886135382
+"leuB"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-65.15559650838904	"{'biotin', 'cyanocobalamin'}"	-68.61121179775996
+"leuC"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-94.66229667525347	"{'biotin', 'cyanocobalamin'}"	-96.47011150394222
+"leuD"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-95.98730191430718	"{'biotin', 'cyanocobalamin'}"	-99.96697465089646
+"livJ"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-68.35301892288706	"{'cysteine'}"	-68.39770764208453
+"livK"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-87.99250544683476	"{'cysteine'}"	-91.09674007599425
+"livH"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-46.67598055856367	"{'thiamine'}"	-47.77359184212696
+"livM"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-62.60106115431655	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-62.60106115431655
+"livG"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-42.39346584581492	"{'methionine'}"	-46.6431793625872
+"livF"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-46.04712092161579	"{'methionine'}"	-54.3649646389884
+"lrp"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-61.67903897150673	"{'cysteine'}"	-72.76921976273326
+"lysA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-47.102871875739915	"{'sulfate'}"	-49.7825617060018
+"lysR"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-0.6453879246520101	"{'edta'}"	-7.070204047617426
+"lysU"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-52.11835789546922	"{'biotin', 'cyanocobalamin'}"	-58.24261127986356
+"mdh"	"{'anaerobic'}"	-7.198288023859661	"{'edta'}"	-27.596710795522213
+"metA"	"{'methionine'}"	-51.531767678174724	"{'biotin', 'cyanocobalamin'}"	-55.093994623557876
+"metC"	"{'methionine'}"	-55.70108329031128	"{'methionine'}"	-55.70108329031128
+"metF"	"{'methionine'}"	-47.78368099468525	"{'thiamine'}"	-52.89252932774787
+"metH"	"{'methionine'}"	-39.00059371807527	"{'sulfate'}"	-40.18027724938669
+"metJ"	"{'methionine'}"	-2.3362126057867507	"{'HOMOPIPES'}"	-5.929087466200313
+"metR"	"{'methionine'}"	-10.617749180695496	"{'boric acid'}"	-13.040548950585537
+"modA"	"{'molybdate'}"	-5.797427960923097	"{'edta'}"	-15.855001183505262
+"modB"	"{'molybdate'}"	-2.0382246529840655	"{'thiamine'}"	-6.079231200481304
+"modC"	"{'molybdate'}"	-3.103943551529353	"{'Co2+'}"	-7.855876048729727
+"mtr"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-2.1871606880445293	"{'HOMOPIPES'}"	-22.152762796738248
+"mtr"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-2.1871606880445293	"{'HOMOPIPES'}"	-22.152762796738248
+"nadB"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-48.51964646344804	"{'sulfate'}"	-48.51964646344804
+"ndh"	"{'anaerobic'}"	-3.3305922279982223	"{'edta'}"	-9.564779735949756
+"nupC"	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-3.7493630645813596	"{'HOMOPIPES'}"	-45.463226409463225
+"nupG"	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-11.111025620586796	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-11.111025620586796
+"ompC"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-0.2757194298148785	"{'edta'}"	-18.18885336655075
+"ompF"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-33.46740808481306	"{'biotin', 'cyanocobalamin'}"	-40.67812704609979
+"oppA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-3.3444573259238	"{'boric acid'}"	-14.155826231537837
+"oppB"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-0.7692652177355478	"{'boric acid'}"	-8.188798559751483
+"oppC"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-1.7028996693321448	"{'boric acid'}"	-13.422786441688665
+"oppD"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-1.210958881507972	"{'boric acid'}"	-15.321130281829738
+"oppF"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-2.8559416457755407	"{'boric acid'}"	-19.527616600564446
+"osmC"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-2.694711945027533	"{'iron'}"	-10.024818731897355
+"pncB"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-35.193472094955034	"{'sulfate'}"	-35.193472094955034
+"ppiA"	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-1.3025897346402764	"{'HOMOPIPES'}"	-6.17408418446148
+"prs"	"{'adenine'}"	-4.827060666228192	"{'boric acid'}"	-19.120525827117532
+"purC"	"{'adenine'}"	-66.74123287213138	"{'adenine'}"	-66.74123287213138
+"purE"	"{'adenine'}"	-45.71174147059467	"{'adenine'}"	-45.71174147059467
+"purK"	"{'adenine'}"	-52.87812098470375	"{'molybdate'}"	-53.126334904585796
+"purH"	"{'adenine'}"	-29.735919952872013	"{'sulfate'}"	-30.570894660371582
+"purD"	"{'adenine'}"	-22.188637066412994	"{'HOMOPIPES'}"	-30.845303842355484
+"purL"	"{'adenine'}"	-33.329249272492596	"{'edta'}"	-66.40790750537347
+"purM"	"{'adenine'}"	-48.316716106396726	"{'edta'}"	-69.02040791233279
+"purN"	"{'adenine'}"	-38.61753645476982	"{'adenine'}"	-38.61753645476982
+"purR"	"{'adenine'}"	-19.263881636473457	"{'boric acid'}"	-20.802801675891132
+"putA"	"{'proline'}"	-24.852427320465136	"{'thiamine'}"	-34.306298995554066
+"putP"	"{'proline'}"	-2.446795328377647	"{'anaerobic'}"	-6.356248884034623
+"pyrC"	"{'adenine'}"	-33.42081453027568	"{'molybdate'}"	-43.69596196163503
+"pyrD"	"{'adenine'}"	-6.0753608777456645	"{'edta'}"	-11.594248069358747
+"rpoH"	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-0.5249607947530169	"{'HOMOPIPES'}"	-11.73305324873605
+"sdaA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-45.350346884657995	"{'thiamine'}"	-69.045291651722
+"sdhC"	"{'anaerobic'}"	-15.533801264599347	"{'anaerobic'}"	-15.533801264599347
+"sdhD"	"{'anaerobic'}"	-15.501901569601724	"{'anaerobic'}"	-15.501901569601724
+"sdhA"	"{'anaerobic'}"	-21.7606791900348	"{'anaerobic'}"	-21.7606791900348
+"sdhB"	"{'anaerobic'}"	-26.957479906757325	"{'anaerobic'}"	-26.957479906757325
+"sucA"	"{'anaerobic'}"	-23.35329875855005	"{'anaerobic'}"	-23.35329875855005
+"sucB"	"{'anaerobic'}"	-20.4886549742866	"{'anaerobic'}"	-20.4886549742866
+"sucC"	"{'anaerobic'}"	-28.047068810955277	"{'anaerobic'}"	-28.047068810955277
+"sucD"	"{'anaerobic'}"	-26.653012030325545	"{'anaerobic'}"	-26.653012030325545
+"serA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-99.9999991003635	"{'thiamine'}"	-100.0
+"sodA"	"{'iron'}"	-2.2767340263959492	"{'anaerobic'}"	-28.873068747605732
+"sodA"	"{'anaerobic'}"	-28.873068747605732	"{'anaerobic'}"	-28.873068747605732
+"speA"	"{'adenine'}"	-0.2338897605385503	"{'edta'}"	-12.969740979516814
+"stpA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-11.452152142690881	"{'molybdate'}"	-30.451627694291677
+"tauA"	"{'cysteine'}"	-3.826490441461781	"{'methionine'}"	-4.689211624378506
+"tauB"	"{'cysteine'}"	-0.601699834684718	"{'HOMOPIPES'}"	-21.914065410981646
+"tauC"	"{'cysteine'}"	-1.0850563720247988	"{'HOMOPIPES'}"	-36.97118093582518
+"tauD"	"{'cysteine'}"	-1.0701729177274273	"{'edta'}"	-11.405969239893134
+"tonB"	"{'iron'}"	-3.4598743522976316	"{'anaerobic'}"	-9.029285186849979
+"treB"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-99.9999999998901	"{'sulfate'}"	-99.9999999998901
+"treC"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-99.80402729783451	"{'sulfate'}"	-99.80402729783451
+"trpL"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-60.535887703710934	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-65.12900873642641
+"trpE"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-59.55737150403612	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-64.06189845680818
+"trpD"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-52.168045521305864	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-56.76591711044937
+"trpC"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-55.90793299468535	"{'thiamine'}"	-61.15383700449792
+"trpB"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-78.06280236259059	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-83.93131769830539
+"trpA"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-71.7002601268247	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-76.13523517227773
+"trpR"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-0.8715957682412047	"{'anaerobic'}"	-3.0376342851663436
+"tsx"	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-3.8409015582853274	"{'HOMOPIPES'}"	-44.49626831804075
+"tyrB"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-32.989521157101436	"{'sulfate'}"	-40.73695094648981
+"tyrP"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-4.212255064441421	"{'Cu2+', 'Mn2+', 'Zn2+'}"	-16.6777050281129
+"tyrR"	"{'isoleucine', 'asparagine', 'glycine', 'glutamate', 'histidine', 'glutamine', 'leucine', 'aspartate', 'tyrosine', 'phenylalanine', 'serine', 'threonine', 'alanine', 'lysine', 'valine', 'tryptophan'}"	-7.866669777110356	"{'HOMOPIPES'}"	-12.20383864570597
+"udp"	"{'cytosine', 'uracil', 'pantothenate', 'guanine'}"	-22.058641767172972	"{'boric acid'}"	-33.86214282525692
+"uspA"	"{'tryptone-peculiar', 'yeast extract other', 'choline', 'boron', 'trehalose', 'fatty acids', 'Ni2+', 'Al3+', 'nucleosides', 'mannose', 'riboflavin', 'folic acid', 'niacinamide', 'thymine', 'pyridoxine'}"	-0.5720097651672685	"{'anaerobic'}"	-10.566870201134625
+"hflD"	"{'adenine'}"	-0.5270157647143326	"{'edta'}"	-8.87875544034226
+"purB"	"{'adenine'}"	-12.226292620033533	"{'edta'}"	-30.330021432096938
