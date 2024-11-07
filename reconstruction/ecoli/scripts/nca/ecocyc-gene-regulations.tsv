@@ -1,0 +1,4542 @@
+# Generated from the following BioVelo query on EcoCyc, 12:16pm, November 3, 2024: html-sort-ascending(html-table-headers([(x^?name, x^?regulated-by) : x<-ECOLI^^Genes, !(classp x)], ("Name", "Regulated by")), 2)
+cho	Regulation of cho by DNA-binding transcriptional dual regulator Nac
+ytcA
+insI3
+rplS
+phnE1
+rnr	Regulation of rnr by DNA-binding transcriptional dual regulator Lrp, Regulation of rnr by DNA-binding transcriptional dual regulator Lrp
+yqaE
+ydiS
+yqjC
+pcnB
+hypF
+insCD1
+mnmC
+phnM
+ycjT
+sraG
+insL2
+asd
+yqaB
+yfhL	Regulation of yfhL by DNA-binding transcriptional dual regulator Nac
+arcA	Regulation of arcA by DNA-binding transcriptional dual regulator FNR, Regulation of arcA by DNA-binding transcriptional dual regulator FNR, Regulation of arcA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of arcA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+bamB
+yhhZ	Regulation of yhhZ by DNA-binding transcriptional dual regulator Nac
+yggM
+pgm
+ygiN
+emrE
+fliC	Regulation of fliC by small RNA FliX, Regulation of fliC by small RNA MotR, Regulation of fliC by small RNA UhpU, Regulation of fliC by DNA-binding transcriptional repressor UxuR, Regulation of fliC by DNA-binding transcriptional dual regulator Nac
+thyA
+torT
+maeA	Regulation of maeA by small regulatory RNA Spot 42
+garR
+speB
+livH	Regulation of livH by DNA-binding transcriptional dual regulator Nac
+pgpB
+rfaH
+eutJ
+dnaE
+galM
+adiC	Regulation of adiC by DNA-binding transcriptional dual regulator TorR-phosphorylated, Regulation of adiC by DNA-binding transcriptional dual regulator H-NS
+yhcC	Regulation of yhcC by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+bioA
+yqgD
+ygiC
+argC
+ccmH	Regulation of ccmH by DNA-binding transcriptional dual regulator Nac
+flxA
+yfaX
+yfbK
+yhdJ	Regulation of yhdJ by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+manY	Regulation of manY by 30S ribosomal subunit protein S1
+speE
+lpp	Regulation of lpp by DNA-binding transcriptional dual regulator OmpR-phosphorylated, Regulation of lpp by small regulatory RNA MicL
+dedD
+basR
+ydiB	Regulation of ydiB by DNA-binding transcriptional dual regulator Nac
+infB
+gdx
+ampG
+yaaJ
+metR	Regulation of metR by DNA-binding transcriptional dual regulator Nac
+ddpD
+acrZ	Regulation of acrZ by DNA-binding transcriptional dual regulator Lrp, Regulation of acrZ by DNA-binding transcriptional dual regulator Lrp
+yadS
+ybjO
+zbiJ
+pdeN
+fimR2
+rrlC
+mcaS	Regulation of mcaS by ArgR-L-arginine DNA-binding transcriptional dual regulator
+codA
+yedL
+waaS
+mltA	Regulation of mltA by DNA-binding transcriptional dual regulator FNR
+ppa
+hsrA
+yghD
+csdA
+symE
+cnu
+yqiK
+eptB	Regulation of eptB by DNA-binding transcriptional dual regulator Lrp
+intZ	Regulation of intZ by DNA-binding transcriptional dual regulator Lrp
+kduI
+yncJ
+ssuC
+yegP
+nrdI
+tapT
+glgS	Regulation of glgS by DNA-binding transcriptional dual regulator Rob
+ompF	Regulation of ompF by DNA-binding transcriptional dual regulator Nac
+aceK-int
+intE
+nuoA	Regulation of nuoA by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of nuoA by DNA-binding transcriptional dual regulator Lrp
+ompT	Regulation of ompT by DNA-binding transcriptional dual regulator Lrp, Regulation of ompT by DNA-binding transcriptional dual regulator Nac
+yijF
+yecA
+yjiA	Regulation of yjiA by small regulatory RNA Spot 42
+hyuA
+araJ
+araH
+yfcA
+yoaB
+ghxQ
+insF4
+argB
+pxpA
+yajR
+purK
+upp	Regulation of upp by DNA-binding transcriptional dual regulator Lrp
+sapB
+holE	Regulation of holE by DNA-binding transcriptional dual regulator Nac
+lexA
+ybhF
+yciQ
+pspE
+epmA
+bolA
+rsmJ
+frwC
+ycaK	Regulation of ycaK by DNA-binding transcriptional dual regulator Nac
+amtB
+ycgR	Regulation of ycgR by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ccmF
+gyrA
+yeaK
+mntH	Regulation of mntH by DNA-binding transcriptional dual regulator Nac
+agaC
+ycgZ	Regulation of ycgZ by DNA-binding transcriptional dual regulator Fur
+yfcD
+flk
+yhbS
+wcaI
+blc	Regulation of blc by DNA-binding transcriptional dual regulator Nac
+recF
+insH3	Regulation of insH3 by DNA-binding transcriptional dual regulator Lrp
+ybhB
+nth	Regulation of nth by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of nth by RNA polymerase sigma factor RpoN
+rpsT
+yjhQ
+ypjF
+pbpC
+yibV
+yfeC	Regulation of yfeC by DNA-binding transcriptional dual regulator YfeC
+rcsA	Regulation of rcsA by Rac prophage; DNA binding transcriptional activator YdaT, Regulation of rcsA by DNA-binding transcriptional dual regulator Nac
+mokB
+yejL
+micF	Regulation of micF by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of micF by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+nfeF
+rsmG
+panD	Regulation of panD by small regulatory RNA GcvB
+hemL
+puuR
+yeaD
+yiaA
+yebO
+cysB	Regulation of cysB by DNA-binding transcriptional dual regulator Lrp
+yfcL
+pdeB	Regulation of pdeB by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+bglH	Regulation of bglH by DNA-binding transcriptional dual regulator Nac
+yeeA
+bipA
+narU	Regulation of narU by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+sohB
+hisM
+ymgK
+casA	Regulation of casA by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of casA by DNA-binding transcriptional repressor GlaR
+potD
+yagG
+ydhW
+ybcJ
+feaR	Regulation of feaR by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of feaR by DNA-binding transcriptional dual regulator Nac
+nac	Regulation of nac by DNA-binding transcriptional dual regulator Lrp
+alaW
+ves
+yigE
+ynfS
+purT	Regulation of purT by DNA-binding transcriptional dual regulator Lrp
+fliS
+ynfO
+ymfH
+xanP
+fimG
+hupA	Regulation of hupA by DNA-binding transcriptional dual regulator Nac
+yicC
+topAI
+glyX
+fhuA	Regulation of fhuA by DNA-binding transcriptional activator ZraR-phosphorylated
+rhaS
+yraN
+ygeQ
+creA	Regulation of creA by DNA-binding transcriptional dual regulator Lrp
+yrhB
+rtcA
+nudI
+pheS
+yoaC	Regulation of yoaC by DNA-binding transcriptional dual regulator YeiE
+mmuP
+bamE
+araF	Regulation of araF by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of araF by DNA-binding transcriptional dual regulator Nac, Regulation of araF by small regulatory RNA Spot 42
+bglX	Regulation of bglX by DNA-binding transcriptional dual regulator Nac
+rpsI
+cecR
+galU
+elfG	Regulation of elfG by DNA-binding transcriptional dual regulator Nac
+yghU
+ybjC
+sdsN
+insA5
+rraB
+ygcE	Regulation of ygcE by DNA-binding transcriptional dual regulator Nac
+ylaC
+nikE
+yegL	Regulation of yegL by DNA-binding transcriptional dual regulator Nac
+sbmC
+ribB	Regulation of ribB by FMN
+gstA	Regulation of gstA by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+pgsA
+cysC
+cysN	Regulation of cysN by DNA-binding transcriptional repressor GlaR
+sdhA	Regulation of sdhA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+rna
+ykfF
+yjbF
+yeiB
+ileX
+secF
+yadL
+yfiE
+tyrS
+yphA
+paoA
+cspH
+caiT
+yfeK	Regulation of yfeK by DNA-binding transcriptional dual regulator Nac, Regulation of yfeK by small regulatory RNA MicA
+sufB
+kdpF
+pntB
+nagA
+rffC
+ygbA
+cusA	Regulation of cusA by DNA-binding transcriptional dual regulator YieP
+pdxJ
+lysU	Regulation of lysU by DNA-binding transcriptional dual regulator Nac, Regulation of lysU by DNA-binding transcriptional dual regulator Lrp
+rrlE
+tamB
+bioF
+trhA
+cstA	Regulation of cstA by small regulatory RNA GcvB
+zinT
+naRNA1
+rnlA
+ydcH
+ybdM
+sanA
+glmS
+guaC
+ibsC
+fumC
+yjfN
+nadB
+mdtG
+ettA	Regulation of ettA by DNA-binding transcriptional dual regulator CpxR
+nrdG	Regulation of nrdG by DNA-binding transcriptional dual regulator Nac
+tfaX
+fdnG	Regulation of fdnG by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of fdnG by DNA-binding transcriptional dual regulator FNR
+cpdA
+proX
+sfsB
+cpxQ
+holA
+ycjN
+yibF
+speC
+ydaW
+secD
+caiE
+yjjQ	Regulation of yjjQ by DNA-binding transcriptional repressor GlaR
+mepS	Regulation of mepS by small regulatory RNA OxyS
+gluQ
+hsdM
+yidX
+umuD
+kefF
+ydeP	Regulation of ydeP by DNA-binding transcriptional dual regulator Nac
+ydbK
+fimA	Regulation of fimA by DNA-binding transcriptional dual regulator Lrp
+lysZ
+lacI
+hyaE
+kilR
+xdhB
+pabB	Regulation of pabB by DNA-binding transcriptional dual regulator Lrp
+rplE
+yjdM
+glk
+yedE
+putP	Regulation of putP by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yjjX
+pinQ
+argI
+ycjX
+yafN	Regulation of yafN by DNA-binding transcriptional dual regulator Nac
+ispA
+pqiC
+gnsA
+nei
+yaiZ	Regulation of yaiZ by DNA-binding transcriptional dual regulator Nac
+rrfE
+yqeC	Regulation of yqeC by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+metA
+cydH
+gltS
+ppiA
+yajD
+ykfG
+glnB
+fadM	Regulation of fadM by DNA-binding transcriptional dual regulator PdhR
+yegJ
+citX
+ecpA
+dmsC
+nikD
+ymiC
+purU
+satP
+rpoB
+preA
+fbaB
+ymgE
+puuP
+tsuA	Regulation of tsuA by DNA-binding transcriptional dual regulator Lrp, Regulation of tsuA by DNA-binding transcriptional dual regulator Lrp
+nrdR
+yaaW
+osmC
+fes
+ybfC	Regulation of ybfC by DNA-binding transcriptional dual regulator Nac
+cdh
+yecN
+zapA
+yfdH
+rfe	Regulation of rfe by DNA-binding transcriptional dual regulator/c-di-GMP phosphodiesterase PdeL
+alsA
+ydjA
+insB3
+torC
+mdh	Regulation of mdh by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of mdh by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of mdh by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+fliZ
+mcrC
+casB
+yhfG
+nfsB
+ygeY
+yjeO
+ydhP
+fadL	Regulation of fadL by DNA-binding transcriptional dual regulator LldR-S-lactate, Regulation of fadL by DNA-binding transcriptional dual regulator LldR-S-lactate, Regulation of fadL by DNA-binding transcriptional dual regulator PdhR, Regulation of fadL by RNA polymerase sigma factor RpoN, Regulation of fadL by DNA-binding transcriptional dual regulator Lrp
+rpsU	Regulation of rpsU by DNA-binding transcriptional dual regulator YfeC
+tsf
+cbpM
+yahN
+slt
+ompC	Regulation of ompC by small regulatory RNA MalH
+glgP
+bioC
+dnaN
+gadE	Regulation of gadE by DNA-binding transcriptional dual regulator TorR-phosphorylated, Regulation of gadE by DNA-binding transcriptional dual regulator Nac
+agaI
+pphB
+yniB	Regulation of yniB by DNA-binding transcriptional dual regulator Nac
+yqcG
+pheT
+galE	Regulation of galE by small regulatory RNA AzuR
+potE
+rsmF
+yfaQ
+tpr
+mdtK
+sgbU
+sfmC
+yadX
+trmA
+paaE
+ilvM	Regulation of ilvM by small regulatory RNA GcvB
+yadC	Regulation of yadC by DNA-binding transcriptional dual regulator Nac
+yjiN
+pnp	Regulation of pnp by DNA-binding transcriptional activator ZraR-phosphorylated, Regulation of pnp by small regulatory RNA SraG
+pqqL
+ydhK
+yafT
+insEF5
+arnA
+plsB	Regulation of plsB by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+hybD
+leuE	Regulation of leuE by DNA-binding transcriptional dual regulator Lrp
+aes
+sufA
+tufB
+ndk
+gspO	Regulation of gspO by DNA-binding transcriptional dual regulator Nac
+prfC
+purF
+exbD
+ypdI
+zupT
+nadK
+fnr	Regulation of fnr by DNA-binding transcriptional dual regulator FNR
+rpnA
+yqjE
+yagE
+ydaF
+iap
+tmaR	Regulation of tmaR by DNA-binding transcriptional dual regulator Cra
+ydfD
+miaB
+insH10
+ybhM
+marA	Regulation of marA by small regulatory RNA FnrS, Regulation of marA by small regulatory RNA RyhB
+yoeB	Regulation of yoeB by DNA-binding transcriptional dual regulator Nac
+rluB
+secY
+hdeB
+ftsZ	Regulation of ftsZ by small antisense RNA StfZ, Regulation of ftsZ by ArgR-L-arginine DNA-binding transcriptional dual regulator, Regulation of ftsZ by Qin prophage; small regulatory RNA DicF
+aegA
+appC	Regulation of appC by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+yicH	Regulation of yicH by DNA-binding transcriptional dual regulator Lrp
+frwB
+ahpF
+gcvR
+yecD	Regulation of yecD by DNA-binding transcriptional dual regulator Nac
+yodD	Regulation of yodD by DNA-binding transcriptional dual regulator Fis
+ymgI
+yfjZ
+prlF	Regulation of prlF by DNA-binding transcriptional dual regulator Lrp
+ytfH
+yibG
+glnQ	Regulation of glnQ by DNA-binding transcriptional dual regulator Lrp
+yjgA
+ptrB
+ykgL
+ythB
+ypdE
+rpmA
+cfa	Regulation of cfa by DNA-binding transcriptional dual regulator Nac
+wcaL
+ydhU
+alaT
+ydcY	Regulation of ydcY by DNA-binding transcriptional dual regulator Nac
+gsiD
+sdhB	Regulation of sdhB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ycjW
+yjiT	Regulation of yjiT by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of yjiT by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+sad	Regulation of sad by DNA-binding transcriptional dual regulator Lrp
+naRNA2
+mprA	Regulation of mprA by putrescine
+aroP	Regulation of aroP by small regulatory RNA GcvB, Regulation of aroP by DNA-binding transcriptional dual regulator FNR, Regulation of aroP by DNA-binding transcriptional dual regulator FNR, Regulation of aroP by DNA-binding transcriptional dual regulator FNR, Regulation of aroP by DNA-binding transcriptional dual regulator FNR, Regulation of aroP by DNA-binding transcriptional repressor GlaR, Regulation of aroP by ArgR-L-arginine DNA-binding transcriptional dual regulator
+pdeF	Regulation of pdeF by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of pdeF by DNA-binding transcriptional dual regulator H-NS, Regulation of pdeF by DNA-binding transcriptional dual regulator Nac
+deoA
+yjiS
+ddpB
+motA
+ptsP
+glyT
+ruvA
+gabP
+ybiT	Regulation of ybiT by DNA-binding transcriptional dual regulator Lrp
+wzb	Regulation of wzb by DNA-binding transcriptional dual regulator Nac
+dgoD
+tktB
+malH
+moeB
+intA
+ynaA
+fmt
+yqeK
+truB
+yadG
+yehA
+ygiQ
+lhr
+cueO
+ybeL
+cra
+glpB
+xapB
+dctA
+ydhJ
+garD	Regulation of garD by DNA-binding transcriptional dual regulator FNR
+hcr
+cpxR
+fucR
+ylbF
+groL	Regulation of groL by DNA-binding transcriptional dual regulator Lrp, Regulation of groL by DNA-binding transcriptional dual regulator Lrp
+opgE
+ugpQ
+paaC
+yrbL	Regulation of yrbL by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+yibT	Regulation of yibT by DNA-binding transcriptional dual regulator Lrp
+nemR
+insCD5
+hypB
+rnk
+casD
+yheS
+rbfA
+ybgO
+ypdF
+yjbG
+dcuS
+insI2
+yeiW
+codB
+dnaQ
+aceA
+uacT
+acrR	Regulation of acrR by putrescine utilization regulator PtrR, Regulation of acrR by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+ybhP
+ftnB	Regulation of ftnB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of ftnB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of ftnB by DNA-binding transcriptional dual regulator Nac
+ybeQ
+yhdX
+yfaL
+xtpA
+tusE
+ybhI
+phnF
+insB2
+nadR
+thrS	Regulation of thrS by DNA-binding transcriptional dual regulator Nac, Regulation of thrS by threonine--tRNA ligase
+sokC
+narG	Regulation of narG by DNA-binding transcriptional dual regulator Rob, Regulation of narG by DNA-binding transcriptional dual regulator FNR
+alkB
+rcsD
+topA	Regulation of topA by DNA-binding transcriptional dual regulator Lrp
+mqsA
+nagB
+menC
+yeiI
+parC
+arnT
+qorA	Regulation of qorA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+yoaJ
+ybjX	Regulation of ybjX by DNA-binding transcriptional dual regulator Lrp, Regulation of ybjX by DNA-binding transcriptional dual regulator Nac
+alr
+yhjX
+yjjA
+insEF1
+ybhJ
+ycfL
+ybaY
+ydiL	Regulation of ydiL by DNA-binding transcriptional dual regulator Nac
+ybiI	Regulation of ybiI by DNA-binding transcriptional dual regulator Lrp
+pncA
+gspG	Regulation of gspG by DNA-binding transcriptional dual regulator Nac
+ppiD
+yajG
+rutC
+yjbE
+recD
+rffM
+yfcO	Regulation of yfcO by DNA-binding transcriptional dual regulator Nac, Regulation of yfcO by DNA-binding transcriptional repressor GlaR
+ybhK
+yibQ	Regulation of yibQ by DNA-binding transcriptional dual regulator YeiE
+yhdN	Regulation of yhdN by DNA-binding transcriptional dual regulator Lrp
+paoD
+dnaJ
+rnpA
+sibB
+ccmC
+abpA	Regulation of abpA by DNA-binding transcriptional dual regulator Nac
+yagM
+glgB
+gspH	Regulation of gspH by DNA-binding transcriptional dual regulator Nac
+wzzB
+ldtC
+xdhC
+yegT
+ilvL	Regulation of ilvL by small regulatory RNA GcvB, Regulation of ilvL by DNA-binding transcriptional dual regulator Lrp, Regulation of ilvL by DNA-binding transcriptional dual regulator Nac
+trpB
+frwD
+alaE	Regulation of alaE by DNA-binding transcriptional dual regulator Lrp, Regulation of alaE by DNA-binding transcriptional repressor GlaR
+ycfZ
+yhaB	Regulation of yhaB by DNA-binding transcriptional dual regulator Nac
+ryjB	Regulation of ryjB by DNA-binding transcriptional dual regulator PhoP-phosphorylated
+yjcS
+lapC	Regulation of lapC by DNA-binding transcriptional dual regulator Nac
+yaeQ	Regulation of yaeQ by DNA-binding transcriptional dual regulator Lrp
+ybcW	Regulation of ybcW by DNA-binding transcriptional dual regulator PdhR
+argY
+sbp
+cpoB	Regulation of cpoB by DNA-binding transcriptional dual regulator Lrp, Regulation of cpoB by small regulatory RNA MicA, Regulation of cpoB by small regulatory RNA MicA
+ygfX
+yebE
+rhaB
+pflA
+ligB
+tsaD
+rlmE	Regulation of rlmE by DNA-binding transcriptional dual regulator Lrp
+menH
+rseP
+hokD
+leuL	Regulation of leuL by DNA-binding transcriptional dual regulator Lrp, Regulation of leuL by DNA-binding transcriptional dual regulator Nac
+avtA	Regulation of avtA by DNA-binding transcriptional dual regulator Lrp, Regulation of avtA by DNA-binding transcriptional dual regulator Lrp, Regulation of avtA by DNA-binding transcriptional dual regulator Lrp
+uxaB
+sgrT
+bssS	Regulation of bssS by DNA-binding transcriptional dual regulator Lrp, Regulation of bssS by DNA-binding transcriptional dual regulator Nac, Regulation of bssS by DNA-binding transcriptional repressor GlaR
+opgH
+insC4
+insD3
+nanT	Regulation of nanT by small regulatory RNA Spot 42
+dhaK	Regulation of dhaK by DNA-binding transcriptional dual regulator Lrp, Regulation of dhaK by DNA-binding transcriptional dual regulator Nac
+cspB	Regulation of cspB by DNA-binding transcriptional activator ZraR-phosphorylated
+ydjK
+deoD
+pyrS	Regulation of pyrS by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of pyrS by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of pyrS by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+insF5
+guaA
+hflK
+napF	Regulation of napF by DNA-binding transcriptional dual regulator Lrp
+phnC
+ycgM
+yghF	Regulation of yghF by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+nanR
+rsd	Regulation of rsd by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of rsd by ZntR-Zn2+, Regulation of rsd by DNA-binding transcriptional dual regulator PhoP-phosphorylated, Regulation of rsd by NhaR-Na+ DNA-binding transcriptional activator, Regulation of rsd by DNA-binding transcriptional dual regulator KdpE-phosphorylated, Regulation of rsd by CueR-Cu+, Regulation of rsd by DNA-binding transcriptional dual regulator Lrp, Regulation of rsd by DNA-binding transcriptional dual regulator Nac
+fnrS
+gsk
+sapD
+atoS
+proA
+alsB
+ydjO
+insE3
+rplA
+rihB
+ulaE
+lolA	Regulation of lolA by DNA-binding transcriptional dual regulator Lrp
+insF2
+sra
+bamA
+pdeL	Regulation of pdeL by DNA-binding transcriptional dual regulator H-NS, Regulation of pdeL by DNA-binding transcriptional dual regulator Nac
+osmB	Regulation of osmB by DNA-binding transcriptional dual regulator Nac
+lpxC
+malI	Regulation of malI by DNA-binding transcriptional dual regulator Nac
+abgA	Regulation of abgA by DNA-binding transcriptional dual regulator Nac
+hisG
+yffO
+yobH
+yidR
+yiiE	Regulation of yiiE by DNA-binding transcriptional dual regulator Nac
+trg
+rutD
+syd
+ftsI
+rcdB
+fruK
+arnF
+mtlR
+rnb
+ipeX
+ldrA
+rdgC
+srsR
+fliL	Regulation of fliL by FlhDC DNA-binding transcriptional dual regulator
+yhgO
+yieH
+rlhA
+fdoI
+bioB
+flgO
+yiiF	Regulation of yiiF by DNA-binding transcriptional dual regulator Nac
+lgt
+glgX
+ygcQ
+prmA
+folC
+rlmH
+rzpQ
+dppD
+ygdB	Regulation of ygdB by DNA-binding transcriptional dual regulator Nac
+ynbD
+yfaV
+wcaD
+nrfD
+ybaM
+glmY
+yjgZ
+ysaB
+yieK
+yrdB
+trkA
+trpC
+ydeE	Regulation of ydeE by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of ydeE by DNA-binding transcriptional dual regulator Lrp
+mrp
+ralR	Regulation of ralR by Rac prophage; small regulatory RNA antitoxin RalA
+thiE
+ogt
+hokB
+crr
+ygcU
+rspR
+yibN	Regulation of yibN by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of yibN by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of yibN by DNA-binding transcriptional dual regulator FNR
+ynhH
+narZ	Regulation of narZ by DNA-binding transcriptional activator YgfI
+gabT
+nuoF
+yibY
+ydfT
+scpA
+kgtP
+argO	Regulation of argO by DNA-binding transcriptional dual regulator YeiE, Regulation of argO by DNA-binding transcriptional dual regulator Nac
+rrsB
+secE
+gmd
+pgl	Regulation of pgl by DNA-binding transcriptional dual regulator Lrp
+rrlB
+ileT
+coaE
+yafY
+yacG
+hscA	Regulation of hscA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+dsbG	Regulation of dsbG by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of dsbG by DNA-binding transcriptional dual regulator Nac
+kptA
+ygiZ	Regulation of ygiZ by DNA-binding transcriptional dual regulator Nac
+nimT
+pgk
+yfbS
+ydiJ
+ascG	Regulation of ascG by DNA-binding transcriptional dual regulator H-NS
+yjhH
+mdtP
+ytiE
+secG	Regulation of secG by DNA-binding transcriptional dual regulator Nac
+ynaL
+iprA
+ydfB
+yjbQ	Regulation of yjbQ by DNA-binding transcriptional dual regulator Nac, Regulation of yjbQ by DNA-binding transcriptional dual regulator Lrp
+yciU	Regulation of yciU by DNA-binding transcriptional repressor GlaR
+bdm
+dosC	Regulation of dosC by DNA-binding transcriptional dual regulator H-NS
+hybF
+tnaC	Regulation of tnaC by DNA-binding transcriptional dual regulator Nac
+idnK	Regulation of idnK by DNA-binding transcriptional repressor GlaR
+ykgM
+naRNA6
+rpsK	Regulation of rpsK by 30S ribosomal subunit protein S4
+plsY
+dgcQ	Regulation of dgcQ by DNA-binding transcriptional dual regulator Lrp
+ebgC	Regulation of ebgC by small regulatory RNA Spot 42
+wecB	Regulation of wecB by DNA-binding transcriptional dual regulator Lrp
+hslR
+serT
+phnK
+cpsG
+ycaC
+uspC
+dcyD	Regulation of dcyD by DNA-binding transcriptional dual regulator Nac
+valT
+napC	Regulation of napC by DNA-binding transcriptional dual regulator Nac
+uspE	Regulation of uspE by DNA-binding transcriptional dual regulator Lrp
+ymfI
+dicC	Regulation of dicC by DNA-binding transcriptional regulator DicD
+yrdG
+ybcH
+glxR
+speA
+rydB
+bglB	Regulation of bglB by DNA-binding transcriptional dual regulator Nac
+potH
+flgK
+yqeJ	Regulation of yqeJ by DNA-binding transcriptional dual regulator Nac
+murQ
+ydhY
+ybfA	Regulation of ybfA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of ybfA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of ybfA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+ymiA
+ratA
+gspD
+yfaA
+mepH
+rrsC
+casC
+ubiU	Regulation of ubiU by DNA-binding transcriptional dual regulator Nac
+yffN
+hybA
+yajL
+asflhD
+hisL	Regulation of hisL by ArgR-L-arginine DNA-binding transcriptional dual regulator
+glpT	Regulation of glpT by DNA-binding transcriptional repressor PlaR
+gutM
+panE
+yiaV
+yidE
+truA
+ynfP
+aroL
+insAB1
+yicJ	Regulation of yicJ by DNA-binding transcriptional dual regulator Nac
+sdsR
+fliD	Regulation of fliD by DNA-binding transcriptional dual regulator Nac
+mbiA
+yphB
+cspA	Regulation of cspA by DNA-binding transcriptional activator ZraR-phosphorylated, Regulation of cspA by DNA-binding transcriptional regulator YdiP, Regulation of cspA by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+hyfA
+ymfT
+fdoG	Regulation of fdoG by DNA-binding transcriptional dual regulator Nac
+asnV	Regulation of asnV by DNA-binding transcriptional dual regulator Nac
+elfD
+dmsA
+mntP
+yihA
+yfiS
+ssnA
+yeaX
+insE5
+ynaE
+yfbR
+cueR
+yfdO
+citC
+mnmA	Regulation of mnmA by DNA-binding transcriptional dual regulator Lrp
+uraA
+recB
+ybjH
+hinT	Regulation of hinT by DNA-binding transcriptional repressor GlaR
+ybiR
+ypeB
+uhpC
+yiaG	Regulation of yiaG by DNA-binding transcriptional dual regulator Lrp
+eutE
+paaK	Regulation of paaK by small regulatory RNA Spot 42
+rclC
+rpsM	Regulation of rpsM by 30S ribosomal subunit protein S4
+atoA
+cca
+ppdC	Regulation of ppdC by DNA-binding transcriptional dual regulator Nac
+bsmA	Regulation of bsmA by DNA-binding transcriptional dual regulator YciT
+ylbE
+ubiE
+yagL
+garK
+rsxD
+potB
+yfjF
+fldB
+holB
+yhfX
+moaC
+ilvI	Regulation of ilvI by DNA-binding transcriptional dual regulator Lrp
+pgpA
+phoH	Regulation of phoH by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of phoH by DNA-binding transcriptional dual regulator Lrp, Regulation of phoH by DNA-binding transcriptional dual regulator Nac, Regulation of phoH by DNA-binding transcriptional repressor GlaR, Regulation of phoH by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of phoH by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+oxc	Regulation of oxc by DNA-binding transcriptional dual regulator H-NS, Regulation of oxc by DNA-binding transcriptional repressor GlaR
+tcyL
+lacZ
+eutS	Regulation of eutS by DNA-binding transcriptional dual regulator Nac, Regulation of eutS by ArgR-L-arginine DNA-binding transcriptional dual regulator
+entF	Regulation of entF by CRP-cyclic-AMP DNA-binding transcriptional dual regulator
+holC
+pmrD
+hisH
+ydhT
+ydjI
+ymiD
+naRNA3
+leuZ
+yfiC
+rspA
+ydbH
+rluA
+ivbL	Regulation of ivbL by small regulatory RNA GcvB
+sibC
+ttdB
+yoaM
+nuoL
+mlaB
+ftsQ	Regulation of ftsQ by DNA-binding transcriptional dual regulator Lrp
+iscX
+zipA	Regulation of zipA by DNA-binding transcriptional dual regulator Lrp
+pflD
+yiiX
+yidB
+mtn	Regulation of mtn by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of mtn by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+yehQ
+ydiK
+mak
+rfbD
+ulaG
+wcaK
+ykgG
+yfcP	Regulation of yfcP by DNA-binding transcriptional dual regulator Nac
+ygiB
+priC	Regulation of priC by DNA-binding transcriptional repressor GlaR
+ortT	Regulation of ortT by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of ortT by DNA-binding transcriptional dual regulator Nac, Regulation of ortT by DNA-binding transcriptional dual regulator FNR
+msbA	Regulation of msbA by DNA-binding transcriptional dual regulator Lrp
+dinQ	Regulation of dinQ by DNA-binding transcriptional repressor GlaR
+yhfT
+ubiK
+glpF	Regulation of glpF by small regulatory RNA Spot 42
+yfdX
+ddlB
+yacH	Regulation of yacH by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+aroK	Regulation of aroK by ArgR-L-arginine DNA-binding transcriptional dual regulator
+folE	Regulation of folE by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+aidB
+ydiY
+fimF
+yhbX
+tatC
+sseA
+rnhB
+trhP
+cyuP
+ushA
+yeaY
+yadN
+sufC
+fliI	Regulation of fliI by small regulatory RNA FimR2
+ybjG
+nudC	Regulation of nudC by DNA-binding transcriptional dual regulator Nac
+pdhR	Regulation of pdhR by DNA-binding transcriptional repressor GlaR, Regulation of pdhR by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+insD2
+can	Regulation of can by DNA-binding transcriptional dual regulator Lrp
+hyfD
+insA2
+dmsD
+yljB
+clpX
+cmoB
+tatA
+yihN	Regulation of yihN by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ytgA
+yhdE
+ybaK
+yqiM
+dam
+cobS
+folA
+pyrI	Regulation of pyrI by DNA-binding transcriptional dual regulator Lrp
+fimI
+yjhF
+pliG	Regulation of pliG by DNA-binding transcriptional repressor GlaR
+zwf
+leuS
+arcB	Regulation of arcB by DNA-binding transcriptional dual regulator Lrp
+purA
+uidB
+yfeW
+add
+eutC
+tabA
+xerC
+secB
+ubiX
+ytiA
+rayT
+mukE	Regulation of mukE by ArgR-L-arginine DNA-binding transcriptional dual regulator
+ldtB
+ptsG
+valU
+yjjP	Regulation of yjjP by DNA-binding transcriptional repressor GlaR
+preT
+ssuE	Regulation of ssuE by DNA-binding transcriptional dual regulator Nac
+fumD	Regulation of fumD by DNA-binding transcriptional dual regulator Cra, Regulation of fumD by DNA-binding transcriptional dual regulator PdhR
+ybeD
+glnV
+ptrR
+insAB6
+yhhQ
+msrB	Regulation of msrB by Cra-beta-D-fructofuranose 1-phosphate, Regulation of msrB by DNA-binding transcriptional dual regulator FNR, Regulation of msrB by DNA-binding transcriptional dual regulator FNR, Regulation of msrB by DNA-binding transcriptional dual regulator FNR, Regulation of msrB by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of msrB by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of msrB by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yecT
+pspG	Regulation of pspG by DNA-binding transcriptional dual regulator Lrp
+eco	Regulation of eco by DNA-binding transcriptional dual regulator Lrp, Regulation of eco by DNA-binding transcriptional dual regulator Lrp
+cusR
+agaV
+yffR
+tfaE
+rbsB	Regulation of rbsB by small regulatory RNA RybB
+murJ
+relB
+glcE
+yghO
+essD
+flhC
+hdeA
+glnW
+cdgI	Regulation of cdgI by DNA-binding transcriptional activator YgfI, Regulation of cdgI by DNA-binding transcriptional dual regulator H-NS
+fryA
+envZ
+icd	Regulation of icd by DNA-binding transcriptional dual regulator IHF, Regulation of icd by small regulatory RNA GcvB, Regulation of icd by DNA-binding transcriptional dual regulator Nac
+rrlD
+kefC
+queC
+leuU	Regulation of leuU by DNA-binding transcriptional dual regulator Nac
+yrfG
+yehW
+flgB
+sutR
+yiaW
+msrP
+ygjJ
+fdx
+raiZ
+atpA	Regulation of atpA by DNA-binding transcriptional dual regulator Lrp
+ygfB
+ykgO
+wcaJ
+ygeH
+psiF
+cysS	Regulation of cysS by DNA-binding transcriptional dual regulator Nac, Regulation of cysS by DNA-binding transcriptional repressor GlaR
+ulaA
+exuR	Regulation of exuR by DNA-binding transcriptional activator ZraR-phosphorylated
+yfdS
+ryeA
+yihS
+ulaR
+leuC
+cydA	Regulation of cydA by DNA-binding transcriptional dual regulator Nac, Regulation of cydA by DNA-binding transcriptional dual regulator FNR, Regulation of cydA by DNA-binding transcriptional dual regulator FNR, Regulation of cydA by DNA-binding transcriptional dual regulator FNR, Regulation of cydA by DNA-binding transcriptional dual regulator FNR, Regulation of cydA by DNA-binding transcriptional dual regulator FNR, Regulation of cydA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of cydA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of cydA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of cydA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of cydA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+ydiR
+glnL	Regulation of glnL by DNA-binding transcriptional dual regulator Lrp
+insC3
+ymdF
+yhhN
+insJ
+dgcI
+ycaR
+yhcN	Regulation of yhcN by DNA-binding transcriptional dual regulator Lrp
+yfgH	Regulation of yfgH by DNA-binding transcriptional dual regulator Nac
+yfcF
+ydcS	Regulation of ydcS by DNA-binding transcriptional dual regulator Nac
+exbB	Regulation of exbB by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of exbB by DNA-binding transcriptional dual regulator Lrp
+mpl
+era
+csgC	Regulation of csgC by FlhDC DNA-binding transcriptional dual regulator
+argF
+proB
+insD1
+hns
+modE
+tusB
+amiD
+ybgP
+trmB
+yqgG
+ykgS
+yddK
+ileS
+ybjN	Regulation of ybjN by DNA-binding transcriptional dual regulator Lrp
+gatA	Regulation of gatA by DNA-binding transcriptional dual regulator Nac
+pepT
+dtpD
+ycaO
+dkgA	Regulation of dkgA by DNA-binding transcriptional dual regulator Nac
+yigB
+yedD
+dinF
+pgi
+punC	Regulation of punC by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of punC by DNA-binding transcriptional activator PunR
+chpS	Regulation of chpS by DNA-binding transcriptional dual regulator Nac
+csgG
+tdh
+cheA	Regulation of cheA by DNA-binding transcriptional dual regulator Nac
+yfiF
+yliI
+edd	Regulation of edd by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+gltW
+panZ	Regulation of panZ by DNA-binding transcriptional dual regulator Lrp, Regulation of panZ by DNA-binding transcriptional dual regulator Lrp
+tdcD
+ychQ	Regulation of ychQ by DNA-binding transcriptional repressor GlaR
+ydjF
+ltaE
+lolD
+ynfL
+ybjT
+dppB	Regulation of dppB by small regulatory RNA Spot 42
+fimE
+hyfF
+csgD
+yedI
+yadK
+ykfC
+pyrB	Regulation of pyrB by DNA-binding transcriptional dual regulator Nac
+dinJ	Regulation of dinJ by DNA-binding transcriptional dual regulator Nac
+rcsC
+ymfM
+yeiH
+yqhD
+chiX
+soxS	Regulation of soxS by DNA-binding transcriptional dual regulator Lrp
+yebF	Regulation of yebF by DNA-binding transcriptional dual regulator Lrp
+hyfE
+ybjS	Regulation of ybjS by DNA-binding transcriptional dual regulator Lrp
+accD
+tyrT
+luxS
+hcxB
+ybgD
+yqiJ
+yeiP
+ccmG
+gatB
+nnr
+yehB
+lpxA
+yegR	Regulation of yegR by DNA-binding transcriptional dual regulator Nac
+gndA
+emrK	Regulation of emrK by DNA-binding transcriptional dual regulator Nac
+murI
+aspX
+grxC
+gspL
+tusC
+patA	Regulation of patA by DNA-binding transcriptional dual regulator Lrp, Regulation of patA by DNA-binding transcriptional dual regulator Lrp
+metB
+aqpZ
+ycjF
+ydeQ	Regulation of ydeQ by DNA-binding transcriptional dual regulator Nac
+frdC
+clpP	Regulation of clpP by DNA-binding transcriptional dual regulator Lrp
+maeB	Regulation of maeB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ykfO
+ygcR
+actP	Regulation of actP by DNA-binding transcriptional dual regulator Rob
+ivy
+ycgV
+yaiA
+ycdU
+appA
+ydcZ	Regulation of ydcZ by DNA-binding transcriptional dual regulator Nac
+yacC
+setB	Regulation of setB by FlhDC DNA-binding transcriptional dual regulator
+radA
+paaG
+frvA
+marR	Regulation of marR by DNA-binding transcriptional dual regulator Nac
+qseC
+ythA
+ytjE
+xisR
+dinD
+agrB
+ydeJ
+pbpG
+ymgF
+ybdG	Regulation of ybdG by DNA-binding transcriptional dual regulator Lrp
+tolA
+ybhC
+bacA
+ygaH
+glnZ
+yhhH
+acpH
+thiM
+dhaL
+ompG
+chaB	Regulation of chaB by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+cyoE
+zraS
+mdtL	Regulation of mdtL by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of mdtL by DNA-binding transcriptional activator ZraR-phosphorylated
+ymfD
+osmE
+iraD	Regulation of iraD by DNA-binding transcriptional dual regulator Lrp
+yejF
+hipH
+garL
+chbB
+ydgK
+narV
+ydeN	Regulation of ydeN by DNA-binding transcriptional dual regulator Fur, Regulation of ydeN by DNA-binding transcriptional dual regulator Lrp
+uvrB
+yciH
+yqgA
+rpoS	Regulation of rpoS by DNA-binding transcriptional dual regulator TorR-phosphorylated
+proQ
+glmZ
+ccmA	Regulation of ccmA by DNA-binding transcriptional dual regulator Nac
+rnpB
+nfi
+mutY	Regulation of mutY by DNA-binding transcriptional dual regulator Lrp
+yggF
+ggt
+ydgJ
+pykF
+pyrF
+mazG
+yihF
+yddG	Regulation of yddG by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+ruvB
+argV
+ybaZ
+ptsH	Regulation of ptsH by FlhDC DNA-binding transcriptional dual regulator
+proP	Regulation of proP by DNA-binding transcriptional dual regulator Lrp
+zapD
+kdsA	Regulation of kdsA by DNA-binding transcriptional dual regulator Nac, Regulation of kdsA by DNA-binding transcriptional repressor GlaR
+msrC
+acrE	Regulation of acrE by DNA-binding transcriptional activator ZraR-phosphorylated, Regulation of acrE by DNA-binding transcriptional dual regulator Nac
+glvB
+waaC
+sdhC	Regulation of sdhC by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of sdhC by DNA-binding transcriptional dual regulator Nac, Regulation of sdhC by small regulatory RNA RybB, Regulation of sdhC by small regulatory RNA Spot 42
+ytiC
+garP
+gldA
+hflX
+yiaM
+mrcA
+etk
+feoC
+osmF
+uvrD
+tynA
+cysZ
+yidL
+glnS
+aroM
+ynfT
+gspE
+lptE
+yddL
+valY
+ghrA
+pepA
+elbB
+yaeI
+efp
+priA
+cynT	Regulation of cynT by DNA-binding transcriptional dual regulator Nac
+glsB
+rpmH	Regulation of rpmH by DNA-binding transcriptional dual regulator YfeC, Regulation of rpmH by DNA-binding transcriptional dual regulator Nac
+yceJ
+fdhE
+hycD
+fliM
+gcvH
+ribD
+yhhX
+fumE
+yhbW
+ybhD
+rplP
+yejG	Regulation of yejG by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of yejG by DNA-binding transcriptional dual regulator Nac, Regulation of yejG by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of yejG by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of yejG by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+ecpE
+secA
+rrfA
+eutK
+ysgA
+purL	Regulation of purL by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+mliC
+yfdN
+waaH
+intS
+cvpA	Regulation of cvpA by ArgR-L-arginine DNA-binding transcriptional dual regulator
+ydhV
+hemG
+fadB
+minC
+mzrA
+mdtD	Regulation of mdtD by DNA-binding transcriptional dual regulator Rob
+ycfP
+ybfQ
+yihT
+kdsB
+nikA
+yaeP
+gor	Regulation of gor by DNA-binding transcriptional dual regulator Nac
+ydjH
+zraP
+leuT
+mglB	Regulation of mglB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of mglB by DNA-binding transcriptional dual regulator Nac
+ybeX	Regulation of ybeX by DNA-binding transcriptional dual regulator Lrp
+yagP
+aspC	Regulation of aspC by DNA-binding transcriptional dual regulator Lrp
+cyaY
+aspS	Regulation of aspS by DNA-binding transcriptional dual regulator Lrp
+rfbX
+yqfI
+apaH
+cadA	Regulation of cadA by small regulatory RNA AzuR, Regulation of cadA by DNA-binding transcriptional dual regulator SoxS
+nrfB
+aceB	Regulation of aceB by FlhDC DNA-binding transcriptional dual regulator, Regulation of aceB by DNA-binding transcriptional dual regulator Nac, Regulation of aceB by DNA-binding transcriptional dual regulator Lrp, Regulation of aceB by DNA-binding transcriptional dual regulator Lrp
+ulaD
+tatB
+lgoT
+ybhG
+pspA
+flgF
+yggE
+gapA
+ybhN
+acrA
+dnaG
+folM
+eutG
+mtlD
+cynX
+ygdG
+sgcE
+pqiB
+insC5	Regulation of insC5 by DNA-binding transcriptional dual regulator Lrp
+fbaA
+ispD	Regulation of ispD by DNA-binding transcriptional dual regulator Nac
+yniA
+znuB
+sgrR
+atpG
+coaA
+dcrB
+yjfC
+yfjD
+lpoB
+flgM	Regulation of flgM by small regulatory RNA OmrB, Regulation of flgM by small regulatory RNA OmrA
+ynaN
+dsbA	Regulation of dsbA by DNA-binding transcriptional dual regulator Nac
+yfhR
+igaA	Regulation of igaA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of igaA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+ysaE
+yafP
+dctR	Regulation of dctR by DNA-binding transcriptional repressor GlaR
+ybaP
+hfq	Regulation of hfq by DNA-binding transcriptional dual regulator Nac
+yrdD	Regulation of yrdD by DNA-binding transcriptional activator ZraR-phosphorylated
+yzgL	Regulation of yzgL by DNA-binding transcriptional dual regulator Lrp
+rzoR
+tehB
+mscS	Regulation of mscS by DNA-binding transcriptional dual regulator Lrp
+yfgO
+yoaF
+yecR
+yegX
+ydhI
+ymfN
+obgE
+ycjQ
+yahG
+yddE
+thiD
+caiF	Regulation of caiF by DNA-binding transcriptional dual regulator Nac
+sapC
+ispE
+ssuD
+phr
+fsaA
+yeeO
+adiY
+yidK
+rpsA	Regulation of rpsA by 30S ribosomal subunit protein S1
+yjbT
+smf
+mnmE
+citD
+rcdA
+polB
+ybbY
+yhhA	Regulation of yhhA by DNA-binding transcriptional dual regulator Lrp
+gadX	Regulation of gadX by DNA-binding transcriptional dual regulator TorR-phosphorylated, Regulation of gadX by DNA-binding transcriptional dual regulator Nac, Regulation of gadX by DNA-binding transcriptional repressor GlaR
+ftsO
+fbp	Regulation of fbp by DNA-binding transcriptional dual regulator Cra
+fadE	Regulation of fadE by DNA-binding transcriptional dual regulator LldR-S-lactate, Regulation of fadE by DNA-binding transcriptional dual regulator LldR-S-lactate, Regulation of fadE by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of fadE by DNA-binding transcriptional dual regulator PdhR, Regulation of fadE by DNA-binding transcriptional dual regulator OmpR-phosphorylated, Regulation of fadE by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+araD
+ykiD
+yobF	Regulation of yobF by RNA polymerase sigma factor RpoN, Regulation of yobF by DNA-binding transcriptional dual regulator Nac, Regulation of yobF by small regulatory RNA CyaR
+bssR	Regulation of bssR by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+glcB
+yadM	Regulation of yadM by DNA-binding transcriptional dual regulator Nac
+yrbG
+yheU
+cynR	Regulation of cynR by DNA-binding transcriptional dual regulator Nac
+tyrB
+degQ
+hybO	Regulation of hybO by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+speD
+yjgN
+insH6
+nfo
+ygdT
+yggU
+sfmD
+dhaM
+nohD
+ppnP
+tusA
+glf
+yjaA
+wcaM
+mreD
+php
+argW
+cmtB	Regulation of cmtB by DNA-binding transcriptional dual regulator Nac
+rbn	Regulation of rbn by small regulatory RNA GcvB
+cusC	Regulation of cusC by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+fabH
+bcr
+ynfG	Regulation of ynfG by DNA-binding transcriptional dual regulator Nac
+cas3
+dicD
+guaB
+cysK
+sucA	Regulation of sucA by small regulatory RNA GlnZ, Regulation of sucA by DNA-binding transcriptional dual regulator Nac
+accB
+wzxE
+yfbN	Regulation of yfbN by DNA-binding transcriptional repressor GlaR
+fucA	Regulation of fucA by DNA-binding transcriptional dual regulator H-NS, Regulation of fucA by DNA-binding transcriptional dual regulator Nac
+mdfA
+napD
+gspI
+manA	Regulation of manA by DNA-binding transcriptional dual regulator Lrp, Regulation of manA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+serU
+C0293
+menE
+dtpC
+selU
+creD
+ybgC	Regulation of ybgC by DNA-binding transcriptional dual regulator Nac
+dapB	Regulation of dapB by DNA-binding transcriptional dual regulator Fur, Regulation of dapB by DNA-binding transcriptional dual regulator Nac
+xylA
+insB9
+pxpB
+insF1
+yqeI
+fhlA	Regulation of fhlA by small regulatory RNA OxyS, Regulation of fhlA by small regulatory RNA OxyS
+ygdR	Regulation of ygdR by DNA-binding transcriptional dual regulator YfeC
+selO	Regulation of selO by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+lptG
+nrfF	Regulation of nrfF by DNA-binding transcriptional dual regulator Nac
+gpp
+chbF
+yibI
+arpA
+mdtO
+drpB
+mlc
+hyfB
+yiiR
+yehL	Regulation of yehL by DNA-binding transcriptional dual regulator Lrp, Regulation of yehL by DNA-binding transcriptional dual regulator Lrp
+metJ
+ydiT
+yejB	Regulation of yejB by DNA-binding transcriptional dual regulator Nac
+dld
+ynbC
+sufD
+proK
+astD
+soxR
+ameF
+tsx	Regulation of tsx by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+lpoA
+caiC
+uhpT
+yghB
+ybeT
+csrC
+yfdP
+epd	Regulation of epd by FlhDC DNA-binding transcriptional dual regulator
+yqjF
+yeaV
+yniD
+fryC
+purH	Regulation of purH by CRP-cyclic-AMP DNA-binding transcriptional dual regulator, Regulation of purH by CRP-cyclic-AMP DNA-binding transcriptional dual regulator
+lysS
+pdeK
+dut
+nadC	Regulation of nadC by DNA-binding transcriptional dual regulator Nac
+rhlE
+ydcJ
+yjhG
+waaZ
+yfeN
+fic
+sgcA
+ygbL
+ddpF
+tdcE
+yciB
+ybdL	Regulation of ybdL by DNA-binding transcriptional dual regulator Lrp
+rbsD	Regulation of rbsD by DNA-binding transcriptional dual regulator YidZ
+yghA
+dapF
+ydaV
+bdcR
+rbsR
+istR
+yfiM
+lfgB
+nlpE	Regulation of nlpE by DNA-binding transcriptional dual regulator Nac
+yodC	Regulation of yodC by DNA-binding transcriptional dual regulator Lrp
+folK
+ynjI
+cdd
+kdgR
+queD
+cheR
+narW
+dgcM	Regulation of dgcM by DNA-binding transcriptional dual regulator Lrp, Regulation of dgcM by DNA-binding transcriptional dual regulator Lrp
+hdeD
+mepM
+ybhR
+ysdE
+potG
+asompR
+lptA
+phnP
+mutH
+ascF	Regulation of ascF by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of ascF by DNA-binding transcriptional dual regulator H-NS, Regulation of ascF by small regulatory RNA Spot 42
+feaB	Regulation of feaB by DNA-binding transcriptional dual regulator Nac
+alsR
+hofO
+pstS	Regulation of pstS by DNA-binding transcriptional dual regulator Nac
+cysD
+oppD
+cycA	Regulation of cycA by DNA-binding transcriptional dual regulator IHF, Regulation of cycA by DNA-binding transcriptional dual regulator H-NS, Regulation of cycA by DNA-binding transcriptional dual regulator Lrp, Regulation of cycA by CRP-cyclic-AMP DNA-binding transcriptional dual regulator, Regulation of cycA by DNA-binding transcriptional dual regulator Nac, Regulation of cycA by DNA-binding transcriptional dual regulator Lrp, Regulation of cycA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+psiE
+yghJ
+ygiV	Regulation of ygiV by DNA-binding transcriptional dual regulator Lrp, Regulation of ygiV by DNA-binding transcriptional dual regulator Lrp
+fliX
+sdaC	Regulation of sdaC by DNA-binding transcriptional dual regulator Lrp
+nanM
+pdeI	Regulation of pdeI by DNA-binding transcriptional dual regulator H-NS
+yagN
+insH21
+dusA
+rpsE
+ibpB	Regulation of ibpB by DNA-binding transcriptional dual regulator Lrp
+ptsA
+fimB	Regulation of fimB by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of fimB by small regulatory RNA RseX
+nuoC
+modC
+ydcD
+ybfP
+pheU
+gdhA	Regulation of gdhA by small regulatory RNA GcvB, Regulation of gdhA by small regulatory RNA GcvB, Regulation of gdhA by DNA-binding transcriptional dual regulator Lrp, Regulation of gdhA by DNA-binding transcriptional repressor GlaR, Regulation of gdhA by small regulatory RNA Spot 42
+gadA	Regulation of gadA by DNA-binding transcriptional regulator PtrR-L-glutamine, Regulation of gadA by DNA-binding transcriptional dual regulator TorR-phosphorylated
+bcsF
+paaH
+bluF	Regulation of bluF by DNA-binding transcriptional dual regulator H-NS
+ugpE	Regulation of ugpE by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+cybB
+yeeJ
+rlmB
+lpxD
+napH
+dgcE
+ydcI	Regulation of ydcI by DNA-binding transcriptional dual regulator Nac
+ygbK
+waaY
+wecC
+ytfQ
+fxsA	Regulation of fxsA by DNA-binding transcriptional dual regulator Lrp, Regulation of fxsA by DNA-binding transcriptional dual regulator Lrp
+arnD
+yffM
+ynfR
+gltP	Regulation of gltP by DNA-binding transcriptional dual regulator Lrp, Regulation of gltP by ArgR-L-arginine DNA-binding transcriptional dual regulator, Regulation of gltP by ArgR-L-arginine DNA-binding transcriptional dual regulator, Regulation of gltP by ArgR-L-arginine DNA-binding transcriptional dual regulator
+yqfH
+ygiW	Regulation of ygiW by DNA-binding transcriptional dual regulator Lrp, Regulation of ygiW by DNA-binding transcriptional dual regulator Lrp, Regulation of ygiW by DNA-binding transcriptional repressor GlaR
+fepB
+macB
+ribC
+ung	Regulation of ung by DNA-binding transcriptional dual regulator FNR
+arnB
+dapA
+atpH	Regulation of atpH by DNA-binding transcriptional dual regulator Lrp
+slyX	Regulation of slyX by DNA-binding transcriptional dual regulator Lrp
+plsC
+argL
+kup
+rpnB
+ydgD
+yecV
+mazF
+yeiR
+ppiB	Regulation of ppiB by DNA-binding transcriptional dual regulator Nac, Regulation of ppiB by DNA-binding transcriptional repressor GlaR
+pabA
+zapG
+yhjR	Regulation of yhjR by DNA-binding transcriptional dual regulator Lrp
+rplJ
+yfcQ
+yraH
+mdtA	Regulation of mdtA by DNA-binding transcriptional dual regulator Cra
+yaaI
+phnI
+cspF
+ldtD	Regulation of ldtD by ATP-dependent RNA helicase DeaD
+yicR
+yaaY
+insA3
+rpoN	Regulation of rpoN by DNA-binding transcriptional dual regulator Lrp
+yjeV
+aroA	Regulation of aroA by DNA-binding transcriptional dual regulator Lrp
+ydeR
+dcuB	Regulation of dcuB by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of dcuB by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of dcuB by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+ccmE
+greA
+malT
+yqhH
+mngR
+kduD
+tcdA
+uvrA
+iclR	Regulation of iclR by FlhDC DNA-binding transcriptional dual regulator
+nirB	Regulation of nirB by small regulatory RNA RyhB
+rlmJ
+ibaG
+ynfC
+kbaY	Regulation of kbaY by DNA-binding transcriptional dual regulator Nac
+quuD
+fucP	Regulation of fucP by small regulatory RNA Spot 42
+hcaB
+yeaC	Regulation of yeaC by DNA-binding transcriptional dual regulator Cra
+ychA	Regulation of ychA by DNA-binding transcriptional dual regulator Nac
+sixA
+nagE
+ysgD
+yphC
+yfdC
+yjiC	Regulation of yjiC by DNA-binding transcriptional dual regulator Lrp, Regulation of yjiC by DNA-binding transcriptional dual regulator Lrp
+pdeC	Regulation of pdeC by DNA-binding transcriptional dual regulator H-NS, Regulation of pdeC by DNA-binding transcriptional dual regulator Nac
+cirA	Regulation of cirA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of cirA by RNA-binding protein Hfq, Regulation of cirA by small regulatory RNA RyhB
+yhaC
+flgA
+msyB
+safA	Regulation of safA by DNA-binding transcriptional repressor GlaR
+sroA
+insCD6
+rutB	Regulation of rutB by DNA-binding transcriptional dual regulator Nac
+hxpB	Regulation of hxpB by DNA-binding transcriptional dual regulator Nac
+ydfJ
+potI
+allA
+nuoI
+hldE
+ansA
+ulaC
+hslO
+tag
+insA1
+clpB
+ynfD	Regulation of ynfD by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of ynfD by DNA-binding transcriptional dual regulator Nac
+ansB	Regulation of ansB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of ansB by DNA-binding transcriptional dual regulator Lrp, Regulation of ansB by DNA-binding transcriptional dual regulator Nac, Regulation of ansB by DNA-binding transcriptional dual regulator Lrp
+yrbN
+katE	Regulation of katE by DNA-binding transcriptional dual regulator Lrp, Regulation of katE by DNA-binding transcriptional dual regulator Lrp
+alaX
+ldcC	Regulation of ldcC by DNA-binding transcriptional repressor GlaR
+dgcJ	Regulation of dgcJ by DNA-binding transcriptional dual regulator H-NS, Regulation of dgcJ by DNA-binding transcriptional dual regulator Lrp
+citE
+hyaC
+yciW
+waaG	Regulation of waaG by DNA-binding transcriptional dual regulator Nac
+cheB
+ecpD
+pta
+insH9
+yiiM	Regulation of yiiM by DNA-binding transcriptional dual regulator Lrp
+ligA
+serB	Regulation of serB by DNA-binding transcriptional dual regulator Lrp
+murE
+nanY
+yicL
+uspF	Regulation of uspF by DNA-binding transcriptional dual regulator YeiE
+rng
+adeQ
+tsaC
+yjhI	Regulation of yjhI by DNA-binding transcriptional dual regulator Nac
+insEF4
+frr
+timR
+ycgB	Regulation of ycgB by DNA-binding transcriptional dual regulator Lrp, Regulation of ycgB by DNA-binding transcriptional dual regulator Lrp, Regulation of ycgB by DNA-binding transcriptional dual regulator Nac
+rpsF	Regulation of rpsF by DNA-binding transcriptional repressor GlaR
+pldB
+rrlA
+mscL	Regulation of mscL by arfA-derived small regulatory RNA, Regulation of mscL by DNA-binding transcriptional dual regulator Nac
+yraR
+lysT
+purM	Regulation of purM by DNA-binding transcriptional dual regulator Lrp, Regulation of purM by DNA-binding transcriptional dual regulator Lrp
+rlmD
+hcp	Regulation of hcp by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+ykgH	Regulation of ykgH by DNA-binding transcriptional dual regulator Nac
+yicN
+cutC
+ydgC	Regulation of ydgC by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of ydgC by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yncH
+ppc	Regulation of ppc by DNA-binding transcriptional dual regulator Nac
+ynaM
+djlA
+rpmC
+csgE
+ytfT
+ydaU	Regulation of ydaU by DNA-binding transcriptional dual regulator Nac
+cspG
+chiQ
+nlpC
+ygeG
+yohJ	Regulation of yohJ by DNA-binding transcriptional dual regulator YieP
+clsB
+uspG	Regulation of uspG by DNA-binding transcriptional dual regulator Nac
+speF
+zapB	Regulation of zapB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+sbcC
+hflD
+mug
+nadA
+ymgJ
+iscU
+rrfH
+rarA
+rpoC
+yjdI
+fadI	Regulation of fadI by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of fadI by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of fadI by DNA-binding transcriptional dual regulator Lrp, Regulation of fadI by DNA-binding transcriptional dual regulator Lrp
+elfC	Regulation of elfC by DNA-binding transcriptional repressor GlaR
+wbbI
+cobT	Regulation of cobT by DNA-binding transcriptional dual regulator Nac
+ynfN
+cspD
+araC
+ynaJ
+yqeH	Regulation of yqeH by DNA-binding transcriptional dual regulator Nac
+ygeA
+ulaB
+prpB
+yrhD
+eutQ
+mdtJ
+mocA	Regulation of mocA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+citR
+pflB	Regulation of pflB by DNA-binding transcriptional activator YgfI, Regulation of pflB by DNA-binding transcriptional dual regulator YeiE
+tolC	Regulation of tolC by DNA-binding transcriptional dual regulator OmpR-phosphorylated, Regulation of tolC by small regulatory RNA SdsR
+fiu
+yjgH	Regulation of yjgH by DNA-binding transcriptional dual regulator Nac
+gltU
+hchA	Regulation of hchA by DNA-binding transcriptional dual regulator Nac, Regulation of hchA by ArgR-L-arginine DNA-binding transcriptional dual regulator, Regulation of hchA by ArgR-L-arginine DNA-binding transcriptional dual regulator
+entB	Regulation of entB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+rpoE	Regulation of rpoE by carbon storage regulator, Regulation of rpoE by carbon storage regulator, Regulation of rpoE by carbon storage regulator
+xseA
+pykA	Regulation of pykA by DNA-binding transcriptional dual regulator FNR, Regulation of pykA by Qin prophage; small regulatory RNA DicF
+fepG
+pssA
+tsaE
+yibH
+yecF	Regulation of yecF by DNA-binding transcriptional dual regulator Nac
+ebgR
+mpaA
+yjjZ	Regulation of yjjZ by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+sdhE
+yjjB
+yeiG
+hsdS
+tyrP	Regulation of tyrP by DNA-binding transcriptional dual regulator Lrp, Regulation of tyrP by DNA-binding transcriptional dual regulator Lrp
+nuoK
+ftsH
+moaB
+brnQ	Regulation of brnQ by DNA-binding transcriptional dual regulator Lrp, Regulation of brnQ by DNA-binding transcriptional dual regulator Lrp
+pabC	Regulation of pabC by DNA-binding transcriptional dual regulator Nac
+yfeY
+ylcJ
+yggT
+ychH
+glpG
+fabR
+ygjQ
+yhhM
+iraP	Regulation of iraP by DNA-binding transcriptional dual regulator H-NS, Regulation of iraP by DNA-binding transcriptional dual regulator YdcI, Regulation of iraP by DNA-binding transcriptional dual regulator Lrp, Regulation of iraP by DNA-binding transcriptional dual regulator Nac
+fliF	Regulation of fliF by FlhDC DNA-binding transcriptional dual regulator
+ygiF	Regulation of ygiF by DNA-binding transcriptional dual regulator Nac
+ycgN
+norW
+yiaL
+flu
+yohO
+yfbO	Regulation of yfbO by DNA-binding transcriptional repressor GlaR
+ynjC
+minD
+yjgL
+ybbP
+cvrA
+yadV
+yjcO
+yhjV
+phoQ
+higB
+gfcA
+hydN
+insH1
+aas
+yciG
+yejK
+selC	Regulation of selC by DNA-binding transcriptional dual regulator Nac
+eutP
+pheM
+rutE
+ypjJ
+sraB
+uhpU
+crp
+mdtI
+sodA
+yqjK
+tgt
+sdaA	Regulation of sdaA by DNA-binding transcriptional dual regulator Nac, Regulation of sdaA by DNA-binding transcriptional dual regulator Lrp
+fliG	Regulation of fliG by small regulatory RNA FimR2
+yidF
+argT	Regulation of argT by DNA-binding transcriptional dual regulator Lrp, Regulation of argT by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+hisC
+sgcC	Regulation of sgcC by DNA-binding transcriptional repressor GlaR
+stfQ
+tsaB
+yegS
+dfp
+betB
+rutA
+trpR
+mlaD
+oppF	Regulation of oppF by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ulaF
+glgA
+znuA	Regulation of znuA by DNA-binding transcriptional dual regulator OmpR-phosphorylated, Regulation of znuA by DNA-binding transcriptional dual regulator Nac
+nudG
+yjjU
+mukF
+yjgR
+ghxP
+metK	Regulation of metK by DNA-binding transcriptional dual regulator Lrp
+yfaU
+sroH	Regulation of sroH by DNA-binding transcriptional dual regulator Lrp
+mraZ
+artM
+ymfJ
+rbsK
+gspB
+insCD2
+kefB
+phoU
+lapA
+ygaV	Regulation of ygaV by DNA-binding transcriptional dual regulator Nac
+ydaG
+yodE
+ileY	Regulation of ileY by DNA-binding transcriptional dual regulator Nac
+yncG
+wcaC
+sppA
+yqeG	Regulation of yqeG by DNA-binding transcriptional dual regulator Lrp
+ubiV
+yfaT
+dsdC
+yccU
+yqiB
+ffs
+ybiB
+nanC	Regulation of nanC by small regulatory RNA Spot 42
+ykgF
+kbl	Regulation of kbl by DNA-binding transcriptional dual regulator Lrp, Regulation of kbl by DNA-binding transcriptional dual regulator Nac
+cysJ	Regulation of cysJ by DNA-binding transcriptional regulator YafC, Regulation of cysJ by DNA-binding transcriptional dual regulator YeiE, Regulation of cysJ by DNA-binding transcriptional dual regulator Nac
+yhgF
+ghoT
+ilvD	Regulation of ilvD by small regulatory RNA GcvB
+yqfB
+tdcC
+ecpC
+ymfQ
+ygiM	Regulation of ygiM by DNA-binding transcriptional dual regulator Nac, Regulation of ygiM by small regulatory RNA MicA
+nagC
+potA
+yghE
+yeaW
+birA
+trpS
+surA
+priB
+glvC	Regulation of glvC by DNA-binding transcriptional dual regulator H-NS
+xylH
+glxK	Regulation of glxK by DNA-binding transcriptional dual regulator Nac
+hybB
+ssrA	Regulation of ssrA by DNA-binding transcriptional activator ZraR-phosphorylated
+ydaY
+mhpD
+ftsP
+dnaB
+lsrC
+wbbH
+suhB
+pyrH
+gfcB
+ygjH
+dmlA
+ydcU
+ppsR	Regulation of ppsR by DNA-binding transcriptional dual regulator Cra, Regulation of ppsR by DNA-binding transcriptional dual regulator PdhR
+fabY
+argG	Regulation of argG by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+rplM
+gadC	Regulation of gadC by DNA-binding transcriptional dual regulator TorR-phosphorylated, Regulation of gadC by DNA-binding transcriptional dual regulator H-NS
+yehY
+rpmD
+dcd
+tehA	Regulation of tehA by DNA-binding transcriptional repressor GlaR
+pspB
+yabQ	Regulation of yabQ by DNA-binding transcriptional dual regulator Lrp
+araB	Regulation of araB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+tyrV
+ycgX
+ytfJ	Regulation of ytfJ by DNA-binding transcriptional dual regulator Lrp, Regulation of ytfJ by DNA-binding transcriptional dual regulator Lrp, Regulation of ytfJ by DNA-binding transcriptional dual regulator Nac, Regulation of ytfJ by small regulatory RNA Spot 42
+rrsE
+deoB	Regulation of deoB by DNA-binding transcriptional dual regulator Lrp
+creC
+acpS
+argX
+yfdI
+rcbA
+ubiH
+rstB
+hofN
+ssb
+dppA	Regulation of dppA by DNA-binding transcriptional dual regulator Lrp, Regulation of dppA by DNA-binding transcriptional dual regulator Lrp, Regulation of dppA by DNA-binding transcriptional dual regulator Nac, Regulation of dppA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+glnH	Regulation of glnH by DNA-binding transcriptional activator ZraR-phosphorylated, Regulation of glnH by DNA-binding transcriptional dual regulator Lrp
+ftnA	Regulation of ftnA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+hslV
+fimC
+glnA	Regulation of glnA by DNA-binding transcriptional activator ZraR-phosphorylated, Regulation of glnA by DNA-binding transcriptional dual regulator Lrp
+agaD
+hemC
+paaZ	Regulation of paaZ by DNA-binding transcriptional activator YgfI
+ynfU
+rcnA
+acrD
+wbbJ
+glrK
+rsmH
+ygjI
+pdxB
+fruA
+ygeX
+hscB
+actS
+wecE
+sdaB
+ydfO	Regulation of ydfO by DNA-binding transcriptional dual regulator FNR
+ymfA
+yjjV
+serS	Regulation of serS by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of serS by DNA-binding transcriptional dual regulator Lrp
+rflP	Regulation of rflP by DNA-binding transcriptional dual regulator H-NS, Regulation of rflP by DNA-binding transcriptional dual regulator Nac
+lpd
+pepD	Regulation of pepD by DNA-binding transcriptional dual regulator Lrp
+nlpI
+rffH
+adhE	Regulation of adhE by FlhDC DNA-binding transcriptional dual regulator, Regulation of adhE by DNA-binding transcriptional activator YgfI, Regulation of adhE by DNA-binding transcriptional dual regulator Lrp, Regulation of adhE by DNA-binding transcriptional dual regulator FNR
+fumB
+rne
+rhtA	Regulation of rhtA by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+chaC
+bidA	Regulation of bidA by DNA-binding transcriptional dual regulator FNR, Regulation of bidA by DNA-binding transcriptional dual regulator Nac, Regulation of bidA by DNA-binding transcriptional dual regulator FNR
+argP
+pstB	Regulation of pstB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+hisQ	Regulation of hisQ by small regulatory RNA GcvB
+mppA
+murR
+ykgJ
+yijE
+pdxH
+yifB	Regulation of yifB by DNA-binding transcriptional dual regulator Nac
+tdcF
+rpsH	Regulation of rpsH by DNA-binding transcriptional dual regulator Lrp
+yqhI
+idi
+tap
+udp	Regulation of udp by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+mlaA
+ydfZ
+yhaJ
+tnaA	Regulation of tnaA by DNA-binding transcriptional dual regulator Nac, Regulation of tnaA by 50S ribosomal subunit protein L4
+scpB	Regulation of scpB by DNA-binding transcriptional dual regulator Nac
+yijD
+yedJ
+fdnH
+insL3
+yceD
+yohC
+yiiG
+mntS	Regulation of mntS by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+clpS	Regulation of clpS by DNA-binding transcriptional dual regulator Lrp
+hipA
+hcxA
+pxpC
+greB
+ugpA	Regulation of ugpA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ydaT	Regulation of ydaT by DNA-binding transcriptional dual regulator Nac
+arfB
+astC	Regulation of astC by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of astC by DNA-binding transcriptional dual regulator Rob, Regulation of astC by DNA-binding transcriptional dual regulator Lrp, Regulation of astC by DNA-binding transcriptional dual regulator Lrp
+psuK
+rsxC
+ymgG
+pqiA
+ykfH
+alaV
+narK	Regulation of narK by DNA-binding transcriptional dual regulator Nac, Regulation of narK by DNA-binding transcriptional dual regulator FNR
+gatY
+tdcG
+xthA	Regulation of xthA by DNA-binding transcriptional dual regulator OxyR, Regulation of xthA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of xthA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of xthA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+eutL
+mraY
+ileV
+narL
+rhaT
+melR
+sroC
+frlC
+rpiA	Regulation of rpiA by DNA-binding transcriptional dual regulator Lrp
+rnc
+murC
+thrL	Regulation of thrL by DNA-binding transcriptional dual regulator Lrp
+aphA	Regulation of aphA by DNA-binding transcriptional dual regulator Lrp
+insF3
+gmhB
+ssuB
+metE	Regulation of metE by DNA-binding transcriptional dual regulator Cra, Regulation of metE by DNA-binding transcriptional dual regulator Nac
+yaiI
+rpoH	Regulation of rpoH by DNA-binding transcriptional activator ZraR-phosphorylated
+ypfM
+yhaI
+fepA	Regulation of fepA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of fepA by small regulatory RNA OmrB, Regulation of fepA by small regulatory RNA OmrA
+clsA
+qseG
+yoeJ
+yfbP
+ccmD
+trmH
+dadA	Regulation of dadA by DNA-binding transcriptional dual regulator Lrp, Regulation of dadA by DNA-binding transcriptional dual regulator Nac
+isrC
+ydfC
+adeP	Regulation of adeP by DNA-binding transcriptional dual regulator KdpE-phosphorylated, Regulation of adeP by DNA-binding transcriptional activator YiaU
+ymfK
+fecR	Regulation of fecR by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+metG
+yfdM
+lfgA
+pcm
+pyrR
+pdeD
+frlA
+rhaD
+scpC
+shoB	Regulation of shoB by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of shoB by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of shoB by DNA-binding transcriptional dual regulator Nac
+yfdV	Regulation of yfdV by DNA-binding transcriptional repressor GlaR
+ydaS
+caiA	Regulation of caiA by small regulatory RNA Spot 42
+yqeL
+opgC
+slp	Regulation of slp by DNA-binding transcriptional dual regulator TorR-phosphorylated
+galS
+yiaF
+argU	Regulation of argU by DNA-binding transcriptional dual regulator Nac
+sfmF
+fkpB
+wzzE	Regulation of wzzE by DNA-binding transcriptional dual regulator Nac
+hdfR
+fhuE	Regulation of fhuE by DNA-binding transcriptional repressor GlaR
+hyaF
+thiL	Regulation of thiL by DNA-binding transcriptional dual regulator Nac
+speFL
+lptM
+eutA
+ubiB
+rrfC
+ynjF	Regulation of ynjF by DNA-binding transcriptional dual regulator Nac
+yejE
+xerD
+insC6
+glyW
+fecI
+rhaA
+glpD	Regulation of glpD by small regulatory RNA FnrS, Regulation of glpD by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+clcB
+oppC	Regulation of oppC by DNA-binding transcriptional dual regulator Nac
+elaB
+glnU
+yfbL
+insB1
+yhjD
+asnW
+proY
+mhpF
+yicS
+apaG
+rcnB
+fliT
+pheV
+tisB	Regulation of tisB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+fecC
+envY
+ispU
+trpA
+tdk
+sibE	Regulation of sibE by DNA-binding transcriptional dual regulator Nac
+ubiF
+rrrQ
+pyrC
+mutL
+recG
+gltA	Regulation of gltA by DNA-binding transcriptional dual regulator Nac, Regulation of gltA by small regulatory RNA Spot 42
+yajO	Regulation of yajO by DNA-binding transcriptional dual regulator Nac
+yghW	Regulation of yghW by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+torA	Regulation of torA by DNA-binding transcriptional dual regulator Nac
+hrpB
+yhjE	Regulation of yhjE by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of yhjE by DNA-binding transcriptional dual regulator Lrp
+ygcG
+gfcD
+lrhA	Regulation of lrhA by DNA-binding transcriptional dual regulator Lrp
+ygiL	Regulation of ygiL by DNA-binding transcriptional dual regulator Nac
+fre
+pgaC
+yigL	Regulation of yigL by DNA-binding transcriptional dual regulator Nac, Regulation of yigL by small regulatory RNA SgrS
+uspB
+ssrS
+hokA
+rpmF
+alpA
+ydeM
+kdpB
+evgS
+yoaA	Regulation of yoaA by DNA-binding transcriptional repressor LexA
+insH7
+ryhB
+narH
+yacM
+insE1
+ybjJ
+yfcE
+rimK	Regulation of rimK by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+insL1
+eutD
+ttdT
+lolC	Regulation of lolC by DNA-binding transcriptional dual regulator Lrp
+trxB	Regulation of trxB by DNA-binding transcriptional dual regulator Lrp, Regulation of trxB by DNA-binding transcriptional dual regulator Nac
+frc	Regulation of frc by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+mhpE
+pyrL	Regulation of pyrL by DNA-binding transcriptional dual regulator Nac, Regulation of pyrL by ArgR-L-arginine DNA-binding transcriptional dual regulator
+ybdF	Regulation of ybdF by DNA-binding transcriptional dual regulator Lrp
+yciY
+frlB
+rbsA
+nfuA
+grcA	Regulation of grcA by DNA-binding transcriptional dual regulator FNR
+holD
+wzc	Regulation of wzc by DNA-binding transcriptional dual regulator Nac
+eutR
+fixA
+psuT
+ssuA	Regulation of ssuA by DNA-binding transcriptional dual regulator YeiE
+cydD
+yeeZ
+yidD
+serC	Regulation of serC by DNA-binding transcriptional dual regulator Lrp
+waaA	Regulation of waaA by ArgR-L-arginine DNA-binding transcriptional dual regulator
+gabD	Regulation of gabD by DNA-binding transcriptional regulator PtrR-L-glutamine
+yecU
+ykfM
+rplO
+yibL	Regulation of yibL by DNA-binding transcriptional dual regulator Lrp
+elaD
+yejA
+aroB	Regulation of aroB by DNA-binding transcriptional repressor GlaR
+yfcR
+yddH
+ytfB	Regulation of ytfB by DNA-binding transcriptional dual regulator Lrp, Regulation of ytfB by DNA-binding transcriptional dual regulator Lrp, Regulation of ytfB by DNA-binding transcriptional dual regulator Nac
+ymjC
+ymgD
+yhiI
+coaD
+iscA
+lpxL	Regulation of lpxL by DNA-binding transcriptional dual regulator Lrp
+nirD
+agaR
+ydhR
+yaeR
+leuV
+allW	Regulation of allW by DNA-binding transcriptional dual regulator Nac
+fliJ	Regulation of fliJ by small regulatory RNA FimR2
+rsmB
+eutM
+ygaM	Regulation of ygaM by DNA-binding transcriptional dual regulator Nac
+mdtU
+lysO
+tsgA	Regulation of tsgA by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+ppx	Regulation of ppx by DNA-binding transcriptional dual regulator Lrp, Regulation of ppx by DNA-binding transcriptional dual regulator Lrp, Regulation of ppx by DNA-binding transcriptional repressor GlaR
+hofQ
+ridA	Regulation of ridA by DNA-binding transcriptional dual regulator Lrp
+yebZ
+rpoD
+rsxB
+yoaI
+ygdI
+phnO
+yhcG
+ygbI
+yiiS
+dnaT
+azoR
+mdtB
+glcA	Regulation of glcA by DNA-binding transcriptional dual regulator Lrp, Regulation of glcA by DNA-binding transcriptional dual regulator Lrp, Regulation of glcA by DNA-binding transcriptional dual regulator Nac
+ribE	Regulation of ribE by DNA-binding transcriptional dual regulator Lrp
+aspA	Regulation of aspA by DNA-binding transcriptional dual regulator Lrp, Regulation of aspA by DNA-binding transcriptional dual regulator Lrp
+rpsG
+yegU
+fdoH
+ydhS
+lysC
+mqo	Regulation of mqo by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of mqo by DNA-binding transcriptional dual regulator Lrp
+mgtS	Regulation of mgtS by DNA-binding transcriptional dual regulator Nac
+metI
+ugpC
+stpA	Regulation of stpA by DNA-binding transcriptional dual regulator Lrp, Regulation of stpA by ArgR-L-arginine DNA-binding transcriptional dual regulator
+ygcO	Regulation of ygcO by DNA-binding transcriptional dual regulator Nac
+yafQ	Regulation of yafQ by DNA-binding transcriptional dual regulator Nac
+hcaD
+ompR	Regulation of ompR by DNA-binding transcriptional dual regulator Nac, Regulation of ompR by small regulatory RNA OmrB, Regulation of ompR by small regulatory RNA OmrA
+nfsA	Regulation of nfsA by small regulatory RNA SdsN
+yjiR	Regulation of yjiR by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of yjiR by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+ycfT
+yahK
+lamB	Regulation of lamB by small regulatory RNA MicA
+mdtC
+nhaB
+mog
+fecB
+valZ
+hlyE	Regulation of hlyE by DNA-binding transcriptional dual regulator Lrp
+yraQ	Regulation of yraQ by ArgR-L-arginine DNA-binding transcriptional dual regulator
+ydjM
+fhuB
+mipA
+ypeA
+phoE
+rseB
+rapZ
+xisE
+ypeC
+purE
+mgtT
+mcrB	Regulation of mcrB by DNA-binding transcriptional dual regulator Nac
+blr
+ybbA
+msrQ
+insCD4
+mglA	Regulation of mglA by DNA-binding transcriptional dual regulator Nac, Regulation of mglA by DNA-binding transcriptional repressor GlaR
+barA
+yqeF	Regulation of yqeF by DNA-binding transcriptional dual regulator Lrp
+prs
+ada
+ypfJ
+ohsC
+hyfG
+relE
+insAB3
+osmY	Regulation of osmY by DNA-binding transcriptional dual regulator Nac, Regulation of osmY by DNA-binding transcriptional dual regulator Lrp, Regulation of osmY by DNA-binding transcriptional dual regulator Lrp, Regulation of osmY by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of osmY by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+srlR	Regulation of srlR by DNA-binding transcriptional dual regulator Nac
+gspM	Regulation of gspM by DNA-binding transcriptional dual regulator Nac
+ghoS
+yeaQ
+cmtA	Regulation of cmtA by DNA-binding transcriptional dual regulator Nac
+nfrB	Regulation of nfrB by FlhDC DNA-binding transcriptional dual regulator, Regulation of nfrB by DNA-binding transcriptional dual regulator Nac
+yehP
+fsr
+dpaA
+zapC
+bcsE
+sibD
+rep	Regulation of rep by DNA-binding transcriptional dual regulator Nac
+ynaK	Regulation of ynaK by DNA-binding transcriptional dual regulator Nac
+dosP
+ftsX
+asphoP
+nusA	Regulation of nusA by DNA-binding transcriptional dual regulator Nac
+lplT
+yhaL
+ydcR
+cyuA
+yoeI
+pspH
+yhgN
+rplN
+gfcC
+lsrB
+nuoN	Regulation of nuoN by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+allC
+uxuB
+ycbU	Regulation of ycbU by DNA-binding transcriptional repressor GlaR
+ftsN
+murF
+arsR
+yeiQ	Regulation of yeiQ by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of yeiQ by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yddY
+yfiB	Regulation of yfiB by DNA-binding transcriptional dual regulator Lrp
+rhsA
+metZ
+prpC
+phoB	Regulation of phoB by DNA-binding transcriptional dual regulator Nac
+mepA
+erpA	Regulation of erpA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of erpA by small regulatory RNA RyhB
+leuQ
+yehM
+yggI
+yiaO
+ybiO	Regulation of ybiO by DNA-binding transcriptional dual regulator Lrp
+insH8
+yffP
+rhaR
+udk
+ygcS
+zur
+gcvB	Regulation of gcvB by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of gcvB by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+glnD
+yaiS
+katG	Regulation of katG by DNA-binding transcriptional dual regulator Nac, Regulation of katG by DNA-binding transcriptional dual regulator FNR, Regulation of katG by DNA-binding transcriptional dual regulator FNR
+nuoE
+ydjJ
+acs	Regulation of acs by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of acs by small regulatory RNA GcvB, Regulation of acs by DNA-binding transcriptional dual regulator Rob
+panF
+yihD	Regulation of yihD by DNA-binding transcriptional dual regulator Nac, Regulation of yihD by DNA-binding transcriptional repressor GlaR
+dsbC
+pdeA
+yhhW	Regulation of yhhW by DNA-binding transcriptional dual regulator Lrp, Regulation of yhhW by DNA-binding transcriptional dual regulator Lrp
+ileU
+yajI
+yfjW
+npr
+rlmN
+xseB
+micA
+alaU
+ymfL
+trkG
+csgB
+nrdD
+fimH	Regulation of fimH by DNA binding transcriptional dual regulator BolA-phosphorylated
+alaS	Regulation of alaS by DNA-binding transcriptional dual regulator Lrp
+yfdT
+ffh
+rseA	Regulation of rseA by DNA-binding transcriptional dual regulator Lrp
+srlB
+yegV
+rcnR
+emrA
+rpmE
+cyoB
+yqcC
+paaI
+yhfA
+cydC	Regulation of cydC by DNA-binding transcriptional dual regulator Lrp
+lsrR
+stfZ
+purD
+sokE
+gfcE
+trmJ
+malG
+yjcE
+emtA
+leuD	Regulation of leuD by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+yafS
+yfdQ
+rplU	Regulation of rplU by DNA-binding transcriptional dual regulator Nac
+yriB
+yigA
+ytjB	Regulation of ytjB by DNA-binding transcriptional dual regulator Lrp
+yncP
+yidG
+mdtN
+cdsA
+dgkA
+asnT	Regulation of asnT by DNA-binding transcriptional dual regulator Nac
+ybdZ
+yoaK
+yjbM
+yeaG	Regulation of yeaG by DNA-binding transcriptional dual regulator Lrp
+ybdK
+hemN	Regulation of hemN by DNA-binding transcriptional dual regulator Nac
+insI1
+uhpA	Regulation of uhpA by DNA-binding transcriptional dual regulator Nac
+thiC	Regulation of thiC by DNA-binding transcriptional dual regulator Lrp, Regulation of thiC by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+3'ETS-leuZ
+yegI
+glnX
+flhB
+serW
+yhbE
+yehD	Regulation of yehD by DNA-binding transcriptional repressor GlaR
+tufA
+rirA
+dapE
+cysT
+citT
+yriA
+ptrA	Regulation of ptrA by DNA-binding transcriptional dual regulator Nac
+gpsA
+allB
+inaA	Regulation of inaA by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of inaA by DNA-binding transcriptional repressor GlaR
+umpH
+yqgH
+ybfD
+marC
+acrF
+thrV
+smpB
+ybaQ
+rsfS
+rplD
+ycjD
+rplR	Regulation of rplR by DNA-binding transcriptional dual regulator Lrp, Regulation of rplR by DNA-binding transcriptional dual regulator Lrp
+rsmC
+hcaF
+hypT
+bluR	Regulation of bluR by DNA-binding transcriptional activator YgfI
+torR
+allS
+nudL
+ybgQ
+fixX
+setA
+deoC
+ytfP	Regulation of ytfP by DNA-binding transcriptional dual regulator Nac
+yfeH
+pepN	Regulation of pepN by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yzcX
+malM
+ydiP	Regulation of ydiP by DNA-binding transcriptional dual regulator Nac
+rlpA
+yihR
+yqhA
+aslB
+ubiI
+talA
+cbtA
+cspC	Regulation of cspC by RNA polymerase sigma factor RpoN
+yidA
+ydiM	Regulation of ydiM by DNA-binding transcriptional dual regulator Nac
+ibsA
+fliA	Regulation of fliA by DNA-binding transcriptional activator ZraR-phosphorylated, Regulation of fliA by DNA-binding transcriptional dual regulator Lrp, Regulation of fliA by DNA-binding transcriptional dual regulator Lrp
+fpr
+insA4
+yhdT
+fadK
+yggP	Regulation of yggP by DNA-binding transcriptional dual regulator Nac
+mscK	Regulation of mscK by DNA-binding transcriptional dual regulator Lrp
+intD	Regulation of intD by DNA-binding transcriptional dual regulator Nac
+dpiB
+ybaE
+ychO
+ynbE
+mhpB
+puuE	Regulation of puuE by small regulatory RNA Spot 42
+cytR
+sucD
+ybgV
+fliN
+yeaE	Regulation of yeaE by DNA-binding transcriptional dual regulator Lrp, Regulation of yeaE by DNA-binding transcriptional repressor GlaR
+ybiA
+appX
+ybcO
+ybiU	Regulation of ybiU by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of ybiU by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yicG
+cof
+sapF
+uxuR
+ygfM
+lgoD
+melA
+insAB5
+yceI
+fkpA
+djlC
+essQ
+rdcB
+gspK
+cydX
+ypjK
+yfgI
+rimM
+kdgT
+pepE	Regulation of pepE by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+hisI
+yggX
+relA	Regulation of relA by DNA-binding transcriptional dual regulator Lrp
+proS
+cyoA	Regulation of cyoA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of cyoA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+cnoX
+waaL	Regulation of waaL by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+yjiG
+yhiN
+yqjD
+ykfI
+dapD
+hdhA
+xylR	Regulation of xylR by Qin prophage; small regulatory RNA DicF
+fldA
+hycE
+ybcI
+hybG
+yahC
+ycjP	Regulation of ycjP by DNA-binding transcriptional repressor GlaR
+yagH
+rttR
+ygfF
+dgoT
+esrE
+cmoM
+yeeS
+casE
+bfr	Regulation of bfr by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of bfr by DNA-binding transcriptional dual regulator Nac, Regulation of bfr by small regulatory RNA RyhB
+yebK
+ynjE
+aroD	Regulation of aroD by DNA-binding transcriptional dual regulator Nac
+nhaR	Regulation of nhaR by carbon storage regulator CsrA, Regulation of nhaR by carbon storage regulator CsrA
+rlmA
+pdxA	Regulation of pdxA by DNA-binding transcriptional repressor GlaR
+uup
+recA
+flgC
+lipB
+lit
+dtpB	Regulation of dtpB by DNA-binding transcriptional dual regulator Lrp
+dadX
+ttdA	Regulation of ttdA by DNA-binding transcriptional repressor GlaR
+pheP
+ybeY
+sseB	Regulation of sseB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+plsX
+ybiV
+appB
+atpC
+murP
+serX
+narY
+glpE	Regulation of glpE by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yqgC
+mcrA
+waaO
+metN
+frvB
+ubiT	Regulation of ubiT by DNA-binding transcriptional dual regulator Nac
+hemE
+solA
+lepA	Regulation of lepA by DNA-binding transcriptional dual regulator Nac
+ilvB	Regulation of ilvB by small regulatory RNA GcvB
+rdlB
+araA
+uidA
+trmD
+insK	Regulation of insK by DNA-binding transcriptional dual regulator Nac
+yehX
+mltB
+glyQ
+dicA	Regulation of dicA by DNA-binding transcriptional regulator DicD
+yhdZ
+yfeR
+lpxK
+ybfB
+proC
+rzpD
+nusG	Regulation of nusG by small regulatory RNA OxyS
+ryfA
+mgrB
+ycbV	Regulation of ycbV by DNA-binding transcriptional repressor GlaR
+lptC
+abrB
+mdtE	Regulation of mdtE by DNA-binding transcriptional dual regulator TorR-phosphorylated, Regulation of mdtE by DNA-binding transcriptional dual regulator Nac
+fliR	Regulation of fliR by small regulatory RNA FimR2
+cpxP	Regulation of cpxP by DNA-binding transcriptional activator ZraR-phosphorylated, Regulation of cpxP by small regulatory RNA CpxQ
+rplL
+ryfD
+torD
+ygaC	Regulation of ygaC by DNA-binding transcriptional dual regulator Nac
+yebB
+cheY
+ydfU
+yjaG
+ymjE
+kbaZ
+yhjY
+ompL
+ydiQ
+ytjC
+rarD
+torY
+pdeH
+sstT	Regulation of sstT by DNA-binding transcriptional dual regulator Lrp, Regulation of sstT by DNA-binding transcriptional dual regulator OmpR-phosphorylated, Regulation of sstT by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of sstT by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+argE
+yjaZ
+cydB
+csdE
+rhaM
+fumA	Regulation of fumA by DNA-binding transcriptional dual regulator Lrp, Regulation of fumA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+ybbO
+sgcQ
+mutS
+yafX
+ppdD
+galT
+yahV
+gudP
+malK
+baeR
+rffG
+micL
+phnH
+ynjA
+ygjP
+miaA
+lysQ
+grxB	Regulation of grxB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+flhE
+ydgH	Regulation of ydgH by DNA-binding transcriptional dual regulator Lrp
+lplA
+yghS	Regulation of yghS by DNA-binding transcriptional dual regulator Nac
+recJ
+insC2
+ogrK
+kefG
+ribF
+trmL
+hrpA
+livJ	Regulation of livJ by DNA-binding transcriptional dual regulator Lrp, Regulation of livJ by DNA-binding transcriptional dual regulator Lrp
+fucK	Regulation of fucK by small regulatory RNA Spot 42
+alsK
+tam	Regulation of tam by DNA-binding transcriptional repressor GlaR
+gutQ
+yigZ
+cmoA
+yfaE	Regulation of yfaE by DNA-binding transcriptional dual regulator Nac
+kdpD
+ydfW
+ybgA	Regulation of ybgA by DNA-binding transcriptional dual regulator Lrp
+insB5
+queA
+ydfA
+xapR	Regulation of xapR by DNA-binding transcriptional dual regulator Nac
+livG
+manX	Regulation of manX by Qin prophage; small regulatory RNA DicF, Regulation of manX by RNA-binding protein Hfq, Regulation of manX by small regulatory RNA SgrS
+trpL
+wcaB
+ecnB	Regulation of ecnB by DNA-binding transcriptional dual regulator Nac
+rraA
+xylE	Regulation of xylE by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+tar	Regulation of tar by DNA-binding transcriptional repressor GlaR
+fepD
+cbeA
+atoC
+eda	Regulation of eda by DNA-binding transcriptional repressor PlaR
+pncB	Regulation of pncB by DNA-binding transcriptional dual regulator Lrp, Regulation of pncB by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+moaD
+ilvX
+hyfJ
+prpD
+dsdX
+lon
+etp
+hycF
+btuR
+ybeZ
+mtgA
+ubiC
+ycaI
+bamC
+cysW
+atpE
+ychT
+rimP	Regulation of rimP by DNA-binding transcriptional dual regulator Nac
+gloA	Regulation of gloA by small regulatory RNA MicA
+yieF
+iroK
+metY	Regulation of metY by DNA-binding transcriptional dual regulator Nac
+yahO
+lolB
+nusB	Regulation of nusB by DNA-binding transcriptional dual regulator Lrp, Regulation of nusB by DNA-binding transcriptional dual regulator Nac
+yjbD
+htpG	Regulation of htpG by CRP-cyclic-AMP DNA-binding transcriptional dual regulator, Regulation of htpG by CRP-cyclic-AMP DNA-binding transcriptional dual regulator, Regulation of htpG by DNA-binding transcriptional dual regulator Nac
+grpE
+yihV
+gntK
+clsC
+ybhS
+ypjB
+yhjB
+ychF
+yoeF
+gltK
+yjbL
+ynaI
+map	Regulation of map by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of map by small regulatory RNA GcvB, Regulation of map by DNA-binding transcriptional dual regulator Nac
+ydgA
+yiaK
+mgtL
+yaeH
+dsbD
+recE
+yahD
+thiI
+aaeR
+srlA	Regulation of srlA by small regulatory RNA Spot 42
+lldR
+gstB
+csgI	Regulation of csgI by DNA-binding transcriptional dual regulator OmpR-phosphorylated, Regulation of csgI by DNA-binding transcriptional repressor GlaR
+yraJ
+rrfF
+yaiL
+yagA
+yohP
+frmR
+rpsC
+galP	Regulation of galP by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of galP by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+nupX
+metL
+ybjI
+ypdK
+yigI	Regulation of yigI by DNA-binding transcriptional dual regulator Nac, Regulation of yigI by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of yigI by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yhfY
+insA7
+astE
+carB
+rhmD
+idnT
+aceE
+wza	Regulation of wza by DNA-binding transcriptional dual regulator Nac
+dicF
+menF
+insD4
+ihfB	Regulation of ihfB by small regulatory RNA RseX
+eptA
+yhhI
+sdhD
+nanA	Regulation of nanA by DNA-binding transcriptional dual regulator Nac
+artQ
+viaA
+omrA
+pyrD
+tfaP
+pgaD
+ypfG
+yhdV	Regulation of yhdV by DNA-binding transcriptional dual regulator Lrp
+gatZ
+dusB
+ldrC
+moaE
+trxA
+ubiG
+yjiM
+yjeJ
+ydcC	Regulation of ydcC by DNA-binding transcriptional dual regulator H-NS
+slyD
+sgbH
+bcsA
+tff	Regulation of tff by DNA-binding transcriptional dual regulator Nac
+recN	Regulation of recN by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of recN by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of recN by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+baxL
+hyfH
+folX
+yciT	Regulation of yciT by DNA-binding transcriptional dual regulator Lrp
+mrr
+ompN	Regulation of ompN by DNA-binding transcriptional dual regulator Nac
+ycjR
+leuO	Regulation of leuO by DNA-binding transcriptional dual regulator Lrp, Regulation of leuO by DNA-binding transcriptional dual regulator Lrp, Regulation of leuO by DNA-binding transcriptional dual regulator Nac
+fucU
+dolP
+rph
+alaC	Regulation of alaC by DNA-binding transcriptional dual regulator Nac
+ybfE
+hcaT
+aer	Regulation of aer by DNA-binding transcriptional dual regulator Lrp
+hycH
+xynR
+uspD
+pinE
+ydcA
+ypjA
+mglC
+polA	Regulation of polA by DNA-binding transcriptional dual regulator Lrp, Regulation of polA by DNA-binding transcriptional dual regulator Nac
+rpmI
+bcp
+fepC
+ibsD
+yhjJ	Regulation of yhjJ by DNA-binding transcriptional dual regulator Lrp
+slmA
+accC
+nimR
+yaiW
+sapA
+yjdF
+ydbL
+rsmE
+rplT
+fixB
+gltD	Regulation of gltD by DNA-binding transcriptional activator YiaU
+eutB
+ypaB
+yiaD	Regulation of yiaD by DNA-binding transcriptional dual regulator Nac
+nhaA
+yebV
+lysA	Regulation of lysA by DNA-binding transcriptional dual regulator Nac
+yceF
+treF
+recQ
+rpnC
+ydfK	Regulation of ydfK by DNA-binding transcriptional dual regulator Nac, Regulation of ydfK by DNA-binding transcriptional repressor GlaR
+btuC
+yagF
+ykgV
+uidC
+prmC	Regulation of prmC by DNA-binding transcriptional repressor GlaR
+yeeW
+ispB
+menB
+dicB	Regulation of dicB by DNA-binding transcriptional regulator DicD
+cysU
+ymiB
+purR
+hycB	Regulation of hycB by DNA-binding transcriptional activator YgfI
+hxpA	Regulation of hxpA by DNA-binding transcriptional repressor GlaR
+ycfJ	Regulation of ycfJ by DNA-binding transcriptional dual regulator Lrp
+rluD	Regulation of rluD by small regulatory RNA RybB
+ugpB	Regulation of ugpB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+pstA
+ykgR
+ninE
+sufE
+ydbD
+hybC
+yebW
+insH11
+ybbJ
+pppA
+amyA
+rhtC
+uxuA
+hspQ	Regulation of hspQ by DNA-binding transcriptional dual regulator Lrp
+adeD
+hslJ
+yhgP
+yiiQ
+yehI
+ytgB
+yhiD
+der
+leuB
+ansP	Regulation of ansP by DNA-binding transcriptional dual regulator Nac
+fhuF	Regulation of fhuF by DNA-binding transcriptional dual regulator Nac
+fhuC
+cas2
+yidZ
+gcvT	Regulation of gcvT by DNA-binding transcriptional dual regulator Lrp, Regulation of gcvT by DNA-binding transcriptional dual regulator Nac
+yidJ
+ybaB
+yohK
+ygjK
+gadW	Regulation of gadW by DNA-binding transcriptional dual regulator LldR-S-lactate, Regulation of gadW by DNA-binding transcriptional dual regulator LldR-S-lactate, Regulation of gadW by DNA-binding transcriptional activator ZraR-phosphorylated, Regulation of gadW by DNA-binding transcriptional dual regulator Lrp, Regulation of gadW by DNA-binding transcriptional dual regulator Lrp, Regulation of gadW by DNA-binding transcriptional repressor GlaR
+ymgM
+yagJ
+mobA	Regulation of mobA by DNA-binding transcriptional dual regulator Nac
+och5
+ychJ
+insEF3
+ydcL	Regulation of ydcL by DNA-binding transcriptional dual regulator Lrp
+panB
+yihG
+yecH
+gspC
+yfgG	Regulation of yfgG by DNA-binding transcriptional dual regulator Nac
+yfcZ	Regulation of yfcZ by RNA polymerase sigma factor RpoN, Regulation of yfcZ by DNA-binding transcriptional dual regulator Lrp, Regulation of yfcZ by DNA-binding transcriptional dual regulator FNR
+hypE
+nuoH
+yaaU	Regulation of yaaU by ArgR-L-arginine DNA-binding transcriptional dual regulator
+alsE
+cysP
+pagP	Regulation of pagP by DNA-binding transcriptional dual regulator H-NS
+fdhD
+yhbY	Regulation of yhbY by DNA-binding transcriptional dual regulator Lrp
+yhhT
+smrB
+hyaD
+galR
+wcaA
+ydgI	Regulation of ydgI by ArgR-L-arginine DNA-binding transcriptional dual regulator
+tomB	Regulation of tomB by DNA-binding transcriptional dual regulator Nac
+yafJ
+hyaB
+glyY
+ygcP	Regulation of ygcP by DNA-binding transcriptional dual regulator Nac
+acpT
+rluE	Regulation of rluE by DNA-binding transcriptional dual regulator Nac
+yfdF
+thrW
+ytiB
+melB
+wrbA	Regulation of wrbA by DNA-binding transcriptional dual regulator Nac
+serA	Regulation of serA by DNA-binding transcriptional dual regulator Lrp
+apt	Regulation of apt by DNA-binding transcriptional repressor GlaR
+mltG
+insQ
+waaJ
+kdsD
+yehS	Regulation of yehS by DNA-binding transcriptional repressor GlaR
+rplW
+hiuH
+epmC
+yaiY	Regulation of yaiY by DNA-binding transcriptional dual regulator Lrp
+rrfG
+yhcD	Regulation of yhcD by DNA-binding transcriptional dual regulator Nac, Regulation of yhcD by DNA-binding transcriptional repressor GlaR
+hemA
+ygiS
+yibX
+fklB
+ompW
+nohA
+mobB
+frdD
+thiS
+treR
+ptsI
+tyrR	Regulation of tyrR by DNA-binding transcriptional dual regulator Lrp, Regulation of tyrR by DNA-binding transcriptional dual regulator Lrp
+gsiA
+matP
+yfaZ
+yheV
+hisB
+nemA
+rpnE
+ygdQ
+ynjD
+yhaK
+msrA	Regulation of msrA by DNA-binding transcriptional dual regulator Nac
+yadH
+yfjS
+yjjG
+cysE
+ydjG
+clcA
+ynfB	Regulation of ynfB by DNA-binding transcriptional dual regulator Nac
+yobB	Regulation of yobB by DNA-binding transcriptional dual regulator Nac
+ibsE
+yjfP	Regulation of yjfP by DNA-binding transcriptional dual regulator Lrp
+malE	Regulation of malE by DNA-binding transcriptional dual regulator OmpR-phosphorylated, Regulation of malE by DNA-binding transcriptional dual regulator YidZ
+mlaE
+tdcR
+yeeR
+yebC
+tfaQ	Regulation of tfaQ by DNA-binding transcriptional dual regulator Nac
+norR
+sulA	Regulation of sulA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of sulA by DNA-binding transcriptional dual regulator Lrp
+argK
+nrdE
+nudB
+dxr
+malY	Regulation of malY by DNA-binding transcriptional dual regulator Nac
+rbbA
+yqiA
+queE	Regulation of queE by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+kbp
+ybdN
+dmlR
+thiQ
+ycaP
+paoB
+cusB
+uidR
+hisA
+phnJ
+rimI
+ycgY	Regulation of ycgY by DNA-binding transcriptional repressor GlaR
+nuoJ
+ycbX
+chbC	Regulation of chbC by small regulatory RNA ChiX
+ariR
+ispZ
+ahr
+raiA	Regulation of raiA by DNA-binding transcriptional dual regulator Cra, Regulation of raiA by DNA-binding transcriptional activator ZraR-phosphorylated
+ypfH
+yfaP	Regulation of yfaP by DNA-binding transcriptional dual regulator Lrp
+lsrA
+yiaB
+ydjE
+hyfC
+queF	Regulation of queF by DNA-binding transcriptional dual regulator Nac
+rmf	Regulation of rmf by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of rmf by DNA-binding transcriptional activator ZraR-phosphorylated, Regulation of rmf by ZntR-Zn2+, Regulation of rmf by DNA-binding transcriptional dual regulator PhoP-phosphorylated, Regulation of rmf by NhaR-Na+ DNA-binding transcriptional activator, Regulation of rmf by DNA-binding transcriptional dual regulator KdpE-phosphorylated, Regulation of rmf by CueR-Cu+
+dnaC
+yjiH
+lnt
+dcm	Regulation of dcm by DNA-binding transcriptional dual regulator Nac
+hypA
+pstC	Regulation of pstC by DNA-binding transcriptional dual regulator Nac
+smrA
+rplY
+norV
+metV	Regulation of metV by DNA-binding transcriptional dual regulator FNR
+paaY
+ilvY
+ddpX
+yeeT
+pgaA	Regulation of pgaA by DNA-binding transcriptional dual regulator Nac
+yncL
+spy
+hcaE	Regulation of hcaE by DNA-binding transcriptional dual regulator Nac
+motR
+yhgH
+yafE
+nudE	Regulation of nudE by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of nudE by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+tcyJ	Regulation of tcyJ by small regulatory RNA MicF
+wcaF	Regulation of wcaF by DNA-binding transcriptional dual regulator Nac
+ynfF	Regulation of ynfF by DNA-binding transcriptional dual regulator Nac
+basS
+trpD
+wecH
+yfcC	Regulation of yfcC by DNA-binding transcriptional dual regulator Lrp, Regulation of yfcC by ArgR-L-arginine DNA-binding transcriptional dual regulator
+ydaE
+mlaF
+yeaO
+srlE
+arfA
+atpD
+hprS
+insC1
+pinR
+yddA	Regulation of yddA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+parE
+fliE	Regulation of fliE by FlhDC DNA-binding transcriptional dual regulator
+tldD
+rbsZ
+yafC
+ybgI
+yegD
+rfbB	Regulation of rfbB by DNA-binding transcriptional dual regulator Nac, Regulation of rfbB by DNA-binding transcriptional repressor GlaR
+agrA
+murA
+yieL
+argA	Regulation of argA by DNA-binding transcriptional dual regulator Lrp
+pyrE
+yfeD
+yfeS	Regulation of yfeS by DNA-binding transcriptional dual regulator Nac
+uspA	Regulation of uspA by DNA-binding transcriptional dual regulator Nac
+ygfK
+rpsB
+lsrF
+glpC
+moaA	Regulation of moaA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ubiD
+ilvN	Regulation of ilvN by DNA-binding transcriptional dual regulator Nac
+sfmH
+yddM
+eutT
+thiF
+pptA
+hycG
+rsxA
+tauB
+frmA
+focA	Regulation of focA by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of focA by DNA-binding transcriptional dual regulator FNR, Regulation of focA by DNA-binding transcriptional dual regulator FNR, Regulation of focA by DNA-binding transcriptional dual regulator FNR, Regulation of focA by DNA-binding transcriptional dual regulator FNR, Regulation of focA by DNA-binding transcriptional dual regulator FNR, Regulation of focA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of focA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of focA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+dusC
+ygjR	Regulation of ygjR by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+hscC
+ycdZ
+hisS
+cspI
+dnaA	Regulation of dnaA by Phosphorylated DNA-binding transcriptional activator QseB, Regulation of dnaA by Phosphorylated DNA-binding transcriptional activator QseB, Regulation of dnaA by Phosphorylated DNA-binding transcriptional activator QseB, Regulation of dnaA by DNA-binding transcriptional dual regulator Nac
+mlaC
+rrsH
+plaR
+pntA	Regulation of pntA by DNA-binding transcriptional dual regulator Lrp, Regulation of pntA by DNA-binding transcriptional dual regulator Nac, Regulation of pntA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of pntA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yfhM
+pflC
+murD	Regulation of murD by DNA-binding transcriptional repressor GlaR
+dcuA	Regulation of dcuA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of dcuA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+ppsA	Regulation of ppsA by DNA-binding transcriptional dual regulator PdhR, Regulation of ppsA by DNA-binding transcriptional dual regulator Lrp
+yehR
+mtfA
+ispH
+rrsA
+hisP
+htpX	Regulation of htpX by DNA-binding transcriptional dual regulator OmpR-phosphorylated, Regulation of htpX by DNA-binding transcriptional dual regulator Nac
+ppdB
+mreC	Regulation of mreC by DNA-binding transcriptional dual regulator Nac
+nhoA
+trmO
+yjaH
+allZ
+tas
+entA
+ybjQ	Regulation of ybjQ by DNA-binding transcriptional dual regulator Nac
+metT	Regulation of metT by DNA-binding transcriptional dual regulator Lrp
+tfaD
+yddB	Regulation of yddB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+aslA
+ytfI
+yaaX	Regulation of yaaX by DNA-binding transcriptional dual regulator Lrp
+ibpA	Regulation of ibpA by DNA-binding transcriptional dual regulator Lrp, Regulation of ibpA by DNA-binding transcriptional dual regulator Nac
+yheT
+yfgM
+rpiB	Regulation of rpiB by DNA-binding transcriptional dual regulator Lrp, Regulation of rpiB by DNA-binding transcriptional repressor GlaR
+hflC
+helD
+adk	Regulation of adk by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+sbmA
+efeO
+thiG
+asnC
+puuB	Regulation of puuB by LuxR family transcriptional regulator FimZ, Regulation of puuB by ArgR-L-arginine DNA-binding transcriptional dual regulator
+dppC
+chbA
+ribA
+argZ
+ydcT	Regulation of ydcT by DNA-binding transcriptional dual regulator YeiE
+csrD
+znuC
+tmcA
+yaiO
+dgcN	Regulation of dgcN by DNA-binding transcriptional repressor GlaR
+yfbM
+amiC	Regulation of amiC by DNA-binding transcriptional dual regulator Lrp
+ybjD
+ygeW
+malF
+kch
+digH
+yccM
+bax
+dauA	Regulation of dauA by DNA-binding transcriptional dual regulator YieP
+sspA	Regulation of sspA by DNA-binding transcriptional activator ZraR-phosphorylated
+phoR
+lpxB
+ybdD
+ldrB
+ydjX
+setC
+ybdR
+cyoC
+mntR	Regulation of mntR by ATP-dependent RNA helicase DeaD
+gadB	Regulation of gadB by DNA-binding transcriptional dual regulator YdeO, Regulation of gadB by DNA-binding transcriptional dual regulator YdcI, Regulation of gadB by DNA-binding transcriptional regulator PtrR-L-glutamine, Regulation of gadB by DNA-binding transcriptional dual regulator TorR-phosphorylated, Regulation of gadB by DNA-binding transcriptional dual regulator H-NS, Regulation of gadB by DNA-binding transcriptional dual regulator Lrp
+lpxP	Regulation of lpxP by DNA-binding transcriptional dual regulator LldR-S-lactate
+ybeU	Regulation of ybeU by DNA-binding transcriptional dual regulator Nac
+lysP	Regulation of lysP by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of lysP by DNA-binding transcriptional dual regulator Lrp, Regulation of lysP by DNA-binding transcriptional dual regulator Nac
+yjgM
+citG
+ascrp
+eamA	Regulation of eamA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of eamA by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+metF
+spoT
+ydhL
+yciZ	Regulation of yciZ by DNA-binding transcriptional dual regulator Lrp, Regulation of yciZ by DNA-binding transcriptional dual regulator Nac
+yqeB	Regulation of yqeB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of yqeB by DNA-binding transcriptional dual regulator Nac
+yegW
+menD
+waaB
+bglG
+yhbO
+glyS
+zntA
+rsgA
+yccE
+insB6
+citF
+rodZ
+valS
+tqsA	Regulation of tqsA by DNA-binding transcriptional dual regulator Fur
+envC
+fixC
+rlmL
+sgrS
+frlR
+tauA	Regulation of tauA by DNA-binding transcriptional dual regulator Nac
+smg
+ycaN	Regulation of ycaN by DNA-binding transcriptional dual regulator Nac
+rpoZ	Regulation of rpoZ by DNA-binding transcriptional dual regulator Nac
+yoaH	Regulation of yoaH by DNA-binding transcriptional dual regulator Lrp
+yidH
+dcuR
+aspU
+ydfV
+yciE
+mngA
+rpe
+tig
+hycA
+ygdD
+dgcP
+yjiX
+recX
+pdeR
+gloC
+iscR	Regulation of iscR by small regulatory RNA FnrS
+yphD
+fecE	Regulation of fecE by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+alx	Regulation of alx by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+dgcC
+flgN
+glmM
+puuA	Regulation of puuA by DNA-binding transcriptional regulator PtrR-L-glutamine, Regulation of puuA by AcrR-3,6-diaminoacridine, Regulation of puuA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+sthA	Regulation of sthA by DNA-binding transcriptional dual regulator Lrp, Regulation of sthA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of sthA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of sthA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of sthA by small regulatory RNA Spot 42
+rutG
+aaeX
+creB
+malQ
+yffS	Regulation of yffS by DNA-binding transcriptional dual regulator FNR, Regulation of yffS by DNA-binding transcriptional dual regulator FNR
+chbR
+sxy
+cysA
+mhpT
+argR	Regulation of argR by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of argR by DNA-binding transcriptional dual regulator Lrp, Regulation of argR by DNA-binding transcriptional dual regulator Lrp, Regulation of argR by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of argR by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+cyaA
+napB	Regulation of napB by DNA-binding transcriptional dual regulator Nac
+dsrB
+yohF
+aldA	Regulation of aldA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+umpG
+aaeA
+insA9
+yihY
+yigF
+yahH
+spfP
+yciK
+argH
+yjfZ	Regulation of yjfZ by DNA-binding transcriptional dual regulator Nac
+iadA
+sfsA
+metQ
+rzoQ
+exuT	Regulation of exuT by DNA-binding transcriptional dual regulator Nac
+betA
+rseD
+tnaB	Regulation of tnaB by DNA-binding transcriptional dual regulator Nac
+rclB
+yphF
+yfcV	Regulation of yfcV by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of yfcV by DNA-binding transcriptional repressor GlaR
+ydiH
+yigG	Regulation of yigG by DNA-binding transcriptional repressor GlaR
+tus
+yaeF
+thrP
+livF
+lolE
+cadB
+nagZ
+phnG
+yajQ
+ynjB
+rrlH
+speG
+flgG
+rapA
+yhaH
+ydhQ	Regulation of ydhQ by DNA-binding transcriptional dual regulator Lrp
+leuX
+kilS
+idnD	Regulation of idnD by DNA-binding transcriptional repressor GlaR
+asr
+ymdB
+cobB
+yiaT	Regulation of yiaT by DNA-binding transcriptional activator YiaU
+galF
+bepA
+yfiH
+glmU
+dacA
+chiZ
+yciC
+infA	Regulation of infA by DNA-binding transcriptional dual regulator YeiE
+sodB
+ydhX
+modB
+rmuC	Regulation of rmuC by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+yjfK
+fliO
+ymfR
+ybcM
+rpmB	Regulation of rpmB by DNA-binding transcriptional dual regulator YfeC
+agaB
+yheO
+yihU
+pgpC
+infC
+rimL
+selD
+hyi
+orn
+ydiO	Regulation of ydiO by DNA-binding transcriptional dual regulator Nac
+yjfM
+glcD	Regulation of glcD by DNA-binding transcriptional dual regulator LldR-S-lactate, Regulation of glcD by DNA-binding transcriptional dual regulator LldR-S-lactate
+ygbN
+rtcR
+narX	Regulation of narX by DNA-binding transcriptional dual regulator Nac
+bcsC
+yqiD
+pitA
+dkgB
+ylcI
+arrS
+yneE
+yjfL
+yeiL
+yfgJ
+yjcH	Regulation of yjcH by DNA-binding transcriptional dual regulator Rob
+tcyN	Regulation of tcyN by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+yicU
+lsrG	Regulation of lsrG by DNA-binding transcriptional repressor GlaR
+cobC
+chiA
+ebgA
+atpF
+frsA
+hypD
+yphG
+ygfS
+accA
+modF
+azuC
+rimJ
+rsmI
+alaB
+mtlA
+yjbB	Regulation of yjbB by DNA-binding transcriptional dual regulator Nac
+ygjV	Regulation of ygjV by DNA-binding transcriptional repressor PlaR
+yhhY	Regulation of yhhY by DNA-binding transcriptional activator ZraR-phosphorylated
+ypjC
+rem
+yidQ	Regulation of yidQ by DNA-binding transcriptional dual regulator Nac
+yidI
+ybhL
+rbsC
+sokB
+rrlG
+yjbJ	Regulation of yjbJ by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of yjbJ by DNA-binding transcriptional dual regulator Lrp
+fliQ
+gntR
+fucI	Regulation of fucI by small regulatory RNA Spot 42
+yhfK
+ycaL
+ybcN
+fadR	Regulation of fadR by e14 prophage; small regulatory RNA C0293
+yhfZ	Regulation of yhfZ by DNA-binding transcriptional dual regulator Nac
+yfjM
+yfjU
+sufS
+livK	Regulation of livK by DNA-binding transcriptional dual regulator Lrp, Regulation of livK by DNA-binding transcriptional dual regulator Nac
+nrfG	Regulation of nrfG by DNA-binding transcriptional dual regulator Nac
+yieP	Regulation of yieP by DNA-binding transcriptional dual regulator Nac
+ycjG
+xylG
+nrdF
+ydbJ
+ycaD
+dps	Regulation of dps by ArgR-L-arginine DNA-binding transcriptional dual regulator
+gltL
+rob	Regulation of rob by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+atpB	Regulation of atpB by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+cbpA	Regulation of cbpA by DNA-binding transcriptional dual regulator H-NS
+ddpC	Regulation of ddpC by DNA-binding transcriptional dual regulator Nac
+bamD
+metH	Regulation of metH by DNA-binding transcriptional dual regulator Lrp
+yjfI
+yghQ
+pth
+rzoD
+gss	Regulation of gss by small regulatory RNA Spot 42
+arcZ
+yrfJ
+yqgE
+diaA
+yegH	Regulation of yegH by DNA-binding transcriptional dual regulator Nac
+evgA	Regulation of evgA by DNA-binding transcriptional dual regulator Nac
+ypfN	Regulation of ypfN by DNA-binding transcriptional dual regulator SutR
+yneP
+rdlA
+eno	Regulation of eno by DNA-binding transcriptional dual regulator Lrp
+folD
+talB
+ybaA
+flgI
+feoA	Regulation of feoA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of feoA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of feoA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yecM
+aroG	Regulation of aroG by DNA-binding transcriptional dual regulator Lrp, Regulation of aroG by DNA-binding transcriptional dual regulator Lrp
+btuB
+glpK	Regulation of glpK by DNA-binding transcriptional dual regulator Nac
+frvR
+pspF
+yjfY
+gpr	Regulation of gpr by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+dcuC	Regulation of dcuC by DNA-binding transcriptional dual regulator YeiE
+eyeA
+sieB
+dgd
+tesB
+insE4
+ytfR
+insH5
+dinG
+betI
+yciN	Regulation of yciN by DNA-binding transcriptional dual regulator Lrp
+sodC	Regulation of sodC by DNA-binding transcriptional dual regulator YeiE
+lrp	Regulation of lrp by DNA-binding transcriptional dual regulator Nac, Regulation of lrp by ArgR-L-arginine DNA-binding transcriptional dual regulator
+ais
+purN
+yaaA
+artI	Regulation of artI by DNA-binding transcriptional dual regulator Lrp, Regulation of artI by DNA-binding transcriptional dual regulator Lrp
+cysM
+srkA
+malS
+rrsD
+dnaX
+nuoB
+ilvE
+mlrA
+lldD
+yeeY
+yabP
+yshB
+rplI
+amn	Regulation of amn by DNA-binding transcriptional dual regulator Nac
+nadD	Regulation of nadD by DNA-binding transcriptional dual regulator Nac
+rsxE
+naRNA4
+hokC
+betT
+frlD
+dsrA
+yahJ
+bcsB
+rpsS
+hsdR
+ybhH
+ydeT
+malZ
+ahpC	Regulation of ahpC by DNA-binding transcriptional dual regulator Nac
+usg
+htrL
+fabB
+ugd
+insB4
+yphH
+chaA	Regulation of chaA by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+nuoG
+yagU	Regulation of yagU by DNA-binding transcriptional dual regulator Lrp
+lpxH	Regulation of lpxH by DNA-binding transcriptional dual regulator Nac
+rpsJ
+groS	Regulation of groS by DNA-binding transcriptional dual regulator Lrp, Regulation of groS by DNA-binding transcriptional dual regulator Nac
+nagK
+yhbQ
+yncE	Regulation of yncE by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of yncE by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of yncE by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of yncE by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+secM
+cpsB
+yfaY
+rpmJ
+ybaL	Regulation of ybaL by DNA-binding transcriptional dual regulator Nac
+ibsB
+lhgD
+yjbR	Regulation of yjbR by DNA-binding transcriptional dual regulator Lrp
+yobI
+ybiW
+degP
+yjhU
+rclA
+cyoD
+vsr
+nikB
+ftsL
+slyA	Regulation of slyA by DNA-binding transcriptional dual regulator Lrp, Regulation of slyA by DNA-binding transcriptional dual regulator Lrp
+ygaZ	Regulation of ygaZ by DNA-binding transcriptional dual regulator Nac
+rpsR
+lysR	Regulation of lysR by DNA-binding transcriptional dual regulator Nac
+lepB	Regulation of lepB by DNA-binding transcriptional dual regulator Nac
+puuC	Regulation of puuC by LuxR family transcriptional regulator FimZ
+prpE
+frdB	Regulation of frdB by DNA-binding transcriptional dual regulator Lrp
+mltF
+ybaT
+nikR
+yecJ
+lptD
+ygeI
+rybB
+sdhX
+skp	Regulation of skp by small regulatory RNA CpxQ
+mfd
+mdlB
+gmhA	Regulation of gmhA by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of gmhA by DNA-binding transcriptional dual regulator PdhR, Regulation of gmhA by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+ycaQ
+ynbG
+prfB
+ascB
+glcG
+fliK
+yihQ	Regulation of yihQ by DNA-binding transcriptional dual regulator Nac
+arnE
+yijO
+yhiY
+ompA	Regulation of ompA by DNA-binding transcriptional dual regulator Nac
+rnm
+ccp
+ftsY
+yohD
+nudF
+mazE
+flgE
+argQ
+yccF
+rpsL
+yldA
+sspB
+ychN
+phnL
+hofB
+fdhF
+nuoM
+yjtD
+yieE	Regulation of yieE by DNA-binding transcriptional dual regulator Nac, Regulation of yieE by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+arnC
+idlP
+fabD
+grxD
+sucB
+glaR
+ydeS
+yidP
+paaA
+alsC
+ybiY	Regulation of ybiY by DNA-binding transcriptional dual regulator YciT
+yqfG
+paeA
+cpdB	Regulation of cpdB by DNA-binding transcriptional dual regulator Nac
+cbrA
+pal	Regulation of pal by DNA-binding transcriptional dual regulator Lrp, Regulation of pal by small regulatory RNA MicA
+ynbA
+ldcA
+uof
+yjeI
+ycjU
+rfaD	Regulation of rfaD by DNA-binding transcriptional activator ZraR-phosphorylated
+ampH	Regulation of ampH by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+ymgA
+yhhL
+cysI
+gadY	Regulation of gadY by DNA-binding transcriptional dual regulator LldR-S-lactate, Regulation of gadY by DNA-binding transcriptional dual regulator Lrp
+rplX
+poxB
+hha
+mgsA
+yicI
+tatD
+rplQ	Regulation of rplQ by 30S ribosomal subunit protein S4
+trhO	Regulation of trhO by DNA-binding transcriptional dual regulator Lrp
+yfjT
+elfA
+clpA
+cas1
+aspT
+ybcL
+yncO
+yeiE
+xylF	Regulation of xylF by small regulatory RNA Spot 42
+rseC
+dsdA
+ygcN
+nrdH	Regulation of nrdH by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+yhcO	Regulation of yhcO by DNA-binding transcriptional dual regulator LldR-S-lactate, Regulation of yhcO by DNA-binding transcriptional dual regulator LldR-S-lactate
+bcsZ
+mngB
+rssA
+rsmA
+yadE
+ybjP	Regulation of ybjP by DNA-binding transcriptional dual regulator Nac
+ydjY
+ycgJ	Regulation of ycgJ by DNA-binding transcriptional repressor GlaR
+abgT
+tolB	Regulation of tolB by DNA-binding transcriptional dual regulator Fis, Regulation of tolB by DNA-binding transcriptional dual regulator Nac
+sucC	Regulation of sucC by small regulatory RNA RyhB, Regulation of sucC by small regulatory RNA Spot 42
+ycfH
+yqhG
+lysW
+ymgC
+arsB
+tyrA
+yphE
+prlC
+amiB	Regulation of amiB by DNA-binding transcriptional dual regulator Nac
+cusF	Regulation of cusF by DNA-binding transcriptional dual regulator YciT
+yehC
+napG
+fecA
+rhsC
+puuD	Regulation of puuD by LuxR family transcriptional regulator FimZ, Regulation of puuD by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yoaG
+nirC
+thiP
+seqA
+hyaA
+rtcB
+pgrR
+cysQ
+hyfR
+mdtM
+yihP
+ybeF
+gshA
+xanQ
+thrT
+tsuB
+thiH
+yfdR
+rhtB	Regulation of rhtB by DNA-binding transcriptional dual regulator Lrp
+djlB
+thrA	Regulation of thrA by DNA-binding transcriptional dual regulator FNR, Regulation of thrA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yceQ
+acrB
+abpB
+ucpA
+dedA	Regulation of dedA by DNA-binding transcriptional dual regulator Lrp
+glpQ
+yfdK
+gph
+yfjJ
+tolQ
+aceF
+gmm
+paaF
+yqjA
+psuG
+micC	Regulation of micC by DNA-binding transcriptional dual regulator Nac
+frdA	Regulation of frdA by DNA-binding transcriptional dual regulator Lrp
+uhpB
+hofP
+yihI
+valX
+ttcA
+zntR	Regulation of zntR by DNA-binding transcriptional dual regulator Lrp
+ypdC	Regulation of ypdC by DNA-binding transcriptional repressor GlaR
+mcbR
+yihL	Regulation of yihL by DNA-binding transcriptional dual regulator Nac
+yqcA
+yahF
+csrB
+entS
+ilvA
+hemD
+entE
+nudJ
+yffB	Regulation of yffB by ArgR-L-arginine DNA-binding transcriptional dual regulator
+sbcB
+comR
+yggN
+yojO
+rfbA
+recT
+rcsF
+cbrB	Regulation of cbrB by DNA-binding transcriptional dual regulator Nac
+fadD	Regulation of fadD by DNA-binding transcriptional dual regulator Rob
+rpsD	Regulation of rpsD by 30S ribosomal subunit protein S4
+fadH	Regulation of fadH by DNA-binding transcriptional dual regulator PdhR
+baeS	Regulation of baeS by DNA-binding transcriptional repressor GlaR
+agaS
+dgcZ	Regulation of dgcZ by DNA-binding transcriptional dual regulator H-NS, Regulation of dgcZ by DNA-binding transcriptional dual regulator Lrp
+topB
+dnaK
+ydjZ
+narI
+mutT
+yccJ
+leuW
+yiaN
+thiK
+btuD
+cbrC	Regulation of cbrC by DNA-binding transcriptional dual regulator Nac
+ysaA
+yebY
+perR
+pfkA	Regulation of pfkA by FlhDC DNA-binding transcriptional dual regulator
+feoB
+ubiJ
+omrB
+moeA	Regulation of moeA by DNA-binding transcriptional dual regulator Nac
+idnO
+glyA
+asmA
+ybjL
+psd
+srmB
+bfd	Regulation of bfd by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of bfd by DNA-binding transcriptional dual regulator Nac
+thrC
+tpiA
+oppB
+xylB
+gntU
+opgD
+abgR
+glnP	Regulation of glnP by small regulatory RNA GlnZ
+insE2
+yafV	Regulation of yafV by DNA-binding transcriptional dual regulator Nac
+lptB
+yefM
+nlpD
+yhjG
+gspJ
+mioC
+glnK	Regulation of glnK by DNA-binding transcriptional dual regulator Lrp
+racR
+yahB
+yjjY	Regulation of yjjY by DNA-binding transcriptional activator ZraR-phosphorylated
+htrE	Regulation of htrE by DNA-binding transcriptional dual regulator Lrp, Regulation of htrE by DNA-binding transcriptional dual regulator Nac, Regulation of htrE by DNA-binding transcriptional repressor GlaR
+yobA	Regulation of yobA by DNA-binding transcriptional dual regulator Nac
+pitB	Regulation of pitB by DNA-binding transcriptional dual regulator Nac
+manZ
+oxyS
+ycjY
+yacL	Regulation of yacL by DNA-binding transcriptional dual regulator Lrp
+folP
+yahE
+nadE
+truC
+yidC
+nikC
+ymdA	Regulation of ymdA by carbon storage regulator, Regulation of ymdA by carbon storage regulator
+rimO	Regulation of rimO by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+yjfJ
+nfeR	Regulation of nfeR by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ykiE
+fdnI
+pepB
+otsB
+ptsN	Regulation of ptsN by DNA-binding transcriptional dual regulator Lrp
+nrdA
+tauC
+glcF
+yfeX
+ydfR	Regulation of ydfR by DNA-binding transcriptional dual regulator Nac
+mltC	Regulation of mltC by small regulatory RNA GcvB
+valV
+yeaL
+ybeR	Regulation of ybeR by DNA-binding transcriptional dual regulator Nac
+hemF
+tsr
+rplC
+yceB	Regulation of yceB by DNA-binding transcriptional dual regulator Lrp
+yghT
+xapA
+ygbE
+mdtH
+yedF
+yhbP
+ybfF
+dgoR
+phnN
+shiA	Regulation of shiA by DNA-binding transcriptional dual regulator Nac
+pspC
+lptF
+ydcF	Regulation of ydcF by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ygeV
+rluC
+ddlA	Regulation of ddlA by DNA-binding transcriptional dual regulator H-NS
+waaU
+ypeD
+ybaV
+ytcB
+fecD
+yfjI
+yagB
+emrD	Regulation of emrD by DNA-binding transcriptional dual regulator Lrp
+fusA
+rlmM
+yraI
+patD
+azuR
+ynfM
+mrcB
+ybdJ
+curA
+yqjG
+narQ	Regulation of narQ by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+treC
+mhpR
+ftsW
+yhhS
+alaA	Regulation of alaA by DNA-binding transcriptional dual regulator Lrp
+pnuC
+yccS
+eutH
+pepQ
+hemX
+ymjA
+lysV
+cbl	Regulation of cbl by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of cbl by DNA-binding transcriptional dual regulator Lrp
+ldhA	Regulation of ldhA by DNA-binding transcriptional dual regulator Lrp
+hda
+ppiC	Regulation of ppiC by DNA-binding transcriptional dual regulator YidZ
+hycI
+tldE
+frvX
+gnsB
+alkA
+fabI
+srlD
+entD	Regulation of entD by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+yjeH	Regulation of yjeH by DNA-binding transcriptional dual regulator Lrp
+rpsP
+acpP	Regulation of acpP by DNA-binding transcriptional dual regulator PdhR, Regulation of acpP by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yjiK
+fimD
+ymgL
+folB
+ygfT
+glyU
+caiB
+ytfK	Regulation of ytfK by DNA-binding transcriptional dual regulator Nac, Regulation of ytfK by DNA-binding transcriptional dual regulator Lrp
+yfdE
+ftsE
+lsrD
+sdiA	Regulation of sdiA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of sdiA by carbon storage regulator CsrA, Regulation of sdiA by carbon storage regulator CsrA, Regulation of sdiA by ATP-dependent RNA helicase DeaD
+mreB
+fetB
+rho	Regulation of rho by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yjcB	Regulation of yjcB by DNA-binding transcriptional dual regulator Nac
+aroC	Regulation of aroC by small regulatory RNA GcvB
+ygfZ
+livM	Regulation of livM by DNA-binding transcriptional dual regulator Nac
+leuA	Regulation of leuA by DNA-binding transcriptional dual regulator Lrp, Regulation of leuA by DNA-binding transcriptional dual regulator Lrp
+gcd
+rydC
+purB
+ybcK
+rpoA
+ilvC
+decR
+glpX
+cobU	Regulation of cobU by DNA-binding transcriptional dual regulator Nac
+recR
+yneG
+sgcR
+otsA
+wbbK
+rlmF
+ycgL
+wcaE	Regulation of wcaE by DNA-binding transcriptional dual regulator Nac
+letA
+timP
+prkB
+narP	Regulation of narP by small regulatory RNA RprA, Regulation of narP by small regulatory RNA SdsN
+symR
+rpsN
+allR	Regulation of allR by DNA-binding transcriptional dual regulator Nac
+ycjM
+prpR
+cyaR
+agp
+atoD	Regulation of atoD by small regulatory RNA Spot 42
+hisF
+ydiF
+tyrU
+afuC
+insAB2
+asnB	Regulation of asnB by DNA-binding transcriptional dual regulator Lrp
+rrsG
+hemB	Regulation of hemB by DNA-binding transcriptional dual regulator Nac
+yjdP	Regulation of yjdP by DNA-binding transcriptional repressor GlaR
+mgtA	Regulation of mgtA by DNA-binding transcriptional activator ZraR-phosphorylated
+gadF
+trxC
+pqqU	Regulation of pqqU by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of pqqU by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of pqqU by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+gltI
+ycjS
+rppH
+bhsA
+yhhJ
+rdlC
+corA
+rpsO
+ralA
+ygcW
+yfdY	Regulation of yfdY by DNA-binding transcriptional dual regulator LldR-S-lactate
+ybhQ	Regulation of ybhQ by DNA-binding transcriptional dual regulator Lrp, Regulation of ybhQ by DNA-binding transcriptional dual regulator Lrp
+ykfA
+rstA	Regulation of rstA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of rstA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+pssL
+iscS
+yjjI
+yqiH
+yhiJ
+ytjA
+yafL	Regulation of yafL by DNA-binding transcriptional activator YgfI
+cusS
+rcsB
+lysY
+caiD
+mdtF	Regulation of mdtF by DNA-binding transcriptional dual regulator YeiE, Regulation of mdtF by DNA-binding transcriptional dual regulator TorR-phosphorylated
+bglA
+napA
+flgL	Regulation of flgL by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+dgcT	Regulation of dgcT by DNA-binding transcriptional dual regulator H-NS, Regulation of dgcT by DNA-binding transcriptional dual regulator Nac
+fadA
+fabA
+dgoK
+mokC
+hemH	Regulation of hemH by DNA-binding transcriptional dual regulator Nac
+yfeO
+ppdA
+qmcA	Regulation of qmcA by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+yagK
+yafD	Regulation of yafD by DNA-binding transcriptional dual regulator Nac
+tktA
+ysdD
+yhcA	Regulation of yhcA by DNA-binding transcriptional dual regulator Nac
+dinI
+yabI
+rnlB	Regulation of rnlB by DNA-binding transcriptional dual regulator Nac
+yfhH
+dbpA
+rspB
+asnS
+grxA
+yodB
+mnmG
+phnD
+gudD
+macA	Regulation of macA by DNA-binding transcriptional dual regulator Nac
+lacA
+exoX
+rhsD	Regulation of rhsD by DNA-binding transcriptional repressor GlaR
+ynfQ
+astB
+cedA
+ycdY
+yciO
+metW
+ftsB
+flgH
+oxyR	Regulation of oxyR by small regulatory RNA GcvB
+rnhA
+selA
+nepI
+sbcD	Regulation of sbcD by DNA-binding transcriptional dual regulator Nac
+yggC
+rdlD
+radD	Regulation of radD by DNA-binding transcriptional dual regulator Lrp
+putA	Regulation of putA by DNA-binding transcriptional dual regulator YeiE, Regulation of putA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yedK
+ubiA	Regulation of ubiA by DNA-binding transcriptional dual regulator Lrp, Regulation of ubiA by DNA-binding transcriptional dual regulator Nac
+bisC	Regulation of bisC by DNA-binding transcriptional dual regulator Nac
+glnG
+zntB
+gltX
+rnd
+yfeZ
+ynfA
+eptC
+beeE
+bglF
+ymfE
+slyB
+gmk	Regulation of gmk by DNA-binding transcriptional dual regulator Nac
+csgA
+sroE
+aroF	Regulation of aroF by DNA-binding transcriptional dual regulator Nac
+yraK
+murG
+ryeG
+lipA	Regulation of lipA by DNA-binding transcriptional dual regulator Lrp
+ydfG
+yjiL	Regulation of yjiL by DNA-binding transcriptional dual regulator Lrp, Regulation of yjiL by DNA-binding transcriptional dual regulator Lrp
+tauD
+mscM
+carA	Regulation of carA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+nsrR
+gshB
+intF
+nanS
+dacB
+mdaB
+csqR
+yhdH
+yrdA
+zitB	Regulation of zitB by DNA-binding transcriptional dual regulator Lrp
+punR
+yjbH
+phoP
+rdgB
+tilS
+tmk
+ampE
+dcp
+ravA
+hemY
+yjbS
+rrfD
+pdxY
+entH	Regulation of entH by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+asnA	Regulation of asnA by DNA-binding transcriptional dual regulator Lrp, Regulation of asnA by DNA-binding transcriptional dual regulator Nac
+gcl
+fur
+narJ
+bioH
+oppA	Regulation of oppA by RNA-binding protein Hfq, Regulation of oppA by small regulatory RNA MicF, Regulation of oppA by DNA-binding transcriptional dual regulator Nac, Regulation of oppA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of oppA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+gltT
+nrdB
+ilvH
+btsT	Regulation of btsT by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+yjeN
+thrB
+yjiJ
+trpT
+ymcE
+gcvA	Regulation of gcvA by DNA-binding transcriptional repressor GlaR
+fabF
+ybiX	Regulation of ybiX by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of ybiX by DNA-binding transcriptional dual regulator YieP
+mukB
+acnB	Regulation of acnB by Cra-beta-D-fructofuranose 1-phosphate
+ybgE	Regulation of ybgE by DNA-binding transcriptional dual regulator Nac
+ybiE
+gcvP
+yafZ
+fabZ
+waaQ
+kdgK
+rutF
+emrB
+ybjM
+yadI
+trkH
+ydcV
+pphA
+nanX
+torI
+tesA
+rfbC	Regulation of rfbC by DNA-binding transcriptional dual regulator Nac
+argD
+trpE
+btsR
+yceO
+minE
+asnU
+sfmA
+mgrR
+idnR
+aldB
+rplF	Regulation of rplF by DNA-binding transcriptional dual regulator Lrp
+gsiB
+aroE	Regulation of aroE by DNA-binding transcriptional dual regulator Nac
+amiA
+aat
+araG
+yeaH
+bioD
+waaF	Regulation of waaF by DNA-binding transcriptional dual regulator Nac
+selB
+yaiP
+menA	Regulation of menA by DNA-binding transcriptional dual regulator Lrp
+ygbM
+yhdP
+ftsK
+ylcG
+opgG
+ydeA
+ackA	Regulation of ackA by small regulatory RNA SdhX
+torS
+yahM
+ldtA
+gspF
+kdsC
+cheZ
+ylcH
+nanK	Regulation of nanK by DNA-binding transcriptional dual regulator Nac
+wzyE
+glgC	Regulation of glgC by DNA-binding transcriptional dual regulator Lrp
+yhfL
+uvrC
+hslU
+pspD
+yfdG
+hprR	Regulation of hprR by DNA-binding transcriptional dual regulator H-NS, Regulation of hprR by DNA-binding transcriptional dual regulator Nac
+ygaP	Regulation of ygaP by DNA-binding transcriptional dual regulator Nac
+yibA
+torZ
+mhpA
+fetA
+flhD	Regulation of flhD by small antisense RNA AsflhD
+fau
+nc1
+ycaM	Regulation of ycaM by DNA-binding transcriptional dual regulator Lrp
+anmK
+nudK
+sgcB
+yceM
+yeaR
+ydfX
+cadC	Regulation of cadC by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of cadC by DNA-binding transcriptional repressor GlaR
+insA6
+ompX	Regulation of ompX by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+elaA
+appY
+yghR
+glnE
+copA	Regulation of copA by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+sibA	Regulation of sibA by DNA-binding transcriptional dual regulator Nac
+tpx	Regulation of tpx by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+mhpC
+nrfA
+ybaN	Regulation of ybaN by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+pncC
+xdhA	Regulation of xdhA by DNA-binding transcriptional dual regulator Nac
+ybiJ	Regulation of ybiJ by DNA-binding transcriptional dual regulator Lrp
+cpxA
+flhA
+insH4
+chpB
+yneK	Regulation of yneK by DNA-binding transcriptional dual regulator Nac
+yfcS
+hemW
+ihfA
+gyrB
+bioP
+orzP
+hokE
+cysH
+proW
+damX
+pdxK	Regulation of pdxK by DNA-binding transcriptional dual regulator Nac
+bcsG
+yggS
+gpmM	Regulation of gpmM by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of gpmM by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+ampD	Regulation of ampD by DNA-binding transcriptional dual regulator Nac
+kdpE
+treA	Regulation of treA by DNA-binding transcriptional dual regulator Lrp
+insH2
+proV
+ydcK	Regulation of ydcK by DNA-binding transcriptional dual regulator Lrp
+insG
+yjdJ
+yfcH
+intR
+aspV
+ydcO
+nanE
+arsC
+chbG	Regulation of chbG by DNA-binding transcriptional dual regulator Lrp
+nrfC
+rihA
+adiA	Regulation of adiA by DNA-binding transcriptional dual regulator YdeO, Regulation of adiA by DNA-binding transcriptional dual regulator TorR-phosphorylated
+rybA
+yceK
+gatD
+maa
+aroH
+yeeN
+dcuD
+efeB
+truD
+lldP	Regulation of lldP by DNA-binding transcriptional dual regulator PdhR, Regulation of lldP by small regulatory RNA Spot 42
+hofM
+yfjP
+rof	Regulation of rof by DNA-binding transcriptional dual regulator YidZ
+envR
+patZ
+bhsB
+gsiC
+rsxG
+ldrD
+ygiD
+ymcF
+mcbA	Regulation of mcbA by DNA-binding transcriptional dual regulator Fur, Regulation of mcbA by DNA-binding transcriptional dual regulator Nac
+rpmG
+eutN
+G0-10706
+insCD3
+rsuA
+glcC	Regulation of glcC by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of glcC by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+hycC
+atpI	Regulation of atpI by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+hisD
+bglJ	Regulation of bglJ by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+araE	Regulation of araE by DNA-binding transcriptional dual regulator Nac
+bdcA	Regulation of bdcA by DNA-binding transcriptional repressor GlaR
+ddpA
+yffL
+umuC
+sgbE
+rrrD
+ypjD
+maoP
+yjaB
+paaB
+ghrB
+yciI	Regulation of yciI by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+matA	Regulation of matA by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+malP
+ybbC	Regulation of ybbC by DNA-binding transcriptional dual regulator Nac
+gltF	Regulation of gltF by DNA-binding transcriptional dual regulator YeiE, Regulation of gltF by DNA-binding transcriptional dual regulator Nac, Regulation of gltF by DNA-binding transcriptional repressor GlaR
+gloB
+argS	Regulation of argS by DNA-binding transcriptional dual regulator Lrp
+abgB
+hipB
+yjeM	Regulation of yjeM by DNA-binding transcriptional dual regulator Nac, Regulation of yjeM by DNA-binding transcriptional dual regulator Lrp
+yjfF
+gltV
+dtd
+hisR
+rrfB
+focB
+eamB
+potF	Regulation of potF by DNA-binding transcriptional dual regulator Lrp, Regulation of potF by DNA-binding transcriptional dual regulator Lrp, Regulation of potF by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of potF by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of potF by ArgR-L-arginine DNA-binding transcriptional dual regulator
+tadA
+lpxM
+treB
+ynbB
+tolR
+yiaY
+recC
+queG
+nanQ
+letB
+kdpA	Regulation of kdpA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of kdpA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of kdpA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+yebQ
+ytiD
+yfiR	Regulation of yfiR by DNA-binding transcriptional dual regulator Nac, Regulation of yfiR by DNA-binding transcriptional repressor GlaR
+yahI
+yiaU
+nrfE
+ispF
+kdpC
+yciA
+mnaT
+paaX
+yedP
+thiB
+hupB
+fhuD
+zraR	Regulation of zraR by DNA-binding transcriptional repressor GlaR
+fsaB
+ychS
+uvrY	Regulation of uvrY by DNA-binding transcriptional dual regulator Nac, Regulation of uvrY by ATP-dependent RNA helicase DeaD
+sgcX
+yiaC
+fruB	Regulation of fruB by FlhDC DNA-binding transcriptional dual regulator
+mdlA
+ycbZ
+pphC
+yjjW
+yjcF
+rplV
+gnd
+ycbJ
+yggR
+yciX
+potC
+ryjA
+ybcV	Regulation of ybcV by DNA-binding transcriptional dual regulator PdhR, Regulation of ybcV by DNA-binding transcriptional dual regulator Nac
+rnt
+yqiI
+ybgU
+dacD
+yfjQ
+ruvC
+rutR
+paaJ
+uxaA
+endA
+yqhC
+rdcA	Regulation of rdcA by DNA-binding transcriptional dual regulator YciT, Regulation of rdcA by DNA-binding transcriptional dual regulator Lrp
+pepP
+uxaC	Regulation of uxaC by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of uxaC by DNA-binding transcriptional dual regulator Nac
+tonB
+yfgD
+hicA
+yedA
+epmB	Regulation of epmB by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+yhaV
+ttdR	Regulation of ttdR by DNA-binding transcriptional dual regulator H-NS, Regulation of ttdR by DNA-binding transcriptional repressor GlaR
+dacC	Regulation of dacC by ArgR-L-arginine DNA-binding transcriptional dual regulator
+pheL
+paaD
+proM
+yhdY
+cynS
+hcaR	Regulation of hcaR by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of hcaR by DNA-binding transcriptional dual regulator Nac
+ynfE	Regulation of ynfE by DNA-binding transcriptional dual regulator Nac
+ppk	Regulation of ppk by DNA-binding transcriptional dual regulator Lrp
+leuP
+yhcF
+ymgN
+proL
+adhP	Regulation of adhP by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ycfK
+cspE	Regulation of cspE by DNA-binding transcriptional regulator YdiP
+pheA	Regulation of pheA by small regulatory RNA RydC
+stfR	Regulation of stfR by DNA-binding transcriptional dual regulator Nac
+emrY
+lspA
+cutA
+ychE	Regulation of ychE by DNA-binding transcriptional dual regulator Cra, Regulation of ychE by DNA-binding transcriptional dual regulator Lrp
+dtpA	Regulation of dtpA by DNA-binding transcriptional dual regulator Lrp
+yceH
+glpA	Regulation of glpA by DNA-binding transcriptional repressor PlaR
+csiE	Regulation of csiE by DNA-binding transcriptional dual regulator Lrp, Regulation of csiE by DNA-binding transcriptional dual regulator Nac, Regulation of csiE by DNA-binding transcriptional dual regulator Lrp
+yghG
+sokX
+insEF2
+yojI	Regulation of yojI by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+motB
+elyC
+yqeA
+yhfU
+astA
+artJ
+yeiS
+ypdJ
+pmrR
+tfaR	Regulation of tfaR by DNA-binding transcriptional dual regulator Nac
+dxs
+hcaC
+paoC
+yfbU	Regulation of yfbU by DNA-binding transcriptional repressor GlaR
+ldtE
+glsA	Regulation of glsA by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+metC	Regulation of metC by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+aaeB
+thpR
+naRNA5
+glyV
+yjdN
+thrU
+fucO
+insAB4
+allE
+gudX	Regulation of gudX by DNA-binding transcriptional dual regulator Nac
+mutM	Regulation of mutM by RNA polymerase sigma factor RpoN
+atoB
+yihM	Regulation of yihM by DNA-binding transcriptional repressor GlaR
+cmk
+deaD	Regulation of deaD by DNA-binding transcriptional dual regulator Lrp
+yehF
+borD	Regulation of borD by DNA-binding transcriptional dual regulator Lrp, Regulation of borD by DNA-binding transcriptional dual regulator Nac
+rseX
+yfcG
+yciF
+aceK
+ylbG
+fadJ
+prmB	Regulation of prmB by DNA-binding transcriptional dual regulator Nac
+dinB	Regulation of dinB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+rihC
+malX
+dgoA
+ykiC
+ydiE	Regulation of ydiE by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+acnA	Regulation of acnA by DNA-binding transcriptional dual regulator Fur
+fabG
+cheW
+csrA
+fliP
+flgD
+mrdA	Regulation of mrdA by DNA-binding transcriptional repressor GlaR
+yobD	Regulation of yobD by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of yobD by DNA-binding transcriptional repressor GlaR
+pck
+pdeG	Regulation of pdeG by DNA-binding transcriptional dual regulator H-NS
+dsbB
+mepK
+wecF
+gntP
+hisJ
+rhsB
+chiP
+dmsB	Regulation of dmsB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ymdG
+mtr	Regulation of mtr by DNA-binding transcriptional dual regulator Lrp, Regulation of mtr by DNA-binding transcriptional dual regulator Lrp
+csgF
+glrR
+yehE	Regulation of yehE by DNA-binding transcriptional repressor GlaR
+rlmC
+gspA
+yqaA
+tamA
+rplK
+phoA	Regulation of phoA by DNA-binding transcriptional dual regulator Lrp
+hmp
+yebG
+btuE	Regulation of btuE by DNA-binding transcriptional dual regulator Lrp
+yhiM	Regulation of yhiM by DNA-binding transcriptional dual regulator Lrp
+ymjD
+dpiA
+yfcJ
+yqgB
+ydeI
+yjhP
+nlpA	Regulation of nlpA by DNA-binding transcriptional repressor GlaR
+pgaB
+recO
+hybE	Regulation of hybE by DNA-binding transcriptional dual regulator YfeC
+ytfF
+yhdU
+yhgE
+plaP
+flgJ
+gntT
+pdxI
+lacY
+tcyP
+lyxK
+mltD
+hicB
+yfiL	Regulation of yfiL by DNA-binding transcriptional dual regulator Nac, Regulation of yfiL by DNA-binding transcriptional repressor GlaR
+rplB
+ydhF
+yccX
+ydeO	Regulation of ydeO by DNA-binding transcriptional repressor GlaR
+btuF
+cdaR	Regulation of cdaR by DNA-binding transcriptional dual regulator Nac
+yqhJ
+ybgS	Regulation of ybgS by DNA-binding transcriptional dual regulator Lrp, Regulation of ybgS by DNA-binding transcriptional dual regulator Lrp
+dksA
+ydiZ
+yhfW
+ampC
+yffQ
+yajC
+lapB
+nupG
+ppnN
+rusA
+rhoL
+ycbF
+insD6
+waaP	Regulation of waaP by DNA-binding transcriptional activator YiaU
+ecnA	Regulation of ecnA by DNA-binding transcriptional dual regulator Nac
+degS
+ispG
+ykfB
+opgB
+ybcF
+galK	Regulation of galK by small regulatory RNA Spot 42
+fepE	Regulation of fepE by [2Fe-2S] cluster DNA-binding transcriptional dual regulator, Regulation of fepE by DNA-binding transcriptional dual regulator Nac
+hpt
+menI
+prc
+ykgE	Regulation of ykgE by DNA-binding transcriptional dual regulator YieP, Regulation of ykgE by DNA-binding transcriptional dual regulator Lrp, Regulation of ykgE by DNA-binding transcriptional dual regulator Nac
+tdcA	Regulation of tdcA by DNA-binding transcriptional dual regulator Nac
+ycjO
+evgL
+insJK
+mmuM
+glaH	Regulation of glaH by DNA-binding transcriptional dual regulator Nac, Regulation of glaH by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of glaH by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+nupC	Regulation of nupC by DNA-binding transcriptional dual regulator Nac, Regulation of nupC by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of nupC by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+tdcB
+ygbJ
+ecpB
+atoE
+murB
+mrdB
+ynfH
+dhaR	Regulation of dhaR by DNA-binding transcriptional dual regulator Nac
+narS
+yhfS
+entC
+yafO	Regulation of yafO by DNA-binding transcriptional dual regulator Nac
+yfjR
+racC
+rluF
+loiP
+yehK
+rpsQ
+valW
+guaD
+fis	Regulation of fis by 30S ribosomal subunit protein S1
+ftsA
+spf	Regulation of spf by DNA-binding transcriptional dual regulator Nac
+dppF
+yfjH
+lsrK
+sraA
+roxA
+yihO	Regulation of yihO by DNA-binding transcriptional dual regulator Nac
+hofC	Regulation of hofC by DNA-binding transcriptional dual regulator Nac
+pfkB	Regulation of pfkB by DNA-binding transcriptional dual regulator SutR, Regulation of pfkB by DNA-binding transcriptional dual regulator Nac, Regulation of pfkB by ArgR-L-arginine DNA-binding transcriptional dual regulator
+qseB	Regulation of qseB by DNA-binding transcriptional dual regulator Lrp
+ydgU
+fcl
+yecE	Regulation of yecE by DNA-binding transcriptional dual regulator Nac
+iaaA	Regulation of iaaA by DNA-binding transcriptional dual regulator Nac
+xylZ
+zapE
+rlmI
+frmB	Regulation of frmB by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+ynjH	Regulation of ynjH by DNA-binding transcriptional dual regulator Lrp, Regulation of ynjH by DNA-binding transcriptional dual regulator Nac, Regulation of ynjH by DNA-binding transcriptional repressor GlaR
+wzxC
+xdhD
+dgt	Regulation of dgt by DNA-binding transcriptional dual regulator CpxR-phosphorylated, Regulation of dgt by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+tusD
+pyrG
+ydfI
+ycdX
+ytfE
+insD5
+yggL
+iraM
+ybhA
+artP	Regulation of artP by DNA-binding transcriptional dual regulator Lrp, Regulation of artP by DNA-binding transcriptional dual regulator Lrp
+tatE
+qorB
+yafW
+allD
+ydjL
+yabR
+def
+yadW
+modA	Regulation of modA by DNA-binding transcriptional dual regulator Lrp
+fieF
+gltJ
+marB
+yliM
+gltB	Regulation of gltB by ArgR-L-arginine DNA-binding transcriptional dual regulator
+hpf	Regulation of hpf by DNA-binding transcriptional dual regulator Lrp
+yqgF
+rhlB
+rssB	Regulation of rssB by DNA-binding transcriptional repressor GlaR
+panC
+yihX	Regulation of yihX by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+hypC
+lpxT	Regulation of lpxT by small regulatory RNA MicA
+ndh
+ftp	Regulation of ftp by DNA-binding transcriptional dual regulator YeiE
+gpmA
+rlmG
+ccmB	Regulation of ccmB by DNA-binding transcriptional dual regulator Nac
+fryB
+dgcF
+lgoR
+yoaE
+fdrA
+metU
+prfA
+nfrA
+yfbV
+rclR
+gpt	Regulation of gpt by DNA-binding transcriptional dual regulator Lrp
+yqcE
+ydiN
+pldA	Regulation of pldA by DNA-binding transcriptional dual regulator Nac, Regulation of pldA by DNA-binding transcriptional dual regulator ArcA-phosphorylated, Regulation of pldA by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+rprA
+fimZ
+deoR
+yoaL
+serV
+yjeT
+btsS
+fliH
+mqsR
+cysG
+higA
+yccA
+hyfI
+crcB
+rsmD
+yahL
+purC

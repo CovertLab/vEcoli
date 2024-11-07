@@ -1,4738 +1,4542 @@
-Gene Name	Synonyms
-ydcU	
-rpsG	
-gapC	b1416 // b1417
-treB	
-yibT	
-rutA	ycdM
-yriA	
-sthA	sth // udhA
-fliX	
-fabB	fabC
-yjaZ	htrC
-ninE	
-rrsB	
-yqeH	
-sxy	yccR
-ameF	
-cheZ	
-fklB	ytfC
-fumA	
-norR	ygaA
-bioD	
-arnB	pmrH // yfbE
-ihfA	hid // himA
-yggM	
-yadL	
-yneK	
-kbaY	yraC // kba // agaY
-yphB	
-yccM	
-pheM	phtL
-yfeN	
-apt	
-yfaE	
-ftsI	pbpB // sep
-yehQ	
-pepP	
-yjeV	
-elfA	ycbQ
-surA	
-rhsD	
-yggT	
-rplL	
-rph	
-ytjB	smp
-sgcE	yjhK
-talB	yaaK
-sgrS	ryaA
-yehE	
-hemH	popA // visA
-pdxA	
-dppF	dppE
-yegU	
-speD	
-yafF	
-pdxH	
-eutN	yffY // cchB
-ydcZ	
-ymdG	
-yraR	
-ynaK	
-mrdA	pbpA
-tdcA	
-topA	supX
-rpsS	
-trpB	
-rnhA	cer // sin // dasF // herA // rnh // sdrA
-yeeH	
-grcA	yfiD
-csgG	
-napF	yojG
-ybiT	
-yhbO	
-flgC	flaW
-ykgH	
-coaA	panK // rts // ts-9
-otsA	
-adiY	
-insF3	tra5-2
-dnaA	
-mdtI	ydgE
-holC	
-cydC	mdrA // mdrH // surB // ycaB
-yhcA	
-proY	yajM
-crcB	ybeI
-hycC	hevC
-rrfC	
-yihR	squR
-cysM	
-yceH	
-rhaM	yiiL
-ycgJ	
-sraA	psrA3 // t15
-nuoB	
-tdh	
-acpT	yhhU
-dcuR	yjdG
-leuS	syl
-fliK	flaE
-3'ETS-<i>leuZ</i>	
-glcE	yghL // gox // b2978
-mdtU	ydgV
-alaX	alaWbeta
-ghxQ	b2885 // ygfR // b2884 // ygfQ
-waaL	rfaL
-cynR	
-insH9	trs5-9 // yi52_9
-fimE	hyp // pilH
-ynjD	
-ptsN	yhbI // rpoP
-yddG	
-b0538	
-slt	sltY
-ychF	gtp1
-glpB	psi-51
-rcbA	ydaC
-yiiX	
-oxyS	
-rpmE	
-ybgC	
-garK	yhaD
-ydaT	
-rzoQ	
-naRNA4	
-pyrC	
-b3007	
-idnK	gntV
-xdhC	ygeU
-yjfY	
-rdcB	yjcZ
-ygeA	
-ydhF	
-pncA	nam // ydjB
-phr	phrB
-insAB3	
-tnaA	ind // tnaR
-murF	mra
-corA	
-glxR	glxB1 // ybbQ
-lptC	yrbK
-mscL	yhdC
-yjcE	
-flgH	flaY
-mocA	ygfJ
-ypeA	
-cdgI	yeaI
-narI	chlI
-ynfE	
-C0299	
-yafY	
-feoB	
-yodB	
-ravA	yieN
-coaD	yicA // kdtB
-ynaM	
-pfkB	
-yddM	
-yddA	
-matP	ycbG
-sufD	ynhC
-appC	cbdA // cyxA
-cysJ	
-gadF	
-phnG	
-idlP	
-yaiA	
-ygiV	
-adk	dnaW // plsA
-astA	ydjV
-yaaU	yabE
-dnaG	dnaP // parB // sdgA
-nhaB	
-hybE	
-rssB	ychL // sprE // hnr
-ytfT	
-hsdS	hsp // hss // rm
-mltC	yggZ
-yfaX	
-yeiG	
-yhjV	
-curA	yncB
-dfp	coaBC
-b1903	
-creB	yjjE // ORF2
-thrV	
-gpt	glyD // gpp // gxu
-folM	ydgB
-ygbM	
-gspA	yheD
-yjbB	
-rzpR	ydaX
-leuW	feeB
-ydeR	
-soxS	
-menF	yfbA
-yfiC	trmM
-dgcC	yaiC // adrA
-gfcD	ymcA
-mdfA	cmlA // cmr
-recD	hopE
-pspB	
-yrbG	
-metG	
-hyfI	
-ycdU	
-ndk	
-lolD	ycfV
-ycaL	
-eutR	yfeG
-cyuA	b3109 // yhaN // b3108 // yhaM
-gfcB	ymcC
-insEF1	
-igaA	yrfF
-hcaF	yfhV // hcaA // phdC2 // digB // hcaB // hcaA2
-ycaK	
-yhjJ	
-insF1	tra5-5
-pyrB	
-flgB	flbA
-yncL	
-argS	lov // lov-1
-frlA	yhfM
-appY	
-fliS	
-dgcI	yliF
-ltaE	ltaA // ybjU
-bioH	bioB
-metH	
-greB	
-asnV	
-sspA	ssp // pog
-ycbF	
-yjfL	
-yhcE	b3217 // b4549
-ppsA	pps
-yiiF	
-tesA	apeA // pldC
-fadH	ygjL
-cysB	
-ymfH	
-ybhL	
-rsmJ	yhiQ
-yciC	
-rhsA	
-ydcL	
-lysQ	
-wbbH	yefF // rfc
-ybgV	
-mukE	kicA // ycbA
-bamA	yzzY // yzzN // ecfK // yaeT
-uhpA	
-glyQ	cfcA // glyS(A)
-yfaS	yfaR // b2228 // b2227
-moeA	bisB // chlE // narE
-metY	
-ygjJ	
-ybeX	
-ibpB	hslS // htpE
-metI	metD // yaeE
-emrA	
-mdtM	yjiO
-yagL	
-argK	ygfD
-yhaI	
-pmrD	
-intD	int
-hyfF	
-ydhR	
-kdsC	yrbJ // yrbI
-tfaS	yfdJ
-mhpE	
-glrK	yfhZ // yfhK // qseE
-lpp	mlpA
-yqgA	
-wzb	
-yibY	
-sanA	sfiXSt // yeiF
-glxK	glxB5 // ybbZ
-yahJ	
-elbB	yzzB // elb2 // s27a // yhbL
-sraG	psrA15 // p3 // psrO
-lacZ	
-trhA	yqfA
-holA	
-ydcD	
-ytgB	
-fbaA	ald // fba // fda
-ypdE	
-glpC	
-tmaR	yeeX
-gspO	hofD // hopD // hopO // yheC
-ispG	gcpE
-ybiJ	
-yigA	
-slyA	
-asphoP	
-ynfC	
-argU	dnaY // pin
-acpS	dpj
-cbpM	yccD
-yhhZ	
-dinB	dinP
-xseA	xse
-yffR	
-ycaP	
-ybjS	
-ypdC	
-ynjC	
-yegD	
-hofC	yacD // hopC
-yihF	
-cedA	ydjP
-hyaB	
-rttR	rtT
-tff	t44
-yjhH	
-yoeI	
-tas	ygdS
-nudK	yffH
-yigE	b3815 // b3814
-uidA	gurA // gusA
-asnC	
-dsdC	
-kptA	yjiI
-ybfQ	
-queF	yqcD
-fic	ficT
-oxc	yfdU
-amiB	yjeD
-rrlG	
-ydgC	
-ybdJ	
-yghR	
-yebB	
-cbpA	
-aspX	
-frvA	yiiK
-sufA	ydiC
-ycdY	
-dapD	ssa
-gyrB	hopA // pcpA // pcbA // parA // nalC // Cou // acrB // himB // hisU
-yqgF	
-ybfP	
-ygaP	
-radA	sms
-rrfG	
-rcsA	cpsR
-truB	yhbA
-adhP	yddN
-nuoL	
-ilvM	
-ybfI	
-ubiJ	yigP
-sgcX	yjhO
-sapB	
-pldA	
-higB	ygjN
-paaI	ydbV
-can	yadF
-modE	chlD // modR
-yehS	
-paeA	ytfL
-nlpD	
-mgtL	
-leuO	
-kdsB	
-allS	ybbS // glxA1
-leuX	Su-6 // supP
-grxA	grx
-cybB	
-dacC	
-feoA	
-msrA	pms // pmsR
-tamB	ytfO // ytfN
-gspD	yheF
-elaA	yfbC
-gfcE	yccZ
-ypaA	
-dcuS	yjdH
-yoaE	
-fliT	
-yhgN	
-baxL	
-ybdD	
-hypF	hydA
-alsK	yjcT
-sroH	
-yjiS	
-cysA	
-infB	ssyG
-yniB	
-naRNA6	
-yegW	
-priB	
-yjhP	
-murA	mrbA // murZ
-basS	pmrB // dgkR
-hofP	yrfA
-ykiD	
-thrW	
-etp	yccY
-insAB2	
-nfrA	
-uspF	yzzL // ynaF // UP03
-aaaE	
-hiuH	yedX
-hipA	
-rplV	eryB
-rpsQ	neaA
-yidD	
-ilvY	
-yddE	
-ygbK	
-ylbH	rhsH
-narU	yddF
-ytiB	
-nuoA	
-qseC	ygiY
-iscA	yfhF
-deaD	csdA // mssB // rhlD
-srlB	gutB
-paoB	yagS
-fucP	
-elfG	ycbT
-yadX	
-gltV	tgtE
-gndA	
-uhpC	
-fixC	yaaS
-pyrH	umk // smbA
-ygeX	
-sdaC	dcrA
-yeeZ	
-pepT	
-ybdK	
-ymjC	
-hxpB	yniC
-micC	IS063 // tke8
-katG	
-cas2	ygbF
-recQ	
-slyD	
-nupG	gru
-relA	RC
-ymfJ	
-gltL	
-hycB	hevB
-ygaY	ygaX // b2680 // ECK2675
-ydcO	
-yehB	
-cysG	
-yhhX	
-dacB	
-ykgF	
-yiaW	
-mqo	yojH
-insC3	yi21-3
-yjiG	
-dpiA	citB // criR // mpdA
-fadE	yafH
-adiA	adi
-yegP	
-tamA	ytfM
-pgi	
-rnd	
-dnaJ	groP // grpC
-glrR	yfhA // qseF
-frlB	yhfN
-fhuF	yjjS
-deoC	tlr // dra // thyR
-clpS	yljA
-yeaD	yzzQ
-treC	treE // olgH
-menE	
-yciF	
-eutK	yffI
-ascF	sac
-ygiF	
-ysaA	yiaI
-maeB	ypfF
-hisI	hisE // hisIE
-artP	
-naRNA1	
-speB	
-tsaC	yrdC // rimN
-prpD	yahT // acnC
-mlaF	yrbF
-kdpA	kac
-yhcO	
-arrS	
-ydfZ	
-yghF	ecfA
-rlmI	yccW
-nanE	yhcJ
-yjhI	
-malF	
-yccA	
-fhuC	
-yceM	mviM
-yghU	
-glaR	ygaE // gabC // csiR
-ytfE	dnrN
-rtcB	yhgL
-fliZ	yedH
-ghoT	yjdO
-speA	
-ykgE	
-ycgL	
-phnM	
-ygbN	
-leuV	leuValpha
-gloB	yafR
-ptsH	ctr // hpr
-yibW	
-elaD	
-narW	chlZ
-arsR	arsE
-dsdX	yfdD // yfdA // dsdC
-ynhH	
-waaY	rfaY
-ydjY	
-tmcA	ypfI
-ptrR	yneJ
-ubiK	yqiC
-yebV	
-elfD	ycbR
-yjjP	
-sucC	
-ybhF	
-lgoR	yjjM
-ybcW	
-frdD	
-trmA	rT // rumT
-cof	
-insE3	
-accD	dedB // usg
-ygdI	
-prfC	miaD // tos
-roxA	ycfD
-mzrA	ecfM // yqjB
-cysS	syc
-intF	yagO
-ycjG	ycjH
-yfbV	
-xdhD	ygfN
-insB7	b4563 // b4564
-ydhK	
-mdtQ	yohH // yohG // b2138 // ECK2132
-mgtT	
-pth	rap
-pqiA	pqi5 // pqi5A
-acrZ	ybhT
-hchA	yzzC // yedU
-insD1	yi22-1
-yihI	
-yjgW	
-ybeF	
-zapE	yhcM
-yecF	
-dkgA	yqhE
-ycjD	
-hscB	yfhE
-btuF	yadT
-yciQ	yciP
-ecpD	yagW // matE
-glpG	
-frwC	yijJ
-yjbS	
-treF	
-pdeH	yhjH
-sokB	
-dadX	alnA // alnB // dadB
-yfhL	
-b1354	
-glnZ	
-atpI	uncI
-yhcD	
-pawZ	
-sodB	
-yfjZ	
-pykF	
-uvrD	uvr502 // srjC // uvrE // dar-2 // dda // mutU // pdeB // rad // recL
-mdtN	yjcR // sdsR
-nikE	hydD // hydC
-pxpB	ybgJ
-menC	
-yccU	
-ydgK	rsxP
-yfbU	
-bfd	yheA
-insZ	ychG // b1240 // b1239
-ytfQ	
-pepE	
-arfA	yhdL
-hsdM	hsm // hsp
-bamB	yfgL
-nuoC	nuoD
-rbsK	
-xylF	xylT
-dmsC	
-rhaB	
-ogt	
-yffP	
-clcA	eriC // yadQ
-ghrA	ycdW
-nfo	
-yjjA	
-garR	yhaE
-yrfJ	
-setB	yeiO
-ytjA	
-fliD	flbC // rfs
-lipA	lip
-ysgA	
-deoD	pup
-yqeJ	
-rimJ	tcp
-hemW	yggW
-yjdN	phnB
-hyfB	yffF
-rrlD	
-gspK	yheJ
-hybF	
-yqfB	
-rnlB	yfjO
-mfd	
-yhhL	
-fnr	nirA // nirR // ossA // oxrA
-icdC	
-yfbO	
-ychA	sirB1
-chaA	
-yncO	
-gltF	ossB
-bioP	yigM
-fxsA	yjeG
-sroG	HB_456/7
-rna	rnsA
-ygdT	
-cobB	ycfY
-putP	putC
-gltK	
-rhaD	
-yacC	
-satP	yaaH
-selA	fdhA
-rcnB	yohN
-kduI	yqeE
-ychJ	
-ligB	yicF
-dusA	yjbN
-b4247	
-ydfI	
-ybhC	
-pdxK	yfeI // pdxL
-uidC	gusC
-yfdK	
-nrdF	ygaD
-rimO	yliG
-yciY	
-recA	zab // umuB // tif // lexB // recH // rnmB // srf
-adhE	adhC // ana
-ilvC	
-ibsA	
-yhbX	
-yidK	
-arcZ	psrA16 // sraH // ryhA
-fimF	
-pinE	pin
-nadE	efg // ntrL
-flhA	flaH
-sieB	
-mcbA	ybiM
-nfeF	yqjH
-waaB	lps // syn // rfaB
-kefB	trkB
-ycgH	b1169 // b1170
-xylR	
-mepH	ydhO
-secE	mbrC // prlG
-ispH	yaaE // lytB
-ynbC	
-yecJ	
-ythB	
-rnr	vacB // yjeC
-fimI	
-yfeX	
-tusB	yheL
-evgL	
-yagF	
-yeaY	
-yqiD	
-tnaB	tnaP // trpP
-pck	pckA
-rpmH	rimA // ssaF
-yhfT	
-exoX	yobC
-ackB	
-greA	
-glsA	ybaS
-nrfC	yjcJ
-yghJ	b2974 // b2973 // sslE
-fucK	
-yciW	
-ygfZ	yzzW
-timR	
-coaE	yacE
-gspH	hofH // hopH
-cpdA	icc
-proW	osrA // proU
-ilvL	
-ddlB	ddl
-livG	hrbD // hrbC // hrbB
-ypjA	
-trpA	try // tryp
-gdhA	
-yigB	
-rpmI	
-ycfJ	
-nikD	hydD // hydC
-yeaO	
-yjjZ	
-alr	alr5
-yicN	
-yhdE	
-ppiB	
-pepQ	
-arsC	arsG
-mutY	micA
-trmO	tsaA // yaeB
-yegL	
-glpA	
-fdoI	
-fliN	motD
-rsmH	yabC // mraW
-arnF	yfbJ
-ppx	
-yhfG	ficA
-smpB	smqB
-gcvA	
-yafO	
-msbA	
-fimZ	ybcA
-guaB	guaR
-ythA	
-ygjV	
-ygcQ	
-ydfC	
-acrE	envC
-ybbD	b0500
-ffs	
-dut	dnaS // sof
-gmhB	yaeD
-basR	pmrA
-ygaC	
-yceQ	
-tapT	yfiP // tuaA
-pspH	
-glmY	tke1 // sroF
-ydjX	
-fliI	fla // flaAIII // flaC
-ibsD	
-bcsF	yhjT
-b1437	
-yahC	
-tyrS	
-pgaA	hmsH // ycdS
-yjjB	
-ylbE	b0519 // G0-10554 // b4507
-nrdH	ygaN
-yjfJ	
-yfeO	
-ibsB	
-tusA	yhhP // sirA
-yrbN	
-lysO	ybjE
-intS	intC // yfdB
-yieE	
-puuR	ycjC
-elyC	ycbC
-yadC	
-afuC	fbpC // yagC
-xanQ	ygfO
-xseB	yajE
-yncJ	
-mltD	yafG // dniR
-etk	yccC
-nusA	
-aat	ycaA
-yhgO	
-barA	airS
-rdlD	
-lpxP	ddg
-tsf	
-rplR	
-casD	ygcI // cas5e
-yghG	
-nei	
-ftsX	ftsS
-fabH	
-yjgZ	
-ymcE	
-insCD5	
-ykgM	
-insH1	trs5 // trs5-1 // yi52_1
-rfbA	rmlA // som
-astB	ydjT
-yedS	b1964 // yedT // b1965 // b1966
-ymgM	
-ydeI	
-yjiJ	
-azuC	
-ycgX	
-pbpG	yohB
-tcyN	yecC
-garD	yhaG
-sgcA	yjhL
-edd	
-ynbG	
-yibU	
-pqiC	ymbA
-ecnB	yjeU
-ycfL	
-wzxE	wzx // yifJ
-ssrS	ssr
-suhB	ssyA
-dhaL	ysgS // ycgS // dhaK2
-yggR	
-nudI	yfaO
-rstB	uspT
-tgt	vacC(S.f.)
-prfB	supK
-wzc	
-mtlA	mtlC
-ynjE	
-fliM	flaQ // fla // flaQII // flaAII // flaA // cheC2
-b2084	
-wcaM	yefK
-tdcD	yhaA
-yfdS	
-tap	
-mutM	fpg
-ipeX	
-mepA	
-epmA	genX // poxA // yjeA
-G0-10698	
-insA4	
-nadD	ybeN // fusB
-qorA	hzc // hcz // qor
-fruA	ptsF
-ugpB	psiB // psiC
-cvpA	dedE
-fumD	ydhZ
-ydbH	
-yjhQ	
-cirA	cir // feuA
-ygjK	
-yghA	
-ffh	
-ybaQ	
-uidB	gusB // uidP
-lptA	yhbN
-yhhW	
-ydcH	
-rdcA	yjdA // crfC
-hcxB	ybiC
-rsd	yjaE
-yoeA	yoeE // b1995 // b1998 // ECK1990
-gadA	gadS
-uxuA	
-ydbJ	
-prmC	hemK
-ybjG	
-yciA	
-ydiS	
-ubiU	yhbU
-rbsC	rbsP // rbsT
-yobI	
-lhr	rhlF
-ykgO	
-livK	hrbD // hrbC // hrbB
-yccX	
-yobH	
-hflX	hslX // hflA
-uvrA	dar // dinE
-ybhJ	
-iraP	yaiB
-ypfH	
-ldrB	
-b0725	
-ahr	yjgB
-ypjD	
-yadE	
-argG	
-ispF	ygbB
-ghrB	tkrA // yiaE
-yihD	
-tufB	pulT // kirT
-sokC	sof
-uspA	
-ycjM	ggaP
-yghX	b2999 // yghY // b3000 // ECK2994 // orf_f136
-ymjE	
-priA	srgA
-insB5	
-rplM	
-yjiT	
-hslJ	ydbI
-yehC	
-pinR	ynaD
-yfeC	
-yigI	
-insL1	yi81-1
-mlaA	vacJ
-oxyR	momR // mor
-cheB	
-nupX	yeiJ
-emrE	eb // mvrC
-fecE	
-ynfT	
-insD2	yi22-2
-yhiM	
-potF	
-ryfB	shoB
-ylaC	
-plaR	yiaJ
-yjbE	
-ycdZ	nupT
-ygiL	
-yacL	
-pyrL	pyrE- // pyrE-LP
-ycbX	
-aroL	
-pphA	yebX // prpA
-ydaE	
-flhD	flbB
-sdhD	cybS // dhsD
-dcuC	
-fabA	
-acpP	
-rnpB	
-dtpB	yhiP
-yabR	
-idnD	yjgV
-gnsA	yccL // sfa
-serX	
-thrT	
-pnp	bfl
-yfiH	pgeF
-pstB	phoT
-ygeW	
-yfjM	
-argW	
-yfjX	
-mdaB	mda66
-yheO	
-tpx	yzzJ
-ypjF	
-hipB	
-fkpA	yzzS
-rplC	
-yaaA	
-ivbL	
-murP	yfeV
-aroH	
-ubiV	yhbV
-fryB	ypdH
-rseX	IS096
-tufA	pulT // kirT
-uxuR	
-gsiC	yliC
-yfaZ	
-mntS	G0-8881
-gspE	yheG
-ldtC	ycfS
-iap	
-yfdP	
-yjiR	
-fliE	fla // flaAI // flaN
-skp	ompH // hlpA // firA
-dppC	
-glmU	yieA
-yhhM	
-yiaG	
-alkB	aidD
-ymfD	
-waaO	waaI // rfaI
-loiP	yggG
-pgl	ybhE
-entD	
-cobU	
-lpxD	omsA // firA
-cydA	cyd-1
-C0067	
-lapB	yciM
-ascG	sac
-ynaL	C0343
-yfcJ	
-ibpA	hslT // htpN
-yciB	
-ibsC	
-yrdA	
-nmpC	phmA
-rpoN	glnF // ntrA
-citG	ybdT
-rsxB	ydgM
-ymfN	
-mltA	ygdM // mlt
-allE	glxB6 // ylbA // ughY
-ydiQ	
-galU	ychD
-fabI	envM // gts // qmeA
-fliQ	flaQ
-yjhD	
-modF	chlD // phrA
-dicC	ftsT
-ycaO	
-malQ	malA
-yjcB	
-yniD	
-ydeO	
-yabI	
-lon	capR // deg // dir // lopA // muc
-rhtA	ybiF
-yafW	
-fruL	
-torZ	bisZ
-marC	ydeC // ydeB
-pdeI	yliE
-xthA	xth
-yhcF	
-tehA	
-ppiD	ybaU
-rbsA	rbsT // rbsP
-ymiA	yciX_1
-yheS	
-usg	usg-1
-murR	yfeT
-hcp	priS // ybjW
-mlrA	yehV
-ccmB	yejV
-essQ	ydfS
-wbbI	yefG
-kefG	yheR
-lptF	yjgP
-pykA	
-kduD	yqeD // ygeC
-ychN	
-ycdF	
-cyoA	
-ydcJ	
-lpoA	yraM
-hsrA	yieO
-potG	
-yieP	
-yriB	
-fabF	vtr // cvc // fabJ // vtrB
-acrR	ybaH
-sibB	QUAD1b // tpe60 // ryeD
-galM	
-queG	yjeS
-yrdD	
-fdhD	
-lptB	yhbG
-ydhT	
-ymfL	
-lgoT	yjiZ // yjjL
-ftsH	std // hflB // mrsC // tolZ
-hycH	hevH
-oppC	
-rfbD	rmlD
-sbp	
-dnaC	dnaD
-fecC	
-ygbE	
-trkH	
-ybeZ	phoL
-wzyE	rffT
-degP	htrA // ptd
-rlpA	
-insH3	trs5-3 // yi52_3
-yfdN	yzyA
-mngA	frx // hrsA
-lsrA	ego // ydeX
-fhlA	fhl
-ttdR	dan // ygiP
-solA	
-dosP	yddU // dos // pdeO
-paaJ	ydbW
-nfrB	
-wcaK	
-yoeH	
-lepA	
-yeaL	
-asd	dap // hom
-yehP	
-potD	
-ynfR	
-insEF4	
-mqsR	ygiU
-ispA	
-yidC	
-yjjI	yjjH
-yrbL	
-pdeB	ylaB
-fdnG	
-ycgM	
-yijE	
-cusF	cusX // ylcC
-speE	
-php	yhfV
-metA	
-dinG	rarB
-csiE	csi-16
-yidI	
-ugd	yefA // udg // UDG8 // pmrE
-ung	
-aroF	
-fhuE	
-narY	chlZ
-dhaK	ycgT // dhaK1
-perR	
-flxA	
-ompL	yshA
-tfaX	ylcE
-ykgG	
-fimC	pilB
-ygeP	
-gloC	ycbL
-yjaH	
-bglJ	yjjR
-artJ	
-serA	
-nrfD	yjcK
-proL	proW
-asnT	
-hicB	ydcQ
-hrpB	yadO
-ubiI	visC
-aldB	yiaX
-acrB	acrE
-yahI	
-hdhA	hsd // hsdH
-glpE	
-napA	yojD // yojC // yojE
-tktA	tkt
-ynfG	
-yeaH	
-yiaU	
-gadE	yhiE // yhiT
-insAB1	
-pdhR	aceC // genA // yacB
-gutM	gut // srlM
-ddpC	yddQ
-hycG	hevG
-modC	chlD // narD
-yhbS	
-nuoM	nuoA
-yfdQ	
-ydjF	
-ugpQ	
-selB	fdhA
-yggL	
-yghB	
-yecT	
-panZ	livL // panM // yhhK
-yccE	
-yfaA	pufY
-aroD	
-ldtD	ycbB
-hemA	gtrA
-ygdB	
-ilvX	
-yahV	
-bacA	uppP
-sbmC	dgi // gyrI // yeeB
-clcB	ynfJ // mriT
-arnE	yfbW
-dgcE	yegE
-yjeO	
-dhaR	ycgU
-yfhH	
-tatE	ybeC
-rihC	yaaF
-rpsM	
-rpnC	yadD
-cusB	ylcD
-guaD	ygfP
-zapG	yhcB // lapD
-xerC	
-glnL	glnR // ntrB
-ypfN	
-sfmD	
-thiM	
-bcsG	yhjU
-yegH	
-ybaM	
-ybcJ	
-yqeI	
-ves	ydjR
-yibI	
-argR	Rarg // xerA
-priC	
-rpsH	
-sufB	ynhE
-pta	
-nusG	
-asmA	yegA
-glmS	
-rluF	yjbC
-trhP	yegQ
-ftnB	yecI
-sufE	ynhA
-yjeI	
-argE	
-tusD	yheN
-entS	ybdA
-yfgO	perM
-yhfS	
-frvX	yiiI
-yfeK	
-tfaE	ycfA
-ogrK	
-yidP	
-chaC	
-oppD	
-citT	ybdS
-yjgL	
-ssuB	ycbE
-tolB	lky // lkyA // tol-3
-ppdB	ygdC
-ttdT	ygjC // ygjE
-lacY	
-yciK	
-ytfR	ytfS // b4228 // b4229
-dicA	ftsT
-rpmJ	secX
-bepA	yfgC
-ycaR	
-yfdE	
-creC	phoM
-phnO	
-caiC	yaaM
-flgK	flaS
-bcr	bicA // bicR // sur // suxA
-cbrA	yidS
-fucO	
-cysH	
-pheV	pheC
-nadA	nicA
-hha	
-yibJ	rhsJ
-ysaB	
-ydiF	
-cpxR	yiiA
-osmE	anr
-pspF	ycjB
-glyA	
-ibsE	
-metK	metX
-rbfA	sdr-43 // yhbB
-valV	
-rhaS	rhaC2
-sdhE	ygfY // cptB
-ydfG	
-naRNA5	
-iraD	yjiD
-allZ	
-murI	yijA // dga // glr
-glcB	glc
-paaH	hbdH // ydbU
-ydjE	
-marA	norB // inaR // cfxB // nfxC // soxQ
-yraJ	
-tsaD	gcp // ygjD
-udp	
-yfdX	
-ssuA	ycbO
-gpmA	gpm
-yrdE	
-bglB	blgA
-thiH	thiB
-nudC	yjaD
-trhO	yceA
-yraI	
-lolA	yzzV // lplA
-gmk	spoR
-maoP	yifE
-caiE	
-narS	
-yqcC	
-cspD	ybjA // cspH
-rutR	ycdC
-galT	galB
-ybhP	
-wcaL	yefL
-rcdA	ybjK
-pdxY	ydgS
-ampC	ampA
-gss	gsp
-bioA	
-frvR	yiiH
-gmhA	yafI // lpcA // tfrA
-ybhU	
-yfhR	
-rzoD	
-asnS	lcs // tss
-uacT	ygfU
-tsgA	yhfH // gutS // yhfC
-yciE	
-bioF	
-zraP	yjaI // zra
-motB	flaJ
-ylcG	
-eutP	ypfD
-malX	
-fepG	
-fliA	rpoF // flaD
-aroE	
-galF	wcaN // yefG
-ykiB	
-waaG	rfaG
-sapA	
-thiI	nuvA // yajK
-uup	ycbI // ycbH
-creD	refII // cet
-yhhQ	
-yeiW	
-rrsE	
-yaaI	
-leuB	
-punR	ydhB
-zapA	ygfE
-thrU	
-hycI	
-yfdH	gtrB
-aroB	
-yiaM	
-xylB	
-yfbL	
-sgcC	yjhN
-dppD	
-pdeK	yhjK
-ykgR	
-rfbX	wzx // wzxB
-caiB	yaaN
-emtA	ycgP // mltE // sltZ
-fepD	
-alsC	yjcV
-gadY	IS183
-yfeH	
-yfdT	
-gltJ	
-dosC	yddV // dgcO
-sdhC	cybL // cybA // dhsC
-yihT	squT
-grpE	
-cdaR	sdaR // yaeG
-paaB	ynbF
-omrB	PAIR2b // t59 // rygB
-insG	yi41
-rpsF	sdgH
-ppdA	
-yihA	engB
-ortT	ydcX
-yieK	
-ycaC	
-micF	stc
-mrp	
-lnt	cutE
-rrsD	
-kgtP	witA
-sibA	QUAD1a // tp11 // ryeC
-betI	
-rhtC	yigJ
-ynaA	tmpR
-phnL	
-fes	
-lsrK	ydeV
-insCD3	
-ymcF	
-rdgC	yaiD
-trpC	trpF // trpCF
-mhpR	
-renD	ybcE
-ydhV	
-mntR	ybiQ
-cydB	cyd-2
-ykfC	
-rplX	
-yjgM	
-menD	
-ilvG	ilvO // b3767 // b3768
-insEF3	
-ompN	ynaG
-sfmC	
-waaH	yibD
-mhpC	FpurN	ade(c) // ade
-ykiE	
-yfaT	
-kilR	ydaD // kil
-ugpA	psiB // psiC // ugp
-yeeN	
-fliJ	flaO
-menB	
-rbsB	prlB // rbsP
-hflD	hslZ // ycfC
-ygjR	
-kbp	yzzM // ygaU
-insF2	tra5-1
-insB1	
-ascB	sac
-prkB	yhfF
-dtpC	yjdL
-rpmA	rpz
-wcaE	
-luxS	ygaG
-potA	
-treA	osmA // tre
-alaC	yfdZ
-nadC	
-yjfF	
-ynfM	yzyC
-yhgE	
-prlF	sohA // prlFA
-leuL	leuLP // leulL // leulLP // leuIP
-yagG	
-insX	ykgN // ECK0266
-rnpA	
-frmR	yaiN
-pyrS	ypdA
-msrC	yebR
-murG	
-ydcT	
-yjiX	
-tpiA	tpi
-yfiR	
-sodA	
-ydeT	fmlC
-endA	
-ydcR	
-ymgA	
-mmuM	yagD
-ypjK	
-yfiM	
-dmlR	yeaT
-acrF	envD
-ulaC	ptxA // yjfU // sgaA
-glpK	
-dapF	
-yicJ	
-yhfY	
-modA	
-yigF	
-exuT	
-ybgU	
-zur	yjbK // znuR
-tldE	mcb // pmbA
-kdgT	
-feaR	ydbM // maoX // maoB
-dcrB	yhhR
-yihY	rbn
-yhhI	
-shoB	yphI // ryfB // b4681
-phnK	
-agaB	yraD
-yejB	
-rmuC	yigN
-dsbA	dsf // iarA // ppfA
-arpB	ydiW // ydiX // b1721 // b1720
-nagZ	ycfO
-rrlB	
-yafT	
-nohD	nohB
-tdcE	yhaS
-nanC	yjhA
-rprA	psrA5 // IS083
-hypE	hydB
-thiQ	sfuC // yabJ
-ydhW	
-yrhB	
-yejA	
-argQ	argVdelta
-dgoT	yidT
-glgP	glgY
-ytiE	
-purU	ychI // tgs
-ytfK	
-rpnB	yfcI
-yecE	
-tyrP	
-yeiB	
-yeaQ	
-yceJ	
-gntR	
-ydfA	
-potI	
-phoU	phoT // pst
-brnQ	hrbA
-cheA	
-epd	gapB // gap2
-vsr	
-ybiE	
-queA	tsaA
-ahpC	tpx // ssi8
-hyfH	
-yeeY	
-lysW	lysT-beta // lysTbeta // su
-nhaA	ant // antA
-astD	ydjU
-ycjR	dte
-atpA	papA // uncA
-efeO	ycdO
-ucpA	yfeF
-ompX	ybiG // ompP
-hisC	
-yhfZ	
-yehK	
-citR	ybdO
-mokC	gefL
-cbrB	yieI
-insD3	yi22-3
-yagN	
-ompA	con // tolG // tut
-metJ	
-pinH	ypjG
-ilvE	
-yneG	
-bdcA	yjgI
-artQ	
-hokB	ydcB
-yhiI	
-fdoG	
-fliP	flaR
-citC	ybeO
-yafE	
-yadM	
-hyaA	
-hslV	yiiC // clpQ // htpO
-maa	ylaD
-ais	pagH // pmrG
-ryjA	psrA24 // sraL
-phnF	
-mraZ	yabB
-cyoC	
-rseB	
-ytfB	
-abgA	ydaJ
-feoC	yhgG
-alaT	talA
-pepN	
-fabR	yijC
-pspA	cog
-ygaV	
-hyfR	
-narX	frdR // narR // frd1
-yidJ	
-valU	valUalpha
-thiG	thiB
-fryC	ypdG
-ribD	nusII // ribG // ybaE
-insB3	
-wzxC	wzx
-insJK	
-yiiE	
-ybgQ	
-rplW	
-kbaZ	yhaX // agaZ
-minD	minB
-glpQ	
-fldA	
-yibH	
-frdB	
-fmt	ftm // yhdD
-puuA	ycjK
-lysU	
-yphF	
-yjgX	yjgY // b4276 // b4275 // b4560
-yfjJ	
-ybjD	
-fdnI	
-ybbJ	
-frlD	yhfQ
-insE4	
-hupA	
-sufC	ynhD
-cysW	
-nuoN	
-tp2	
-yiaA	
-yjjV	
-rrfA	
-zinT	yodA
-prc	tsp
-ubiF	yleB
-yhdU	
-menH	yfbB
-gspM	hopZ // pshM
-ybcL	
-cusC	ibeB // ylcB
-apaH	cfcB
-cobT	
-rirA	
-menA	yiiW
-panB	
-nfi	yjaF
-hemB	ncf
-pal	excC
-cmtB	tolM
-ubiH	acd // visB
-eco	eti
-ygjP	
-evgA	
-ybfO	
-gshA	gsh-I
-alsA	yjcW
-yidZ	
-yjhF	
-pstC	phoW
-adeD	adu // yicP // ade
-phnH	
-hemL	gsa // popC
-yeiR	
-flgF	flaX
-yqiG	
-argC	Arg2
-yeeP	
-ygiM	ecfG // htrG
-rutG	ycdG
-rppH	ygdP // nudH
-ycaN	
-leuD	
-pdeR	yciR // gmr
-araC	
-fruK	fpk
-yibA	
-rlmM	ygdE
-ggt	
-ybiU	
-ycfH	
-yfbS	
-rclR	ykgD
-phoP	
-aaeB	yhcP
-pbl	ygeJ
-frmA	adhC
-yceB	
-gabT	
-bglG	bglC
-ridA	yjgF
-cysN	
-folK	
-tyrU	sup15B // supM // supZ
-ygfM	
-ppiC	parvA
-ecpE	yagV // matF
-yoaG	
-yhjY	
-mmuP	ykfD
-pqiB	pqi5 // pqi5B
-yiaO	
-hslO	yrfI
-ymjB	
-yohC	
-ybhR	
-yfaP	
-gfcA	ymcD
-pheU	pheR // pheW
-yagJ	
-csrA	zfiA
-ychH	
-hisJ	
-ycjT	
-yjfP	
-fecD	
-sra	rpsV
-ybaE	
-ynaN	
-intR	ydaP
-murD	
-yobF	
-yoaI	
-cobS	
-tfaP	ymfS
-entA	
-valW	
-yjdP	
-sad	yneI
-phoB	phoRc // phoT
-cutC	
-proS	drp // drpA
-yqjF	
-ybcM	
-hprR	yedW
-tag	tagA
-rimP	yhbC
-ulaE	sgaU // yjfW
-ygiD	
-artI	
-mngB	ybgG
-yqgC	
-eutC	
-dusB	yhdG
-ybiR	
-tsx	T6rec // nupA
-insD7	insD
-yeeO	
-ycgZ	
-yqiA	yzzI
-gadX	yhiX
-ascrp	
-nanS	yjhS
-lpxH	ybbF
-sseB	
-yhjG	yhjF
-ycfK	stfP
-dgoD	b3692 // yidU
-tynA	feaA // maoA
-deoA	TP // tpp // ttg
-asnU	
-ribC	ribE
-yqeF	
-mdtK	norE // norM // ydhE
-npr	yhbK // ptsO // rpoR
-cueR	copR // ybbI
-ykfB	
-fumC	
-insA3	
-glpD	glyD
-rlmJ	yhiR
-isrC	IS102
-ycjU	pgmB
-insE2	
-exbD	
-amyA	yedC
-mazE	chpAI // chpR
-pspD	
-caiF	
-bcsB	yhjN
-ptrB	tlp
-rsxC	ydgN
-yoeB	
-chiX	sroB // rybC // micM
-ssb	exrB // lexC
-ycgY	
-yqiM	
-tpke11	
-ushA	
-hybB	
-uxaA	ygjW
-glnQ	
-bsmA	yjfO
-hyi	ybbG // gip
-metB	met-1
-sodC	
-narH	chlC
-ypjJ	
-yggI	sprT
-ytfI	
-rrlA	
-msrQ	yedZ
-flgI	flaM
-nrfG	yjcN // aidC
-dgcP	yeaP
-ydcY	
-selD	fdhB
-ynfL	
-rcsB	
-yqeA	
-betA	
-yfdY	
-rep	dasC // mbrA // mmrA
-purA	adeK
-iscX	yfhJ
-hipH	yjjJ
-lptD	yabG // ostA // imp
-pabA	
-rcsC	
-tdcC	
-paoD	yagQ
-murJ	mviN // yceN
-ulaF	yjfX // sgaE
-ytfH	
-sdhB	dhsB
-manZ	gptB // mpt // ptsM // ptsX
-mtr	
-trpD	trpGD
-yoeF	
-zapB	yiiU
-gltS	gltC
-phnI	
-hcxA	ybdH
-nrfB	yjcI
-yjbR	
-envR	acrS // yhdK
-moaA	bisA // chlA // chlA1 // narA
-ymdF	
-mreC	
-ygiZ	
-yafV	
-fecB	
-yfcV	
-yqeB	
-ftsN	msgA
-ilvI	
-ycjF	
-yhgF	
-pabB	
-hofM	yrfD
-yfhM	
-appX	yccB // cbdX
-rlmA	rrmA // yebH
-ygiC	
-yfjW	
-gudX	ygcY
-citX	ybdU
-rsfS	ybeB // rsfA
-uspD	yiiT
-yfiB	
-gspL	yheK
-ddpB	yddR
-zraR	hydG
-ymfM	sfiC
-ybaL	ylaA
-rdlC	
-rplT	pdzA
-pgrR	ycjZ
-yoeJ	
-hxpA	yfbT
-allC	glxB7 // ylbB
-paaG	ydbT
-mnmC	yfcK // trmC
-rluE	ymfC
-ycbZ	
-grxC	yibM
-fadI	yfcY
-purL	purI
-aegA	yffG
-glgX	
-mazG	
-acnB	yacJ // yacI
-chiP	ybfM
-speC	
-ecpB	yagY // matC
-insQ	ydcM // tnpB
-ydiM	
-mioC	yieB
-thiS	thiG1
-rseA	yfiJ // mclA
-recX	oraA
-frmB	yaiM
-caiA	yaaO
-yodD	
-recB	ior // rorA
-ydeS	
-yajO	
-dolP	ecfH // yraP
-rplA	rpy
-rplK	relC
-ydfX	
-flgO	
-yecR	
-yqgE	
-nth	
-yiaD	
-gltT	tgtB
-asnW	
-yhaC	
-dksA	msmA
-yhiS	
-nirC	
-ybjJ	
-hypC	
-acpH	yajB
-parE	nfxD
-pssL	
-proV	osrA // proU
-mug	ygjF
-yddB	
-wcaC	
-nudB	yebD // ntpA
-wecE	rff // fcnA // rffA // yifI
-thrL	
-naRNA3	
-tsuA	yeeE
-yedN	b1934 // yedM // b1935 // ECK1933 // b1933
-sibC	QUAD1c // t27 // rygC
-fepA	cbr // cbt // fep // feuB
-mtlR	
-ftsB	ygbQ
-entF	
-mazF	chpAK // chpA
-proM	proU
-yacG	
-rplY	
-gdx	sugE
-cmk	ycaF // mssA // ycaG
-thiC	
-ymgJ	
-galK	galA
-flk	div
-rffG	rff
-yncK	insP // b4531 // b4530
-yrhC	
-manX	gptB // mpt // ptsL // ptsX
-yegZ	
-insI2	tra8-2
-kdpE	
-rrsC	
-ycjV	
-ydcC	
-ymfK	cohE
-ddpF	yddO
-yihV	squV
-codA	
-serV	supD
-panE	apbA
-dld	ldh
-ompF	nfxB // tolF // cmlB // cry
-insE1	
-ybbP	
-fumB	
-b1364	
-pepD	pepH
-dsbB	ycgA // roxB // dsbX // iarB // rosB
-ybaN	
-ivy	ykfE
-ynbD	
-gsk	
-polA	resA
-ydeN	
-rne	smbB // ams // hmp1
-rybB	p25
-ybcY	
-lpxT	yeiU
-napB	yejY
-clpX	lopC
-ycaD	
-yddY	
-tyrV	tyrTbeta
-yfjU	
-yidG	
-zwf	
-trkG	
-yffL	
-yjfM	
-hflK	hslY // hflA
-atoA	
-glgS	scoR
-ugpC	
-rtcA	yhgJ // yhgK // b3420 // b3419
-gadW	yhiW
-ymjA	
-ftnA	ftn // gen-165 // rsgA
-ybeY	
-yjaG	
-yhfU	
-pcnB	
-efp	
-dgcZ	ydeG // ydeH
-raiZ	
-paaA	ydbO
-ypfJ	
-yihX	
-yjdF	
-dedD	
-agp	
-ynjB	
-zipA	
-mscK	aefA // kefA
-spfP	
-ydcV	
-ynfU	
-mdlA	mdl
-cpdB	
-mutS	ant // plm // fdv
-dppB	
-yadN	
-yggC	
-ebgC	
-eutM	yffZ // cchA
-dnaQ	mutD
-murQ	yfeU
-ydeJ	
-cheY	
-ybaY	
-galE	galD
-ndh	
-mak	yajF
-sroE	k20
-yqeG	
-yrhA	
-yajQ	
-htpG	
-ymfA	
-nfsA	mda18 // mdaA // ybjB
-narZ	chlZ
-rflP	ydiV
-secB	
-ryfD	
-dsbG	ybdP
-ygjI	
-ybgA	tkp
-ygaZ	
-rpoC	tabB
-hisQ	
-bamD	ecfD // yfiO
-ftsW	
-mgrB	yobG
-pepB	yfhI
-hybD	
-flgA	flaU
-rutB	ycdL
-ilvA	ile
-hyfG	
-ruvA	
-psuK	yeiC // pscK
-yicL	
-intQ	
-yihN	
-metT	metTalpha
-yiaC	
-yhjD	
-quuD	ybcQ
-rplQ	
-paaX	ydbY
-pgsA	
-yghQ	
-yfeS	
-yqfI	
-ymfR	
-yaiI	
-higA	ygjM
-fabD	tfpA
-iclR	
-ydhJ	
-ybaB	
-actS	ygeR
-mtlD	
-cbeA	yeeU
-psiE	yjbA
-rfaD	waaD // hldD // htrM // nbsB
-artM	
-yebE	
-ileT	tilA
-ydcI	
-ybcN	
-cheR	cheX
-wbbL	yefJ // b2031 // b4540
-yehI	
-yajI	
-yjdI	
-malZ	
-evgS	
-cstA	ybdC
-iscS	nuvC // yzzO // yfhO
-rsmG	gidB
-xylH	
-nuoJ	
-yaiW	
-yjeH	
-yhcG	
-sokE	
-dcm	mec
-yfjY	
-ybjC	
-mbiA	htpY // htgA
-ubiA	cyr
-aidB	
-narV	chlZ
-ldrD	
-mglB	
-ypaB	
-yjjW	
-alsE	yjcU
-amiD	ybjR
-uspG	UP12 // yzzU // ybdQ
-rapA	yabA // hepA
-ymgE	tag
-rhoL	
-ypfM	
-yfbM	
-ynbE	
-cspH	cspK
-ybhB	
-rimK	nek
-arnT	yfbI // pmrK
-lptE	rlpB
-nrdE	
-gmd	yefN // yefA
-hyfJ	
-truC	yqcB
-recF	uvrF
-dacD	phsE // yeeC
-ulaB	yjfT // sgaB
-ompG	
-tehB	
-ygfT	
-yhgH	gntX
-atpC	papG // uncC
-hofN	yrfC
-eutB	
-eutH	yffU
-rplD	eryA
-abgT	ydaH
-csdE	ygdK
-ykfG	
-hycE	hevE
-ykfL	
-yghE	ecfB
-yiaV	
-marB	
-era	rbaA // sdgE
-torS	yccI
-yghW	
-yeiQ	
-ygeF	
-bssS	yceP
-livH	hrbD // hrbC // hrbB
-ftsO	
-glyW	ins // mutC // suA58 // suA78
-htrL	yibB
-ybeU	
-yhdT	
-yehM	yehO // yehN
-lolC	ycfU
-exuR	
-ybgP	
-yhdJ	
-nrdI	ygaO
-gudP	gudT // ygcZ
-narG	chlC // narC
-yafP	
-aspU	
-puuC	aldH
-casE	ygcH // cse3 // cas6e
-yaeQ	
-garP	yhaU
-agaC	yraE
-yfdM	yzyB
-cecR	ybiH
-mcrB	rglB
-raiA	urf1 // yfiA // pY
-yigG	
-yqcG	
-ycdX	
-mutL	
-secA	azi // pea // prlD
-cyoB	
-yecV	
-yhfL	
-serW	
-abrB	ybgN
-nlpI	yhbM
-fucR	
-trxB	trxR
-ypjI	
-gatB	
-lpxB	pgsB
-ompT	
-yqfE	
-cynT	
-yaiP	
-bluF	ycgF
-cpxP	yiiO // b3913
-rraA	menG // yiiV
-fadB	oldB
-pyrE	
-rhtB	yigK
-kup	trkD
-yhdY	
-fiu	ybiL
-hemX	
-yobD	
-b4700	
-yegI	
-gnd	
-yjbT	
-rnhB	
-fetB	ybbM
-b0100	
-nac	
-insJ	yi5A
-paaE	ydbR
-zntB	ydaN
-ydhU	
-ydhS	
-iscU	yfhN // nifU
-selC	fdhC
-thpR	yadP // ligT
-rutC	ycdK
-betT	
-frdC	
-mhpD	mhpS
-ptsA	yijH // frwA // pt1A
-metQ	metD // yaeC
-rseD	
-dadA	dadR
-galP	Pgal
-crl	
-pxpA	ybgL
-yadG	
-yhjB	
-ssnA	ygfL
-kdgK	yhjI
-otsB	otsP
-ydbL	
-ybdR	
-ghoS	yjdK
-ydeQ	
-rrlE	
-hisL	
-cysT	
-hokD	relF
-dgt	optA
-cysE	
-rutD	ycdJ
-ybbA	
-lhgD	ygaF // lhgO
-fliO	flbD
-psiF	
-yhdV	
-tcyJ	yzzR // ssi7 // fliY
-mreB	rodY // envB // mon // mreB_1
-intB	int(P4) // yjgC
-malS	
-ryhB	psrA18 // IS176 // sraI
-gfcC	ymcB
-malI	
-atpD	papB // uncD
-arcB	
-yjeJ	
-dgcN	yfiN
-proB	pro(2) // pro2
-nikR	yhhG
-mdtF	yhiV
-yohK	
-mdtC	yegO
-ymiD	
-yphH	
-insK	dinS // yi5B // t150
-mokB	
-ilvB	
-yghD	ecfC
-pspC	
-djlB	ybeS
-wzzE	wzz // yifC
-dinQ	
-rhlE	
-pbpC	yfgN
-yhdP	b3246 // yhdR // yhdQ // b3245
-scpB	ygfG
-pagP	ybeG // crcA
-yfgJ	
-rpoZ	spoS
-cspC	msmB
-dam	
-ynfO	
-tcyP	ydjN
-ldcC	ldc // ldcH
-ldrC	
-lysR	
-speFL	
-caiT	yaaP
-queE	ygcF
-ybiW	pflF
-yegT	
-ygfS	
-yafU	
-phnC	
-cas1	ygbT
-yahF	
-chbC	celB // hic
-yfgG	
-yegR	
-sgbU	yiaR
-ybfF	
-pheA	
-sfmA	
-yeeJ	
-carB	pyrA
-iaaA	spt // ybiK
-yqhC	
-osmB	
-racR	rarC // ydaR
-preA	yeiA
-yoaM	
-mgtS	yneM
-intA	intX // slpA
-thrB	
-narJ	
-accA	
-astE	ydjS
-plsB	
-abpA	yfjL
-yoeG	
-mnmG	gidA // trmF
-dgd	
-allB	glxB3 // ybbX
-yicU	
-rrrD	lycV // ybcS
-yehX	
-hpf	yhbH
-lyxK	lyx // xylK // sgbK // yiaP
-pgaC	hmsR // ycdQ
-rpoB	sdgB // tabD // stv // stl // ftsR // groN // nitB // rif // ron
-ydcF	
-fkpB	slpA // yaaD
-stfR	ynaB
-tldD	yhdO
-afuB	fbpB
-tnaC	tnaL
-yoaC	
-tpke70	
-yidL	
-eutJ	yffW
-pgaD	hmsS // ycdP
-dsdA	
-prpR	yahP
-yaeI	
-yjiN	
-naRNA2	
-wecF	yifM // b4404 // rff // rffT // b4405
-yshB	
-envY	
-ybfL	
-yqiH	
-sdaA	
-lapA	yciS
-yfbR	
-insI3	tra8-3
-yidA	
-mdtO	yjcQ // sdsQ
-dinD	pcsA // yicD
-micL	slrA // ryeF
-ptrA	ptr
-phnE	ECK4097 // b4103 // b4104
-yhcN	
-ribF	yaaC
-ubiC	
-rpoH	fam // hin // htpR
-pflB	pfl
-ydfE	
-rutF	ycdH
-sulA	sfiA // suf
-yecU	
-yeaV	
-sroC	HB_314
-C0614	
-ubiG	pufX // yfaB
-rob	cbpB // robA
-ygbI	
-yjaB	
-bcsQ	yhjQ
-ydjM	
-iroK	
-bglX	glh // yohA
-betB	
-hemE	
-ybfK	
-rclA	ykgC
-nanA	
-dapA	
-yfdL	
-norV	ygaJ // ygaI // ygaK
-yhdX	
-glnW	glnU-beta // glnUbeta
-yqaE	
-hofQ	hopQ
-lolB	hemM // ychC
-yebW	
-csdA	ygdJ
-ybdF	
-mltF	yfhD
-ynaI	
-yidR	
-recR	
-yccJ	
-rhaA	
-rluC	yceC
-yfjP	
-insA9	
-yeiL	
-rpsP	
-dgoA	b3692 // yidU
-purM	purG // purI
-blr	
-fdnH	
-hemC	popE
-nudG	ynjG // orf135
-intE	int(Lambda) // ycfI
-ybeM	ybeH // b0626 // b0625 // ECK0619
-rzpD	ybcT
-yfcP	
-sutR	ydcN
-yjiH	
-kch	
-mgrR	
-ilvD	
-cpsB	rfbM // manC // mni
-rnk	
-ygeH	
-wecH	yiaH
-rrlH	
-secY	prlA
-agaV	yhaY
-rfaH	hlyT // sfrB
-yehL	
-yiaY	
-ylcJ	
-yhjX	
-rrsH	
-ybjM	
-ydgH	
-clsA	yciJ // nov // cls
-ygaH	
-yjbH	
-yfjD	b2612 // ypjE // b2613
-ydfO	
-valS	val-act
-appB	cbdB // cyxB
-insC5	yi21-5
-yegV	
-orzP	
-dmsB	
-rpsN	
-rpsO	secC
-citF	ybdV
-proA	pro(1) // pro1
-tyrA	
-agaS	yraB
-ccmH	yejP
-epmC	yfcM
-holD	
-glyS	
-proC	pro(3) // Pro2 // pro3
-ygeO	
-yfcO	
-tus	tau
-trkA	
-aroP	aroR
-yjhU	
-gltD	psiQ // ossB // aspB
-chaB	
-ydiL	
-rpiB	yjcA // alsI
-cmoM	ycbD // smtA
-psuT	pscT // yeiM
-dcuA	genA
-gudD	ygcX
-aslA	gppB // atsA
-torC	
-ubiD	yigY // yigC
-opgE	ybiP
-yafJ	
-cmoA	yecO
-ebgR	
-citD	ybdX
-qseB	ygiX
-yddK	
-ybcO	
-dmsA	
-ynjF	
-torT	yccH
-cspG	
-yjiM	
-pqqU	yncD
-entB	entG
-ygdD	
-yfbP	
-valX	valU-beta // valUbeta
-yfdI	gtrS // gtrIV
-srkA	orfA // yihE
-rpsI	
-yibQ	
-ispD	ygbP
-yneO	orfT // ydeK // ydeU // b1509 // b1510 // ECK1502
-degQ	hhoA
-umpG	ygbC // surE
-yqhA	
-paaY	ydbZ
-udk	
-waaJ	rfaJ // waaR
-omrA	psrA12 // rygA // PAIR2a // t59 // sraE
-phnP	
-kefC	trkC
-yfdV	
-arnC	pmrF // yfbF
-ybhA	
-yadI	agaX
-ydgJ	
-yfdC	
-pyrI	
-fre	fadI // flrD // fsrC
-hisD	
-yjjQ	
-moaB	chlA2
-selO	ydiU
-relE	
-metF	
-eyeA	
-racC	sbcA
-yhaV	
-rbsR	
-insD4	yi22-4
-comR	ycfQ
-tabA	yjgK
-yicI	
-yeaG	
-cysQ	amt // amtA
-ribA	
-ykgL	
-allR	glxA3 // ybbU
-ygeK	
-yhiN	
-yjfC	
-ftsL	mraR // yabD
-ybaK	
-yfcF	
-fbaB	dhnA
-yddH	
-ynfQ	
-yfcR	
-gcvB	psrA11 // IS145
-setA	yabM
-yigZ	
-mppA	ynaH
-argP	iciA
-btuD	
-lysS	asuD // herC
-ydeE	ydeF
-rimL	
-cspB	
-yfaL	yfaF // yfaK // yfaJ
-infA	bypA1
-rstA	urpT
-rhsE	
-yldA	
-yafC	
-gpr	mgrA // yghZ
-ykfN	
-truD	ygbO
-yjbL	
-uspE	ydaA
-casC	ygcJ // cse4 // cas7
-araD	
-djlA	yabH
-ybjX	
-add	
-tauC	yaiJ // ssiC
-G0-10697	
-rfe	wecA
-wbbJ	yefH
-yhcC	
-zntA	yhhO
-mgtA	atmA // corB // mgt // mtg
-yhfW	
-ftsY	
-rplP	
-b3004	
-idnR	gntS? // gntH // yjgS
-pyrD	
-ssuD	ssi6 // ycbN
-yebY	
-sibD	tp8 // C0730 // IS156 // QUAD1d // rygD
-ispE	ipk // ychB
-ydfJ	ydfJ_2
-ydiZ	
-yeeR	
-ftsP	sui // sufI
-fpr	flxR // mvrA
-pqqL	pqqM // pqqE // yddC
-yneE	
-yfiS	
-rpsT	supS // sup(s20) // supS20
-glcC	yghN
-malT	malA
-rutE	ycdI
-dcyD	yedO
-paoA	yagT
-azoR	acpD
-psaA	
-ymdA	
-rplS	
-alaB	
-serU	supH // Su-1 // ftsM // su1 // supD
-kdpB	kac
-ykgQ	
-pgk	
-insC2	yi21-2
-cydD	htrD
-dicB	ftsT
-insAB4	
-ydeA	
-eutQ	ypfC
-paaD	ydbQ
-yqiB	yzzH
-ohsC	ryfC
-ydfR	
-ompC	meoA // par
-tcyL	yecS
-fepE	
-yejL	
-rpsE	spc // eps // spcA
-ymgK	
-glnE	
-yljB	
-trmL	yibK
-mdtJ	ydgF
-ydgA	
-csgE	
-ydgI	arcD
-sbcB	exoI // rmuA // cpeA // xonA
-cysK	ssi5
-fucU	
-ygaQ	G7393 // yqaD // G7392 // G7391 // ygaR // b2656 // b2655 // yqaC // b2654 // b2657 // b2658
-rnb	
-ccmF	yejR
-ybcK	
-ybhM	
-msyB	
-kilS	
-zapC	ycbW
-hyaD	
-gstA	gst
-fimH	pilE
-chiQ	ybfN
-aroG	
-yebO	
-ysaE	
-rffC	rff // wecD // yifH
-argT	
-hypB	hydB
-fliF	flaAII.1 // flaBI
-fdhF	chlF
-yjbI	
-gshB	gsh-II
-cybC	cytochrome b562
-yohJ	
-rluB	yciL
-lpxL	htrB // waaM
-dusC	yohI
-rng	adhR // cafA // yhdF
-aspA	
-mukF	kicB
-glpT	
-ydeM	
-pxpC	ybgK
-adeQ	yicO
-yoaH	
-prs	dnaR // prsA
-punC	ydhC
-exbB	
-wcaB	
-yqgB	
-opgB	yjjO // mdoB
-pdxJ	
-yraH	
-nikA	hydD // hydC
-ribE	nusIII // ribH // ybaF
-elaB	yfbD
-gspC	yheE
-mdtH	yceL
-b4250	
-aldA	ald
-zbiJ	
-nfeR	yqjI
-dgoR	yidW // b3695 // b3694
-rrfB	
-chpS	chpBI // yjfB
-ppdD	
-ydiR	
-yaaW	
-yqjE	
-macB	ybjZ
-tatB	ysgB // mttA2
-valT	valTa // valTalpha
-glyT	sumA // sup15B // supA36
-yhhN	
-ykfM	
-insB6	
-moaE	chlA5
-cadB	
-ymgL	
-osmF	yehZ
-yhhA	
-inaA	yfaG
-ybgE	
-ybiB	
-yaiY	
-ygiW	visP
-sgrR	yabN
-ycgB	
-tisA	ysdA
-sapC	
-rdlB	
-sdiA	
-thyA	
-zapD	yacF
-nuoF	
-acs	yfaC // acsA
-lgt	umpA
-soxR	marC
-flhC	flaI
-ygjH	
-uidR	gusR
-gcvT	
-yeaR	
-cspF	
-yhbP	
-codB	
-waaC	rfa-2 // rfaC // yibC
-ydjO	
-zraS	hydH
-pflC	yijM
-glvG	b3681 (obsolete) // ECK3672 (obsolete) // ysdC // yidM
-ykfF	
-ileS	ilvS
-gltP	
-trpT	su7 // su8 // su9 // supU // supV
-ptsG	umgC // umg // tgl // Cr // car // cat // catB2 // glcA // gptA
-rzpQ	ydfP
-clsC	ymdC
-cfa	cdfA
-yddL	
-zntR	yhdM
-hisR	hisT
-qseG	yfhG
-mcaS	IS061 // isrA
-IS128	
-proQ	yoeC // yobE // yebJ
-yggN	ecfF
-yebF	
-leuQ	leuVgamma
-tesB	
-sucA	lys+met
-pyrR	ypdB
-ydiN	
-rimM	yfjA
-uof	
-yhaK	
-fadD	oldD
-frwD	yijN
-yjiL	
-nrdG	yjgE
-azuR	isrB // IS092 // G0-8904
-lpxC	asmB // envA
-tcdA	ygdL // csdL
-cydH	ynhF // cydY
-rrlC	
-yigL	
-patA	oat // pat // ygjG
-prpE	yahU
-rplF	
-astC	ydjW // argM // cstC
-nanK	yhcI
-yfcH	
-yahH	
-ynfB	
-ysdD	
-alx	ygjT
-ccp	yhjA
-mprA	emrR
-paaZ	ydbN // maoC
-radD	yejJ // yejI // yejH
-ileY	
-patZ	yfiQ // pka
-gabP	
-yghO	
-gatA	
-ygcO	
-mnmA	asuE // ycfB // trmU
-rhaR	rhaC1
-rsmA	ksgA
-stpA	hnsB
-gsiB	yliB
-yjgN	
-katE	
-hcr	ybjV
-nagA	
-efeU	ycdN // b1016 // b1017
-ccmA	yejW
-mlaC	yrbC
-argL	
-yneL	
-rnt	
-osmY	csi-5
-btuE	
-yibV	
-bioB	
-gmm	nudD // wcaH // yefC
-glgA	
-trg	
-eamB	yfiK
-emrY	
-yadS	
-cvrA	ycgO
-yjaA	
-ytjE	
-cysP	
-ycjX	
-ysgD	
-hdeB	yhiC // yhhD
-manY	pel // ptsP // ptsX
-yjtD	lasT
-yciX	yciX_2
-folD	ads
-G0-10702	
-spf	
-agaW	yhaZ
-mntP	yebN
-rrrQ	ydfQ
-hdfR	b3762 // yifA // yifD // b3763
-hydN	
-yfbN	
-rpnD	yjiP // b4338 // ECK4330 // yjiQ // b4339
-fabZ	sfhC21 // sabA1 // sefA // yaeA
-dmsD	ynfI
-mog	yaaG // bisD // chlG // mogA
-thrS	
-glyV	glyValpha // ins // mutA // suA58 // suA78
-rrfD	
-oweE	
-yliI	
-tsuB	yeeD
-mhpA	
-yihP	
-yabP	b4659
-cutA	cutA1
-thrC	
-insN	yi91a // b0255 // b0257
-atoE	
-fadA	oldA
-leuC	
-aceK	
-fimR2	
-mltB	slt
-grxB	
-ddlA	
-yeeT	
-mdtE	yhiU
-yiiQ	
-yqjK	
-yjgR	
-galR	Rgal
-ybhK	
-trpS	
-yahO	
-copA	ybaR
-eutE	yffX
-tyrT	tyrTalpha // supFsupO // Su-3 // Su-4 // su(c) // suIII // supC
-yihM	
-yahL	
-creA	yjjD
-yqhI	
-ttcA	ydaO
-potC	
-tdcF	yhaR
-dicD	yjdC // cutA3
-thiF	thiA
-ycfZ	
-mglC	mglP
-idnO	yjgU
-nadK	yfjE // yfjB
-bfr	
-ychO	ychP
-rybA	
-xerD	xprB
-holE	
-oppB	
-yjfN	
-ygcR	
-yfjS	
-ybgS	
-atoD	
-yeaK	
-cmtA	
-wza	
-treR	
-ygiS	
-abgR	
-sgrT	
-ptsP	ygdO // ygdF
-cspA	
-hyaE	
-mdlB	mdl
-ykgP	
-ptsI	ctr
-lpoB	ycfM
-cyoD	
-yjdQ	
-glmM	yhbF // mrsA
-recG	radC // spoV
-gluQ	yadB
-kdpD	kac
-recN	radB
-htpX	
-ppnN	ygdH
-pntB	
-ygjQ	
-yrdG	asarfA
-mreD	
-eutT	ypfB
-mgsA	mgs // yccG
-cnoX	ybbN
-ydhQ	
-rhsB	
-cysC	
-wrbA	
-cobC	phpB
-hdeA	yhiB // yhhC
-yphD	
-fetA	ybbL
-aaaD	ylcF
-ssuC	ycbM
-yrfG	
-putA	putC // poaA
-uvrC	
-b0309	
-znuB	yebI
-tyrB	
-rpmC	
-hyfC	
-acnA	acn
-asompR	
-ulaD	yjfV // sgaH
-cysZ	
-nikB	hydC // hydD
-yfbK	
-yfjI	
-ruvB	
-ybiI	
-folB	ygiG
-ykiC	
-trmH	spoU
-nanM	yjhT
-uvrY	yecB
-yjcO	
-araJ	araT
-hokC	gef
-yceK	
-glvB	yidN // yidO
-ymdB	
-tomB	ybaJ
-amiA	yfeE
+# Generated from the following BioVelo query on EcoCyc, 5:47pm, November 4, 2024: html-sort-ascending(html-table-headers([(x^?name, x^?synonyms) : x<-ECOLI^^Genes, !(classp x)], ("Gene name", "Synonyms")), 2)
 cho	ydjQ
-yeaE	
-ulaR	yjfQ
-ispZ	
-yhiL	b3490 // b3489 // ECK3474 // yhiK
-aceK-int	
-lsrR	ydeW
-yagP	ykgT // b4695
-nimT	yeaN
-ycjO	
-yqjG	
-ubiB	yigS // yigQ // yigR // aarF
-mobB	yihC
-avtA	
-cca	
-secG	prlH
-damX	yhfB
-sucB	
-secF	
-nrfF	yjcM
-yjhV	
-yoaJ	
-helD	srjB
-ygbL	
-glmZ	psrA20 // sraJ // k19 // ryiA
-frwB	yijK
-recC	
-iraM	elb1 // ycgW // elbA
-mglA	mglP // mgl
-metU	metT-beta // metTbeta
-thrA	thrA2 // Hs // thrA1 // thrD
-aroA	
-pntA	
-yiiR	
-pphB	ygbH // prpB
-ypeD	
-yfcZ	
-xapA	pndA
-yfgD	
-yfdO	oweS
-ymgF	
-deoR	nucR
-hslU	clpY // htpI
-yahG	
-istR-1	
-ygcE	
-rplO	
-cadA	ldcI
-peaD	ybcD
-hybG	
-secM	srrA // yacA
-ydfD	
-G0-17132	
-hspQ	yccV
-murC	
-tktB	
-folX	
-ydbD	
-hokA	yiaZ
-ysaC	
-acrD	yffA
-xylE	
-alaV	
-ryjB	
-envC	yibP // slm11
-ubiE	yigO
-dppA	alu // dpp // fpp
-hcaE	yfhU // digA // phdC1 // hcaA // hcaA1
-oppF	
-rsgA	yjeQ
-yqaA	
-yjiA	
-yedF	
-yoaB	
-alsB	yjcX
-ydjH	
-rem	
-aroC	
-prlC	opdA
-fbp	fdp
-ybgI	
-yqhJ	
-qmcA	ybbK
-yafD	
-leuZ	
-iscR	yfhP
-rrsG	
-mlaD	yrbD
-yehD	
-rdgB	yggV
-ampD	
-norW	ygaL // ygbD
-proX	osrA // proU
-slyB	
-nhaR	antO // yaaB
-dsbD	htrI // cutA2 // cycZ // dipZ
-ybcI	
-puuB	ycjA // ordL
-flgE	flaK
-tonB	T1rec // exbA
-gpsA	
-lysZ	
-cysU	cysT
-rapZ	yhbJ
-yedP	
-b3975	
-yfeR	
-yciG	
-yhaL	
-rclB	ykgI
-rluA	yabO
-uraA	
-ilvN	
-ydfV	
-ttcC	
-ygfF	yqfD
-pepA	carP // xerB
-yhdH	acuI
-agrB	
-yneP	
-rfbC	rfbD // rmlC
-yiaT	
-kefF	yabF
-yabQ	b4659
-bluR	ycgE
-ftsK	dinH
-uxaB	
-mtn	pfs // yadA // mtnN
-ypdI	
-esrE	
-cdd	
-ccmC	yejT // yejU
-ylbI	
-ygeL	
-hyaF	
-thiL	thiJ
-frlR	yhfR
-yqgH	
-nc1	
-nnr	yjeF
-aceA	icl
-phoR	R1pho // phoR1 // nmpB
-yqeC	
-aspT	tasC
-napD	yojF
-rplU	
-cspE	gicA // msmC
-dkgB	yafB
-livM	
-ypeC	
-fadR	dec // ole // oleR // thdB
-ydaY	
-gsiD	yliD
-cueO	yacK
-ycjY	
-mutH	mutR // prv
-cusS	ybcZ
-yeaW	
-insA2	
-symE	yjiW // dinL // sosC
-wcaA	
-qorB	ytfG
-ycbJ	
-yecA	
-yrdB	
-agrA	
-yjfZ	
-dnaN	
-mdtB	yegN
-secD	
-ftsZ	sfiB // sulB
-yfjV	ypjM // ypjL // ECK2637 // ECK2636 // b2640 // b2639
-efeB	ycdB
-srlE	sbl // gutA // gutE // srlA // srlA-2
-cspI	cspJ
-yjfI	
-ymgC	
-ycfT	
-yedK	yedG
-yedE	
-ybjO	
-crp	cap // csm // gurB
-dgcT	ycdT
-sgbH	yiaQ
-rssA	ychK
-yafS	
-yncG	
-gph	yhfE
-yggF	yggK
-umuC	uvm
-frc	yfdW
-nanQ	yhcH
-ompR	cry // kmt // ompB
-ybjN	
-nimR	yeaM
-bhsB	
-eutS	ypfE
-rpmD	
-stfZ	
-serT	divE
-miaB	yleA
-bidA	ynfK
-yfcS	
-aqpZ	bniP
-frr	rrf
-yicH	
-bcsA	yhjP // yhjO
-ychE	
-ypeB	
-sdsR	tkpe79 // ryeB
-ybeD	
-cdh	
-pmrR	
-wcaD	
-glpX	
-yefM	
-ybfD	
-serS	
-rnlA	yfjN // std
-seqA	hsm-1
-hemY	
-kdpC	kac
-nanX	yjhB
-pheL	pheAE
-upp	uraP
-leuA	
-phoH	psiH
-hofB	hopB
-pgaB	hmsF // ycdR
-csgA	
-ykfJ	
-rsxD	ydgO
-gcl	
-ybjL	
-mqsA	ygiT
-yfcU	ECK2331 // yfcT // b2338 // b2337
-der	engA // yfgK
-ymgG	
-thiB	yabL // sfuA // tbpA
-pitA	pit
-lplA	yjjF // slr
-yedJ	
-yohP	
-ccmG	yejQ // dsbE
-dapE	msgB
-lpxK	ycaH
-lptG	yjgQ
-yeeW	
-waaZ	rfaZ
-ldcA	ycgQ
-yzgL	
-ybaZ	atl
-hlyE	ycgD // clyA // hpr // sheA
-yffN	
-yoaL	
-fcl	wcaG // yefB
-hisP	
-tmk	ycfG
-mlc	dgsA
-ybhD	
-pheP	
-dgoK	yidV
-hsdR	hsp // hsr
-jayE	ymfP
-yohD	
-yggE	
-yhdW	
-yfjF	ratB
-nupC	cru
-insC6	yi21-6
-gloA	
-nirD	
-yeiP	
-yqhD	
-truA	asuC // hisT // leuK
-pliG	ycgK
-rpmF	
-drpB	yedR
-xylA	
-mscS	yggB
-ykfA	
-motR	
-ynjH	
-tfaD	ybcX
-prfH	
-yciZ	deoL
-borD	iss // vboR // bor // ybcU
-csrB	
-yfcD	
-pnuC	
-yhhY	
-cmoB	yecP
-och5	
-sucD	
-valZ	valTb // valTbeta
-scpC	ygfH
-bcsZ	bcsC // yhjM
-flgG	flaL
-hybO	yghV
-ydfU	
-diaA	yraO
-lacI	
-yecH	
-yfiE	
-yoeD	
-ygeY	
-yfaQ	
-rplJ	
-ydaW	
-ygeN	ygeM // b2857 // ECK2856
-tauA	yaiR // ssiA
-mpl	tpl // yjfG
-dgcQ	yedQ
-wbbK	yefI
-digH	yddW
-yncP	
-ampG	
-speF	
-chbG	celG // ydjC
-yfgH	
-yncI	yncM // b1458 // ECK1453
-bax	
-sraB	psrA4 // pke20 // psrD
-fimB	pil
-phnN	
-yciT	deoT
-viaA	yieD // yieD_1 // yieD_2 // yieM
-rpnE	yfaD
-sgcR	yjhJ
-rlmF	ybiN
-ydeP	
-yjiV	mcrD // yjiU // b4343 // b4344
-ybiV	
-flu	agn43 // yzzX // yeeQ // agn
-talA	
-opgG	mdoA // mdoG
-eaeH	
-lptM	yifL
-yhjE	
-panF	
-relB	RC
-nrfE	yjcL
-mlaE	yrbE
-glnK	ybaI
-ygeI	
-yraK	
-yfcG	
-cheW	
-flgD	flaV
-ytfA	
-yjbJ	
-rimI	
-lacA	
-hda	idaB // yfgE
-csgF	
-pdeG	ycgG
-rpsU	
-yeiI	
-metW	
-lsrD	ydeZ
-yfiF	
-hokE	ybdY
-cysI	
-yicT	erhM // rhuM
-yicC	
-ssuE	ssi4 // ycbP
-yeiE	
-dctA	
-dsrA	
-pgpA	yajN
-nrdB	ftsB
-xapR	pRndR // pndR // yfeB
-insI1	tra8-1
-trmB	trmI // yggH
-yfaU	
-mrr	
-nfsB	ntr // dprA // nfnB
-clsB	ybhO
-xisR	ydaQ
-ygdR	
-ytfJ	ecfJ
-glsB	yneH
-ldrA	
-yicS	
-opgD	yzzZ // ydcG // mdoD
-yibF	
-aphA	yjbP // hobH
-preT	yeiT
-ftsQ	
-yqeK	
-rhsC	
-purB	ade(h) // ade
-ybhI	
-yhfX	
-hupB	dpeA // dbhB // hopD
-tdcB	tdc
-fadM	ybaW // tesC
-yecD	
-yhgP	
-hisB	
-ahpF	
-b2651	
-yniA	
-yecM	yecL
-yjdM	phnA
-pncB	
-yajG	
-cynX	
-flhE	
-lit	
-dtpA	ydgR // tppB
-G0-10706	
-recO	
-ygcP	
-wcaJ	
-kdgR	yebP
-ydcK	
-yagA	
-argV	argValpha
-rsmI	yraL
-gadB	
-ydjI	
-lldD	lct // lctD
-bioC	
-ybeT	
-hmp	fsrB // hmpA
-ppdC	ygdA
-rpsA	ssyF
-mtgA	mgt // yrbM
-frdA	
-modB	chlJ // tslJ
-yfcL	
-leuU	
-yfaY	
-yffQ	
-malK	malB
-exoD	ybcC
-birA	bioR // dhbB
-folE	
-sibE	QUAD1e // rygE
-yliM	
-ydbA	b1401 // b1405
-ddpX	vanX // yddT
-rzoR	
-ynfH	
-insF4	tra5-3
-nudE	yrfE
-nagB	glmD
-pabC	
-napH	yejZ
-ykgJ	
-rpoE	sigE
-yoaF	
-yajR	
-yccS	
-ydjG	
-hycD	hevD
-cyoE	
-tsr	cheD
-uxaC	ygjY // ygjX // ygjZ
-gatY	yegF
-yqhG	yqhF
-trpR	rtrY
-waaS	rfaS
-queC	ybaX
-rbn	zipD // ecoZ // rnz // elaC
-ppc	asp // glu
-malY	
-glcF	gox // yghL // b2978
-tsaB	yeaZ
-motA	flaJ
-ychQ	sirB2
-mokA	
-mutT	nudA
-gltA	gluT // icdB
-gntK	
-ccmD	yojM
-galS	mglD
-ylcI	
-groL	groEL // mopA
-pdeA	yfeA
-yqcA	
-djlC	hscD // ybeV // hsc56
-b1367	
-rcsD	yojP // yojQ // yojN
-ydiO	
-rplN	
-rodZ	yfgA
-srlA	gutA // sbl // srlA-1
-gltB	psiQ // ossB // aspB
-fabY	yiiD
-moaC	chlA3
-waaA	kdtA
-purE	ade(f) // Pur2 // ade3 // ade
-yajC	
-insCD1	
-emrD	yicQ
-G0-10704	
-hcaT	yfhS
-agaR	yhaW
-yhhT	
-yihS	squS
-allA	glxA2 // ybbT
-yiaK	
-ydiK	
-ynjA	
-ansB	
-feaB	ydbG // padA
-panC	
-sfmH	
-yggP	b2931 // b2932
-fsaA	ybiZ // fsa // mipB
-b0701	rhsC
-yfaH	
-yidE	yibE
-yffO	
-bglF	bglS
-C0719	
-mipA	yeaF
-gatD	
-pssA	pss
-yahB	
-agaD	yraF
-fliG	flaAII.2 // flaBII
-rbsZ	
-yejF	
-C0465	
-rpsD	ramA // sud(2) // sud2
-mhpB	
-yeiS	
-clpB	htpM
-tolC	weeA // colE1-i // mtcB // mukA // refI // toc
-yhbE	
-uspB	yhiO
-prpC	yzzD // yahS
-yjcF	
-pspG	yjbO
-ydaF	
-rof	yaeO
-erpA	yadR
-osmC	
-araF	
-yjhR	
-b2191	
-proK	proV
-fis	nbp
-yjjG	
-ydhL	
-micA	sraD // psrA10
-aceF	
-pppA	yghH
-smrA	ydaL
-insAB6	
-argF	
-yiaL	
-C0664	
-slp	
-yahM	
-insAB5	
-purC	ade(g) // ade
-dmlA	ttuC // yeaU
-rihA	ybeK
-tauD	ssiD // yaiG
-yfdR	
-tdcG	b3111 // yhaQ // b3112 // tdcGa // yhaP // sdhY
-narL	frdR // narR
-ldtB	ybiS
-ycgV	
-rlmD	ygcA // rumA
-yddJ	
-yjjX	
-yibX	
-yaeR	
-purK	purE2
-potB	
-stfE	ycfE
-bglH	yieC
-envZ	tpo // perA // ompB
-yaaJ	
-rydB	tpe7 // IS082
-eptA	yjdB
-yohF	yohE
-yfiL	
-yjbG	
-yceO	
-ybgO	
-yihG	
-yagK	
-atpB	papD // uncB
-ykiA	
-fliC	H // flaF // hag
-aspC	
-amtB	ybaG
-yggX	
-ydbK	pfo
-yhiD	yhhE
-baeR	
-flgL	flaT
-kdsD	yrbH
-fruB	fpr // fruF
-ygdG	xni // exo
-wcaF	
-yejK	ndpA
-rspR	ydfH
-ygiA	
-frvB	yiiJ
-yfeY	
-arnD	pmrJ // yfbH
-nrdA	dnaF
-rlmL	ycbY // rlmK // rlmKL
-livF	
-dgkA	
-yacH	
-yfcA	
-entE	
-ynbB	
-yhdZ	
-ypdJ	
-dnaE	sdgC // polC
-rpsL	asuB // strA
-hybC	
-yeiH	
-ydiP	
-chbR	celD
-G0-10703	
-rayT	yafM
-atoS	
-bipA	typA // yihK
-grxD	ydhD
-emrK	
-yaiZ	
-manA	pmi
-yhfK	
-rplB	
-yahK	
-ysaD	
-rpmB	
-bamE	smpA // smqA
-fimG	
-ygfB	
-ykfI	
-gltU	tgtC
-sdaB	
-accB	fabE
-argY	argVbeta
-yjjU	
-phoA	psiA
-ygiQ	ygiR // b3016 // b3015
-yaiO	
-sseA	mstA
-ybaA	
-dctR	yhiF
-yhfA	
-sfsA	sfs // sfs1
-gcvR	yffD
-uspC	yecG
-mdtD	yegB // iceT
-fecA	
-rhaT	
-thiK	ycfN
-ygaM	
-yidQ	ecfI
-lplT	ygeD
-yphC	
-yodC	
-yafN	
-bdm	yddX
-rbsD	rbsP
-ydjZ	
-yqfH	
-cpoB	ybgF
-pinQ	ydfL
-sdhX	rybD
-fau	ygfA
-yejO	
-elfC	ycbS
-rpmG	
-aslB	gppB // atsB
-fnrS	rydA
-rrfE	
-fadJ	yfcX
-ychT	
-yejE	
-plaP	yeeF
-tisB	ysdB
-lysY	lysTg // lysTgamma
-rplI	
-kbl	
-mepS	yeiV // spr
-ettA	yjjK
-ymgD	
-plsX	
-agaI	yraG
-pgpC	yfhB
-hcaR	phdR // yfhT
-yafQ	
-glpR	
-cyaR	ryeE
-mhpF	
-cytR	
-pyrG	
-aroM	
-gatZ	
-yncH	
-ygdQ	
-ariR	ymgB
-arpA	arp // yjaC
-ratA	yfjG
-cynS	cnt // cyaN
-crr	treD // gsr // iex // tgs
-rsuA	yejD
-glnG	glnT // ntrC
-fimD	fimD_1 // fimD_2
-proP	
-dedA	
-amiC	ygdN
-carA	arg // pyrA
-ychS	
-ydiT	
-glvC	ptiC
-ydfW	intK
-hisS	
-rrsA	
-fliR	flaP
-yjhG	
-rpoA	pez // phs // sez
-yicR	radC
-malH	
-ynfP	ydfJ_1
-yehY	
-bhsA	ycfR // comC
-rpiA	ygfC
-glnV	Su2 // glnValpha // suII // supE
-gpmM	gpmC // pgmI // gpmI // yibO
-prpB	yahQ
-yjhY	
-insA5	
-insC1	yi21-1
-eptC	yijP
-trpL	trpEE
-atpH	papE // uncH
-ygbA	
-ralA	
-yehW	
-sstT	ygjU
-hypD	hydF
-nemA	ydhN
-ydiY	
-yhhH	
-cusR	ylcA
-bisC	
-cydX	ybgT
-yidH	
-ysdE	
-yjgH	
-glnX	supE // glnV-beta // glnVbeta
-trmJ	yfhQ
-srmB	rbaB // rhlA
-btsT	yjiY
-umuD	
-gpp	gppA
-nadR	nadI
-hyaC	cybH
-yaiT	yaiU // b0371 // b0374 // ECK0369
-minC	minB
-allD	glxB8 // ylbC
-tilS	yaeN // mesJ
-agaA	yraA
-glcD	yghM // gox
-ybfA	
-xynR	yagI
-csgC	ycdE
-yqiJ	
-yqjA	ecfL
-marR	cfxB // inaR // soxQ
-atoB	
-mrdB	rodA
-flgN	
-holB	
-yqcE	yqcF
-dbpA	rhlC
-ypjB	
-ycjS	
-yphG	
-ydfB	
-yqgG	
-rpsB	
-xylZ	
-hldE	yqiF // rfaE // gmhC // waaE
-kdsA	
-ttdB	ygjB
-ugpE	
-ymdE	
-cyaA	cya
-ygcN	
-rffM	rff // wecG
-ydaU	
-sohB	
-yaeF	yaeK
-poxB	
-ligA	dnaL // lig // lop // pdeC
-tolA	cim // excC // lky // tol-2
-ynaJ	
-ytiA	
-glnH	
-rpnA	yhgA
-ccmE	yejS
-lldR	lct // lctR
-ytjC	gpmB
-chpB	yjfE // chpBK
-yibN	
-cbtA	yeeV
-insM	
-idi	ygfV
-ydjA	
-rcdB	yhjC
-araA	
-hemF	popB // sec
-ytiC	
-yiiS	
-torD	
-srsR	ygfI
-napC	yejX
-waaU	rfaK
-rspB	
-yfgI	
-bssR	yliH
-ydgD	
-yjbQ	
-ybdM	
-rlmB	yjfH
-fhuD	
-yaaX	
-rrfH	
-aroK	
-hinT	ycfF
-hflC	hflA
-pgpB	
-yeaC	
-insB4	
-fdhE	
-ypjC	
-moaD	chlA4 // chlM
-mtfA	yeeI
-malG	
-lsrC	ydeY
-ynfD	
-tyrR	
-yqfG	
-alpA	
-ydhP	
-bolA	
-btuB	bfe // cer
-hscA	hsc
-G0-10705	
-clpA	lopD
-yccF	
-waaP	rfaP
-yejG	
-bglA	yqfC // bglD
-zitB	ybgR
-istR	psrA19 // istR-1 // istR-2
-anmK	ydhH
-yecN	
-dxr	yaeM // ispC
-pdeF	yfgF
-ybiX	
-mnaT	yncA
-cbrC	yieJ
-dcp	
-yliL	
-ymgI	
-argX	
-murB	yijB
-insH4	trs5-4 // yi52_4
-znuA	yzzP // yebL
-ybcF	arcC
-yncE	
-ybdL	
-ybdZ	
-sokA	
-fusA	far // fus
-fdx	
-yjeN	
-glnD	glnD5
-yjdJ	
-hdeD	yhiA
-yajL	thiJ
-yehH	molR // b2116 // yehG // b2117
-nudJ	ymfB
-metR	
-ycgR	
-yiiG	
-fixB	yaaR
-ymfI	
-icd	icdE // icdA
-emrB	
-yobA	
-csrD	yhdA
-gcvP	
-lafU	mbhA
-rlmC	ybjF // rumB
-tpr	
-yeeA	
-glnU	glnUalpha // supB // trnA
-fsaB	yijG // talC
-topB	mutR
-uhpU	
-yhbY	
-yzcX	
-phnD	phn // psiD
-adiC	yjdD // yjdE
-alsR	yjcY // rpiR
-eutD	ypfA // eutI
-sdsN	
-csgD	
-appA	
-rlhA	ydcP
-csgB	
-ybhG	
-ycbV	
-nhoA	yddI
-btsR	yehT
-ubiT	yhbT
-cbl	
-ygeQ	
-rlmG	ygjO
-yiiM	
-ileX	
-nlpC	
-hcaB	yfhX // phdD
-syd	ydr
-mrcB	pbpF // ponB
-ydhX	
-narP	
-fixX	yaaT
-yggS	
-metC	
-bamC	dapX // nlpB
-obgE	yhbZ // cgtA // obg
-rlmE	ftsJ // mrsF // rrmJ
-flgJ	flaZ
-wecC	rff // rffD // mnaB
-ydhY	
-ilvH	brnP
-alaA	yfbQ
-yaaY	
-ykfO	
-yhjR	bcsR
-rpsC	
-sgbE	yiaS
-ymjD	
-insD5	yi22-5
-dacA	pfv
-intG	
-ackA	
-ycgI	ymgH // b1173 // ECK1160
-yadK	
-fldB	
-ykgV	
-pheT	
-yeeS	
-yqjC	
-letA	yebS
-rlmH	ybeA
-yiaF	
-purT	
-sbcD	yajA
-b2596	
-yibG	
-cas3	ygcB
-yhiY	
-atpF	papF // uncF
-lgoD	yjjN
-rsmC	yjjT
-insH2	trs5-2 // yi52_2
-argH	
-rpoD	alt
-aaeR	yhcS // qseA
-pdeL	yahA
-fepC	
-thiD	thiA // thiJ
-entH	ybdB
-b3254	
-xapB	
-insF5	tra5-4
-nsrR	yjeB
-gcvH	gcv
-tadA	yfhC
-ydcS	
-yhbQ	
-speG	
-leuT	
-eutG	yffV
-rsxA	ydgL
-mepK	ycbK
-ldtA	yzzT // yeeG // erfK
-ygcU	ygcT // b2772 // ygcV // b2773
-yajD	
-fhuA	T1 // T5rec // tonA
-baeS	
-yodE	
-glf	yefE
-fucI	
-fucA	fucC // prd
-yidB	
-rusA	ybcP // rus
-ydfK	
-ymfE	
-cycA	ytfD // dagA
-ghxP	yjcD
-opgC	ymdD // mdoC
-rarD	yigH
-yffS	
-safA	yneN
-hicA	yncN
-yffM	
-lolE	ycfW
-metZ	metZalpha
-dcuB	genF
-ypdF	
-yhaB	
-lsrF	yneB
-fdoH	
-ybhH	
-argD	Arg1 // dapC // dtu
-ygcG	
-ispU	uppS // rth // yaeS
-yjhZ	
-ykfH	
-ydaV	
-puuP	ycjJ
-eutA	yffT
-dinI	
-xisD	ybcB
-ycgN	
-gyrA	hisW // nalA // nfxA // norA // parD
-prfA	ups? // sueB // uar
-nohA	nohQ
-asflhD	
-dnaT	
-yfeD	
-b1425	
-ybfG	b0690 // ECK0679 // ybfH
-ebgA	
-insCD2	
-lrhA	genR
-yibL	
-eutL	yffJ
-yjbD	
-torY	yecK
-cadC	
-ftsE	
-ppiA	rot // rotA
-yagM	
-mltG	yceG
-ypdK	
-yheU	
-yceF	
-mrcA	ponA
-ecnA	
-yadW	
-folA	tmr // tmrA
-pflD	yijL
-ada	
-rpsR	
-def	fms
-ydjK	
-btuC	
-yihL	
-lpd	dhl // lpdA
-dcuD	yhcL
-hisF	
-dgcJ	yeaJ
-tusE	yccK
-pgm	blu
-nanY	yjhC
-nusB	groNB // ssaD // ssyB
-ulaA	yjfS // sgaT
-bcsC	yhjL
-sppA	
-folP	dhpS
-insH8	trs5-8 // yi52_8
-mlaB	yrbB
-serC	pdxC // pdxF
-lepB	lep
-yegS	
-narQ	
-sroD	p24
-ecpC	yagX // matD
-lrp	rblA // oppI // mbf // lstR // alsB // ihb // livR // lrs // lss
-groS	groES // mopB
-garL	yhaF
-yhbW	
-yceI	
-essD	vlyS // ybcR
-parC	
+ytcA
+insI3	tra8-3
+rplS
+phnE1	ECK4097, b4103, b4104
+rnr	vacB, yjeC
+yqaE
+ydiS
+yqjC
+pcnB
+hypF	hydA
+insCD1
+mnmC	yfcK, trmC
+phnM
+ycjT
+sraG	psrA15, p3, psrO
 insL2	yi81-2
-asnA	
-adeP	yieG // purP
-melB	mel-4
-alaU	talD
-yfjT	
-gstB	yliJ
-ppa	
-alaS	act // ala-act // lovB
-yebK	hexR(P.a.)
-paoC	yagR
-panD	
-waaF	rfaF
-insO	yi91 // yi91b // b4283 // ECK0257 // insN2 // insO2 // b4285 // ECK4274 // b4562 // ECK4275 // yjhW
-ybbY	glxB4
-yagU	
-nlpE	cutF
-ygiB	
-hcaC	yfhW // hcaa3 // phdB
-tdk	
-lysA	
-topAI	yjhX
-yihU	squU
-iprA	yaiV
-ppsR	ydiA
-aes	ybaC
-blc	yjeL
-yaiX	yaiF // b0362 // b0359 // ECK0359
-nagK	ycfX
-uxuB	
-trxA	dasC // fipA // tsnC
-ydjJ	
-yojO	
-yadV	ecpD
-umpH	nagD
-hisH	
-metV	metZbeta // metX // metZ-beta // metZb
-insH6	yi52_6 // trs5-6
-xanP	yicE
-uhpT	
-uvrB	dar-1 // dar-6
-waaQ	rfaQ
-ybhN	
-yaiS	
-yagB	
-shiA	yeeM
-ydiH	
-yiaB	
-zupT	ygiE
-sixA	yfcW
-yedI	
-fixA	yaaQ
-ybjT	
-rnc	
-apaG	
-hybA	hydL
-gspB	pioO // pinO
-yahE	
-idnT	gntW // yjgT
-tdcR	
-srlD	gutD
-rlmN	yfgB
-nlpA	
-hyfA	yffE
-mdtA	yegM
-yciH	
-intZ	
-lsrB	yneA
-gntP	yjiB
-psuG	yeiN // pscG
-fadK	ydiD
-ycaI	
-rcnA	yohM
-ycaM	
-thiP	sfuB // yabK
-ycaQ	alkZ
-spoT	
-ibaG	yrbA
-yaiL	
-rtcR	yhgB
-allW	allP // glxB2 // ybbW
-yheT	
-gldA	
-rplE	
-ybjP	
-ydhI	
-ybaP	
-ybhQ	
-frsA	yafA
-hns	B1 // H1 // virR // topX // topS // pilG // osmZ // msyA // irk // hnsA // bglY // cur // drc // drdX // drs // fimG
-setC	yicK
-yjbM	
-aaeX	yhcR
-argZ	argVgamma
-yieL	
-yfjQ	
-ydaG	gatA
-ompW	yciD
-ygeG	
-napG	yojA // yojB
-ygbJ	
-phoQ	
-sokX	
-dsrB	
-ybjQ	
-ybcV	
-tauB	yaiQ // ssiB
-gabD	
-glcA	yghK
-eptB	yhjW
-rrfF	rrfDbeta // rrvD
-yoaK	
-glyU	supT // suA36 // sufD // sumA // sumB
-ybiY	pflE
-sbmA	
-aceB	mas
-dnaB	groP // grpA // grpD
-hprS	yedV
-dhaM	ycgC // dhaH // ptsD
-insEF2	
-yggU	
-hyuA	ygeZ
-pheS	phe-act
-yehA	
-tar	cheM
-yjbF	
-rfbB	som // rmlB
-hofO	yrfB
-nfuA	yhgI // gntY
-yqgD	
-ynaE	
-nudL	yeaB
-ynfF	
-pflA	act
-eamA	ydeD
-ddpD	yddP
-paaK	
-pdeD	yoaD
-gntU	b3435 // b3436
-gltW	
-recJ	
-insC4	yi21-4
-dpiB	ybeP // mpdB // citA
-dtpD	ybgH
-letB	yebT
-yphE	
-ybfB	
-ylbF	
-rsmE	yggJ
-yahN	
-gsiA	yliA
-lldP	lct // lctP
-folC	dedC
-phnJ	
-gspG	hofG // hopG
-yhaH	
-yijF	
-ynbA	
-ygiN	
-yfeW	
-gapA	gad // gap1
-insCD4	
-msrP	yedY
-ybcH	
-tolR	
-yjiC	
-ykgS	
-sfmF	ybcG
-aer	yqjJ // air
-yqiI	
-pyrF	
-nuoH	
-lipB	cde // lip
-fecR	
-glnP	
-mdh	
-ldhA	htpH // hslF // hslI
-yqeL	
-sdhA	dhsA
-tqsA	ydgG
-htrE	
-mukB	
-minE	minB
-insH5	yi52_5 // trs5-5
-fieF	yiiP
-prmB	yfcB
-ampE	
-lysP	cadR
-yjeM	
-ymfQ	
-ihfB	hip // himD
-yidX	
-ybjH	
-atpG	papC // uncG
-infC	fit // srjA
-yfjR	
-leuP	leuV-beta // leuVbeta
-yheV	
-yceD	
-dnaX	dnaZ
-yifB	
-ybhS	
-C0362	
-mcrA	rglA
-pstA	R2pho // phoR2 // phoR2b // phoT
-iadA	yjiF
-sapD	trkE
-citE	ybdW
-ybbO	
-ampH	yaiH
-nuoG	
-yieH	
-glk	
-lpxM	mlt // waaN // msbB
-melA	mel-7
-hyfE	
-arnA	SAF // yfbG // pmrI
-yehF	molR_1 // sosF // dinO
-dapB	
-queD	ygcM // sscR
-yjhE	
-deoB	tlr // drm // thyR
-rydC	
-purF	ade // purC
-yijO	
-ymiB	
-fecI	
-ubiX	dedF
-yciN	
-rhlB	mmrA
-yraQ	
-selU	ybbB // mnmH
-lexA	exrA // spr // tsl // umuA
-casA	ygcL // cse1
-yobB	
-insA7	
-pdeN	rtn
-fliL	flaQI // flaAI // cheC1
-ycjN	
-ddpA	yddS
-dinJ	sosA
-leuE	yeaS
-ybfE	
-tusC	yheM
-gspJ	yheI
-eda	hga // kdgA // kga
-yaeP	
-mhpT	yaiK
-rbbA	yhiG // yhiH
-rcsF	
-insB9	
-tfaR	ynaC
-focA	ycaE
-dicF	
-fsr	
-yedL	
-dxs	yajP
-metL	metM
-asr	
-rseP	ecfE // yaeL
-rnm	trpH // yciV
-yjjY	
-metN	metD // abc
-tatC	mttB // yigU // yigV
-yghS	
-ansP	yncF
-ppk	
-guaC	
-hisG	
-ybaV	comEA
-yegX	
-torI	
-pphC	yegK
-yagE	
-yihO	squO
-miaA	trpX
-amn	
-plsC	parF
-lomR	b1369 // b1371
-serB	
-yhiJ	
-ydcA	
-alaW	alaWalpha
-rluD	yfiI // sfhB
-araH	b1898 // b1899
-fur	
-yfcE	
-yrhD	
-psd	
-trpE	anth // tryD // tryp-4
-fabG	
-nirB	
-ycjW	
-gutQ	srlQ
-pspE	
-rffH	yifG
-ryfA	PAIR3b // tp1
-epmB	yjeK
-fimA	fimD // pilA
-ybiA	
-gnsB	ydfY
-cpsG	rfbK // manB
-arfB	yaeJ
-yieF	chrR
-wcaI	yefD
-malP	malA // blu
-gatR	b2090 // b2087
-yqjD	
-argO	yggA
-insA1	
-cyaY	
-rpe	dod // yhfD
-pdxI	ydbC
-ryeA	sraC // psrA8 // tkpe79 // IS091
-aspV	
-ansA	
-stfQ	ydfN
-recE	rmuB // rac // sbcA
-ldtE	ynhG
-yojI	yojJ
-rdlA	
-rarA	ycaJ // mgsA
-ycjP	
-spy	
-ybjI	
-yhhS	
-pdxB	usg-2
-yqiK	
-yafZ	
-argI	
-chbA	celC
-rsmB	yhdB // rrmB // fmu // fmv // sun
-purR	
-fliH	flaAII.3 // flaBIII
-glnB	
-tatA	yigT // mttA1
-yrdF	
-ytiD	
-yoaA	
-yijD	
-ymiC	
-valY	valUgamma
-yfcQ	
-yhdN	
-opgH	mdoA // mdoH
-araG	
-pstS	R2pho // T // nmpA // phoR2a // phoS
-ppnP	yaiE
-glnA	
-glaH	csi-12 // ygaT // csiD
-matA	ykgK // ecpR
-cdsA	cds
-aas	
-mobA	chlB // mob // narB
-fdrA	ylbD
-insL3	yi81-3
-yhhJ	
-rpsK	
-rclC	ykgB
-mnmE	trmE // thdF
-pldB	
-smrB	yfcN
-yfdF	
-kdpF	
-cnu	ydgT
-b0165	
-ftsA	divA
-btuR	cobA
-lapC	yejN // pbgA // yejM
-ykfK	
-lamB	malL // malB
-glpF	
-mdtP	yjcP // sdsP
+asd	dap, hom
+yqaB
+yfhL
+arcA	sfrA, cpxC, dye, fexA, msp, seg
+bamB	yfgL
+yhhZ
+yggM
+pgm	blu
+ygiN
+emrE	eb, mvrC
+fliC	H, flaF, hag
+thyA
+torT	yccH
 maeA	sfcA
-pitB	
-tsaE	yjeE
-bcp	
-gltX	gltM // gluRS
-glgB	
-plsY	ygiH
-mepM	yebA
-rseC	
-yibS	
-torR	
-ykgA	
-sraF	psrA14 // tpk1 // IS160 // psrN
-yebG	
-flgM	
-ytgA	
-insH10	trs5-10 // yi52_10
-paaF	ydbR // ydbS
-menI	ydiI
-hypA	
-mliC	ydhA
-ybeQ	
-hfq	
-flhB	yecQ // flaG
-pncC	ygaD
-ileV	
-cusA	ybdE
-hemG	yihB
-orn	yjeR
-thrP	yifK
-gatC	
-xtpA	
-yidF	
-ydgU	
-yadH	
-ssrA	sipB
-yciO	
-yjcS	
-mcbR	yncC
-yifN	ECK3769 // yifO
-purH	
-glyY	glyVgamma
-nadB	nic // nicB
-ycbU	
-yihQ	squQ
-gcd	
-hslR	hsp15 // yrfH
-yciU	
-yjfK	
-yjcH	
-ylbG	
-narK	
-ygfX	cptA
-yraN	
-yzfA	yjfA // ileR
-ynfA	
-rcnR	yohL
-patD	prr // ydcW
-b1052	
-gadC	acsA // xasA
-alaE	ygaW
-nudF	trgB // aspP // yqiE
-rsxG	ydgP
-dsbC	xprA
-sgcB	
-lspA	lsp
-yebQ	
-nuoE	
-yfgM	
-ybeL	
-ygeV	
-pdeC	yjcC
-ribB	luxH // htrP // luxH-l
-yqhH	
-csgI	yccT
-smg	
-hycA	hevA
-yedD	
-actP	yjcG
-yegJ	
-ynfS	
-gltI	yzzK // ybeJ
-gor	gorA
-yfeZ	
-ileU	tilD
-rsmD	yhhF
-ydfT	quuQ
-hisA	
-purD	adth(a) // adth
-xdhB	ygeT
-nrfA	
-yacM	
-ybfC	
-mdtL	yidY
-yjiK	
-dauA	ychM
-trxC	yfiG
-hrpA	
-csrC	sraK // psrA21 // ryiB // tpk2 // IS198
-yfjH	
-oppA	
-nanT	
-yghT	
-ruvC	
-xisE	ymfG
-atoC	
-yfcC	
-ylcH	
-ralR	ydaB // lar
-insD6	yi22-6
-torA	
-hyfD	
-murE	
-fepB	
-aceE	
-insI2	
-rmf	res // rimF
-scpA	yliK // sbm
-fryA	ypdD
-C0293	
-sgcQ	yjhM
-metE	metB12
-ecpA	yagZ // matB
-msrB	yeaA
-potH	
+garR	yhaE
+speB
+livH	hrbD, hrbC, hrbB
+pgpB
+rfaH	hlyT, sfrB
+eutJ	yffW
+dnaE	sdgC, polC
+galM
+adiC	yjdD, yjdE
+yhcC
+bioA
+yqgD
+ygiC
+argC	Arg2
+ccmH	yejP
+flxA
+yfaX
+yfbK
+yhdJ
+manY	pel, ptsP, ptsX
+speE
+lpp	mlpA
+dedD
+basR	pmrA
+ydiB
+infB	ssyG
+gdx	sugE
+ampG
+yaaJ
+metR
+ddpD	yddP
+acrZ	ybhT
+yadS
+ybjO
+zbiJ
+pdeN	rtn
+fimR2
+rrlC
+mcaS	IS061, isrA
+codA
+yedL
+waaS	rfaS
+mltA	ygdM, mlt
+ppa
+hsrA	yieO
+yghD	ecfC
+csdA	ygdJ
+symE	yjiW, dinL, sosC
+cnu	ydgT
+yqiK
+eptB	yhjW
+intZ
+kduI	yqeE
+yncJ
+ssuC	ycbM
+yegP
+nrdI	ygaO
+tapT	yfiP, tuaA
+glgS	scoR
+ompF	nfxB, tolF, cmlB, cry
+aceK-int
+intE	int(Lambda), ycfI
+nuoA
+ompT
+yijF
+yecA
+yjiA
+hyuA	ygeZ
+araJ	araT
+araH	b1898, b1899
+yfcA
+yoaB
+ghxQ	b2885, ygfR, b2884, ygfQ
+insF4	tra5-3
+argB
+pxpA	ybgL
+yajR
+purK	purE2
+upp	uraP
+sapB
+holE
+lexA	exrA, spr, tsl, umuA
+ybhF
+yciQ	yciP
+pspE
+epmA	genX, poxA, yjeA
+bolA
+rsmJ	yhiQ
+frwC	yijJ
+ycaK
+amtB	ybaG
+ycgR
+ccmF	yejR
+gyrA	hisW, nalA, nfxA, norA, parD
+yeaK
+mntH	mntA, yfeP
+agaC	yraE
+ycgZ
+yfcD
+flk	div
+yhbS
+wcaI	yefD
+blc	yjeL
+recF	uvrF
+insH3	trs5-3, yi52_3
+ybhB
+nth
+rpsT	supS, sup(s20), supS20
+yjhQ
+ypjF	lfgE
+pbpC	yfgN
+yibV
+yfeC
+rcsA	cpsR
+mokB
+yejL
+micF	stc
+nfeF	yqjH
+rsmG	gidB
+panD
+hemL	gsa, popC
+puuR	ycjC
+yeaD	yzzQ
+yiaA
+yebO
+cysB
+yfcL
+pdeB	ylaB
+bglH	yieC
+yeeA
+bipA	typA, yihK
+narU	yddF
+sohB
+hisM
+ymgK
+casA	ygcL, cse1
+potD
+yagG
+ydhW
+ybcJ
+feaR	ydbM, maoX, maoB
+nac
+alaW	alaWalpha
+ves	ydjR
+yigE	b3815, b3814
+ynfS
+purT
+fliS
+ynfO
+ymfH
+xanP	yicE
+fimG
+hupA
+yicC
+topAI	yjhX
 glyX	glyVbeta
-srlR	gutR
-yehR	
-mdtG	yceE
-thiE	thiA
-ispB	cel // yhbD
-wecB	yifF // nfrC // rffE // mnaA
-frlC	b3373 // yhfP // yhfO // b3372
-ybaT	
-decR	ybaO // cyuR
-yfdG	gtrA
-abpB	yfjK
-nrdD	
-ycfP	
-glcG	yghC
-focB	
-dgcM	ydaM
-insB2	
-guaA	
-ytcA	
-yahD	
-tig	
-yphA	
-glgC	
-beeE	ymfO
-potE	
-dnaK	groPF // groPC // seg // grpF // grpC // groPAB
-sroA	tpe79
-sufS	csdB // ynhB
-lysC	apk
-alkA	aidA
-nagC	nagR
-glnS	
-wzzB	wzz // rol // cld
-ygcS	
-tatD	b3841 // yigX // b3840 // mttC // yigW
-dinF	
-chbF	ydjD // celF
-yagH	
-pptA	ydcE
-yjeT	
-ygfK	
-yhaJ	
-mcrC	
-ynjI	
-malE	
-bdcR	yjgJ
-asnB	
-hemN	yihJ
-yciI	
-bcsE	yhjS
-gspI	yheH
-slmA	yicB // ttk
-hisM	
-cpxA	rssE // ecfB // eup // ssd // ecf
-ydjL	
-nagE	pstN // ptsN
-araE	
-atpE	papH // uncE
-hypT	qseD // yjiE
-degS	hhoB // htrH
-lpxA	
-yjgA	
-csqR	yihW
-arsB	arsF
-ybiO	
-sapF	
-argB	
-yeeL	yeeK // b1980 // b1979
-ryeG	IS118
-b0609	
-dpaA	yafK // ldtF
-chiA	yheB
-pcm	
-yfaV	
-acrA	sipB // Mb // lir // mbl // mtcA // nbsA
-yaeH	
-ulaG	yjfR
-timP	
-sspB	
-nuoI	
-lsrG	yneC
-rho	nusD // sun // tsu // rnsC // nitA // psu // psuA // sbaA
-eno	
-hycF	hevF
-rpsJ	nusE
-mpaA	ycjI
-yiaN	
-aspS	tls
-ynfN	
-tam	yneD // lsrE
-map	
-yqaB	
-lfhA	fhiA
-symR	ryjC
-tfaQ	ydfM
-yebZ	
-clpP	lopP
-ymgN	
-dtd	yihZ
-araB	
-dgcF	yneF
-insCD6	
-uhpB	
-ydiB	
-mscM	yjeP
-dps	pexB // vtm
-rsmF	yebU
-trmD	
-gspF	hofF // hopF
-macA	ybjY
+fhuA	T1, T5rec, tonA
+rhaS	rhaC2
+yraN
+ygeQ
+creA	yjjD
+yrhB
+rtcA	yhgJ, yhgK, b3420, b3419
+nudI	yfaO
+pheS	phe-act
+yoaC
+mmuP	ykfD
+bamE	smpA, smqA
+araF
+bglX	glh, yohA
+rpsI
+cecR	ybiH
+galU	ychD
+elfG	ycbT
+yghU
+ybjC
+sdsN
+insA5
 rraB	yjgD
-rhmD	yfaW
-casB	ygcK // cse2
-lysT	supL // supG // sua // lysTalpha // Su[beta]
-pfkA	
+ygcE
+ylaC
+nikE	hydD, hydC
+yegL
+sbmC	dgi, gyrI, yeeB
+ribB	luxH, htrP, luxH-l
+gstA	gst
+pgsA
+cysC
+cysN
+sdhA	dhsA
+rna	rnsA
+ykfF
+yjbF
+yeiB
+ileX
+secF
+yadL
+yfiE
+tyrS
+yphA
+paoA	yagT
+cspH	cspK
+caiT	yaaP
+yfeK
+sufB	ynhE
+kdpF
+pntB
+nagA
+rffC	rff, wecD, yifH
+ygbA
+cusA	ybdE
+pdxJ
+lysU
+rrlE
+tamB	ytfO, ytfN
+bioF
+trhA	yqfA
+cstA	ybdC
+zinT	yodA
+naRNA1
+rnlA	yfjN, std
+ydcH
+ybdM
+sanA	sfiXSt, yeiF
+glmS
+guaC
+ibsC
+fumC
+yjfN
+nadB	nic, nicB
+mdtG	yceE
+ettA	yjjK
+nrdG	yjgE
+tfaX	ylcE
+fdnG
+cpdA	icc
+proX	osrA, proU
+sfsB	nlp, sfs7
+cpxQ
+holA
+ycjN
+yibF
+speC
+ydaW
+secD
+caiE
+yjjQ
+mepS	yeiV, spr
+gluQ	yadB
+hsdM	hsm, hsp
+yidX
+umuD
+kefF	yabF
+ydeP
+ydbK	pfo
+fimA	fimD, pilA
+lysZ
+lacI
+hyaE
+kilR	ydaD, kil
+xdhB	ygeT
+pabB
+rplE
+yjdM	phnA
+glk
+yedE
+putP	putC
+yjjX
+pinQ	ydfL
+argI
+ycjX
+yafN
+ispA
+pqiC	ymbA
+gnsA	yccL, sfa
+nei
+yaiZ
+rrfE
+yqeC
+metA
+cydH	ynhF, cydY
+gltS	gltC
+ppiA	rot, rotA
+yajD
+ykfG
+glnB
+fadM	ybaW, tesC
+yegJ
+citX	ybdU
+ecpA	yagZ, matB
+dmsC
+nikD	hydD, hydC
+ymiC
+purU	ychI, tgs
+satP	yaaH
+rpoB	sdgB, tabD, stv, stl, ftsR, groN, nitB, rif, ron
+preA	yeiA
+fbaB	dhnA
+ymgE	tag
+puuP	ycjJ
+tsuA	yeeE
 nrdR	ybaD
-puuD	ycjL
-slyX	
-insH21	
-xdhA	ygeS
-hscC	ybeW
-ftp	yojK // yojL // apbE
-b2653	
-ybbC	
-prmA	yhdI // prm-1
-xylG	
-insH7	yi52_7 // trs5-7
-tolQ	fii // tolP
-ygcW	
-yafX	
-yedA	
-hcaD	hcaa4 // phdA // yfhY
-hemD	
-yeaX	
-znuC	yebM
-sfsB	nlp // sfs7
-arcA	sfrA // cpxC // dye // fexA // msp // seg
-caiD	yaaL
-smf	b3286 // b3285 // smf1 // smf2
-nemR	ydhM
-ydaS	
-ybdN	
-aaeA	yhcQ
-nanR	yhcK
-ybeR	
-ytfP	
-chbB	celA
-ymfT	croE
-phoE	ompE
-chiZ	
-cysD	
-polB	dinA
-insEF5	
-paaC	ydbP
-rspA	
-accC	fabG
-mraY	murX
-cyuP	dlsT // yhaO
-yafL	
-nepI	yicM
-ytcB	
-entC	fepF
-rsxE	ydgQ
-b0017	yi82_1
-gntT	gntTalpha // yhgC // gntM // usgA
-ybdG	
-insE5	
-recT	
-cpxQ	
-yicG	
-ydiJ	
-G0-10700	
-ydiE	
-hpt	
-nuoK	
-mngR	ybgB // farR
-yffB	
-btsS	yehU
-ypfG	
-insH11	yi52_11 // trs5-11
-ttdA	ygjA
-insA6	
-nikC	hydD // hydC
-fhuB	
-rihB	yeiK
-argA	Arg2 // Arg1
+yaaW
+osmC
+fes
+ybfC
+cdh
+yecN
+zapA	ygfE
+yfdH	gtrB
+rfe	wecA
+alsA	yjcW
+ydjA
+insB3
+torC
+mdh
+fliZ	yedH
+mcrC
+casB	ygcK, cse2
+yhfG	ficA
+nfsB	ntr, dprA, nfnB
+ygeY
+yjeO
+ydhP
 fadL	ttr
-melR	
-yebC	
-rpoS	sigS // otsX // abrD // appR // csi2 // dpeB // katF // nur
-lysV	supN
-yohO	
+rpsU
+tsf
+cbpM	yccD
+yahN
+slt	sltY
+ompC	meoA, par
+glgP	glgY
+bioC
+dnaN
+gadE	yhiE, yhiT
+agaI	yraG
+pphB	ygbH, prpB
+yniB
+yqcG
+pheT
+galE	galD
+potE
+rsmF	yebU
+yfaQ
+tpr
+mdtK	norE, norM, ydhE
+sgbU	yiaR
+sfmC
+yadX
+trmA	rT, rumT
+paaE	ydbR
+ilvM
+yadC
+yjiN
+pnp	bfl
+pqqL	pqqM, pqqE, yddC
+ydhK
+yafT
+insEF5
+arnA	SAF, yfbG, pmrI
+plsB
+hybD
+leuE	yeaS
+aes	ybaC
+sufA	ydiC
+tufB	pulT, kirT
+ndk
+gspO	hofD, hopD, hopO, yheC
+prfC	miaD, tos
+purF	ade, purC
+exbD
+ypdI
+zupT	ygiE
+nadK	yfjE, yfjB
+fnr	nirA, nirR, ossA, oxrA
+rpnA	yhgA
+yqjE
+yagE
+ydaF
+iap
+tmaR	yeeX
+ydfD
+miaB	yleA
+insH10	trs5-10, yi52_10
+ybhM
+marA	norB, inaR, cfxB, nfxC, soxQ
+yoeB
+rluB	yciL
+secY	prlA
+hdeB	yhiC, yhhD
+ftsZ	sfiB, sulB
+aegA	yffG
+appC	cbdA, cyxA
+yicH
+frwB	yijK
+ahpF
+gcvR	yffD
+yecD
+yodD
+ymgI
+yfjZ	lfgD
+prlF	sohA, prlFA
+ytfH
+yibG
+glnQ
+yjgA
+ptrB	tlp
+ykgL
+ythB
+ypdE
+rpmA	rpz
+cfa	cdfA
+wcaL	yefL
+ydhU
+alaT	talA
+ydcY
+gsiD	yliD
+sdhB	dhsB
+ycjW
+yjiT
+sad	yneI
+naRNA2
+mprA	emrR
+aroP	aroR
+pdeF	yfgF
+deoA	TP, tpp, ttg
+yjiS
+ddpB	yddR
+motA	flaJ
+ptsP	ygdO, ygdF
+glyT	sumA, sup15B, supA36
+ruvA
+gabP
+ybiT
+wzb
+dgoD	b3692, yidU
+tktB
+malH
+moeB	chlN
+intA	intX, slpA
+ynaA	tmpR
+fmt	ftm, yhdD
+yqeK
+truB	yhbA
+yadG
+yehA
+ygiQ	ygiR, b3016, b3015
+lhr	rhlF
+cueO	yacK
+ybeL
+cra	fruR, fruC, shl
+glpB	psi-51
+xapB
+dctA
+ydhJ
+garD	yhaG
+hcr	ybjV
+cpxR	yiiA
+fucR
+ylbF
+groL	groEL, mopA
+opgE	ybiP
+ugpQ
+paaC	ydbP
+yrbL
+yibT
+nemR	ydhM
+insCD5
+hypB	hydB
+rnk
+casD	ygcI, cas5e
+yheS
+rbfA	sdr-43, yhbB
+ybgO
+ypdF
+yjbG
+dcuS	yjdH
+insI2	tra8-2
+yeiW
+codB
+dnaQ	mutD
+aceA	icl
+uacT	ygfU
+acrR	ybaH
+ybhP
+ftnB	yecI
+ybeQ
+yhdX
+yfaL	yfaF, yfaK, yfaJ
+xtpA
+tusE	yccK
+ybhI
+phnF
+insB2
+nadR	nadI
+thrS
+sokC	sof
+narG	chlC, narC
+alkB	aidD
+rcsD	yojP, yojQ, yojN
+topA	supX
+mqsA	ygiT
+nagB	glmD
+menC
+yeiI
+parC
+arnT	yfbI, pmrK
+qorA	hzc, hcz, qor
+yoaJ
+ybjX
+alr	alr5
+yhjX
+yjjA
+insEF1
+ybhJ
+ycfL
+ybaY
+ydiL
+ybiI
+pncA	nam, ydjB
+gspG	hofG, hopG
+ppiD	ybaU
+yajG
+rutC	ycdK
+yjbE
+recD	hopE
+rffM	rff, wecG
+yfcO
+ybhK
+yibQ
+yhdN
+paoD	yagQ
+dnaJ	groP, grpC
+rnpA
+sibB	QUAD1b, tpe60, ryeD
+ccmC	yejT, yejU
+abpA	yfjL
+yagM
+glgB
+gspH	hofH, hopH
+wzzB	wzz, rol, cld
+ldtC	ycfS
+xdhC	ygeU
+yegT
+ilvL
+trpB
+frwD	yijN
+alaE	ygaW
+ycfZ
+yhaB
+ryjB
+yjcS
+lapC	yejN, pbgA, yejM
+yaeQ
+ybcW
+argY	argVbeta
+sbp
+cpoB	ybgF
+ygfX	cptA
+yebE
+rhaB
+pflA	act
+ligB	yicF
+tsaD	gcp, ygjD
+rlmE	ftsJ, mrsF, rrmJ
+menH	yfbB
+rseP	ecfE, yaeL
+hokD	relF
+leuL	leuLP, leulL, leulLP, leuIP
+avtA
+uxaB
+sgrT
+bssS	yceP
+opgH	mdoA, mdoH
+insC4	yi21-4
+insD3	yi22-3
+nanT
+dhaK	ycgT, dhaK1
+cspB
+ydjK
+deoD	pup
+pyrS	ypdA
+insF5	tra5-4
+guaA
+hflK	hslY, hflA
+napF	yojG
+phnC
+ycgM
+yghF	ecfA
+nanR	yhcK
+rsd	yjaE
+fnrS	rydA
+gsk
+sapD	trkE
+atoS
+proA	pro(1), pro1
+alsB	yjcX
+ydjO
+insE3
+rplA	rpy
+rihB	yeiK
+ulaE	sgaU, yjfW
+lolA	yzzV, lplA
+insF2	tra5-1
+sra	rpsV
+bamA	yzzY, yzzN, ecfK, yaeT
+pdeL	yahA
+osmB
+lpxC	asmB, envA
+malI
+abgA	ydaJ
+hisG
+yffO
+yobH
+yidR
+yiiE
+trg
+rutD	ycdJ
+syd	ydr
+ftsI	pbpB, sep
+rcdB	yhjC
+fruK	fpk
+arnF	yfbJ
+mtlR
+rnb
+ipeX
+ldrA
+rdgC	yaiD
+srsR	ygfI
+fliL	flaQI, flaAI, cheC1
+yhgO
+yieH
+rlhA	ydcP
+fdoI
+bioB
+flgO
+yiiF
+lgt	umpA
+glgX
+ygcQ
+prmA	yhdI, prm-1
+folC	dedC
+rlmH	ybeA
+rzpQ	ydfP
+dppD
+ygdB
+ynbD
+yfaV
+wcaD
+nrfD	yjcK
+ybaM
+glmY	tke1, sroF
+yjgZ
+ysaB
+yieK
+yrdB
+trkA
+trpC	trpF, trpCF
+ydeE	ydeF
+mrp
+ralR	ydaB, lar
+thiE	thiA
+ogt
+hokB	ydcB
+crr	treD, gsr, iex, tgs
+ygcU	ygcT, b2772, ygcV, b2773
+rspR	ydfH
+yibN
+ynhH
+narZ	chlZ
+gabT
+nuoF
+yibY
+ydfT	quuQ
+scpA	yliK, sbm
+kgtP	witA
+argO	yggA
+rrsB
+secE	mbrC, prlG
+gmd	yefN, yefA
+pgl	ybhE
+rrlB
+ileT	tilA
+coaE	yacE
+yafY
+yacG
+hscA	hsc
+dsbG	ybdP
+kptA	yjiI
+ygiZ
+nimT	yeaN
+pgk
+yfbS
+ydiJ
+ascG	sac
+yjhH
+mdtP	yjcP, sdsP
+ytiE
+secG	prlH
+ynaL	C0343
+iprA	yaiV
+ydfB
+yjbQ
+yciU
+bdm	yddX
+dosC	yddV, dgcO
+hybF
+tnaC	tnaL
+idnK	gntV
+ykgM
+naRNA6
+rpsK
+plsY	ygiH
+dgcQ	yedQ
+ebgC
+wecB	yifF, nfrC, rffE, mnaA
+hslR	hsp15, yrfH
+serT	divE
+phnK
+cpsG	rfbK, manB
+ycaC
+uspC	yecG
+dcyD	yedO
+valT	valTa, valTalpha
+napC	yejX
+uspE	ydaA
+ymfI
+dicC	ftsT
+yrdG	asarfA
+ybcH
+glxR	glxB1, ybbQ
+speA
+rydB	tpe7, IS082
+bglB	blgA
+potH
+flgK	flaS
+yqeJ
+murQ	yfeU
+ydhY
+ybfA
+ymiA	yciX_1
+ratA	yfjG
+gspD	yheF
+yfaA	pufY
+mepH	ydhO
+rrsC
+casC	ygcJ, cse4, cas7
+ubiU	yhbU
+yffN
+hybA	hydL
+yajL	thiJ
+asflhD
+hisL
+glpT
+gutM	gut, srlM
+panE	apbA
+yiaV
+yidE	yibE
+truA	asuC, hisT, leuK
+ynfP	ydfJ_1
+aroL
+insAB1
+yicJ
+sdsR	tkpe79, ryeB
+fliD	flbC, rfs
+mbiA	htpY, htgA
+yphB
+cspA
+hyfA	yffE
+ymfT	croE
+fdoG
+asnV
+elfD	ycbR
+dmsA
+mntP	yebN
+yihA	engB
+yfiS
+ssnA	ygfL
+yeaX
+insE5
+ynaE
+yfbR
+cueR	copR, ybbI
+yfdO	oweS
+citC	ybeO
+mnmA	asuE, ycfB, trmU
+uraA
+recB	ior, rorA
+ybjH
+hinT	ycfF
+ybiR
+ypeB
+uhpC
+yiaG
+eutE	yffX
+paaK
+rclC	ykgB
+rpsM
+atoA
+cca
+ppdC	ygdA
+bsmA	yjfO
+ylbE	b0519, G0-10554, b4507
+ubiE	yigO
+yagL
+garK	yhaD
+rsxD	ydgO
+potB
+yfjF	ratB
+fldB
+holB
+yhfX
+moaC	chlA3
+ilvI
+pgpA	yajN
+phoH	psiH
+oxc	yfdU
+tcyL	yecS
+lacZ
+eutS	ypfE
+entF
+holC
+pmrD
+hisH
+ydhT
+ydjI
+ymiD
+naRNA3
+leuZ
+yfiC	trmM
+rspA
+ydbH
+rluA	yabO
+ivbL
+sibC	QUAD1c, t27, rygC
+ttdB	ygjB
+yoaM
+nuoL
+mlaB	yrbB
+ftsQ
+iscX	yfhJ
+zipA
+pflD	yijL
+yiiX
+yidB
+mtn	pfs, yadA, mtnN
+yehQ
+ydiK
+mak	yajF
+rfbD	rmlD
+ulaG	yjfR
+wcaK
+ykgG
+yfcP
+ygiB
+priC
+ortT	ydcX
+msbA
+dinQ
+yhfT
+ubiK	yqiC
+glpF
+yfdX
+ddlB	ddl
+yacH
+aroK
+folE
+aidB
+ydiY
+fimF
+yhbX
+tatC	mttB, yigU, yigV
+sseA	mstA
+rnhB
+trhP	yegQ
+cyuP	dlsT, yhaO
+ushA
+yeaY
+yadN
+sufC	ynhD
+fliI	fla, flaAIII, flaC
+ybjG
+nudC	yjaD
+pdhR	aceC, genA, yacB
+insD2	yi22-2
+can	yadF
+hyfD
+insA2
+dmsD	ynfI
+yljB
+clpX	lopC
+cmoB	yecP
+tatA	yigT, mttA1
+yihN
+ytgA
+yhdE
+ybaK
+yqiM
+dam
+cobS
+folA	tmr, tmrA
+pyrI
+fimI
+yjhF
+pliG	ycgK
+zwf
+leuS	syl
+arcB
+purA	adeK
+uidB	gusB, uidP
+yfeW
+add
+eutC
+tabA	yjgK
+xerC
+secB
+ubiX	dedF
+ytiA
+rayT	yafM
+mukE	kicA, ycbA
+ldtB	ybiS
+ptsG	umgC, umg, tgl, Cr, car, cat, catB2, glcA, gptA
+valU	valUalpha
+yjjP
+preT	yeiT
+ssuE	ssi4, ycbP
+fumD	ydhZ
+ybeD
+glnV	Su2, glnValpha, suII, supE
+ptrR	yneJ
+insAB6
+yhhQ
+msrB	yeaA
+yecT
+pspG	yjbO
+eco	eti
+cusR	ylcA
+agaV	yhaY
+yffR
+tfaE	ycfA
+rbsB	prlB, rbsP
+murJ	mviN, yceN
+relB	RC
+glcE	yghL, gox, b2978
+yghO
+essD	vlyS, ybcR
+flhC	flaI
+hdeA	yhiB, yhhC
+glnW	glnU-beta, glnUbeta
+cdgI	yeaI
+fryA	ypdD
+envZ	tpo, perA, ompB
+icd	icdE, icdA
+rrlD
+kefC	trkC
+queC	ybaX
+leuU
+yrfG
+yehW
+flgB	flbA
+sutR	ydcN
+yiaW
+msrP	yedY
+ygjJ
+fdx
+raiZ
+atpA	papA, uncA
+ygfB
+ykgO
+wcaJ
+ygeH
+psiF
+cysS	syc
+ulaA	yjfS, sgaT
+exuR
+yfdS
+ryeA	sraC, psrA8, tkpe79, IS091
+yihS	squS
+ulaR	yjfQ
+leuC
+cydA	cyd-1
+ydiR
+glnL	glnR, ntrB
+insC3	yi21-3
+ymdF
+yhhN
+insJ	yi5A
+dgcI	yliF
+ycaR
+yhcN
+yfgH
+yfcF
+ydcS
+exbB
+mpl	tpl, yjfG
+era	rbaA, sdgE
+csgC	ycdE
+argF
+proB	pro(2), pro2
+insD1	yi22-1
+hns	B1, H1, virR, topX, topS, pilG, osmZ, msyA, irk, hnsA, bglY, cur, drc, drdX, drs, fimG
+modE	chlD, modR
+tusB	yheL
+amiD	ybjR
+ybgP
+trmB	trmI, yggH
+yqgG
+ykgS
+yddK
+ileS	ilvS
+ybjN
+gatA
+pepT
+dtpD	ybgH
+ycaO
+dkgA	yqhE
+yigB
+yedD
+dinF
+pgi
+punC	ydhC
+chpS	chpBI, yjfB
+csgG
+tdh
+cheA
+yfiF
+yliI
+edd
+gltW
+panZ	livL, panM, yhhK
+tdcD	yhaA
+ychQ	sirB2
+ydjF
+ltaE	ltaA, ybjU
+lolD	ycfV
+ynfL
+ybjT
+dppB
+fimE	hyp, pilH
+hyfF
+csgD
+yedI
+yadK
+ykfC
+pyrB
+dinJ	sosA
+rcsC
+ymfM	sfiC
+yeiH
+yqhD
+chiX	sroB, rybC, micM
+soxS
+yebF
+hyfE
+ybjS
+accD	dedB, usg
+tyrT	tyrTalpha, supFsupO, Su-3, Su-4, su(c), suIII, supC
+luxS	ygaG
+hcxB	ybiC
+ybgD
+yqiJ
+yeiP
+ccmG	yejQ, dsbE
+gatB
+nnr	yjeF
+yehB
+lpxA
+yegR
+gndA
+emrK
+murI	yijA, dga, glr
+aspX
+grxC	yibM
+gspL	yheK
+tusC	yheM
+patA	oat, pat, ygjG
+metB	met-1
+aqpZ	bniP
+ycjF
+ydeQ
+frdC
+clpP	lopP
+maeB	ypfF
+ykfO
+ygcR
+actP	yjcG
+ivy	ykfE
+ycgV
+yaiA
+ycdU
+appA
+ydcZ
+yacC
+setB	yeiO
+radA	sms
+paaG	ydbT
+frvA	yiiK
+marR	cfxB, inaR, soxQ
+qseC	ygiY
+ythA
+ytjE
+xisR	ydaQ
+dinD	pcsA, yicD
+agrB
+ydeJ
+pbpG	yohB
+ymgF
+ybdG
+tolA	cim, excC, lky, tol-2
+ybhC
+bacA	uppP
+ygaH
+glnZ
+yhhH
+acpH	yajB
+thiM
+dhaL	ysgS, ycgS, dhaK2
+ompG
+chaB
+cyoE
+zraS	hydH
+mdtL	yidY
+ymfD
+osmE	anr
+iraD	yjiD
+yejF
+hipH	yjjJ
+garL	yhaF
+chbB	celA
+ydgK	rsxP
+narV	chlZ
+ydeN
+uvrB	dar-1, dar-6
+yciH
+yqgA
+rpoS	sigS, otsX, abrD, appR, csi2, dpeB, katF, nur
+proQ	yoeC, yobE, yebJ
+glmZ	psrA20, sraJ, k19, ryiA
+ccmA	yejW
+rnpB
+nfi	yjaF
+mutY	micA
+yggF	yggK
+ggt
+ydgJ
+pykF
+pyrF
+mazG
+yihF
+yddG
+ruvB
+argV	argValpha
+ybaZ	atl
+ptsH	ctr, hpr
+proP
+zapD	yacF
+kdsA
+msrC	yebR
+acrE	envC
+glvB	yidN, yidO
+waaC	rfa-2, rfaC, yibC
+sdhC	cybL, cybA, dhsC
+ytiC
+garP	yhaU
+gldA
+hflX	hslX, hflA
+yiaM
+mrcA	ponA
+etk	yccC
+feoC	yhgG
+osmF	yehZ
+uvrD	uvr502, srjC, uvrE, dar-2, dda, mutU, pdeB, rad, recL
+tynA	feaA, maoA
+cysZ
+yidL
+glnS
+aroM
+ynfT
+gspE	yheG
+lptE	rlpB
+yddL
+valY	valUgamma
+ghrA	ycdW
+pepA	carP, xerB
+elbB	yzzB, elb2, s27a, yhbL
+yaeI
+efp
+priA	srgA
+cynT
+glsB	yneH
+rpmH	rimA, ssaF
+yceJ
+fdhE
+hycD	hevD
+fliM	flaQ, fla, flaQII, flaAII, flaA, cheC2
+gcvH	gcv
+ribD	nusII, ribG, ybaE
+yhhX
 fumE	yggD
-ycjQ	
-dcd	dus // paxA
-ytfF	
+yhbW
+ybhD
+rplP
+yejG
+ecpE	yagV, matF
+secA	azi, pea, prlD
+rrfA
+eutK	yffI
+ysgA
+purL	purI
+mliC	ydhA
+yfdN	yzyA
+waaH	yibD
+intS	intC, yfdB
+cvpA	dedE
+ydhV
+hemG	yihB
+fadB	oldB
+minC	minB
+mzrA	ecfM, yqjB
+mdtD	yegB, iceT
+ycfP
+ybfQ
+yihT	squT
+kdsB
+nikA	hydD, hydC
+yaeP
+gor	gorA
+ydjH
+zraP	yjaI, zra
+leuT
+mglB
+ybeX
+yagP	ykgT, b4695
+aspC
+cyaY
+aspS	tls
+rfbX	wzx, wzxB
+yqfI
+apaH	cfcB
+cadA	ldcI
+nrfB	yjcI
+aceB	mas
+ulaD	yjfV, sgaH
+tatB	ysgB, mttA2
+lgoT	yjiZ, yjjL
+ybhG
+pspA	cog
+flgF	flaX
+yggE
+gapA	gad, gap1
+ybhN
+acrA	sipB, Mb, lir, mbl, mtcA, nbsA
+dnaG	dnaP, parB, sdgA
+folM	ydgB
+eutG	yffV
+mtlD
+cynX
+ygdG	xni, exo
+sgcE	yjhK
+pqiB	pqi5, pqi5B
+insC5	yi21-5
+fbaA	ald, fba, fda
+ispD	ygbP
+yniA
+znuB	yebI
+sgrR	yabN
+atpG	papC, uncG
+coaA	panK, rts, ts-9
+dcrB	yhhR
+yjfC
+yfjD	b2612, ypjE, b2613
+lpoB	ycfM
+flgM
+ynaN
+dsbA	dsf, iarA, ppfA
+yfhR
+igaA	yrfF
+ysaE
+yafP
+dctR	yhiF
+ybaP
+hfq
+yrdD
+yzgL
+rzoR
+tehB
+mscS	yggB
+yfgO	perM
+yoaF
+yecR
+yegX
+ydhI
+ymfN
+obgE	yhbZ, cgtA, obg
+ycjQ
+yahG
+yddE
+thiD	thiA, thiJ
+caiF
+sapC
+ispE	ipk, ychB
+ssuD	ssi6, ycbN
+phr	phrB
+fsaA	ybiZ, fsa, mipB
+yeeO
+adiY
+yidK
+rpsA	ssyF
+yjbT
+smf	b3286, b3285, smf1, smf2
+mnmE	trmE, thdF
+citD	ybdX
+rcdA	ybjK
+polB	dinA
+ybbY	glxB4
+yhhA
+gadX	yhiX
+ftsO
+fbp	fdp
+fadE	yafH
+araD
+ykiD
+yobF
+bssR	yliH
+glcB	glc
+yadM
+yrbG
+yheU
+cynR
+tyrB
+degQ	hhoA
+hybO	yghV
+speD
+yjgN
+insH6	yi52_6, trs5-6
+nfo
+ygdT
+yggU
+sfmD
+dhaM	ycgC, dhaH, ptsD
+nohD	nohB
+ppnP	yaiE
+tusA	yhhP, sirA
+glf	yefE
+yjaA
+wcaM	yefK
+mreD
+php	yhfV
+argW
+cmtB	tolM
+rbn	zipD, ecoZ, rnz, elaC
+cusC	ibeB, ylcB
+fabH
+bcr	bicA, bicR, sur, suxA
+ynfG
+cas3	ygcB
+dicD	yjdC, cutA3
+guaB	guaR
+cysK	ssi5
+sucA	lys+met
+accB	fabE
+wzxE	wzx, yifJ
+yfbN
+fucA	fucC, prd
+mdfA	cmlA, cmr
+napD	yojF
+gspI	yheH
+manA	pmi
+serU	supH, Su-1, ftsM, su1, supD
+C0293
+menE
+dtpC	yjdL
+selU	ybbB, mnmH
+creD	refII, cet
+ybgC
+dapB
+xylA
+insB9
+pxpB	ybgJ
+insF1	tra5-5
+yqeI
+fhlA	fhl
+ygdR
+selO	ydiU
+lptG	yjgQ
+nrfF	yjcM
+gpp	gppA
+chbF	ydjD, celF
+yibI
+arpA	arp, yjaC
+mdtO	yjcQ, sdsQ
+drpB	yedR
+mlc	dgsA
+hyfB	yffF
+yiiR
+yehL
+metJ
+ydiT
+yejB
+dld	ldh
+ynbC
+sufD	ynhC
+proK	proV
+astD	ydjU
+soxR	marC
+ameF
+tsx	T6rec, nupA
+lpoA	yraM
+caiC	yaaM
+uhpT
+yghB
+ybeT
+csrC	sraK, psrA21, ryiB, tpk2, IS198
+yfdP
+epd	gapB, gap2
+yqjF
+yeaV
+yniD
+fryC	ypdG
+purH
+lysS	asuD, herC
+pdeK	yhjK
+dut	dnaS, sof
+nadC
+rhlE
+ydcJ
+yjhG
+waaZ	rfaZ
+yfeN
+fic	ficT
+sgcA	yjhL
+ygbL
+ddpF	yddO
+tdcE	yhaS
+yciB
+ybdL
+rbsD	rbsP
+yghA
+dapF
+ydaV
+bdcR	yjgJ
+rbsR
+istR	psrA19, istR-1, istR-2
+yfiM
+lfgB	yfjY
+nlpE	cutF
+yodC
+folK
+ynjI
+cdd
+kdgR	yebP
+queD	ygcM, sscR
+cheR	cheX
+narW	chlZ
+dgcM	ydaM
+hdeD	yhiA
+mepM	yebA
+ybhR
+ysdE
+potG
+asompR
+lptA	yhbN
+phnP
+mutH	mutR, prv
+ascF	sac
+feaB	ydbG, padA
+alsR	yjcY, rpiR
+hofO	yrfB
+pstS	R2pho, T, nmpA, phoR2a, phoS
+cysD
+oppD
+cycA	ytfD, dagA
+psiE	yjbA
+yghJ	b2974, b2973, sslE
+ygiV
+fliX
+sdaC	dcrA
+nanM	yjhT
+pdeI	yliE
+yagN
+insH21
+dusA	yjbN
+rpsE	spc, eps, spcA
+ibpB	hslS, htpE
+ptsA	yijH, frwA, pt1A
+fimB	pil
+nuoC	nuoD
+modC	chlD, narD
+ydcD
+ybfP
+pheU	pheR, pheW
+gdhA
+gadA	gadS
+bcsF	yhjT
+paaH	hbdH, ydbU
+bluF	ycgF
+ugpE
+cybB
+yeeJ
+rlmB	yjfH
+lpxD	omsA, firA
+napH	yejZ
+dgcE	yegE
+ydcI
+ygbK
+waaY	rfaY
+wecC	rff, rffD, mnaB
+ytfQ
+fxsA	yjeG
+arnD	pmrJ, yfbH
+yffM
+ynfR
+gltP
+yqfH
+ygiW	visP
+fepB
+macB	ybjZ
+ribC	ribE
+ung
+arnB	pmrH, yfbE
+dapA
+atpH	papE, uncH
+slyX
+plsC	parF
+argL
+kup	trkD
+rpnB	yfcI
+ydgD
+yecV
+mazF	chpAK, chpA
+yeiR
+ppiB
+pabA
+zapG	yhcB, lapD
+yhjR	bcsR
+rplJ
+yfcQ
+yraH
+mdtA	yegM
+yaaI
+phnI
+cspF
+ldtD	ycbB
+yicR	radC
+yaaY
+insA3
+rpoN	glnF, ntrA
+yjeV
+aroA
+ydeR
+dcuB	genF
+ccmE	yejS
+greA
+malT	malA
+yqhH
+mngR	ybgB, farR
+kduD	yqeD, ygeC
+tcdA	ygdL, csdL
+uvrA	dar, dinE
+iclR
+nirB
+rlmJ	yhiR
+ibaG	yrbA
+ynfC
+kbaY	yraC, kba, agaY
+quuD	ybcQ
+fucP
+hcaB	yfhX, phdD
+yeaC
+ychA	sirB1
+sixA	yfcW
+nagE	pstN, ptsN
+ysgD
+yphC
+yfdC
+yjiC
+pdeC	yjcC
+cirA	cir, feuA
+yhaC
+flgA	flaU
+msyB
+safA	yneN
+sroA	tpe79
+insCD6
+rutB	ycdL
+hxpB	yniC
+ydfJ	ydfJ_2
+potI
+allA	glxA2, ybbT
+nuoI
+hldE	yqiF, rfaE, gmhC, waaE
+ansA
+ulaC	ptxA, yjfU, sgaA
+hslO	yrfI
+tag	tagA
+insA1
+clpB	htpM
+ynfD
+ansB
+yrbN
+katE
+alaX	alaWbeta
+ldcC	ldc, ldcH
+dgcJ	yeaJ
+citE	ybdW
+hyaC	cybH
+yciW
+waaG	rfaG
+cheB
+ecpD	yagW, matE
+pta
+insH9	trs5-9, yi52_9
+yiiM
+ligA	dnaL, lig, lop, pdeC
+serB
+murE
+nanY	yjhC
+yicL
+uspF	yzzL, ynaF, UP03
+rng	adhR, cafA, yhdF
+adeQ	yicO
+tsaC	yrdC, rimN
+yjhI
+insEF4
+frr	rrf
+timR
+ycgB
+rpsF	sdgH
+pldB
+rrlA
+mscL	yhdC
+yraR
+lysT	supL, supG, sua, lysTalpha, Su[beta]
+purM	purG, purI
+rlmD	ygcA, rumA
+hcp	priS, ybjW
+ykgH
+yicN
+cutC
+ydgC
+yncH
+ppc	asp, glu
+ynaM
+djlA	yabH
+rpmC
+csgE
+ytfT
+ydaU
+cspG
+chiQ	ybfN
+nlpC
+ygeG
+yohJ
+clsB	ybhO
+uspG	UP12, yzzU, ybdQ
+speF
+zapB	yiiU
+sbcC
+hflD	hslZ, ycfC
+mug	ygjF
+nadA	nicA
+ymgJ
+iscU	yfhN, nifU
+rrfH
+rarA	ycaJ, mgsA
+rpoC	tabB
+yjdI
+fadI	yfcY
+elfC	ycbS
+wbbI	yefG
+cobT
+ynfN
+cspD	ybjA, cspH
+araC
+ynaJ
+yqeH
+ygeA
+ulaB	yjfT, sgaB
+prpB	yahQ
+yrhD
+eutQ	ypfC
+mdtJ	ydgF
+mocA	ygfJ
+citR	ybdO
+pflB	pfl
+tolC	weeA, colE1-i, mtcB, mukA, refI, toc
+fiu	ybiL
+yjgH
+gltU	tgtC
+hchA	yzzC, yedU
+entB	entG
+rpoE	sigE
+xseA	xse
+pykA
+fepG
+pssA	pss
+tsaE	yjeE
+yibH
+yecF
+ebgR
+mpaA	ycjI
+yjjZ
+sdhE	ygfY, cptB
+yjjB
+yeiG
+hsdS	hsp, hss, rm
+tyrP
+nuoK
+ftsH	std, hflB, mrsC, tolZ
+moaB	chlA2
+brnQ	hrbA
+pabC
+yfeY
+ylcJ
+yggT
+ychH
+glpG
+fabR	yijC
+ygjQ
+yhhM
+iraP	yaiB
+fliF	flaAII.1, flaBI
+ygiF
+ycgN
+norW	ygaL, ygbD
+yiaL
+flu	agn43, yzzX, yeeQ, agn
+yohO
+yfbO
+ynjC
+minD	minB
+yjgL
+ybbP
+cvrA	ycgO
+yadV	ecpD
+yjcO
+yhjV
+phoQ
+higB	ygjN
+gfcA	ymcD
+hydN
+insH1	trs5, trs5-1, yi52_1
+aas
+yciG
+yejK	ndpA
+selC	fdhC
+eutP	ypfD
+pheM	phtL
+rutE	ycdI
+ypjJ	lfgC
+sraB	psrA4, pke20, psrD
+uhpU
+crp	cap, csm, gurB
+mdtI	ydgE
+sodA
+yqjK
+tgt	vacC(S.f.)
+sdaA
+fliG	flaAII.2, flaBII
+yidF
+argT
+hisC
+sgcC	yjhN
+stfQ	ydfN
+tsaB	yeaZ
+yegS
+dfp	coaBC
+betB
+rutA	ycdM
+trpR	rtrY
+mlaD	yrbD
+oppF
+ulaF	yjfX, sgaE
+glgA
+znuA	yzzP, yebL
+nudG	ynjG, orf135
+yjjU
+mukF	kicB
+yjgR
+ghxP	yjcD
+metK	metX
+yfaU
+sroH
+mraZ	yabB
+artM
+ymfJ
+rbsK
+gspB	pioO, pinO
+insCD2
+kefB	trkB
+phoU	phoT, pst
+lapA	yciS
+ygaV
+ydaG	gatA
+yodE
+ileY
+yncG
+wcaC
+sppA
+yqeG
+ubiV	yhbV
+yfaT
+dsdC
+yccU
+yqiB	yzzH
+ffs
+ybiB
+nanC	yjhA
+ykgF
+kbl
+cysJ
+yhgF
+ghoT	yjdO
+ilvD
+yqfB
+tdcC
+ecpC	yagX, matD
+ymfQ
+ygiM	ecfG, htrG
+nagC	nagR
+potA
+yghE	ecfB
+yeaW
+birA	bioR, dhbB
+trpS
+surA
+priB
+glvC	ptiC
+xylH
+glxK	glxB5, ybbZ
+hybB
+ssrA	sipB
+ydaY
+mhpD	mhpS
+ftsP	sui, sufI
+dnaB	groP, grpA, grpD
+lsrC	ydeY
+wbbH	yefF, rfc
+suhB	ssyA
+pyrH	umk, smbA
+gfcB	ymcC
+ygjH
+dmlA	ttuC, yeaU
+ydcU
+ppsR	ydiA
+fabY	yiiD
+argG
+rplM
+gadC	acsA, xasA
+yehY
+rpmD
+dcd	dus, paxA
+tehA
+pspB
+yabQ	b4659
+araB
+tyrV	tyrTbeta
+ycgX
+ytfJ	ecfJ
+rrsE
+deoB	tlr, drm, thyR
+creC	phoM
+acpS	dpj
+argX
+yfdI	gtrS, gtrIV
+rcbA	ydaC
+ubiH	acd, visB
+rstB	uspT
+hofN	yrfC
+ssb	exrB, lexC
+dppA	alu, dpp, fpp
+glnH
+ftnA	ftn, gen-165, rsgA
+hslV	yiiC, clpQ, htpO
+fimC	pilB
+glnA
+agaD	yraF
+hemC	popE
+paaZ	ydbN, maoC
+ynfU
+rcnA	yohM
+acrD	yffA
+wbbJ	yefH
+glrK	yfhZ, yfhK, qseE
+rsmH	yabC, mraW
+ygjI
+pdxB	usg-2
+fruA	ptsF
+ygeX
+hscB	yfhE
+actS	ygeR
+wecE	rff, fcnA, rffA, yifI
+sdaB
+ydfO
+ymfA
+yjjV
+serS
+rflP	ydiV
+lpd	dhl, lpdA
+pepD	pepH
+nlpI	yhbM
+rffH	yifG
+adhE	adhC, ana
+fumB
+rne	smbB, ams, hmp1
+rhtA	ybiF
+chaC
+bidA	ynfK
+argP	iciA
+pstB	phoT
+hisQ
+mppA	ynaH
+murR	yfeT
+ykgJ
+yijE
+pdxH
+yifB
+tdcF	yhaR
+rpsH
+yqhI
+idi	ygfV
+tap
+udp
+mlaA	vacJ
+ydfZ
+yhaJ
+tnaA	ind, tnaR
+scpB	ygfG
+yijD
+yedJ
+fdnH
+insL3	yi81-3
+yceD
+yohC
+yiiG
+mntS	rybA
+clpS	yljA
+hipA
+hcxA	ybdH
+pxpC	ybgK
+greB
+ugpA	psiB, psiC, ugp
+ydaT
+arfB	yaeJ
+astC	ydjW, argM, cstC
+psuK	yeiC, pscK
+rsxC	ydgN
+ymgG
+pqiA	pqi5, pqi5A
+ykfH
+alaV
+narK
+gatY	yegF
+tdcG	b3111, yhaQ, b3112, tdcGa, yhaP, sdhY
+xthA	xth
+eutL	yffJ
+mraY	murX
+ileV
+narL	frdR, narR
+rhaT
+melR
+sroC	HB_314
+frlC	b3373, yhfP, yhfO, b3372
+rpiA	ygfC
+rnc
+murC
+thrL
+aphA	yjbP, hobH
+insF3	tra5-2
+gmhB	yaeD
+ssuB	ycbE
+metE	metB12
+yaiI
+rpoH	fam, hin, htpR
+ypfM
+yhaI
+fepA	cbr, cbt, fep, feuB
+clsA	yciJ, nov, cls
+qseG	yfhG
+yoeJ
+yfbP
+ccmD	yojM
+trmH	spoU
+dadA	dadR
+isrC	IS102
+ydfC
+adeP	yieG, purP
+ymfK	cohE
+fecR
+metG
+yfdM	yzyB
+lfgA	yfjX
+pcm
+pyrR	ypdB
+pdeD	yoaD
+frlA	yhfM
+rhaD
+scpC	ygfH
+shoB	yphI, ryfB, b4681
+yfdV
+ydaS
+caiA	yaaO
+yqeL
+opgC	ymdD, mdoC
+slp
+galS	mglD
+yiaF
+argU	dnaY, pin
+sfmF	ybcG
+fkpB	slpA, yaaD
+wzzE	wzz, yifC
+hdfR	b3762, yifA, yifD, b3763
+fhuE
+hyaF
+thiL	thiJ
+speFL
+lptM	yifL
+eutA	yffT
+ubiB	yigS, yigQ, yigR, aarF
+rrfC
+ynjF
+yejE
+xerD	xprB
+insC6	yi21-6
+glyW	ins, mutC, suA58, suA78
+fecI
+rhaA
+glpD	glyD
+clcB	ynfJ, mriT
+oppC
+elaB	yfbD
+glnU	glnUalpha, supB, trnA
+yfbL
+insB1
+yhjD
+asnW
+proY	yajM
+mhpF
+yicS
+apaG
+rcnB	yohN
+fliT
+pheV	pheC
+tisB	ysdB
+fecC
+envY
+ispU	uppS, rth, yaeS
+trpA	try, tryp
+tdk
+sibE	QUAD1e, rygE
+ubiF	yleB
+rrrQ	ydfQ
+pyrC
+mutL
+recG	radC, spoV
+gltA	gluT, icdB
+yajO
+yghW
+torA
+hrpB	yadO
+yhjE
+ygcG
+gfcD	ymcA
+lrhA	genR
+ygiL
+fre	fadI, flrD, fsrC
+pgaC	hmsR, ycdQ
+yigL
+uspB	yhiO
+ssrS	ssr
+hokA	yiaZ
+rpmF
+alpA
+ydeM
+kdpB	kac
+evgS
+yoaA
+insH7	yi52_7, trs5-7
+ryhB	psrA18, IS176, sraI
+narH	chlC
+yacM
+insE1
+ybjJ
+yfcE
+rimK	nek
+insL1	yi81-1
+eutD	ypfA, eutI
+ttdT	ygjC, ygjE
+lolC	ycfU
+trxB	trxR
+frc	yfdW
+mhpE
+pyrL	pyrE-, pyrE-LP
+ybdF
+yciY
+frlB	yhfN
+rbsA	rbsT, rbsP
+nfuA	yhgI, gntY
+grcA	yfiD
+holD
+wzc
+eutR	yfeG
+fixA	yaaQ
+psuT	pscT, yeiM
+ssuA	ycbO
+cydD	htrD
+yeeZ
+yidD
+serC	pdxC, pdxF
+waaA	kdtA
+gabD
+yecU
+ykfM
+rplO
+yibL
+elaD
+yejA
+aroB
+yfcR
+yddH
+ytfB
+ymjC
+ymgD
+yhiI
+coaD	yicA, kdtB
+iscA	yfhF
+lpxL	htrB, waaM
+nirD
+agaR	yhaW
+ydhR
+yaeR
+leuV	leuValpha
+allW	allP, glxB2, ybbW
+fliJ	flaO
+rsmB	yhdB, rrmB, fmu, fmv, sun
+eutM	yffZ, cchA
+ygaM
+mdtU	ydgV
+lysO	ybjE
+tsgA	yhfH, gutS, yhfC
+ppx
+hofQ	hopQ
+ridA	yjgF
+yebZ
+rpoD	alt
+rsxB	ydgM
+yoaI
+ygdI
+phnO
+yhcG
+ygbI
+yiiS
+dnaT
+azoR	acpD
+mdtB	yegN
+glcA	yghK
+ribE	nusIII, ribH, ybaF
+aspA
+rpsG
+yegU
+fdoH
+ydhS
+lysC	apk
+mqo	yojH
+mgtS	yneM
+metI	metD, yaeE
+ugpC
+stpA	hnsB
+ygcO
+yafQ
+hcaD	hcaa4, phdA, yfhY
+ompR	cry, kmt, ompB
+nfsA	mda18, mdaA, ybjB
+yjiR
+ycfT
+yahK
+lamB	malL, malB
+mdtC	yegO
+nhaB
+mog	yaaG, bisD, chlG, mogA
+fecB
+valZ	valTb, valTbeta
+hlyE	ycgD, clyA, hpr, sheA
+yraQ
+ydjM
+fhuB
+mipA	yeaF
+ypeA
+phoE	ompE
+rseB
+rapZ	yhbJ
+xisE	ymfG
+ypeC
+purE	ade(f), Pur2, ade3, ade
+mgtT
+mcrB	rglB
+blr
+ybbA
+msrQ	yedZ
+insCD4
+mglA	mglP, mgl
+barA	airS
+yqeF
+prs	dnaR, prsA
+ada
+ypfJ
+ohsC	ryfC
+hyfG
+relE
+insAB3
+osmY	csi-5
+srlR	gutR
+gspM	hopZ, pshM
+ghoS	yjdK
+yeaQ
+cmtA
+nfrB
+yehP
+fsr
+dpaA	yafK, ldtF
+zapC	ycbW
+bcsE	yhjS
+sibD	tp8, C0730, IS156, QUAD1d, rygD
+rep	dasC, mbrA, mmrA
+ynaK
+dosP	yddU, dos, pdeO
+ftsX	ftsS
+asphoP
+nusA
+lplT	ygeD
+yhaL
+ydcR
+cyuA	b3109, yhaN, b3108, yhaM
+yoeI
+pspH
+yhgN
+rplN
+gfcC	ymcB
+lsrB	yneA
+nuoN
+allC	glxB7, ylbB
+uxuB
+ycbU
+ftsN	msgA
+murF	mra
+arsR	arsE
+yeiQ
+yddY
+yfiB
+rhsA
+metZ	metZalpha
+prpC	yzzD, yahS
+phoB	phoRc, phoT
+mepA
+erpA	yadR
+leuQ	leuVgamma
+yehM	yehO, yehN
+yggI	sprT
+yiaO
+ybiO
+insH8	trs5-8, yi52_8
+yffP
+rhaR	rhaC1
+udk
+ygcS
+zur	yjbK, znuR
+gcvB	psrA11, IS145
+glnD	glnD5
+yaiS
+katG
+nuoE
+ydjJ
+acs	yfaC, acsA
+panF
+yihD
+dsbC	xprA
+pdeA	yfeA
+yhhW
+ileU	tilD
+yajI
+yfjW
+npr	yhbK, ptsO, rpoR
+rlmN	yfgB
+xseB	yajE
+micA	sraD, psrA10
+alaU	talD
+ymfL
+trkG
+csgB
+nrdD
+fimH	pilE
+alaS	act, ala-act, lovB
+yfdT
+ffh
+rseA	yfiJ, mclA
+srlB	gutB
+yegV
+rcnR	yohL
+emrA
+rpmE
+cyoB
+yqcC
+paaI	ydbV
+yhfA
+cydC	mdrA, mdrH, surB, ycaB
+lsrR	ydeW
+stfZ
+purD	adth(a), adth
+sokE
+gfcE	yccZ
+trmJ	yfhQ
+malG
+yjcE
+emtA	ycgP, mltE, sltZ
+leuD
+yafS
+yfdQ
+rplU
+yriB
+yigA
+ytjB	smp
+yncP
+yidG
+mdtN	yjcR, sdsR
+cdsA	cds
+dgkA
+asnT
+ybdZ
+yoaK
+yjbM
+yeaG
+ybdK
+hemN	yihJ
+insI1	tra8-1
+uhpA
+thiC
+3'ETS-leuZ
+yegI
+glnX	supE, glnV-beta, glnVbeta
+flhB	yecQ, flaG
+serW
+yhbE
+yehD
+tufA	pulT, kirT
+rirA
+dapE	msgB
+cysT
+citT	ybdS
+yriA
+ptrA	ptr
+gpsA
+allB	glxB3, ybbX
+inaA	yfaG
+umpH	nagD
+yqgH
+ybfD
+marC	ydeC, ydeB
+acrF	envD
+thrV
+smpB	smqB
+ybaQ
+rsfS	ybeB, rsfA
+rplD	eryA
+ycjD
+rplR
+rsmC	yjjT
+hcaF	yfhV, hcaA, phdC2, digB, hcaB, hcaA2
+hypT	qseD, yjiE
+bluR	ycgE
+torR
+allS	ybbS, glxA1
+nudL	yeaB
+ybgQ
+fixX	yaaT
+setA	yabM
+deoC	tlr, dra, thyR
+ytfP
+yfeH
+pepN
+yzcX
+malM	molA
+ydiP
+rlpA
+yihR	squR
+yqhA
+aslB	gppB, atsB
+ubiI	visC
+talA
+cbtA	yeeV
+cspC	msmB
+yidA
+ydiM
+ibsA
+fliA	rpoF, flaD
+fpr	flxR, mvrA
+insA4
+yhdT
+fadK	ydiD
+yggP	b2931, b2932
+mscK	aefA, kefA
+intD	int
+dpiB	ybeP, mpdB, citA
+ybaE
+ychO	ychP
+ynbE
+mhpB
+puuE	goaG
+cytR
+sucD
+ybgV
+fliN	motD
+yeaE
+ybiA
+appX	yccB, cbdX
+ybcO
+ybiU
+yicG
+cof
+sapF
+uxuR
+ygfM
+lgoD	yjjN
+melA	mel-7
+insAB5
+yceI
+fkpA	yzzS
+djlC	hscD, ybeV, hsc56
+essQ	ydfS
+rdcB	yjcZ
+gspK	yheJ
+cydX	ybgT
+ypjK
+yfgI
+rimM	yfjA
+kdgT
+pepE
+hisI	hisE, hisIE
+yggX
+relA	RC
+proS	drp, drpA
+cyoA
+cnoX	ybbN
+waaL	rfaL
+yjiG
+yhiN
+yqjD
+ykfI
+dapD	ssa
+hdhA	hsd, hsdH
+xylR
+fldA
+hycE	hevE
+ybcI
+hybG
+yahC
+ycjP
+yagH
+rttR	rtT
+ygfF	yqfD
+dgoT	yidT
+esrE
+cmoM	ycbD, smtA
+yeeS
+casE	ygcH, cse3, cas6e
+bfr
+yebK	hexR(P.a.)
+ynjE
+aroD
+nhaR	antO, yaaB
+rlmA	rrmA, yebH
+pdxA
+uup	ycbI, ycbH
+recA	zab, umuB, tif, lexB, recH, rnmB, srf
+flgC	flaW
+lipB	cde, lip
+lit
+dtpB	yhiP
+dadX	alnA, alnB, dadB
+ttdA	ygjA
+pheP
+ybeY
+sseB
+plsX
+ybiV
+appB	cbdB, cyxB
+atpC	papG, uncC
+murP	yfeV
+serX
+narY	chlZ
+glpE
+yqgC
+mcrA	rglA
+waaO	waaI, rfaI
+metN	metD, abc
+frvB	yiiJ
+ubiT	yhbT
+hemE
+solA
+lepA
+ilvB
+rdlB
+araA
+uidA	gurA, gusA
+trmD
+insK	dinS, yi5B, t150
+yehX
+mltB	slt
+glyQ	cfcA, glyS(A)
+dicA	ftsT
+yhdZ
+yfeR
+lpxK	ycaH
+ybfB
+proC	pro(3), Pro2, pro3
+rzpD	ybcT
+nusG
+ryfA	PAIR3b, tp1
+mgrB	yobG
+ycbV
+lptC	yrbK
+abrB	ybgN
+mdtE	yhiU
+fliR	flaP
+cpxP	yiiO, b3913
+rplL
+ryfD
+torD
+ygaC
+yebB
+cheY
+ydfU
+yjaG
+ymjE
+kbaZ	yhaX, agaZ
+yhjY
+ompL	yshA
+ydiQ
+ytjC	gpmB
+rarD	yigH
+torY	yecK
+pdeH	yhjH
+sstT	ygjU
+argE
+yjaZ	htrC
+cydB	cyd-2
+csdE	ygdK
+rhaM	yiiL
+fumA
+ybbO
+sgcQ	yjhM
+mutS	ant, plm, fdv
+yafX
+ppdD
+galT	galB
+yahV
+gudP	gudT, ygcZ
+malK	malB
+baeR
+rffG	rff
+micL	slrA, ryeF
+phnH
+ynjA
+ygjP
+miaA	trpX
+lysQ
+grxB
+flhE
+ydgH
+lplA	yjjF, slr
+yghS
+recJ
+insC2	yi21-2
+ogrK
+kefG	yheR
+ribF	yaaC
+trmL	yibK
+hrpA
+livJ	hrbD, hrbC, hrbB
+fucK
+alsK	yjcT
+tam	yneD, lsrE
+gutQ	srlQ
+yigZ
+cmoA	yecO
+yfaE
+kdpD	kac
+ydfW	intK
+ybgA	tkp
+insB5
+queA	tsaA
+ydfA
+xapR	pRndR, pndR, yfeB
+livG	hrbD, hrbC, hrbB
+manX	gptB, mpt, ptsL, ptsX
+trpL	trpEE
+wcaB
+ecnB	yjeU
+rraA	menG, yiiV
+xylE
+tar	cheM
+fepD
+cbeA	yeeU
+atoC
+eda	hga, kdgA, kga
+pncB
+moaD	chlA4, chlM
+ilvX
+hyfJ
+prpD	yahT, acnC
+dsdX	yfdD, yfdA, dsdC
+lon	capR, deg, dir, lopA, muc
+etp	yccY
+hycF	hevF
+btuR	cobA
+ybeZ	phoL
+mtgA	mgt, yrbM
+ubiC
+ycaI
+bamC	dapX, nlpB
+cysW
+atpE	papH, uncE
+ychT
+rimP	yhbC
+gloA
+yieF	chrR
+iroK
+metY
+yahO
+lolB	hemM, ychC
+nusB	groNB, ssaD, ssyB
+yjbD
+htpG
+grpE
+yihV	squV
+gntK
+clsC	ymdC
+ybhS
+ypjB
+yhjB
+ychF	gtp1
+yoeF
+gltK
+yjbL
+ynaI
+map
+ydgA
+yiaK
+mgtL
+yaeH
+dsbD	htrI, cutA2, cycZ, dipZ
+recE	rmuB, rac, sbcA
+yahD
+thiI	nuvA, yajK
+aaeR	yhcS, qseA
+srlA	gutA, sbl, srlA-1
+lldR	lct, lctR
+gstB	yliJ
+csgI	yccT
+yraJ
+rrfF	rrfDbeta, rrvD
+yaiL
+yagA
+yohP
+frmR	yaiN
+rpsC
+galP	Pgal
+nupX	yeiJ
+metL	metM
+ybjI
+ypdK
+yigI
+yhfY
+insA7
+astE	ydjS
+carB	pyrA
+rhmD	yfaW
+idnT	gntW, yjgT
+aceE
+wza
+dicF
+menF	yfbA
+insD4	yi22-4
+ihfB	hip, himD
+eptA	yjdB
+yhhI
+sdhD	cybS, dhsD
+nanA
+artQ
+viaA	yieD, yieD_1, yieD_2, yieM
+omrA	psrA12, rygA, PAIR2a, t59, sraE
+pyrD
+tfaP	ymfS
+pgaD	hmsS, ycdP
+ypfG
+yhdV
+gatZ
+dusB	yhdG
+ldrC
+moaE	chlA5
+trxA	dasC, fipA, tsnC
+ubiG	pufX, yfaB
+yjiM
+yjeJ
+ydcC
+slyD
+sgbH	yiaQ
+bcsA	yhjP, yhjO
+tff	t44
+recN	radB
+baxL
+hyfH
+folX
+yciT	deoT
+mrr
+ompN	ynaG
+ycjR	dte
+leuO
+fucU
+dolP	ecfH, yraP
+rph
+alaC	yfdZ
+ybfE
+hcaT	yfhS
+aer	yqjJ, air
+hycH	hevH
+xynR	yagI
+uspD	yiiT
+pinE	pin
+ydcA
+ypjA
+mglC	mglP
+polA	resA
+rpmI
+bcp
+fepC
+ibsD
+yhjJ
+slmA	yicB, ttk
+accC	fabG
+nimR	yeaM
+yaiW
+sapA
+yjdF
+ydbL
+rsmE	yggJ
+rplT	pdzA
+fixB	yaaR
+gltD	psiQ, ossB, aspB
+eutB
+ypaB
+yiaD
+nhaA	ant, antA
+yebV
+lysA
+yceF
+treF
+recQ
+rpnC	yadD
+ydfK
+btuC
+yagF
+ykgV
+uidC	gusC
+prmC	hemK
+yeeW
+ispB	cel, yhbD
+menB
+dicB	ftsT
+cysU	cysT
+ymiB
+purR
+hycB	hevB
+hxpA	yfbT
+ycfJ
+rluD	yfiI, sfhB
+ugpB	psiB, psiC
+pstA	R2pho, phoR2, phoR2b, phoT
+ykgR
+ninE
+sufE	ynhA
+ydbD
+hybC
+yebW
+insH11	yi52_11, trs5-11
+ybbJ
+pppA	yghH
+amyA	yedC
+rhtC	yigJ
+uxuA
+hspQ	yccV
+adeD	adu, yicP, ade
+hslJ	ydbI
+yhgP
+yiiQ
+yehI
+ytgB
+yhiD	yhhE
+der	engA, yfgK
+leuB
+ansP	yncF
+fhuF	yjjS
+fhuC
+cas2	ygbF
+yidZ
+gcvT
+yidJ
+ybaB
+yohK
+ygjK
+gadW	yhiW
+ymgM
+yagJ
+mobA	chlB, mob, narB
+och5
+ychJ
+insEF3
+ydcL
+panB
+yihG
+yecH
+gspC	yheE
+yfgG
+yfcZ
+hypE	hydB
+nuoH
+yaaU	yabE
+alsE	yjcU
+cysP
+pagP	ybeG, crcA
+fdhD
+yhbY
+yhhT
+smrB	yfcN
+hyaD
+galR	Rgal
+wcaA
+ydgI	arcD
+tomB	ybaJ
+yafJ
+hyaB
+glyY	glyVgamma
+ygcP
+acpT	yhhU
+rluE	ymfC
+yfdF
+thrW
+ytiB
+melB	mel-4
+wrbA
+serA
+apt
+mltG	yceG
+insQ	ydcM, tnpB
+waaJ	rfaJ, waaR
+kdsD	yrbH
+yehS
+rplW
+hiuH	yedX
+epmC	yfcM
+yaiY
+rrfG
+yhcD
+hemA	gtrA
+ygiS
+yibX
+fklB	ytfC
+ompW	yciD
+nohA	nohQ
+mobB	yihC
+frdD
+thiS	thiG1
+treR
+ptsI	ctr
+tyrR
+gsiA	yliA
+matP	ycbG
+yfaZ
+yheV
+hisB
+nemA	ydhN
+rpnE	yfaD
+ygdQ
+ynjD
+yhaK
+msrA	pms, pmsR
+yadH
+yfjS
+yjjG
+cysE
+ydjG
+clcA	eriC, yadQ
+ynfB
+yobB
+ibsE
+yjfP
+malE
+mlaE	yrbE
+tdcR
+yeeR
+yebC
+tfaQ	ydfM
+norR	ygaA
+sulA	sfiA, suf
+argK	ygfD
+nrdE
+nudB	yebD, ntpA
+dxr	yaeM, ispC
+malY
+rbbA	yhiG, yhiH
+yqiA	yzzI
+queE	ygcF
+kbp	yzzM, ygaU
+ybdN
+dmlR	yeaT
+thiQ	sfuC, yabJ
+ycaP
+paoB	yagS
+cusB	ylcD
+uidR	gusR
+hisA
+phnJ
+rimI
+ycgY
+nuoJ
+ycbX
+chbC	celB, hic
+ariR	ymgB
+ispZ
+ahr	yjgB
+raiA	urf1, yfiA, pY
+ypfH
+yfaP
+lsrA	ego, ydeX
+yiaB
+ydjE
+hyfC
+queF	yqcD
+rmf	res, rimF
+dnaC	dnaD
+yjiH
+lnt	cutE
+dcm	mec
+hypA
+pstC	phoW
+smrA	ydaL
+rplY
+norV	ygaJ, ygaI, ygaK
+metV	metZbeta, metX, metZ-beta, metZb
+paaY	ydbZ
+ilvY
+ddpX	vanX, yddT
+yeeT
+pgaA	hmsH, ycdS
+yncL
+spy
+hcaE	yfhU, digA, phdC1, hcaA, hcaA1
+motR
+yhgH	gntX
+yafE
+nudE	yrfE
+tcyJ	yzzR, ssi7, fliY
+wcaF
+ynfF
+basS	pmrB, dgkR
+trpD	trpGD
+wecH	yiaH
+yfcC
+ydaE
+mlaF	yrbF
+yeaO
+srlE	sbl, gutA, gutE, srlA, srlA-2
+arfA	yhdL
+atpD	papB, uncD
+hprS	yedV
+insC1	yi21-1
+pinR	ynaD
+yddA
+parE	nfxD
+fliE	fla, flaAI, flaN
+tldD	yhdO
+rbsZ
+yafC
+ybgI
+yegD
+rfbB	som, rmlB
+agrA
+murA	mrbA, murZ
+yieL
+argA	Arg2, Arg1
+pyrE
+yfeD
+yfeS
+uspA
+ygfK
+rpsB
+lsrF	yneB
+glpC
+moaA	bisA, chlA, chlA1, narA
+ubiD	yigY, yigC
+ilvN
+sfmH
+yddM
+eutT	ypfB
+thiF	thiA
+pptA	ydcE
+hycG	hevG
+rsxA	ydgL
+tauB	yaiQ, ssiB
+frmA	adhC
+focA	ycaE
+dusC	yohI
+ygjR
+hscC	ybeW
+ycdZ	nupT
+hisS
+cspI	cspJ
+dnaA
+mlaC	yrbC
+rrsH
+plaR	yiaJ
+pntA
+yfhM
+pflC	yijM
+murD
+dcuA	genA
+ppsA	pps
+yehR
+mtfA	yeeI
+ispH	yaaE, lytB
+rrsA
+hisP
+htpX
+ppdB	ygdC
+mreC
+nhoA	yddI
+trmO	tsaA, yaeB
+yjaH
+allZ
+tas	ygdS
+entA
+ybjQ
+metT	metTalpha
+tfaD	ybcX
+yddB
+aslA	gppB, atsA
+ytfI
+yaaX
+ibpA	hslT, htpN
+yheT
+yfgM
+rpiB	yjcA, alsI
+hflC	hflA
+helD	srjB
+adk	dnaW, plsA
+sbmA
+efeO	ycdO
+thiG	thiB
+asnC
+puuB	ycjA, ordL
+dppC
+chbA	celC
+ribA
+argZ	argVgamma
+ydcT
+csrD	yhdA
+znuC	yebM
+tmcA	ypfI
+yaiO
+dgcN	yfiN
+yfbM
+amiC	ygdN
+ybjD
+ygeW
+malF
+kch
+digH	yddW
+yccM
+bax
+dauA	ychM
+sspA	ssp, pog
+phoR	R1pho, phoR1, nmpB
+lpxB	pgsB
+ybdD
+ldrB
+ydjX
+setC	yicK
+ybdR
+cyoC
+mntR	ybiQ
+gadB
+lpxP	ddg
+ybeU
+lysP	cadR
+yjgM
+citG	ybdT
+ascrp
+eamA	ydeD
+metF
+spoT
+ydhL
+yciZ	deoL
+yqeB
+yegW
+menD
+waaB	lps, syn, rfaB
+bglG	bglC
+yhbO
+glyS
+zntA	yhhO
+rsgA	yjeQ
+yccE
+insB6
+citF	ybdV
+rodZ	yfgA
+valS	val-act
+tqsA	ydgG
+envC	yibP, slm11
+fixC	yaaS
+rlmL	ycbY, rlmK, rlmKL
+sgrS	ryaA
+frlR	yhfR
+tauA	yaiR, ssiA
+smg
+ycaN
+rpoZ	spoS
+yoaH
+yidH
+dcuR	yjdG
+aspU
+ydfV
+yciE
+mngA	frx, hrsA
+rpe	dod, yhfD
+tig
+hycA	hevA
+ygdD
+dgcP	yeaP
+yjiX
+recX	oraA
+pdeR	yciR, gmr
+gloC	ycbL
+iscR	yfhP
+yphD
+fecE
+alx	ygjT
+dgcC	yaiC, adrA
+flgN
+glmM	yhbF, mrsA
+puuA	ycjK
+sthA	sth, udhA
+rutG	ycdG
+aaeX	yhcR
+creB	yjjE, ORF2
+malQ	malA
+yffS
+chbR	celD
+sxy	yccR
+cysA
+mhpT	yaiK
+argR	Rarg, xerA
+cyaA	cya
+napB	yejY
+dsrB
+yohF	yohE
+aldA	ald
+umpG	ygbC, surE
+aaeA	yhcQ
+insA9
+yihY	rbn
+yigF
+yahH
+spfP
+yciK
+argH
+yjfZ
+iadA	yjiF
+sfsA	sfs, sfs1
+metQ	metD, yaeC
+rzoQ
+exuT
+betA
+rseD
+tnaB	tnaP, trpP
+rclB	ykgI
+yphF
+yfcV
+ydiH
+yigG
+tus	tau
+yaeF	yaeK
+thrP	yifK
+livF
+lolE	ycfW
+cadB
+nagZ	ycfO
+phnG
+yajQ
+ynjB
+rrlH
+speG
+flgG	flaL
+rapA	yabA, hepA
+yhaH
+ydhQ
+leuX	Su-6, supP
+kilS
+idnD	yjgV
+asr
+ymdB
+cobB	ycfY
+yiaT
+galF	wcaN, yefG
+bepA	yfgC
+yfiH	pgeF
+glmU	yieA
+dacA	pfv
+chiZ
+yciC
+infA	bypA1
+sodB
+ydhX
+modB	chlJ, tslJ
+rmuC	yigN
+yjfK
+fliO	flbD
+ymfR
+ybcM
+rpmB
+agaB	yraD
+yheO
+yihU	squU
+pgpC	yfhB
+infC	fit, srjA
+rimL
+selD	fdhB
+hyi	ybbG, gip
+orn	yjeR
+ydiO
+yjfM
+glcD	yghM, gox
+ygbN
+rtcR	yhgB
+narX	frdR, narR, frd1
+bcsC	yhjL
+yqiD
+pitA	pit
+dkgB	yafB
+ylcI
+arrS
+yneE
+yjfL
+yeiL
+yfgJ
+yjcH
+tcyN	yecC
+yicU
+lsrG	yneC
+cobC	phpB
+chiA	yheB
+ebgA
+atpF	papF, uncF
+frsA	yafA
+hypD	hydF
+yphG
+ygfS
+accA
+modF	chlD, phrA
+azuC
+rimJ	tcp
+rsmI	yraL
+alaB
+mtlA	mtlC
+yjbB
+ygjV
+yhhY
+ypjC
+rem
+yidQ	ecfI
+yidI
+ybhL
+rbsC	rbsP, rbsT
+sokB
+rrlG
+yjbJ
+fliQ	flaQ
+gntR
+fucI
+yhfK
+ycaL
+ybcN
+fadR	dec, ole, oleR, thdB
+yhfZ
+yfjM
+yfjU
+sufS	csdB, ynhB
+livK	hrbD, hrbC, hrbB
+nrfG	yjcN, aidC
+yieP
+ycjG	ycjH
+xylG
+nrdF	ygaD
+ydbJ
+ycaD
+dps	pexB, vtm
+gltL
+rob	cbpB, robA
+atpB	papD, uncB
+cbpA
+ddpC	yddQ
+bamD	ecfD, yfiO
+metH
+yjfI
+yghQ
+pth	rap
+rzoD
+gss	gsp
+arcZ	psrA16, sraH, ryhA
+yrfJ
+yqgE
+diaA	yraO
+yegH
+evgA
+ypfN
+yneP
+rdlA
+eno
+folD	ads
+talB	yaaK
+ybaA
+flgI	flaM
+feoA
+yecM	yecL
+aroG
+btuB	bfe, cer
+glpK
+frvR	yiiH
+pspF	ycjB
+yjfY
+gpr	mgrA, yghZ
+dcuC
+eyeA
+sieB
+dgd
+tesB
+insE4
+ytfR	ytfS, b4228, b4229
+insH5	yi52_5, trs5-5
+dinG	rarB
+betI
+yciN
+sodC
+lrp	rblA, oppI, mbf, lstR, alsB, ihb, livR, lrs, lss
+ais	pagH, pmrG
+purN	ade(c), ade
+yaaA
+artI
+cysM
+srkA	orfA, yihE
+malS
+rrsD
+dnaX	dnaZ
+nuoB
+ilvE
+mlrA	yehV
+lldD	lct, lctD
+yeeY
+yabP	b4659
+yshB
+rplI
+amn
+nadD	ybeN, fusB
+rsxE	ydgQ
+naRNA4
+hokC	gef
+betT
+frlD	yhfQ
+dsrA
+yahJ
+bcsB	yhjN
+rpsS
+hsdR	hsp, hsr
+ybhH
+ydeT	fmlC
+malZ
+ahpC	tpx, ssi8
+usg	usg-1
+htrL	yibB
+fabB	fabC
+ugd	yefA, udg, UDG8, pmrE
+insB4
+yphH
+chaA
+nuoG
+yagU
+lpxH	ybbF
+rpsJ	nusE
+groS	groES, mopB
+nagK	ycfX
+yhbQ
+yncE
+secM	srrA, yacA
+cpsB	rfbM, manC, mni
+yfaY
+rpmJ	secX
+ybaL	ylaA
+ibsB
+lhgD	ygaF, lhgO
+yjbR
+yobI
+ybiW	pflF
+degP	htrA, ptd
+yjhU
+rclA	ykgC
+cyoD
+vsr
+nikB	hydC, hydD
+ftsL	mraR, yabD
+slyA
+ygaZ
+rpsR
+lysR
+lepB	lep
+puuC	aldH
+prpE	yahU
+frdB
+mltF	yfhD
+ybaT
+nikR	yhhG
+yecJ
+lptD	yabG, ostA, imp
+ygeI
+rybB	p25
+sdhX	rybD
+skp	ompH, hlpA, firA
+mfd
+mdlB	mdl
+gmhA	yafI, lpcA, tfrA
+ycaQ	alkZ
+ynbG
+prfB	supK
+ascB	sac
+glcG	yghC
+fliK	flaE
+yihQ	squQ
+arnE	yfbW
+yijO
+yhiY
+ompA	con, tolG, tut
+rnm	trpH, yciV
+ccp	yhjA
+ftsY
+yohD
+nudF	trgB, aspP, yqiE
+mazE	chpAI, chpR
+flgE	flaK
+argQ	argVdelta
+yccF
+rpsL	asuB, strA
+yldA
+sspB
+ychN
+phnL
+hofB	hopB
+fdhF	chlF
+nuoM	nuoA
+yjtD	lasT
+yieE
+arnC	pmrF, yfbF
+idlP
+fabD	tfpA
+grxD	ydhD
+sucB
+glaR	ygaE, gabC, csiR
+ydeS
+yidP
+paaA	ydbO
+alsC	yjcV
+ybiY	pflE
+yqfG
+paeA	ytfL
+cpdB
+cbrA	yidS
+pal	excC
+ynbA
+ldcA	ycgQ
+uof
+yjeI
+ycjU	pgmB
+rfaD	waaD, hldD, htrM, nbsB
+ampH	yaiH
+ymgA
+yhhL
+cysI
+gadY	IS183
+rplX
+poxB
+hha
+mgsA	mgs, yccG
+yicI
+tatD	b3841, yigX, b3840, mttC, yigW
+rplQ
+trhO	yceA
+yfjT
+elfA	ycbQ
+clpA	lopD
+cas1	ygbT
+aspT	tasC
+ybcL
+yncO
+yeiE
+xylF	xylT
+rseC
+dsdA
+ygcN
+nrdH	ygaN
+yhcO
+bcsZ	bcsC, yhjM
+mngB	ybgG
+rssA	ychK
+rsmA	ksgA
+yadE
+ybjP
+ydjY
+ycgJ
+abgT	ydaH
+tolB	lky, lkyA, tol-3
+sucC
+ycfH
+yqhG	yqhF
+lysW	lysT-beta, lysTbeta, su
+ymgC
+arsB	arsF
+tyrA
+yphE
+prlC	opdA
+amiB	yjeD
+cusF	cusX, ylcC
+yehC
+napG	yojA, yojB
+fecA
+rhsC
+puuD	ycjL
+yoaG
+nirC
+thiP	sfuB, yabK
+seqA	hsm-1
+hyaA
+rtcB	yhgL
+pgrR	ycjZ
+cysQ	amt, amtA
+hyfR
+mdtM	yjiO
+yihP
+ybeF
+gshA	gsh-I
+xanQ	ygfO
+thrT
+tsuB	yeeD
+thiH	thiB
+yfdR
+rhtB	yigK
+djlB	ybeS
+thrA	thrA2, Hs, thrA1, thrD
+yceQ
+acrB	acrE
+abpB	yfjK
+ucpA	yfeF
+dedA
+glpQ
+yfdK
+gph	yhfE
+yfjJ
+tolQ	fii, tolP
+aceF
+gmm	nudD, wcaH, yefC
+paaF	ydbR, ydbS
+yqjA	ecfL
+psuG	yeiN, pscG
+micC	IS063, tke8
+frdA
+uhpB
+hofP	yrfA
+yihI
+valX	valU-beta, valUbeta
+ttcA	ydaO
+zntR	yhdM
+ypdC
+mcbR	yncC
+yihL
+yqcA
+yahF
+csrB
+entS	ybdA
+ilvA	ile
+hemD
+entE
+nudJ	ymfB
+yffB
+sbcB	exoI, rmuA, cpeA, xonA
+comR	ycfQ
+yggN	ecfF
+yojO
+rfbA	rmlA, som
+recT
+rcsF
+cbrB	yieI
+fadD	oldD
+rpsD	ramA, sud(2), sud2
+fadH	ygjL
+baeS
+agaS	yraB
+dgcZ	ydeG, ydeH
+topB	mutR
+dnaK	groPF, groPC, seg, grpF, grpC, groPAB
+ydjZ
+narI	chlI
+mutT	nudA
+yccJ
+leuW	feeB
+yiaN
+thiK	ycfN
+btuD
+cbrC	yieJ
+ysaA	yiaI
+yebY
+perR
+pfkA
+feoB
+ubiJ	yigP
+omrB	PAIR2b, t59, rygB
+moeA	bisB, chlE, narE
+idnO	yjgU
+glyA
+asmA	yegA
+ybjL
+psd
+srmB	rbaB, rhlA
+bfd	yheA
+thrC
+tpiA	tpi
+oppB
+xylB
+gntU	b3435, b3436
+opgD	yzzZ, ydcG, mdoD
+abgR
+glnP
+insE2
+yafV
+lptB	yhbG
+yefM
+nlpD
+yhjG	yhjF
+gspJ	yheI
+mioC	yieB
+glnK	ybaI
+racR	rarC, ydaR
+yahB
+yjjY
+htrE
+yobA
+pitB
+manZ	gptB, mpt, ptsM, ptsX
+oxyS
+ycjY
+yacL
+folP	dhpS
+yahE
+nadE	efg, ntrL
+truC	yqcB
+yidC
+nikC	hydD, hydC
+ymdA
+rimO	yliG
+yjfJ
+nfeR	yqjI
+ykiE
+fdnI
+pepB	yfhI
+otsB	otsP
+ptsN	yhbI, rpoP
+nrdA	dnaF
+tauC	yaiJ, ssiC
+glcF	gox, yghL, b2978
+yfeX
+ydfR
+mltC	yggZ
+valV
+yeaL
+ybeR
+hemF	popB, sec
+tsr	cheD
+rplC
+yceB
+yghT
+xapA	pndA
+ygbE
+mdtH	yceL
+yedF
+yhbP
+ybfF
+dgoR	yidW, b3695, b3694
+phnN
+shiA	yeeM
+pspC
+lptF	yjgP
+ydcF
+ygeV
+rluC	yceC
+ddlA
+waaU	rfaK
+ypeD
+ybaV	comEA
+ytcB
+fecD
+yfjI
+yagB
+emrD	yicQ
+fusA	far, fus
+rlmM	ygdE
+yraI
+patD	prr, ydcW
+azuR	isrB, IS092, G0-8904
+ynfM	yzyC
+mrcB	pbpF, ponB
+ybdJ
+curA	yncB
+yqjG
+narQ
+treC	treE, olgH
+mhpR
+ftsW
+yhhS
+alaA	yfbQ
+pnuC
+yccS
+eutH	yffU
+pepQ
+hemX
+ymjA
+lysV	supN
+cbl
+ldhA	htpH, hslF, hslI
+hda	idaB, yfgE
+ppiC	parvA
+hycI
+tldE	mcb, pmbA
+frvX	yiiI
+gnsB	ydfY
+alkA	aidA
+fabI	envM, gts, qmeA
+srlD	gutD
+entD
+yjeH
+rpsP
+acpP
+yjiK
+fimD	fimD_1, fimD_2
+ymgL
+folB	ygiG
+ygfT
+glyU	supT, suA36, sufD, sumA, sumB
+caiB	yaaN
+ytfK
+yfdE
+ftsE
+lsrD	ydeZ
+sdiA
+mreB	rodY, envB, mon, mreB_1
+fetB	ybbM
+rho	nusD, sun, tsu, rnsC, nitA, psu, psuA, sbaA
+yjcB
+aroC
+ygfZ	yzzW
+livM
+leuA
+gcd
+rydC
+purB	ade(h), ade
+ybcK
+rpoA	pez, phs, sez
+ilvC
+decR	ybaO, cyuR
+glpX
+cobU
+recR
+yneG
+sgcR	yjhJ
+otsA
+wbbK	yefI
+rlmF	ybiN
+ycgL
+wcaE
+letA	yebS
+timP
+prkB	yhfF
+narP
+symR	ryjC
+rpsN
+allR	glxA3, ybbU
+ycjM	ggaP
+prpR	yahP
+cyaR	ryeE
+agp
+atoD
+hisF
+ydiF
+tyrU	sup15B, supM, supZ
+afuC	fbpC, yagC
+insAB2
+asnB
+rrsG
+hemB	ncf
+yjdP
+mgtA	atmA, corB, mgt, mtg
+gadF
+trxC	yfiG
+pqqU	yncD
+gltI	yzzK, ybeJ
+ycjS
+rppH	ygdP, nudH
+bhsA	ycfR, comC
+yhhJ
+rdlC
+corA
+rpsO	secC
+ralA
+ygcW
+yfdY
+ybhQ
+ykfA
+rstA	urpT
+pssL
+iscS	nuvC, yzzO, yfhO
+yjjI	yjjH
+yqiH
+yhiJ
+ytjA
+yafL
+cusS	ybcZ
+rcsB
+lysY	lysTg, lysTgamma
+caiD	yaaL
+mdtF	yhiV
+bglA	yqfC, bglD
+napA	yojD, yojC, yojE
+flgL	flaT
+dgcT	ycdT
+fadA	oldA
+fabA
+dgoK	yidV
+mokC	gefL
+hemH	popA, visA
+yfeO
+ppdA
+qmcA	ybbK
+yagK
+yafD
+tktA	tkt
+ysdD
+yhcA
+dinI
+yabI
+rnlB	yfjO
+yfhH
+dbpA	rhlC
+rspB
+asnS	lcs, tss
+grxA	grx
+yodB
+mnmG	gidA, trmF
+phnD	phn, psiD
+gudD	ygcX
+macA	ybjY
+lacA
+exoX	yobC
+rhsD
+ynfQ
+astB	ydjT
+cedA	ydjP
+ycdY
+yciO
+metW
+ftsB	ygbQ
+flgH	flaY
+oxyR	momR, mor
+rnhA	cer, sin, dasF, herA, rnh, sdrA
+selA	fdhA
+nepI	yicM
+sbcD	yajA
+yggC
+rdlD
+radD	yejJ, yejI, yejH
+putA	putC, poaA
+yedK	yedG
+ubiA	cyr
+bisC
+glnG	glnT, ntrC
+zntB	ydaN
+gltX	gltM, gluRS
+rnd
+yfeZ
+ynfA
+eptC	yijP
+beeE	ymfO
+bglF	bglS
+ymfE
+slyB
+gmk	spoR
+csgA
+sroE	k20
+aroF
+yraK
+murG
+ryeG	IS118
+lipA	lip
+ydfG
+yjiL
+tauD	ssiD, yaiG
+mscM	yjeP
+carA	arg, pyrA
+nsrR	yjeB
+gshB	gsh-II
+intF	yagO
+nanS	yjhS
+dacB
+mdaB	mda66
+csqR	yihW
+yhdH	acuI
+yrdA
+zitB	ybgR
+punR	ydhB
+yjbH
+phoP
+rdgB	yggV
+tilS	yaeN, mesJ
+tmk	ycfG
+ampE
+dcp
+ravA	yieN
+hemY
+yjbS
+rrfD
+pdxY	ydgS
+entH	ybdB
+asnA
+gcl
+fur
+narJ
+bioH	bioB
+oppA
+gltT	tgtB
+nrdB	ftsB
+ilvH	brnP
+btsT	yjiY
+yjeN
+thrB
+yjiJ
+trpT	su7, su8, su9, supU, supV
+ymcE
+gcvA
+fabF	vtr, cvc, fabJ, vtrB
+ybiX
+mukB
+acnB	yacJ, yacI
+ybgE
+ybiE
+gcvP
+yafZ
+fabZ	sfhC21, sabA1, sefA, yaeA
+waaQ	rfaQ
+kdgK	yhjI
+rutF	ycdH
+emrB
+ybjM
+yadI	agaX
+trkH
+ydcV
+pphA	yebX, prpA
+nanX	yjhB
+torI
+tesA	apeA, pldC
+rfbC	rfbD, rmlC
+argD	Arg1, dapC, dtu
+trpE	anth, tryD, tryp-4
+btsR	yehT
+yceO
+minE	minB
+asnU
+sfmA
+mgrR
+idnR	gntS?, gntH, yjgS
+aldB	yiaX
+rplF
+gsiB	yliB
+aroE
+amiA	yfeE
+aat	ycaA
+araG
+yeaH
+bioD
+waaF	rfaF
+selB	fdhA
+yaiP
+menA	yiiW
+ygbM
+yhdP	b3246, yhdR, yhdQ, b3245
+ftsK	dinH
+ylcG
+opgG	mdoA, mdoG
+ydeA
+ackA
+torS	yccI
+yahM
+ldtA	yzzT, yeeG, erfK
+gspF	hofF, hopF
+kdsC	yrbJ, yrbI
+cheZ
+ylcH
+nanK	yhcI
+wzyE	rffT
+glgC
+yhfL
+uvrC
+hslU	clpY, htpI
+pspD
+yfdG	gtrA
+hprR	yedW
+ygaP
+yibA
+torZ	bisZ
+mhpA
+fetA	ybbL
+flhD	flbB
+fau	ygfA
+nc1
+ycaM
+anmK	ydhH
+nudK	yffH
+sgcB
+yceM	mviM
+yeaR
+ydfX
+cadC
+insA6
+ompX	ybiG, ompP
+elaA	yfbC
+appY
+yghR
+glnE
+copA	ybaR
+sibA	QUAD1a, tp11, ryeC
+tpx	yzzJ
+mhpC
+nrfA
+ybaN
+pncC	ygaD
+xdhA	ygeS
+ybiJ
+cpxA	rssE, ecfB, eup, ssd, ecf
+flhA	flaH
+insH4	trs5-4, yi52_4
+chpB	yjfE, chpBK
+yneK
+yfcS
+hemW	yggW
+ihfA	hid, himA
+gyrB	hopA, pcpA, pcbA, parA, nalC, Cou, acrB, himB, hisU
+bioP	yigM
+orzP
+hokE	ybdY
+cysH
+proW	osrA, proU
+damX	yhfB
+pdxK	yfeI, pdxL
+bcsG	yhjU
+yggS
+gpmM	gpmC, pgmI, gpmI, yibO
+ampD
+kdpE
+treA	osmA, tre
+insH2	trs5-2, yi52_2
+proV	osrA, proU
+ydcK
+insG	yi41
+yjdJ
+yfcH
+intR	ydaP
+aspV
+ydcO
+nanE	yhcJ
+arsC	arsG
+chbG	celG, ydjC
+nrfC	yjcJ
+rihA	ybeK
+adiA	adi
+rybA
+yceK
+gatD
+maa	ylaD
+aroH
+yeeN
+dcuD	yhcL
+efeB	ycdB
+truD	ygbO
+lldP	lct, lctP
+hofM	yrfD
+yfjP
+rof	yaeO
+envR	acrS, yhdK
+patZ	yfiQ, pka
+bhsB
+gsiC	yliC
+rsxG	ydgP
+ldrD
+ygiD
+ymcF
+mcbA	ybiM
+rpmG
+eutN	yffY, cchB
+G0-10706
+insCD3
+rsuA	yejD
+glcC	yghN
+hycC	hevC
+atpI	uncI
+hisD
+bglJ	yjjR
+araE
+bdcA	yjgI
+ddpA	yddS
+yffL
+umuC	uvm
+sgbE	yiaS
+rrrD	lycV, ybcS
+ypjD
+maoP	yifE
+yjaB
+paaB	ynbF
+ghrB	tkrA, yiaE
+yciI
+matA	ykgK, ecpR
+malP	malA, blu
+ybbC
+gltF	ossB
+gloB	yafR
+argS	lov, lov-1
+abgB	ydaI
+hipB
+yjeM
+yjfF
+gltV	tgtE
+dtd	yihZ
+hisR	hisT
+rrfB
+focB
+eamB	yfiK
+potF
+tadA	yfhC
+lpxM	mlt, waaN, msbB
+treB
+ynbB
+tolR
+yiaY
+recC
+queG	yjeS
+nanQ	yhcH
+letB	yebT
+kdpA	kac
+yebQ
+ytiD
+yfiR
+yahI
+yiaU
+nrfE	yjcL
+ispF	ygbB
+kdpC	kac
+yciA
+mnaT	yncA
+paaX	ydbY
+yedP
+thiB	yabL, sfuA, tbpA
+hupB	dpeA, dbhB, hopD
+fhuD
+zraR	hydG
+fsaB	yijG, talC
+ychS
+uvrY	yecB
+sgcX	yjhO
+yiaC
+fruB	fpr, fruF
+mdlA	mdl
+ycbZ
+pphC	yegK
+yjjW
+yjcF
+rplV	eryB
+gnd
+ycbJ
+yggR
+yciX	yciX_2
+potC
+ryjA	psrA24, sraL
+ybcV
+rnt
+yqiI
+ybgU
+dacD	phsE, yeeC
+yfjQ
+ruvC
+rutR	ycdC
+paaJ	ydbW
+uxaA	ygjW
+endA
+yqhC
+rdcA	yjdA, crfC
+pepP
+uxaC	ygjY, ygjX, ygjZ
+tonB	T1rec, exbA
+yfgD
+hicA	yncN
+yedA
+epmB	yjeK
+yhaV
+ttdR	dan, ygiP
+dacC
+pheL	pheAE
+paaD	ydbQ
+proM	proU
+yhdY
+cynS	cnt, cyaN
+hcaR	phdR, yfhT
+ynfE
+ppk
+leuP	leuV-beta, leuVbeta
+yhcF
+ymgN
+proL	proW
+adhP	yddN
+ycfK	stfP
+cspE	gicA, msmC
+pheA
+stfR	ynaB
+emrY
+lspA	lsp
+cutA	cutA1
+ychE
+dtpA	ydgR, tppB
+yceH
+glpA
+csiE	csi-16
+yghG	gspSbeta
+sokX
+insEF2
+yojI	yojJ
+motB	flaJ
+elyC	ycbC
+yqeA
+yhfU
+astA	ydjV
+artJ
+yeiS
+ypdJ
+pmrR
+tfaR	ynaC
+dxs	yajP
+hcaC	yfhW, hcaa3, phdB
+paoC	yagR
+yfbU
+ldtE	ynhG
+glsA	ybaS
+metC
+aaeB	yhcP
+thpR	yadP, ligT
+naRNA5
+glyV	glyValpha, ins, mutA, suA58, suA78
+yjdN	phnB
+thrU
+fucO
+insAB4
+allE	glxB6, ylbA, ughY
+gudX	ygcY
+mutM	fpg
+atoB
+yihM
+cmk	ycaF, mssA, ycaG
+deaD	csdA, mssB, rhlD
+yehF	molR_1, sosF, dinO
+borD	iss, vboR, bor, ybcU
+rseX	IS096
+yfcG
+yciF
+aceK
+ylbG
+fadJ	yfcX
+prmB	yfcB
+dinB	dinP
+rihC	yaaF
+malX
+dgoA	b3692, yidU
+ykiC
+ydiE
+acnA	acn
+fabG
+cheW
+csrA	zfiA
+fliP	flaR
+flgD	flaV
+mrdA	pbpA
+yobD
+pck	pckA
+pdeG	ycgG
+dsbB	ycgA, roxB, dsbX, iarB, rosB
+mepK	ycbK
+wecF	yifM, b4404, rff, rffT, b4405
+gntP	yjiB
+hisJ
+rhsB
+chiP	ybfM
+dmsB
+ymdG
+mtr
+csgF
+glrR	yfhA, qseF
+yehE
+rlmC	ybjF, rumB
+gspA	yheD
+yqaA
+tamA	ytfM
+rplK	relC
+phoA	psiA
+hmp	fsrB, hmpA
+yebG
+btuE
+yhiM
+ymjD
+dpiA	citB, criR, mpdA
+yfcJ
+yqgB
+ydeI
+yjhP
+nlpA
+pgaB	hmsF, ycdR
+recO
+hybE
+ytfF
+yhdU
+yhgE
+plaP	yeeF
+flgJ	flaZ
+gntT	gntTalpha, yhgC, gntM, usgA
+pdxI	ydbC
+lacY
+tcyP	ydjN
+lyxK	lyx, xylK, sgbK, yiaP
+mltD	yafG, dniR
+hicB	ydcQ
+yfiL
+rplB
+ydhF
+yccX
+ydeO
+btuF	yadT
+cdaR	sdaR, yaeG
+yqhJ
+ybgS
+dksA	msmA
+ydiZ
+yhfW
+ampC	ampA
+yffQ
+yajC
+lapB	yciM
+nupG	gru
+ppnN	ygdH
+rusA	ybcP, rus
+rhoL
+ycbF
+insD6	yi22-6
+waaP	rfaP
+ecnA
+degS	hhoB, htrH
+ispG	gcpE
+ykfB
+opgB	yjjO, mdoB
+ybcF	arcC
+galK	galA
+fepE
+hpt
+menI	ydiI
+prc	tsp
+ykgE
+tdcA
+ycjO
+evgL
+insJK
+mmuM	yagD
+glaH	csi-12, ygaT, csiD
+nupC	cru
+tdcB	tdc
+ygbJ
+ecpB	yagY, matC
+atoE
+murB	yijB
+mrdB	rodA
+ynfH
+dhaR	ycgU
+narS
+yhfS
+entC	fepF
+yafO
+yfjR
+racC	sbcA
+rluF	yjbC
+loiP	yggG
+yehK
+rpsQ	neaA
+valW
+guaD	ygfP
+fis	nbp
+ftsA	divA
+spf
+dppF	dppE
+yfjH
+lsrK	ydeV
+sraA	psrA3, t15
+roxA	ycfD
+yihO	squO
+hofC	yacD, hopC
+pfkB
+qseB	ygiX
+ydgU
+fcl	wcaG, yefB
+yecE
+iaaA	spt, ybiK
+xylZ
+zapE	yhcM
+rlmI	yccW
+frmB	yaiM
+ynjH
+wzxC	wzx
+xdhD	ygfN
+dgt	optA
+tusD	yheN
+pyrG
+ydfI
+ycdX
+ytfE	dnrN
+insD5	yi22-5
+yggL
+iraM	elb1, ycgW, elbA
+ybhA
+artP
+tatE	ybeC
+qorB	ytfG
+yafW
+allD	glxB8, ylbC
+ydjL
+yabR
+def	fms
+yadW
+modA
+fieF	yiiP
+gltJ
+marB
+yliM
+gltB	psiQ, ossB, aspB
+hpf	yhbH
+yqgF
+rhlB	mmrA
+rssB	ychL, sprE, hnr
+panC
+yihX
+hypC
+lpxT	yeiU
+ndh
+ftp	yojK, yojL, apbE
+gpmA	gpm
+rlmG	ygjO
+ccmB	yejV
+fryB	ypdH
+dgcF	yneF
+lgoR	yjjM
+yoaE
+fdrA	ylbD
+metU	metT-beta, metTbeta
+prfA	ups?, sueB, uar
+nfrA
+yfbV
+rclR	ykgD
+gpt	glyD, gpp, gxu
+yqcE	yqcF
+ydiN
+pldA
+rprA	psrA5, IS083
+fimZ	ybcA
+deoR	nucR
+yoaL
+serV	supD
+yjeT
+btsS	yehU
+fliH	flaAII.3, flaBIII
+mqsR	ygiU
+cysG
+higA	ygjM
+yccA
+hyfI
+crcB	ybeI
+rsmD	yhhF
+yahL
+purC	ade(g), ade

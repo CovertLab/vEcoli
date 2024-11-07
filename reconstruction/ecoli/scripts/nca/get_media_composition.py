@@ -47,14 +47,7 @@ from wholecell.utils import units
 
 
 
-
-
-
-
-# TODO: convert tryptone, peptone, etc. into all 20 amino acids
 # TODO: convert yeast extract, BHI, etc. into useful stuff:
-
-#
 
 MEDIA_RECIPE = {
     "TB": {"tryptone": 12 * units.g / units.L,
@@ -104,7 +97,7 @@ MEDIA_RECIPE = {
         "glucose": 1.0 * units.g / units.L
     },
     "K medium": {
-        "sodium nitrate": 0.075 * units.g / units.L,
+        "sodium nitrate": 0.075 * units.g / units.L, # 0.8 mM
         "ammonium chloride": 0.00267 * units.g / units.L,
         "disodium glycerophosphate": 0.00216 * units.g / units.L,
         "selenous acid": 0.00000129 * units.g / units.L,
@@ -136,7 +129,7 @@ MEDIA_RECIPE = {
         "disodium selenate": 0.172 * units.g / units.L,
         "nickel (II) chloride": 0.02 * units.g / units.L,
         "manganese (II) chloride": 0.5e-2 * units.g / units.L,
-        "boric acid": 0.1e-2 * units.g / units.L,
+        "boric acid": 0.016 * units.mmol, #0.1e-2 * units.g / units.L,
         "aluminum (III) potassium sulfate": 0.01e-2 * units.g / units.L,
         "copper (II) chloride": 0.001e-2 * units.g / units.L,
         "disodium edta": 0.5e-2 * units.g / units.L,
@@ -153,7 +146,7 @@ MEDIA_RECIPE = {
         "copper (II) sulfate": 1.5  * units.mg / units.L,
         "copper (II) chloride": 1.3  * units.mg / units.L,
         "zinc (II) oxide": 4 * units.mg / units.L,
-        "boric acid": 1.2 * units.mg / units.L,
+        "boric acid": 0.019 * units.mmol, #1.2 * units.mg / units.L,
         "disodium molybdate": 10 * units.mg / units.L,
         "disodium edta": 706.55 * units.mg / units.L,
         "glucose": 1 * units.g / units.L,
@@ -183,6 +176,11 @@ MEDIA_RECIPE = {
         "calcium chloride": 100 * units.umol / units.L,
         "casamino acids": None,
     },
+    "M9+MOPS+tannic acid": {
+        "pH5": None, # Actually 5.3 and 5.7
+        "anaerobic": None,
+        "reducing conditions": None,
+    }
 }
 
 MEDIA_COMPOSITION = {
@@ -206,13 +204,13 @@ MEDIA_COMPOSITION = {
         "phosphate": 1.32 * units.mmol / units.L,
         "Mg2+": 528 * units.umol / units.L,
         "sulfate": 286.02 * units.umol / units.L,
-        "Fe2+": 10 * units.umol / units.L,
+        "iron": 10 * units.umol / units.L,
         "Ca2+": 500e-3 * units.umol / units.L,
         "Mn2+": 80e-3 * units.umol / units.L,
         "Co2+": 30e-3 * units.umol / units.L,
         "Cu2+": 10e-3 * units.umol / units.L,
         "Zn2+": 10e-3 * units.umol / units.L,
-        "heptamolybdate": 3e-3 * units.umol / units.L,
+        "molybdate": 3e-3 * units.umol / units.L, # NOTE: actually heptamolybdate, but heptamolybdate is a type of molybdate
     },
     "M63": {
         "K+": 100 * units.mmol / units.L,
@@ -220,7 +218,7 @@ MEDIA_COMPOSITION = {
         "ammonium": 30 * units.mmol / units.L,
         "sulfate": 16.002 * units.mmol / units.L,
         "Mg2+": 1 * units.mmol / units.L,
-        "Fe2+": 1.8 * units.umol / units.L,
+        "iron": 1.8 * units.umol / units.L,
     },
     "EZ Rich Defined Medium": {
         "chloride": 60.557 * units.mmol / units.L,
@@ -260,7 +258,7 @@ MEDIA_COMPOSITION = {
         "tryptophan": 100 * units.umol / units.L,
         "pantothenate": 20 * units.umol / units.L,
         "Ca2+": 10.5 * units.umol / units.L,
-        "Fe2+": 10 * units.umol / units.L,
+        "iron": 10 * units.umol / units.L,
         "thiamine": 10 * units.umol / units.L,
         "4-aminobenzoate": 10 * units.umol / units.L,
         "4-hydroxybenzoate": 10 * units.umol / units.L,
@@ -269,7 +267,7 @@ MEDIA_COMPOSITION = {
         "Co2+": 30e-3 * units.umol / units.L,
         "Zn2+": 10e-3 * units.umol / units.L,
         "Cu2+": 10e-3 * units.umol / units.L,
-        "heptamolybdate": 3e-3 * units.umol / units.L,
+        "molybdate": 3e-3 * units.umol / units.L, # NOTE: actually heptamolybdate, but heptamolybdate is a type of molybdate
     },
     }
 
@@ -285,11 +283,13 @@ MEDIA_RECIPE["LB+HOMOPIPES"].update({"HOMOPIPES": 50 * units.mmol / units.L,})
 MEDIA_RECIPE["MES-LB"] = {k:v for k, v in MEDIA_RECIPE["LB"].items()}
 MEDIA_RECIPE["MES-LB"].update({"MES": None})
 MEDIA_RECIPE["BHI Agar"] = {k:v for k, v in MEDIA_RECIPE["BHI"].items()}
+MEDIA_RECIPE["BHI Agar"].update({"BHI agar": None})
+MEDIA_RECIPE["M9+MOPS+tannic acid"].update({k:v for k, v in MEDIA_COMPOSITION["MOPS"].items()})
 
 RECIPE_TO_COMPOSITION = {
     "zinc (II) oxide": {"Zn2+": 1}, # TODO: I think it would dissolve at the paper's pH6.6-6.7? But also they probably put it in so that it provides Zn2+?
     "calcium chloride": {"Ca2+": 1, "chloride": 2},
-    "iron (III) nitrate": {"Fe3+": 1, "nitrate": 3},
+    "iron (III) nitrate": {"iron": 1, "nitrate": 3}, # NOTE: just iron bc which exact ion probably doesn't matter to cell since it can cycle
     "magnesium sulfate": {"Mg2+": 1, "sulfate": 1},
     "potassium chloride": {"K+": 1, "chloride": 1},
     "sodium bicarbonate": {"Na+": 1, "bicarbonate": 1},
@@ -303,7 +303,7 @@ RECIPE_TO_COMPOSITION = {
     "ammonium chloride": {"ammonium": 1, "chloride": 1},
     "disodium glycerophosphate": {"Na+": 2, "glycerophosphate": 1},
     "disodium edta": {"Na+": 2, "edta": 1},
-    "iron (III) chloride": {"Fe3+": 1, "chloride": 3},
+    "iron (III) chloride": {"iron": 1, "chloride": 3},
     "manganese (II) chloride": {"Mn2+": 1, "chloride": 2},
     "copper (II) sulfate": {"Cu2+": 1, "sulfate": 1},
     "zinc (II) sulfate": {"Zn2+": 1, "sulfate": 1},
@@ -312,12 +312,13 @@ RECIPE_TO_COMPOSITION = {
     "monopotassium phosphate": {"K+": 1, "phosphate": 1},
     "disodium phosphate": {"Na+": 2, "phosphate": 1},
     "cobalt (II) nitrate": {"Co2+": 1, "nitrate": 2},
-    "iron (II) ammonium sulfate": {"Fe2+": 1, "ammonium": 2, "sulfate": 2},
-    "disodium selenate": {"Na+": 2, "selenate": 1},
+    "iron (II) ammonium sulfate": {"iron": 1, "ammonium": 2, "sulfate": 2},
+    "disodium selenate": {"Na+": 2, "selenium": 1}, # Just converted to selenium since it's a trace metal?
+    "selenous acid": {"selenium": 1},
     "nickel (II) chloride": {"Ni2+": 1, "chloride": 2},
     "aluminum (III) potassium sulfate": {"Al3+": 1, "K+": 1, "sulfate": 1},
     "copper (II) chloride": {"Cu2+": 1, "chloride": 2},
-    "ammonium heptamolybdate": {"ammonium": 6, "heptamolybdate": 1},
+    "ammonium heptamolybdate": {"ammonium": 6, "molybdate": 1}, # NOTE: heptamolybdate is a type of molybdate
     "calcium carbonate": {"Ca2+": 1, "bicarbonate": 1},
     "magnesium chloride": {"Mg2+": 1, "chloride": 2},
     "K2HPO4": {"K+": 2, "phosphate": 1},
@@ -333,17 +334,29 @@ RECIPE_TO_COMPOSITION = {
     "sodiumbenzoate": {"Na+": 1, "benzoate": 1},
     "yeast extract": {"phosphate": None, "Na+": None, "K+": None, "chloride": None, "Mg2+": None, "Ca2+": None,
                       "ammonium": None,
+                      # AAs
                       "glycine": None, "alanine": None, "leucine": None, "methionine": None, "isoleucine": None, "valine": None,
                       "tryptophan": None, "proline": None, "tyrosine": None, "serine": None, "threonine": None, "cysteine": None,
                       "histidine": None, "lysine": None, "arginine": None, "glutamine": None, "asparagine": None, "aspartate": None,
                       "glutamate": None, "phenylalanine": None,
+                      # Nitrogenous bases
                       "adenine": None, "guanine": None, "cytosine": None, "uracil": None, "thymine": None,
+                      # B vitamins & choline
                       "thiamine": None, "riboflavin": None, "niacinamide": None, "pantothenate": None, "pyridoxine": None, "biotin": None, "folic acid": None,
-                      "cyanocobalamin": None, "choline": None, "Fe3+": None, "Mn2+": None, "Al3+": None, "Ni2+": None, "Cu2+": None, "Fe2+": None,
-                      "Zn2+": None, "Co2+": None, "yeast extract other": None
-                      }, # TODO: molybdate/heptamolybdate? boric acid, selenate/selenous acid? biarbonate? etc.
+                      "cyanocobalamin": None, "choline": None,
+                      # Other macromolecules
+                        "fatty acids": None, "nucleosides": None, "trehalose": None, "mannose": None,
+                        # Trace elements
+                      "iron": None, "Mn2+": None, "Al3+": None, "Ni2+": None, "Cu2+": None,
+                      "Zn2+": None, "Co2+": None,
+                      # TODO: might have a lil bit of selenium & other trace metals too, maybe consider for anything that looks selenium related?
+                      "yeast extract other": None, "boron": 0.46 * units.mmol, # 5 mg per 1kg which is 5mg per liter
+
+
+                      }, # TODO: boric acid with boron?, selenate/selenous acid? bicarbonate? etc.
                         # TODO: whether to include glucose?
                         # TODO: ask about GSE21551, does the LB mahve glucose in it??
+    # NOTE: not trehalose in BHI, so could use that to check for treB?
     "tryptone": {"glycine": None, "alanine": None, "leucine": None, "methionine": None, "isoleucine": None, "valine": None,
                       "tryptophan": None, "proline": None, "tyrosine": None, "serine": None, "threonine": None, "cysteine": None,
                       "histidine": None, "lysine": None, "arginine": None, "glutamine": None, "asparagine": None, "aspartate": None,
@@ -372,20 +385,11 @@ RECIPE_TO_COMPOSITION = {
                       "glutamate": None, "phenylalanine": None,
                       "adenine": None, "guanine": None, "cytosine": None, "uracil": None, "thymine": None,
                       "thiamine": None, "riboflavin": None, "niacinamide": None, "pantothenate": None, "pyridoxine": None, "biotin": None, "folic acid": None,
-                      "cyanocobalamin": None, "choline": None, "Fe3+": None, "Mn2+": None, "Al3+": None, "Ni2+": None, "Cu2+": None, "Fe2+": None,
-                      "Zn2+": None, "Co2+": None, "beef heart other": None
+                      "cyanocobalamin": None, "choline": None, "iron": None, "Mn2+": None, "Al3+": None, "Ni2+": None, "Cu2+": None,
+                      "Zn2+": None, "Co2+": None, "beef heart other": None,
+                        "fatty acids": None, "nucleosides": None,
                       },
-    "calf brains": {"glucose": None, "phosphate": None, "Na+": None, "K+": None, "chloride": None, "Mg2+": None, "Ca2+": None,
-                      "ammonium": None,
-                      "glycine": None, "alanine": None, "leucine": None, "methionine": None, "isoleucine": None, "valine": None,
-                      "tryptophan": None, "proline": None, "tyrosine": None, "serine": None, "threonine": None, "cysteine": None,
-                      "histidine": None, "lysine": None, "arginine": None, "glutamine": None, "asparagine": None, "aspartate": None,
-                      "glutamate": None, "phenylalanine": None,
-                      "adenine": None, "guanine": None, "cytosine": None, "uracil": None, "thymine": None,
-                      "thiamine": None, "riboflavin": None, "niacinamide": None, "pantothenate": None, "pyridoxine": None, "biotin": None, "folic acid": None,
-                      "cyanocobalamin": None, "choline": None, "Fe3+": None, "Mn2+": None, "Al3+": None, "Ni2+": None, "Cu2+": None, "Fe2+": None,
-                      "Zn2+": None, "Co2+": None, "calf brain other": None
-                      },
+    "calf brains": {"calf brain other": None},
     "biofilm with R1drd19 plasmid": {"biofilm": None, "R1drd19 plasmid": None},
     "pH5": {"acidic": None, "pH5": None},
     "pH2": {"acidic": None, "pH2": None},
