@@ -142,7 +142,7 @@ def main():
         "--outdir", "-o", help="Directory that all analysis output is saved to."
     )
     parser.add_argument(
-        "--n_cpus", "-n", help="Number of CPUs to use for DuckDB and PyArrow."
+        "--n_cpus", "-n", type=int, help="Number of CPUs to use for DuckDB and PyArrow."
     )
     parser.add_argument(
         "--variant_metadata_path",
@@ -183,11 +183,11 @@ def main():
         config_file = args.config
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
-    if "out_uri" not in config["emitter"]:
-        out_uri = os.path.abspath(config["emitter"]["out_dir"])
-        gcs_bucket = True
+    if "out_uri" not in config["emitter_arg"]:
+        out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
+        gcs_bucket = False
     else:
-        out_uri = config["emitter"]["out_uri"]
+        out_uri = config["emitter_arg"]["out_uri"]
         assert (
             parse.urlparse(out_uri).scheme == "gcs"
             or parse.urlparse(out_uri).scheme == "gs"
@@ -288,7 +288,7 @@ def main():
     conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("n_cpus"))
     history_sql, config_sql = get_dataset_sql(out_uri)
     # If no explicit analysis type given, run all types in config JSON
-    if config["analysis_types"] is None:
+    if "analysis_types" not in config:
         config["analysis_types"] = [
             analysis_type for analysis_type in ANALYSIS_TYPES if analysis_type in config
         ]

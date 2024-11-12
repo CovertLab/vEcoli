@@ -289,10 +289,13 @@ def main():
 
     # Resolve output directory
     if "out_uri" not in config["emitter"]:
-        out_uri = os.path.abspath(config["emitter"]["out_dir"])
-        config["emitter"]["out_dir"] = out_uri
+        out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
+        config["emitter_arg"]["out_dir"] = out_uri
     else:
-        out_uri = config["emitter"]["out_uri"]
+        out_uri = config["emitter_arg"]["out_uri"]
+    # Resolve sim_data_path if provided
+    if config["sim_data_path"] is not None:
+        config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
     filesystem, outdir = fs.FileSystem.from_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
     out_uri = os.path.join(out_uri, experiment_id, "nextflow")
@@ -388,7 +391,8 @@ def main():
                 "-work-dir",
                 workdir,
                 "-resume" if args.resume else "",
-            ]
+            ],
+            check=True
         )
     elif nf_profile == "sherlock":
         batch_script = os.path.join(local_outdir, "nextflow_job.sh")
@@ -405,7 +409,7 @@ nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
         copy_to_filesystem(
             batch_script, os.path.join(outdir, "nextflow_job.sh"), filesystem
         )
-        subprocess.run(["sbatch", batch_script])
+        subprocess.run(["sbatch", batch_script], check=True)
     shutil.rmtree(local_outdir)
 
 
