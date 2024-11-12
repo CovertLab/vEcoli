@@ -87,7 +87,7 @@ def run_sim(
             config["save_times"] = [11550]
         config["total_time"] = runtime
     if cloud:
-        config["emitter_arg"] = [["host", "10.138.0.75:27017"], ["emit_limit", 5000000]]
+        config["emitter_arg"] = {"host": "10.138.0.75:27017", "emit_limit": 5000000}
 
     run_simulation(config)
 
