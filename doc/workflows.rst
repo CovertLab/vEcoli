@@ -95,11 +95,10 @@ Configuration options for the ParCa are all located in a dictionary under the
   :py:mod:`runscripts.parca`.
 
 .. warning::
-  If running the ParCa (:py:mod:`runscripts.parca`) and simulation
-  (:py:mod:`ecoli.experiments.ecoli_master_sim`) manually instead of as part of
-  a workflow (:py:mod:`runscripts.workflow`), you must create two config JSON
-  files: one for the ParCa with a null ``sim_data_path`` and some ``outdir``
-  (described above in this section) and one for the simulation with
+  If running :py:mod:`runscripts.parca` and :py:mod:`ecoli.experiments.ecoli_master_sim`
+  manually instead of using :py:mod:`runscripts.workflow`, you must create two config JSON
+  files: one for the ParCa with a null ``sim_data_path`` and an ``outdir``
+  as described above and one for the simulation with
   ``sim_data_path`` set to ``{outdir}/kb/simData.cPickle``.
 
 .. _variants:
@@ -670,7 +669,7 @@ the output directory specified via ``out_dir`` or ``out_uri`` under the
           breakpoints set in the relevant code (``import ipdb; ipdb.set_trace()``)
           for debugging.
 
-.. note::
+.. tip::
   To save space, you can safely delete ``nextflow_workdirs`` after you are finished
   troubleshooting a particular workflow.
 
