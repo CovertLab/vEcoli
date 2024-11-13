@@ -673,3 +673,60 @@ the output directory specified via ``out_dir`` or ``out_uri`` under the
 .. note::
   To save space, you can safely delete ``nextflow_workdirs`` after you are finished
   troubleshooting a particular workflow.
+
+
+.. _troubleshooting:
+
+---------------
+Troubleshooting
+---------------
+
+To troubleshoot a workflow that was run with :py:mod:`runscripts.workflow`, you can
+either inspect the HTML execution report ``{experiment ID}_report.html`` described
+in :ref:`output` (nice summary and UI) or use the ``nextflow log`` command
+(more flexible and efficient).
+
+HTML Report
+===========
+
+Click "Tasks" in the top bar or scroll to the bottom of the page. Filter for failed
+jobs by putting "failed" into the search bar. Find the work directory (``workdir`` column)
+for each job. Navigate to the work directory for each failed job and
+inspect ``.command.out`` (``STDOUT``), ``.command.err`` (``STDERR``), and
+``.command.log`` (both) files.
+
+CLI
+===
+
+Run ``nextflow log`` in the same directory in which you launched
+the workflow to get the workflow name (should be of the form
+``{adjective}_{famous last name}``). Use the ``-f`` and ``-F``
+flags of ``nextflow log`` to show and filter the information that
+you would like to see (``nextflow log -help`` for more info).
+
+Among the fields that can be shown with ``-f`` are the ``stderr``,
+``stdout``, and ``log``. This allows you to automatically retrieve
+relevant output for all failed jobs in one go instead of manually
+navigating to work directories and opening the relevant text files.
+
+For more information about ``nextflow log``, see the
+`official documentation <https://www.nextflow.io/docs/latest/reports.html#reports>`_.
+For a description of some fields (non-exhaustive) that can be specified with
+``-f``, refer to `this section <https://www.nextflow.io/docs/latest/reports.html#trace-fields>`_
+of the official documentation.
+
+As an example, to see the name, stderr, and workdir for all failed jobs
+in a workflow called ``agitated_mendel``::
+
+  nextflow log agitated_mendel -f name,stderr,workdir -F "status == 'FAILED'"
+
+
+Test Fixes
+==========
+
+After identifying the issue and applying fixes, you can test a failed job
+in isolation by invoking ``bash .command.run`` inside the work
+directory for that job. Once you have addressed all issues,
+you relaunch the workflow by navigating back to the directory in which you
+originally started the workflow and issuing the same command with the
+added ``--resume`` option (see :ref:`fault_tolerance`).
