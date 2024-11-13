@@ -1,6 +1,6 @@
 process runParca {
     // Run ParCa using parca_options from config JSON
-    publishDir "${params.publishDir}/${params.experimentId}/parca"
+    publishDir "${params.publishDir}/${params.experimentId}/parca", mode: "copy"
 
     cpus PARCA_CPUS
 
@@ -26,21 +26,21 @@ process runParca {
 }
 
 process analysisParca {
-    publishDir "${params.publishDir}/${params.experimentId}/parca/analysis"
+    publishDir "${params.publishDir}/${params.experimentId}/parca/analysis", mode: "move"
 
     input:
     path config
     path kb
 
     output:
-    path '*'
+    path 'plots/*'
 
     script:
     """
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \
         --sim_data_path=$kb/simData.cPickle \
         --validation_data_path=$kb/validationData.cPickle \
-        -o \$(pwd) \
+        -o \$(pwd)/plots \
         -t parca
     """
 
@@ -53,7 +53,7 @@ process analysisParca {
 
 process createVariants {
     // Parse variants in config JSON to generate variants
-    publishDir "${params.publishDir}/${params.experimentId}/variant_sim_data"
+    publishDir "${params.publishDir}/${params.experimentId}/variant_sim_data", mode: "copy"
 
     input:
     path config

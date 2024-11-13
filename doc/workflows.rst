@@ -669,3 +669,7 @@ the output directory specified via ``out_dir`` or ``out_uri`` under the
           or ``{experiment ID}_report.html``) and run ``bash .command.sh`` with
           breakpoints set in the relevant code (``import ipdb; ipdb.set_trace()``)
           for debugging.
+
+.. note::
+  To save space, you can safely delete ``nextflow_workdirs`` after you are finished
+  troubleshooting a particular workflow.
