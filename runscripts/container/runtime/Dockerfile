@@ -33,8 +33,8 @@ ENV OPENBLAS_NUM_THREADS=1
 COPY requirements.txt /
 RUN (b1="" \
     && echo "Installing pips with '$b1'" \
-    && pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir numpy==1.26.3 $b1 \
+    && pip install --no-cache-dir --upgrade pip setuptools==73.0.1 wheel \
+    && pip install --no-cache-dir numpy==1.26.4 $b1 \
     && pip install --no-cache-dir -r requirements.txt $b1 \
     && umask 000 && mkdir -p /.aesara)
 
