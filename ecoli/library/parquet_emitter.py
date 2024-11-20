@@ -762,7 +762,11 @@ class ParquetEmitter(Emitter):
             unified_schema, unified_schema_path, filesystem=self.filesystem
         )
         experiment_schema_path = os.path.join(
-            self.outdir, self.experiment_id, "history", EXPERIMENT_SCHEMA_SUFFIX
+            self.outdir,
+            self.experiment_id,
+            "history",
+            f"experiment_id={self.experiment_id}",
+            EXPERIMENT_SCHEMA_SUFFIX,
         )
         self.filesystem.create_dir(os.path.dirname(experiment_schema_path))
         pq.write_metadata(
