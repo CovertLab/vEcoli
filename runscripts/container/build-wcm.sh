@@ -1,9 +1,9 @@
 #!/bin/sh
 # Use Google Cloud Build or local Docker install to build a personalized image
-# with current state of the vivarium-ecoli repo. If using Cloud Build, store
+# with current state of the vEcoli repo. If using Cloud Build, store
 # the built image in the "vecoli" folder in the Google Artifact Registry.
 #
-# ASSUMES: The current working dir is the vivarium-ecoli/ project root.
+# ASSUMES: The current working dir is the vEcoli/ project root.
 
 set -eu
 

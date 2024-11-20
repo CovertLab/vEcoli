@@ -3,7 +3,7 @@
 # image with requirements.txt installed. If using Cloud Build, store the
 # built image in the "vecoli" folder in the Google Artifact Registry.
 #
-# ASSUMES: The current working dir is the vivarium-ecoli/ project root.
+# ASSUMES: The current working dir is the vEcoli/ project root.
 
 set -eu
 
