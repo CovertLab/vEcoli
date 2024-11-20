@@ -849,7 +849,7 @@ class ParquetEmitter(Emitter):
             # create new folder for config / simulation output
             try:
                 self.filesystem.delete_dir(os.path.dirname(outfile))
-            except FileNotFoundError:
+            except (FileNotFoundError, OSError):
                 pass
             self.filesystem.create_dir(os.path.dirname(outfile))
             self.executor.submit(
@@ -867,7 +867,7 @@ class ParquetEmitter(Emitter):
             )
             try:
                 self.filesystem.delete_dir(history_outdir)
-            except FileNotFoundError:
+            except (FileNotFoundError, OSError):
                 pass
             self.filesystem.create_dir(history_outdir)
             return
