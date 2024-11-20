@@ -26,7 +26,7 @@ print_usage() {
 while getopts 'r:w:l' flag; do
   case "${flag}" in
     r) RUNTIME_IMAGE="${OPTARG}" ;;
-    w) WCN_IMAGE="${OPTARG}" ;;
+    w) WCM_IMAGE="${OPTARG}" ;;
     l) RUN_LOCAL="${OPTARG}" ;;
     *) print_usage
        exit 1 ;;
@@ -56,8 +56,8 @@ else
     # Dockerfile to run.
     gcloud builds submit --timeout=15m --config runscripts/container/cloud_build.json \
         --substitutions="_REGION=${REGION},_WCM_RUNTIME=${RUNTIME_IMAGE},\
-        _WCM_CODE=${WCM_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
-        _TIMESTAMP=${TIMESTAMP}"
+_WCM_CODE=${WCM_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
+_TIMESTAMP=${TIMESTAMP}"
 fi
 
 rm source-info/git_diff.txt

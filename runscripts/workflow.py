@@ -288,7 +288,7 @@ def main():
         config["suffix_time"] = False
 
     # Resolve output directory
-    if "out_uri" not in config["emitter"]:
+    if "out_uri" not in config["emitter_arg"]:
         out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
         config["emitter_arg"]["out_dir"] = out_uri
     else:
@@ -331,8 +331,8 @@ def main():
             if runtime_image_name is None:
                 raise RuntimeError("Must supply name for runtime image.")
             build_runtime_image(runtime_image_name)
+        wcm_image_name = cloud_config.get("wcm_image_name", None)
         if cloud_config.get("build_wcm_image", False):
-            wcm_image_name = cloud_config.get("wcm_image_name", None)
             if wcm_image_name is None:
                 raise RuntimeError("Must supply name for WCM image.")
             build_wcm_image(wcm_image_name, runtime_image_name)
