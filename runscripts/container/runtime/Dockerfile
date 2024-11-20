@@ -1,7 +1,7 @@
 # Container image #1: wcm-runtime.
 # This Dockerfile builds the runtime environment for the whole cell model.
 #
-# To build this image locally from the vivarium-ecoli/ project root directory:
+# To build this image locally from the vEcoli/ project root directory:
 #
 #     > docker build -f cloud/docker/runtime/Dockerfile -t ${USER}-wcm-runtime .
 #
@@ -33,8 +33,8 @@ ENV OPENBLAS_NUM_THREADS=1
 COPY requirements.txt /
 RUN (b1="" \
     && echo "Installing pips with '$b1'" \
-    && pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir numpy==1.26.3 $b1 \
+    && pip install --no-cache-dir --upgrade pip setuptools==73.0.1 wheel \
+    && pip install --no-cache-dir numpy==1.26.4 $b1 \
     && pip install --no-cache-dir -r requirements.txt $b1 \
     && umask 000 && mkdir -p /.aesara)
 

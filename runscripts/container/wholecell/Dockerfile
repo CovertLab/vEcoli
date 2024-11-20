@@ -1,8 +1,8 @@
 # Container image #2: wcm-code.
-# This Dockerfile builds a container image with the vivarium-ecoli whole cell model
+# This Dockerfile builds a container image with the vEcoli whole cell model
 # code, layered on the wcm-runtime container image.
 #
-# To build this image locally from the vivarium-ecoli/ project root directory:
+# To build this image locally from the vEcoli/ project root directory:
 #
 #     > docker build -f cloud/docker/wholecell/Dockerfile -t ${USER}-wcm-code --build-arg from=${USER}-wcm-runtime .
 #
@@ -44,19 +44,19 @@ ENV IMAGE_GIT_HASH="$git_hash" \
 
 LABEL application="Whole Cell Model of Escherichia coli" \
     email="allencentercovertlab@gmail.com" \
-    license="https://github.com/CovertLab/vivarium-ecoli/blob/master/LICENSE" \
+    license="https://github.com/CovertLab/vEcoli/blob/master/LICENSE" \
     organization="Covert Lab at Stanford" \
     website="https://www.covert.stanford.edu/"
 
-COPY . /vivarium-ecoli
-WORKDIR /vivarium-ecoli
+COPY . /vEcoli
+WORKDIR /vEcoli
 
 RUN make clean compile
-ENV PYTHONPATH=/vivarium-ecoli
+ENV PYTHONPATH=/vEcoli
 
 # Since this build runs as root, set permissions so running the container as
 # another user will work: Aesara needs to write into the data dir it uses when
-# running as a user with no home dir, and Parca writes into /vivarium-ecoli/cache/.
-RUN (umask 000 && mkdir -p /.aesara /vivarium-ecoli/cache)
+# running as a user with no home dir, and Parca writes into /vEcoli/cache/.
+RUN (umask 000 && mkdir -p /.aesara /vEcoli/cache)
 
 CMD ["/bin/bash"]

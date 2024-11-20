@@ -20,7 +20,12 @@ from wholecell.utils.fitting import (
     masses_and_counts_for_homeostatic_target,
     normalize,
 )
-from wholecell.utils.mc_complexation import mccFormComplexesWithPrebuiltMatrices
+try:
+    from wholecell.utils.mc_complexation import mccFormComplexesWithPrebuiltMatrices
+except ImportError as exc:
+    raise RuntimeError(
+        "Failed to import Cython module. Try running 'make clean compile'."
+    ) from exc
 from wholecell.utils.polymerize import computeMassIncrease
 from wholecell.utils.random import stochasticRound
 

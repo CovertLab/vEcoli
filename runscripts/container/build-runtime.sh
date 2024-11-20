@@ -3,7 +3,7 @@
 # image with requirements.txt installed. If using Cloud Build, store the
 # built image in the "vecoli" folder in the Google Artifact Registry.
 #
-# ASSUMES: The current working dir is the vivarium-ecoli/ project root.
+# ASSUMES: The current working dir is the vEcoli/ project root.
 
 set -eu
 
@@ -36,8 +36,13 @@ if [ "$RUN_LOCAL" = true ]; then
     echo "=== Locally building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
     docker build -f runscripts/container/runtime/Dockerfile -t "${WCM_RUNTIME}" .
 else
-    PROJECT="$(gcloud config get-value core/project)"
-    REGION=$(gcloud config get compute/region)
+    PROJECT=$(curl -H "Metadata-Flavor: Google" \
+      "http://metadata.google.internal/computeMetadata/v1/project/project-id" |
+      cut '-d/' -f4)
+    REGION=$(curl -H "Metadata-Flavor: Google" \
+      "http://metadata.google.internal/computeMetadata/v1/instance/zone" |
+      awk -F'/' '{print $NF}' | 
+      sed 's/-[a-z]$//')
     TAG="${REGION}-docker.pkg.dev/${PROJECT}/vecoli/${RUNTIME_IMAGE}"
     echo "=== Cloud-building WCM runtime Docker Image: ${TAG} ==="
     echo $TAG
