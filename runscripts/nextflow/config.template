@@ -21,6 +21,8 @@ profiles {
             // Codes: 137 (out-of-memory)
             ((task.exitStatus == 137)
             && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore' }
+        // Symlinks break when files go through process chains (nextflow#4845)
+        process.stageInMode = 'copy'
         google.project = 'allen-discovery-center-mcovert'
         google.location = 'us-west1'
         google.batch.spot = true
