@@ -9,7 +9,7 @@
             "--build-arg", "git_branch=${_GIT_BRANCH}",
             "--build-arg", "timestamp=${_TIMESTAMP}",
             "-t", "${_REGION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${_WCM_CODE}",
-            "-f", "cloud/docker/wholecell/Dockerfile",
+            "-f", "runscripts/container/wholecell/Dockerfile",
             "."
         ]
     }

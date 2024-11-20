@@ -1,9 +1,9 @@
 #!/bin/sh
 # Use Google Cloud Build or local Docker install to build a personalized image
-# with current state of the vivarium-ecoli repo. If using Cloud Build, store
+# with current state of the vEcoli repo. If using Cloud Build, store
 # the built image in the "vecoli" folder in the Google Artifact Registry.
 #
-# ASSUMES: The current working dir is the vivarium-ecoli/ project root.
+# ASSUMES: The current working dir is the vEcoli/ project root.
 
 set -eu
 
@@ -26,7 +26,7 @@ print_usage() {
 while getopts 'r:w:l' flag; do
   case "${flag}" in
     r) RUNTIME_IMAGE="${OPTARG}" ;;
-    w) WCN_IMAGE="${OPTARG}" ;;
+    w) WCM_IMAGE="${OPTARG}" ;;
     l) RUN_LOCAL="${OPTARG}" ;;
     *) print_usage
        exit 1 ;;
@@ -50,14 +50,16 @@ if [ "$RUN_LOCAL" = true ]; then
 else
     echo "=== Cloud-building WCM code Docker Image ${WCM_IMAGE} on ${RUNTIME_IMAGE} ==="
     echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
-    PROJECT_ID=$(gcloud config get project)
-    REGION=$(gcloud config get compute/region)
+    REGION=$(curl -H "Metadata-Flavor: Google" \
+      "http://metadata.google.internal/computeMetadata/v1/instance/zone" |
+      awk -F'/' '{print $NF}' | 
+      sed 's/-[a-z]$//')
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
     gcloud builds submit --timeout=15m --config runscripts/container/cloud_build.json \
         --substitutions="_REGION=${REGION},_WCM_RUNTIME=${RUNTIME_IMAGE},\
-        _WCM_CODE=${WCM_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
-        _TIMESTAMP=${TIMESTAMP}"
+_WCM_CODE=${WCM_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
+_TIMESTAMP=${TIMESTAMP}"
 fi
 
 rm source-info/git_diff.txt
