@@ -326,6 +326,15 @@ def main():
     cloud_config = config.get("gcloud", None)
     if cloud_config is not None:
         nf_profile = "gcloud"
+        project_id = subprocess.run([
+            "curl", "-H", "Metadata-Flavor: Google",
+            "http://metadata.google.internal/computeMetadata/v1/project/project-id"],
+            stdout=subprocess.PIPE, text=True)
+        zone = subprocess.run(["curl", "-H", "Metadata-Flavor: Google",
+            "http://metadata.google.internal/computeMetadata/v1/instance/zone"],
+            stdout=subprocess.PIPE, text=True)
+        region = zone.stdout.split("/")[-1][:-2]
+        image_prefix = f"{region}-docker.pkg.dev/{project_id.stdout}/vecoli/"
         runtime_image_name = cloud_config.get("runtime_image_name", None)
         if cloud_config.get("build_runtime_image", False):
             if runtime_image_name is None:
@@ -336,7 +345,7 @@ def main():
             if wcm_image_name is None:
                 raise RuntimeError("Must supply name for WCM image.")
             build_wcm_image(wcm_image_name, runtime_image_name)
-        nf_config = nf_config.replace("IMAGE_NAME", wcm_image_name)
+        nf_config = nf_config.replace("IMAGE_NAME", image_prefix + wcm_image_name)
     elif config.get("sherlock", None) is not None:
         nf_profile = "sherlock"
 
@@ -381,9 +390,9 @@ def main():
             [
                 "nextflow",
                 "-C",
-                config_path,
+                local_config,
                 "run",
-                workflow_path,
+                local_workflow,
                 "-profile",
                 nf_profile,
                 "-with-report",
