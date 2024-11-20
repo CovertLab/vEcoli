@@ -1,7 +1,7 @@
 # Container image #1: wcm-runtime.
 # This Dockerfile builds the runtime environment for the whole cell model.
 #
-# To build this image locally from the vivarium-ecoli/ project root directory:
+# To build this image locally from the vEcoli/ project root directory:
 #
 #     > docker build -f cloud/docker/runtime/Dockerfile -t ${USER}-wcm-runtime .
 #

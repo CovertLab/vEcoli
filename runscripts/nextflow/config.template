@@ -25,7 +25,7 @@ profiles {
         google.location = 'us-west1'
         google.batch.spot = true
         docker.enabled = true
-        params.projectRoot = '/vivarium-ecoli'
+        params.projectRoot = '/vEcoli'
         params.publishDir = "PUBLISH_DIR"
         process.maxRetries = 1
         // Check Google Cloud latest spot pricing / performance
