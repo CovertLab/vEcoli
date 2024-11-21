@@ -239,7 +239,7 @@ def bulk_name_to_idx(
             sorter, np.searchsorted(bulk_names, names, sorter=sorter), mode="clip"
         )
     else:
-        return np.where(bulk_names == names)[0][0]
+        return np.where(np.array(bulk_names) == names)[0][0]
 
 
 def bulk_numpy_updater(
