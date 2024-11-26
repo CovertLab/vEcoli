@@ -39,7 +39,7 @@ else
     echo "=== Cloud-building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
-    gcloud builds submit --timeout=3h --tag \
+    gcloud builds submit --timeout=3h --region=us-west1 --tag \
       '${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/'${RUNTIME_IMAGE} \
       runscripts/container/runtime/
 fi

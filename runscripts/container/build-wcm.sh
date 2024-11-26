@@ -52,8 +52,9 @@ else
     echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
-    gcloud builds submit --timeout=15m --config runscripts/container/cloud_build.json \
-        --substitutions="_WCM_RUNTIME=${RUNTIME_IMAGE},\
+    gcloud builds submit --timeout=15m --region=us-west1 \
+      --config runscripts/container/cloud_build.json \
+      --substitutions="_WCM_RUNTIME=${RUNTIME_IMAGE},\
 _WCM_CODE=${WCM_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
 _TIMESTAMP=${TIMESTAMP}"
 fi
