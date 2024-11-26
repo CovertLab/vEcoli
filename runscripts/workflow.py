@@ -197,6 +197,15 @@ def generate_lineage(
 
 
 def generate_code(config):
+    sim_data_path = config.get("sim_data_path")
+    if sim_data_path is not None:
+        kb_dir = os.path.dirname(sim_data_path)
+        run_parca = [
+            f"\tfile('{kb_dir}').copyTo(\"${{params.publishDir}}/${{params.experimentId}}/parca/kb\")",
+            f"\tChannel.fromPath('{kb_dir}').toList().set {{ kb }}"
+        ]
+    else:
+        run_parca = ["\trunParca(params.config)", "\trunParca.out.toList().set {kb}"]
     seed = config.get("seed", 0)
     generations = config.get("generations", 0)
     if generations:
@@ -211,7 +220,7 @@ def generate_code(config):
         )
     else:
         sim_imports, sim_workflow = generate_colony(seed, n_init_sims)
-    return "\n".join(sim_imports), "\n".join(sim_workflow)
+    return "\n".join(run_parca), "\n".join(sim_imports), "\n".join(sim_workflow)
 
 
 def build_runtime_image(image_name):
@@ -325,10 +334,14 @@ def main():
     cloud_config = config.get("gcloud", None)
     if cloud_config is not None:
         nf_profile = "gcloud"
-        project_id = subprocess.run(["gcloud", "config", "get", "project"],
-            stdout=subprocess.PIPE, text=True).stdout.strip()
-        region = subprocess.run(["gcloud", "config", "get", "compute/region"],
-            stdout=subprocess.PIPE, text=True).stdout.strip()
+        project_id = subprocess.run(
+            ["gcloud", "config", "get", "project"], stdout=subprocess.PIPE, text=True
+        ).stdout.strip()
+        region = subprocess.run(
+            ["gcloud", "config", "get", "compute/region"],
+            stdout=subprocess.PIPE,
+            text=True,
+        ).stdout.strip()
         image_prefix = f"{region}-docker.pkg.dev/{project_id}/vecoli/"
         runtime_image_name = cloud_config.get("runtime_image_name", None)
         if cloud_config.get("build_runtime_image", False):
@@ -348,7 +361,7 @@ def main():
     with open(local_config, "w") as f:
         f.writelines(nf_config)
 
-    sim_imports, sim_workflow = generate_code(config)
+    run_parca, sim_imports, sim_workflow = generate_code(config)
 
     nf_template_path = os.path.join(
         os.path.dirname(__file__), "nextflow", "template.nf"
@@ -356,6 +369,7 @@ def main():
     with open(nf_template_path, "r") as f:
         nf_template = f.readlines()
     nf_template = "".join(nf_template)
+    nf_template = nf_template.replace("RUN_PARCA", run_parca)
     nf_template = nf_template.replace("IMPORTS", sim_imports)
     nf_template = nf_template.replace("WORKFLOW", sim_workflow)
     nf_template = nf_template.replace(
