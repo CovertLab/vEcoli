@@ -21,8 +21,6 @@ profiles {
             // Codes: 137 (out-of-memory)
             ((task.exitStatus == 137)
             && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore' }
-        // Symlinks break when files go through process chains (nextflow#4845)
-        process.stageInMode = 'copy'
         // For this script to work on a Compute Engine VM, you must
         // - Set default Compute Engine region and zone for your project
         // - Set access scope to "Allow full access to all Cloud APIs" when
