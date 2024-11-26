@@ -83,8 +83,7 @@ process createVariants {
 IMPORTS
 
 workflow {
-    runParca(params.config)
-    runParca.out.toList().set { kb }
+RUN_PARCA
     createVariants(params.config, kb)
         .variantSimData
         .flatten()
