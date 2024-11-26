@@ -304,7 +304,6 @@ def main():
     os.makedirs(local_outdir, exist_ok=True)
     filesystem.create_dir(outdir)
     temp_config_path = f"{local_outdir}/workflow_config.json"
-    final_config_uri = os.path.join(out_uri, "workflow_config.json")
     final_config_path = os.path.join(outdir, "workflow_config.json")
     with open(temp_config_path, "w") as f:
         json.dump(config, f)
@@ -316,7 +315,7 @@ def main():
         nf_config = f.readlines()
     nf_config = "".join(nf_config)
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
-    nf_config = nf_config.replace("CONFIG_FILE", final_config_uri)
+    nf_config = nf_config.replace("CONFIG_FILE", temp_config_path)
     nf_config = nf_config.replace(
         "PUBLISH_DIR", os.path.dirname(os.path.dirname(out_uri))
     )

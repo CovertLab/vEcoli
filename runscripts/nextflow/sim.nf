@@ -1,5 +1,5 @@
 process simGen0 {
-    publishDir path: "${params.publishDir}/${params.experimentId}/daughter_states/variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}",  pattern: "*.json", mode: "copy"
+    publishDir path: "${params.publishDir}/${params.experimentId}/daughter_states/variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}",  pattern: "daughter_state_*.json", mode: "copy"
 
     tag "variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
@@ -52,7 +52,7 @@ process simGen0 {
 }
 
 process sim {
-    publishDir path: "${params.publishDir}/${params.experimentId}/daughter_states/variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}",  pattern: "*.json", mode: "copy"
+    publishDir path: "${params.publishDir}/${params.experimentId}/daughter_states/variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}",  pattern: "daughter_state_*.json", mode: "copy"
 
     tag "variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
