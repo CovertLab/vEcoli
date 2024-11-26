@@ -326,15 +326,11 @@ def main():
     cloud_config = config.get("gcloud", None)
     if cloud_config is not None:
         nf_profile = "gcloud"
-        project_id = subprocess.run([
-            "curl", "-H", "Metadata-Flavor: Google",
-            "http://metadata.google.internal/computeMetadata/v1/project/project-id"],
-            stdout=subprocess.PIPE, text=True)
-        zone = subprocess.run(["curl", "-H", "Metadata-Flavor: Google",
-            "http://metadata.google.internal/computeMetadata/v1/instance/zone"],
-            stdout=subprocess.PIPE, text=True)
-        region = zone.stdout.split("/")[-1][:-2]
-        image_prefix = f"{region}-docker.pkg.dev/{project_id.stdout}/vecoli/"
+        project_id = subprocess.run(["gcloud", "config", "get", "project"],
+            stdout=subprocess.PIPE, text=True).stdout.strip()
+        region = subprocess.run(["gcloud", "config", "get", "compute/region"],
+            stdout=subprocess.PIPE, text=True).stdout.strip()
+        image_prefix = f"{region}-docker.pkg.dev/{project_id}/vecoli/"
         runtime_image_name = cloud_config.get("runtime_image_name", None)
         if cloud_config.get("build_runtime_image", False):
             if runtime_image_name is None:

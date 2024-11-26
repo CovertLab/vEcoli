@@ -37,9 +37,15 @@ if [ "$RUN_LOCAL" = true ]; then
     docker build -f runscripts/container/runtime/Dockerfile -t "${WCM_RUNTIME}" .
 else
     echo "=== Cloud-building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
+    # For this script to work on a Compute Engine VM, you must
+    # - Set default Compute Engine region and zone for your project
+    # - Set access scope to "Allow full access to all Cloud APIs" when
+    #   creating VM
+    # - Run gcloud init in VM
+    REGION=$(gcloud config get compute/region)
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
-    gcloud builds submit --timeout=3h --region=us-west1 --tag \
+    gcloud builds submit --timeout=3h --region=$REGION --tag \
       '${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/'${RUNTIME_IMAGE} \
       runscripts/container/runtime/
 fi
