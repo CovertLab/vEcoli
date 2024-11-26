@@ -50,14 +50,10 @@ if [ "$RUN_LOCAL" = true ]; then
 else
     echo "=== Cloud-building WCM code Docker Image ${WCM_IMAGE} on ${RUNTIME_IMAGE} ==="
     echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
-    REGION=$(curl -H "Metadata-Flavor: Google" \
-      "http://metadata.google.internal/computeMetadata/v1/instance/zone" |
-      awk -F'/' '{print $NF}' | 
-      sed 's/-[a-z]$//')
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
     gcloud builds submit --timeout=15m --config runscripts/container/cloud_build.json \
-        --substitutions="_REGION=${REGION},_WCM_RUNTIME=${RUNTIME_IMAGE},\
+        --substitutions="_WCM_RUNTIME=${RUNTIME_IMAGE},\
 _WCM_CODE=${WCM_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
 _TIMESTAMP=${TIMESTAMP}"
 fi
