@@ -38,6 +38,9 @@ profiles {
             return location_proc.text.trim()
         }()
         google.batch.spot = true
+        google.batch.usePrivateAddress = true
+        google.batch.network = 'global/networks/default'
+        google.batch.subnetwork = "regions/${google.location}/subnetworks/default"
         docker.enabled = true
         params.projectRoot = '/vEcoli'
         params.publishDir = "PUBLISH_DIR"
