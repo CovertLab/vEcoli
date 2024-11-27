@@ -18,8 +18,9 @@ profiles {
         process.executor = 'google-batch'
         process.container = 'IMAGE_NAME'
         process.errorStrategy = {
-            // Codes: 137 (out-of-memory)
-            ((task.exitStatus == 137)
+            // Codes: 137 (out-of-memory), 50001 - 50006 (Google Batch task fail:
+            // https://cloud.google.com/batch/docs/troubleshooting#reserved-exit-codes)
+            (((task.exitStatus == 137) || (task.exitStatus >= 50001 && task.exitStatus <= 50006))
             && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore' }
         // For this script to work on a Compute Engine VM, you must
         // - Set default Compute Engine region and zone for your project
