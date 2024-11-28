@@ -29,7 +29,7 @@ process simGen0 {
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/ecoli/experiments/ecoli_master_sim.py \\
         --config $config \\
         --sim_data_path $sim_data \\
-        --daughter_outdir \$(pwd) \\
+        --daughter_outdir "\$(pwd)" \\
         --variant ${sim_data.getBaseName()} \\
         --seed ${lineage_seed} \\
         --lineage_seed ${lineage_seed} \\
@@ -79,7 +79,7 @@ process sim {
         --config $config \\
         --sim_data_path $sim_data \\
         --initial_state_file ${initial_state.getBaseName()} \\
-        --daughter_outdir \$(pwd) \\
+        --daughter_outdir "\$(pwd)" \\
         --variant ${sim_data.getBaseName()} \\
         --seed ${sim_seed} \\
         --lineage_seed ${lineage_seed} \\
