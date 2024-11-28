@@ -33,5 +33,6 @@
             },
             "op": "zip"
         }
-    }
+    },
+    "sherlock": true
 }
