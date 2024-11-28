@@ -9,5 +9,6 @@
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}}
-    }
+    },
+    "sherlock": true
 }

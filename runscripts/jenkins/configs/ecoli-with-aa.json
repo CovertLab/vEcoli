@@ -11,6 +11,7 @@
         "single": {"mass_fraction_summary": {}}
     },
     "variants": {
-        "condition": {"condition": "with_aa"}
-    }
+        "condition": {"condition": {"value": ["with_aa"]}}
+    },
+    "sherlock": true
 }

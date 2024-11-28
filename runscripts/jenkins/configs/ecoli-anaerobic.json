@@ -19,6 +19,7 @@
         "single": {"mass_fraction_summary": {}}
     },
     "variants": {
-        "condition": {"condition": "no_oxygen"}
-    }
+        "condition": {"condition": {"value": ["no_oxygen"]}}
+    },
+    "sherlock": true
 }
