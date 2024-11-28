@@ -407,7 +407,7 @@ def main():
         batch_script = os.path.join(local_outdir, "nextflow_job.sh")
         with open(batch_script, "w") as f:
             f.write(f"""#!/bin/bash
-#SBATCH --job-name=nextflow-{experiment_id}
+#SBATCH --job-name="nextflow-{experiment_id}"
 #SBATCH --time=7-00:00:00
 #SBATCH --cpus-per-task 1
 #SBATCH --mem=4GB
