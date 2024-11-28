@@ -283,7 +283,7 @@ def main():
     if experiment_id is None:
         raise RuntimeError("No experiment ID was provided.")
     if config["suffix_time"]:
-        current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
         experiment_id = experiment_id + "_" + current_time
         config["suffix_time"] = False
 
