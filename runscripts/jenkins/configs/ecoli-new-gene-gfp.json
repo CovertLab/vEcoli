@@ -34,5 +34,5 @@
             "op": "zip"
         }
     },
-    "sherlock": true
+    "jenkins": true
 }
