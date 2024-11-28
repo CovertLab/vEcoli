@@ -348,6 +348,8 @@ def main():
         nf_config = nf_config.replace("IMAGE_NAME", image_prefix + wcm_image_name)
     elif config.get("sherlock", None) is not None:
         nf_profile = "sherlock"
+    elif config.get("jenkins", None) is not None:
+        nf_profile = "jenkins"
 
     local_config = os.path.join(local_outdir, "nextflow.config")
     with open(local_config, "w") as f:
@@ -419,6 +421,23 @@ nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
             batch_script, os.path.join(outdir, "nextflow_job.sh"), filesystem
         )
         subprocess.run(["sbatch", batch_script], check=True)
+    elif nf_profile == "jenkins":
+        subprocess.run(
+            [
+                "nextflow",
+                "-C",
+                config_path,
+                "run",
+                workflow_path,
+                "-profile",
+                "sherlock",
+                "-with-report",
+                report_path,
+                "-work-dir",
+                workdir,
+            ],
+            check=True,
+        )
     shutil.rmtree(local_outdir)
 
 
