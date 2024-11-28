@@ -829,7 +829,7 @@ class EcoliSim:
                 self.experiment_id_base = self.experiment_id
             if self.suffix_time:
                 self.experiment_id = datetime.now().strftime(
-                    f"{self.experiment_id_base}_%d-%m-%Y_%H-%M-%S"
+                    f"{self.experiment_id_base}_%Y%m%d-%H%M%S"
                 )
             # Special characters can break Hive partitioning so quote them
             self.experiment_id = parse.quote_plus(self.experiment_id)
