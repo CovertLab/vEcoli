@@ -13,5 +13,5 @@
     "variants": {
         "condition": {"condition": {"value": ["with_aa"]}}
     },
-    "sherlock": true
+    "jenkins": true
 }
