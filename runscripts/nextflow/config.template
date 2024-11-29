@@ -18,14 +18,29 @@ profiles {
         process.executor = 'google-batch'
         process.container = 'IMAGE_NAME'
         process.errorStrategy = {
-            // Codes: 137 (out-of-memory)
-            ((task.exitStatus == 137)
+            // Codes: 137 (out-of-memory), 50001 - 50006 (Google Batch task fail:
+            // https://cloud.google.com/batch/docs/troubleshooting#reserved-exit-codes)
+            (((task.exitStatus == 137) || (task.exitStatus >= 50001 && task.exitStatus <= 50006))
             && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore' }
-        // Symlinks break when files go through process chains (nextflow#4845)
-        process.stageInMode = 'copy'
-        google.project = 'allen-discovery-center-mcovert'
-        google.location = 'us-west1'
+        // For this script to work on a Compute Engine VM, you must
+        // - Set default Compute Engine region and zone for your project
+        // - Set access scope to "Allow full access to all Cloud APIs" when
+        //   creating VM
+        // - Run gcloud init in VM
+        google.project = {
+            def project_proc = "gcloud config get project".execute()
+            project_proc.waitFor()
+            return project_proc.text.trim()
+        }()
+        google.location = {
+            def location_proc = "gcloud config get compute/region".execute()
+            location_proc.waitFor()
+            return location_proc.text.trim()
+        }()
         google.batch.spot = true
+        google.batch.usePrivateAddress = true
+        google.batch.network = 'global/networks/default'
+        google.batch.subnetwork = "regions/${google.location}/subnetworks/default"
         docker.enabled = true
         params.projectRoot = '/vEcoli'
         params.publishDir = "PUBLISH_DIR"
