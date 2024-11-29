@@ -18,7 +18,7 @@ the following APIs and enable them:
 
 - Compute Engine
 - Cloud Build
-- Artiface Registry
+- Artifact Registry
 
 You will be asked to link a billing account at this time.
 
