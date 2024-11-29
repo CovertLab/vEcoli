@@ -1139,10 +1139,12 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             request_ppgpp_metabolites = -delta_metabolites
             ppgpp_request = counts(states["bulk"], self.process.ppgpp_idx)
             bulk_request.append((self.process.ppgpp_idx, ppgpp_request))
-            bulk_request.append((
-                self.process.ppgpp_rxn_metabolites_idx,
-                request_ppgpp_metabolites.astype(int),
-            ))
+            bulk_request.append(
+                (
+                    self.process.ppgpp_rxn_metabolites_idx,
+                    request_ppgpp_metabolites.astype(int),
+                )
+            )
 
         return (
             fraction_charged,

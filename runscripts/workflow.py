@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import warnings
 from datetime import datetime
+from urllib import parse
 
 from pyarrow import fs
 
@@ -202,7 +203,7 @@ def generate_code(config):
         kb_dir = os.path.dirname(sim_data_path)
         run_parca = [
             f"\tfile('{kb_dir}').copyTo(\"${{params.publishDir}}/${{params.experimentId}}/parca/kb\")",
-            f"\tChannel.fromPath('{kb_dir}').toList().set {{ kb }}"
+            f"\tChannel.fromPath('{kb_dir}').toList().set {{ kb }}",
         ]
     else:
         run_parca = ["\trunParca(params.config)", "\trunParca.out.toList().set {kb}"]
@@ -294,8 +295,13 @@ def main():
     if config["suffix_time"]:
         current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
         experiment_id = experiment_id + "_" + current_time
-        config["suffix_time"] = False
-
+    # Special characters are messy so do not allow them
+    if experiment_id != parse.quote_plus(experiment_id):
+        raise TypeError(
+            "Experiment ID cannot contain special characters"
+            f"that change the string when URL quoted: {experiment_id}"
+            f" != {parse.quote_plus(experiment_id)}"
+        )
     # Resolve output directory
     if "out_uri" not in config["emitter_arg"]:
         out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
