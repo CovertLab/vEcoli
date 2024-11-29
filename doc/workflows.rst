@@ -561,7 +561,7 @@ be absolute because Nextflow does not resolve environment variables like
   to the correct SLURM queue. If your HPC cluster uses a different scheduler,
   you will have to change many options in the ``sherlock`` configuration
   profile starting with ``process.executor``. Refer to the Nextflow
-  `executor documentation<https://www.nextflow.io/docs/latest/executor.html>`_.
+  `executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_.
 
 .. _progress:
 

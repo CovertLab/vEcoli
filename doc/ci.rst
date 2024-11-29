@@ -23,11 +23,13 @@ tasks are:
 - ``docs_test.yml``: ``test-docs`` job ensures that the documentation
   builds properly (Sphinx) on PRs and changes to ``master``
 - ``pr_tests.yml``: tests that run on PRs and changes to ``master``
-    - ``Reproducibility`` ensures that two runs of the ParCa and simulation
-      with the same settings produce the same output
-    - ``two-gens`` runs a two-generation workflow on glucose minimal media
+  
+  - ``Reproducibility`` ensures that two runs of the ParCa and simulation
+    with the same settings produce the same output
+  - ``two-gens`` runs a two-generation workflow on glucose minimal media
 - ``pytest.yml``: code quality and functionality tests that run on PRs and changes
   to master
+  
   - ``Pytest`` runs ``pytest`` (all functions with ``test_`` prefix)
   - ``Mypy`` checks types with ``mypy``
   - ``Lint`` checks code style and formatting with ``ruff``
@@ -67,8 +69,8 @@ view the logs in two steps. First, SSH into Sherlock and run the following comma
   squeue -p mcovert -o '%.10i %.9P %.50j %.8u %.2t %.10M %.3C %.6D %.20R %k'
 
 .. tip::
-  Create an alias ``sqp`` for the command above by adding ``alias sqp="..."``
-  to your ``~/.bashrc``.
+  Create an alias ``sqp`` for the command above by adding
+  ``alias sqp="{insert command here}"`` to your ``~/.bashrc``.
 
 Look for a job called ``jenkins_new``. Under the ``COMMENT`` column, there
 should be a login node of the format ``shXX-lnXX``. Close your SSH connection
