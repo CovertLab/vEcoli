@@ -217,6 +217,12 @@ to run until the workflow is complete. You can SSH into the VM and reconnect to
 the virtual terminal with ``screen -r`` to monitor progress or inspect the file
 ``.nextflow.log`` in the root of the cloned repository.
 
+.. warning::
+  While there is no strict time limit for workflow jobs on Google Cloud, jobs
+  can be preempted at any time due to the use of spot VMs. Analysis scripts that
+  take more than a few hours to run should be excluded from workflow configurations
+  and manually run using :py:mod:`runscripts.analysis` afterwards.
+
 ----------------
 Handling Outputs
 ----------------
@@ -239,7 +245,7 @@ Troubleshooting
 ---------------
 
 Cloud Storage Permission Issue
-------------------------------
+==============================
 
 If you are trying to launch a cloud workflow or access cloud
 output (e.g. run an analysis script) from a local computer, you
