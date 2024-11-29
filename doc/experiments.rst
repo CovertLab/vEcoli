@@ -91,12 +91,11 @@ documented in :ref:`/workflows.rst`.
         # chains if possible.
         "inherit_from": [],
         # String that uniquely identifies simulation (or workflow if passed
-        # as input to runscripts/workflow.py). Avoid special characters as we
-        # quote experiment IDs using urlparse.parse.quote_plus, which may make
-        # experiment IDs with special characters hard to deciphe later.
+        # as input to runscripts/workflow.py). Special characters and spaces
+        # are not allowed (hyphens are OK).
         "experiment_id": "experiment_id_one"
         # Whether to append date and time to experiment ID in the following format
-        # experiment_id_%d-%m-%Y_%H-%M-%S.
+        # experiment_id_%Y%m%d-%H%M%S.
         "suffix_time": true,
         # Optional string description of simulation
         "description": "",

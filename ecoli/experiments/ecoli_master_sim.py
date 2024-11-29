@@ -831,8 +831,13 @@ class EcoliSim:
                 self.experiment_id = datetime.now().strftime(
                     f"{self.experiment_id_base}_%Y%m%d-%H%M%S"
                 )
-            # Special characters can break Hive partitioning so quote them
-            self.experiment_id = parse.quote_plus(self.experiment_id)
+            # Special characters can break Hive partitioning so do not allow them
+            if self.experiment_id != parse.quote_plus(self.experiment_id):
+                raise TypeError(
+                    "Experiment ID cannot contain special characters"
+                    f"that change the string when URL quoted: {self.experiment_id}"
+                    f" != {parse.quote_plus(self.experiment_id)}"
+                )
             experiment_config["experiment_id"] = self.experiment_id
         experiment_config["profile"] = self.profile
 
