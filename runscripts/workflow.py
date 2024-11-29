@@ -8,6 +8,7 @@ from datetime import datetime
 from urllib import parse
 
 from pyarrow import fs
+from ecoli.experiments.ecoli_master_sim import SimConfig
 
 CONFIG_DIR_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -287,7 +288,7 @@ def main():
     if args.config is not None:
         config_file = args.config
         with open(args.config, "r") as f:
-            config = {**config, **json.load(f)}
+            config = SimConfig.merge_config_dicts(config, json.load(f))
 
     experiment_id = config["experiment_id"]
     if experiment_id is None:
