@@ -1206,7 +1206,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
     ):
         update = {
             "bulk": [],
-            "listeners": {},
+            "listeners": {"growth_limits": {}},
         }
 
         # Get tRNA counts
