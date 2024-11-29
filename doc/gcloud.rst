@@ -26,15 +26,6 @@ You will be asked to link a billing account at this time.
   If you are new to Google Cloud, we recommend that you take some time to
   familiarize yourself with the Cloud console after enabling the above APIs.
 
-.. warning:: 
-  By default, vEcoli workflows request spot virtual machines (VMs), which are much cheaper
-  than standard VMs but do not have guaranteed availability and can be preempted.
-  The workflow is configured to automatically retry jobs that fail due to preemption.
-  However, the free credit ($300 as of Nov. 2024) offered to new users cannot be used to pay
-  for spot VMs. If you would like to try the model using free credits, you can
-  tell vEcoli to use standard VMs by deleting ``google.batch.spot = true`` from
-  ``runscripts/nextflow/config.template``.
-
 Set a default region and zone for Compute Engine following
 `these instructions <https://cloud.google.com/compute/docs/regions-zones/changing-default-zone-region#console>`_.
 This avoids unnecessary charges for multi-region data availability and access,
