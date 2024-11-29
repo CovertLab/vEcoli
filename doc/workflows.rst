@@ -99,7 +99,8 @@ Configuration options for the ParCa are all located in a dictionary under the
   manually instead of using :py:mod:`runscripts.workflow`, you must create two config JSON
   files: one for the ParCa with a null ``sim_data_path`` and an ``outdir``
   as described above and one for the simulation with
-  ``sim_data_path`` set to ``{outdir}/kb/simData.cPickle``.
+  ``sim_data_path`` set to ``{outdir}/kb/simData.cPickle``. This is intentional to
+  reduce the chance that the incorrect simulation data is used.
 
 .. _variants:
 
@@ -552,6 +553,15 @@ be absolute because Nextflow does not resolve environment variables like
     workflow, including analyses. Analysis scripts that take more than
     2 hours to run should be excluded from workflow configurations and manually
     run using :py:mod:`runscripts.analysis` afterwards.
+
+.. tip:: 
+  If you have access to a different HPC cluster that also uses the SLURM
+  scheduler, you can use vEcoli on that cluster by simply changing
+  the ``process.queue`` option in ``runscripts/nextflow/config.template``
+  to the correct SLURM queue. If your HPC cluster uses a different scheduler,
+  you will have to change many options in the ``sherlock`` configuration
+  profile starting with ``process.executor``. Refer to the Nextflow
+  `executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_.
 
 .. _progress:
 

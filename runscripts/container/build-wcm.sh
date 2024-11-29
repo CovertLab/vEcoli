@@ -50,14 +50,17 @@ if [ "$RUN_LOCAL" = true ]; then
 else
     echo "=== Cloud-building WCM code Docker Image ${WCM_IMAGE} on ${RUNTIME_IMAGE} ==="
     echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
-    REGION=$(curl -H "Metadata-Flavor: Google" \
-      "http://metadata.google.internal/computeMetadata/v1/instance/zone" |
-      awk -F'/' '{print $NF}' | 
-      sed 's/-[a-z]$//')
+    # For this script to work on a Compute Engine VM, you must
+    # - Set default Compute Engine region and zone for your project
+    # - Set access scope to "Allow full access to all Cloud APIs" when
+    #   creating VM
+    # - Run gcloud init in VM
+    REGION=$(gcloud config get compute/region)
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
-    gcloud builds submit --timeout=15m --config runscripts/container/cloud_build.json \
-        --substitutions="_REGION=${REGION},_WCM_RUNTIME=${RUNTIME_IMAGE},\
+    gcloud builds submit --timeout=15m --region=$REGION \
+      --config runscripts/container/cloud_build.json \
+      --substitutions="_WCM_RUNTIME=${RUNTIME_IMAGE},\
 _WCM_CODE=${WCM_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
 _TIMESTAMP=${TIMESTAMP}"
 fi

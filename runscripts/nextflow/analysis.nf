@@ -24,8 +24,8 @@ process analysisSingle {
         --lineage_seed $lineage_seed \\
         --generation $generation \\
         --agent_id "$agent_id" \\
-        --variant_metadata_path ${variant_metadata} \\
-        -o \$(pwd)/plots \\
+        --variant_metadata_path "${variant_metadata}" \\
+        -o "\$(pwd)/plots" \\
         -t single
     cd plots
     cd experiment_id=*
@@ -71,8 +71,8 @@ process analysisMultiDaughter {
         --variant $variant \\
         --lineage_seed $lineage_seed \\
         --generation $generation \\
-        --variant_metadata_path ${variant_metadata} \\
-        -o \$(pwd)/plots \\
+        --variant_metadata_path "${variant_metadata}" \\
+        -o "\$(pwd)/plots" \\
         -t multidaughter
     cd plots
     cd experiment_id=*
@@ -116,8 +116,8 @@ process analysisMultiGeneration {
         --experiment_id "$experiment_id" \\
         --variant $variant \\
         --lineage_seed $lineage_seed \\
-        --variant_metadata_path ${variant_metadata} \\
-        -o \$(pwd)/plots \\
+        --variant_metadata_path "${variant_metadata}" \\
+        -o "\$(pwd)/plots" \\
         -t multigeneration
     cd plots
     cd experiment_id=*
@@ -159,8 +159,8 @@ process analysisMultiSeed {
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
-        --variant_metadata_path ${variant_metadata} \\
-        -o \$(pwd)/plots \\
+        --variant_metadata_path "${variant_metadata}" \\
+        -o "\$(pwd)/plots" \\
         -t multiseed
     cd plots
     cd experiment_id=*
@@ -199,8 +199,8 @@ process analysisMultiVariant {
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant ${variant.join(" ")} \\
-        --variant_metadata_path ${variant_metadata} \\
-        -o \$(pwd)/plots \\
+        --variant_metadata_path "${variant_metadata}" \\
+        -o "\$(pwd)/plots" \\
         -t multivariant
     cd plots
     cd experiment_id=*

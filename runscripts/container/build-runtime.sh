@@ -36,19 +36,18 @@ if [ "$RUN_LOCAL" = true ]; then
     echo "=== Locally building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
     docker build -f runscripts/container/runtime/Dockerfile -t "${WCM_RUNTIME}" .
 else
-    PROJECT=$(curl -H "Metadata-Flavor: Google" \
-      "http://metadata.google.internal/computeMetadata/v1/project/project-id" |
-      cut '-d/' -f4)
-    REGION=$(curl -H "Metadata-Flavor: Google" \
-      "http://metadata.google.internal/computeMetadata/v1/instance/zone" |
-      awk -F'/' '{print $NF}' | 
-      sed 's/-[a-z]$//')
-    TAG="${REGION}-docker.pkg.dev/${PROJECT}/vecoli/${RUNTIME_IMAGE}"
-    echo "=== Cloud-building WCM runtime Docker Image: ${TAG} ==="
-    echo $TAG
+    echo "=== Cloud-building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
+    # For this script to work on a Compute Engine VM, you must
+    # - Set default Compute Engine region and zone for your project
+    # - Set access scope to "Allow full access to all Cloud APIs" when
+    #   creating VM
+    # - Run gcloud init in VM
+    REGION=$(gcloud config get compute/region)
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
-    gcloud builds submit --timeout=3h --tag "${TAG}" runscripts/container/runtime/
+    gcloud builds submit --timeout=3h --region=$REGION --tag \
+      '${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/'${RUNTIME_IMAGE} \
+      runscripts/container/runtime/
 fi
 
 rm runscripts/container/runtime/requirements.txt
