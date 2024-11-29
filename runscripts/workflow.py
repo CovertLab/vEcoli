@@ -288,7 +288,7 @@ def main():
     if args.config is not None:
         config_file = args.config
         with open(args.config, "r") as f:
-            config = SimConfig.merge_config_dicts(config, json.load(f))
+            SimConfig.merge_config_dicts(config, json.load(f))
 
     experiment_id = config["experiment_id"]
     if experiment_id is None:
