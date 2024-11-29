@@ -295,6 +295,8 @@ def main():
     if config["suffix_time"]:
         current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
         experiment_id = experiment_id + "_" + current_time
+        config["experiment_id"] = experiment_id
+        config["suffix_time"] = False
     # Special characters are messy so do not allow them
     if experiment_id != parse.quote_plus(experiment_id):
         raise TypeError(
