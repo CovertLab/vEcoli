@@ -36,17 +36,17 @@ You will be asked to link a billing account at this time.
   ``runscripts/nextflow/config.template``.
 
 Set a default region and zone for Compute Engine following
-`these instructions<https://cloud.google.com/compute/docs/regions-zones/changing-default-zone-region#console>`.
+`these instructions <https://cloud.google.com/compute/docs/regions-zones/changing-default-zone-region#console>`_.
 This avoids unnecessary charges for multi-region data availability and access,
 improves latency, and is required for some of vEcoli's code to work.
 
 Create a new repository in Artifact Registry following the steps
-on `this page<https://cloud.google.com/artifact-registry/docs/repositories/create-repos>`_.
+on `this page <https://cloud.google.com/artifact-registry/docs/repositories/create-repos>`_.
 Make sure to name the repository ``vecoli`` and create it in the same
 region as your Compute Engine default. This is where the Docker images
 used to run the workflow will be stored (see `Build Docker Images`_).
 
-Compute Engine VMs come with `service accounts <https://cloud.google.com/compute/docs/access/service-accounts>`
+Compute Engine VMs come with `service accounts <https://cloud.google.com/compute/docs/access/service-accounts>`_
 allow users to control access to project resources (compute, storage, etc.).
 To run vEcoli workflows, only a small subset of the default
 service account permissions are necessary. For that reason, we strongly
@@ -79,7 +79,7 @@ Create Your VM
 --------------
 
 Click on the terminal shell icon near the top-right corner of the
-`Cloud console <https://console.cloud.google.com>`. Run the command
+`Cloud console <https://console.cloud.google.com>`_. Run the command
 ``gcloud init`` and choose to reinitialize your configuration. Choose
 the right account and project, allowing ``gcloud`` to pull in the
 project's default Compute Engine zone and region.
@@ -142,7 +142,7 @@ requirements.txt for correct versions)::
   make clean compile
 
 Then, install Java (through SDKMAN) and Nextflow following
-`these instructions<https://www.nextflow.io/docs/latest/install.html>`.
+`these instructions <https://www.nextflow.io/docs/latest/install.html>`_.
 
 ------------------
 Create Your Bucket
@@ -150,7 +150,7 @@ Create Your Bucket
 
 vEcoli workflows persist their final outputs to a Cloud Storage
 bucket. To create a bucket, follow the steps on
-`this page<https://cloud.google.com/storage/docs/creating-buckets>`_. By default,
+`this page <https://cloud.google.com/storage/docs/creating-buckets>`_. By default,
 buckets are created in the US multi-region. We strongly recommend changing this to
 the same single region as your Compute Engine default (``us-west1`` for Covert Lab).
 All other settings can be kept as default.
@@ -159,7 +159,7 @@ All other settings can be kept as default.
   Do NOT use underscores or special characters in your bucket name. Hyphens are OK.
 
 Once you have created your bucket, tell vEcoli to use that bucket by setting the
-``out_uri`` key under the ``emitter_arg`` key in your config JSON (see `json_config`_).
+``out_uri`` key under the ``emitter_arg`` key in your config JSON (see :ref:`json_config`).
 The URI should be in the form ``gs://{bucket name}``. Remember to remove the ``out_dir``
 key under ``emitter_arg`` if present.
 
@@ -205,7 +205,7 @@ keys in your configuration JSON::
 These configuration keys, in addition to the ``out_uri`` key under ``emitter_arg``,
 are necessary and sufficient to tell :py:mod:`runscripts.workflow` that you intend to
 run the workflow on Google Cloud. After setting these options in your configuration JSON,
-you can use ```screen`` to open a virtual console that will persist even after your SSH
+you can use ``screen`` to open a virtual console that will persist even after your SSH
 connection is closed. In that virtual console, invoke :py:mod:`runscripts.workflow`
 as normal to start your workflow::
   
