@@ -554,6 +554,15 @@ be absolute because Nextflow does not resolve environment variables like
     2 hours to run should be excluded from workflow configurations and manually
     run using :py:mod:`runscripts.analysis` afterwards.
 
+.. tip:: 
+  If you have access to a different HPC cluster that also uses the SLURM
+  scheduler, you can use vEcoli on that cluster by simply changing
+  the ``process.queue`` option in ``runscripts/nextflow/config.template``
+  to the correct SLURM queue. If your HPC cluster uses a different scheduler,
+  you will have to change many options in the ``sherlock`` configuration
+  profile starting with ``process.executor``. Refer to the Nextflow
+  `executor documentation<https://www.nextflow.io/docs/latest/executor.html>`_.
+
 .. _progress:
 
 --------
