@@ -1,11 +1,13 @@
 import argparse
 import json
 import os
+import time
 import shutil
 import subprocess
 import warnings
 from datetime import datetime
 from urllib import parse
+from typing import Optional
 
 from pyarrow import fs
 
@@ -74,6 +76,66 @@ def merge_dicts(a, b):
         else:
             # Otherwise, overwrite or add the value from b to a
             a[key] = value
+
+
+def submit_job(cmd: str, sbatch_options: Optional[list] = None) -> int:
+    """
+    Submits a job to SLURM using sbatch and waits for it to complete.
+
+    Args:
+        cmd: Command to run in batch job.
+        sbatch_options: Additional sbatch options as a list of strings.
+
+    Returns:
+        Job ID of the submitted job.
+    """
+    sbatch_command = ["sbatch"]
+    if sbatch_options:
+        sbatch_command.extend(sbatch_options)
+    sbatch_command.append(f"--wrap='{cmd}'")
+
+    try:
+        result = subprocess.run(
+            sbatch_command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+            text=True,
+        )
+        # Extract job ID from sbatch output
+        output = result.stdout.strip()
+        # Assuming job ID is the last word in the output
+        job_id = int(output.split()[-1])
+        print(f"Job submitted with ID: {job_id}")
+        return job_id
+    except subprocess.CalledProcessError as e:
+        print(f"Error submitting job: {e.stderr.strip()}")
+        raise
+
+
+def wait_for_job(job_id: int, poll_interval: int = 10):
+    """
+    Waits for a SLURM job to finish.
+
+    Args:
+        job_id: SLURM job ID.
+        poll_interval: Time in seconds between job status checks.
+    """
+    while True:
+        try:
+            # Check job status with squeue
+            result = subprocess.run(
+                ["squeue", "--job", str(job_id)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            if job_id not in result.stdout:
+                break
+        except Exception as e:
+            print(f"Error checking job status: {e}")
+            raise
+        time.sleep(poll_interval)
 
 
 def generate_colony(seeds: int):
@@ -256,9 +318,24 @@ def build_runtime_image(image_name, apptainer=False):
     build_script = os.path.join(
         os.path.dirname(__file__), "container", "build-runtime.sh"
     )
-    subprocess.run(
-        [build_script, "-r", image_name, "-s" if apptainer else ""], check=True
-    )
+    cmd = [build_script, "-r", image_name]
+    if apptainer:
+        # On Sherlock, submit job to build runtime image
+        job_id = submit_job(
+            " ".join(cmd),
+            sbatch_options=[
+                "--time=01:00:00",
+                "--mem=4G",
+                "--cpus-per-task=1",
+                "--partition=owners",
+            ],
+        )
+        wait_for_job(job_id, 30)
+        print("Done building runtime image.")
+    else:
+        subprocess.run(
+            [build_script, "-r", image_name, "-s" if apptainer else ""], check=True
+        )
 
 
 def build_wcm_image(image_name, runtime_image_name, apptainer_bind=None):
@@ -273,8 +350,21 @@ def build_wcm_image(image_name, runtime_image_name, apptainer_bind=None):
         )
     cmd = [build_script, "-w", image_name, "-r", runtime_image_name]
     if apptainer_bind is not None:
+        # On Sherlock, submit job to build WCM image
         cmd.extend(["-s", "-b", apptainer_bind])
-    subprocess.run(cmd, check=True)
+        job_id = submit_job(
+            " ".join(cmd),
+            sbatch_options=[
+                "--time=01:00:00",
+                "--mem=4G",
+                "--cpus-per-task=1",
+                "--partition=owners",
+            ],
+        )
+        wait_for_job(job_id, 30)
+        print("Done building WCM image.")
+    else:
+        subprocess.run(cmd, check=True)
 
 
 def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):

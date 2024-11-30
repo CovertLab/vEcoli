@@ -103,7 +103,7 @@ the email address for that service account. If you are a member of the Covert La
 or have been granted access to the Covert Lab project, substitute
 ``fireworker@allen-discovery-center-mcovert.iam.gserviceaccount.com``. Otherwise,
 including if you edited the default service account permissions, run
-the above command without the ``--service-acount`` flag.
+the above command without the ``--service-account`` flag.
 
 .. warning:: 
   Remember to stop your VM when you are done using it. You can either do this
