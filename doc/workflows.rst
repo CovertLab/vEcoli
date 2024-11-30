@@ -488,8 +488,18 @@ in the worklow.
 Sherlock
 --------
 
+.. tip:: 
+  If you have access to a different HPC cluster that also uses the SLURM
+  scheduler, you can use vEcoli on that cluster by changing
+  the ``process.queue`` option in ``runscripts/nextflow/config.template``
+  and all strings of the format ``-p QUEUE`` or ``--partition=QUEUE``
+  in :py:mod:`runscripts.workflow`. If your HPC cluster uses a different
+  scheduler, refer to the Nextflow
+  `executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_
+  for more information on configuring the right executor.
+
 .. note::
-    The following information is intended for members of the Covert Lab only.
+    The following setup applies for members of the Covert Lab only.
 
 After cloning the model repository to your home directory, skip the other steps
 in the README until reaching the instructions to install Nextflow. After installing
@@ -554,15 +564,6 @@ be absolute because Nextflow does not resolve environment variables like
     2 hours to run should be excluded from workflow configurations and manually
     run using :py:mod:`runscripts.analysis` afterwards.
 
-.. tip:: 
-  If you have access to a different HPC cluster that also uses the SLURM
-  scheduler, you can use vEcoli on that cluster by changing
-  the ``process.queue`` option in ``runscripts/nextflow/config.template``
-  and all strings of the format ``-p QUEUE`` or ``--partition=QUEUE``
-  in :py:mod:`runscripts.workflow`. If your HPC cluster uses a different
-  scheduler, refer to the Nextflow
-  `executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_
-  for more information on configuring the right executor.
 
 .. _progress:
 
