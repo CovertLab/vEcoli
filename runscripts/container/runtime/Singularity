@@ -22,7 +22,7 @@ From: python:3.11.3
     cp ~/.bashrc /
 
     apt-get update \
-        && apt-get install -y swig gfortran llvm cmake nano libopenblas-dev
+        && apt-get install -y git swig gfortran llvm cmake nano libopenblas-dev
 
     pip install --no-cache-dir --upgrade pip setuptools==73.0.1 wheel
     pip install --no-cache-dir numpy==1.26.4
