@@ -16,7 +16,7 @@ From: python:3.11.3
 
 %post
     echo "Setting up runtime environment..."
-    
+
     echo "alias ls='ls --color=auto'" >> ~/.bashrc
     echo "alias ll='ls -l'" >> ~/.bashrc
     cp ~/.bashrc /

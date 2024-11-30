@@ -1,5 +1,5 @@
 #!/bin/sh
-# Use Google Cloud Buil, local Docker, or HPC cluster Apptainer to build
+# Use Google Cloud Build, local Docker, or HPC cluster Apptainer to build
 # a personalized image with requirements.txt installed. If using Cloud Build,
 # store the built image in the "vecoli" repository in Artifact Registry.
 #
