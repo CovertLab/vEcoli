@@ -18,6 +18,7 @@ From: {{ runtime_image }}
     . /vEcoli
 
 %post
+    mkdir {{ outdir }}
     echo "Setting up vEcoli environment..."
     cd /vEcoli
     make clean compile

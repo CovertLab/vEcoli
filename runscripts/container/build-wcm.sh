@@ -12,6 +12,7 @@ WCM_IMAGE="${USER}-wcm-code"
 RUN_LOCAL=0
 BUILD_APPTAINER=0
 BIND_PATHS=''
+OUTDIR=''
 
 usage_str="Usage: build-wcm.sh [-r RUNTIME_IMAGE] \
 [-w WCM_IMAGE] [-l]\n\
@@ -22,7 +23,8 @@ if Docker tag).\n\
 tag; defaults to "$USER-wcm-code".\n\
     -a: Build Apptainer image (cannot use with -l).\n\
     -l: Build image locally.\n\
-    -b: Absolute paths to bind to Apptainer image (only works with -a).\n"
+    -b: Absolute path to bind to Apptainer image for workflow output \
+(only works with -a).\n"
 
 print_usage() {
   printf "$usage_str"
@@ -34,7 +36,7 @@ while getopts 'r:w:slb:' flag; do
     w) WCM_IMAGE="${OPTARG}" ;;
     l) (( $BUILD_APPTAINER )) && print_usage && exit 1 || RUN_LOCAL=1 ;;
     s) (( $RUN_LOCAL )) && print_usage && exit 1 || BUILD_APPTAINER=1 ;;
-    b) (( $RUN_LOCAL )) && print_usage && exit 1 || BIND_PATHS="-B ${OPTARG}" ;;
+    b) (( $RUN_LOCAL )) && print_usage && exit 1 || BIND_PATHS="-B ${OPTARG}" && OUTDIR="${OPTARG}" ;;
     *) print_usage
        exit 1 ;;
   esac
@@ -61,6 +63,7 @@ elif (( $BUILD_APPTAINER )); then
         --build-arg git_hash="${GIT_HASH}" \
         --build-arg git_branch="${GIT_BRANCH}" \
         --build-arg timestamp="${TIMESTAMP}" \
+        --build-arg outdir="${OUTDIR}" \
         ${WCM_IMAGE} runscripts/container/wholecell/Singularity
 else
     echo "=== Cloud-building WCM code Docker Image ${WCM_IMAGE} on ${RUNTIME_IMAGE} ==="
