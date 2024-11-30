@@ -556,12 +556,13 @@ be absolute because Nextflow does not resolve environment variables like
 
 .. tip:: 
   If you have access to a different HPC cluster that also uses the SLURM
-  scheduler, you can use vEcoli on that cluster by simply changing
+  scheduler, you can use vEcoli on that cluster by changing
   the ``process.queue`` option in ``runscripts/nextflow/config.template``
-  to the correct SLURM queue. If your HPC cluster uses a different scheduler,
-  you will have to change many options in the ``sherlock`` configuration
-  profile starting with ``process.executor``. Refer to the Nextflow
-  `executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_.
+  and all strings of the format ``-p QUEUE`` or ``--partition=QUEUE``
+  in :py:mod:`runscripts.workflow`. If your HPC cluster uses a different
+  scheduler, refer to the Nextflow
+  `executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_
+  for more information on configuring the right executor.
 
 .. _progress:
 
