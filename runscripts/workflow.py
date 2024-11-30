@@ -121,11 +121,12 @@ def wait_for_job(job_id: int, poll_interval: int = 10):
         job_id: SLURM job ID.
         poll_interval: Time in seconds between job status checks.
     """
+    job_id = str(job_id)
     while True:
         try:
             # Check job status with squeue
             result = subprocess.run(
-                ["squeue", "--job", str(job_id)],
+                ["squeue", "--job", job_id],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
