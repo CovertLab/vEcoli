@@ -8,7 +8,20 @@ from datetime import datetime
 from urllib import parse
 
 from pyarrow import fs
-from ecoli.experiments.ecoli_master_sim import SimConfig
+
+LIST_KEYS_TO_MERGE = (
+    "save_times",
+    "add_processes",
+    "exclude_processes",
+    "processes",
+    "engine_process_reports",
+    "initial_state_overrides",
+)
+"""
+Special configuration keys that are list values which are concatenated
+together when they are found in multiple sources (e.g. default JSON and
+user-specified JSON) instead of being directly overriden.
+"""
 
 CONFIG_DIR_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -47,6 +60,20 @@ MULTIVARIANT_CHANNEL = """
         .groupTuple(by: [1])
         .set {{ multiVariantCh }}
 """
+
+
+def merge_dicts(a, b):
+    """
+    Recursively merges dictionary b into dictionary a.
+    This mutates dictionary a.
+    """
+    for key, value in b.items():
+        if isinstance(value, dict) and key in a and isinstance(a[key], dict):
+            # If both values are dictionaries, recursively merge
+            merge_dicts(a[key], value)
+        else:
+            # Otherwise, overwrite or add the value from b to a
+            a[key] = value
 
 
 def generate_colony(seeds: int):
@@ -291,7 +318,16 @@ def main():
     if args.config is not None:
         config_file = args.config
         with open(args.config, "r") as f:
-            SimConfig.merge_config_dicts(config, json.load(f))
+            user_config = json.load(f)
+            for key in LIST_KEYS_TO_MERGE:
+                user_config.setdefault(key, [])
+                user_config[key].extend(config.get(key, []))
+                if key == "engine_process_reports":
+                    user_config[key] = [tuple(path) for path in user_config[key]]
+                # Ensures there are no duplicates in d2
+                user_config[key] = list(set(user_config[key]))
+                user_config[key].sort()
+            merge_dicts(config, user_config)
 
     experiment_id = config["experiment_id"]
     if experiment_id is None:

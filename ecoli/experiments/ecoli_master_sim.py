@@ -41,20 +41,7 @@ from ecoli.processes.registries import topology_registry
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.schema import not_a_process
 
-
-LIST_KEYS_TO_MERGE = (
-    "save_times",
-    "add_processes",
-    "exclude_processes",
-    "processes",
-    "engine_process_reports",
-    "initial_state_overrides",
-)
-"""
-Special configuration keys that are list values which are concatenated
-together when they are found in multiple sources (e.g. default JSON and
-user-specified JSON) instead of being directly overriden.
-"""
+from runscripts.workflow import LIST_KEYS_TO_MERGE
 
 
 class TimeLimitError(RuntimeError):
