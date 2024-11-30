@@ -225,14 +225,16 @@ def generate_code(config):
     return "\n".join(run_parca), "\n".join(sim_imports), "\n".join(sim_workflow)
 
 
-def build_runtime_image(image_name):
+def build_runtime_image(image_name, apptainer=False):
     build_script = os.path.join(
         os.path.dirname(__file__), "container", "build-runtime.sh"
     )
-    subprocess.run([build_script, "-r", image_name], check=True)
+    subprocess.run(
+        [build_script, "-r", image_name, "-s" if apptainer else ""], check=True
+    )
 
 
-def build_wcm_image(image_name, runtime_image_name):
+def build_wcm_image(image_name, runtime_image_name, apptainer_bind=None):
     build_script = os.path.join(os.path.dirname(__file__), "container", "build-wcm.sh")
     if runtime_image_name is None:
         warnings.warn(
@@ -242,9 +244,10 @@ def build_wcm_image(image_name, runtime_image_name):
             'If this is correct, add this under "gcloud" > '
             '"runtime_image_name" in your config JSON.'
         )
-    subprocess.run(
-        [build_script, "-w", image_name, "-r", runtime_image_name], check=True
-    )
+    cmd = [build_script, "-w", image_name, "-r", runtime_image_name]
+    if apptainer_bind is not None:
+        cmd.extend(["-s", "-b", apptainer_bind])
+    subprocess.run(cmd, check=True)
 
 
 def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):
@@ -340,6 +343,8 @@ def main():
 
     # By default, assume running on local device
     nf_profile = "standard"
+    # If not running on a local device, build container images according
+    # to options under gcloud or sherlock configuration keys
     cloud_config = config.get("gcloud", None)
     if cloud_config is not None:
         nf_profile = "gcloud"
@@ -354,19 +359,29 @@ def main():
         image_prefix = f"{region}-docker.pkg.dev/{project_id}/vecoli/"
         runtime_image_name = cloud_config.get("runtime_image_name", None)
         if cloud_config.get("build_runtime_image", False):
-            if runtime_image_name is None:
-                raise RuntimeError("Must supply name for runtime image.")
             build_runtime_image(runtime_image_name)
         wcm_image_name = cloud_config.get("wcm_image_name", None)
         if cloud_config.get("build_wcm_image", False):
-            if wcm_image_name is None:
-                raise RuntimeError("Must supply name for WCM image.")
             build_wcm_image(wcm_image_name, runtime_image_name)
         nf_config = nf_config.replace("IMAGE_NAME", image_prefix + wcm_image_name)
-    elif config.get("sherlock", None) is not None:
-        nf_profile = "sherlock"
-    elif config.get("jenkins", None) is not None:
-        nf_profile = "jenkins"
+    sherlock_config = config.get("sherlock", None)
+    if sherlock_config is not None:
+        if nf_profile == "gcloud":
+            raise RuntimeError(
+                "Cannot set both Sherlock and Google Cloud "
+                "options in the input JSON."
+            )
+        runtime_image_name = sherlock_config.get("runtime_image_name", None)
+        if sherlock_config.get("build_runtime_image", False):
+            build_runtime_image(runtime_image_name, True)
+        wcm_image_name = sherlock_config.get("wcm_image_name", None)
+        if sherlock_config.get("build_wcm_image", False):
+            build_wcm_image(wcm_image_name, runtime_image_name, outdir)
+        nf_config = nf_config.replace("IMAGE_NAME", wcm_image_name)
+        if sherlock_config.get("jenkins", False):
+            nf_profile = "jenkins"
+        else:
+            nf_profile = "sherlock"
 
     local_config = os.path.join(local_outdir, "nextflow.config")
     with open(local_config, "w") as f:
