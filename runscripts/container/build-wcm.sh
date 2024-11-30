@@ -15,27 +15,27 @@ BIND_PATHS=''
 OUTDIR=''
 
 usage_str="Usage: build-wcm.sh [-r RUNTIME_IMAGE] \
-[-w WCM_IMAGE] [-l]\n\
+[-w WCM_IMAGE] [-a] [-b BIND_PATH] [-l]\n\
     -r: Path of Apptainer wcm-runtime image to build from if -a, otherwise \
 Docker tag; defaults to "$USER-wcm-runtime" (must exist in Artifact Registry \
 if Docker tag).\n\
     -w: Path of Apptainer wcm-code image to build if -a, otherwise Docker \
 tag; defaults to "$USER-wcm-code".\n\
     -a: Build Apptainer image (cannot use with -l).\n\
-    -l: Build image locally.\n\
     -b: Absolute path to bind to Apptainer image for workflow output \
-(only works with -a).\n"
+(only works with -a).\n\
+    -l: Build image locally.\n"
 
 print_usage() {
   printf "$usage_str"
 }
 
-while getopts 'r:w:slb:' flag; do
+while getopts 'r:w:abl:' flag; do
   case "${flag}" in
     r) RUNTIME_IMAGE="${OPTARG}" ;;
     w) WCM_IMAGE="${OPTARG}" ;;
     l) (( $BUILD_APPTAINER )) && print_usage && exit 1 || RUN_LOCAL=1 ;;
-    s) (( $RUN_LOCAL )) && print_usage && exit 1 || BUILD_APPTAINER=1 ;;
+    a) (( $RUN_LOCAL )) && print_usage && exit 1 || BUILD_APPTAINER=1 ;;
     b) (( $RUN_LOCAL )) && print_usage && exit 1 || BIND_PATHS="-B ${OPTARG}" && OUTDIR="${OPTARG}" ;;
     *) print_usage
        exit 1 ;;
