@@ -28,7 +28,7 @@ done
 
 if (( $BUILD_APPTAINER )); then
     echo "=== Launching Apptainer container from ${WCM_IMAGE} ==="
-    apptainer shell ${WCM_IMAGE}
+    apptainer shell -e ${WCM_IMAGE}
 else
     echo "=== Launching Docker container from ${WCM_IMAGE} ==="
     docker container run -it ${WCM_IMAGE} bash
