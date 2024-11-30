@@ -139,6 +139,43 @@ def wait_for_job(job_id: int, poll_interval: int = 10):
         time.sleep(poll_interval)
 
 
+def check_job_status(job_id: int) -> bool:
+    """
+    Checks the exit status of a SLURM job using sacct.
+
+    Args:
+        job_id: SLURM job ID.
+
+    Returns:
+        True if the job succeeded (exit code 0), False otherwise.
+    """
+    try:
+        # Query job status with sacct
+        result = subprocess.run(
+            ["sacct", "-j", str(job_id), "--format=JobID,State,ExitCode", "--noheader"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        output = result.stdout.strip()
+
+        for line in output.splitlines():
+            fields = line.split()
+            # Match the job ID
+            if str(job_id) in fields[0]:
+                state = fields[1]
+                # Extract the numeric exit code
+                exit_code = fields[2].split(":")[0]
+                print(f"Job {job_id} - State: {state}, Exit Code: {exit_code}")
+                return state == "COMPLETED" and exit_code == "0"
+
+        print(f"Job {job_id} status not found in sacct output.")
+        return False
+    except Exception as e:
+        print(f"Error checking job status: {e}")
+        raise
+
+
 def generate_colony(seeds: int):
     """
     Create strings to import and compose Nextflow processes for colony sims.
@@ -333,7 +370,10 @@ def build_runtime_image(image_name, apptainer=False):
             ],
         )
         wait_for_job(job_id, 30)
-        print("Done building runtime image.")
+        if check_job_status(job_id):
+            print("Done building runtime image.")
+        else:
+            raise RuntimeError("Job to build runtime image failed.")
     else:
         subprocess.run(
             [build_script, "-r", image_name, "-s" if apptainer else ""], check=True
@@ -365,7 +405,10 @@ def build_wcm_image(image_name, runtime_image_name, apptainer_bind=None):
             ],
         )
         wait_for_job(job_id, 30)
-        print("Done building WCM image.")
+        if check_job_status(job_id):
+            print("Done building runtime image.")
+        else:
+            raise RuntimeError("Job to build WCM image failed.")
     else:
         subprocess.run(cmd, check=True)
 
