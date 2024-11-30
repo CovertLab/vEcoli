@@ -367,7 +367,7 @@ def build_runtime_image(image_name, apptainer=False):
                 "--time=01:00:00",
                 "--mem=4G",
                 "--cpus-per-task=1",
-                "--partition=owners",
+                "--partition=mcovert",
             ],
         )
         wait_for_job(job_id, 30)
@@ -402,7 +402,7 @@ def build_wcm_image(image_name, runtime_image_name, apptainer_bind=None):
                 "--time=01:00:00",
                 "--mem=4G",
                 "--cpus-per-task=1",
-                "--partition=owners",
+                "--partition=mcovert",
             ],
         )
         wait_for_job(job_id, 30)
