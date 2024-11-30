@@ -11,7 +11,7 @@ RUNTIME_IMAGE="${USER}-wcm-runtime"
 WCM_IMAGE="${USER}-wcm-code"
 RUN_LOCAL=0
 BUILD_APPTAINER=0
-BINDPATHS=''
+BIND_PATHS=''
 
 usage_str="Usage: build-wcm.sh [-r RUNTIME_IMAGE] \
 [-w WCM_IMAGE] [-l]\n\
@@ -32,8 +32,8 @@ while getopts 'r:w:slb:' flag; do
   case "${flag}" in
     r) RUNTIME_IMAGE="${OPTARG}" ;;
     w) WCM_IMAGE="${OPTARG}" ;;
-    l) (( $BUILD_APPTAINER )) && print_usage && exit 1 || RUN_LOCAL="${OPTARG}" ;;
-    s) (( $RUN_LOCAL )) && print_usage && exit 1 || BUILD_APPTAINER="${OPTARG}" ;;
+    l) (( $BUILD_APPTAINER )) && print_usage && exit 1 || RUN_LOCAL=1 ;;
+    s) (( $RUN_LOCAL )) && print_usage && exit 1 || BUILD_APPTAINER=1 ;;
     b) (( $RUN_LOCAL )) && print_usage && exit 1 || BIND_PATHS="-B ${OPTARG}" ;;
     *) print_usage
        exit 1 ;;
