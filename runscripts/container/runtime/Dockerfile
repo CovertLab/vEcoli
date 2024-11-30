@@ -20,7 +20,7 @@ RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
 
 # Update and install in the same layer so it won't install from old updates.
 RUN apt-get update \
-    && apt-get install -y swig gfortran llvm cmake nano libopenblas-dev
+    && apt-get install -y git swig gfortran llvm cmake nano libopenblas-dev
 
 # This gets more consistent results from openblas.
 ENV OPENBLAS_NUM_THREADS=1
