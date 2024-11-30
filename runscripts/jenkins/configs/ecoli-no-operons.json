@@ -18,8 +18,6 @@
     "sherlock": {
         "runtime_image_name": "runtime-image",
         "build_runtime_image": true,
-        "wcm_image_name": "wcm-image",
-        "build_wcm_image": true,
         "jenkins": true
     }
 }
