@@ -11,6 +11,7 @@
     "analysis_options": {
         "single": {"mass_fraction_summary": {}}
     },
+    "skip_baseline": true,
     "variants": {
         "condition": {"condition": {"value": ["with_aa"]}}
     },
