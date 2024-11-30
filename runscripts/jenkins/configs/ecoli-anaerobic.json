@@ -14,6 +14,7 @@
     "mechanistic_replisome": true,
     "mass_distribution": false,
     "sim_data_path": null,
+    "skip_baseline": true,
     "emitter": "parquet",
     "emitter_arg": {
         "out_dir": "/scratch/groups/mcovert/vecoli"

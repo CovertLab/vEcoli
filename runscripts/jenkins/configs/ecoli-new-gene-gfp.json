@@ -14,6 +14,7 @@
     "analysis_options": {
         "single": {"mass_fraction_summary": {}}
     },
+    "skip_baseline": true,
     "variants": {
         "new_gene_internal_shift": {
             "condition": {"value": ["basal"]},
