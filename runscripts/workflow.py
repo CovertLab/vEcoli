@@ -321,6 +321,7 @@ def build_runtime_image(image_name, apptainer=False):
     )
     cmd = [build_script, "-r", image_name]
     if apptainer:
+        print("Submitting job to build runtime image.")
         # On Sherlock, submit job to build runtime image
         job_id = submit_job(
             " ".join(cmd),
@@ -351,6 +352,7 @@ def build_wcm_image(image_name, runtime_image_name, apptainer_bind=None):
         )
     cmd = [build_script, "-w", image_name, "-r", runtime_image_name]
     if apptainer_bind is not None:
+        print("Submitting job to build WCM image.")
         # On Sherlock, submit job to build WCM image
         cmd.extend(["-s", "-b", apptainer_bind])
         job_id = submit_job(
