@@ -2,7 +2,8 @@
     "experiment_id": "daily-anaerobic",
     "single_daughters": true,
     "generations": 8,
-    "total_time": 18000.0,
+    "lineage_seed": 100,
+    "total_time": 10800.0,
     "fail_at_total_time": true,
     "trna_attenuation": false,
     "ppgpp_regulation": false,
@@ -12,6 +13,8 @@
     "d_period_division": false,
     "mechanistic_replisome": true,
     "mass_distribution": false,
+    "sim_data_path": null,
+    "skip_baseline": true,
     "emitter": "parquet",
     "emitter_arg": {
         "out_dir": "/scratch/groups/mcovert/vecoli"

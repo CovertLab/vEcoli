@@ -11,6 +11,7 @@
     "d_period_division": false,
     "mechanistic_replisome": true,
     "emitter": "parquet",
+    "sim_data_path": null,
     "emitter_arg": {
         "out_dir": "/scratch/groups/mcovert/vecoli"
     },
