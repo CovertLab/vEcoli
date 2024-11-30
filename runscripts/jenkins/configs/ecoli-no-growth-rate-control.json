@@ -24,5 +24,8 @@
         "wcm_image_name": "wcm-image",
         "build_wcm_image": true,
         "jenkins": true
+    },
+    "parca_options": {
+        "cpus": 4
     }
 }
