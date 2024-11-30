@@ -37,6 +37,14 @@ Make sure to name the repository ``vecoli`` and create it in the same
 region as your Compute Engine default. This is where the Docker images
 used to run the workflow will be stored (see `Build Docker Images`_).
 
+The Compute Engine VMs that vEcoli spawns to run workflow jobs do not
+have external IP addresses (no internet access) but need access to
+Google Cloud APIs. Follow the instructions on
+`this page <https://cloud.google.com/vpc/docs/configure-private-google-access#enabling-pga>`_
+to turn on Private Google Access for these VMs. For a fresh project, you
+can click on the ``default`` network, then under the "Subnets"
+tab, click on the subnet for your Compute Engine default region.
+
 Compute Engine VMs come with `service accounts <https://cloud.google.com/compute/docs/access/service-accounts>`_
 allow users to control access to project resources (compute, storage, etc.).
 To run vEcoli workflows, only a small subset of the default
