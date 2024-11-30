@@ -359,6 +359,7 @@ def build_runtime_image(image_name, apptainer=False):
     cmd = [build_script, "-r", image_name]
     if apptainer:
         print("Submitting job to build runtime image.")
+        cmd.append("-a")
         # On Sherlock, submit job to build runtime image
         job_id = submit_job(
             " ".join(cmd),

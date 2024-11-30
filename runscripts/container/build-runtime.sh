@@ -12,19 +12,19 @@ RUN_LOCAL=0
 BUILD_APPTAINER=0
 
 usage_str="Usage: build-runtime.sh [-r RUNTIME_IMAGE] [-l]\n\
-    -r: Path of built Apptainer image if -s, otherwise Docker tag \
+    -r: Path of built Apptainer image if -a, otherwise Docker tag \
 for the wcm-runtime image to build; defaults to ${USER}-wcm-runtime\n\
-    -s: Build Apptainer image (cannot use with -l).\n\
+    -a: Build Apptainer image (cannot use with -l).\n\
     -l: Build image locally.\n"
 
 print_usage() {
   printf "$usage_str"
 }
 
-while getopts 'r:sl' flag; do
+while getopts 'r:al' flag; do
   case "${flag}" in
     r) RUNTIME_IMAGE="${OPTARG}" ;;
-    s) (( $RUN_LOCAL )) && print_usage && exit 1 || BUILD_APPTAINER=1 ;;
+    a) (( $RUN_LOCAL )) && print_usage && exit 1 || BUILD_APPTAINER=1 ;;
     l) (( $BUILD_APPTAINER )) && print_usage && exit 1 || RUN_LOCAL=1 ;;
     *) print_usage
        exit 1 ;;
