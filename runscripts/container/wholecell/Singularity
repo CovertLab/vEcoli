@@ -8,6 +8,9 @@ From: {{ runtime_image }}
     organization "Covert Lab at Stanford"
     website "https://www.covert.stanford.edu/"
 
+%setup
+    mkdir -p $APPTAINER_ROOTFS/{{ outdir }}
+
 %environment
     export IMAGE_GIT_HASH="{{ git_hash }}"
     export IMAGE_GIT_BRANCH="{{ git_branch }}"
@@ -18,8 +21,7 @@ From: {{ runtime_image }}
     . /vEcoli
 
 %post
-    mkdir {{ outdir }}
-    echo "Setting up vEcoli environment..."
+    echo "Copying vEcoli files..."
     cd /vEcoli
     make clean compile
 
