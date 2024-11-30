@@ -377,7 +377,7 @@ def build_runtime_image(image_name, apptainer=False):
             raise RuntimeError("Job to build runtime image failed.")
     else:
         subprocess.run(
-            [build_script, "-r", image_name, "-s" if apptainer else ""], check=True
+            [build_script, "-r", image_name], check=True
         )
 
 
@@ -395,7 +395,7 @@ def build_wcm_image(image_name, runtime_image_name, apptainer_bind=None):
     if apptainer_bind is not None:
         print("Submitting job to build WCM image.")
         # On Sherlock, submit job to build WCM image
-        cmd.extend(["-s", "-b", apptainer_bind])
+        cmd.extend(["-a", "-b", apptainer_bind])
         job_id = submit_job(
             " ".join(cmd),
             sbatch_options=[
