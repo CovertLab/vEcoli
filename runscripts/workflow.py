@@ -381,7 +381,7 @@ def build_runtime_image(image_name, apptainer=False):
         )
 
 
-def build_wcm_image(image_name, runtime_image_name, apptainer_bind=None):
+def build_wcm_image(image_name, runtime_image_name):
     build_script = os.path.join(os.path.dirname(__file__), "container", "build-wcm.sh")
     if runtime_image_name is None:
         warnings.warn(
@@ -392,26 +392,7 @@ def build_wcm_image(image_name, runtime_image_name, apptainer_bind=None):
             '"runtime_image_name" in your config JSON.'
         )
     cmd = [build_script, "-w", image_name, "-r", runtime_image_name]
-    if apptainer_bind is not None:
-        print("Submitting job to build WCM image.")
-        # On Sherlock, submit job to build WCM image
-        cmd.extend(["-a", "-b", apptainer_bind])
-        job_id = submit_job(
-            " ".join(cmd),
-            sbatch_options=[
-                "--time=01:00:00",
-                "--mem=4G",
-                "--cpus-per-task=1",
-                "--partition=mcovert",
-            ],
-        )
-        wait_for_job(job_id, 30)
-        if check_job_status(job_id):
-            print("Done building runtime image.")
-        else:
-            raise RuntimeError("Job to build WCM image failed.")
-    else:
-        subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True)
 
 
 def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):
@@ -547,10 +528,7 @@ def main():
         runtime_image_name = sherlock_config.get("runtime_image_name", None)
         if sherlock_config.get("build_runtime_image", False):
             build_runtime_image(runtime_image_name, True)
-        wcm_image_name = sherlock_config.get("wcm_image_name", None)
-        if sherlock_config.get("build_wcm_image", False):
-            build_wcm_image(wcm_image_name, runtime_image_name, outdir)
-        nf_config = nf_config.replace("IMAGE_NAME", wcm_image_name)
+        nf_config = nf_config.replace("IMAGE_NAME", runtime_image_name)
         if sherlock_config.get("jenkins", False):
             nf_profile = "jenkins"
         else:

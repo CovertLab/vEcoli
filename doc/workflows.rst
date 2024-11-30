@@ -488,7 +488,7 @@ in the worklow.
 Sherlock
 --------
 
-.. tip:: 
+.. tip::
   If you have access to a different HPC cluster that also uses the SLURM
   scheduler, you can use vEcoli on that cluster by changing
   the ``process.queue`` option in ``runscripts/nextflow/config.template``
