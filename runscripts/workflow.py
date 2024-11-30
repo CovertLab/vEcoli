@@ -92,7 +92,7 @@ def submit_job(cmd: str, sbatch_options: Optional[list] = None) -> int:
     sbatch_command = ["sbatch"]
     if sbatch_options:
         sbatch_command.extend(sbatch_options)
-    sbatch_command.append(f"--wrap='{cmd}'")
+    sbatch_command.append(f"--wrap=\"{cmd}\"")
 
     try:
         result = subprocess.run(
