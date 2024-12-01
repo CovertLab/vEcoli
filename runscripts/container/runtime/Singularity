@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: python:706d1233c61a31507c4f8939cfd6a924610b51174c095f33e2c537fb904a1e76
+From: python@sha256:15f10b142547000e2429615b3d314474ae7d6ac062a8dd2c9246adcee7068e55
 
 %environment
     export OPENBLAS_NUM_THREADS=1
