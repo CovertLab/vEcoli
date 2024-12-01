@@ -11,7 +11,7 @@
 # Add option `--build-arg from=ABC` to build from a different base image "ABC"
 # but DO NOT USE an alpine base since the simulation math comes out different!
 # See https://pythonspeed.com/articles/alpine-docker-python/ for more reasons.
-ARG from=python:3.11.10
+ARG from=python:3.11.10@sha256:706d1233c61a31507c4f8939cfd6a924610b51174c095f33e2c537fb904a1e76
 FROM ${from}
 
 RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
