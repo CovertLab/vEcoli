@@ -19,5 +19,3 @@ fi
 ### Edit this line to make this branch use another pyenv
 pyenv local vEcoli
 pyenv activate
-
-make clean compile
