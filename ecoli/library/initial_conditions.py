@@ -20,6 +20,7 @@ from wholecell.utils.fitting import (
     masses_and_counts_for_homeostatic_target,
     normalize,
 )
+
 try:
     from wholecell.utils.mc_complexation import mccFormComplexesWithPrebuiltMatrices
 except ImportError as exc:
