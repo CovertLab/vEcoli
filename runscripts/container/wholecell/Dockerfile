@@ -55,8 +55,7 @@ RUN make clean compile
 ENV PYTHONPATH=/vEcoli
 
 # Since this build runs as root, set permissions so running the container as
-# another user will work: Aesara needs to write into the data dir it uses when
-# running as a user with no home dir, and Parca writes into /vEcoli/cache/.
-RUN (umask 000 && mkdir -p /.aesara /vEcoli/cache)
+# another user will work: Parca writes into /vEcoli/cache/.
+RUN (umask 000 && mkdir -p /vEcoli/cache)
 
 CMD ["/bin/bash"]
