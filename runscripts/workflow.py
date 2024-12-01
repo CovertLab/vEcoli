@@ -511,9 +511,15 @@ def main():
         image_prefix = f"{region}-docker.pkg.dev/{project_id}/vecoli/"
         runtime_image_name = cloud_config.get("runtime_image_name", None)
         if cloud_config.get("build_runtime_image", False):
+            if runtime_image_name is None:
+                raise RuntimeError("Must supply name for runtime image.")
             build_runtime_image(runtime_image_name)
         wcm_image_name = cloud_config.get("wcm_image_name", None)
+        if wcm_image_name is None:
+            raise RuntimeError("Must supply name for WCM image.")
         if cloud_config.get("build_wcm_image", False):
+            if runtime_image_name is None:
+                raise RuntimeError("Must supply name for runtime image.")
             build_wcm_image(wcm_image_name, runtime_image_name)
         nf_config = nf_config.replace("IMAGE_NAME", image_prefix + wcm_image_name)
     sherlock_config = config.get("sherlock", None)
@@ -524,6 +530,8 @@ def main():
                 "options in the input JSON."
             )
         runtime_image_name = sherlock_config.get("runtime_image_name", None)
+        if runtime_image_name is None:
+            raise RuntimeError("Must supply name for runtime image.")
         if sherlock_config.get("build_runtime_image", False):
             build_runtime_image(runtime_image_name, True)
         nf_config = nf_config.replace("IMAGE_NAME", runtime_image_name)
