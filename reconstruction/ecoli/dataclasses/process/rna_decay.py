@@ -94,8 +94,7 @@ class RnaDecay(object):
         The root finder, provided with L, will attempt to make each element of L as close to zero
         as possible, and therefore minimize both R and Rneg.
 
-        The third-party package Aesara (formerly Theano) creates the functions and finds an analytic
-        expression for the Jacobian.
+        The third-party package Jax uses autodiff to calculate the Jacobian.
 
         Parameters
         ----------
@@ -141,7 +140,7 @@ class RnaDecay(object):
         TODO (John): Why is this needed?  It seems redundant.
         TODO (John): How do we know this weight is sufficient?
 
-        All of the outputs are Aesara functions, and take a 1-D array of Michaelis-Menten constants
+        All of the outputs are functions, and take a 1-D array of Michaelis-Menten constants
         as their sole inputs.  All of the functions return a 1-D array, with the exception of the
         Jacobians, which return matrices.
 
