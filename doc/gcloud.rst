@@ -103,7 +103,7 @@ the email address for that service account. If you are a member of the Covert La
 or have been granted access to the Covert Lab project, substitute
 ``fireworker@allen-discovery-center-mcovert.iam.gserviceaccount.com``. Otherwise,
 including if you edited the default service account permissions, run
-the above command without the ``--service-acount`` flag.
+the above command without the ``--service-account`` flag.
 
 .. warning:: 
   Remember to stop your VM when you are done using it. You can either do this
@@ -143,6 +143,15 @@ requirements.txt for correct versions)::
 Then, install Java (through SDKMAN) and Nextflow following
 `these instructions <https://www.nextflow.io/docs/latest/install.html>`_.
 
+.. note::
+  The only requirements to run :mod:`runscripts.workflow` on Google Cloud
+  are Nextflow and PyArrow. The workflow steps will be run inside Docker
+  containers (see :ref:`docker-images`). The other Python requirements can be
+  omitted for a more minimal installation. You will need to use
+  :ref:`interactive containers <interactive-containers>` to run the model using
+  any interface other than :mod:`runscripts.workflow`, but this may be a good
+  thing for maximum reproducibility.
+
 ------------------
 Create Your Bucket
 ------------------
@@ -162,42 +171,44 @@ Once you have created your bucket, tell vEcoli to use that bucket by setting the
 The URI should be in the form ``gs://{bucket name}``. Remember to remove the ``out_dir``
 key under ``emitter_arg`` if present.
 
+.. _docker-images:
+
 -------------------
 Build Docker Images
 -------------------
 
 On Google Cloud, each job in a workflow (ParCa, sim 1, sim 2, etc.) is run
 on its own temporary VM. To ensure reproducibility, workflows run on Google
-Cloud must be run using Docker containers. vEcoli contains scripts in the
+Cloud are run using Docker containers. vEcoli contains scripts in the
 ``runscripts/container`` folder to build the required Docker images from the
-current state of your repository.
+current state of your repository, with the built images being automatically
+uploaded to the ``vecoli`` Artifact Registry repository of your project.
 
-``build-runtime.sh`` builds a base Docker image containing the Python packages
-necessary to run vEcoli as listed in ``requirements.txt``. After the build is
-finished, the Docker image should be automatically uploaded to an Artifact Registry
-repository called ``vecoli``.
-
-``build-wcm.sh`` builds on the base image created by ``build-runtime.sh`` by copying
-the files in the cloned vEcoli repository including any uncommitted changes. Note
-that files matching any entry in ``.gitignore`` are not copied. The built image is
-also uploaded to the ``vecoli`` Artifact Registry repository.
+ - ``build-runtime.sh`` builds a base Docker image containing the Python packages
+necessary to run vEcoli as listed in ``requirements.txt``
+- ``build-wcm.sh`` builds on the base image created by ``build-runtime.sh`` by copying
+the files in the cloned vEcoli repository, honoring ``.gitignore``
 
 .. tip:: 
   If you want to build these Docker images for local testing, you can run
-  these scripts locally as long as you have Docker installed.
+  these scripts locally with ``-l`` as long as you have Docker installed.
 
 These scripts are mostly not meant to be run manually. Instead, users should let
-:py:mod:`runscripts.workflow` handle this automatically by setting the following
+:py:mod:`runscripts.workflow` handle image builds by setting the following
 keys in your configuration JSON::
 
   {
     "gcloud": {
-      "runtime_image_name": "Name of image build-runtime.sh built/will build"
-      "build_runtime_image": Boolean, can put false if requirements.txt did not
-        change since the last time this was true,
-      "wcm_image_image": "Name of image build-wcm.sh built/will build"
-      "build_wcm_image": Boolean, can put false if nothing in repository changed
-        since the last time this was true
+      # Name of image build-runtime.sh built/will build
+      "runtime_image_name": ""
+      # Boolean, can put false if requirements.txt did not change since the last
+      # time a workflow was run with this set to true
+      "build_runtime_image": true,
+      # Name of image build-wcm.sh built/will build
+      "wcm_image_image": ""
+      # Boolean, can put false if nothing in repository changed since the
+      # last time a workflow was run with this set to true
+      "build_wcm_image": true
     }
   }
 
@@ -212,7 +223,7 @@ as normal to start your workflow::
 
 Once your workflow has started, you can use press "ctrl+a d" to detach from the
 virtual console then close your SSH connection to your VM. The VM must continue
-to run until the workflow is complete. You can SSH into the VM and reconnect to
+to run until the workflow is complete. You can SSH into your VM and reconnect to
 the virtual terminal with ``screen -r`` to monitor progress or inspect the file
 ``.nextflow.log`` in the root of the cloned repository.
 
@@ -220,7 +231,9 @@ the virtual terminal with ``screen -r`` to monitor progress or inspect the file
   While there is no strict time limit for workflow jobs on Google Cloud, jobs
   can be preempted at any time due to the use of spot VMs. Analysis scripts that
   take more than a few hours to run should be excluded from workflow configurations
-  and manually run using :py:mod:`runscripts.analysis` afterwards.
+  and manually run using :py:mod:`runscripts.analysis` afterwards. Alternatively, if
+  you are willing to pay the significant extra cost for standard VMs, delete
+  ``google.batch.spot = true`` from ``runscripts/nextflow/config.template``.
 
 ----------------
 Handling Outputs
@@ -238,6 +251,48 @@ $1,000/year, dwarfing the cost of the compute needed to generate that data. For 
 reason, we recommend that you delete workflow output data from your bucket as soon as
 you are done with your analyses. If necessary, it will likely be cheaper to re-run the
 workflow to regenerate that data later than to keep it around.
+
+.. _interactive-containers:
+
+----------------------
+Interactive Containers
+----------------------
+
+.. warning::
+  Install
+  :ref:`Docker <https://docs.docker.com/engine/install/>` and
+  :ref:`Google Cloud Storage FUSE <https://cloud.google.com/storage/docs/cloud-storage-fuse/install>`
+  on your VM before continuing.
+
+Since all steps of the workflow are run inside Docker containers, it can be
+helpful to launch an interactive instance of the container for debugging.
+
+To do so, run the following command::
+  
+  runscripts/container/interactive.sh -w wcm_image_name -b bucket
+
+``wcm_image_name`` should be the same ``wcm_image_name`` from the config JSON
+used to run the workflow. A copy of the config JSON should be saved to the Cloud
+Storage bucket with the other output (see :ref:`output`). ``bucket`` should be
+the Cloud Storage bucket of the output (``out_uri`` in config JSON).
+
+Inside the container, add breakpoints to any Python files located at ``/vEcoli`` by
+inserting::
+  
+  import ipdb; ipdb.set_trace()
+
+Navigate to the working directory (see :ref:`troubleshooting`) of the failing
+task at ``/mnt/disks/{bucket}/...``. Evoke ``bash .command.sh`` to run the
+task. Execution should pause at your set breakpoints, allowing you to inspect
+variables and step through the code.
+
+.. warning::
+  Any changes that you make to the code in ``/vEcoli`` inside the container are not
+  persistent. For large code changes, we recommend that you navigate to ``/vEcoli``
+  inside the container and run ``git init`` then
+  ``git remote add origin https://github.com/CovertLab/vEcoli.git``. With the
+  git repository initialized, you can make changes locally, push them to a
+  development branch on GitHub, and pull/merge them in your container.
 
 ---------------
 Troubleshooting

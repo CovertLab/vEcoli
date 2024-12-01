@@ -488,59 +488,73 @@ in the worklow.
 Sherlock
 --------
 
-.. note::
-    The following information is intended for members of the Covert Lab only.
+Setup
+=====
 
-After cloning the model repository to your home directory, skip the other steps
-in the README until reaching the instructions to install Nextflow. After installing
-Nextflow in your home directory, add the following lines to your ``~/.bash_profile``,
-then close and reopen your ssh connection:
+.. note::
+    The following setup applies to members of the Covert Lab only.
+
+After cloning the model repository to your home directory, add the following
+lines to your ``~/.bash_profile``, then close and reopen your SSH connection:
 
 .. code-block:: bash
 
-    # Legacy environment variables so old scripts work
-    export PI_HOME=$GROUP_HOME
-    export PI_SCRATCH=$GROUP_SCRATCH
+    # Load newer Git and Java for nextflow 
+    module load system git java/21.0.4
 
-    # Load group-wide settings
-    if [ -f "${PI_HOME}/etc/bash_profile" ]; then
-        . "${PI_HOME}/etc/bash_profile"
-    fi
-
-    # Environment variable required by pyenv
-    export PYENV_ROOT="${PI_HOME}/pyenv"
-
-    # Environment modules used by vEcoli
-    module load system git/2.45.1 parallel
-    module load wcEcoli/python3
-
-    # Need Java for nextflow
-    module load java/18.0.2
-
+    # Set PYTHONPATH to root of repo so imports work
     export PYTHONPATH="$HOME/vEcoli"
+    # Use one thread for OpenBLAS (better performance and reproducibility)
+    export OMP_NUM_THREADS=1
 
+    # Initialize pyenv
+    export PYENV_ROOT="${GROUP_HOME}/pyenv"
     if [ -d "${PYENV_ROOT}" ]; then
         export PATH="${PYENV_ROOT}/bin:${PATH}"
         eval "$(pyenv init -)"
         eval "$(pyenv virtualenv-init -)"
     fi
 
-    export PATH=$PATH:$HOME/.local/bin
+Inside the cloned repository, run ``pyenv local vEcoli``. This loads a virtual
+environment with PyArrow, the only Python package required to start a workflow
+with :mod:`runscripts.workflow`. Once a workflow is started, vEcoli will build
+an Apptainer image with all the other model dependencies using
+``runscripts/container/build-runtime.sh``. This image will then be used to start
+containers to run the steps of the workflow. To run or interact with the model
+without using :mod:`runscripts.workflow`, start an interactive container by
+following the steps in :ref:`sherlock-interactive`.
 
-    # Use one thread for OpenBLAS (better performance and reproducibility)
-    export OMP_NUM_THREADS=1
+.. _sherlock-config:
 
-Finally, inside the cloned repository, run ``pyenv local viv-ecoli``
-to load the Python virtual environment with all required packages installed.
+Configuration
+=============
 
-For convenience, :py:mod:`runscripts.workflow` accepts a boolean top-level
-configuration option ``sherlock``. If set to True, :py:mod:`runscripts.workflow`
+To tell vEcoli that you are running on Sherlock, you MUST add the following
+options to your configuration JSON (note the top-level ``sherlock`` key)::
+
+  {
+    "sherlock": {
+      # Boolean, whether to build a fresh Apptainer runtime image. If requirements.txt
+      # did not change since your last build, you can set this to false
+      "build_runtime_image": true,
+      # Absolute path (including file name) of Apptainer runtime image to either
+      # build or use (if build_runtime_image is false)
+      "runtime_image_name": "",
+    }
+  }
+
+With these options in the configuration JSON, :py:mod:`runscripts.workflow`
 can be run on a login node to automatically submit a job that will run the
 Nextflow workflow orchestrator with a 7-day time limit on the lab's dedicated
-partition (job should start fairly quickly and never get preempted by other
-users). The workflow orchestrator will automatically submit jobs for each step
+partition. This job should start fairly quickly and never get preempted by other
+users. The workflow orchestrator will automatically submit jobs for each step
 in the workflow: one for the ParCa, one to create variants, one for each cell,
 and one for each analysis.
+
+If you are trying to run a workflow that takes longer than 7 days, you can
+use the resume functionality (see :ref:`fault_tolerance`). Alternatively,
+consider running your workflow on Google Cloud, which has no maximum workflow
+runtime (see :doc:`gcloud`).
 
 Importantly, the emitter output directory (see description of ``emitter_arg``
 in :ref:`json_config`) should be an absolute path to somewhere in your
@@ -549,19 +563,74 @@ be absolute because Nextflow does not resolve environment variables like
 ``$SCRATCH`` in paths.
 
 .. warning::
-    Running the workflow on Sherlock sets a 2 hour limit on all jobs in the
+    Running the workflow on Sherlock sets a 2 hour limit on each job in the
     workflow, including analyses. Analysis scripts that take more than
     2 hours to run should be excluded from workflow configurations and manually
     run using :py:mod:`runscripts.analysis` afterwards.
 
-.. tip:: 
-  If you have access to a different HPC cluster that also uses the SLURM
-  scheduler, you can use vEcoli on that cluster by simply changing
-  the ``process.queue`` option in ``runscripts/nextflow/config.template``
-  to the correct SLURM queue. If your HPC cluster uses a different scheduler,
-  you will have to change many options in the ``sherlock`` configuration
-  profile starting with ``process.executor``. Refer to the Nextflow
-  `executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_.
+.. _sherlock-interactive:
+
+Interactive Container
+=====================
+
+To run and develop the model on Sherlock outside a workflow, run::
+
+  runscripts/container/interactive.sh -w runtime_image_path -a
+
+Replace ``runtime_image_path`` with the path of an Apptainer image built with
+the latest ``requirements.txt``. If you are not sure if ``requirements.txt``
+changed since the last time you ran a workflow with ``build_runtime_image``
+set to true (or if you have never run a workflow), run the following to build
+a runtime image, picking any path::
+  
+  runscripts/container/build-runtime.sh -r runtime_image_path -a
+
+Inside the container, set the ``PYTHONPATH`` with ``export PYTHONPATH={}``,
+substituting in the path to your cloned ``vEcoli`` repository. You can now run
+any of the scripts in ``runscripts``.
+
+If you are trying to debug a failed process, add breakpoints to any Python script
+in your cloned repository by inserting::
+
+  import ipdb; ipdb.set_trace()
+  
+Inside the interactive container, navigate to the working directory (see
+:ref:`troubleshooting`) for the task that you want to debug. By invoking
+``bash .command.sh``, the task should run and pause upon reaching your
+breakpoints, allowing you to inspect variables and step through the code.
+
+------------------
+Other HPC Clusters
+------------------
+
+If your HPC cluster has Apptainer (formerly known as Singularity) installed,
+the only other packages necessary to run :mod:`runscripts.workflow` are Nextflow
+(requires Java) and PyArrow (pip install). It would be helpful if your Apptainer
+installation automatically mounts all filesystems on the cluster (see
+`Apptainer docs <https://apptainer.org/docs/user/main/bind_paths_and_mounts.html#system-defined-bind-paths>`_).
+If not, workflows should still run but you will need to manually specify mount paths
+to debug with interactive containers (see :ref:`sherlock-interactive`).
+This can be done using the ``-p`` argument for ``runscripts/container/interactive.sh``.
+
+If your HPC cluster does not have Apptainer installed, you can follow the
+local setup instructions in the README assuming your pyenv installation and
+virtual environments are accessible from all nodes. Then, delete the following
+lines from ``runscripts/nextflow/config.template`` and always set
+``build_runtime_image`` to false in your config JSONs (see :ref:`sherlock-config`)::
+
+  process.container = 'IMAGE_NAME'
+  apptainer.enabled = true
+
+If your HPC cluster also uses the SLURM scheduler,
+you can use vEcoli on that cluster by changing the ``process.queue`` option in
+``runscripts/nextflow/config.template`` and all strings of the format
+``--partition=QUEUE`` in :py:mod:`runscripts.workflow` to the right queue for your
+cluster.
+
+If your HPC cluster uses a different scheduler, refer to the Nextflow
+`executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_
+for more information on configuring the right executor, starting with
+``process.executor`` in ``runscripts/nextflow/config.template``.
 
 .. _progress:
 
@@ -730,12 +799,26 @@ in a workflow called ``agitated_mendel``::
   nextflow log agitated_mendel -f name,stderr,workdir -F "status == 'FAILED'"
 
 
-Test Fixes
-==========
+Make and Test Fixes
+===================
 
-After identifying the issue and applying fixes, you can test a failed job
-in isolation by invoking ``bash .command.run`` inside the work
-directory for that job. Once you have addressed all issues,
-you relaunch the workflow by navigating back to the directory in which you
+If you need to further investigate an issue, the exact steps differ depending
+on where you are debugging.
+
+- Google Cloud: See :ref:`instructions here <interactive-containers>`
+- Sherlock: See :ref:`instructions here <sherlock-interactive>`
+- Local machine: Continue below
+
+Add breakpoints to any Python file with the following line::
+
+  import ipdb; ipdb.set_trace()
+
+Then, navigate to the working directory (see :ref:`troubleshooting`) for a
+failing process. ``bash .command.run`` should re-run the job and pause upon
+reaching the breakpoints you set. You should now be in an ipdb shell which
+you can use to examine variable values or step through the code.
+
+After fixing the issue, you can resume the workflow (avoid re-running
+already successful jobs) by navigating back to the directory in which you
 originally started the workflow and issuing the same command with the
-added ``--resume`` option (see :ref:`fault_tolerance`).
+``--resume`` option (see :ref:`fault_tolerance`).

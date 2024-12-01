@@ -15,5 +15,12 @@
     "variants": {
         "condition": {"condition": {"value": ["with_aa"]}}
     },
-    "jenkins": true
+    "sherlock": {
+        "runtime_image_name": "runtime-image",
+        "build_runtime_image": true,
+        "jenkins": true
+    },
+    "parca_options": {
+        "cpus": 4
+    }
 }
