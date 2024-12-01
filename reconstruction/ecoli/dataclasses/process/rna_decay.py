@@ -158,10 +158,10 @@ class RnaDecay(object):
 
         def residual_f(km):
             return vMax / km / kDeg / (1 + (rnaConc / km).sum()) - 1
-        
+
         def residual_aux_f(km):
             return vMax * rnaConc / km / (1 + (rnaConc / km).sum()) - kDeg * rnaConc
-        
+
         def regularizationNegativeNumbers_f(km):
             return (1 - km / jnp.abs(km)).sum() / rnaConc.size
 
@@ -174,11 +174,15 @@ class RnaDecay(object):
 
             # Multi-objective regularization
             WFendoR = 0.1  # weighting factor to protect Km optimized of EndoRNases
-            regularization = regularizationNegativeNumbers + WFendoR * regularizationEndoR
+            regularization = (
+                regularizationNegativeNumbers + WFendoR * regularizationEndoR
+            )
 
             # Loss function
-            return jnp.log(jnp.exp(residual) + jnp.exp(alpha * regularization)) - jnp.log(2)
-        
+            return jnp.log(
+                jnp.exp(residual) + jnp.exp(alpha * regularization)
+            ) - jnp.log(2)
+
         def L_aux(km):
             residual = residual_f(km)
             residual_aux = residual_aux_f(km)
@@ -189,10 +193,14 @@ class RnaDecay(object):
 
             # Multi-objective regularization
             WFendoR = 0.1  # weighting factor to protect Km optimized of EndoRNases
-            regularization = regularizationNegativeNumbers + WFendoR * regularizationEndoR
+            regularization = (
+                regularizationNegativeNumbers + WFendoR * regularizationEndoR
+            )
 
             # Loss function
-            return jnp.log(jnp.exp(residual_aux) + jnp.exp(alpha * regularization)) - jnp.log(2)
+            return jnp.log(
+                jnp.exp(residual_aux) + jnp.exp(alpha * regularization)
+            ) - jnp.log(2)
 
         def Lp(km):
             return jacfwd(L)(km)
@@ -200,4 +208,14 @@ class RnaDecay(object):
         def Lp_aux(km):
             return jacfwd(L_aux)(km)
 
-        return L, regularizationNegativeNumbers_f, residual_f, Lp, residual_aux_f, L_aux, Lp_aux, Lp, Lp_aux
+        return (
+            L,
+            regularizationNegativeNumbers_f,
+            residual_f,
+            Lp,
+            residual_aux_f,
+            L_aux,
+            Lp_aux,
+            Lp,
+            Lp_aux,
+        )

@@ -96,7 +96,7 @@ class UnitStructArray(object):
         )
 
     def __eq__(self, other):
-        if type(other) != type(self):
+        if type(other) is not type(self):
             return False
         elif self.struct_array.dtype != other.struct_array.dtype:
             return False
