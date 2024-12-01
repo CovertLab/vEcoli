@@ -75,6 +75,8 @@ profiles {
         process.cpus = 1
         process.executor = 'slurm'
         process.queue = 'owners'
+        process.container = 'IMAGE_NAME'
+        apptainer.enabled = true
         process.time = {
             if ( task.exitStatus == 140 ) {
                 2.h * task.attempt

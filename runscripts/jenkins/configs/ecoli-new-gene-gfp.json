@@ -9,7 +9,8 @@
         "out_dir": "/scratch/groups/mcovert/vecoli"
     },
     "parca_options": {
-        "new_genes": "gfp"
+        "new_genes": "gfp",
+        "cpus": 4
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}}
@@ -36,5 +37,9 @@
             "op": "zip"
         }
     },
-    "jenkins": true
+    "sherlock": {
+        "runtime_image_name": "runtime-image",
+        "build_runtime_image": true,
+        "jenkins": true
+    }
 }

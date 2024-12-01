@@ -1,14 +1,29 @@
 import argparse
 import json
 import os
+import time
 import shutil
 import subprocess
 import warnings
 from datetime import datetime
 from urllib import parse
+from typing import Optional
 
 from pyarrow import fs
-from ecoli.experiments.ecoli_master_sim import SimConfig
+
+LIST_KEYS_TO_MERGE = (
+    "save_times",
+    "add_processes",
+    "exclude_processes",
+    "processes",
+    "engine_process_reports",
+    "initial_state_overrides",
+)
+"""
+Special configuration keys that are list values which are concatenated
+together when they are found in multiple sources (e.g. default JSON and
+user-specified JSON) instead of being directly overriden.
+"""
 
 CONFIG_DIR_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -47,6 +62,118 @@ MULTIVARIANT_CHANNEL = """
         .groupTuple(by: [1])
         .set {{ multiVariantCh }}
 """
+
+
+def merge_dicts(a, b):
+    """
+    Recursively merges dictionary b into dictionary a.
+    This mutates dictionary a.
+    """
+    for key, value in b.items():
+        if isinstance(value, dict) and key in a and isinstance(a[key], dict):
+            # If both values are dictionaries, recursively merge
+            merge_dicts(a[key], value)
+        else:
+            # Otherwise, overwrite or add the value from b to a
+            a[key] = value
+
+
+def submit_job(cmd: str, sbatch_options: Optional[list] = None) -> int:
+    """
+    Submits a job to SLURM using sbatch and waits for it to complete.
+
+    Args:
+        cmd: Command to run in batch job.
+        sbatch_options: Additional sbatch options as a list of strings.
+
+    Returns:
+        Job ID of the submitted job.
+    """
+    sbatch_command = ["sbatch"]
+    if sbatch_options:
+        sbatch_command.extend(sbatch_options)
+    sbatch_command.extend(["--wrap", cmd])
+
+    try:
+        result = subprocess.run(
+            sbatch_command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+            text=True,
+        )
+        # Extract job ID from sbatch output
+        output = result.stdout.strip()
+        # Assuming job ID is the last word in the output
+        job_id = int(output.split()[-1])
+        print(f"Job submitted with ID: {job_id}")
+        return job_id
+    except subprocess.CalledProcessError as e:
+        print(f"Error submitting job: {e.stderr.strip()}")
+        raise
+
+
+def wait_for_job(job_id: int, poll_interval: int = 10):
+    """
+    Waits for a SLURM job to finish.
+
+    Args:
+        job_id: SLURM job ID.
+        poll_interval: Time in seconds between job status checks.
+    """
+    job_id = str(job_id)
+    while True:
+        try:
+            # Check job status with squeue
+            result = subprocess.run(
+                ["squeue", "--job", job_id],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            if job_id not in result.stdout:
+                break
+        except Exception as e:
+            print(f"Error checking job status: {e}")
+            raise
+        time.sleep(poll_interval)
+
+
+def check_job_status(job_id: int) -> bool:
+    """
+    Checks the exit status of a SLURM job using sacct.
+
+    Args:
+        job_id: SLURM job ID.
+
+    Returns:
+        True if the job succeeded (exit code 0), False otherwise.
+    """
+    try:
+        # Query job status with sacct
+        result = subprocess.run(
+            ["sacct", "-j", str(job_id), "--format=JobID,State,ExitCode", "--noheader"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        output = result.stdout.strip()
+
+        for line in output.splitlines():
+            fields = line.split()
+            # Match the job ID
+            if str(job_id) in fields[0]:
+                state = fields[1]
+                # Extract the numeric exit code
+                exit_code = fields[2].split(":")[0]
+                print(f"Job {job_id} - State: {state}, Exit Code: {exit_code}")
+                return state == "COMPLETED" and exit_code == "0"
+
+        print(f"Job {job_id} status not found in sacct output.")
+        return False
+    except Exception as e:
+        print(f"Error checking job status: {e}")
+        raise
 
 
 def generate_colony(seeds: int):
@@ -225,11 +352,31 @@ def generate_code(config):
     return "\n".join(run_parca), "\n".join(sim_imports), "\n".join(sim_workflow)
 
 
-def build_runtime_image(image_name):
+def build_runtime_image(image_name, apptainer=False):
     build_script = os.path.join(
         os.path.dirname(__file__), "container", "build-runtime.sh"
     )
-    subprocess.run([build_script, "-r", image_name], check=True)
+    cmd = [build_script, "-r", image_name]
+    if apptainer:
+        print("Submitting job to build runtime image.")
+        cmd.append("-a")
+        # On Sherlock, submit job to build runtime image
+        job_id = submit_job(
+            " ".join(cmd),
+            sbatch_options=[
+                "--time=01:00:00",
+                "--mem=4G",
+                "--cpus-per-task=1",
+                "--partition=mcovert",
+            ],
+        )
+        wait_for_job(job_id, 30)
+        if check_job_status(job_id):
+            print("Done building runtime image.")
+        else:
+            raise RuntimeError("Job to build runtime image failed.")
+    else:
+        subprocess.run([build_script, "-r", image_name], check=True)
 
 
 def build_wcm_image(image_name, runtime_image_name):
@@ -242,9 +389,8 @@ def build_wcm_image(image_name, runtime_image_name):
             'If this is correct, add this under "gcloud" > '
             '"runtime_image_name" in your config JSON.'
         )
-    subprocess.run(
-        [build_script, "-w", image_name, "-r", runtime_image_name], check=True
-    )
+    cmd = [build_script, "-w", image_name, "-r", runtime_image_name]
+    subprocess.run(cmd, check=True)
 
 
 def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):
@@ -288,7 +434,16 @@ def main():
     if args.config is not None:
         config_file = args.config
         with open(args.config, "r") as f:
-            SimConfig.merge_config_dicts(config, json.load(f))
+            user_config = json.load(f)
+            for key in LIST_KEYS_TO_MERGE:
+                user_config.setdefault(key, [])
+                user_config[key].extend(config.get(key, []))
+                if key == "engine_process_reports":
+                    user_config[key] = [tuple(path) for path in user_config[key]]
+                # Ensures there are no duplicates in d2
+                user_config[key] = list(set(user_config[key]))
+                user_config[key].sort()
+            merge_dicts(config, user_config)
 
     experiment_id = config["experiment_id"]
     if experiment_id is None:
@@ -340,6 +495,8 @@ def main():
 
     # By default, assume running on local device
     nf_profile = "standard"
+    # If not running on a local device, build container images according
+    # to options under gcloud or sherlock configuration keys
     cloud_config = config.get("gcloud", None)
     if cloud_config is not None:
         nf_profile = "gcloud"
@@ -358,15 +515,30 @@ def main():
                 raise RuntimeError("Must supply name for runtime image.")
             build_runtime_image(runtime_image_name)
         wcm_image_name = cloud_config.get("wcm_image_name", None)
+        if wcm_image_name is None:
+            raise RuntimeError("Must supply name for WCM image.")
         if cloud_config.get("build_wcm_image", False):
-            if wcm_image_name is None:
-                raise RuntimeError("Must supply name for WCM image.")
+            if runtime_image_name is None:
+                raise RuntimeError("Must supply name for runtime image.")
             build_wcm_image(wcm_image_name, runtime_image_name)
         nf_config = nf_config.replace("IMAGE_NAME", image_prefix + wcm_image_name)
-    elif config.get("sherlock", None) is not None:
-        nf_profile = "sherlock"
-    elif config.get("jenkins", None) is not None:
-        nf_profile = "jenkins"
+    sherlock_config = config.get("sherlock", None)
+    if sherlock_config is not None:
+        if nf_profile == "gcloud":
+            raise RuntimeError(
+                "Cannot set both Sherlock and Google Cloud "
+                "options in the input JSON."
+            )
+        runtime_image_name = sherlock_config.get("runtime_image_name", None)
+        if runtime_image_name is None:
+            raise RuntimeError("Must supply name for runtime image.")
+        if sherlock_config.get("build_runtime_image", False):
+            build_runtime_image(runtime_image_name, True)
+        nf_config = nf_config.replace("IMAGE_NAME", runtime_image_name)
+        if sherlock_config.get("jenkins", False):
+            nf_profile = "jenkins"
+        else:
+            nf_profile = "sherlock"
 
     local_config = os.path.join(local_outdir, "nextflow.config")
     with open(local_config, "w") as f:
@@ -431,7 +603,7 @@ def main():
 #SBATCH --time=7-00:00:00
 #SBATCH --cpus-per-task 1
 #SBATCH --mem=4GB
-#SBATCH -p mcovert
+#SBATCH --partition=mcovert
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
     -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume else ""}
 """)

@@ -1,28 +1,31 @@
 #!/bin/sh
-# Use Google Cloud Build or local Docker install to build a personalized
-# image with requirements.txt installed. If using Cloud Build, store the
-# built image in the "vecoli" folder in the Google Artifact Registry.
+# Use Google Cloud Build, local Docker, or HPC cluster Apptainer to build
+# a personalized image with requirements.txt installed. If using Cloud Build,
+# store the built image in the "vecoli" repository in Artifact Registry.
 #
 # ASSUMES: The current working dir is the vEcoli/ project root.
 
 set -eu
 
 RUNTIME_IMAGE="${USER}-wcm-runtime"
-RUN_LOCAL='false'
+RUN_LOCAL=0
+BUILD_APPTAINER=0
 
-usage_str="Usage: build-runtime.sh [-r RUNTIME_IMAGE] [-l]\n\
-    -r: Docker tag for the wcm-runtime image to build; defaults to \
-${USER}-wcm-runtime\n\
+usage_str="Usage: build-runtime.sh [-r RUNTIME_IMAGE] [-a] [-l]\n\
+    -r: Path of built Apptainer image if -a, otherwise Docker tag \
+for the wcm-runtime image to build; defaults to ${USER}-wcm-runtime\n\
+    -a: Build Apptainer image (cannot use with -l).\n\
     -l: Build image locally.\n"
 
 print_usage() {
   printf "$usage_str"
 }
 
-while getopts 'r:l' flag; do
+while getopts 'r:al' flag; do
   case "${flag}" in
     r) RUNTIME_IMAGE="${OPTARG}" ;;
-    l) RUN_LOCAL="${OPTARG}" ;;
+    a) (( $RUN_LOCAL )) && print_usage && exit 1 || BUILD_APPTAINER=1 ;;
+    l) (( $BUILD_APPTAINER )) && print_usage && exit 1 || RUN_LOCAL=1 ;;
     *) print_usage
        exit 1 ;;
   esac
@@ -32,9 +35,12 @@ done
 # the project root which would upload the entire project.
 cp requirements.txt runscripts/container/runtime/
 
-if [ "$RUN_LOCAL" = true ]; then
+if (( $RUN_LOCAL )); then
     echo "=== Locally building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
-    docker build -f runscripts/container/runtime/Dockerfile -t "${WCM_RUNTIME}" .
+    docker build -f runscripts/container/runtime/Dockerfile -t "${RUNTIME_IMAGE}" .
+elif (( $BUILD_APPTAINER )); then
+    echo "=== Building WCM runtime Apptainer Image: ${RUNTIME_IMAGE} ==="
+    apptainer build ${RUNTIME_IMAGE} runscripts/container/runtime/Singularity
 else
     echo "=== Cloud-building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
     # For this script to work on a Compute Engine VM, you must
