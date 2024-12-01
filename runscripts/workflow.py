@@ -535,6 +535,18 @@ def main():
         if sherlock_config.get("build_runtime_image", False):
             build_runtime_image(runtime_image_name, True)
         nf_config = nf_config.replace("IMAGE_NAME", runtime_image_name)
+        subprocess.run(
+            [
+                "apptainer",
+                "exec",
+                "--cwd",
+                os.path.dirname(os.path.dirname(__file__)),
+                "-e",
+                "make",
+                "clean",
+                "compile",
+            ]
+        )
         if sherlock_config.get("jenkins", False):
             nf_profile = "jenkins"
         else:
