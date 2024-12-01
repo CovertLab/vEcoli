@@ -129,7 +129,6 @@ autodoc_mock_imports = [
     "numba",
     "line-profiler",
     "iteround",
-    "aesara",
     "pandas",
     # Runs code on import and fails due to missing solvers.
     "wholecell.utils.modular_fba",
