@@ -376,9 +376,7 @@ def build_runtime_image(image_name, apptainer=False):
         else:
             raise RuntimeError("Job to build runtime image failed.")
     else:
-        subprocess.run(
-            [build_script, "-r", image_name], check=True
-        )
+        subprocess.run([build_script, "-r", image_name], check=True)
 
 
 def build_wcm_image(image_name, runtime_image_name):
@@ -597,7 +595,7 @@ def main():
 #SBATCH --time=7-00:00:00
 #SBATCH --cpus-per-task 1
 #SBATCH --mem=4GB
-#SBATCH -p mcovert
+#SBATCH --partition=mcovert
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
     -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume else ""}
 """)
