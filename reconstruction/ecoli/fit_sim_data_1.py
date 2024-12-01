@@ -30,7 +30,7 @@ from wholecell.utils.fitting import normalize, masses_and_counts_for_homeostatic
 # Fitting parameters
 # NOTE: This threshold is arbitrary and was relaxed from 1e-9
 # to 1e-8 to fix failure to converge after scipy/scipy#20168
-# NOTE: Relaxes from 1e-8 to 1e-7 to fix failure to converge
+# NOTE: Relaxed from 1e-8 to 1e-7 to fix failure to converge
 # on Sherlock
 FITNESS_THRESHOLD = 1e-7
 MAX_FITTING_ITERATIONS = 150
