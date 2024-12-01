@@ -4,8 +4,8 @@ SimulationData for rna decay process
 
 from wholecell.utils import units
 
-import aesara.tensor as T
-from aesara import function, gradient
+from jax import jacfwd
+import jax.numpy as jnp
 import numpy as np
 
 
@@ -157,41 +157,48 @@ class RnaDecay(object):
         method, and isn't utilized anywhere within this class.
         """
 
-        N = rnaConc.size
-        km = T.dvector()
+        def residual_f(km):
+            return vMax / km / kDeg / (1 + (rnaConc / km).sum()) - 1
+        
+        def residual_aux_f(km):
+            return vMax * rnaConc / km / (1 + (rnaConc / km).sum()) - kDeg * rnaConc
+        
+        def regularizationNegativeNumbers_f(km):
+            return (1 - km / jnp.abs(km)).sum() / rnaConc.size
 
-        # Residuals of non-linear optimization
-        residual = (vMax / km / kDeg) / (1 + (rnaConc / km).sum()) - np.ones(N)
-        residual_aux = (vMax * rnaConc / km) / (1 + (rnaConc / km).sum()) - (
-            kDeg * rnaConc
-        )
+        def L(km):
+            residual = residual_f(km)
+            regularizationNegativeNumbers = regularizationNegativeNumbers_f(km)
 
-        # Counting negative Km's (first regularization term)
-        regularizationNegativeNumbers = (np.ones(N) - km / np.abs(km)).sum() / N
+            # Regularization for endoRNAse Km values
+            regularizationEndoR = (isEndoRnase * jnp.abs(residual)).sum()
 
-        # Penalties for EndoR Km's, which might be potentially nonf-fitted
-        regularizationEndoR = (isEndoRnase * np.abs(residual)).sum()
+            # Multi-objective regularization
+            WFendoR = 0.1  # weighting factor to protect Km optimized of EndoRNases
+            regularization = regularizationNegativeNumbers + WFendoR * regularizationEndoR
 
-        # Multi objective-based regularization
-        WFendoR = 0.1  # weighting factor to protect Km optimized of EndoRNases
-        regularization = regularizationNegativeNumbers + (WFendoR * regularizationEndoR)
+            # Loss function
+            return jnp.log(jnp.exp(residual) + jnp.exp(alpha * regularization)) - jnp.log(2)
+        
+        def L_aux(km):
+            residual = residual_f(km)
+            residual_aux = residual_aux_f(km)
+            regularizationNegativeNumbers = regularizationNegativeNumbers_f(km)
 
-        # Loss function
-        LossFunction = T.log(T.exp(residual) + T.exp(alpha * regularization)) - T.log(2)
-        LossFunction_aux = T.log(
-            T.exp(residual_aux) + T.exp(alpha * regularization)
-        ) - T.log(2)
+            # Regularization for endoRNAse Km values
+            regularizationEndoR = (isEndoRnase * jnp.abs(residual)).sum()
 
-        J = gradient.jacobian(LossFunction, km)
-        J_aux = gradient.jacobian(LossFunction_aux, km)
-        Jacob = function([km], J)
-        Jacob_aux = function([km], J_aux)
-        L = function([km], LossFunction)
-        L_aux = function([km], LossFunction_aux)
-        Rneg = function([km], regularizationNegativeNumbers)
-        R = function([km], residual)
-        Lp = function([km], J)
-        Lp_aux = function([km], J_aux)
-        R_aux = function([km], residual_aux)
+            # Multi-objective regularization
+            WFendoR = 0.1  # weighting factor to protect Km optimized of EndoRNases
+            regularization = regularizationNegativeNumbers + WFendoR * regularizationEndoR
 
-        return L, Rneg, R, Lp, R_aux, L_aux, Lp_aux, Jacob, Jacob_aux
+            # Loss function
+            return jnp.log(jnp.exp(residual_aux) + jnp.exp(alpha * regularization)) - jnp.log(2)
+
+        def Lp(km):
+            return jacfwd(L)(km)
+
+        def Lp_aux(km):
+            return jacfwd(L_aux)(km)
+
+        return L, regularizationNegativeNumbers_f, residual_f, Lp, residual_aux_f, L_aux, Lp_aux, Lp, Lp_aux
