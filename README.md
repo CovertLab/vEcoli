@@ -37,11 +37,11 @@ model parameters (e.g. transcription probabilities). These parameters are used t
 
 pyenv lets you install and switch between multiple Python releases and multiple "virtual 
 environments", each with its own pip packages. Using pyenv, create a virtual environment 
-and install Python 3.11.3. For a tutorial on how to install pyenv and other dependencies,
+and install Python 3.11.10. For a tutorial on how to install pyenv and other dependencies,
 follow the instructions [here](https://github.com/CovertLab/wcEcoli/blob/master/docs/dev-tools.md).
 Then, run the following command in your terminal:
 
-    pyenv virtualenv 3.11.3 viv-ecoli && pyenv local viv-ecoli
+    pyenv virtualenv 3.11.10 vEcoli && pyenv local vEcoli
 
 Update `pip`, `setuptools` and `wheel` to avoid issues with these:
 
