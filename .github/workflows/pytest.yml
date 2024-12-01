@@ -92,4 +92,4 @@ jobs:
         make clean compile
     - name: Ruff
       run: |
-        ruff check
+        ruff check doc ecoli migration wholecell runscripts validation reconstruction

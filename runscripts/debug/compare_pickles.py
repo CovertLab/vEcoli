@@ -279,7 +279,7 @@ def diff_trees(a, b):
 
     # if they aren't they same type, they are clearly different. Also this lets us
     # safely assume throughout the rest of the function that a and b are the same type
-    elif type(a) != type(b):
+    elif type(a) is not type(b):
         return elide(a, max_len=400), elide(b, max_len=400)
 
     # if they are floats, handle various kinds of values

@@ -124,7 +124,7 @@ def randomlySelectRows(randomState, mat, prob):
     return randomState.randomlySelectNRows(mat, nRndRows)
 
 
-def randomlySelectNRows(randomState, mat, nRndRows=np.Inf):
+def randomlySelectNRows(randomState, mat, nRndRows=np.inf):
     # mat = np.copy(matToChooseFrom)
     rndIdxs = np.sort(
         randomState.randsample(

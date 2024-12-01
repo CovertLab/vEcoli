@@ -4,6 +4,7 @@ SimulationData for the Complexation process
 
 import numpy as np
 from wholecell.utils import units
+
 try:
     from wholecell.utils.mc_complexation import mccBuildMatrices
 except ImportError as exc:

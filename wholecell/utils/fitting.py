@@ -60,10 +60,10 @@ def countsFromMassAndExpression(
     """
 
     assert np.allclose(np.sum(relativeExpression), 1)
-    assert type(mass) != unum.Unum
-    assert type(mws) != unum.Unum
-    assert type(relativeExpression) != unum.Unum
-    assert type(nAvogadro) != unum.Unum
+    assert not isinstance(mass, unum.Unum)
+    assert not isinstance(mws, unum.Unum)
+    assert not isinstance(relativeExpression, unum.Unum)
+    assert not isinstance(nAvogadro, unum.Unum)
     return mass / np.dot(mws / nAvogadro, relativeExpression)
 
 

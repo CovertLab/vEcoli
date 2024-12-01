@@ -62,28 +62,61 @@ BAD_RXNS = [
     "RXN0-1483[CCO-PERI-BAC]-FE+2/PROTON/OXYGEN-MOLECULE//FE+3/WATER.54.",
     "RXN-22461",
     "RXN-22462",
-    "RXN-22463"
+    "RXN-22463",
 ]
 
 # not key central carbon met
-BAD_RXNS.extend(["RXN-6161", "R15-RXN-MET/PYRUVATE//CPD-479/L-ALPHA-ALANINE.38.", 'R15-RXN-MET/GLYOX//CPD-479/GLY.23. (reverse)',
-                 ])
+BAD_RXNS.extend(
+    [
+        "RXN-6161",
+        "R15-RXN-MET/PYRUVATE//CPD-479/L-ALPHA-ALANINE.38.",
+        "R15-RXN-MET/GLYOX//CPD-479/GLY.23. (reverse)",
+    ]
+)
 
 # isomers, that might be used but not in conditions tested
-BAD_RXNS.extend(["ASPAMINOTRANS-RXN__TYRB-DIMER", "325-BISPHOSPHATE-NUCLEOTIDASE-RXN", "ACETOLACTSYN-RXN",
-                 "ASNSYNA-RXN__ASNSYNB-CPLX", "ASPARTATEKIN-RXN__ASPKINIHOMOSERDEHYDROGI-CPLX", "DAHPSYN-RXN__AROH-CPLX",
-                 "F16ALDOLASE-RXN__FRUCBISALD-CLASSI", "RXN-9535__FABB-CPLX", "MALATE-DEH-RXN (reverse)"])
+BAD_RXNS.extend(
+    [
+        "ASPAMINOTRANS-RXN__TYRB-DIMER",
+        "325-BISPHOSPHATE-NUCLEOTIDASE-RXN",
+        "ACETOLACTSYN-RXN",
+        "ASNSYNA-RXN__ASNSYNB-CPLX",
+        "ASPARTATEKIN-RXN__ASPKINIHOMOSERDEHYDROGI-CPLX",
+        "DAHPSYN-RXN__AROH-CPLX",
+        "F16ALDOLASE-RXN__FRUCBISALD-CLASSI",
+        "RXN-9535__FABB-CPLX",
+        "MALATE-DEH-RXN (reverse)",
+    ]
+)
 
 # alt electron transfer
 BAD_RXNS.extend(["1.5.1.20-RXN-CPD-1302/NADP//CPD-12996/NADPH/PROTON.38."])
 
 # weird atp cycling
-BAD_RXNS.extend(["BARA-RXN","RXN0-6561","RXN0-7337",
-                 "CHEBDEP-RXN","RXN0-6542","RXN0-6547",
-                 "NRIIPHOS-RXN","RXN0-7372","RXN0-7380",
-                 "RXN0-7378", "URIDYLREM-RXN", "URITRANS-RXN", "RXN-16381"])
+BAD_RXNS.extend(
+    [
+        "BARA-RXN",
+        "RXN0-6561",
+        "RXN0-7337",
+        "CHEBDEP-RXN",
+        "RXN0-6542",
+        "RXN0-6547",
+        "NRIIPHOS-RXN",
+        "RXN0-7372",
+        "RXN0-7380",
+        "RXN0-7378",
+        "URIDYLREM-RXN",
+        "URITRANS-RXN",
+        "RXN-16381",
+    ]
+)
 
-FREE_RXNS = ["TRANS-RXN-145", "TRANS-RXN0-545", "TRANS-RXN0-474", "ATPSYN-RXN (reverse)"]
+FREE_RXNS = [
+    "TRANS-RXN-145",
+    "TRANS-RXN0-545",
+    "TRANS-RXN0-474",
+    "ATPSYN-RXN (reverse)",
+]
 
 
 class MetabolismReduxClassic(Step):
