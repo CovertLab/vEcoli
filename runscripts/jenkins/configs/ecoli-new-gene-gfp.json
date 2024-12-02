@@ -9,8 +9,7 @@
         "out_dir": "/scratch/groups/mcovert/vecoli"
     },
     "parca_options": {
-        "new_genes": "gfp",
-        "cpus": 4
+        "new_genes": "gfp"
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}}

@@ -563,9 +563,9 @@ be absolute because Nextflow does not resolve environment variables like
 ``$SCRATCH`` in paths.
 
 .. warning::
-    Running the workflow on Sherlock sets a 2 hour limit on each job in the
+    Running the workflow on Sherlock sets a 1 hour limit on each job in the
     workflow, including analyses. Analysis scripts that take more than
-    2 hours to run should be excluded from workflow configurations and manually
+    1 hours to run should be excluded from workflow configurations and manually
     run using :py:mod:`runscripts.analysis` afterwards.
 
 .. _sherlock-interactive:
@@ -665,7 +665,7 @@ is a list workflow behaviors enabled in our model to handle unexpected errors.
   are automatically retried up to a maximum of 3 tries. For the resource
   limit error code (140), Nextflow will automatically request more RAM
   and a higher runtime limit with each attempt: ``4 * {attempt num}``
-  GB of memory and ``2 * {attempt num}`` hours of runtime. See the
+  GB of memory and ``1 * {attempt num}`` hours of runtime. See the
   ``sherlock`` profile in ``runscripts/nextflow/config.template``.
 - Additionally, some jobs may fail on Sherlock due to issues submitting
   them to the SLURM scheduler. Nextflow was configured to limit the rate
