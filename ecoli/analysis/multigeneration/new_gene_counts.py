@@ -94,7 +94,7 @@ def plot(
     )
 
     # mRNA counts
-    mrna_plot = new_gene_data.plot.line(
+    mrna_plot = new_gene_data.hvplot.line(
         x="Time (min)",
         y=new_gene_mRNA_ids,
         ylabel="mRNA Counts",
@@ -102,7 +102,7 @@ def plot(
     )
 
     # Protein counts
-    protein_plot = new_gene_data.plot.line(
+    protein_plot = new_gene_data.hvplot.line(
         x="Time (min)",
         y=new_gene_monomer_ids,
         ylabel="Protein Counts",

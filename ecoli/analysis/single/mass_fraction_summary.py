@@ -63,7 +63,7 @@ def plot(
         },
     }
     mass_fold_change = pl.DataFrame(new_columns)
-    plot_namespace = mass_fold_change.plot
+    plot_namespace = mass_fold_change.hvplot
     # hvplot.output(backend='matplotlib')
     plotted_data = plot_namespace.line(
         x="Time (min)",
