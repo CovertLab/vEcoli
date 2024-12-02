@@ -79,9 +79,9 @@ profiles {
         apptainer.enabled = true
         process.time = {
             if ( task.exitStatus == 140 ) {
-                2.h * task.attempt
+                1.h * task.attempt
             } else {
-                2.h
+                1.h
             }
         }
         process.maxRetries = 3
