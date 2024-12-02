@@ -542,6 +542,7 @@ def main():
                 "--cwd",
                 os.path.dirname(os.path.dirname(__file__)),
                 "-e",
+                runtime_image_name,
                 "make",
                 "clean",
                 "compile",
