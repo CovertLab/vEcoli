@@ -1,7 +1,7 @@
 # Note: Core required packages are numpy, scipy, biopython, cvxpy, cython, dill,
 # duckdb, ete3, gcsfs, pyarrow, hvplot, ipdb, ipython, jupyter, line-profiler, altair,
 # numba, orjson, ortools, pandas, polars, pymunk, pytest, pytest-cov, scikit-image,
-# scikit-learn, seaborn, swiglpk, sympy, tqdm, unum, jax, vivarium-core, pysal,
+# scikit-learn, seaborn, swiglpk, sympy, tqdm, unum, jax, vivarium-core, pysal, mypy,
 # opencv-python-headless, statsmodels, ruff, ecos, nbclassic, stochastic-arrow,
 # matplotlib, pyqt5, and iteround. Other packages are dependencies of the above.
 
@@ -128,6 +128,8 @@ ml_dtypes==0.5.0
 momepy==0.9.1
 mpmath==1.3.0
 multidict==6.1.0
+mypy==1.13.0
+mypy-extensions==1.0.0
 narwhals==1.15.1
 nbclassic==1.1.0
 nbclient==0.10.1
