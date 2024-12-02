@@ -40,7 +40,7 @@ if (( $RUN_LOCAL )); then
     docker build -f runscripts/container/runtime/Dockerfile -t "${RUNTIME_IMAGE}" .
 elif (( $BUILD_APPTAINER )); then
     echo "=== Building WCM runtime Apptainer Image: ${RUNTIME_IMAGE} ==="
-    apptainer build ${RUNTIME_IMAGE} runscripts/container/runtime/Singularity
+    apptainer build --force ${RUNTIME_IMAGE} runscripts/container/runtime/Singularity
 else
     echo "=== Cloud-building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
     # For this script to work on a Compute Engine VM, you must
