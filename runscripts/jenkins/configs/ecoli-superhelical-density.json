@@ -15,5 +15,8 @@
     "sherlock": {
         "runtime_image_name": "runtime-image",
         "jenkins": true
+    },
+    "parca_options": {
+        "cpus": 4
     }
 }
