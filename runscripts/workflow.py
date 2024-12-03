@@ -379,9 +379,7 @@ def main():
     nf_config = nf_config.replace(
         "PUBLISH_DIR", os.path.dirname(os.path.dirname(out_uri))
     )
-    nf_config = nf_config.replace(
-        "PARCA_CPUS", str(config["parca_options"]["cpus"])
-    )
+    nf_config = nf_config.replace("PARCA_CPUS", str(config["parca_options"]["cpus"]))
 
     # By default, assume running on local device
     nf_profile = "standard"
