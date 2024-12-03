@@ -17,6 +17,9 @@ profiles {
         process.cpus = 1
         process.executor = 'google-batch'
         process.container = 'IMAGE_NAME'
+        process.withLabel: short {
+            executor = 'local'
+        } 
         process.errorStrategy = {
             // Codes: 137 (out-of-memory), 50001 - 50006 (Google Batch task fail:
             // https://cloud.google.com/batch/docs/troubleshooting#reserved-exit-codes)

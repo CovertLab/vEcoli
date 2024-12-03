@@ -78,104 +78,6 @@ def merge_dicts(a, b):
             a[key] = value
 
 
-def submit_job(cmd: str, sbatch_options: Optional[list] = None) -> int:
-    """
-    Submits a job to SLURM using sbatch and waits for it to complete.
-
-    Args:
-        cmd: Command to run in batch job.
-        sbatch_options: Additional sbatch options as a list of strings.
-
-    Returns:
-        Job ID of the submitted job.
-    """
-    sbatch_command = ["sbatch"]
-    if sbatch_options:
-        sbatch_command.extend(sbatch_options)
-    sbatch_command.extend(["--wrap", cmd])
-
-    try:
-        result = subprocess.run(
-            sbatch_command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-            text=True,
-        )
-        # Extract job ID from sbatch output
-        output = result.stdout.strip()
-        # Assuming job ID is the last word in the output
-        job_id = int(output.split()[-1])
-        print(f"Job submitted with ID: {job_id}")
-        return job_id
-    except subprocess.CalledProcessError as e:
-        print(f"Error submitting job: {e.stderr.strip()}")
-        raise
-
-
-def wait_for_job(job_id: int, poll_interval: int = 10):
-    """
-    Waits for a SLURM job to finish.
-
-    Args:
-        job_id: SLURM job ID.
-        poll_interval: Time in seconds between job status checks.
-    """
-    job_id = str(job_id)
-    while True:
-        try:
-            # Check job status with squeue
-            result = subprocess.run(
-                ["squeue", "--job", job_id],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-            if job_id not in result.stdout:
-                break
-        except Exception as e:
-            print(f"Error checking job status: {e}")
-            raise
-        time.sleep(poll_interval)
-
-
-def check_job_status(job_id: int) -> bool:
-    """
-    Checks the exit status of a SLURM job using sacct.
-
-    Args:
-        job_id: SLURM job ID.
-
-    Returns:
-        True if the job succeeded (exit code 0), False otherwise.
-    """
-    try:
-        # Query job status with sacct
-        result = subprocess.run(
-            ["sacct", "-j", str(job_id), "--format=JobID,State,ExitCode", "--noheader"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-        output = result.stdout.strip()
-
-        for line in output.splitlines():
-            fields = line.split()
-            # Match the job ID
-            if str(job_id) in fields[0]:
-                state = fields[1]
-                # Extract the numeric exit code
-                exit_code = fields[2].split(":")[0]
-                print(f"Job {job_id} - State: {state}, Exit Code: {exit_code}")
-                return state == "COMPLETED" and exit_code == "0"
-
-        print(f"Job {job_id} status not found in sacct output.")
-        return False
-    except Exception as e:
-        print(f"Error checking job status: {e}")
-        raise
-
-
 def generate_colony(seeds: int):
     """
     Create strings to import and compose Nextflow processes for colony sims.
@@ -358,25 +260,8 @@ def build_runtime_image(image_name, apptainer=False):
     )
     cmd = [build_script, "-r", image_name]
     if apptainer:
-        print("Submitting job to build runtime image.")
         cmd.append("-a")
-        # On Sherlock, submit job to build runtime image
-        job_id = submit_job(
-            " ".join(cmd),
-            sbatch_options=[
-                "--time=01:00:00",
-                "--mem=4G",
-                "--cpus-per-task=1",
-                "--partition=mcovert",
-            ],
-        )
-        wait_for_job(job_id, 30)
-        if check_job_status(job_id):
-            print("Done building runtime image.")
-        else:
-            raise RuntimeError("Job to build runtime image failed.")
-    else:
-        subprocess.run([build_script, "-r", image_name], check=True)
+    subprocess.run(cmd, check=True)
 
 
 def build_wcm_image(image_name, runtime_image_name):
