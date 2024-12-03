@@ -1,13 +1,11 @@
 import argparse
 import json
 import os
-import time
 import shutil
 import subprocess
 import warnings
 from datetime import datetime
 from urllib import parse
-from typing import Optional
 
 from pyarrow import fs
 
