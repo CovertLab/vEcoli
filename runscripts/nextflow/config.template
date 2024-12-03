@@ -21,7 +21,7 @@ profiles {
         process.containerOptions = '--volume /mnt/disks/BUCKET:/mnt/disks/BUCKET'
         process.withLabel: short {
             executor = 'local'
-        } 
+        }
         process.errorStrategy = {
             // Codes: 137 (out-of-memory), 50001 - 50006 (Google Batch task fail:
             // https://cloud.google.com/batch/docs/troubleshooting#reserved-exit-codes)
