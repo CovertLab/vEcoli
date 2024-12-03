@@ -1,13 +1,11 @@
 import argparse
 import json
 import os
-import time
 import shutil
 import subprocess
 import warnings
 from datetime import datetime
 from urllib import parse
-from typing import Optional
 
 from pyarrow import fs
 
@@ -76,104 +74,6 @@ def merge_dicts(a, b):
         else:
             # Otherwise, overwrite or add the value from b to a
             a[key] = value
-
-
-def submit_job(cmd: str, sbatch_options: Optional[list] = None) -> int:
-    """
-    Submits a job to SLURM using sbatch and waits for it to complete.
-
-    Args:
-        cmd: Command to run in batch job.
-        sbatch_options: Additional sbatch options as a list of strings.
-
-    Returns:
-        Job ID of the submitted job.
-    """
-    sbatch_command = ["sbatch"]
-    if sbatch_options:
-        sbatch_command.extend(sbatch_options)
-    sbatch_command.extend(["--wrap", cmd])
-
-    try:
-        result = subprocess.run(
-            sbatch_command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-            text=True,
-        )
-        # Extract job ID from sbatch output
-        output = result.stdout.strip()
-        # Assuming job ID is the last word in the output
-        job_id = int(output.split()[-1])
-        print(f"Job submitted with ID: {job_id}")
-        return job_id
-    except subprocess.CalledProcessError as e:
-        print(f"Error submitting job: {e.stderr.strip()}")
-        raise
-
-
-def wait_for_job(job_id: int, poll_interval: int = 10):
-    """
-    Waits for a SLURM job to finish.
-
-    Args:
-        job_id: SLURM job ID.
-        poll_interval: Time in seconds between job status checks.
-    """
-    job_id = str(job_id)
-    while True:
-        try:
-            # Check job status with squeue
-            result = subprocess.run(
-                ["squeue", "--job", job_id],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-            if job_id not in result.stdout:
-                break
-        except Exception as e:
-            print(f"Error checking job status: {e}")
-            raise
-        time.sleep(poll_interval)
-
-
-def check_job_status(job_id: int) -> bool:
-    """
-    Checks the exit status of a SLURM job using sacct.
-
-    Args:
-        job_id: SLURM job ID.
-
-    Returns:
-        True if the job succeeded (exit code 0), False otherwise.
-    """
-    try:
-        # Query job status with sacct
-        result = subprocess.run(
-            ["sacct", "-j", str(job_id), "--format=JobID,State,ExitCode", "--noheader"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-        output = result.stdout.strip()
-
-        for line in output.splitlines():
-            fields = line.split()
-            # Match the job ID
-            if str(job_id) in fields[0]:
-                state = fields[1]
-                # Extract the numeric exit code
-                exit_code = fields[2].split(":")[0]
-                print(f"Job {job_id} - State: {state}, Exit Code: {exit_code}")
-                return state == "COMPLETED" and exit_code == "0"
-
-        print(f"Job {job_id} status not found in sacct output.")
-        return False
-    except Exception as e:
-        print(f"Error checking job status: {e}")
-        raise
 
 
 def generate_colony(seeds: int):
@@ -358,25 +258,8 @@ def build_runtime_image(image_name, apptainer=False):
     )
     cmd = [build_script, "-r", image_name]
     if apptainer:
-        print("Submitting job to build runtime image.")
         cmd.append("-a")
-        # On Sherlock, submit job to build runtime image
-        job_id = submit_job(
-            " ".join(cmd),
-            sbatch_options=[
-                "--time=01:00:00",
-                "--mem=4G",
-                "--cpus-per-task=1",
-                "--partition=mcovert",
-            ],
-        )
-        wait_for_job(job_id, 30)
-        if check_job_status(job_id):
-            print("Done building runtime image.")
-        else:
-            raise RuntimeError("Job to build runtime image failed.")
-    else:
-        subprocess.run([build_script, "-r", image_name], check=True)
+    subprocess.run(cmd, check=True)
 
 
 def build_wcm_image(image_name, runtime_image_name):
@@ -461,11 +344,13 @@ def main():
             f" != {parse.quote_plus(experiment_id)}"
         )
     # Resolve output directory
+    out_bucket = ""
     if "out_uri" not in config["emitter_arg"]:
         out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
         config["emitter_arg"]["out_dir"] = out_uri
     else:
         out_uri = config["emitter_arg"]["out_uri"]
+        out_bucket = out_uri.split("://")[1].split("/")[0]
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
         config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
@@ -478,6 +363,7 @@ def main():
     filesystem.create_dir(outdir)
     temp_config_path = f"{local_outdir}/workflow_config.json"
     final_config_path = os.path.join(outdir, "workflow_config.json")
+    final_config_uri = os.path.join(out_uri, "workflow_config.json")
     with open(temp_config_path, "w") as f:
         json.dump(config, f)
     if not args.resume:
@@ -488,9 +374,13 @@ def main():
         nf_config = f.readlines()
     nf_config = "".join(nf_config)
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
-    nf_config = nf_config.replace("CONFIG_FILE", temp_config_path)
+    nf_config = nf_config.replace("CONFIG_FILE", final_config_uri)
+    nf_config = nf_config.replace("BUCKET", out_bucket)
     nf_config = nf_config.replace(
         "PUBLISH_DIR", os.path.dirname(os.path.dirname(out_uri))
+    )
+    nf_config = nf_config.replace(
+        "PARCA_CPUS", str(config["parca_options"]["cpus"])
     )
 
     # By default, assume running on local device
@@ -568,9 +458,6 @@ def main():
     nf_template = nf_template.replace("RUN_PARCA", run_parca)
     nf_template = nf_template.replace("IMPORTS", sim_imports)
     nf_template = nf_template.replace("WORKFLOW", sim_workflow)
-    nf_template = nf_template.replace(
-        "PARCA_CPUS", str(config["parca_options"]["cpus"])
-    )
     local_workflow = os.path.join(local_outdir, "main.nf")
     with open(local_workflow, "w") as f:
         f.writelines(nf_template)
