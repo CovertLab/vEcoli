@@ -77,7 +77,7 @@ profiles {
         // queue times and is less damaging to future job priority
         process.cpus = 1
         process.executor = 'slurm'
-        process.queue = 'owners'
+        process.queue = 'mcovert,owners'
         process.container = 'IMAGE_NAME'
         apptainer.enabled = true
         process.time = {
