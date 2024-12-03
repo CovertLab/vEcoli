@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Continuous Integration &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=8d563738"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="reference/api_ref.html" />
+    <link rel="prev" title="Google Cloud" href="gcloud.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Continuous Integration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#github-actions">GitHub Actions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#jenkins">Jenkins</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#administration">Administration</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Continuous Integration</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/ci.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="continuous-integration">
+<h1>Continuous Integration<a class="headerlink" href="#continuous-integration" title="Link to this heading"></a></h1>
+<p>On the vEcoli GitHub website, there is a badge next to certain commits that is
+either a red “X” or a green checkmark. Clicking on this badge reveals a set of
+continuous integration (CI) tests that are automatically run to ensure the
+model continues to work as expected. Some of these tests are run entirely through
+a GitHub service called GitHub Actions. Others are run via a Jenkins instance
+that is constantly running on the Sherlock cluster.</p>
+<section id="github-actions">
+<h2>GitHub Actions<a class="headerlink" href="#github-actions" title="Link to this heading"></a></h2>
+<p>The tests that are run through GitHub Actions are configured by the files in
+<code class="docutils literal notranslate"><span class="pre">.github/workflows</span></code>. Some of these “tests” can be more accurately described
+as maintenance tasks, like publishing the updated documentation website. These
+tasks are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">docs_deploy.yml</span></code>: <code class="docutils literal notranslate"><span class="pre">deploy-docs</span></code> job updates the documentation
+website every time the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch changes (push, PR merge)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs_test.yml</span></code>: <code class="docutils literal notranslate"><span class="pre">test-docs</span></code> job ensures that the documentation
+builds properly (Sphinx) on PRs and changes to <code class="docutils literal notranslate"><span class="pre">master</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pr_tests.yml</span></code>: tests that run on PRs and changes to <code class="docutils literal notranslate"><span class="pre">master</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Reproducibility</span></code> ensures that two runs of the ParCa and simulation
+with the same settings produce the same output</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">two-gens</span></code> runs a two-generation workflow on glucose minimal media</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pytest.yml</span></code>: code quality and functionality tests that run on PRs and changes
+to master</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Pytest</span></code> runs <code class="docutils literal notranslate"><span class="pre">pytest</span></code> (all functions with <code class="docutils literal notranslate"><span class="pre">test_</span></code> prefix)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Mypy</span></code> checks types with <code class="docutils literal notranslate"><span class="pre">mypy</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Lint</span></code> checks code style and formatting with <code class="docutils literal notranslate"><span class="pre">ruff</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>Logs from these tests can be viewed on the GitHub website and we strongly
+recommend that you get all of these tests passing before merging a PR.</p>
+<p>Additionally, we would appreciate if you added tests to improve our test coverage
+and improve the likelihood that we catch bugs. This could be as simple as a Python
+function with the <code class="docutils literal notranslate"><span class="pre">test_</span></code> prefix that ensures some bit of code changed in your
+PR works as intended with a few test cases.</p>
+</section>
+<section id="jenkins">
+<h2>Jenkins<a class="headerlink" href="#jenkins" title="Link to this heading"></a></h2>
+<p>Longer running CI tests that are not compatible with the free tier of GitHub
+Actions are run using Jenkins on Sherlock. The configuration JSON files for
+the workflows that are run during these tests are contained within
+<code class="docutils literal notranslate"><span class="pre">runscripts/jenkins/configs</span></code>. Modifying the existing JSON files will modify
+the behavior of the tests. However, adding a new JSON file will not add a new
+test. That requires additional configuration on the Jenkins side of things
+by a member of the Covert Lab with access to Sherlock.</p>
+<p>The Jenkins tests are designed to run about once every day (no predictable time)
+on the latest commit of <code class="docutils literal notranslate"><span class="pre">master</span></code>. The tests are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">vEcoli</span> <span class="pre">-</span> <span class="pre">Anaerobic</span></code>: workflow run using <code class="docutils literal notranslate"><span class="pre">ecoli-anaerobic.json</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vEcoli</span> <span class="pre">-</span> <span class="pre">Glucose</span> <span class="pre">minimal</span></code>: workflow run using <code class="docutils literal notranslate"><span class="pre">ecoli-glucose-minimal.json</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vEcoli</span> <span class="pre">-</span> <span class="pre">Optional</span> <span class="pre">features</span></code>: workflows run using the remaining JSON files
+except for <code class="docutils literal notranslate"><span class="pre">ecoli-with-aa.json</span></code> in succession</p></li>
+</ul>
+<p>Unfortunately, the logs for these tests are not publicly viewable and require
+access to Sherlock. If you are part of the Covert Lab Sherlock group, you can
+view the logs in two steps. First, SSH into Sherlock and run the following command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">squeue</span> <span class="o">-</span><span class="n">p</span> <span class="n">mcovert</span> <span class="o">-</span><span class="n">o</span> <span class="s1">&#39;</span><span class="si">%.10i</span><span class="s1"> %.9P %.50j </span><span class="si">%.8u</span><span class="s1"> %.2t %.10M %.3C %.6D %.20R %k&#39;</span>
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Create an alias <code class="docutils literal notranslate"><span class="pre">sqp</span></code> for the command above by adding
+<code class="docutils literal notranslate"><span class="pre">alias</span> <span class="pre">sqp=&quot;{insert</span> <span class="pre">command</span> <span class="pre">here}&quot;</span></code> to your <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code>.</p>
+</div>
+<p>Look for a job called <code class="docutils literal notranslate"><span class="pre">jenkins_new</span></code>. Under the <code class="docutils literal notranslate"><span class="pre">COMMENT</span></code> column, there
+should be a login node of the format <code class="docutils literal notranslate"><span class="pre">shXX-lnXX</span></code>. Close your SSH connection
+and run the following command, replacing as appropriate:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ssh</span> <span class="p">{</span><span class="n">username</span><span class="p">}</span><span class="o">@</span><span class="p">{</span><span class="n">login</span> <span class="n">node</span><span class="p">}</span><span class="o">.</span><span class="n">sherlock</span><span class="o">.</span><span class="n">stanford</span><span class="o">.</span><span class="n">edu</span> <span class="o">-</span><span class="n">L</span> <span class="mi">8080</span><span class="p">:</span><span class="n">localhost</span><span class="p">:</span><span class="mi">8080</span>
+</pre></div>
+</div>
+<p>With that SSH connection open, you should be able to open the logs by clicking
+on the commit badges on GitHub.</p>
+<section id="administration">
+<h3>Administration<a class="headerlink" href="#administration" title="Link to this heading"></a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This section is intended for members of the Covert Lab responsible for managing
+the Jenkins job on Sherlock.</p>
+</div>
+<p>Jenkins is installed at <code class="docutils literal notranslate"><span class="pre">$GROUP_HOME/jenkins_new</span></code>. The command to queue up
+a 7-day Jenkins instance is <code class="docutils literal notranslate"><span class="pre">sbatch</span> <span class="pre">$GROUP_HOME/jenkins_new/jenkins_new.sh</span></code>.
+The submission script is set up to only allow one instance of the job to run at
+a time. Therefore, it is safe and strongly recommended that you queue many
+Jenkins instances using the command above to minimize downtime.</p>
+<p>To open the Jenkins administration portal, follow the steps in the section above
+to open an SSH connection to the correct login node, then open <code class="docutils literal notranslate"><span class="pre">localhost:8080</span></code>
+in your web browser. You will need to log in with an account that was granted
+administrator privileges by someone else with those privileges.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gcloud.html" class="btn btn-neutral float-left" title="Google Cloud" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="reference/api_ref.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2024, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

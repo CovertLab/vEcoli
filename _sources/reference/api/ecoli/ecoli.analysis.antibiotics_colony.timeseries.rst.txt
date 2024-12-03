@@ -1,0 +1,8 @@
+``ecoli.analysis.antibiotics_colony.timeseries``
+================================================
+.. automodule:: ecoli.analysis.antibiotics_colony.timeseries
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:
