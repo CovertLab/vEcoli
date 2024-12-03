@@ -346,11 +346,13 @@ def main():
             f" != {parse.quote_plus(experiment_id)}"
         )
     # Resolve output directory
+    out_bucket = ""
     if "out_uri" not in config["emitter_arg"]:
         out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
         config["emitter_arg"]["out_dir"] = out_uri
     else:
         out_uri = config["emitter_arg"]["out_uri"]
+        out_bucket = out_uri.split("://")[1].split("/")[0]
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
         config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
@@ -363,6 +365,7 @@ def main():
     filesystem.create_dir(outdir)
     temp_config_path = f"{local_outdir}/workflow_config.json"
     final_config_path = os.path.join(outdir, "workflow_config.json")
+    final_config_uri = os.path.join(out_uri, "workflow_config.json")
     with open(temp_config_path, "w") as f:
         json.dump(config, f)
     if not args.resume:
@@ -373,7 +376,8 @@ def main():
         nf_config = f.readlines()
     nf_config = "".join(nf_config)
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
-    nf_config = nf_config.replace("CONFIG_FILE", temp_config_path)
+    nf_config = nf_config.replace("CONFIG_FILE", final_config_uri)
+    nf_config = nf_config.replace("BUCKET", out_bucket)
     nf_config = nf_config.replace(
         "PUBLISH_DIR", os.path.dirname(os.path.dirname(out_uri))
     )
