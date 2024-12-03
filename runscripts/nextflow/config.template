@@ -81,7 +81,7 @@ profiles {
                 memory = 2.GB
             }
             container = params.container_image
-            queue = 'mcovert,owners'
+            queue = 'mcovert,owners,dev,normal'
             executor = 'slurm'
             // Single core sims are slightly slower but can have shorter
             // queue times and is less damaging to future job priority
