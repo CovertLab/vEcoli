@@ -50,8 +50,7 @@ TOPOLOGY = {
     "promoters": ("unique", "promoter"),
     "DnaA_boxes": ("unique", "DnaA_box"),
     "genes": ("unique", "gene"),
-    # TODO(vivarium): Only include if superhelical density flag is passed
-    # "chromosomal_segments": ("unique", "chromosomal_segment")
+    "chromosomal_segments": ("unique", "chromosomal_segment"),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
     "next_update_time": ("next_update_time", "chromosome_structure"),
@@ -185,6 +184,9 @@ class ChromosomeStructure(Step):
             "DnaA_boxes": numpy_schema(
                 "DnaA_boxes", emit=self.parameters["emit_unique"]
             ),
+            "chromosomal_segments": numpy_schema(
+                "chromosomal_segments", emit=self.parameters["emit_unique"]
+            ),
             "genes": numpy_schema("genes", emit=self.parameters["emit_unique"]),
             "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
@@ -194,21 +196,6 @@ class ChromosomeStructure(Step):
                 "_divider": "set",
             },
         }
-
-        # TODO: Work on this functionality
-        if self.calculate_superhelical_densities:
-            ports["chromosomal_segments"] = {
-                "*": {
-                    "boundary_molecule_indexes": {
-                        "_default": np.empty((0, 2), dtype=np.int64)
-                    },
-                    "boundary_coordinates": {
-                        "_default": np.empty((0, 2), dtype=np.int64)
-                    },
-                    "domain_index": {"_default": 0},
-                    "linking_number": {"_default": 0},
-                }
-            }
 
         return ports
 
@@ -408,6 +395,7 @@ class ChromosomeStructure(Step):
             "RNAs": {},
             "active_ribosome": {},
             "full_chromosomes": {},
+            "chromosomal_segments": {},
             "promoters": {},
             "genes": {},
             "DnaA_boxes": {},
@@ -420,6 +408,7 @@ class ChromosomeStructure(Step):
                 boundary_coordinates,
                 segment_domain_indexes,
                 linking_numbers,
+                chromosomal_segment_indexes,
             ) = attrs(
                 states["chromosomal_segments"],
                 [
@@ -427,6 +416,7 @@ class ChromosomeStructure(Step):
                     "boundary_coordinates",
                     "domain_index",
                     "linking_number",
+                    "unique_index",
                 ],
             )
 
@@ -557,18 +547,7 @@ class ChromosomeStructure(Step):
             # Add new chromosomal segments
             n_segments = len(all_new_linking_numbers)
 
-            if "chromosomal_segments" in states and states["chromosomal_segments"]:
-                self.chromosome_segment_index = (
-                    int(
-                        max(
-                            [
-                                int(index)
-                                for index in list(states["chromosomal_segments"].keys())
-                            ]
-                        )
-                    )
-                    + 1
-                )
+            self.chromosome_segment_index = chromosomal_segment_indexes.max() + 1
 
             update["chromosomal_segments"].update(
                 {

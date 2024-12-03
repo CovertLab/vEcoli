@@ -2,7 +2,7 @@ process runParca {
     // Run ParCa using parca_options from config JSON
     publishDir "${params.publishDir}/${params.experimentId}/parca", mode: "copy"
 
-    cpus PARCA_CPUS
+    label "parca"
 
     input:
     path config
@@ -27,6 +27,8 @@ process runParca {
 
 process analysisParca {
     publishDir "${params.publishDir}/${params.experimentId}/parca/analysis", mode: "move"
+
+    label "short"
 
     input:
     path config
@@ -54,6 +56,8 @@ process analysisParca {
 process createVariants {
     // Parse variants in config JSON to generate variants
     publishDir "${params.publishDir}/${params.experimentId}/variant_sim_data", mode: "copy"
+
+    label "short"
 
     input:
     path config

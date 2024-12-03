@@ -3,6 +3,8 @@ process analysisSingle {
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
+    label "short"
+
     input:
     path config
     path kb
@@ -51,6 +53,8 @@ process analysisMultiDaughter {
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
+    label "short"
+
     input:
     path config
     path kb
@@ -97,6 +101,8 @@ process analysisMultiGeneration {
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}"
 
+    label "short"
+
     input:
     path config
     path kb
@@ -141,6 +147,8 @@ process analysisMultiSeed {
 
     tag "variant=${variant}"
 
+    label "short"
+
     input:
     path config
     path kb
@@ -180,6 +188,8 @@ process analysisMultiSeed {
 
 process analysisMultiVariant {
     publishDir "${params.publishDir}/${params.experimentId}/analyses", mode: "move"
+
+    label "short"
 
     input:
     path config
