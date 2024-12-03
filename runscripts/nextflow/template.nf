@@ -2,9 +2,7 @@ process runParca {
     // Run ParCa using parca_options from config JSON
     publishDir "${params.publishDir}/${params.experimentId}/parca", mode: "copy"
 
-    memory { task.cpus * 2.GB }
-
-    cpus PARCA_CPUS
+    label "parca"
 
     input:
     path config

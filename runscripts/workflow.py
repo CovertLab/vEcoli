@@ -381,6 +381,9 @@ def main():
     nf_config = nf_config.replace(
         "PUBLISH_DIR", os.path.dirname(os.path.dirname(out_uri))
     )
+    nf_config = nf_config.replace(
+        "PARCA_CPUS", str(config["parca_options"]["cpus"])
+    )
 
     # By default, assume running on local device
     nf_profile = "standard"
@@ -457,9 +460,6 @@ def main():
     nf_template = nf_template.replace("RUN_PARCA", run_parca)
     nf_template = nf_template.replace("IMPORTS", sim_imports)
     nf_template = nf_template.replace("WORKFLOW", sim_workflow)
-    nf_template = nf_template.replace(
-        "PARCA_CPUS", str(config["parca_options"]["cpus"])
-    )
     local_workflow = os.path.join(local_outdir, "main.nf")
     with open(local_workflow, "w") as f:
         f.writelines(nf_template)
