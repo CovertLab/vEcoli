@@ -17,6 +17,8 @@ profiles {
         process.cpus = 1
         process.executor = 'google-batch'
         process.container = 'IMAGE_NAME'
+        // Necessary otherwise symlinks to other files in bucket can break
+        process.containerOptions = '--volume /mnt/disks/BUCKET:/mnt/disks/BUCKET'
         process.withLabel: short {
             executor = 'local'
         } 
