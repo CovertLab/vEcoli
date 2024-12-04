@@ -242,7 +242,11 @@ class Ecoli(Composer):
                     ``defaults`` attribute of the process should be used as its config.
                     In the case of a dictionary config, the dictionary will be merged
                     with the result of :py:meth:`~ecoli.library.sim_data.LoadSimData.get_config_by_name`
-                    if possible, or the ``defaults`` attribute if not.
+                    if possible, or the ``defaults`` attribute if not. You can set the
+                    special ``_parallel`` key to true in a dictionary config to run
+                    that process in its own OS process. Unfortunately, this greatly increases
+                    memory usage and, for most current processes, is much slower than not
+                    using this key due to interprocess communication overhead.
 
                 * ``processes``:
                     Mapping of all process names (:py:class:`str`)
@@ -334,20 +338,44 @@ class Ecoli(Composer):
         self.partitioned_processes = []
         for process_name, process_class in config["processes"].items():
             if issubclass(process_class, PartitionedProcess):
+                parallel = process_configs[process_name].pop("_parallel", False)
+                if parallel and process_name == "ecoli-transcript-initiation":
+                    raise ValueError(
+                        "Transcript initiation cannot be run in parallel due to "
+                        "creation of unique indices in the process."
+                    )
                 process = process_class(process_configs[process_name])
                 if config["log_updates"]:
                     steps[f"{process_name}_evolver"] = make_logging_process(Evolver)(
-                        {"time_step": time_step, "process": process}
+                        {
+                            "time_step": time_step,
+                            "process": process,
+                            "_parallel": parallel,
+                        }
                     )
                     steps[f"{process_name}_requester"] = make_logging_process(
                         Requester
-                    )({"time_step": time_step, "process": process})
+                    )(
+                        {
+                            "time_step": time_step,
+                            "process": process,
+                            "_parallel": parallel,
+                        }
+                    )
                 else:
                     steps[f"{process_name}_evolver"] = Evolver(
-                        {"time_step": time_step, "process": process}
+                        {
+                            "time_step": time_step,
+                            "process": process,
+                            "_parallel": parallel,
+                        }
                     )
                     steps[f"{process_name}_requester"] = Requester(
-                        {"time_step": time_step, "process": process}
+                        {
+                            "time_step": time_step,
+                            "process": process,
+                            "_parallel": parallel,
+                        }
                     )
                 self.partitioned_processes.append(process_name)
             elif issubclass(process_class, Step):
