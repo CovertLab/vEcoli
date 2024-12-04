@@ -31,8 +31,6 @@ from vivarium.core.composition import simulate_process, PROCESS_OUT_DIR
 from vivarium.core.emitter import timeseries_from_data
 from vivarium.plots.simulation_output import plot_simulation_output
 
-from ecoli.library.schema import create_unique_indexes
-
 # plots
 from matplotlib import colors, pyplot as plt
 from matplotlib.patches import Patch
@@ -214,9 +212,9 @@ class FlagellaMotor(Process):
 
         elif new_flagella > 0:
             flagella_update["_add"] = []
-            new_flagella_indexes = create_unique_indexes(
-                new_flagella, self.random_state
-            )
+            new_flagella_indexes = [
+                num for num in self.random_state.randint(0, 2**63, new_flagella)
+            ]
             for index in range(new_flagella):
                 flagella_id = new_flagella_indexes[index]
                 flagella_update["_add"].append(

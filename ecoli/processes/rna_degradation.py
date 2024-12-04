@@ -409,6 +409,7 @@ class RnaDegradation(PartitionedProcess):
 
         # Deactivate and degrade unique RNAs
         TU_index, can_translate = attrs(states["RNAs"], ["TU_index", "can_translate"])
+        can_translate = can_translate.copy()
         n_deactivated_unique_RNA = self.n_unique_RNAs_to_deactivate
 
         # Deactive unique RNAs

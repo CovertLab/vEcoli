@@ -15,7 +15,6 @@ import numpy as np
 
 from vivarium.core.composition import simulate_process
 from ecoli.library.schema import (
-    create_unique_indexes,
     numpy_schema,
     attrs,
     counts,
@@ -106,9 +105,6 @@ class PolypeptideInitiation(PartitionedProcess):
 
         self.seed = self.parameters["seed"]
         self.random_state = np.random.RandomState(seed=self.seed)
-        # Use separate random state instance to create unique indices
-        # so results are directly comparable with wcEcoli
-        self.unique_idx_random_state = np.random.RandomState(seed=self.seed)
 
         self.empty_update = {
             "listeners": {
@@ -417,9 +413,6 @@ class PolypeptideInitiation(PartitionedProcess):
             start_index += protein_counts
 
         # Create active 70S ribosomes and assign their attributes
-        ribosome_indices = create_unique_indexes(
-            n_ribosomes_to_activate, self.unique_idx_random_state
-        )
         update = {
             "bulk": [
                 (self.ribosome30S_idx, -n_new_proteins.sum()),
@@ -427,7 +420,6 @@ class PolypeptideInitiation(PartitionedProcess):
             ],
             "active_ribosome": {
                 "add": {
-                    "unique_index": ribosome_indices,
                     "protein_index": protein_indexes,
                     "peptide_length": np.zeros(n_ribosomes_to_activate, dtype=np.int64),
                     "mRNA_index": mRNA_indexes,

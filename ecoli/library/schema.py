@@ -109,6 +109,31 @@ in the ``divider_registry`` in ``ecoli/__init__.py``
 """
 
 
+class MetadataArray(np.ndarray):
+    """Subclass of Numpy array that allows for metadata to be stored with the array.
+    Currently used to store next unique molecule index for unique molecule arrays."""
+
+    def __new__(cls, input_array, metadata=None):
+        # Input array should be an array instance
+        obj = np.asarray(input_array).view(cls)
+        obj.metadata = metadata
+        return obj
+
+    def __array_finalize__(self, obj):
+        # metadata is set in __new__ when creating new array
+        if obj is None:
+            return
+        # Views should inherit metadata from parent
+        self.metadata = getattr(obj, "metadata", None)
+
+    def __array_wrap__(self, out_arr, context=None):
+        # If the result is a scalar, return it as a base scalar type
+        if out_arr.shape == ():
+            return out_arr.item()
+        else:
+            return super(MetadataArray, self).__array_wrap__(out_arr, context)
+
+
 def array_from(d: dict) -> np.ndarray:
     """Makes a Numpy array from dictionary values.
 
@@ -122,19 +147,24 @@ def array_from(d: dict) -> np.ndarray:
 
 
 def create_unique_indexes(
-    n_indexes: int, random_state: np.random.RandomState
-) -> List[int]:
-    """Creates a list of unique indexes by making them random.
+    n_indexes: int, unique_molecules: MetadataArray
+) -> np.ndarray:
+    """We strongly recommend letting
+    :py:meth:`UniqueNumpyUpdater.updater` generate unique indices
+    for new unique molecules. If that is not possible, this function
+    can be used to generate unique indices that should not conflict
+    with any existing unique indices.
 
     Args:
         n_indexes: Number of indexes to generate.
-        random_state: PRNG.
+        unique_molecules: Structured Numpy array of unique molecules.
 
     Returns:
-        List of indexes. Each index is a string representing a number in
-        the range :math:`[0, 2^{63})`.
+        List of unique indexes for new unique molecules.
     """
-    return [num for num in random_state.randint(0, 2**63, n_indexes)]
+    next_unique_index = unique_molecules.metadata
+    unique_molecules.metadata += n_indexes
+    return np.arange(next_unique_index, next_unique_index + n_indexes)
 
 
 def not_a_process(value):
@@ -270,7 +300,7 @@ def bulk_numpy_updater(
     return result
 
 
-def attrs(states: np.ndarray, attributes: List[str]) -> List[np.ndarray]:
+def attrs(states: MetadataArray, attributes: List[str]) -> List[np.ndarray]:
     """Helper function to pull out arrays for unique molecule attributes
 
     Args:
@@ -286,12 +316,12 @@ def attrs(states: np.ndarray, attributes: List[str]) -> List[np.ndarray]:
     """
     # _entryState has dtype int8 so this works
     mol_mask = states["_entryState"].view(np.bool_)
-    return [states[attribute][mol_mask] for attribute in attributes]
+    return [np.asarray(states[attribute][mol_mask]) for attribute in attributes]
 
 
 def get_free_indices(
-    result: np.ndarray, n_objects: int
-) -> Tuple[np.ndarray, np.ndarray]:
+    result: MetadataArray, n_objects: int
+) -> Tuple[MetadataArray, np.ndarray]:
     """Find inactive rows for new molecules and expand array if needed
 
     Args:
@@ -315,7 +345,10 @@ def get_free_indices(
         old_size = result.size
         n_new_entries = max(int(old_size * 0.1), n_objects - n_free_indices)
 
-        result = np.append(result, np.zeros(int(n_new_entries), dtype=result.dtype))
+        result = MetadataArray(
+            np.append(result, np.zeros(int(n_new_entries), dtype=result.dtype)),
+            result.metadata,
+        )
 
         free_indices = np.concatenate(
             (free_indices, old_size + np.arange(n_new_entries))
@@ -353,7 +386,7 @@ class UniqueNumpyUpdater:
         self.set_updates = []
         self.delete_updates = []
 
-    def updater(self, current: np.ndarray, update: Dict[str, Any]) -> np.ndarray:
+    def updater(self, current: MetadataArray, update: Dict[str, Any]) -> MetadataArray:
         """Accumulates updates in instance attributes until given signal to
         apply all updates in the following order: ``set``, ``add``, ``delete``
 
@@ -362,23 +395,33 @@ class UniqueNumpyUpdater:
             update: Dictionary of updates to apply that can contain any
                 combination of the following keys:
 
-                - ``set``: List of dictionaries
+                - ``set``: Dictionary or list of dictionaries
                     Each key is an attribute of the given unique molecule
                     and each value is an array. Each array contains
                     the new attribute values for all active unique
-                    molecules in a givne timestep.
+                    molecules in a givne timestep. Can have multiple such
+                    dictionaries in a list to apply multiple ``set`` updates.
 
-                - ``add``: List of dictionaries
+                - ``add``: Dictionary or list of dictionaries
                     Each key is an attribute of the given unique moleucle
                     and each value is an array. The nth element of
                     each array is the value for the corresponding
-                    attribute for the nth unique molecule to be added.
+                    attribute for the nth unique molecule to be added. If not
+                    provided, unique indices for the ``unique_index`` attribute
+                    are automatically generated for each new molecule. If
+                    you need to reference the unique indices of new molecules in
+                    the same process and time step in which you generated them,
+                    you MUST use the :py:func:`ecoli.library.schema.create_unique_indices`
+                    to generate the indices and supply them under the ``unique_index``
+                    key of your ``add`` update. Can have multiple such
+                    dictionaries in a list to apply multiple ``add`` updates.
 
-                - ``delete``: List-like
+                - ``delete``: List or 1D Numpy array of integers, or list of those
                     List of **active** molecule indices to delete. Note that
                     ``current`` may have rows that are marked as inactive, so
                     deleting the 10th active molecule may not equate to
-                    deleting the value in the 10th row of ``current``.
+                    deleting the value in the 10th row of ``current``. Can have
+                    multiple such lists in a list to apply multiple ``delete`` updates.
 
                 - ``update``: Boolean
                     Special key that should only be included in the update of
@@ -398,11 +441,45 @@ class UniqueNumpyUpdater:
         # following order: set, add, delete (prevents overwriting)
         for update_type, update_val in update.items():
             if update_type == "add":
-                self.add_updates.append(update_val)
+                if isinstance(update_val, list):
+                    self.add_updates.extend(update_val)
+                elif isinstance(update_val, dict):
+                    self.add_updates.append(update_val)
+                else:
+                    raise ValueError(
+                        "Add updates must be dictionaries or lists of dictionaries"
+                    )
             elif update_type == "set":
-                self.set_updates.append(update_val)
+                if isinstance(update_val, list):
+                    self.set_updates.extend(update_val)
+                elif isinstance(update_val, dict):
+                    self.set_updates.append(update_val)
+                else:
+                    raise ValueError(
+                        "Add updates must be dictionaries or lists of dictionaries"
+                    )
             elif update_type == "delete":
-                self.delete_updates.append(update_val)
+                if isinstance(update_val, list):
+                    if isinstance(update_val[0], list) or isinstance(
+                        update_val[0], np.ndarray
+                    ):
+                        self.delete_updates.extend(update_val)
+                    elif isinstance(update_val[0], int):
+                        self.delete_updates.append(update_val)
+                    else:
+                        raise ValueError(
+                            "Delete updates must be lists/arrays of integers "
+                            "OR lists of lists/arrays of integers"
+                        )
+                elif isinstance(update_val, np.ndarray) and np.issubdtype(
+                    update_val.dtype, np.integer
+                ):
+                    self.delete_updates.append(update_val)
+                else:
+                    raise ValueError(
+                        "Delete updates must be lists/arrays of integers "
+                        "OR lists of lists/arrays of integers"
+                    )
 
         if not update.get("update", False):
             return current
@@ -426,6 +503,11 @@ class UniqueNumpyUpdater:
             # for the corresponding column of the nth new molecule to be added.
             n_new_molecules = len(next(iter(add_update.values())))
             result, free_indices = get_free_indices(result, n_new_molecules)
+            if "unique_index" not in add_update:
+                result["unique_index"][free_indices] = (
+                    np.arange(n_new_molecules) + result.metadata
+                )
+                result.metadata += n_new_molecules
             for col, col_values in add_update.items():
                 result[col][free_indices] = col_values
             result["_entryState"][free_indices] = 1

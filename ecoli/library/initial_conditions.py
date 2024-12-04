@@ -8,7 +8,12 @@ from numpy.lib import recfunctions as rfn
 from typing import Any
 from unum import Unum
 
-from ecoli.library.schema import attrs, bulk_name_to_idx, create_unique_indexes, counts
+from ecoli.library.schema import (
+    attrs,
+    bulk_name_to_idx,
+    counts,
+    MetadataArray,
+)
 from ecoli.processes.polypeptide_elongation import (
     calculate_trna_charging,
     REMOVED_FROM_CHARGING,
@@ -225,8 +230,9 @@ def create_new_unique_molecules(name, n_mols, sim_data, random_state, **attrs):
     unique_mols = np.zeros(n_mols, dtype=dtypes)
     for attr_name, attr_value in attrs.items():
         unique_mols[attr_name] = attr_value
-    unique_mols["unique_index"] = create_unique_indexes(n_mols, random_state)
+    unique_mols["unique_index"] = np.arange(n_mols)
     unique_mols["_entryState"] = 1
+    unique_mols = MetadataArray(unique_mols, n_mols)
     return unique_mols
 
 
@@ -1227,6 +1233,10 @@ def initialize_transcription(
         massDiff_mRNA=rna_masses[TU_index_full_mRNAs],
     )
     unique_molecules["RNA"] = np.concatenate((partial_rnas, full_rnas))
+    unique_molecules["RNA"] = MetadataArray(
+        unique_molecules["RNA"],
+        unique_molecules["RNA"]["unique_index"].size,
+    )
 
     # Reset counts of bulk mRNAs to zero
     bulk_state["count"][mRNA_idx] = 0
