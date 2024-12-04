@@ -15,7 +15,6 @@ from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
-    create_unique_indexes,
     listener_schema,
     numpy_schema,
     attrs,
@@ -762,11 +761,9 @@ class ChromosomeStructure(Step):
             )
 
             # Add new promoters with new domain indexes
-            promoter_indices = create_unique_indexes(n_new_promoters, self.random_state)
             update["promoters"].update(
                 {
                     "add": {
-                        "unique_index": promoter_indices,
                         "TU_index": promoter_TU_indexes_new,
                         "coordinates": promoter_coordinates_new,
                         "domain_index": promoter_domain_indexes_new,
@@ -796,11 +793,9 @@ class ChromosomeStructure(Step):
             )
 
             # Add new genes with new domain indexes
-            gene_indices = create_unique_indexes(n_new_genes, self.random_state)
             update["genes"].update(
                 {
                     "add": {
-                        "unique_index": gene_indices,
                         "cistron_index": gene_cistron_indexes_new,
                         "coordinates": gene_coordinates_new,
                         "domain_index": gene_domain_indexes_new,
@@ -829,12 +824,8 @@ class ChromosomeStructure(Step):
             )
 
             # Add new DnaA boxes with new domain indexes
-            DnaA_box_indices = create_unique_indexes(
-                n_new_DnaA_boxes, self.random_state
-            )
             dict_dna = {
                 "add": {
-                    "unique_index": DnaA_box_indices,
                     "coordinates": DnaA_box_coordinates_new,
                     "domain_index": DnaA_box_domain_indexes_new,
                     "DnaA_bound": np.zeros(n_new_DnaA_boxes, dtype=np.bool_),

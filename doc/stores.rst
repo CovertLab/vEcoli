@@ -331,9 +331,11 @@ for that class of unique molecules (e.g. ``coordinates`` for a ``gene`` unique
 molecule). All unique molecules will have the following named fields:
 
     1. ``unique_index`` (:py:class:`int`): Unique identifier for each unique molecule
-        When processes add new unique molecules, the helper function 
-        :py:func:`ecoli.library.schema.create_unique_indexes` is used to generate 
-        unique indices for each molecule to be added.
+        When processes add new unique molecules, it is recommended that you let the
+        :py:meth:`updater <ecoli.library.schema.UniqueNumpyUpdater.updater>`
+        generate the new unique indices. If you need to reference the unique
+        indices of new molecules in the same process AND timestep in which they
+        are generated, see :py:meth:`ecoli.library.schema.UniqueNumpyUpdater.updater`.
     2. ``_entryState`` (:py:attr:`numpy.int8`): 1 for active row, 0 for inactive row
         When unique molecules are deleted (e.g. RNA degradation), all of their data, 
         including the ``_entryState`` field, is set to 0. When unique molecues are 
