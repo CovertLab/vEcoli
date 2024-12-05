@@ -136,12 +136,6 @@ class ChromosomeStructure(Step):
 
         self.emit_unique = self.parameters.get("emit_unique", True)
 
-        self.chromosome_segment_index = 0
-        self.promoter_index = 60000
-        self.DnaA_box_index = 60000
-
-        self.random_state = np.random.RandomState(seed=self.parameters["seed"])
-
     def ports_schema(self):
         ports = {
             "listeners": {
@@ -544,17 +538,9 @@ class ChromosomeStructure(Step):
                 )
 
             # Add new chromosomal segments
-            n_segments = len(all_new_linking_numbers)
-
-            self.chromosome_segment_index = chromosomal_segment_indexes.max() + 1
-
             update["chromosomal_segments"].update(
                 {
                     "add": {
-                        "unique_index": np.arange(
-                            self.chromosome_segment_index,
-                            self.chromosome_segment_index + n_segments,
-                        ),
                         "boundary_molecule_indexes": all_new_boundary_molecule_indexes,
                         "boundary_coordinates": all_new_boundary_coordinates,
                         "domain_index": all_new_segment_domain_indexes,
