@@ -157,6 +157,7 @@ def prepare_save_state(state: dict[str, Any]) -> None:
     state["bulk_dtypes"] = str(state["bulk"].dtype)
     state["unique_dtypes"] = {}
     for name, mols in state["unique"].items():
+        state["unique"][name] = np.asarray(mols)
         state["unique_dtypes"][name] = str(mols.dtype)
 
 
