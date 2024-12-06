@@ -4,10 +4,11 @@ SimulationData for rna decay process
 
 from wholecell.utils import units
 
-from jax import jacfwd
+from jax import config, jacfwd
 import jax.numpy as jnp
 import numpy as np
 
+config.update("jax_enable_x64", True)
 
 class RnaDecay(object):
     """RnaDecay"""

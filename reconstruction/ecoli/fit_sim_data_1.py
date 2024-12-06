@@ -4321,7 +4321,7 @@ def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer):
     if needToUpdate:
         if VERBOSE:
             print(f"Running non-linear optimization to {needToUpdate} {km_filepath}")
-        sol = scipy.optimize.minimize(loss, np.log(Km_counts), jac=loss_jac)
+        sol = scipy.optimize.minimize(loss, np.log(Km_counts), jac=loss_jac, tol=1e-8)
         Km_cooperative_model = np.exp(sol.x)
         Km_cache = dict(
             Km_cooperative_model=Km_cooperative_model,
