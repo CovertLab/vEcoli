@@ -79,7 +79,7 @@ profiles {
                 memory = params.parca_cpus * 2.GB
             }
             container = params.container_image
-            containerOptions = "-B ${publishDir}:${publishDir} -B ${launchDir}:/vEcoli"
+            containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
             queue = 'mcovert,owners,dev,normal'
             executor = 'slurm'
             // Single core sims are slightly slower but can have shorter
@@ -109,7 +109,7 @@ profiles {
             maxRetries = 3
         }
         apptainer.enabled = true
-        params.projectRoot = "/vEcoli"
+        params.projectRoot = "${launchDir}"
         // Avoid getting queue status too frequently (can cause job status mixups)
         executor.queueStatInterval = '2 min'
         // Check for terminated jobs and submit new ones fairly frequently
