@@ -437,10 +437,10 @@ def main():
                 repo_dir,
                 "-e",
                 runtime_image_name,
-                "uv",
-                "sync",
-                "--frozen",
-                "--no-cache"
+                "pip",
+                "install",
+                "-e",
+                ".",
             ]
         )
         if sherlock_config.get("jenkins", False):
