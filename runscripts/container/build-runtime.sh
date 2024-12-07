@@ -69,6 +69,8 @@ else
     #   creating VM
     # - Run gcloud init in VM
     REGION=$(gcloud config get compute/region)
+    # Enable Kaniko cache to speed up build times
+    gcloud config set builds/use_kaniko True
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
     gcloud builds submit --timeout=3h --region="$REGION" --tag \
