@@ -19,7 +19,8 @@ RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
     && cp ~/.bashrc /
 
 # Update and install in the same layer so it won't install from old updates.
-RUN apt-get update && apt-get install -y git gcc 
+# procps necessary for `ps` command used by Nextflow to track processes.
+RUN apt-get update && apt-get install -y git gcc procps
 
 # Install the project into `/vEcoli`
 WORKDIR /vEcoli
