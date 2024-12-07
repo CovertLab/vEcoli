@@ -54,3 +54,4 @@ cache/
 ##################
 .nextflow*
 nextflow_temp
+trace-*
