@@ -432,15 +432,15 @@ def main():
                 "apptainer",
                 "exec",
                 "-B",
-                f"{repo_dir}:/vEcoli",
+                f"{repo_dir}:{repo_dir}",
                 "--cwd",
                 repo_dir,
                 "-e",
                 runtime_image_name,
-                "pip",
-                "install",
-                "-e",
-                ".",
+                "uv",
+                "sync",
+                "--frozen",
+                "--no-cache",
             ]
         )
         if sherlock_config.get("jenkins", False):
