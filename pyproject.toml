@@ -30,7 +30,7 @@ dependencies = [
     "altair",
     "numba",
     "orjson",
-    # Can be removed once cvxpy supports newer ortools
+    # Constraint can be removed once cvxpy supports newer ortools
     "ortools<=9.9.3963",
     "pandas",
     "polars",

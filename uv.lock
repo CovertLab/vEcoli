@@ -3470,7 +3470,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "altair" },
-    { name = "autograd", specifier = ">=1.7.0" },
+    { name = "autograd" },
     { name = "biopython" },
     { name = "cvxpy" },
     { name = "cython" },
