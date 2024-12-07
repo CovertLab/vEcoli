@@ -41,7 +41,6 @@ __pycache__
 # VS Code files #
 #################
 /.vscode
-/.env
 
 # Generated Files #
 ###################

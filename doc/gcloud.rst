@@ -260,8 +260,8 @@ Interactive Containers
 
 .. warning::
   Install
-  :ref:`Docker <https://docs.docker.com/engine/install/>` and
-  :ref:`Google Cloud Storage FUSE <https://cloud.google.com/storage/docs/cloud-storage-fuse/install>`
+  `Docker <https://docs.docker.com/engine/install/>`_ and
+  `Google Cloud Storage FUSE <https://cloud.google.com/storage/docs/cloud-storage-fuse/install>`_
   on your VM before continuing.
 
 Since all steps of the workflow are run inside Docker containers, it can be

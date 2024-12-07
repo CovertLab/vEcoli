@@ -146,7 +146,7 @@ def array_from(d: dict) -> np.ndarray:
     return np.array(list(d.values()))
 
 
-def create_unique_indexes(
+def create_unique_indices(
     n_indexes: int, unique_molecules: MetadataArray
 ) -> np.ndarray:
     """We strongly recommend letting

@@ -45,6 +45,8 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
+    "sphinx.ext.autosummary",
+    "matplotlib.sphinxext.roles",
     "nbsphinx",
 ]
 
@@ -54,7 +56,7 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "venv"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "venv", ".venv"]
 
 # Causes warnings to be thrown for all unresolvable references. This
 # will help avoid broken links.
@@ -68,6 +70,7 @@ nitpick_ignore = [
     ("py:class", "any valid matplotlib color"),
     # Silence warning in ecoli.analysis.single.blame.SignNormalize
     ("py:class", "default: False"),
+    # Numpy, DuckDB, PyArrow, Polars, and Pandas types fail to resolve
     ("py:class", "numpy.float64"),
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.int32"),
@@ -79,7 +82,8 @@ nitpick_ignore = [
     ("py:class", "pyarrow.lib.Array"),
     ("py:class", "pyarrow.lib.NativeFile"),
     ("py:class", "pyarrow.lib.Table"),
-    ("py:class", "polars.Series"),
+    ("py:class", "pandas.core.frame.DataFrame"),
+    ("py:class", "polars.series.series.Series"),
     # Silence warning in ecoli.processes.environment.field_timeline.FieldTimeline
     ("py:class", "vivarium.processes.timeline.TimelineProcess"),
 ]
@@ -92,7 +96,7 @@ nitpick_ignore = [
 #
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {
-    "display_version": True,
+    "version_selector": True,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -118,6 +122,8 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "pandas": ("http://pandas.pydata.org/pandas-docs/dev", None),
+    "polars": ("https://docs.pola.rs/api/python/stable", None),
+    "sympy": ("https://docs.sympy.org/latest", None),
 }
 
 
@@ -125,38 +131,12 @@ intersphinx_mapping = {
 autodoc_inherit_docstrings = False
 # The Python dependencies aren't really required for building the docs
 autodoc_mock_imports = [
-    "stochastic_arrow",
-    "numba",
-    "line-profiler",
-    "iteround",
-    "pandas",
     # Runs code on import and fails due to missing solvers.
     "wholecell.utils.modular_fba",
     # Runs code on import and fails due to missing packages
     "ecoli.library.parameters",
     # Needs to be run with kernprof
     "wholecell.tests.utils.profile_polymerize",
-    "sympy",
-    "cv2",
-    "Bio",
-    "tqdm",
-    "cvxpy",
-    "pymunk",
-    "skimage",
-    "dill",
-    "Equation",
-    "swiglpk",
-    "seaborn",
-    "statsmodels",
-    "ete3",
-    "esda",
-    "hvplot",
-    "line_profiler",
-    "fsspec",
-    "sklearn",
-    "libpysal",
-    "splot",
-    "polars",
 ]
 # Move typehints from signature into description
 autodoc_typehints = "description"
@@ -271,9 +251,15 @@ def object_description_handler(_, domain, objtype, contentnode):
         return
     for child in contentnode.children:
         if child.astext().startswith("defaults: Dict["):
-            name = contentnode.source.split()[-1] + ".defaults"
+            if contentnode.source is None:
+                continue
+            else:
+                name = contentnode.source.split()[-1] + ".defaults"
         elif child.astext().startswith("topology"):
-            name = contentnode.source.split()[-1] + ".topology"
+            if contentnode.source is None:
+                continue
+            else:
+                name = contentnode.source.split()[-1] + ".topology"
         else:
             continue
 
