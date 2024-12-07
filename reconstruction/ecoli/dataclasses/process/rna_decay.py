@@ -4,11 +4,9 @@ SimulationData for rna decay process
 
 from wholecell.utils import units
 
-from jax import config, jacfwd
-import jax.numpy as jnp
+import autograd.numpy as anp
+from autograd import jacobian
 import numpy as np
-
-config.update("jax_enable_x64", True)
 
 class RnaDecay(object):
     """RnaDecay"""
@@ -74,7 +72,7 @@ class RnaDecay(object):
         are positive, the loss function accepts as input the logarithm of the final Km
         values and exponentiates them before calculating the residuals.
 
-        The third-party package Jax uses autodiff to calculate Jacobians for our loss
+        The third-party package Autograd uses autodiff to calculate Jacobians for our loss
         function that can be used during minimization.
 
         Parameters
@@ -96,20 +94,20 @@ class RnaDecay(object):
         """
 
         def residual_f(km):
-            return vMax / km / kDeg / (1 + jnp.sum(rnaConc / km)) - 1
+            return vMax / km / kDeg / (1 + anp.sum(rnaConc / km)) - 1
 
         def residual_aux_f(km):
-            return vMax * rnaConc / km / (1 + jnp.sum(rnaConc / km)) - kDeg * rnaConc
+            return vMax * rnaConc / km / (1 + anp.sum(rnaConc / km)) - kDeg * rnaConc
 
         def L(log_km):
-            km = jnp.exp(log_km)
+            km = anp.exp(log_km)
             residual_squared = residual_f(km) ** 2
 
             # Loss function
-            return jnp.sum(residual_squared)
+            return anp.sum(residual_squared)
 
         def Lp(km):
-            return jacfwd(L)(km)
+            return jacobian(L)(km)
 
         return (
             L,

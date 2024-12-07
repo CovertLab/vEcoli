@@ -42,7 +42,6 @@ dependencies = [
     "sympy",
     "tqdm",
     "unum",
-    "jax",
     "vivarium-core",
     "pysal",
     "opencv-python-headless",
@@ -54,7 +53,8 @@ dependencies = [
     "iteround",
     "wheel",
     # Can change to regular stochastic-arrow once PR merged
-    "stochastic-arrow @ git+https://github.com/CovertLab/arrow@numpy2"
+    "stochastic-arrow @ git+https://github.com/CovertLab/arrow@numpy2",
+    "autograd",
 ]
 
 [project.optional-dependencies]
