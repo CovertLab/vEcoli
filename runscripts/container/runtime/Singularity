@@ -22,7 +22,7 @@ From: ghcr.io/astral-sh/uv@sha256:444d948934bdb22e3204317842be6e1ad454cfa8510328
     echo "alias ll='ls -l'" >> ~/.bashrc
     cp ~/.bashrc /
 
-    apt-get update && apt-get install -y git gcc
+    apt-get update && apt-get install -y git gcc procps
 
     USE_CYTHON=1 CC=gcc uv sync --frozen --no-install-project --no-dev --project vEcoli
 
