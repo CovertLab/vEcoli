@@ -37,6 +37,8 @@ __pycache__
 ._*
 .python-version
 .pytest_cache
+.mypy_cache/
+.ruff_cache/
 
 # VS Code files #
 #################
@@ -55,3 +57,8 @@ cache/
 .nextflow*
 nextflow_temp
 trace-*
+
+# Virtual environment #
+#######################
+.venv/
+
