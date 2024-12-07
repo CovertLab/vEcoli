@@ -79,7 +79,7 @@ profiles {
                 memory = params.parca_cpus * 2.GB
             }
             container = params.container_image
-            containerOptions = "-B ${PUBLISH_DIR}:${PUBLISH_DIR} -B ${launchDir}:/vEcoli"
+            containerOptions = "-B ${publishDir}:${publishDir} -B ${launchDir}:/vEcoli"
             queue = 'mcovert,owners,dev,normal'
             executor = 'slurm'
             // Single core sims are slightly slower but can have shorter
