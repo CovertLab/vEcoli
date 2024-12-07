@@ -37,7 +37,7 @@ ENV UV_LINK_MODE=copy
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    CC=gcc uv sync --frozen --no-install-project --no-dev
+    USE_CYTHON=1 CC=gcc uv sync --frozen --no-install-project --no-dev
 
 # Place executables in the environment at the front of the path
 ENV PATH="/vEcoli/.venv/bin:$PATH"
