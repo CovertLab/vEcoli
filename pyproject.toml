@@ -72,7 +72,6 @@ docs = [
 
 [tool.setuptools]
 packages = [
-    "data",
     "ecoli",
     "migration", 
     "reconstruction",
