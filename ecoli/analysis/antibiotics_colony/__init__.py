@@ -7,7 +7,7 @@ from wholecell.utils.filepath import ROOT_PATH
 plt.rcParams["svg.fonttype"] = "none"
 plt.rcParams["font.family"] = "Arial"
 
-DE_GENES = pd.read_csv(os.path.join(ROOT_PATH, "data/marA_binding/model_degenes.csv"))
+DE_GENES = pd.read_csv(os.path.join(ROOT_PATH, "reconstruction/ecoli/flat/tetracycline/gene_fc.csv"))
 SPLIT_TIME = 11550
 MAX_TIME = 26000
 COUNTS_PER_FL_TO_NANOMOLAR = 1 / (1e-15) / N_A * (1e9)
