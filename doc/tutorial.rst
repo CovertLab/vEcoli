@@ -280,40 +280,40 @@ annotated example of an analysis script:
         mass_data = read_stacked_columns(
             history_sql, list(mass_columns.values()), conn=conn
         )
-        # Convert Polars DataFrame to use their API
-        mass_data = pl.DataFrame(mass_data)
         fractions = {
             k: (mass_data[v] / mass_data["listeners__mass__dry_mass"]).mean()
             for k, v in mass_columns.items()
         }
         new_columns = {
-            f"{k} ({cast(float, fractions[k]):.3f})": mass_data[v] / mass_data[v][0]
-            for k, v in mass_columns.items()
+            "Time (min)": (mass_data["time"] - mass_data["time"].min()) / 60,
+            **{
+                f"{k} ({fractions[k]:.3f})": mass_data[v] / mass_data[v][0]
+                for k, v in mass_columns.items()
+            },
         }
-        mass_fold_change = pl.DataFrame(
-            {
-                "Time (min)": (mass_data["time"] - mass_data["time"].min()) / 60,
-                **new_columns,
-            }
+        # Convert Polars DataFrame to use their API
+        mass_fold_change_df = pl.DataFrame(new_columns)
+
+        # Altair requires long form data (also no periods in column names)
+        melted_df = mass_fold_change_df.melt(
+            id_vars="Time (min)",
+            variable_name="Submass",
+            value_name="Mass (normalized by t = 0 min)",
         )
-        # Use Altair to create interactive visualizations
-        plotted_data = (
-            alt.Chart(mass_fold_change)
-            .transform_fold(
-                list(new_columns.keys()),
-                as_=["mass_type", "Mass (normalized by t = 0 min)"],
-            )
+
+        chart = (
+            alt.Chart(melted_df)
             .mark_line()
             .encode(
-                x="Time (min)",
-                y=alt.Y("Mass (normalized by t = 0 min)"),
-                color=alt.Color("mass_type", scale=alt.Scale(range=COLORS)),
+                x=alt.X("Time (min):Q", title="Time (min)"),
+                y=alt.Y("Mass (normalized by t = 0 min):Q"),
+                color=alt.Color("Submass:N", scale=alt.Scale(range=COLORS)),
             )
             .properties(
                 title="Biomass components (average fraction of total dry mass in parentheses)"
             )
         )
-        plotted_data.save(os.path.join(outdir, "mass_fraction_summary.html"))
+        chart.save(os.path.join(outdir, "mass_fraction_summary.html"))
 
 
 To add a new analysis script:
