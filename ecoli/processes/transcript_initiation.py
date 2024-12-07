@@ -23,7 +23,7 @@ from typing import cast
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import (
-    create_unique_indexes,
+    create_unique_indices,
     listener_schema,
     numpy_schema,
     counts,
@@ -539,7 +539,7 @@ class TranscriptInitiation(PartitionedProcess):
         is_forward = self.transcription_direction[TU_index_partial_RNAs]
 
         # new RNAPs
-        RNAP_indexes = create_unique_indexes(n_RNAPs_to_activate, states["RNAs"])
+        RNAP_indexes = create_unique_indices(n_RNAPs_to_activate, states["RNAs"])
         update["active_RNAPs"].update(
             {
                 "add": {

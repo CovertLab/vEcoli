@@ -173,6 +173,6 @@ def test_enzyme_kinetics(end_time=100):
     return data is not None
 
 
-# run module with python ecoli/processes/enzyme_kinetics.py
+# run module with uv run ecoli/processes/enzyme_kinetics.py
 if __name__ == "__main__":
     test_enzyme_kinetics()

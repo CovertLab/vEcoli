@@ -65,7 +65,7 @@ with options loaded later on overriding those from earlier sources:
 In most cases, configuration options that appear in more than one
 of the above sources are successively overriden in their entirety. The sole
 exceptions are configuration options listed in
-:py:attr:`~ecoli.experiments.ecoli_master_sim.LIST_KEYS_TO_MERGE`. These
+:py:attr:`~runscripts.workflow.LIST_KEYS_TO_MERGE`. These
 options hold lists of values that are concatenated with one another instead
 of being wholly overriden.
 

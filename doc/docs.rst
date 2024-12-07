@@ -496,23 +496,13 @@ Building the Documentation
 To build the documentation, we will use Sphinx to generate HTML files
 from plain text. Here are stepwise instructions:
 
-#. (optional) Create a virtual environment for the
-   documentation-building packages. You might want this to be separate
-   from the environment you use for the rest of Vivarium *E. coli*.
-#. Setup *Vivarium E. coli*. We need it to be setup so that we can
-   import its Cython code.
-#. Install dependencies:
-
-   .. code-block:: console
-
-        $ pip install -r doc/requirements.txt
-
+#. Run ``uv sync --extra docs`` to install the necessary dependencies.
 #. Build the HTML!
 
    .. code-block:: console
 
         $ cd doc
-        $ make html
+        $ uv run make html
 
    Your HTML will now be in ``doc/_build/html``. To view it, open
    ``doc/_build/html/index.html`` in a web browser.

@@ -65,6 +65,11 @@ dev = [
     "mypy",
     "ruff"
 ]
+docs = [
+    "Sphinx",
+    "sphinx-rtd-theme",
+    "nbsphinx"
+]
 
 [tool.setuptools]
 packages = [

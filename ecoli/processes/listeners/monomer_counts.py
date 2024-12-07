@@ -239,6 +239,6 @@ def test_monomer_counts_listener():
     assert isinstance(listeners["monomer_counts"][1], list)
 
 
-# python ecoli/processes/listeners/monomer_counts.py
+# uv run ecoli/processes/listeners/monomer_counts.py
 if __name__ == "__main__":
     test_monomer_counts_listener()
