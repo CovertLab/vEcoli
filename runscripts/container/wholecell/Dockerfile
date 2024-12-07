@@ -51,7 +51,7 @@ LABEL application="Whole Cell Model of Escherichia coli" \
 COPY . /vEcoli
 WORKDIR /vEcoli
 
-RUN uv sync --frozen
+RUN CC=gcc uv sync --frozen
 
 # Since this build runs as root, set permissions so running the container as
 # another user will work: Parca writes into /vEcoli/cache/.
