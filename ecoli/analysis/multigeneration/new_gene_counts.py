@@ -97,15 +97,13 @@ def plot(
     mrna_plot = new_gene_data.plot.line(
         x="Time (min)",
         y=alt.Y(new_gene_mRNA_ids).title("mRNA Counts"),
-        title="New Gene mRNA Counts",
-    )
+    ).properties(title="New Gene mRNA Counts")
 
     # Protein counts
     protein_plot = new_gene_data.plot.line(
         x="Time (min)",
         y=alt.Y(new_gene_monomer_ids).title("Protein Counts"),
-        title="New Gene Protein Counts",
-    )
+    ).properties(title="New Gene Protein Counts")
 
     combined_plot = alt.vconcat(mrna_plot, protein_plot)
     combined_plot.save(os.path.join(outdir, "new_gene_counts.html"))
