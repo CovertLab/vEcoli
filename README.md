@@ -37,11 +37,11 @@ model parameters (e.g. transcription probabilities). These parameters are used t
 
 Your system must have git, curl (or wget), and a C compiler.
 
-On Ubuntu/Debian:
+On Ubuntu/Debian, apt can be used to install all three prerequisites:
 
     sudo -s eval 'apt update && apt install git curl clang'
 
-On MacOS:
+On MacOS, curl is preinstalled and git and clang come with the Xcode Command Line Tools:
 
     xcode-select --install
 
