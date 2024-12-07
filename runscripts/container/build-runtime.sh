@@ -6,6 +6,7 @@
 # ASSUMES: The current working dir is the vEcoli/ project root.
 
 set -eu
+trap 'rm -f runscripts/container/runtime/pyproject.toml runscripts/container/runtime/uv.lock' EXIT
 
 RUNTIME_IMAGE="${USER}-wcm-runtime"
 RUN_LOCAL=0
@@ -18,16 +19,34 @@ for the wcm-runtime image to build; defaults to ${USER}-wcm-runtime\n\
     -l: Build image locally.\n"
 
 print_usage() {
-  printf "$usage_str"
+  printf "%s" "$usage_str"
 }
 
 while getopts 'r:al' flag; do
   case "${flag}" in
-    r) RUNTIME_IMAGE="${OPTARG}" ;;
-    a) (( $RUN_LOCAL )) && print_usage && exit 1 || BUILD_APPTAINER=1 ;;
-    l) (( $BUILD_APPTAINER )) && print_usage && exit 1 || RUN_LOCAL=1 ;;
-    *) print_usage
-       exit 1 ;;
+    r)
+      RUNTIME_IMAGE="${OPTARG}"
+      ;;
+    a)
+      if [ "$RUN_LOCAL" -ne 0 ]; then
+        print_usage
+        exit 1
+      else
+        BUILD_APPTAINER=1
+      fi
+      ;;
+    l)
+      if [ "$BUILD_APPTAINER" -ne 0 ]; then
+        print_usage
+        exit 1
+      else
+        RUN_LOCAL=1
+      fi
+      ;;
+    *)
+      print_usage
+      exit 1
+      ;;
   esac
 done
 
@@ -36,12 +55,12 @@ done
 cp pyproject.toml runscripts/container/runtime/
 cp uv.lock runscripts/container/runtime/
 
-if (( $RUN_LOCAL )); then
+if [ "$RUN_LOCAL" -ne 0 ]; then
     echo "=== Locally building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
     docker build -f runscripts/container/runtime/Dockerfile -t "${RUNTIME_IMAGE}" .
-elif (( $BUILD_APPTAINER )); then
+elif [ "$BUILD_APPTAINER" -ne 0 ]; then
     echo "=== Building WCM runtime Apptainer Image: ${RUNTIME_IMAGE} ==="
-    apptainer build --force ${RUNTIME_IMAGE} runscripts/container/runtime/Singularity
+    apptainer build --force "${RUNTIME_IMAGE}" runscripts/container/runtime/Singularity
 else
     echo "=== Cloud-building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
     # For this script to work on a Compute Engine VM, you must
@@ -52,8 +71,8 @@ else
     REGION=$(gcloud config get compute/region)
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
-    gcloud builds submit --timeout=3h --region=$REGION --tag \
-      '${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/'${RUNTIME_IMAGE} \
+    gcloud builds submit --timeout=3h --region="$REGION" --tag \
+      "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${RUNTIME_IMAGE}" \
       runscripts/container/runtime/
 fi
 
