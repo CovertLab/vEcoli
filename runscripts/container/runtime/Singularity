@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: python@sha256:15f10b142547000e2429615b3d314474ae7d6ac062a8dd2c9246adcee7068e55
+From: ghcr.io/astral-sh/uv@sha256:9e963fcd233dcc215cb0b6899a95a5f8c5cf9f51f3b3575f48a4ae4c1e4efadd
 
 %environment
     export OPENBLAS_NUM_THREADS=1
@@ -12,7 +12,8 @@ From: python@sha256:15f10b142547000e2429615b3d314474ae7d6ac062a8dd2c9246adcee706
     website "https://www.covert.stanford.edu/"
 
 %files
-    requirements.txt /requirements.txt
+    uv.lock /vEcoli/uv.lock
+    pyproject.toml /vEcoli/pyproject.toml
 
 %post
     echo "Setting up runtime environment..."
@@ -21,14 +22,9 @@ From: python@sha256:15f10b142547000e2429615b3d314474ae7d6ac062a8dd2c9246adcee706
     echo "alias ll='ls -l'" >> ~/.bashrc
     cp ~/.bashrc /
 
-    apt-get update \
-        && apt-get install -y swig=4.1.0-0.2 gfortran=4:12.2.0-3 \
-        llvm=1:14.0-55.7~deb12u1 cmake=3.25.1-1 nano=7.2-1+deb12u1 \
-        libopenblas-dev=0.3.21+ds-4
+    apt-get update && apt-get install -y clang
 
-    pip install --no-cache-dir --upgrade pip setuptools==73.0.1 wheel
-    pip install --no-cache-dir numpy==1.26.4
-    pip install --no-cache-dir -r /requirements.txt
+    uv sync --frozen --no-install-project --no-dev
 
 %runscript
     # This defines the default behavior when the container is executed.

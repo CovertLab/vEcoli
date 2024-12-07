@@ -11,18 +11,15 @@
 # Add option `--build-arg from=ABC` to build from a different base image "ABC"
 # but DO NOT USE an alpine base since the simulation math comes out different!
 # See https://pythonspeed.com/articles/alpine-docker-python/ for more reasons.
-ARG from=python:3.11.10@sha256:15f10b142547000e2429615b3d314474ae7d6ac062a8dd2c9246adcee7068e55
+ARG from=ghcr.io/astral-sh/uv:bookworm-slim@sha256:9e963fcd233dcc215cb0b6899a95a5f8c5cf9f51f3b3575f48a4ae4c1e4efadd
 FROM ${from}
-
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
     && echo "alias ll='ls -l'" >> ~/.bashrc \
     && cp ~/.bashrc /
 
 # Update and install in the same layer so it won't install from old updates.
-RUN apt-get update && apt-get install git curl gcc
+RUN apt-get update && apt-get install -y clang 
 
 # Install the project into `/vEcoli`
 WORKDIR /vEcoli
