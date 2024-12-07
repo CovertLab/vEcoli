@@ -72,7 +72,7 @@ else
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
     gcloud builds submit --timeout=3h --region="$REGION" --tag \
-      "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${RUNTIME_IMAGE}" \
+      '${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/'${RUNTIME_IMAGE} \
       runscripts/container/runtime/
 fi
 
