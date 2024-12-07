@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: ghcr.io/astral-sh/uv@sha256:9e963fcd233dcc215cb0b6899a95a5f8c5cf9f51f3b3575f48a4ae4c1e4efadd
+From: ghcr.io/astral-sh/uv@sha256:444d948934bdb22e3204317842be6e1ad454cfa85103287a2ed18e471ede1f5b
 
 %environment
     export OPENBLAS_NUM_THREADS=1
