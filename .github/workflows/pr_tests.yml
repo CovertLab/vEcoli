@@ -16,25 +16,25 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install model
-      run: uv sync
+      run: uv sync --frozen
     - name: Test ParCa reproducibility
       run: |
-        uv run runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
+        uv run --env-file .env runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
             -c 3 -o out/parca_1
-        uv run runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
+        uv run --env-file .env runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
             -c 3 -o out/parca_2
-        uv run runscripts/debug/compare_pickles.py out/parca_1/kb out/parca_2/kb
+        uv run --env-file .env runscripts/debug/compare_pickles.py out/parca_1/kb out/parca_2/kb
     - name: Test simulation reproducibility
       run: |
-        uv run ecoli/experiments/ecoli_master_sim.py \
+        uv run --env-file .env ecoli/experiments/ecoli_master_sim.py \
             --generations 1 --emitter parquet --emitter_arg out_dir='out' \
             --experiment_id "parca_1" --daughter_outdir "out/parca_1" \
             --sim_data_path "out/parca_1/kb/simData.cPickle" --fail_at_total_time &
-        uv run ecoli/experiments/ecoli_master_sim.py \
+        uv run --env-file .env ecoli/experiments/ecoli_master_sim.py \
             --generations 1 --emitter parquet --emitter_arg out_dir='out' \
             --experiment_id "parca_2" --daughter_outdir "out/parca_2" \
             --sim_data_path "out/parca_2/kb/simData.cPickle" --fail_at_total_time
-        uv run runscripts/debug/diff_simouts.py -o "out" "parca_1*" "parca_2*"
+        uv run --env-file .env runscripts/debug/diff_simouts.py -o "out" "parca_1*" "parca_2*"
   Two-gens:
     runs-on: macos-latest
     steps:
@@ -42,7 +42,7 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install model
-      run: uv sync
+      run: uv sync --frozen
     - name: Install nextflow edge
       run: |
         curl -s https://get.nextflow.io | bash
@@ -51,4 +51,4 @@ jobs:
         NXF_EDGE=1 ./nextflow self-update
     - name: Two generations
       run: |
-        uv run runscripts/workflow.py --config ecoli/composites/ecoli_configs/two_generations.json
+        uv run --env-file .env runscripts/workflow.py --config ecoli/composites/ecoli_configs/two_generations.json

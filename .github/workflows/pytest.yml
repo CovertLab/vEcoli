@@ -16,10 +16,10 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install model
-      run: uv sync
+      run: uv sync --frozen
     - name: Test with pytest
       run: |
-        uv run pytest --cov-report xml:cov.xml --cov=ecoli --cov=reconstruction --cov=wholecell --cov=runscripts --durations=0
+        uv run --env-file .env pytest --cov-report xml:cov.xml --cov=ecoli --cov=reconstruction --cov=wholecell --cov=runscripts --durations=0
     - name: Code Coverage Report
       uses: irongut/CodeCoverageSummary@v1.3.0
       with:
@@ -40,10 +40,10 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install model
-      run: uv sync
+      run: uv sync --frozen
     - name: Mypy
       run: |
-        uv run mypy
+        uv run --env-file .env mypy
   Lint:
     runs-on: ubuntu-latest
     steps:
@@ -51,7 +51,7 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install model
-      run: uv sync
+      run: uv sync --frozen
     - name: Ruff
       run: |
-        uv run ruff check doc ecoli migration wholecell runscripts validation reconstruction
+        uv run --env-file .env ruff check doc ecoli migration wholecell runscripts validation reconstruction

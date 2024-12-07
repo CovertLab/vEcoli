@@ -57,11 +57,11 @@ to install `uv`, our Python package and project manager of choice.
 Navigate into the cloned repository and use `uv` to install the model:
 
     cd vEcoli
-    uv sync
+    uv sync --frozen
 
-> **Note:** If your C compiler is not `clang`, run `CC={your compiler} uv sync`
+> **Note:** If your C compiler is not `clang`, run `CC={your compiler} uv sync --frozen`
 > instead to work around [this limitation](https://github.com/astral-sh/uv/issues/8429).
-> For example, `CC=gcc uv sync` for `gcc`.
+> For example, `CC=gcc uv sync --frozen` for `gcc`.
 
 Finally, install `nextflow` [following these instructions](https://www.nextflow.io/docs/latest/install.html).
 If you choose to install Java with SDKMAN!, after the Java installation
@@ -75,9 +75,11 @@ finishes, close and reopen your terminal before continuing with the
 
 To test your installation, from the top-level of the cloned repository, invoke:
 
-    uv run runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
+    uv run --env-file .env runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
 
-> **Note:** Prefix all of your commands to run scripts with `uv run`.
+> **Note:** Start all of your commands to run scripts with `uv run --env-file .env`.
+> You can create an alias by appending `alias uvrun="uv run --env-file .env"`
+> to your `~/.zshrc` or `~/.bashrc`. Then, you can start commands with `uvrun`.
 
 This will run the following basic simulation workflow:
 

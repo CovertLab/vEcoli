@@ -3,11 +3,9 @@ from typing import Any, cast
 
 from duckdb import DuckDBPyConnection
 import polars as pl
-import hvplot.polars
+import altair as alt
 
 from ecoli.library.parquet_emitter import num_cells, read_stacked_columns
-
-hvplot.extension("matplotlib")
 
 COLORS_256 = [  # From colorbrewer2.org, qualitative 8-class set 1
     [228, 26, 28],
@@ -56,20 +54,27 @@ def plot(
         for k, v in mass_columns.items()
     }
     new_columns = {
-        "Time (min)": (mass_data["time"] - mass_data["time"].min()) / 60,
-        **{
-            f"{k} ({cast(float, fractions[k]):.3f})": mass_data[v] / mass_data[v][0]
-            for k, v in mass_columns.items()
-        },
+        f"{k} ({cast(float, fractions[k]):.3f})": mass_data[v] / mass_data[v][0]
+        for k, v in mass_columns.items()
     }
-    mass_fold_change = pl.DataFrame(new_columns)
-    plot_namespace = mass_fold_change.hvplot  # type: ignore[attr-defined]
-    # hvplot.output(backend='matplotlib')
-    plotted_data = plot_namespace.line(
-        x="Time (min)",
-        ylabel="Mass (normalized by t = 0 min)",
-        title="Biomass components (average fraction of total dry mass in parentheses)",
-        color=COLORS,
+    mass_fold_change = pl.DataFrame(
+        {
+            "Time (min)": (mass_data["time"] - mass_data["time"].min()) / 60,
+            **new_columns,
+        }
     )
-    hvplot.save(plotted_data, os.path.join(outdir, "mass_fraction_summary.html"))
-    # hvplot.save(plotted_data, 'mass_fraction_summary.png', dpi=300)
+    plotted_data = (
+        alt.Chart(mass_fold_change)
+        .transform_fold(
+            list(new_columns.keys()),
+            as_=["mass_type", "Mass (normalized by t = 0 min)"],
+        )
+        .mark_line()
+        .encode(
+            x="Time (min)",
+            y=alt.Y("Mass (normalized by t = 0 min)"),
+            color=alt.Color("mass_type", scale=alt.Scale(range=COLORS)),
+            title="Biomass components (average fraction of total dry mass in parentheses)",
+        )
+    )
+    plotted_data.save(os.path.join(outdir, "mass_fraction_summary.html"))

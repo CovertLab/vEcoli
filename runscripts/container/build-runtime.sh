@@ -31,9 +31,10 @@ while getopts 'r:al' flag; do
   esac
 done
 
-# This needs only one payload file so copy it in rather than using a config at
+# Copy required payload files so rather than using a config at
 # the project root which would upload the entire project.
-cp requirements.txt runscripts/container/runtime/
+cp pyproject.toml runscripts/container/runtime/
+cp uv.lock runscripts/container/runtime/
 
 if (( $RUN_LOCAL )); then
     echo "=== Locally building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
@@ -56,4 +57,5 @@ else
       runscripts/container/runtime/
 fi
 
-rm runscripts/container/runtime/requirements.txt
+rm runscripts/container/runtime/pyproject.toml
+rm runscripts/container/runtime/uv.lock
