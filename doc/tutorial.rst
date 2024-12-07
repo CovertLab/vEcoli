@@ -308,7 +308,9 @@ annotated example of an analysis script:
                 x="Time (min)",
                 y=alt.Y("Mass (normalized by t = 0 min)"),
                 color=alt.Color("mass_type", scale=alt.Scale(range=COLORS)),
-                title="Biomass components (average fraction of total dry mass in parentheses)",
+            )
+            .properties(
+                title="Biomass components (average fraction of total dry mass in parentheses)"
             )
         )
         plotted_data.save(os.path.join(outdir, "mass_fraction_summary.html"))
