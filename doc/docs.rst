@@ -496,13 +496,13 @@ Building the Documentation
 To build the documentation, we will use Sphinx to generate HTML files
 from plain text. Here are stepwise instructions:
 
-#. Run ``uv sync --extra docs`` to install the necessary dependencies.
+#. Run ``uv sync --frozen --extra docs`` to install the necessary dependencies.
 #. Build the HTML!
 
    .. code-block:: console
 
         $ cd doc
-        $ uv run make html
+        $ uv run --env-file .env make html
 
    Your HTML will now be in ``doc/_build/html``. To view it, open
    ``doc/_build/html/index.html`` in a web browser.

@@ -14,25 +14,35 @@
 ARG from=python:3.11.10@sha256:15f10b142547000e2429615b3d314474ae7d6ac062a8dd2c9246adcee7068e55
 FROM ${from}
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
     && echo "alias ll='ls -l'" >> ~/.bashrc \
     && cp ~/.bashrc /
 
 # Update and install in the same layer so it won't install from old updates.
-RUN apt-get update \
-    && apt-get install -y swig=4.1.0-0.2 gfortran=4:12.2.0-3 \
-    llvm=1:14.0-55.7~deb12u1 cmake=3.25.1-1 nano=7.2-1+deb12u1 \
-    libopenblas-dev=0.3.21+ds-4
+RUN apt-get update && apt-get install git curl gcc
 
-# This gets more consistent results from openblas.
+# Install the project into `/vEcoli`
+WORKDIR /vEcoli
+
+# This gets better performance and more reproducible results
 ENV OPENBLAS_NUM_THREADS=1
 
-# Install all the pips within one Docker layer, don't cache the downloads.
-COPY requirements.txt /
-RUN (b1="" \
-    && echo "Installing pips with '$b1'" \
-    && pip install --no-cache-dir --upgrade pip setuptools==73.0.1 wheel \
-    && pip install --no-cache-dir numpy==1.26.4 $b1 \
-    && pip install --no-cache-dir -r requirements.txt $b1)
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
+
+# Copy from the cache instead of linking since it's a mounted volume
+ENV UV_LINK_MODE=copy
+
+# Install the project's dependencies using the lockfile and settings
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
+
+# Place executables in the environment at the front of the path
+ENV PATH="/vEcoli/.venv/bin:$PATH"
 
 CMD ["/bin/bash"]

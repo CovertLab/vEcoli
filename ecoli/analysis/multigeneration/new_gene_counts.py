@@ -1,10 +1,10 @@
+import altair as alt
 import os
 from typing import Any, cast
 
 from duckdb import DuckDBPyConnection
 import pickle
 import polars as pl
-import hvplot.polars
 
 from ecoli.library.parquet_emitter import (
     get_field_metadata,
@@ -94,20 +94,18 @@ def plot(
     )
 
     # mRNA counts
-    mrna_plot = new_gene_data.hvplot.line(  # type: ignore[attr-defined]
+    mrna_plot = new_gene_data.plot.line(
         x="Time (min)",
-        y=new_gene_mRNA_ids,
-        ylabel="mRNA Counts",
+        y=alt.Y(new_gene_mRNA_ids).title("mRNA Counts"),
         title="New Gene mRNA Counts",
     )
 
     # Protein counts
-    protein_plot = new_gene_data.hvplot.line(  # type: ignore[attr-defined]
+    protein_plot = new_gene_data.plot.line(
         x="Time (min)",
-        y=new_gene_monomer_ids,
-        ylabel="Protein Counts",
+        y=alt.Y(new_gene_monomer_ids).title("Protein Counts"),
         title="New Gene Protein Counts",
     )
 
-    combined_plot = (mrna_plot + protein_plot).cols(1)
-    hvplot.save(combined_plot, os.path.join(outdir, "new_gene_counts.html"))
+    combined_plot = alt.vconcat(mrna_plot, protein_plot)
+    combined_plot.save(os.path.join(outdir, "new_gene_counts.html"))

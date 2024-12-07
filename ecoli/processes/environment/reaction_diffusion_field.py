@@ -410,6 +410,6 @@ def main():
     )
 
 
-# uv run ecoli/processes/environment/reaction_diffusion_field.py
+# uv run --env-file .env ecoli/processes/environment/reaction_diffusion_field.py
 if __name__ == "__main__":
     main()

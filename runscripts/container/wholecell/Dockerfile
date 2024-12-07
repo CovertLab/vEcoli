@@ -24,11 +24,11 @@
 #
 # It will start a shell where you can execute commands:
 #
-#     uv run pytest
+#     uv run --env-file .env pytest
 #
 # If this succeeds you can start running WCM code in the container, e.g.:
 #
-#     uv run runscripts/manual/runParca.py
+#     uv run --env-file .env runscripts/manual/runParca.py
 
 ARG from=wcm-runtime:latest
 FROM ${from}
@@ -51,8 +51,8 @@ LABEL application="Whole Cell Model of Escherichia coli" \
 COPY . /vEcoli
 WORKDIR /vEcoli
 
-RUN make clean compile
-ENV PYTHONPATH=/vEcoli
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen
 
 # Since this build runs as root, set permissions so running the container as
 # another user will work: Parca writes into /vEcoli/cache/.

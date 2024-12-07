@@ -238,9 +238,8 @@ annotated example of an analysis script:
     if TYPE_CHECKING:
         from duckdb import DuckDBPyConnection
     # Can use polars to perform calculations on tabular data
-    # returned by DuckDB. Also has hvplot interface for plotting.
+    # returned by DuckDB.
     import polars as pl
-    import hvplot.polars
 
     # Import helper functions to read data (see "Output" documentation).
     from ecoli.library.parquet_emitter import num_cells, read_stacked_columns
@@ -288,21 +287,32 @@ annotated example of an analysis script:
             for k, v in mass_columns.items()
         }
         new_columns = {
-            "Time (min)": (mass_data["time"] - mass_data["time"].min()) / 60,
-            **{
-                f"{k} ({cast(float, fractions[k]):.3f})": mass_data[v] / mass_data[v][0]
-                for k, v in mass_columns.items()
-            },
+            f"{k} ({cast(float, fractions[k]):.3f})": mass_data[v] / mass_data[v][0]
+            for k, v in mass_columns.items()
         }
-        mass_fold_change = pl.DataFrame(new_columns)
-        # Easily create and save interactive plot from Polars DataFrame with hvplot
-        plotted_data = mass_fold_change.plot.line(
-            x="Time (min)",
-            ylabel="Mass (normalized by t = 0 min)",
-            title="Biomass components (average fraction of total dry mass in parentheses)",
-            color=COLORS,
+        mass_fold_change = pl.DataFrame(
+            {
+                "Time (min)": (mass_data["time"] - mass_data["time"].min()) / 60,
+                **new_columns,
+            }
         )
-        hvplot.save(plotted_data, os.path.join(outdir, "mass_fraction_summary.html"))
+        # Use Altair to create interactive visualizations
+        plotted_data = (
+            alt.Chart(mass_fold_change)
+            .transform_fold(
+                list(new_columns.keys()),
+                as_=["mass_type", "Mass (normalized by t = 0 min)"],
+            )
+            .mark_line()
+            .encode(
+                x="Time (min)",
+                y=alt.Y("Mass (normalized by t = 0 min)"),
+                color=alt.Color("mass_type", scale=alt.Scale(range=COLORS)),
+                title="Biomass components (average fraction of total dry mass in parentheses)",
+            )
+        )
+        plotted_data.save(os.path.join(outdir, "mass_fraction_summary.html"))
+
 
 To add a new analysis script:
 

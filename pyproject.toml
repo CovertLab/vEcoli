@@ -23,7 +23,6 @@ dependencies = [
     "ete3",
     "gcsfs",
     "pyarrow",
-    "hvplot",
     "ipdb",
     "ipython",
     "jupyter",
