@@ -19,7 +19,7 @@ RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
     && cp ~/.bashrc /
 
 # Update and install in the same layer so it won't install from old updates.
-RUN apt-get update && apt-get install -y clang 
+RUN apt-get update && apt-get install -y git gcc 
 
 # Install the project into `/vEcoli`
 WORKDIR /vEcoli
@@ -37,7 +37,7 @@ ENV UV_LINK_MODE=copy
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev
+    CC=gcc uv sync --frozen --no-install-project --no-dev
 
 # Place executables in the environment at the front of the path
 ENV PATH="/vEcoli/.venv/bin:$PATH"
