@@ -24,7 +24,7 @@ From: ghcr.io/astral-sh/uv@sha256:9e963fcd233dcc215cb0b6899a95a5f8c5cf9f51f3b357
 
     apt-get update && apt-get install -y clang
 
-    uv sync --frozen --no-install-project --no-dev
+    uv sync --frozen --no-install-project --no-dev --project vEcoli
 
 %runscript
     # This defines the default behavior when the container is executed.
