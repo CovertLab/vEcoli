@@ -1,0 +1,78 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "Cython",
+    "numpy"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vEcoli"
+version = "1.1.0"
+description = "Whole Cell E. coli Model"
+requires-python = "==3.12.8"
+dependencies = [
+    "numpy",
+    "scipy",
+    "biopython",
+    "cvxpy",
+    "cython",
+    "dill",
+    "duckdb",
+    "ete3",
+    "gcsfs",
+    "pyarrow",
+    "hvplot",
+    "ipdb",
+    "ipython",
+    "jupyter",
+    "line-profiler",
+    "altair",
+    "numba",
+    "orjson",
+    # Can be removed once cvxpy supports newer ortools
+    "ortools<=9.9.3963",
+    "pandas",
+    "polars",
+    "pymunk",
+    "scikit-image",
+    "scikit-learn",
+    "seaborn",
+    "swiglpk",
+    "sympy",
+    "tqdm",
+    "unum",
+    "jax",
+    "vivarium-core",
+    "pysal",
+    "opencv-python-headless",
+    "statsmodels",
+    "ecos",
+    "nbclassic",
+    "matplotlib",
+    "pyqt5",
+    "iteround",
+    "wheel",
+    # Can change to regular stochastic-arrow once PR merged
+    "stochastic-arrow @ git+https://github.com/CovertLab/arrow@numpy2"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "mypy",
+    "ruff"
+]
+
+[tool.setuptools]
+packages = [
+    "data",
+    "ecoli",
+    "migration", 
+    "reconstruction",
+    "runscripts",
+    "validation",
+    "wholecell"
+]
