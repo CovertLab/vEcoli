@@ -20,4 +20,4 @@ jobs:
       - name: Build documentation
         run: |
           cd doc
-          make html
+          uv run make html

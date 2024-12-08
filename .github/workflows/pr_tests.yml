@@ -16,7 +16,7 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install model
-      run: uv sync --frozen
+      run: USE_CYTHON=1 uv sync --frozen
     - name: Test ParCa reproducibility
       run: |
         uv run --env-file .env runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
