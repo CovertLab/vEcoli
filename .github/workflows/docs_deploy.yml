@@ -18,7 +18,7 @@ jobs:
       - name: Build documentation
         run: |
           cd doc
-          make html
+          uv run make html
       - name: Deploy documentation to GitHub pages
         run: |
           cd doc/_build/html
