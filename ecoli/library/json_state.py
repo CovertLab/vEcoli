@@ -30,11 +30,11 @@ def numpy_molecules(states):
             dtypes = ast.literal_eval(dtypes)
             unique_tuples = [tuple(mol) for mol in states["unique"][key]]
             unique_arr = np.array(unique_tuples, dtype=dtypes)
-            unique_arr.flags.writeable = False
             states["unique"][key] = MetadataArray(
                 unique_arr,
                 unique_arr["unique_index"].max() + 1,
             )
+            states["unique"][key].flags.writeable = False
     if "environment" in states:
         if "exchange_data" in states["environment"]:
             states["environment"]["exchange_data"]["constrained"] = {
