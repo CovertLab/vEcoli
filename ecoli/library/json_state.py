@@ -30,9 +30,13 @@ def numpy_molecules(states):
             dtypes = ast.literal_eval(dtypes)
             unique_tuples = [tuple(mol) for mol in states["unique"][key]]
             unique_arr = np.array(unique_tuples, dtype=dtypes)
+            if len(unique_arr) == 0:
+                next_unique_index = 0
+            else:
+                next_unique_index = unique_arr["unique_index"].max() + 1
             states["unique"][key] = MetadataArray(
                 unique_arr,
-                unique_arr["unique_index"].max() + 1,
+                next_unique_index,
             )
             states["unique"][key].flags.writeable = False
     if "environment" in states:
