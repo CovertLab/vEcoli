@@ -48,6 +48,7 @@ class MarkDPeriod(Step):
         divide_at_time = division_time[~has_triggered_division].min()
         if states["global_time"] >= divide_at_time:
             divide_at_time_index = np.where(division_time == divide_at_time)[0][0]
+            has_triggered_division = has_triggered_division.copy()
             has_triggered_division[divide_at_time_index] = True
             # Set flag for ensuing division Step to trigger division
             return {

@@ -23,7 +23,7 @@ from typing import cast
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import (
-    create_unique_indexes,
+    create_unique_indices,
     listener_schema,
     numpy_schema,
     counts,
@@ -269,9 +269,6 @@ class TranscriptInitiation(PartitionedProcess):
 
         self.seed = self.parameters["seed"]
         self.random_state = np.random.RandomState(seed=self.seed)
-        # Use separate random state instance to create unique indices
-        # so results are directly comparable with wcEcoli
-        self.unique_idx_random_state = np.random.RandomState(seed=self.seed)
 
         # Helper indices for Numpy indexing
         self.ppgpp_idx = None
@@ -542,9 +539,7 @@ class TranscriptInitiation(PartitionedProcess):
         is_forward = self.transcription_direction[TU_index_partial_RNAs]
 
         # new RNAPs
-        RNAP_indexes = create_unique_indexes(
-            n_RNAPs_to_activate, self.unique_idx_random_state
-        )
+        RNAP_indexes = create_unique_indices(n_RNAPs_to_activate, states["RNAs"])
         update["active_RNAPs"].update(
             {
                 "add": {
@@ -561,13 +556,9 @@ class TranscriptInitiation(PartitionedProcess):
 
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
-        rna_indices = create_unique_indexes(
-            n_RNAPs_to_activate, self.unique_idx_random_state
-        )
         update["RNAs"].update(
             {
                 "add": {
-                    "unique_index": rna_indices,
                     "TU_index": TU_index_partial_RNAs,
                     "transcript_length": np.zeros(cast(int, n_RNAPs_to_activate)),
                     "is_mRNA": is_mRNA,

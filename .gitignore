@@ -3,7 +3,7 @@
 /build
 /dist
 /doc/_build
-/vivarium_ecoli.egg-info
+/vEcoli.egg-info
 /Build_sequences.egg-info
 /Fast_polymerize_sums.egg-info
 /Monte_carlo_complexation.egg-info
@@ -37,17 +37,12 @@ __pycache__
 ._*
 .python-version
 .pytest_cache
-
-# Pipenv files #
-################
-Pipfile
-Pipfile.lock
-pyproject.toml
+.mypy_cache/
+.ruff_cache/
 
 # VS Code files #
 #################
 /.vscode
-/.env
 
 # Generated Files #
 ###################
@@ -61,8 +56,9 @@ cache/
 ##################
 .nextflow*
 nextflow_temp
+trace-*
 
-# Other files #
-##################
-/notebooks/ck/
-/notebooks/ck_example/
+# Virtual environment #
+#######################
+.venv/
+

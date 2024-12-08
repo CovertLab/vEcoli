@@ -337,6 +337,7 @@ class TranscriptElongation(PartitionedProcess):
                 "RNAP_index",
             ],
         )
+        length_all_RNAs = length_all_RNAs.copy()
 
         update = {"listeners": {"growth_limits": {}}}
 
