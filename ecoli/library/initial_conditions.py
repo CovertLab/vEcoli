@@ -230,9 +230,14 @@ def create_new_unique_molecules(name, n_mols, sim_data, random_state, **attrs):
     unique_mols = np.zeros(n_mols, dtype=dtypes)
     for attr_name, attr_value in attrs.items():
         unique_mols[attr_name] = attr_value
-    unique_mols["unique_index"] = np.arange(n_mols)
+    # Each unique molecule has unique prefix for indices to prevent conflicts
+    unique_mol_names = list(
+        sim_data.internal_state.unique_molecule.unique_molecule_definitions.keys()
+    )
+    unique_prefix = unique_mol_names.index(name) << 59
+    unique_mols["unique_index"] = np.arange(unique_prefix, unique_prefix + n_mols)
     unique_mols["_entryState"] = 1
-    unique_mols = MetadataArray(unique_mols, n_mols)
+    unique_mols = MetadataArray(unique_mols, unique_prefix + n_mols)
     return unique_mols
 
 
@@ -1235,7 +1240,7 @@ def initialize_transcription(
     unique_molecules["RNA"] = np.concatenate((partial_rnas, full_rnas))
     unique_molecules["RNA"] = MetadataArray(
         unique_molecules["RNA"],
-        unique_molecules["RNA"]["unique_index"].size,
+        unique_molecules["RNA"]["unique_index"].max() + 1,
     )
 
     # Reset counts of bulk mRNAs to zero
