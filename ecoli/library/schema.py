@@ -163,8 +163,11 @@ def create_unique_indices(
         List of unique indexes for new unique molecules.
     """
     next_unique_index = unique_molecules.metadata
+    unique_indices = np.arange(
+        next_unique_index, int(next_unique_index + n_indexes), dtype=int
+    )
     unique_molecules.metadata += n_indexes
-    return np.arange(next_unique_index, next_unique_index + n_indexes)
+    return unique_indices
 
 
 def not_a_process(value):

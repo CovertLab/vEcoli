@@ -401,7 +401,6 @@ class ChromosomeStructure(Step):
                 boundary_coordinates,
                 segment_domain_indexes,
                 linking_numbers,
-                chromosomal_segment_indexes,
             ) = attrs(
                 states["chromosomal_segments"],
                 [
@@ -409,7 +408,6 @@ class ChromosomeStructure(Step):
                     "boundary_coordinates",
                     "domain_index",
                     "linking_number",
-                    "unique_index",
                 ],
             )
 
