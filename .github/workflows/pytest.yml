@@ -16,7 +16,7 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install model
-      run: uv sync --frozen
+      run: USE_CYTHON=1 uv sync --frozen
     - name: Test with pytest
       run: |
         uv run --env-file .env pytest --cov-report xml:cov.xml --cov=ecoli --cov=reconstruction --cov=wholecell --cov=runscripts --durations=0
@@ -40,7 +40,7 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install model
-      run: uv sync --frozen
+      run: USE_CYTHON=1 uv sync --frozen
     - name: Mypy
       run: |
         uv run --env-file .env mypy
@@ -51,7 +51,7 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install model
-      run: uv sync --frozen
+      run: USE_CYTHON=1 uv sync --frozen
     - name: Ruff
       run: |
         uv run --env-file .env ruff check doc ecoli migration wholecell runscripts validation reconstruction

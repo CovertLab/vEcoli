@@ -42,7 +42,7 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install model
-      run: uv sync --frozen
+      run: USE_CYTHON=1 uv sync --frozen
     - name: Install nextflow edge
       run: |
         curl -s https://get.nextflow.io | bash

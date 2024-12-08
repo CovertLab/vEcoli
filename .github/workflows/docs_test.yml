@@ -16,7 +16,7 @@ jobs:
           sudo apt-get install pandoc
           curl -LsSf https://astral.sh/uv/install.sh | sh
       - name: Install model
-        run: uv sync --frozen --extra docs
+        run: USE_CYTHON=1 uv sync --frozen --extra docs
       - name: Build documentation
         run: |
           cd doc
