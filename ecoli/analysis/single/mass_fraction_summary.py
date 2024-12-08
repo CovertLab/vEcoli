@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Any, cast
 
 from duckdb import DuckDBPyConnection
 import polars as pl
@@ -50,7 +50,7 @@ def plot(
     )
 
     fractions = {
-        k: float((mass_data[v] / mass_data["listeners__mass__dry_mass"]).mean())
+        k: cast(float, (mass_data[v] / mass_data["listeners__mass__dry_mass"]).mean())
         for k, v in mass_columns.items()
     }
     new_columns = {
