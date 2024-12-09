@@ -157,6 +157,7 @@ def prepare_save_state(state: dict[str, Any]) -> None:
     state["bulk_dtypes"] = str(state["bulk"].dtype)
     state["unique_dtypes"] = {}
     for name, mols in state["unique"].items():
+        state["unique"][name] = np.asarray(mols)
         state["unique_dtypes"][name] = str(mols.dtype)
 
 
@@ -631,13 +632,6 @@ class EcoliSim:
         ``True``. Spatial environment config options are loaded from
         ``config['spatial_environment_config`]``. See
         ``ecoli/composites/ecoli_configs/spatial.json`` for an example.
-
-        .. note::
-            When loading from a saved state with a file name of the format
-            ``vivecoli_t{save time}``, the simulation seed is automatically
-            set to ``config['seed'] + {save_time}`` to prevent
-            :py:func:`~ecoli.library.schema.create_unique_indexes` from
-            generating clashing indices.
         """
         # build processes, topology, configs
         self.processes = self._retrieve_processes(
@@ -652,14 +646,6 @@ class EcoliSim:
         self.process_configs = self._retrieve_process_configs(
             self.process_configs, self.processes
         )
-
-        # Prevent clashing unique indices by reseeding when loading
-        # a saved state (assumed to have name 'vivecoli_t{save time}')
-        initial_state_path = self.config.get("initial_state_file", "")
-        if initial_state_path.startswith("vivecoli"):
-            time_str = initial_state_path[len("vivecoli_t") :]
-            seed = int(float(time_str))
-            self.config["seed"] += seed
 
         # initialize the ecoli composer
         ecoli_composer = ecoli.composites.ecoli_master.Ecoli(self.config)

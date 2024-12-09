@@ -3,6 +3,8 @@ import json
 import numpy as np
 import concurrent.futures
 
+from ecoli.library.schema import MetadataArray
+
 from vivarium.core.serialize import deserialize_value
 from wholecell.utils import units
 
@@ -27,7 +29,15 @@ def numpy_molecules(states):
         for key, dtypes in states.pop("unique_dtypes").items():
             dtypes = ast.literal_eval(dtypes)
             unique_tuples = [tuple(mol) for mol in states["unique"][key]]
-            states["unique"][key] = np.array(unique_tuples, dtype=dtypes)
+            unique_arr = np.array(unique_tuples, dtype=dtypes)
+            if len(unique_arr) == 0:
+                next_unique_index = 0
+            else:
+                next_unique_index = unique_arr["unique_index"].max() + 1
+            states["unique"][key] = MetadataArray(
+                unique_arr,
+                next_unique_index,
+            )
             states["unique"][key].flags.writeable = False
     if "environment" in states:
         if "exchange_data" in states["environment"]:

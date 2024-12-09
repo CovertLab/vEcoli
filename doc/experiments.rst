@@ -65,7 +65,7 @@ with options loaded later on overriding those from earlier sources:
 In most cases, configuration options that appear in more than one
 of the above sources are successively overriden in their entirety. The sole
 exceptions are configuration options listed in
-:py:attr:`~ecoli.experiments.ecoli_master_sim.LIST_KEYS_TO_MERGE`. These
+:py:attr:`~runscripts.workflow.LIST_KEYS_TO_MERGE`. These
 options hold lists of values that are concatenated with one another instead
 of being wholly overriden.
 
@@ -181,9 +181,6 @@ documented in :ref:`/workflows.rst`.
         # to this initial agent ID for each daughter cell (only "0" if not
         # simulating both daughter cells, see "Workflow" documentation).
         "agent_id": "0",
-        # Run each Process in parallel. This incurs a lot of overhead and most
-        # processes in our model are Steps anyways. Keep at default: False.
-        "parallel": false,
         # Whether to add processes and associated topologies for cell
         # division. See "Division Modifications" heading in "Composites" docs.
         "divide": true,
@@ -453,12 +450,18 @@ Configuring Colony Simulations
 
 All of the configuration
 options listed above still apply to simulations started with
-:py:mod:`~ecoli.experiments.ecoli_engine_process`. There are only two new options:
+:py:mod:`~ecoli.experiments.ecoli_engine_process`. There are only three new options:
 
 - ``engine_process_reports``: List of paths (e.g. ``["bulk"]`` for bulk store) inside
   each cell to save in final colony output.
 - ``emit_paths``: List of paths in outer simulation (e.g. locations of each cell in
   spatial environment) to save in final colony output.
+- ``parallel``: In :py:mod:`~ecoli.experiments.ecoli_engine_process`, each simulated
+  cell is contained within a single process (specifically, an instance of
+  :py:class:`~ecoli.processes.engine_process.EngineProcess`). Therefore, assuming
+  cells only need to communicate a tiny amount of information between one another,
+  interprocess overhead is low and running these cells in parallel can greatly speed
+  up the colony simulation.
 
 In addition to these new configuration options, several previously mentioned options
 become much more useful in the context of colony simulations:
@@ -468,12 +471,6 @@ become much more useful in the context of colony simulations:
   ``initial_state_file`` without having to wait for 16 generations every time.
   The names of the files saved can be given an optional prefix configured via the
   ``colony_save_prefix`` option.
-- ``parallel``: In :py:mod:`~ecoli.experiments.ecoli_engine_process`, each simulated
-  cell is contained within a single process (specifically, an instance of
-  :py:class:`~ecoli.processes.engine_process.EngineProcess`). Therefore, assuming
-  cells only need to communicate a tiny amount of information between one another,
-  interprocess overhead is low and running these cells in parallel can greatly speed
-  up the colony simulation.
 - ``spatial_environment`` and ``spatial_environment_config``: The benefit of running
   simulations inside a shared, dynamic spatial environment is only fully realized when
   many cells are interacting with one another inside this environment.

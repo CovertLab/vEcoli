@@ -117,13 +117,13 @@ def plot_colony_growth(
         for antibiotic_conc, treatment_data in treatment_groups:
             if antibiotic_conc != 0:
                 auc_dict[antibiotic_conc] = max(
-                    np.trapz(treatment_data["Dry mass"], x=treatment_data["Time"])
+                    np.trapezoid(treatment_data["Dry mass"], x=treatment_data["Time"])  # type: ignore[attr-defined]
                     - background_auc,
                     0,
                 )
             else:
                 baseline_auc = (
-                    np.trapz(treatment_data["Dry mass"], x=treatment_data["Time"])
+                    np.trapezoid(treatment_data["Dry mass"], x=treatment_data["Time"])  # type: ignore[attr-defined]
                     - background_auc
                 )
         antibiotic_concs = np.log10(np.array(list(auc_dict.keys())))

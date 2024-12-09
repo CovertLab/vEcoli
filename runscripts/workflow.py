@@ -238,10 +238,14 @@ def generate_code(config):
     seed = config.get("seed", 0)
     generations = config.get("generations", 0)
     if generations:
+        lineage_seed = config.get("lineage_seed", 0)
         n_init_sims = config.get("n_init_sims")
+        print(
+            f"Specified generations: initial lineage seed {lineage_seed}, {n_init_sims} initial sims"
+        )
         single_daughters = config.get("single_daughters", True)
         sim_imports, sim_workflow = generate_lineage(
-            seed,
+            lineage_seed,
             n_init_sims,
             generations,
             single_daughters,
@@ -427,13 +431,16 @@ def main():
             [
                 "apptainer",
                 "exec",
+                "-B",
+                f"{repo_dir}:{repo_dir}",
                 "--cwd",
-                os.path.dirname(os.path.dirname(__file__)),
+                repo_dir,
                 "-e",
                 runtime_image_name,
-                "make",
-                "clean",
-                "compile",
+                "uv",
+                "sync",
+                "--frozen",
+                "--no-cache",
             ]
         )
         if sherlock_config.get("jenkins", False):
