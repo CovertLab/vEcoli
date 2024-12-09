@@ -105,7 +105,7 @@ def get_length_distributions(lattice):
 def plot_strand_length_distribution(lengths):
     # Plot experimental data first
     df = pd.read_csv(
-        "reconsruction/ecoli/flat/cell_wall/murein_strand_length_distribution.csv"
+        "reconstruction/ecoli/flat/cell_wall/murein_strand_length_distribution.csv"
     )
 
     fig, ax = plt.subplots()

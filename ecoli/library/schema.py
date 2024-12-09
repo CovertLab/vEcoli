@@ -463,11 +463,15 @@ class UniqueNumpyUpdater:
                     )
             elif update_type == "delete":
                 if isinstance(update_val, list):
-                    if isinstance(update_val[0], list) or isinstance(
+                    if len(update_val) == 0:
+                        continue
+                    elif isinstance(update_val[0], list) or isinstance(
                         update_val[0], np.ndarray
                     ):
                         self.delete_updates.extend(update_val)
                     elif isinstance(update_val[0], int):
+                        self.delete_updates.append(update_val)
+                    elif isinstance(update_val[0], np.integer):
                         self.delete_updates.append(update_val)
                     else:
                         raise ValueError(
