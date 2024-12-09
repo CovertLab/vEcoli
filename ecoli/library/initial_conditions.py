@@ -1238,13 +1238,18 @@ def initialize_transcription(
         massDiff_mRNA=rna_masses[TU_index_full_mRNAs],
     )
     unique_molecules["RNA"] = np.concatenate((partial_rnas, full_rnas))
-    if len(unique_molecules["RNA"]) > 0:
-        next_unique_index = unique_molecules["RNA"]["unique_index"].max() + 1
-    else:
-        next_unique_index = 0
+    # Have to recreate unique indices or else there will be conflicts between
+    # full and partial RNAs
+    unique_mol_names = list(
+        sim_data.internal_state.unique_molecule.unique_molecule_definitions.keys()
+    )
+    unique_prefix = unique_mol_names.index("RNA") << 59
+    unique_molecules["RNA"]["unique_index"] = np.arange(
+        unique_prefix, unique_prefix + len(unique_molecules["RNA"])
+    )
     unique_molecules["RNA"] = MetadataArray(
         unique_molecules["RNA"],
-        next_unique_index,
+        unique_prefix + len(unique_molecules["RNA"]),
     )
 
     # Reset counts of bulk mRNAs to zero
