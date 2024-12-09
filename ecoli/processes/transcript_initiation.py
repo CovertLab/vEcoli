@@ -29,6 +29,7 @@ from ecoli.library.schema import (
     counts,
     attrs,
     bulk_name_to_idx,
+    MetadataArray,
 )
 
 from wholecell.utils import units
@@ -990,22 +991,30 @@ def test_transcript_initiation(return_data=False):
         "listeners": {"mass": {"cell_mass": 1000, "dry_mass": 350}},
     }
     unique_state = {
-        "full_chromosome": np.array(
-            [
-                (1, 0, 0, 0, False, 0) + (0,) * 9,
-            ],
-            dtype=chromosome_dtypes + submass_dtypes,
+        "full_chromosome": MetadataArray(
+            np.array(
+                [
+                    (1, 0, 0, 0, False, 0) + (0,) * 9,
+                ],
+                dtype=chromosome_dtypes + submass_dtypes,
+            ),
+            1,
         ),
-        "promoter": np.array(
-            [
-                (i, 1, i, [False] * 4, subdata["replication_coordinate"], 0, i)
-                + (0,) * 9
-                for i, subdata in enumerate(rna_data)
-            ],
-            dtype=promoter_dtypes + submass_dtypes,
+        "promoter": MetadataArray(
+            np.array(
+                [
+                    (i, 1, i, [False] * 4, subdata["replication_coordinate"], 0, i)
+                    + (0,) * 9
+                    for i, subdata in enumerate(rna_data)
+                ],
+                dtype=promoter_dtypes + submass_dtypes,
+            ),
+            len(rna_data),
         ),
-        "RNA": np.array([], dtype=rna_dtypes + submass_dtypes),
-        "active_RNAP": np.array([], dtype=active_rnap_dtypes + submass_dtypes),
+        "RNA": MetadataArray(np.array([], dtype=rna_dtypes + submass_dtypes), 0),
+        "active_RNAP": MetadataArray(
+            np.array([], dtype=active_rnap_dtypes + submass_dtypes), 0
+        ),
     }
     initial_state["unique"] = unique_state
 
