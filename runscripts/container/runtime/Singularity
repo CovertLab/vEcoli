@@ -6,7 +6,7 @@ From: python@sha256:15f10b142547000e2429615b3d314474ae7d6ac062a8dd2c9246adcee706
 
 %labels
     application "Whole Cell Model Runtime Environment"
-    email "allencentercovertlab@gmail.com"
+    email "wholecellteam@lists.stanford.edu"
     license "https://github.com/CovertLab/vEcoli/blob/master/LICENSE"
     organization "Covert Lab at Stanford"
     website "https://www.covert.stanford.edu/"
