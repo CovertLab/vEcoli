@@ -1,5 +1,5 @@
 process analysisSingle {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}", mode: "move"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}", mode: 'copy'
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
@@ -47,7 +47,7 @@ process analysisSingle {
 }
 
 process analysisMultiDaughter {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}", mode: "move"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
@@ -93,7 +93,7 @@ process analysisMultiDaughter {
 }
 
 process analysisMultiGeneration {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}", mode: "move"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}"
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}"
 
@@ -137,7 +137,7 @@ process analysisMultiGeneration {
 }
 
 process analysisMultiSeed {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}", mode: "move"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}"
 
     tag "variant=${variant}"
 
@@ -179,7 +179,7 @@ process analysisMultiSeed {
 }
 
 process analysisMultiVariant {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses", mode: "move"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses", mode: 'copy'
 
     input:
     path config

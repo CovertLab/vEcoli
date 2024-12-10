@@ -492,6 +492,7 @@ class EcoliSim:
         """
         config = SimConfig()
         config.update_from_json(filepath)
+        ## alter emit config
         return EcoliSim(config.to_dict())
 
     @staticmethod
@@ -820,6 +821,39 @@ class EcoliSim:
             "emit_config": self.emit_config,
             "emitter": self.emitter_config,
             "initial_global_time": self.initial_global_time,
+            #TODO: add store schema override
+            "store_schema": {
+                "agents": {
+                    "0": {
+                        "bulk":{"_emit": False},
+                        "listeners": {
+                            "fba_results": {"_emit": False,
+                                            "external_exchange_fluxes":{"_emit": True}},
+                            "rna_counts": {"_emit": False},
+                            "dna_supercoiling": {"_emit": False},
+                            "mass": {"_emit": False,
+                                     "instantaneous_growth_rate":{"_emit": True},},
+                            "replication_data": {"_emit": False},
+                            "rnap_data": {"_emit": False},
+                            "complexation_listener": {"_emit": False},
+                            "equilibrium_listener": {"_emit": False},
+                            "enzyme_kinetics": {"_emit": False},
+                            "growth_limits": {"_emit": False},
+                            "ribosome_data": {"_emit": False},
+                            "rna_degradation_listener": {"_emit": False},
+                            "rna_maturation_listener": {"_emit": False},
+                            "rna_synth_prob": {"_emit": False},
+                            "transcript_elongation_listener": {"_emit": False},
+                            "monomer_counts": {"_emit": False},
+                            "unique_molecular_counts": {"_emit": False},
+                            "atp": {"_emit": False},
+                        },
+                        "process_state": {
+                            "polypeptide_elongation": {"_emit": False},
+                        }
+                    },
+                }
+            }
         }
         if self.experiment_id:
             # Store backup of base experiment ID,
@@ -886,8 +920,8 @@ class EcoliSim:
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
-        if self.fail_at_total_time:
-            raise TimeLimitError(f"Exceeded maximum simulation time: {self.total_time}")
+        # if self.fail_at_total_time:
+        #     raise TimeLimitError(f"Exceeded maximum simulation time: {self.total_time}")
 
     def query(self, query: Optional[list[tuple[str]]] = None):
         """
