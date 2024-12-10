@@ -1,7 +1,9 @@
 process analysisSingle {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}", mode: "move"
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
+
+    label "short"
 
     input:
     path config
@@ -24,8 +26,8 @@ process analysisSingle {
         --lineage_seed $lineage_seed \\
         --generation $generation \\
         --agent_id "$agent_id" \\
-        --variant_metadata_path ${variant_metadata} \\
-        -o \$(pwd)/plots \\
+        --variant_metadata_path "${variant_metadata}" \\
+        -o "\$(pwd)/plots" \\
         -t single
     cd plots
     cd experiment_id=*
@@ -47,9 +49,11 @@ process analysisSingle {
 }
 
 process analysisMultiDaughter {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}", mode: "move"
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
+
+    label "short"
 
     input:
     path config
@@ -71,8 +75,8 @@ process analysisMultiDaughter {
         --variant $variant \\
         --lineage_seed $lineage_seed \\
         --generation $generation \\
-        --variant_metadata_path ${variant_metadata} \\
-        -o \$(pwd)/plots \\
+        --variant_metadata_path "${variant_metadata}" \\
+        -o "\$(pwd)/plots" \\
         -t multidaughter
     cd plots
     cd experiment_id=*
@@ -93,9 +97,11 @@ process analysisMultiDaughter {
 }
 
 process analysisMultiGeneration {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}", mode: "move"
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}"
+
+    label "short"
 
     input:
     path config
@@ -116,8 +122,8 @@ process analysisMultiGeneration {
         --experiment_id "$experiment_id" \\
         --variant $variant \\
         --lineage_seed $lineage_seed \\
-        --variant_metadata_path ${variant_metadata} \\
-        -o \$(pwd)/plots \\
+        --variant_metadata_path "${variant_metadata}" \\
+        -o "\$(pwd)/plots" \\
         -t multigeneration
     cd plots
     cd experiment_id=*
@@ -137,9 +143,11 @@ process analysisMultiGeneration {
 }
 
 process analysisMultiSeed {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}", mode: "move"
 
     tag "variant=${variant}"
+
+    label "short"
 
     input:
     path config
@@ -159,8 +167,8 @@ process analysisMultiSeed {
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
-        --variant_metadata_path ${variant_metadata} \\
-        -o \$(pwd)/plots \\
+        --variant_metadata_path "${variant_metadata}" \\
+        -o "\$(pwd)/plots" \\
         -t multiseed
     cd plots
     cd experiment_id=*
@@ -179,7 +187,9 @@ process analysisMultiSeed {
 }
 
 process analysisMultiVariant {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses", mode: "move"
+
+    label "short"
 
     input:
     path config
@@ -199,8 +209,8 @@ process analysisMultiVariant {
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant ${variant.join(" ")} \\
-        --variant_metadata_path ${variant_metadata} \\
-        -o \$(pwd)/plots \\
+        --variant_metadata_path "${variant_metadata}" \\
+        -o "\$(pwd)/plots" \\
         -t multivariant
     cd plots
     cd experiment_id=*

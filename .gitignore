@@ -64,4 +64,5 @@ nextflow_temp
 
 # Other files #
 ##################
-/notebooks/fbagd/ck/
+/notebooks/ck/
+/notebooks/ck_example/

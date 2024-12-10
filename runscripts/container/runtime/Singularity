@@ -1,0 +1,35 @@
+Bootstrap: docker
+From: python@sha256:15f10b142547000e2429615b3d314474ae7d6ac062a8dd2c9246adcee7068e55
+
+%environment
+    export OPENBLAS_NUM_THREADS=1
+
+%labels
+    application "Whole Cell Model Runtime Environment"
+    email "allencentercovertlab@gmail.com"
+    license "https://github.com/CovertLab/vEcoli/blob/master/LICENSE"
+    organization "Covert Lab at Stanford"
+    website "https://www.covert.stanford.edu/"
+
+%files
+    requirements.txt /requirements.txt
+
+%post
+    echo "Setting up runtime environment..."
+
+    echo "alias ls='ls --color=auto'" >> ~/.bashrc
+    echo "alias ll='ls -l'" >> ~/.bashrc
+    cp ~/.bashrc /
+
+    apt-get update \
+        && apt-get install -y swig=4.1.0-0.2 gfortran=4:12.2.0-3 \
+        llvm=1:14.0-55.7~deb12u1 cmake=3.25.1-1 nano=7.2-1+deb12u1 \
+        libopenblas-dev=0.3.21+ds-4
+
+    pip install --no-cache-dir --upgrade pip setuptools==73.0.1 wheel
+    pip install --no-cache-dir numpy==1.26.4
+    pip install --no-cache-dir -r /requirements.txt
+
+%runscript
+    # This defines the default behavior when the container is executed.
+    exec /bin/bash

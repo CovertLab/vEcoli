@@ -5,8 +5,23 @@ import shutil
 import subprocess
 import warnings
 from datetime import datetime
+from urllib import parse
 
 from pyarrow import fs
+
+LIST_KEYS_TO_MERGE = (
+    "save_times",
+    "add_processes",
+    "exclude_processes",
+    "processes",
+    "engine_process_reports",
+    "initial_state_overrides",
+)
+"""
+Special configuration keys that are list values which are concatenated
+together when they are found in multiple sources (e.g. default JSON and
+user-specified JSON) instead of being directly overriden.
+"""
 
 CONFIG_DIR_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -45,6 +60,20 @@ MULTIVARIANT_CHANNEL = """
         .groupTuple(by: [1])
         .set {{ multiVariantCh }}
 """
+
+
+def merge_dicts(a, b):
+    """
+    Recursively merges dictionary b into dictionary a.
+    This mutates dictionary a.
+    """
+    for key, value in b.items():
+        if isinstance(value, dict) and key in a and isinstance(a[key], dict):
+            # If both values are dictionaries, recursively merge
+            merge_dicts(a[key], value)
+        else:
+            # Otherwise, overwrite or add the value from b to a
+            a[key] = value
 
 
 def generate_colony(seeds: int):
@@ -197,6 +226,15 @@ def generate_lineage(
 
 
 def generate_code(config):
+    sim_data_path = config.get("sim_data_path")
+    if sim_data_path is not None:
+        kb_dir = os.path.dirname(sim_data_path)
+        run_parca = [
+            f"\tfile('{kb_dir}').copyTo(\"${{params.publishDir}}/${{params.experimentId}}/parca/kb\")",
+            f"\tChannel.fromPath('{kb_dir}').toList().set {{ kb }}",
+        ]
+    else:
+        run_parca = ["\trunParca(params.config)", "\trunParca.out.toList().set {kb}"]
     seed = config.get("seed", 0)
     generations = config.get("generations", 0)
     if generations:
@@ -211,14 +249,17 @@ def generate_code(config):
         )
     else:
         sim_imports, sim_workflow = generate_colony(seed, n_init_sims)
-    return "\n".join(sim_imports), "\n".join(sim_workflow)
+    return "\n".join(run_parca), "\n".join(sim_imports), "\n".join(sim_workflow)
 
 
-def build_runtime_image(image_name):
+def build_runtime_image(image_name, apptainer=False):
     build_script = os.path.join(
         os.path.dirname(__file__), "container", "build-runtime.sh"
     )
-    subprocess.run([build_script, "-r", image_name], check=True)
+    cmd = [build_script, "-r", image_name]
+    if apptainer:
+        cmd.append("-a")
+    subprocess.run(cmd, check=True)
 
 
 def build_wcm_image(image_name, runtime_image_name):
@@ -231,9 +272,8 @@ def build_wcm_image(image_name, runtime_image_name):
             'If this is correct, add this under "gcloud" > '
             '"runtime_image_name" in your config JSON.'
         )
-    subprocess.run(
-        [build_script, "-w", image_name, "-r", runtime_image_name], check=True
-    )
+    cmd = [build_script, "-w", image_name, "-r", runtime_image_name]
+    subprocess.run(cmd, check=True)
 
 
 def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):
@@ -277,22 +317,40 @@ def main():
     if args.config is not None:
         config_file = args.config
         with open(args.config, "r") as f:
-            config = {**config, **json.load(f)}
+            user_config = json.load(f)
+            for key in LIST_KEYS_TO_MERGE:
+                user_config.setdefault(key, [])
+                user_config[key].extend(config.get(key, []))
+                if key == "engine_process_reports":
+                    user_config[key] = [tuple(path) for path in user_config[key]]
+                # Ensures there are no duplicates in d2
+                user_config[key] = list(set(user_config[key]))
+                user_config[key].sort()
+            merge_dicts(config, user_config)
 
     experiment_id = config["experiment_id"]
     if experiment_id is None:
         raise RuntimeError("No experiment ID was provided.")
     if config["suffix_time"]:
-        current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
         experiment_id = experiment_id + "_" + current_time
+        config["experiment_id"] = experiment_id
         config["suffix_time"] = False
-
+    # Special characters are messy so do not allow them
+    if experiment_id != parse.quote_plus(experiment_id):
+        raise TypeError(
+            "Experiment ID cannot contain special characters"
+            f"that change the string when URL quoted: {experiment_id}"
+            f" != {parse.quote_plus(experiment_id)}"
+        )
     # Resolve output directory
-    if "out_uri" not in config["emitter"]:
+    out_bucket = ""
+    if "out_uri" not in config["emitter_arg"]:
         out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
         config["emitter_arg"]["out_dir"] = out_uri
     else:
         out_uri = config["emitter_arg"]["out_uri"]
+        out_bucket = out_uri.split("://")[1].split("/")[0]
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
         config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
@@ -304,8 +362,8 @@ def main():
     os.makedirs(local_outdir, exist_ok=True)
     filesystem.create_dir(outdir)
     temp_config_path = f"{local_outdir}/workflow_config.json"
-    final_config_uri = os.path.join(out_uri, "workflow_config.json")
     final_config_path = os.path.join(outdir, "workflow_config.json")
+    final_config_uri = os.path.join(out_uri, "workflow_config.json")
     with open(temp_config_path, "w") as f:
         json.dump(config, f)
     if not args.resume:
@@ -317,34 +375,77 @@ def main():
     nf_config = "".join(nf_config)
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
     nf_config = nf_config.replace("CONFIG_FILE", final_config_uri)
+    nf_config = nf_config.replace("BUCKET", out_bucket)
     nf_config = nf_config.replace(
         "PUBLISH_DIR", os.path.dirname(os.path.dirname(out_uri))
     )
+    nf_config = nf_config.replace("PARCA_CPUS", str(config["parca_options"]["cpus"]))
 
     # By default, assume running on local device
     nf_profile = "standard"
+    # If not running on a local device, build container images according
+    # to options under gcloud or sherlock configuration keys
     cloud_config = config.get("gcloud", None)
     if cloud_config is not None:
         nf_profile = "gcloud"
+        project_id = subprocess.run(
+            ["gcloud", "config", "get", "project"], stdout=subprocess.PIPE, text=True
+        ).stdout.strip()
+        region = subprocess.run(
+            ["gcloud", "config", "get", "compute/region"],
+            stdout=subprocess.PIPE,
+            text=True,
+        ).stdout.strip()
+        image_prefix = f"{region}-docker.pkg.dev/{project_id}/vecoli/"
         runtime_image_name = cloud_config.get("runtime_image_name", None)
         if cloud_config.get("build_runtime_image", False):
             if runtime_image_name is None:
                 raise RuntimeError("Must supply name for runtime image.")
             build_runtime_image(runtime_image_name)
+        wcm_image_name = cloud_config.get("wcm_image_name", None)
+        if wcm_image_name is None:
+            raise RuntimeError("Must supply name for WCM image.")
         if cloud_config.get("build_wcm_image", False):
-            wcm_image_name = cloud_config.get("wcm_image_name", None)
-            if wcm_image_name is None:
-                raise RuntimeError("Must supply name for WCM image.")
+            if runtime_image_name is None:
+                raise RuntimeError("Must supply name for runtime image.")
             build_wcm_image(wcm_image_name, runtime_image_name)
-        nf_config = nf_config.replace("IMAGE_NAME", wcm_image_name)
-    elif config.get("sherlock", None) is not None:
-        nf_profile = "sherlock"
+        nf_config = nf_config.replace("IMAGE_NAME", image_prefix + wcm_image_name)
+    sherlock_config = config.get("sherlock", None)
+    if sherlock_config is not None:
+        if nf_profile == "gcloud":
+            raise RuntimeError(
+                "Cannot set both Sherlock and Google Cloud "
+                "options in the input JSON."
+            )
+        runtime_image_name = sherlock_config.get("runtime_image_name", None)
+        if runtime_image_name is None:
+            raise RuntimeError("Must supply name for runtime image.")
+        if sherlock_config.get("build_runtime_image", False):
+            build_runtime_image(runtime_image_name, True)
+        nf_config = nf_config.replace("IMAGE_NAME", runtime_image_name)
+        subprocess.run(
+            [
+                "apptainer",
+                "exec",
+                "--cwd",
+                os.path.dirname(os.path.dirname(__file__)),
+                "-e",
+                runtime_image_name,
+                "make",
+                "clean",
+                "compile",
+            ]
+        )
+        if sherlock_config.get("jenkins", False):
+            nf_profile = "jenkins"
+        else:
+            nf_profile = "sherlock"
 
     local_config = os.path.join(local_outdir, "nextflow.config")
     with open(local_config, "w") as f:
         f.writelines(nf_config)
 
-    sim_imports, sim_workflow = generate_code(config)
+    run_parca, sim_imports, sim_workflow = generate_code(config)
 
     nf_template_path = os.path.join(
         os.path.dirname(__file__), "nextflow", "template.nf"
@@ -352,11 +453,9 @@ def main():
     with open(nf_template_path, "r") as f:
         nf_template = f.readlines()
     nf_template = "".join(nf_template)
+    nf_template = nf_template.replace("RUN_PARCA", run_parca)
     nf_template = nf_template.replace("IMPORTS", sim_imports)
     nf_template = nf_template.replace("WORKFLOW", sim_workflow)
-    nf_template = nf_template.replace(
-        "PARCA_CPUS", str(config["parca_options"]["cpus"])
-    )
     local_workflow = os.path.join(local_outdir, "main.nf")
     with open(local_workflow, "w") as f:
         f.writelines(nf_template)
@@ -381,9 +480,9 @@ def main():
             [
                 "nextflow",
                 "-C",
-                config_path,
+                local_config,
                 "run",
-                workflow_path,
+                local_workflow,
                 "-profile",
                 nf_profile,
                 "-with-report",
@@ -391,24 +490,42 @@ def main():
                 "-work-dir",
                 workdir,
                 "-resume" if args.resume else "",
-            ]
+            ],
+            check=True,
         )
     elif nf_profile == "sherlock":
         batch_script = os.path.join(local_outdir, "nextflow_job.sh")
         with open(batch_script, "w") as f:
             f.write(f"""#!/bin/bash
-#SBATCH --job-name=nextflow-{experiment_id}
+#SBATCH --job-name="nextflow-{experiment_id}"
 #SBATCH --time=7-00:00:00
 #SBATCH --cpus-per-task 1
 #SBATCH --mem=4GB
-#SBATCH -p mcovert
+#SBATCH --partition=mcovert
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
     -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume else ""}
 """)
         copy_to_filesystem(
             batch_script, os.path.join(outdir, "nextflow_job.sh"), filesystem
         )
-        subprocess.run(["sbatch", batch_script])
+        subprocess.run(["sbatch", batch_script], check=True)
+    elif nf_profile == "jenkins":
+        subprocess.run(
+            [
+                "nextflow",
+                "-C",
+                config_path,
+                "run",
+                workflow_path,
+                "-profile",
+                "sherlock",
+                "-with-report",
+                report_path,
+                "-work-dir",
+                workdir,
+            ],
+            check=True,
+        )
     shutil.rmtree(local_outdir)
 
 

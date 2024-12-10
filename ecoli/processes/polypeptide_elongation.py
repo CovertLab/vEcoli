@@ -1101,6 +1101,18 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         request_ppgpp_metabolites = np.zeros(
             len(self.process.ppgpp_reaction_metabolites)
         )
+        bulk_request = [
+            (
+                self.process.charging_molecule_idx,
+                requested_molecules.astype(int),
+            ),
+            (self.process.charged_trna_idx, charged_trna_request.astype(int)),
+            # Request water for transfer of AA from tRNA for initial polypeptide.
+            # This is severe overestimate assuming the worst case that every
+            # elongation is initializing a polypeptide. This excess of water
+            # shouldn't matter though.
+            (self.process.water_idx, int(aa_counts_for_translation.sum())),
+        ]
         if self.process.ppgpp_regulation:
             total_trna_conc = self.counts_to_molar * (
                 uncharged_trna_counts + charged_trna_counts
@@ -1126,28 +1138,19 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
 
             request_ppgpp_metabolites = -delta_metabolites
             ppgpp_request = counts(states["bulk"], self.process.ppgpp_idx)
+            bulk_request.append((self.process.ppgpp_idx, ppgpp_request))
+            bulk_request.append(
+                (
+                    self.process.ppgpp_rxn_metabolites_idx,
+                    request_ppgpp_metabolites.astype(int),
+                )
+            )
 
         return (
             fraction_charged,
             aa_counts_for_translation,
             {
-                "bulk": [
-                    (
-                        self.process.charging_molecule_idx,
-                        requested_molecules.astype(int),
-                    ),
-                    (self.process.charged_trna_idx, charged_trna_request.astype(int)),
-                    # Request water for transfer of AA from tRNA for initial polypeptide.
-                    # This is severe overestimate assuming the worst case that every
-                    # elongation is initializing a polypeptide. This excess of water
-                    # shouldn't matter though.
-                    (self.process.water_idx, int(aa_counts_for_translation.sum())),
-                    (self.process.ppgpp_idx, ppgpp_request),
-                    (
-                        self.process.ppgpp_rxn_metabolites_idx,
-                        request_ppgpp_metabolites.astype(int),
-                    ),
-                ],
+                "bulk": bulk_request,
                 "listeners": {
                     "growth_limits": {
                         "original_aa_supply": self.process.aa_supply,
@@ -1203,7 +1206,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
     ):
         update = {
             "bulk": [],
-            "listeners": {},
+            "listeners": {"growth_limits": {}},
         }
 
         # Get tRNA counts

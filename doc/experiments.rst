@@ -91,12 +91,11 @@ documented in :ref:`/workflows.rst`.
         # chains if possible.
         "inherit_from": [],
         # String that uniquely identifies simulation (or workflow if passed
-        # as input to runscripts/workflow.py). Avoid special characters as we
-        # quote experiment IDs using urlparse.parse.quote_plus, which may make
-        # experiment IDs with special characters hard to deciphe later.
+        # as input to runscripts/workflow.py). Special characters and spaces
+        # are not allowed (hyphens are OK).
         "experiment_id": "experiment_id_one"
         # Whether to append date and time to experiment ID in the following format
-        # experiment_id_%d-%m-%Y_%H-%M-%S.
+        # experiment_id_%Y%m%d-%H%M%S.
         "suffix_time": true,
         # Optional string description of simulation
         "description": "",
@@ -364,6 +363,12 @@ Here are some general rules to remember when writing your own JSON config files:
 - Trailing commas are not allowed
 - Comments are not allowed
 - Tuples (e.g. in topologies or flows) are written as lists (``["bulk"]`` instead of ``("bulk",)``)
+
+.. note::
+    It is strongly recommended that ``fail_at_total_time`` be set to ``True``
+    when running multi-generation workflows. If a simulation reaches total time
+    without dividing, this results in a more informative error message instead
+    of a Nextflow error about missing daughter cell states.
 
 ------
 Output

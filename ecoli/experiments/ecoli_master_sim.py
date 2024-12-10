@@ -41,20 +41,7 @@ from ecoli.processes.registries import topology_registry
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.schema import not_a_process
 
-
-LIST_KEYS_TO_MERGE = (
-    "save_times",
-    "add_processes",
-    "exclude_processes",
-    "processes",
-    "engine_process_reports",
-    "initial_state_overrides",
-)
-"""
-Special configuration keys that are list values which are concatenated
-together when they are found in multiple sources (e.g. default JSON and
-user-specified JSON) instead of being directly overriden.
-"""
+from runscripts.workflow import LIST_KEYS_TO_MERGE
 
 
 class TimeLimitError(RuntimeError):
@@ -829,10 +816,15 @@ class EcoliSim:
                 self.experiment_id_base = self.experiment_id
             if self.suffix_time:
                 self.experiment_id = datetime.now().strftime(
-                    f"{self.experiment_id_base}_%d-%m-%Y_%H-%M-%S"
+                    f"{self.experiment_id_base}_%Y%m%d-%H%M%S"
                 )
-            # Special characters can break Hive partitioning so quote them
-            self.experiment_id = parse.quote_plus(self.experiment_id)
+            # Special characters can break Hive partitioning so do not allow them
+            if self.experiment_id != parse.quote_plus(self.experiment_id):
+                raise TypeError(
+                    "Experiment ID cannot contain special characters"
+                    f"that change the string when URL quoted: {self.experiment_id}"
+                    f" != {parse.quote_plus(self.experiment_id)}"
+                )
             experiment_config["experiment_id"] = self.experiment_id
         experiment_config["profile"] = self.profile
 
