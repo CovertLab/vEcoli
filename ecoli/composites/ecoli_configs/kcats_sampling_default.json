@@ -1,0 +1,31 @@
+{
+    "experiment_id": "kcats_sampling_default",
+    "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
+    "suffix_time": false,
+    "generations": 1,
+    "total_time": 60,
+    "n_init_sims": 1,
+    "fail_at_total_time": false,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "skip_baseline": true,
+    "variants": {
+        "kcats_sampling_global": {
+            "count": {
+                "arange": {
+                    "start": 0,
+                    "stop": 500,
+                    "dtype": "float"
+                }
+            }
+        }
+    },
+    "analysis_options": {
+        "multivariant": {
+            "kcat_mv": {}
+        }
+    }
+}
