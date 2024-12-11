@@ -30,3 +30,4 @@
 "EG12093_RNA"	5		"fit_sim_data_1.py"	"Main NADH:quinone oxidoreductase. Better alignment with ribosome profiling"
 "EG10584_RNA"	2		"fit_sim_data_1.py"	"Main methionine synthase when there's no B12. Better alignment with ribosome profiling"
 "EG12296_RNA"	0.25		"fit_sim_data_1.py"	"Better alignment with ribosome profiling"
+"G7532_RNA"	2		"fit_sim_data_1.py"	"Better alignment with ribosome profiling"
