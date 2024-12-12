@@ -435,6 +435,7 @@ def main():
                 f"{repo_dir}:{repo_dir}",
                 "--cwd",
                 repo_dir,
+                "--writable-tmpfs",
                 "-e",
                 runtime_image_name,
                 "uv",

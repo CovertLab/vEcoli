@@ -501,28 +501,23 @@ lines to your ``~/.bash_profile``, then close and reopen your SSH connection:
 
     # Load newer Git and Java for nextflow 
     module load system git java/21.0.4
+    # Include shared nextflow installation on PATH
+    export PATH=$PATH:$GROUP_HOME/vEcoli_env
+    # Load virtual environment with PyArrow
+    source $GROUP_HOME/vEcoli_env/.venv/bin/activate
 
-    # Set PYTHONPATH to root of repo so imports work
-    export PYTHONPATH="$HOME/vEcoli"
-    # Use one thread for OpenBLAS (better performance and reproducibility)
-    export OMP_NUM_THREADS=1
-
-    # Initialize pyenv
-    export PYENV_ROOT="${GROUP_HOME}/pyenv"
-    if [ -d "${PYENV_ROOT}" ]; then
-        export PATH="${PYENV_ROOT}/bin:${PATH}"
-        eval "$(pyenv init -)"
-        eval "$(pyenv virtualenv-init -)"
-    fi
-
-Inside the cloned repository, run ``pyenv local vEcoli``. This loads a virtual
-environment with PyArrow, the only Python package required to start a workflow
-with :mod:`runscripts.workflow`. Once a workflow is started, vEcoli will build
+Once a workflow is started with :mod:`runscripts.workflow`, vEcoli will build
 an Apptainer image with all the other model dependencies using
 ``runscripts/container/build-runtime.sh``. This image will then be used to start
 containers to run the steps of the workflow. To run or interact with the model
 without using :mod:`runscripts.workflow`, start an interactive container by
 following the steps in :ref:`sherlock-interactive`.
+
+.. tip::
+    To update the version of PyArrow in the shared ``vEcoli_env`` virtual environment,
+    install ``uv`` on your Sherlock account
+    (`instructions <https://docs.astral.sh/uv/getting-started/installation/>`_),
+    navigate to ``$GROUP_HOME/vEcoli_env``, and run ``uv sync``.
 
 .. _sherlock-config:
 
@@ -534,7 +529,7 @@ options to your configuration JSON (note the top-level ``sherlock`` key)::
 
   {
     "sherlock": {
-      # Boolean, whether to build a fresh Apptainer runtime image. If requirements.txt
+      # Boolean, whether to build a fresh Apptainer runtime image. If uv.lock
       # did not change since your last build, you can set this to false
       "build_runtime_image": true,
       # Absolute path (including file name) of Apptainer runtime image to either
@@ -578,7 +573,8 @@ To run and develop the model on Sherlock outside a workflow, run::
   runscripts/container/interactive.sh -w runtime_image_path -a
 
 Replace ``runtime_image_path`` with the path of an Apptainer image built with
-the latest ``requirements.txt``. If you are not sure if ``requirements.txt``
+the latest ``uv.lock``, which contains the version of the Python packages that
+``uv`` will install. If you are not sure if ``uv.lock``
 changed since the last time you ran a workflow with ``build_runtime_image``
 set to true (or if you have never run a workflow), run the following to build
 a runtime image, picking any path::
@@ -613,7 +609,7 @@ to debug with interactive containers (see :ref:`sherlock-interactive`).
 This can be done using the ``-p`` argument for ``runscripts/container/interactive.sh``.
 
 If your HPC cluster does not have Apptainer installed, you can follow the
-local setup instructions in the README assuming your pyenv installation and
+local setup instructions in the README assuming your uv installation and
 virtual environments are accessible from all nodes. Then, delete the following
 lines from ``runscripts/nextflow/config.template`` and always set
 ``build_runtime_image`` to false in your config JSONs (see :ref:`sherlock-config`)::
