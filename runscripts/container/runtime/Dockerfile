@@ -33,7 +33,7 @@ ENV UV_COMPILE_BYTECODE=1
 
 COPY uv.lock pyproject.toml /vEcoli/
 # Install the project's dependencies using the lockfile and settings
-RUN USE_CYTHON=1 CC=gcc uv sync --frozen --no-install-project --no-dev
+RUN CC=gcc uv sync --frozen --no-install-project --no-dev
 
 # Place executables in the environment at the front of the path
 ENV PATH="/vEcoli/.venv/bin:$PATH"
