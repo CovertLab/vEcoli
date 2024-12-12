@@ -3216,10 +3216,17 @@ wheels = [
 [[package]]
 name = "stochastic-arrow"
 version = "1.1.0"
-source = { git = "https://github.com/CovertLab/arrow?rev=numpy2#3589de18424953375a05a9e4416d8077168d9393" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/74/9f/ff40066fb2795eb8ede816d35e274f3e14e8e0f6eb5cfe8a36e7371dd735/stochastic_arrow-1.1.0.tar.gz", hash = "sha256:4b8b21ac2873673a97442439b4681963917230b54110b88282a7cff4d4a9dd8c", size = 22018 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/73/22/897f62ad220c5e7c67d5cd17798231a90965d714f5e5651adef309fb0ebf/stochastic_arrow-1.1.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:cc02ae5216008ca88c5b15b0c1ae9912ea5c450927de804f67c9295874057791", size = 99359 },
+    { url = "https://files.pythonhosted.org/packages/4f/87/be7b45e55562e32432ac67ebc324f53b6a06f6f31fb284ffea991dc147ae/stochastic_arrow-1.1.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:097da7d5cfc54209ab74b735c80c5ae5b9c296949e2564feb9647619d142365f", size = 93773 },
+    { url = "https://files.pythonhosted.org/packages/83/3c/eec2529c87dd022e3cf537dfabd32ea0084f8029eb2e560930c78ee7b805/stochastic_arrow-1.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2886367f77e796589d2c0d91c4efe50af1006dc8e6f2a885aa9befe609e9e381", size = 513892 },
+    { url = "https://files.pythonhosted.org/packages/2a/f5/0534ec782efec47cf575b944a378065ed7890e8ea670f807d311694a53aa/stochastic_arrow-1.1.0-cp312-cp312-win_amd64.whl", hash = "sha256:f07ae6ffeee5c2a330778a1a8bdbf41b7a73235b3bc02a0fe6f265ebcaf1d63c", size = 90487 },
 ]
 
 [[package]]
@@ -3509,7 +3516,7 @@ requires-dist = [
     { name = "sphinx", marker = "extra == 'docs'" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
     { name = "statsmodels" },
-    { name = "stochastic-arrow", git = "https://github.com/CovertLab/arrow?rev=numpy2" },
+    { name = "stochastic-arrow" },
     { name = "swiglpk" },
     { name = "sympy" },
     { name = "tqdm" },
