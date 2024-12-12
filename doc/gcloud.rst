@@ -165,10 +165,10 @@ Cloud are run using Docker containers. vEcoli contains scripts in the
 current state of your repository, with the built images being automatically
 uploaded to the ``vecoli`` Artifact Registry repository of your project.
 
- - ``build-runtime.sh`` builds a base Docker image containing the Python packages
-necessary to run vEcoli as listed in ``uv.lock``
+- ``build-runtime.sh`` builds a base Docker image containing the Python packages
+  necessary to run vEcoli as listed in ``uv.lock``
 - ``build-wcm.sh`` builds on the base image created by ``build-runtime.sh`` by copying
-the files in the cloned vEcoli repository, honoring ``.gitignore``
+  the files in the cloned vEcoli repository, honoring ``.gitignore``
 
 .. tip:: 
   If you want to build these Docker images for local testing, you can run
