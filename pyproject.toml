@@ -52,8 +52,7 @@ dependencies = [
     "pyqt5",
     "iteround",
     "wheel",
-    # Can change to regular stochastic-arrow once PR merged
-    "stochastic-arrow @ git+https://github.com/CovertLab/arrow@numpy2",
+    "stochastic-arrow",
     "autograd",
 ]
 
