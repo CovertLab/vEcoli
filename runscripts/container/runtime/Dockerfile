@@ -11,7 +11,7 @@
 # Add option `--build-arg from=ABC` to build from a different base image "ABC"
 # but DO NOT USE an alpine base since the simulation math comes out different!
 # See https://pythonspeed.com/articles/alpine-docker-python/ for more reasons.
-ARG from=python:3.11.10@sha256:15f10b142547000e2429615b3d314474ae7d6ac062a8dd2c9246adcee7068e55
+ARG from=ghcr.io/astral-sh/uv:0.5.7-python3.12-bookworm-slim@sha256:444d948934bdb22e3204317842be6e1ad454cfa85103287a2ed18e471ede1f5b
 FROM ${from}
 
 RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
@@ -19,20 +19,23 @@ RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
     && cp ~/.bashrc /
 
 # Update and install in the same layer so it won't install from old updates.
-RUN apt-get update \
-    && apt-get install -y swig=4.1.0-0.2 gfortran=4:12.2.0-3 \
-    llvm=1:14.0-55.7~deb12u1 cmake=3.25.1-1 nano=7.2-1+deb12u1 \
-    libopenblas-dev=0.3.21+ds-4
+# procps necessary for `ps` command used by Nextflow to track processes.
+RUN apt-get update && apt-get install -y git gcc procps
 
-# This gets more consistent results from openblas.
+# Install the project into `/vEcoli`
+WORKDIR /vEcoli
+
+# This gets better performance and more reproducible results
 ENV OPENBLAS_NUM_THREADS=1
 
-# Install all the pips within one Docker layer, don't cache the downloads.
-COPY requirements.txt /
-RUN (b1="" \
-    && echo "Installing pips with '$b1'" \
-    && pip install --no-cache-dir --upgrade pip setuptools==73.0.1 wheel \
-    && pip install --no-cache-dir numpy==1.26.4 $b1 \
-    && pip install --no-cache-dir -r requirements.txt $b1)
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
+
+COPY uv.lock pyproject.toml /vEcoli/
+# Install the project's dependencies using the lockfile and settings
+RUN USE_CYTHON=1 CC=gcc uv sync --frozen --no-install-project --no-dev
+
+# Place executables in the environment at the front of the path
+ENV PATH="/vEcoli/.venv/bin:$PATH"
 
 CMD ["/bin/bash"]

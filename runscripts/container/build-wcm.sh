@@ -6,23 +6,24 @@
 # ASSUMES: The current working dir is the vEcoli/ project root.
 
 set -eu
+trap 'rm -f source-info/git_diff.txt' EXIT
 
 RUNTIME_IMAGE="${USER}-wcm-runtime"
 WCM_IMAGE="${USER}-wcm-code"
 RUN_LOCAL=0
 
 usage_str="Usage: build-wcm.sh [-r RUNTIME_IMAGE] \
-[-w WCM_IMAGE] [-a] [-b BIND_PATH] [-l]\n\
+[-w WCM_IMAGE] [-l]\n\
     -r: Docker tag of wcm-runtime image to build from; defaults to \
-"$USER-wcm-runtime" (must exist in Artifact Registry).\n\
-    -w: Docker tag of wcm-code image to build; defaults to "$USER-wcm-code".\n\
+\"$USER-wcm-runtime\" (must exist in Artifact Registry).\n\
+    -w: Docker tag of wcm-code image to build; defaults to \"$USER-wcm-code\".\n\
     -l: Build image locally.\n"
 
 print_usage() {
-  printf "$usage_str"
+  printf "%s" "$usage_str"
 }
 
-while getopts 'r:w:abl:' flag; do
+while getopts 'r:w:l' flag; do
   case "${flag}" in
     r) RUNTIME_IMAGE="${OPTARG}" ;;
     w) WCM_IMAGE="${OPTARG}" ;;
@@ -38,7 +39,7 @@ TIMESTAMP=$(date '+%Y%m%d.%H%M%S')
 mkdir -p source-info
 git diff HEAD > source-info/git_diff.txt
 
-if (( $RUN_LOCAL )); then
+if [ "$RUN_LOCAL" -ne 0 ]; then
     echo "=== Locally building WCM code Docker Image ${WCM_IMAGE} on ${RUNTIME_IMAGE} ==="
     echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
     docker build -f runscripts/container/wholecell/Dockerfile -t "${WCM_IMAGE}" \
@@ -57,7 +58,7 @@ else
     REGION=$(gcloud config get compute/region)
     # This needs a config file to identify the project files to upload and the
     # Dockerfile to run.
-    gcloud builds submit --timeout=15m --region=$REGION \
+    gcloud builds submit --timeout=15m --region="$REGION" \
       --config runscripts/container/cloud_build.json \
       --substitutions="_WCM_RUNTIME=${RUNTIME_IMAGE},\
 _WCM_CODE=${WCM_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\

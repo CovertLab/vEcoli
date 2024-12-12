@@ -15,7 +15,6 @@ from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
-    create_unique_indexes,
     listener_schema,
     numpy_schema,
     attrs,
@@ -136,12 +135,6 @@ class ChromosomeStructure(Step):
         self.inactive_RNAPs_idx = None
 
         self.emit_unique = self.parameters.get("emit_unique", True)
-
-        self.chromosome_segment_index = 0
-        self.promoter_index = 60000
-        self.DnaA_box_index = 60000
-
-        self.random_state = np.random.RandomState(seed=self.parameters["seed"])
 
     def ports_schema(self):
         ports = {
@@ -408,7 +401,6 @@ class ChromosomeStructure(Step):
                 boundary_coordinates,
                 segment_domain_indexes,
                 linking_numbers,
-                chromosomal_segment_indexes,
             ) = attrs(
                 states["chromosomal_segments"],
                 [
@@ -416,7 +408,6 @@ class ChromosomeStructure(Step):
                     "boundary_coordinates",
                     "domain_index",
                     "linking_number",
-                    "unique_index",
                 ],
             )
 
@@ -545,17 +536,9 @@ class ChromosomeStructure(Step):
                 )
 
             # Add new chromosomal segments
-            n_segments = len(all_new_linking_numbers)
-
-            self.chromosome_segment_index = chromosomal_segment_indexes.max() + 1
-
             update["chromosomal_segments"].update(
                 {
                     "add": {
-                        "unique_index": np.arange(
-                            self.chromosome_segment_index,
-                            self.chromosome_segment_index + n_segments,
-                        ),
                         "boundary_molecule_indexes": all_new_boundary_molecule_indexes,
                         "boundary_coordinates": all_new_boundary_coordinates,
                         "domain_index": all_new_segment_domain_indexes,
@@ -762,11 +745,9 @@ class ChromosomeStructure(Step):
             )
 
             # Add new promoters with new domain indexes
-            promoter_indices = create_unique_indexes(n_new_promoters, self.random_state)
             update["promoters"].update(
                 {
                     "add": {
-                        "unique_index": promoter_indices,
                         "TU_index": promoter_TU_indexes_new,
                         "coordinates": promoter_coordinates_new,
                         "domain_index": promoter_domain_indexes_new,
@@ -796,11 +777,9 @@ class ChromosomeStructure(Step):
             )
 
             # Add new genes with new domain indexes
-            gene_indices = create_unique_indexes(n_new_genes, self.random_state)
             update["genes"].update(
                 {
                     "add": {
-                        "unique_index": gene_indices,
                         "cistron_index": gene_cistron_indexes_new,
                         "coordinates": gene_coordinates_new,
                         "domain_index": gene_domain_indexes_new,
@@ -829,12 +808,8 @@ class ChromosomeStructure(Step):
             )
 
             # Add new DnaA boxes with new domain indexes
-            DnaA_box_indices = create_unique_indexes(
-                n_new_DnaA_boxes, self.random_state
-            )
             dict_dna = {
                 "add": {
-                    "unique_index": DnaA_box_indices,
                     "coordinates": DnaA_box_coordinates_new,
                     "domain_index": DnaA_box_domain_indexes_new,
                     "DnaA_bound": np.zeros(n_new_DnaA_boxes, dtype=np.bool_),

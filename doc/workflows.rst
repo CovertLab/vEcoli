@@ -619,18 +619,18 @@ lines from ``runscripts/nextflow/config.template`` and always set
 ``build_runtime_image`` to false in your config JSONs (see :ref:`sherlock-config`)::
 
   process.container = 'IMAGE_NAME'
+  ...
   apptainer.enabled = true
 
 If your HPC cluster also uses the SLURM scheduler,
-you can use vEcoli on that cluster by changing the ``process.queue`` option in
-``runscripts/nextflow/config.template`` and all strings of the format
-``--partition=QUEUE`` in :py:mod:`runscripts.workflow` to the right queue for your
-cluster.
+you can use vEcoli on that cluster by changing the ``queue`` option in
+``runscripts/nextflow/config.template`` and ``--partition=QUEUE`` in
+:py:mod:`runscripts.workflow` to the right queue for your cluster.
 
 If your HPC cluster uses a different scheduler, refer to the Nextflow
 `executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_
 for more information on configuring the right executor, starting with
-``process.executor`` in ``runscripts/nextflow/config.template``.
+``executor`` in ``runscripts/nextflow/config.template``.
 
 .. _progress:
 
