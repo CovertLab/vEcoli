@@ -121,27 +121,8 @@ right service account and project. Next, install Git and clone the vEcoli reposi
   sudo apt update && sudo apt install git
   git clone https://github.com/CovertLab/vEcoli.git
 
-Try running ``python3 -m venv vEcoli-env`` and read the error message to find
-what version of ``venv`` you need to ``sudo apt install``. Once installed,
-run ``python3 -m venv vEcoli-env`` to create a virtual environment. Activate
-this virtual environment by running ``source vEcoli-env/bin/activate``.
-
-.. tip:: 
-  Instead of doing this manually every time you start your VM, you can append
-  ``source $HOME/vEcoli-env/bin/activate`` to your ``~/.bashrc``.
-
-With the virtual environment activated, navigate into the cloned vEcoli
-repository and install the required Python packages (check README.md and
-requirements.txt for correct versions)::
-
-  cd vEcoli
-  pip install --upgrade pip setuptools==73.0.1 wheel
-  pip install numpy==1.26.4
-  pip install -r requirements.txt
-  make clean compile
-
-Then, install Java (through SDKMAN) and Nextflow following
-`these instructions <https://www.nextflow.io/docs/latest/install.html>`_.
+Now follow the installation instructions from the README starting with
+installing ``uv`` and finishing with installing Nextflow.
 
 .. note::
   The only requirements to run :mod:`runscripts.workflow` on Google Cloud
@@ -185,7 +166,7 @@ current state of your repository, with the built images being automatically
 uploaded to the ``vecoli`` Artifact Registry repository of your project.
 
  - ``build-runtime.sh`` builds a base Docker image containing the Python packages
-necessary to run vEcoli as listed in ``requirements.txt``
+necessary to run vEcoli as listed in ``uv.lock``
 - ``build-wcm.sh`` builds on the base image created by ``build-runtime.sh`` by copying
 the files in the cloned vEcoli repository, honoring ``.gitignore``
 
@@ -201,7 +182,7 @@ keys in your configuration JSON::
     "gcloud": {
       # Name of image build-runtime.sh built/will build
       "runtime_image_name": ""
-      # Boolean, can put false if requirements.txt did not change since the last
+      # Boolean, can put false if uv.lock did not change since the last
       # time a workflow was run with this set to true
       "build_runtime_image": true,
       # Name of image build-wcm.sh built/will build

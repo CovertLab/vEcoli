@@ -1,6 +1,6 @@
 #!/bin/sh
 # Use Google Cloud Build, local Docker, or HPC cluster Apptainer to build
-# a personalized image with requirements.txt installed. If using Cloud Build,
+# a personalized image with uv.lock packages installed. If using Cloud Build,
 # store the built image in the "vecoli" repository in Artifact Registry.
 #
 # ASSUMES: The current working dir is the vEcoli/ project root.
