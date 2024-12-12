@@ -9,7 +9,8 @@
         "out_dir": "/scratch/groups/mcovert/vecoli"
     },
     "parca_options": {
-        "operons": false
+        "operons": false,
+        "cpus": 4
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}}

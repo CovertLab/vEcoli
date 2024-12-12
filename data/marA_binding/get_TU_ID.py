@@ -5,7 +5,7 @@ Compile marA-Regulated Gene Metadata
 
 This file contains functions to compile important metadata for genes that
 are designed to be regulated by marA when the `mar_regulon` option is enabled.
-For each gene, the output `model_degenes.csv` file contains the fold change,
+For each gene, the output `gene_fc.csv` file contains the fold change,
 monomer ID, gene ID, TU index, bulk ID, and IDs of complexes containing that
 monomer as well as the number of monomers incorporated into each complex.
 
@@ -150,7 +150,7 @@ def main():
     ].to_numpy()[0]
     marR_monomers_used.append(-2)
 
-    de_genes.to_csv("data/marA_binding/model_degenes.csv", index=False)
+    de_genes.to_csv("reconstruction/ecoli/flat/tetracycline/gene_fc.csv", index=False)
 
 
 if __name__ == "__main__":

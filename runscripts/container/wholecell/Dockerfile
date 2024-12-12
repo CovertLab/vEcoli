@@ -16,7 +16,7 @@
 #
 #     > docker run --name wholecelltest -it --rm ${USER}-wcm-code
 #
-# or if you used build.sh or build-wcm.sh to build using Cloud Build:
+# or if you used build-wcm.sh to build using Cloud Build:
 #
 #     > PROJECT="$(gcloud config get-value core/project)"
 #     > TAG="gcr.io/${PROJECT}/${USER}-wcm-code"
@@ -24,11 +24,11 @@
 #
 # It will start a shell where you can execute commands:
 #
-#     # pytest
+#     uv run --env-file .env pytest
 #
 # If this succeeds you can start running WCM code in the container, e.g.:
 #
-#     # python runscripts/manual/runParca.py
+#     uv run --env-file .env runscripts/manual/runParca.py
 
 ARG from=wcm-runtime:latest
 FROM ${from}
@@ -51,8 +51,7 @@ LABEL application="Whole Cell Model of Escherichia coli" \
 COPY . /vEcoli
 WORKDIR /vEcoli
 
-RUN make clean compile
-ENV PYTHONPATH=/vEcoli
+RUN CC=gcc uv sync --frozen
 
 # Since this build runs as root, set permissions so running the container as
 # another user will work: Parca writes into /vEcoli/cache/.

@@ -69,19 +69,18 @@ profiles {
     }
     sherlock {
         process {
-            // Run analyses, create variants, and run ParCa locally with
+            // Run analyses and create variants locally with
             // the job used to launch workflow to avoid long queue times
             withLabel: short {
                 executor = 'local'
             }
-            // ParCa 4 CPUs in ~15 min, 1 CPU in ~30 min, not too bad
             withLabel: parca {
-                executor = 'local'
-                cpus = 1
-                memory = 2.GB
+                cpus = params.parca_cpus
+                memory = params.parca_cpus * 2.GB
             }
             container = params.container_image
-            queue = 'mcovert,owners'
+            containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
+            queue = 'mcovert,owners,dev,normal'
             executor = 'slurm'
             // Single core sims are slightly slower but can have shorter
             // queue times and is less damaging to future job priority
