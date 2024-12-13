@@ -64,7 +64,7 @@ class ChromosomeStructure(Step):
     topology = TOPOLOGY
     defaults = {
         # Load parameters
-        "RNA_sequences": [],
+        "rna_sequences": [],
         "protein_sequences": [],
         "n_TUs": 1,
         "n_TFs": 1,
@@ -87,6 +87,12 @@ class ChromosomeStructure(Step):
         "water": "water",
         "seed": 0,
         "emit_unique": False,
+        "rna_ids": [],
+        "n_mature_rnas": 0,
+        "mature_rna_ids": [],
+        "mature_rna_end_positions": [],
+        "mature_rna_nt_counts": [],
+        "unprocessed_rna_index_mapping": {},
     }
 
     # Constructor
@@ -307,11 +313,15 @@ class ChromosomeStructure(Step):
                     ]
 
                     # Get mask for molecules on this domain that are out of range
+                    # It's rare but we have to remove molecules at the exact same
+                    # coordinates as the replisomes as well so that they do not break
+                    # the chromosome segment calculations if they are removed by a
+                    # different process (hence, >= and <= instead of > and <)
                     domain_mask = np.logical_and.reduce(
                         (
                             domain_indexes == domain_index,
-                            coordinates > domain_replisome_coordinates.min(),
-                            coordinates < domain_replisome_coordinates.max(),
+                            coordinates >= domain_replisome_coordinates.min(),
+                            coordinates <= domain_replisome_coordinates.max(),
                         )
                     )
 
