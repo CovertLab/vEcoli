@@ -126,7 +126,7 @@ class MetadataArray(np.ndarray):
         # Views should inherit metadata from parent
         self.metadata = getattr(obj, "metadata", None)
 
-    def __array_wrap__(self, out_arr, context=None):
+    def __array_wrap__(self, out_arr, context=None, return_scalar=False):
         # If the result is a scalar, return it as a base scalar type
         if out_arr.shape == ():
             return out_arr.item()
