@@ -37,10 +37,19 @@ tasks are:
 Logs from these tests can be viewed on the GitHub website and we strongly
 recommend that you get all of these tests passing before merging a PR.
 
-Additionally, we would appreciate if you added tests to improve our test coverage
-and improve the likelihood that we catch bugs. This could be as simple as a Python
-function with the ``test_`` prefix that ensures some bit of code changed in your
-PR works as intended with a few test cases.
+When you submit a pull request (PR), a bot will comment with a table showing the current code
+coverage of the ``pytest`` suite. As of December 2024, coverage is less than 30%
+and even that is misleading because many of the tests are "migration" tests
+that compare vEcoli to a snapshot of the original whole cell model. These tests will
+be removed in the future as vEcoli is further developed. Additionally, these tests do
+not tell us whether the code is working as intended, only that it is working the same
+way it worked in the original model. Ideally, we would like to increase test coverage
+by adding unit tests which actually test edge cases and ensure the code does what it
+is supposed to do.
+
+To that end, we would appreciate if you added tests as part of your pull requests.
+This could be as simple as a Python function with the ``test_`` prefix that ensures
+the code added or modified in your PR works as intended using a few test cases.
 
 -------
 Jenkins
