@@ -1250,7 +1250,7 @@ def test_superhelical_bug():
     )
     engine.update(1)
     state = engine.state.get_value()
-    # Check that conflicting RNAPs were removed leaving only one
+    # Check that conflicting RNAPs were removed
     active_RNAPs = state["unique"]["active_RNAP"][
         state["unique"]["active_RNAP"]["_entryState"].view(np.bool_)
     ]
@@ -1259,8 +1259,8 @@ def test_superhelical_bug():
     assert np.all(active_RNAPs["coordinates"] == np.array([-1500, 1500]))
     assert np.all(active_RNAPs["unique_index"] == np.array([3, 6]))
     # Check that chromosomal segments were added for the span between
-    # each replisome and terC in addition to the existing one between
-    # one replisome and the only remaining RNAP
+    # each replisome and terC in addition to the existing ones between
+    # replisomes and non-conflicting RNAPs
     active_chromosome_segments = state["unique"]["chromosomal_segment"][
         state["unique"]["chromosomal_segment"]["_entryState"].view(np.bool_)
     ]
