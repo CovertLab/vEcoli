@@ -289,8 +289,8 @@ class EngineProcess(Process):
             "ignore",
             message="Incompatible schema "
             "assignment at .+ Trying to assign the value <bound method "
-            "UniqueNumpyUpdater\.updater .+ to key updater, which already "
-            "has the value <bound method UniqueNumpyUpdater\.updater",
+            r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
+            r"has the value <bound method UniqueNumpyUpdater\.updater",
         )
         self.sim = Engine(
             processes=processes,
