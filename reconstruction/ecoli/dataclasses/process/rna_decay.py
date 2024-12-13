@@ -8,6 +8,7 @@ import autograd.numpy as anp
 from autograd import jacobian
 import numpy as np
 
+
 class RnaDecay(object):
     """RnaDecay"""
 

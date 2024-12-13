@@ -740,9 +740,8 @@ the output directory specified via ``out_dir`` or ``out_uri`` under the
         - ``nextflow_workdirs``: Contains all working directories for Nextflow jobs.
           Required for resume functionality described in :ref:`fault_tolerance`. Can
           also go to work directory for a job (consult files described in :ref:`progress`
-          or ``{experiment ID}_report.html``) and run ``bash .command.sh`` with
-          breakpoints set in the relevant code (``import ipdb; ipdb.set_trace()``)
-          for debugging.
+          or ``{experiment ID}_report.html``) for debugging. See :ref:`make_and_test`
+          for more information.
 
 .. tip::
   To save space, you can safely delete ``nextflow_workdirs`` after you are finished
@@ -795,6 +794,8 @@ in a workflow called ``agitated_mendel``::
   nextflow log agitated_mendel -f name,stderr,workdir -F "status == 'FAILED'"
 
 
+.. _make_and_test:
+
 Make and Test Fixes
 ===================
 
@@ -810,11 +811,14 @@ Add breakpoints to any Python file with the following line::
   import ipdb; ipdb.set_trace()
 
 Then, navigate to the working directory (see :ref:`troubleshooting`) for a
-failing process. ``bash .command.run`` should re-run the job and pause upon
-reaching the breakpoints you set. You should now be in an ipdb shell which
-you can use to examine variable values or step through the code.
+failing process. Invoke ``uv run --env-file {} .command.run``, replacing
+the curly braces with the path to the ``.env`` file in your cloned repository.
+This should re-run the job and pause upon reaching the breakpoints you set.
+You should now be in an ipdb shell which you can use to examine variable values
+or step through the code.
 
 After fixing the issue, you can resume the workflow (avoid re-running
 already successful jobs) by navigating back to the directory in which you
-originally started the workflow and issuing the same command with the
-``--resume`` option (see :ref:`fault_tolerance`).
+originally started the workflow and issuing the same command
+(:py:mod:`runscripts.workflow`) with the ``--resume`` option
+(see :ref:`fault_tolerance`).
