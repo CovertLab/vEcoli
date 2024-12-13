@@ -1135,24 +1135,33 @@ def test_superhelical_bug():
     """
     # Get topology for UniqueUpdate Steps
     unique_topology = TOPOLOGY.copy()
-    for non_unique in ["bulk", "listeners", "global_time", "timestep", "next_update_time"]:
+    for non_unique in [
+        "bulk",
+        "listeners",
+        "global_time",
+        "timestep",
+        "next_update_time",
+    ]:
         unique_topology.pop(non_unique)
+
     class TestComposer(Composer):
         def generate_processes(self, config):
             return {
-                "chromosome_structure": ChromosomeStructure({
-                    "inactive_RNAPs": "APORNAP-CPLX[c]",
-                    "ppi": "PPI[c]",
-                    "active_tfs": ["CPLX-125[c]"],
-                    "ribosome_30S_subunit": "CPLX0-3953[c]",
-                    "ribosome_50S_subunit": "CPLX0-3962[c]",
-                    "amino_acids": ["L-ALPHA-ALANINE[c]"],
-                    "water": "WATER[c]",
-                    "mature_rna_ids": ["alaT-tRNA[c]"],
-                    "fragmentBases": ["polymerized_ATP[c]"],
-                    "replichore_lengths": [2000, 2000],
-                    "calculate_superhelical_densities": True,
-                }),
+                "chromosome_structure": ChromosomeStructure(
+                    {
+                        "inactive_RNAPs": "APORNAP-CPLX[c]",
+                        "ppi": "PPI[c]",
+                        "active_tfs": ["CPLX-125[c]"],
+                        "ribosome_30S_subunit": "CPLX0-3953[c]",
+                        "ribosome_50S_subunit": "CPLX0-3962[c]",
+                        "amino_acids": ["L-ALPHA-ALANINE[c]"],
+                        "water": "WATER[c]",
+                        "mature_rna_ids": ["alaT-tRNA[c]"],
+                        "fragmentBases": ["polymerized_ATP[c]"],
+                        "replichore_lengths": [2000, 2000],
+                        "calculate_superhelical_densities": True,
+                    }
+                ),
                 "unique_update": UniqueUpdate({"unique_topo": unique_topology}),
                 "global_clock": GlobalClock(),
             }
@@ -1165,9 +1174,12 @@ def test_superhelical_bug():
                 },
                 "chromosome_structure": TOPOLOGY,
                 "unique_update": unique_topology,
-                "global_clock": {"global_time": ("global_time",), "next_update_time": ("next_update_time",)},
+                "global_clock": {
+                    "global_time": ("global_time",),
+                    "next_update_time": ("next_update_time",),
+                },
             }
-        
+
         def generate_flow(self, config):
             return {
                 "chromosome_structure": [],
@@ -1212,7 +1224,9 @@ def test_superhelical_bug():
     active_RNAP.flags.writeable = False
     # Add chromosomal segments between replisome and RNAPs on either side
     # of origin of replication (coordinates offset from current timestep)
-    chromosomal_segments, _ = get_free_indices(template_initial_state["unique"]["chromosomal_segment"], 2)
+    chromosomal_segments, _ = get_free_indices(
+        template_initial_state["unique"]["chromosomal_segment"], 2
+    )
     chromosomal_segments.flags.writeable = True
     chromosomal_segments["_entryState"][:2] = 1
     chromosomal_segments["boundary_coordinates"][:2] = [[-1400, -800], [800, 1400]]
@@ -1237,7 +1251,9 @@ def test_superhelical_bug():
     engine.update(1)
     state = engine.state.get_value()
     # Check that conflicting RNAPs were removed leaving only one
-    active_RNAPs = state["unique"]["active_RNAP"][state["unique"]["active_RNAP"]["_entryState"].view(np.bool_)]
+    active_RNAPs = state["unique"]["active_RNAP"][
+        state["unique"]["active_RNAP"]["_entryState"].view(np.bool_)
+    ]
     assert len(active_RNAPs) == 2
     assert np.all(active_RNAPs["domain_index"] == 1)
     assert np.all(active_RNAPs["coordinates"] == np.array([-1500, 1500]))
@@ -1246,10 +1262,17 @@ def test_superhelical_bug():
     # each replisome and terC in addition to the existing one between
     # one replisome and the only remaining RNAP
     active_chromosome_segments = state["unique"]["chromosomal_segment"][
-        state["unique"]["chromosomal_segment"]["_entryState"].view(np.bool_)]
+        state["unique"]["chromosomal_segment"]["_entryState"].view(np.bool_)
+    ]
     assert len(active_chromosome_segments) == 4
-    assert np.all(active_chromosome_segments["boundary_coordinates"] == np.array([[-2000, -1500], [-1500, -1000], [1000, 1500], [1500, 2000]]))
-    assert np.all(active_chromosome_segments["boundary_molecule_indexes"] == np.array([[-1, 3], [3, 1], [2, 6], [6, -1]]))
+    assert np.all(
+        active_chromosome_segments["boundary_coordinates"]
+        == np.array([[-2000, -1500], [-1500, -1000], [1000, 1500], [1500, 2000]])
+    )
+    assert np.all(
+        active_chromosome_segments["boundary_molecule_indexes"]
+        == np.array([[-1, 3], [3, 1], [2, 6], [6, -1]])
+    )
 
 
 if __name__ == "__main__":
