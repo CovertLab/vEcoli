@@ -345,12 +345,17 @@ def run_and_compare(
     if "mRNA_counts" in actual_listeners:
         actual_listeners = {"mrna_counts": actual_listeners}
     # Gene copy number determined by listener after everything updates in wcEcoli
-    # TODO: Move this out of TfBinding process
+    # Empty fork collisions are a new concept in vEcoli
     assert recursive_compare(
         actual_listeners,
         wc_listeners,
         check_keys_strict=False,
-        ignore_keys={"growth", "gene_copy_number"},
+        ignore_keys={
+            "growth",
+            "gene_copy_number",
+            "n_empty_fork_collisions",
+            "empty_fork_collision_coordinates",
+        },
     )
 
 
