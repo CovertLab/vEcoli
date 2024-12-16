@@ -311,9 +311,11 @@ def main():
     )
     parser.add_argument(
         "--resume",
-        action="store_true",
-        default=False,
-        help="Resume last run workflow.",
+        type=str,
+        default=None,
+        help="Resume workflow with given experiment ID. The experiment ID must "
+        "match the supplied configuration file and if suffix_time was used, must "
+        "contain the full time suffix (suffix_time will not be applied again).",
     )
     args = parser.parse_args()
     with open(config_file, "r") as f:
@@ -335,11 +337,14 @@ def main():
     experiment_id = config["experiment_id"]
     if experiment_id is None:
         raise RuntimeError("No experiment ID was provided.")
-    if config["suffix_time"]:
+    if args.resume is not None:
+        experiment_id = args.resume
+        config["experiment_id"] = args.resume
+    elif config["suffix_time"]:
         current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
         experiment_id = experiment_id + "_" + current_time
         config["experiment_id"] = experiment_id
-        config["suffix_time"] = False
+    config["suffix_time"] = False
     # Special characters are messy so do not allow them
     if experiment_id != parse.quote_plus(experiment_id):
         raise TypeError(
@@ -370,7 +375,7 @@ def main():
     final_config_uri = os.path.join(out_uri, "workflow_config.json")
     with open(temp_config_path, "w") as f:
         json.dump(config, f)
-    if not args.resume:
+    if args.resume is None:
         copy_to_filesystem(temp_config_path, final_config_path, filesystem)
 
     nf_config = os.path.join(os.path.dirname(__file__), "nextflow", "config.template")
@@ -471,7 +476,7 @@ def main():
     workflow_path = os.path.join(out_uri, "main.nf")
 
     config_path = os.path.join(out_uri, "nextflow.config")
-    if not args.resume:
+    if args.resume is None:
         copy_to_filesystem(local_workflow, os.path.join(outdir, "main.nf"), filesystem)
         copy_to_filesystem(
             local_config, os.path.join(outdir, "nextflow.config"), filesystem
@@ -497,7 +502,7 @@ def main():
                 report_path,
                 "-work-dir",
                 workdir,
-                "-resume" if args.resume else "",
+                "-resume" if args.resume is not None else "",
             ],
             check=True,
         )
@@ -511,7 +516,7 @@ def main():
 #SBATCH --mem=4GB
 #SBATCH --partition=mcovert
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
-    -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume else ""}
+    -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume is not None else ""}
 """)
         copy_to_filesystem(
             batch_script, os.path.join(outdir, "nextflow_job.sh"), filesystem
