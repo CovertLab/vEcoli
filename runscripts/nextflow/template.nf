@@ -26,7 +26,7 @@ process runParca {
 }
 
 process analysisParca {
-    publishDir "${params.publishDir}/${params.experimentId}/parca/analysis", mode: "move"
+    publishDir "${params.publishDir}/${params.experimentId}/parca/analysis", mode: "copy"
 
     label "short"
 
