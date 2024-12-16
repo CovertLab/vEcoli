@@ -149,8 +149,8 @@ def test_division_topology():
         "ignore",
         message="Incompatible schema "
         "assignment at .+ Trying to assign the value <bound method "
-        "UniqueNumpyUpdater\.updater .+ to key updater, which already "
-        "has the value <bound method UniqueNumpyUpdater\.updater",
+        r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
+        r"has the value <bound method UniqueNumpyUpdater\.updater",
     )
     sim.ecoli_experiment = Engine(**experiment_config)
 
@@ -217,7 +217,7 @@ def test_lattice_lysis(plot=False):
     """
     Run plots:
     '''
-    > python ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
+    > uv run --env-file .env ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
     '''
 
     ANTIBIOTIC_KEY = 'nitrocefin'
@@ -287,6 +287,6 @@ test_library = {
 }
 
 # run experiments in test_library from the command line with:
-# python ecoli/composites/ecoli_master_tests.py -n [experiment id]
+# uv run --env-file .env ecoli/composites/ecoli_master_tests.py -n [experiment id]
 if __name__ == "__main__":
     run_library_cli(test_library)

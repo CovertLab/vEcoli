@@ -1,0 +1,34 @@
+Bootstrap: docker
+From: ghcr.io/astral-sh/uv@sha256:444d948934bdb22e3204317842be6e1ad454cfa85103287a2ed18e471ede1f5b
+
+%environment
+    export OPENBLAS_NUM_THREADS=1
+    export PATH="/vEcoli/.venv/bin:$PATH"
+    export UV_PROJECT_ENVIRONMENT="/vEcoli/.venv"
+    export CC=gcc
+
+%labels
+    application "Whole Cell Model Runtime Environment"
+    email "wholecellteam@lists.stanford.edu"
+    license "https://github.com/CovertLab/vEcoli/blob/master/LICENSE"
+    organization "Covert Lab at Stanford"
+    website "https://www.covert.stanford.edu/"
+
+%files
+    uv.lock /vEcoli/uv.lock
+    pyproject.toml /vEcoli/pyproject.toml
+
+%post
+    echo "Setting up runtime environment..."
+
+    echo "alias ls='ls --color=auto'" >> ~/.bashrc
+    echo "alias ll='ls -l'" >> ~/.bashrc
+    cp ~/.bashrc /
+
+    apt-get update && apt-get install -y git gcc procps
+
+    UV_COMPILE_BYTECODE=1 CC=gcc uv sync --frozen --no-install-project --no-dev --project vEcoli
+
+%runscript
+    # This defines the default behavior when the container is executed.
+    exec /bin/bash

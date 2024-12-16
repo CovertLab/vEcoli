@@ -12,15 +12,20 @@ import numpy as np
 import numpy.typing as npt
 import warnings
 from vivarium.core.process import Step
+from vivarium.core.composer import Composer
+from vivarium.core.engine import Engine
 
+from ecoli.processes.global_clock import GlobalClock
+from ecoli.processes.unique_update import UniqueUpdate
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
-    create_unique_indexes,
     listener_schema,
     numpy_schema,
     attrs,
     bulk_name_to_idx,
+    get_free_indices,
 )
+from ecoli.library.json_state import get_state_from_file
 from wholecell.utils.polymerize import buildSequences
 
 # Register default topology for this process, associating it with process name
@@ -50,8 +55,7 @@ TOPOLOGY = {
     "promoters": ("unique", "promoter"),
     "DnaA_boxes": ("unique", "DnaA_box"),
     "genes": ("unique", "gene"),
-    # TODO(vivarium): Only include if superhelical density flag is passed
-    # "chromosomal_segments": ("unique", "chromosomal_segment")
+    "chromosomal_segments": ("unique", "chromosomal_segment"),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
     "next_update_time": ("next_update_time", "chromosome_structure"),
@@ -66,7 +70,7 @@ class ChromosomeStructure(Step):
     topology = TOPOLOGY
     defaults = {
         # Load parameters
-        "RNA_sequences": [],
+        "rna_sequences": [],
         "protein_sequences": [],
         "n_TUs": 1,
         "n_TFs": 1,
@@ -74,7 +78,7 @@ class ChromosomeStructure(Step):
         "n_fragment_bases": 1,
         "replichore_lengths": [0, 0],
         "relaxed_DNA_base_pairs_per_turn": 1,
-        "terC_index": 1,
+        "terC_index": -1,
         "calculate_superhelical_densities": False,
         # Get placeholder value for chromosome domains without children
         "no_child_place_holder": -1,
@@ -89,6 +93,13 @@ class ChromosomeStructure(Step):
         "water": "water",
         "seed": 0,
         "emit_unique": False,
+        "rna_ids": [],
+        "n_mature_rnas": 0,
+        "mature_rna_ids": [],
+        "mature_rna_end_positions": [],
+        "mature_rna_nt_counts": [],
+        "unprocessed_rna_index_mapping": {},
+        "time_step": 1.0,
     }
 
     # Constructor
@@ -138,12 +149,6 @@ class ChromosomeStructure(Step):
 
         self.emit_unique = self.parameters.get("emit_unique", True)
 
-        self.chromosome_segment_index = 0
-        self.promoter_index = 60000
-        self.DnaA_box_index = 60000
-
-        self.random_state = np.random.RandomState(seed=self.parameters["seed"])
-
     def ports_schema(self):
         ports = {
             "listeners": {
@@ -185,6 +190,9 @@ class ChromosomeStructure(Step):
             "DnaA_boxes": numpy_schema(
                 "DnaA_boxes", emit=self.parameters["emit_unique"]
             ),
+            "chromosomal_segments": numpy_schema(
+                "chromosomal_segments", emit=self.parameters["emit_unique"]
+            ),
             "genes": numpy_schema("genes", emit=self.parameters["emit_unique"]),
             "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
@@ -194,21 +202,6 @@ class ChromosomeStructure(Step):
                 "_divider": "set",
             },
         }
-
-        # TODO: Work on this functionality
-        if self.calculate_superhelical_densities:
-            ports["chromosomal_segments"] = {
-                "*": {
-                    "boundary_molecule_indexes": {
-                        "_default": np.empty((0, 2), dtype=np.int64)
-                    },
-                    "boundary_coordinates": {
-                        "_default": np.empty((0, 2), dtype=np.int64)
-                    },
-                    "domain_index": {"_default": 0},
-                    "linking_number": {"_default": 0},
-                }
-            }
 
         return ports
 
@@ -327,11 +320,15 @@ class ChromosomeStructure(Step):
                     ]
 
                     # Get mask for molecules on this domain that are out of range
+                    # It's rare but we have to remove molecules at the exact same
+                    # coordinates as the replisomes as well so that they do not break
+                    # the chromosome segment calculations if they are removed by a
+                    # different process (hence, >= and <= instead of > and <)
                     domain_mask = np.logical_and.reduce(
                         (
                             domain_indexes == domain_index,
-                            coordinates > domain_replisome_coordinates.min(),
-                            coordinates < domain_replisome_coordinates.max(),
+                            coordinates >= domain_replisome_coordinates.min(),
+                            coordinates <= domain_replisome_coordinates.max(),
                         )
                     )
 
@@ -408,6 +405,7 @@ class ChromosomeStructure(Step):
             "RNAs": {},
             "active_ribosome": {},
             "full_chromosomes": {},
+            "chromosomal_segments": {},
             "promoters": {},
             "genes": {},
             "DnaA_boxes": {},
@@ -555,28 +553,9 @@ class ChromosomeStructure(Step):
                 )
 
             # Add new chromosomal segments
-            n_segments = len(all_new_linking_numbers)
-
-            if "chromosomal_segments" in states and states["chromosomal_segments"]:
-                self.chromosome_segment_index = (
-                    int(
-                        max(
-                            [
-                                int(index)
-                                for index in list(states["chromosomal_segments"].keys())
-                            ]
-                        )
-                    )
-                    + 1
-                )
-
             update["chromosomal_segments"].update(
                 {
                     "add": {
-                        "unique_index": np.arange(
-                            self.chromosome_segment_index,
-                            self.chromosome_segment_index + n_segments,
-                        ),
                         "boundary_molecule_indexes": all_new_boundary_molecule_indexes,
                         "boundary_coordinates": all_new_boundary_coordinates,
                         "domain_index": all_new_segment_domain_indexes,
@@ -783,11 +762,9 @@ class ChromosomeStructure(Step):
             )
 
             # Add new promoters with new domain indexes
-            promoter_indices = create_unique_indexes(n_new_promoters, self.random_state)
             update["promoters"].update(
                 {
                     "add": {
-                        "unique_index": promoter_indices,
                         "TU_index": promoter_TU_indexes_new,
                         "coordinates": promoter_coordinates_new,
                         "domain_index": promoter_domain_indexes_new,
@@ -817,11 +794,9 @@ class ChromosomeStructure(Step):
             )
 
             # Add new genes with new domain indexes
-            gene_indices = create_unique_indexes(n_new_genes, self.random_state)
             update["genes"].update(
                 {
                     "add": {
-                        "unique_index": gene_indices,
                         "cistron_index": gene_cistron_indexes_new,
                         "coordinates": gene_coordinates_new,
                         "domain_index": gene_domain_indexes_new,
@@ -850,12 +825,8 @@ class ChromosomeStructure(Step):
             )
 
             # Add new DnaA boxes with new domain indexes
-            DnaA_box_indices = create_unique_indexes(
-                n_new_DnaA_boxes, self.random_state
-            )
             dict_dna = {
                 "add": {
-                    "unique_index": DnaA_box_indices,
                     "coordinates": DnaA_box_coordinates_new,
                     "domain_index": DnaA_box_domain_indexes_new,
                     "DnaA_bound": np.zeros(n_new_DnaA_boxes, dtype=np.bool_),
@@ -1155,3 +1126,154 @@ class ChromosomeStructure(Step):
             "boundary_coordinates": new_boundary_coordinates,
             "linking_numbers": new_linking_numbers,
         }
+
+
+def test_superhelical_bug():
+    """
+    Test that ChromosomeStructure correctly handles edge case where RNAP and replisome
+    share the same genomic coordinates.
+    """
+    # Get topology for UniqueUpdate Steps
+    unique_topology = TOPOLOGY.copy()
+    for non_unique in [
+        "bulk",
+        "listeners",
+        "global_time",
+        "timestep",
+        "next_update_time",
+    ]:
+        unique_topology.pop(non_unique)
+
+    class TestComposer(Composer):
+        def generate_processes(self, config):
+            return {
+                "chromosome_structure": ChromosomeStructure(
+                    {
+                        "inactive_RNAPs": "APORNAP-CPLX[c]",
+                        "ppi": "PPI[c]",
+                        "active_tfs": ["CPLX-125[c]"],
+                        "ribosome_30S_subunit": "CPLX0-3953[c]",
+                        "ribosome_50S_subunit": "CPLX0-3962[c]",
+                        "amino_acids": ["L-ALPHA-ALANINE[c]"],
+                        "water": "WATER[c]",
+                        "mature_rna_ids": ["alaT-tRNA[c]"],
+                        "fragmentBases": ["polymerized_ATP[c]"],
+                        "replichore_lengths": [2000, 2000],
+                        "calculate_superhelical_densities": True,
+                    }
+                ),
+                "unique_update": UniqueUpdate({"unique_topo": unique_topology}),
+                "global_clock": GlobalClock(),
+            }
+
+        def generate_topology(self, config):
+            return {
+                "rnap_remover": {
+                    "active_RNAPs": ("unique", "active_RNAP"),
+                    "global_time": ("global_time",),
+                },
+                "chromosome_structure": TOPOLOGY,
+                "unique_update": unique_topology,
+                "global_clock": {
+                    "global_time": ("global_time",),
+                    "next_update_time": ("next_update_time",),
+                },
+            }
+
+        def generate_flow(self, config):
+            return {
+                "chromosome_structure": [],
+                "unique_update": [("chromosome_structure",)],
+            }
+
+    composer = TestComposer()
+    template_initial_state = get_state_from_file()
+    # Zero out all unique molecules
+    for unique_mol in template_initial_state["unique"].values():
+        unique_mol.flags.writeable = True
+        unique_mol["_entryState"] = 0
+        unique_mol.flags.writeable = False
+    # Set up chromosome domain 1
+    full_chromosomes = template_initial_state["unique"]["full_chromosome"]
+    full_chromosomes.flags.writeable = True
+    full_chromosomes["_entryState"][0] = 1
+    full_chromosomes["domain_index"][0] = 1
+    full_chromosomes.flags.writeable = False
+    chromosome_domains = template_initial_state["unique"]["chromosome_domain"]
+    chromosome_domains.flags.writeable = True
+    chromosome_domains["_entryState"][0] = 1
+    chromosome_domains["domain_index"][0] = 1
+    chromosome_domains["child_domains"][0] = [-1, -1]
+    chromosome_domains.flags.writeable = False
+    # Add two replisomes at -1000 and 1000
+    active_replisomes = template_initial_state["unique"]["active_replisome"]
+    active_replisomes.flags.writeable = True
+    active_replisomes["_entryState"][:2] = 1
+    active_replisomes["domain_index"][:2] = 1
+    active_replisomes["coordinates"][:2] = [-1000, 1000]
+    active_replisomes["unique_index"][:2] = [1, 2]
+    active_replisomes.flags.writeable = False
+    # Add four RNAPs: two that coincide with replisomes, two that do not
+    active_RNAP = template_initial_state["unique"]["active_RNAP"]
+    active_RNAP.flags.writeable = True
+    active_RNAP["_entryState"][:4] = 1
+    active_RNAP["domain_index"][:4] = 1
+    active_RNAP["coordinates"][:4] = [-1500, -1000, 1000, 1500]
+    active_RNAP["is_forward"][:4] = [True, True, True, True]
+    active_RNAP["unique_index"][:4] = [3, 4, 5, 6]
+    active_RNAP.flags.writeable = False
+    # Add chromosomal segments between replisome and RNAPs on either side
+    # of origin of replication (coordinates offset from current timestep)
+    chromosomal_segments, _ = get_free_indices(
+        template_initial_state["unique"]["chromosomal_segment"], 2
+    )
+    chromosomal_segments.flags.writeable = True
+    chromosomal_segments["_entryState"][:2] = 1
+    chromosomal_segments["boundary_coordinates"][:2] = [[-1400, -800], [800, 1400]]
+    chromosomal_segments["boundary_molecule_indexes"][:2] = [[3, 1], [2, 6]]
+    chromosomal_segments["domain_index"][:2] = 1
+    chromosomal_segments["linking_number"][:2] = 1
+    chromosomal_segments.flags.writeable = False
+    template_initial_state["unique"]["chromosomal_segment"] = chromosomal_segments
+    # Since unique numpy updater is an class method, internal
+    # deepcopying in vivarium-core causes this warning to appear
+    warnings.filterwarnings(
+        "ignore",
+        message="Incompatible schema "
+        "assignment at .+ Trying to assign the value <bound method "
+        r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
+        r"has the value <bound method UniqueNumpyUpdater\.updater",
+    )
+    engine = Engine(
+        composite=composer.generate(),
+        initial_state=template_initial_state,
+    )
+    engine.update(1)
+    state = engine.state.get_value()
+    # Check that conflicting RNAPs were removed
+    active_RNAPs = state["unique"]["active_RNAP"][
+        state["unique"]["active_RNAP"]["_entryState"].view(np.bool_)
+    ]
+    assert len(active_RNAPs) == 2
+    assert np.all(active_RNAPs["domain_index"] == 1)
+    assert np.all(active_RNAPs["coordinates"] == np.array([-1500, 1500]))
+    assert np.all(active_RNAPs["unique_index"] == np.array([3, 6]))
+    # Check that chromosomal segments were added for the span between
+    # each replisome and terC in addition to the existing ones between
+    # replisomes and non-conflicting RNAPs
+    active_chromosome_segments = state["unique"]["chromosomal_segment"][
+        state["unique"]["chromosomal_segment"]["_entryState"].view(np.bool_)
+    ]
+    assert len(active_chromosome_segments) == 4
+    assert np.all(
+        active_chromosome_segments["boundary_coordinates"]
+        == np.array([[-2000, -1500], [-1500, -1000], [1000, 1500], [1500, 2000]])
+    )
+    assert np.all(
+        active_chromosome_segments["boundary_molecule_indexes"]
+        == np.array([[-1, 3], [3, 1], [2, 6], [6, -1]])
+    )
+
+
+if __name__ == "__main__":
+    test_superhelical_bug()

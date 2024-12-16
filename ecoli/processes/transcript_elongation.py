@@ -337,6 +337,7 @@ class TranscriptElongation(PartitionedProcess):
                 "RNAP_index",
             ],
         )
+        length_all_RNAs = length_all_RNAs.copy()
 
         update = {"listeners": {"growth_limits": {}}}
 
@@ -750,8 +751,8 @@ def test_transcript_elongation():
         "ignore",
         message="Incompatible schema "
         "assignment at .+ Trying to assign the value <bound method "
-        "UniqueNumpyUpdater.updater .+ to key updater, which already "
-        "has the value <bound method UniqueNumpyUpdater.updater",
+        r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
+        r"has the value <bound method UniqueNumpyUpdater\.updater",
     )
     engine = Engine(**settings, initial_state=deepcopy(initial_state))
     engine.run_for(100)
@@ -812,8 +813,8 @@ def test_transcript_elongation():
         "ignore",
         message="Incompatible schema "
         "assignment at .+ Trying to assign the value <bound method "
-        "UniqueNumpyUpdater.updater .+ to key updater, which already "
-        "has the value <bound method UniqueNumpyUpdater.updater",
+        r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
+        r"has the value <bound method UniqueNumpyUpdater\.updater",
     )
     engine = Engine(**settings, initial_state=deepcopy(initial_state))
     engine.run_for(100)

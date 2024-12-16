@@ -1,8 +1,8 @@
 # Container image #2: wcm-code.
-# This Dockerfile builds a container image with the vivarium-ecoli whole cell model
+# This Dockerfile builds a container image with the vEcoli whole cell model
 # code, layered on the wcm-runtime container image.
 #
-# To build this image locally from the vivarium-ecoli/ project root directory:
+# To build this image locally from the vEcoli/ project root directory:
 #
 #     > docker build -f cloud/docker/wholecell/Dockerfile -t ${USER}-wcm-code --build-arg from=${USER}-wcm-runtime .
 #
@@ -16,7 +16,7 @@
 #
 #     > docker run --name wholecelltest -it --rm ${USER}-wcm-code
 #
-# or if you used build.sh or build-wcm.sh to build using Cloud Build:
+# or if you used build-wcm.sh to build using Cloud Build:
 #
 #     > PROJECT="$(gcloud config get-value core/project)"
 #     > TAG="gcr.io/${PROJECT}/${USER}-wcm-code"
@@ -24,11 +24,11 @@
 #
 # It will start a shell where you can execute commands:
 #
-#     # pytest
+#     uv run --env-file .env pytest
 #
 # If this succeeds you can start running WCM code in the container, e.g.:
 #
-#     # python runscripts/manual/runParca.py
+#     uv run --env-file .env runscripts/manual/runParca.py
 
 ARG from=wcm-runtime:latest
 FROM ${from}
@@ -43,20 +43,18 @@ ENV IMAGE_GIT_HASH="$git_hash" \
 	IMAGE_TIMESTAMP="$timestamp"
 
 LABEL application="Whole Cell Model of Escherichia coli" \
-    email="allencentercovertlab@gmail.com" \
-    license="https://github.com/CovertLab/vivarium-ecoli/blob/master/LICENSE" \
+    email="wholecellteam@lists.stanford.edu" \
+    license="https://github.com/CovertLab/vEcoli/blob/master/LICENSE" \
     organization="Covert Lab at Stanford" \
     website="https://www.covert.stanford.edu/"
 
-COPY . /vivarium-ecoli
-WORKDIR /vivarium-ecoli
+COPY . /vEcoli
+WORKDIR /vEcoli
 
-RUN make clean compile
-ENV PYTHONPATH=/vivarium-ecoli
+RUN CC=gcc uv sync --frozen
 
 # Since this build runs as root, set permissions so running the container as
-# another user will work: Aesara needs to write into the data dir it uses when
-# running as a user with no home dir, and Parca writes into /vivarium-ecoli/cache/.
-RUN (umask 000 && mkdir -p /.aesara /vivarium-ecoli/cache)
+# another user will work: Parca writes into /vEcoli/cache/.
+RUN (umask 000 && mkdir -p /vEcoli/cache)
 
 CMD ["/bin/bash"]

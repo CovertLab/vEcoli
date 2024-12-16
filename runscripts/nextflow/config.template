@@ -2,6 +2,9 @@
 params {
     experimentId = 'EXPERIMENT_ID'
     config = 'CONFIG_FILE'
+    parca_cpus = PARCA_CPUS
+    publishDir = 'PUBLISH_DIR'
+    container_image = 'IMAGE_NAME'
 }
 
 trace {
@@ -11,81 +14,129 @@ trace {
 
 profiles {
     gcloud {
-        // Retry once with more RAM if OOM
-        process.memory = { 4.GB * task.attempt }
-        // Using single core is slightly slower but much cheaper
-        process.cpus = 1
-        process.executor = 'google-batch'
-        process.container = 'IMAGE_NAME'
-        process.errorStrategy = {
-            // Codes: 137 (out-of-memory)
-            ((task.exitStatus == 137)
-            && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore' }
-        google.project = 'allen-discovery-center-mcovert'
-        google.location = 'us-west1'
+        process {
+            withLabel: parca {
+                cpus = params.parca_cpus
+                memory = params.parca_cpus * 2.GB
+            }
+            errorStrategy = {
+                // Codes: 137 (out-of-memory), 50001 - 50006 (Google Batch task fail:
+                // https://cloud.google.com/batch/docs/troubleshooting#reserved-exit-codes)
+                (((task.exitStatus == 137) || (task.exitStatus >= 50001 && task.exitStatus <= 50006))
+                && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore'
+            }
+            // Retry once with more RAM if OOM
+            memory = { 4.GB * task.attempt }
+            maxRetries = 1
+            // Using single core is slightly slower but much cheaper
+            cpus = 1
+            executor = 'google-batch'
+            container = params.container_image
+            // Necessary otherwise symlinks to other files in bucket can break
+            containerOptions = '--volume /mnt/disks/BUCKET:/mnt/disks/BUCKET'
+            // Check Google Cloud latest spot pricing / performance
+            machineType = {
+                def cpus = task.cpus
+                def powerOf2 = 1
+                while (powerOf2 < cpus && powerOf2 < 64) {
+                    powerOf2 *= 2
+                }
+                return "t2d-standard-${powerOf2}"
+            }
+        }
+        // For this script to work on a Compute Engine VM, you must
+        // - Set default Compute Engine region and zone for your project
+        // - Set access scope to "Allow full access to all Cloud APIs" when
+        //   creating VM
+        // - Run gcloud init in VM
+        google.project = {
+            def project_proc = "gcloud config get project".execute()
+            project_proc.waitFor()
+            return project_proc.text.trim()
+        }()
+        google.location = {
+            def location_proc = "gcloud config get compute/region".execute()
+            location_proc.waitFor()
+            return location_proc.text.trim()
+        }()
         google.batch.spot = true
+        google.batch.usePrivateAddress = true
+        google.batch.network = 'global/networks/default'
+        google.batch.subnetwork = "regions/${google.location}/subnetworks/default"
         docker.enabled = true
-        params.projectRoot = '/vivarium-ecoli'
-        params.publishDir = "PUBLISH_DIR"
-        process.maxRetries = 1
-        // Check Google Cloud latest spot pricing / performance
-        process.machineType = 't2d-standard-1'
+        params.projectRoot = '/vEcoli'
         workflow.failOnIgnore = true
     }
     sherlock {
-        process.memory = {
-            if ( task.exitStatus in [137, 140] ) {
-                4.GB * task.attempt
-            } else {
-                4.GB
+        process {
+            // Run analyses and create variants locally with
+            // the job used to launch workflow to avoid long queue times
+            withLabel: short {
+                executor = 'local'
             }
-        }
-        process.errorStrategy = {
-            // Codes: 140 (SLURM job limits), 143 (SLURM preemption)
-            // Default value for exitStatus is max integer value, this
-            // is a catch-all for errors that leave no exit code
-            ((task.exitStatus in [140, 143, Integer.MAX_VALUE])
-            && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore' }
-        // Using single core is slightly slower but can have shorter
-        // queue times and is less damaging to future job priority
-        process.cpus = 1
-        process.executor = 'slurm'
-        process.queue = 'owners'
-        process.time = {
-            if ( task.exitStatus == 140 ) {
-                2.h * task.attempt
-            } else {
-                2.h
+            withLabel: parca {
+                cpus = params.parca_cpus
+                memory = params.parca_cpus * 2.GB
             }
+            container = params.container_image
+            containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
+            queue = 'mcovert,owners,dev,normal'
+            executor = 'slurm'
+            // Single core sims are slightly slower but can have shorter
+            // queue times and is less damaging to future job priority
+            cpus = 1
+            memory = {
+                if ( task.exitStatus in [137, 140] ) {
+                    4.GB * task.attempt
+                } else {
+                    4.GB
+                }
+            }
+            time = {
+                if ( task.exitStatus == 140 ) {
+                    1.h * task.attempt
+                } else {
+                    1.h
+                }
+            }
+            errorStrategy = {
+                // Codes: 140 (SLURM job limits), 143 (SLURM preemption)
+                // Default value for exitStatus is max integer value, this
+                // is a catch-all for errors that leave no exit code
+                ((task.exitStatus in [140, 143, Integer.MAX_VALUE])
+                && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore'
+            }
+            maxRetries = 3
         }
-        process.maxRetries = 3
+        apptainer.enabled = true
         params.projectRoot = "${launchDir}"
-        params.publishDir = "PUBLISH_DIR"
         // Avoid getting queue status too frequently (can cause job status mixups)
         executor.queueStatInterval = '2 min'
-        // Check for terminated jobs and submit new ones less frequently
-        // than we check queue status (ensure correct and latest status) 
-        executor.pollInterval = '5 min'
+        // Check for terminated jobs and submit new ones fairly frequently
+        // to minimize downtime between dependent jobs
+        executor.pollInterval = '30 sec'
         // Retry all jobs that fail to submit (different from fail during runtime)
         executor.submit.retry.reason = '.*'
         // Retry failed submissions with delay longer than the time to
-        // get latest correct queue status (avoid job status mixups)
-        executor.retry.delay = '5 min'
-        executor.retry.maxDelay = '10 min'
+        // get latest queue status (avoid job status mixups)
+        executor.retry.delay = '3 min'
+        executor.retry.maxDelay = '5 min'
         // Throttle submission rate to avoid overwhelming scheduler
         executor.submitRateLimit = '20/min'
         // Give NFS time to update and sync before raising errors
-        executor.exitReadTimeout = '15 min'
-        // Write out job status to log file less frequently
-        // than we check queue status (log correct and latest status)
-        executor.dumpInterval = '6 min'
+        executor.exitReadTimeout = '10 min'
         workflow.failOnIgnore = true
     }
     standard {
-        process.executor = 'local'
         params.projectRoot = "${launchDir}"
-        params.publishDir = "PUBLISH_DIR"
         workflow.failOnIgnore = true
-        process.errorStrategy = 'ignore'
+        process {
+            withLabel: parca {
+                cpus = params.parca_cpus
+                memory = params.parca_cpus * 2.GB
+            }
+            executor = 'local'
+            errorStrategy = 'ignore'
+        }
     }
 }
