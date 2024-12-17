@@ -61,7 +61,8 @@ dev = [
     "pytest",
     "pytest-cov",
     "mypy",
-    "ruff"
+    "ruff",
+    "pre-commit",
 ]
 docs = [
     "Sphinx",
