@@ -1391,6 +1391,7 @@ def test_superhelical_removal_sim():
     full_chromosomes.flags.writeable = True
     full_chromosomes["_entryState"][0] = 1
     full_chromosomes["domain_index"][0] = 0
+    full_chromosomes["unique_index"][0] = 0
     full_chromosomes.flags.writeable = False
     # Set up chromosome domains
     chromosome_domains, replisome_idx = get_free_indices(
@@ -1399,6 +1400,7 @@ def test_superhelical_removal_sim():
     chromosome_domains.flags.writeable = True
     chromosome_domains["_entryState"][replisome_idx] = 1
     chromosome_domains["domain_index"][replisome_idx] = np.arange(5)
+    chromosome_domains["unique_index"][replisome_idx] = np.arange(5)
     chromosome_domains["child_domains"][replisome_idx] = [
         [1, 2],
         [3, 4],
@@ -1413,6 +1415,7 @@ def test_superhelical_removal_sim():
     oriCs.flags.writeable = True
     oriCs["_entryState"][oriC_idx] = 1
     oriCs["domain_index"][oriC_idx] = [2, 3, 4]
+    oriCs["unique_index"][oriC_idx] = np.arange(3)
     oriCs.flags.writeable = False
     template_initial_state["unique"]["oriC"] = oriCs
     # Set up replisome for actively replicating domain
@@ -1538,6 +1541,7 @@ def test_superhelical_removal_sim():
     )
     chromosomal_segments["domain_index"][segment_idx] = domain_index
     chromosomal_segments["linking_number"][segment_idx] = linking_number
+    chromosomal_segments["unique_index"][segment_idx] = np.arange(len(linking_number))
     chromosomal_segments.flags.writeable = False
     template_initial_state["unique"]["chromosomal_segment"] = chromosomal_segments
     # Since unique numpy updater is an class method, internal
