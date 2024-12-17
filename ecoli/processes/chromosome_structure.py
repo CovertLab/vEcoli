@@ -99,7 +99,6 @@ class ChromosomeStructure(Step):
         "mature_rna_end_positions": [],
         "mature_rna_nt_counts": [],
         "unprocessed_rna_index_mapping": {},
-        "removed_replisome_index": -2,
         "time_step": 1.0,
     }
 
@@ -120,7 +119,6 @@ class ChromosomeStructure(Step):
             "relaxed_DNA_base_pairs_per_turn"
         ]
         self.terC_index = self.parameters["terC_index"]
-        self.removed_replisome_index = self.parameters["removed_replisome_index"]
 
         self.n_mature_rnas = self.parameters["n_mature_rnas"]
         self.mature_rna_ids = self.parameters["mature_rna_ids"]
@@ -1243,11 +1241,33 @@ class ChromosomeStructure(Step):
 
 
 def get_last_known_replisome_data(
-    boundary_coordinates,
-    boundary_molecule_indexes,
-    replisome_coordinates,
-    replisome_molecule_indexes,
-):
+    boundary_coordinates: np.ndarray,
+    boundary_molecule_indexes: np.ndarray,
+    replisome_coordinates: np.ndarray,
+    replisome_molecule_indexes: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Gets the last known coordinates and molecule indexes of both replisomes
+    for a chromosome domain.
+
+    Args:
+        boundary_coordinates: (N, 2) array of chromosomal coordinates of
+            all boundary molecules in the domain during the last time step.
+        boundary_molecule_indexes: (N, 2) array of unique indexes of all
+            boundary molecules in the domain during the last time step.
+        replisome_coordinates: (1,) or (0,) array of chromosomal coordinates of
+            the replisomes in the domain in the current time step.
+        replisome_molecule_indexes: (1,) or (0,) array of unique indexes of the
+            replisomes in the domain in the current time step.
+
+    Returns:
+        Tuple of the following format::
+
+            (
+                (2,) array of last known replisome coordinates in domain,
+                (2,) array of last known replisome molecule indexes in domain
+            )
+    """
     # Sort old boundary coordinates and molecule indexes to find first index
     # where left boundary is non-negative
     boundary_coordinates_argsort = np.argsort(boundary_coordinates[:, 0])
