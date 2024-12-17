@@ -71,6 +71,19 @@ finishes, close and reopen your terminal before continuing with the
 > **Tip:** If any step in the `nextflow` installation fails,
 > try rerunning a few times to see if that fixes the issue.
 
+If you are installing the model for active development, we strongly
+recommend that you also install the development dependencies using:
+
+    uv sync --frozen --extra dev
+
+After that, you can run ``uv run pre-commit install`` to install
+a pre-commit hook that will run the ``ruff`` linter and formatter
+before all of your commits.
+
+The development dependencies also include ``pytest``, which lets
+you run the test suite, and ``mypy``, which can be invoked to
+perform static type checking.
+
 ## Test Installation
 
 To test your installation, from the top-level of the cloned repository, invoke:
