@@ -47,7 +47,7 @@ if (( $USE_APPTAINER )); then
     fi
     echo "=== Launching Apptainer container from ${WCM_IMAGE} ==="
     # Start Apptainer container with bind mounts
-    apptainer shell -e --writable-tmpfs ${BIND_CWD} ${WCM_IMAGE}
+    apptainer exec -e --writable-tmpfs ${BIND_CWD} ${WCM_IMAGE} bash -c "uv sync --frozen && bash"
 else
     # Docker-specific logic
     # Get GCP project name and region to construct image path
