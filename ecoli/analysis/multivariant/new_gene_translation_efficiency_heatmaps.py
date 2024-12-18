@@ -885,16 +885,18 @@ def get_ribosome_counts_projection(
 def get_overcrowding_sql(target_col: str, actual_col: str) -> str:
     """
     Create generic SQL query that calculates for average number of genes
-    for each cell that are overcrowded, then aggregate that per variant
-    into mean and std columns.
+    that are overcrowded per time step for each cell, then aggregates that
+    per variant into mean and std columns.
+
+    At every time step, if the element in ``target_col`` is greater than the
+    corresponding element in ``actual_col``, we say that the gene for that
+    element is overcrowded. We average the number of overcrowded genes over
+    all the time steps for each cell. Then, we average the per-cell averages
+    over all cells in each variant.
 
     Args:
         target_col: Name of 1D list column with target values
-        actual_col: Name of 1D list column with actual values. If the
-            per-cell average of an element in ``target_col`` is greater
-            than the per-cell average of the corresponding element in
-            ``actual_col``, we say that the gene for that element is
-            overcrowded.
+        actual_col: Name of 1D list column with actual values.
     """
     return f"""
         WITH avg_per_cell AS (
