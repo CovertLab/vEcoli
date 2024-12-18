@@ -560,7 +560,7 @@ be absolute because Nextflow does not resolve environment variables like
 .. warning::
     Running the workflow on Sherlock sets a 1 hour limit on each job in the
     workflow, including analyses. Analysis scripts that take more than
-    1 hours to run should be excluded from workflow configurations and manually
+    1 hour to run should be excluded from workflow configurations and manually
     run using :py:mod:`runscripts.analysis` afterwards.
 
 .. _sherlock-interactive:
@@ -575,7 +575,7 @@ have run a containerized workflow (default on Sherlock) with
 containerized workflow (or if you have never run a containerized workflow),
 run the following to build a runtime image, picking any ``runtime_image_path``::
   
-  runscripts/container/build-runtime.sh -r runtime_image_path -a::
+  runscripts/container/build-runtime.sh -r runtime_image_path -a
 
 Once you have a runtime image, you can start an interactive container with::
 
