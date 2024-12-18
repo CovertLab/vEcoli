@@ -1,0 +1,20 @@
+``ecoli.analysis``
+==================
+.. automodule:: ecoli.analysis
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   ecoli.analysis.antibiotics_colony
+   ecoli.analysis.causality_network
+   ecoli.analysis.colony
+   ecoli.analysis.multidaughter
+   ecoli.analysis.multiexperiment
+   ecoli.analysis.multigeneration
+   ecoli.analysis.multiseed
+   ecoli.analysis.multivariant
+   ecoli.analysis.single
