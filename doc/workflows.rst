@@ -577,7 +577,7 @@ the latest ``uv.lock``, which contains the version of the Python packages that
 ``uv`` will install. If you are not sure if ``uv.lock``
 changed since the last time you ran a workflow with ``build_runtime_image``
 set to true (or if you have never run a workflow), run the following to build
-a runtime image, picking any path::
+a runtime image, picking any ``runtime_image_path``::
   
   runscripts/container/build-runtime.sh -r runtime_image_path -a
 
@@ -811,12 +811,14 @@ Add breakpoints to any Python file with the following line::
 
   import ipdb; ipdb.set_trace()
 
-Then, navigate to the working directory (see :ref:`troubleshooting`) for a
-failing process. Invoke ``uv run --env-file {} .command.run``, replacing
-the curly braces with the path to the ``.env`` file in your cloned repository.
-This should re-run the job and pause upon reaching the breakpoints you set.
-You should now be in an ipdb shell which you can use to examine variable values
-or step through the code.
+Figure out the working directory (see :ref:`troubleshooting`) for a
+failing process. Invoke ``uv run --directory {} .command.run`` from your
+cloned repository, replacing the curly braces with the path to the working
+directory. Alternatively, navigate to the working directory and invokes
+``uv run --project {} .command.run``, replacing the curly braces with the
+path to the cloned repository. This should re-run the job and pause upon
+reaching the breakpoints you set. You should now be in an ipdb shell which
+you can use to examine variable values or step through the code.
 
 After fixing the issue, you can resume the workflow (avoid re-running
 already successful jobs) by navigating back to the directory in which you
