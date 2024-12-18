@@ -281,6 +281,6 @@ def main():
     )
 
 
-# uv run --env-file .env ecoli/composites/environment/lattice.py [-e if exchanges on]
+# uv run ecoli/composites/environment/lattice.py [-e if exchanges on]
 if __name__ == "__main__":
     main()
