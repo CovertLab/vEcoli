@@ -568,22 +568,22 @@ be absolute because Nextflow does not resolve environment variables like
 Interactive Container
 =====================
 
-To run and develop the model on Sherlock outside a workflow, run::
+To run and develop the model on Sherlock outside a workflow, you must
+have run a containerized workflow (default on Sherlock) with
+``build_runtime_image`` set to true and the most recent version of
+``uv.lock``. If you are not sure if ``uv.lock`` changed since your last
+containerized workflow (or if you have never run a containerized workflow),
+run the following to build a runtime image, picking any ``runtime_image_path``::
+  
+  runscripts/container/build-runtime.sh -r runtime_image_path -a::
+
+Once you have a runtime image, you can start an interactive container with::
 
   runscripts/container/interactive.sh -w runtime_image_path -a
 
-Replace ``runtime_image_path`` with the path of an Apptainer image built with
-the latest ``uv.lock``, which contains the version of the Python packages that
-``uv`` will install. If you are not sure if ``uv.lock``
-changed since the last time you ran a workflow with ``build_runtime_image``
-set to true (or if you have never run a workflow), run the following to build
-a runtime image, picking any ``runtime_image_path``::
-  
-  runscripts/container/build-runtime.sh -r runtime_image_path -a
-
-Inside the container, set the ``PYTHONPATH`` with ``export PYTHONPATH={}``,
-substituting in the path to your cloned ``vEcoli`` repository. You can now run
-any of the scripts in ``runscripts``.
+You can now use vEcoli as normal. Any code changes that you make in the
+cloned repository will be immediately reflected in commands run inside the
+container.
 
 If you are trying to debug a failed process, add breakpoints to any Python script
 in your cloned repository by inserting::
