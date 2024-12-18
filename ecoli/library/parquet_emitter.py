@@ -701,15 +701,15 @@ class ParquetEmitter(Emitter):
 
     def _finalize(self):
         """Convert remaining batched emits to Parquet at sim shutdown. This also
-        writes a ``_metadata`` file containing a unified Parquet schema as follows::
+        writes a ``_metadata`` file containing a unified Parquet schema as follows:
 
-            1. Read up to 10 most recently written ``_metadata`` files from other
-                simulations of the same experiment ID
-            2. Unifies those schemas with current sim schema (e.g. column that is
-                NULL is current sim but float in another is promoted to float)
-            3. Write unified schema to ``_metadata`` file in current sim output folder
-            4. Write unified schema to ``_metadata`` file in output folder for
-                sim of same experiment ID + :py:data:`~.EXPERIMENT_SCHEMA_SUFFIX`
+        1. Read up to 10 most recently written ``_metadata`` files from other
+           simulations of the same experiment ID
+        2. Unifies those schemas with current sim schema (e.g. column that is
+           NULL is current sim but float in another is promoted to float)
+        3. Write unified schema to ``_metadata`` file in current sim output folder
+        4. Write unified schema to ``_metadata`` file in output folder for
+           sim of same experiment ID + :py:data:`~.EXPERIMENT_SCHEMA_SUFFIX`
 
         Unless more than 10 simulations finish at the exact same time, the ``_metadata``
         file in the folder for experiment ID + :py:data:`~.EXPERIMENT_SCHEMA_SUFFIX`
@@ -800,7 +800,7 @@ class ParquetEmitter(Emitter):
     def emit(self, data: dict[str, Any]):
         """
         Flattens emit dictionary by concatenating nested key names with double
-        underscores (:py:func:~.flatten_dict), serializes flattened emit with
+        underscores (:py:func:`~.flatten_dict`), serializes flattened emit with
         ``orjson``, and writes newline-delimited JSONs in a temporary file to be
         batched for some number of timesteps before conversion to Parquet by
         :py:func:`~.json_to_parquet`.

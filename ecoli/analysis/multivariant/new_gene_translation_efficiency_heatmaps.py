@@ -681,7 +681,7 @@ def get_new_gene_mRNA_NTP_fraction_sql(
 def avg_ratio_of_1d_arrays_sql(numerator: str, denominator: str) -> str:
     """
     Create generic SQL query that calculates the average per cell of each
-    element in two 1D list columns divided elementwise and aggregates those]
+    element in two 1D list columns divided elementwise and aggregates those
     ratios per variant into mean and std columns.
 
     Args:
