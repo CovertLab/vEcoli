@@ -173,7 +173,7 @@ def main():
         config = json.load(f)
     if args.config is not None:
         config_file = args.config
-        with open(os.path.join(args.config), "r") as f:
+        with open(os.path.join(CONFIG_DIR_PATH, args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
     # ParCa options are defined under `parca_options` key in config JSON
     # Merge these with CLI arguments, which take precedence
