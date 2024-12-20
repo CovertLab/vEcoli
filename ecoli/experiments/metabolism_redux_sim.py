@@ -120,8 +120,8 @@ def run_colony(
     raw_output=False,
     save=True,
     save_times=[1, 200, 400, 1300],
-    condition="basal",  # basal, with_aa
-    fixed_media="minimal",  # minimal, minimal_plus_amino_acids
+    condition="with_aa",  # basal, with_aa
+    fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
@@ -146,7 +146,7 @@ def run_colony(
         sim.run()
 
         query = []
-        folder = f"out/cofactors/minimal-{seed}/"
+        folder = f"out/cofactors/rich-{seed}/"
         save_sim_output(folder, query, sim, save_model=False)
 
 
