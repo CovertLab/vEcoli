@@ -427,17 +427,21 @@ class MetabolismReduxClassic(Step):
 
         # Get reaction indices whose reaction is new (added in 2022)
         # append reaction indices to binary_kinetic_idx
-        new_reaction_ids = self.parameters["fba_new_reaction_ids"]
-        binary_reaction_idx = []
-        for idx, rxn in enumerate(self.reaction_names):
-            is_rxn_new = [new_rxn in rxn for new_rxn in new_reaction_ids]
-            if any(is_rxn_new):
-                binary_reaction_idx.append(idx)
+        include_new = 1
+        if not include_new: #set binary idx if we don't want to include new rxns
+            base_new_reaction_ids = self.parameters["base_new_reaction_ids"]
+            fba_reaction_ids_to_base_reaction_ids = self.parameters["fba_reaction_ids_to_base_reaction_ids"]
 
-        # combined binary kinetic idx with binary reaction idx and remove overlaps
-        binary_kinetic_idx = (
-            np.unique(np.append(binary_kinetic_idx[0], binary_reaction_idx)),
-        )
+            binary_reaction_idx = []
+            for idx, rxn in enumerate(self.reaction_names[:-1]): # [:-1] removes 'maintanence reaction'
+                binary_reaction_idx.append([idx for new in base_new_reaction_ids
+                                            if fba_reaction_ids_to_base_reaction_ids[rxn] == new])
+            binary_reaction_idx = np.hstack(binary_reaction_idx).astype(int)
+
+            # combined binary kinetic idx with binary reaction idx and remove overlaps
+            binary_kinetic_idx = (
+                np.unique(np.append(binary_kinetic_idx[0], binary_reaction_idx)),
+            )
 
         # TODO: Figure out how to handle changing media ID
 
@@ -467,8 +471,8 @@ class MetabolismReduxClassic(Step):
         # TODO (Cyrus) solve network flow problem to get fluxes
         objective_weights = {
             "secretion": 0.01,
-            "efficiency": 0.000001,
-            "kinetics": 0.0000001,
+            "efficiency": 0.000001, # decrease efficiency
+            "kinetics": 0.0000001, #TODO Heena: increase for closer estimation for kinetically constrained rxn and decrease efficiency
         }
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
@@ -747,9 +751,9 @@ def test_network_flow_model():
         solver=cp.GLOP,
     )
 
-    assert np.isclose(solution.velocities, np.array([1, 1, 0])).all(), (
-        "Network flow toy model did not converge to correct solution."
-    )
+    assert np.isclose(
+        solution.velocities, np.array([1, 1, 0])
+    ).all(), "Network flow toy model did not converge to correct solution."
 
 
 # TODO (Cyrus) Add test for entire process
