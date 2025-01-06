@@ -61,12 +61,12 @@ def run_ecoli_with_metabolism_redux_classic(
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries',
-    name="convex_kinetics_minimal",
+    name="convex_kinetics_rich",
     raw_output=False,
     save=True,
     save_times=[1, 10],
-    condition="basal",  # basal, with_aa
-    fixed_media="minimal",  # minimal, minimal_plus_amino_acids
+    condition="with_aa",  # basal, with_aa
+    fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
@@ -120,8 +120,8 @@ def run_colony(
     raw_output=False,
     save=True,
     save_times=[1, 200, 400, 1300],
-    condition="with_aa",  # basal, with_aa
-    fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
+    condition="basal",  # basal, with_aa
+    fixed_media="minimal",  # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
@@ -138,7 +138,7 @@ def run_colony(
     sim.condition = condition
     sim.fixed_media = fixed_media
 
-    for seed in [i for i in range(1, 4, 1)]:
+    for seed in [i for i in range(4, 20, 1)]:
         sim.seed = seed
 
         sim.build_ecoli()
@@ -146,7 +146,7 @@ def run_colony(
         sim.run()
 
         query = []
-        folder = f"out/cofactors/rich-{seed}/"
+        folder = f"out/cofactors/min-{seed}/"
         save_sim_output(folder, query, sim, save_model=False)
 
 
