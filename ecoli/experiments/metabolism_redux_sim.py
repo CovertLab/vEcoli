@@ -138,7 +138,7 @@ def run_colony(
     sim.condition = condition
     sim.fixed_media = fixed_media
 
-    for seed in [i for i in range(4, 20, 1)]:
+    for seed in [i for i in range(11, 20, 1)]:
         sim.seed = seed
 
         sim.build_ecoli()
@@ -146,7 +146,7 @@ def run_colony(
         sim.run()
 
         query = []
-        folder = f"out/cofactors/min-{seed}/"
+        folder = f"out/cofactors/minimal-{seed}/"
         save_sim_output(folder, query, sim, save_model=False)
 
 
