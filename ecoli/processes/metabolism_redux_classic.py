@@ -52,6 +52,7 @@ BAD_RXNS = [
 FREE_RXNS = ["TRANS-RXN-145", "TRANS-RXN0-545", "TRANS-RXN0-474"]
 
 
+
 class MetabolismReduxClassic(Step):
     name = NAME
     topology = TOPOLOGY
@@ -362,18 +363,18 @@ class MetabolismReduxClassic(Step):
         # append reaction indices to binary_kinetic_idx
         include_new = 1
         if not include_new: #set binary idx if we don't want to include new rxns
-            base_new_reaction_ids = self.parameters["base_new_reaction_ids"]
+            fba_new_reaction_ids = self.parameters["fba_new_reaction_ids"]
             fba_reaction_ids_to_base_reaction_ids = self.parameters["fba_reaction_ids_to_base_reaction_ids"]
 
             binary_reaction_idx = []
-            for idx, rxn in enumerate(self.reaction_names[:-1]): # [:-1] removes 'maintanence reaction'
-                binary_reaction_idx.append([idx for new in base_new_reaction_ids
-                                            if fba_reaction_ids_to_base_reaction_ids[rxn] == new])
+            for reaction_id in fba_new_reaction_ids:
+                reaction_idx = np.where(np.array(self.reaction_names) == reaction_id)
+                binary_reaction_idx.append(reaction_idx)
             binary_reaction_idx = np.hstack(binary_reaction_idx).astype(int)
 
             # combined binary kinetic idx with binary reaction idx and remove overlaps
             binary_kinetic_idx = (
-                np.unique(np.append(binary_kinetic_idx[0], binary_reaction_idx)),
+                np.unique(np.append(binary_kinetic_idx[0], binary_reaction_idx[0])),
             )
 
         # TODO: Figure out how to handle changing media ID

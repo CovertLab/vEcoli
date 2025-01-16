@@ -53,19 +53,19 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic", # do not change this name
-    total_time=1300,
+    total_time=400, #1300
     divide=True,
     initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'tximeseries',
     # this is the name of the out file you will create
-    name="metabolism-redux-classic-ACETATE_NEW",
+    name="metabolism-redux-classic-BASAL_NEW-modified_process_new_rxn_name",
     raw_output=False,
     save=True,
-    save_times=[1, 10, 200, 400, 1300],
-    condition="acetate",  # basal, with_aa, acetate
-    fixed_media="minimal_acetate",  # minimal, minimal_plus_amino_acids, minimal_acetate
+    save_times=[1, 10, 200, 400],
+    condition="basal",  # basal, with_aa, acetate
+    fixed_media="minimal",  # minimal, minimal_plus_amino_acids, minimal_acetate
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
