@@ -17,7 +17,8 @@ from ecoli.library.parameters import param_store
 from ecoli.library.initial_conditions import (
     calculate_cell_mass,
     initialize_bulk_counts,
-    initialize_trna_charging,
+    initialize_steady_state_trna_charging,
+    initialize_kinetic_trna_charging,
     initialize_unique_molecules,
     set_small_molecule_counts,
 )
@@ -39,7 +40,9 @@ class LoadSimData:
             (0, "minimal"),
         ),  # have to change both media_timeline and condition
         condition: str = "basal",
-        trna_charging: bool = True,
+        steady_state_trna_charging: bool = True,
+        kinetic_trna_charging: bool = False,
+        coarse_kinetic_elongation: bool = False,
         ppgpp_regulation: bool = True,
         mar_regulon: bool = False,
         process_configs: Optional[dict[str, Any]] = None,
@@ -56,6 +59,9 @@ class LoadSimData:
         translation_supply: bool = True,
         aa_supply_in_charging: bool = True,
         disable_ppgpp_elongation_inhibition: bool = False,
+        ribosome_profiling_molecules: dict[str, str] = {
+            "N-ACETYLTRANSFER-MONOMER[c]": "argA",
+        },
         emit_unique: bool = False,
         **kwargs,
     ):
@@ -78,9 +84,18 @@ class LoadSimData:
                 each tuple is the time to start using a certain media and the
                 second element is a string corresponding to one of the media
                 options in ``self.sim_data.external_state.saved_media``
-            trna_charging: Use steady-state charging model
+            steady_state_trna_charging: Use steady-state charging model
                 (:py:class:`~ecoli.processes.polypeptide_elongation.SteadyStateElongationModel`)
-                in :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`
+                in :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`.
+                Superseded by ``coarse_kinetic_elongation``.
+            kinetic_trna_charging: Use kinetic charging model
+                (:py:class:`~ecoli.processes.polypeptide_elongation.KineticTrnaChargingModel`)
+                in :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`.
+                Supersedes ``steady_state_trna_charging`` and ``coarse_kinetic_elongation``.
+            coarse_kinetic_elongation: Use coarse kinetic charging model
+                (:py:class:`~ecoli.processes.polypeptide_elongation.CoarseKineticTrnaChargingModel`)
+                in :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`.
+                Superseded by ``kinetic_trna_charging``.
             ppgpp_regulation: Enable growth rate control using ppGpp in
                 polypeptide elongation and transcript initiation
             mar_regulon: Enable tetracycline-related transcriptional regulation
@@ -134,6 +149,9 @@ class LoadSimData:
             disable_ppgpp_elongation_inhibition: Turn off ppGpp-mediated
                 inhibition in :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`
                 when ``trna_charging`` is ``True``
+            ribosome_profiling_molecules: Mapping of monomers to genes for which to output
+                number of ribosomes removed by collisions in
+                ``('listeners', 'trna_charging', 'collision_removed_ribosomes_{gene})``
         """
         self.seed = seed
         self.max_duration = max_duration
@@ -147,7 +165,14 @@ class LoadSimData:
 
         self.media_timeline = media_timeline
 
-        self.trna_charging = trna_charging
+        self.kinetic_trna_charging = kinetic_trna_charging
+        self.coarse_kinetic_elongation = False
+        self.steady_state_trna_charging = False
+        if not kinetic_trna_charging:
+            self.coarse_kinetic_elongation = coarse_kinetic_elongation
+            if not coarse_kinetic_elongation:
+                self.steady_state_trna_charging = steady_state_trna_charging
+
         self.ppgpp_regulation = ppgpp_regulation
         self.initial_state_gaussian = initial_state_gaussian
         self.superhelical_density = superhelical_density
@@ -160,6 +185,7 @@ class LoadSimData:
         self.translation_supply = translation_supply
         self.aa_supply_in_charging = aa_supply_in_charging
         self.disable_ppgpp_elongation_inhibition = disable_ppgpp_elongation_inhibition
+        self.ribosome_profiling_molecules = ribosome_profiling_molecules
         self.recycle_stalled_elongation = recycle_stalled_elongation
         self.emit_unique = emit_unique
 
@@ -170,6 +196,17 @@ class LoadSimData:
         # load sim_data
         with open(sim_data_path, "rb") as sim_data_file:
             self.sim_data: "SimulationDataEcoli" = pickle.load(sim_data_file)
+
+        self.ribosome_profiling_molecule_indexes = {}
+        self.ribosome_profiling_listener_sizes = {}
+        monomer_data = self.sim_data.process.translation.monomer_data
+        for molecule, gene in self.ribosome_profiling_molecules.items():
+            molecule_index = np.where(monomer_data["id"] == molecule)[0][0]
+            listener_size = int(
+                1 + monomer_data["length"][molecule_index].asNumber(units.aa)
+            )
+            self.ribosome_profiling_molecule_indexes[molecule] = molecule_index
+            self.ribosome_profiling_listener_sizes[molecule] = listener_size
 
         if condition is not None:
             self.sim_data.condition = condition
@@ -919,6 +956,8 @@ class LoadSimData:
             "translation_efficiencies": normalize(
                 self.sim_data.process.translation.translation_efficiencies_by_monomer
             ),
+            "ribosome_profiling_molecules": self.ribosome_profiling_molecules,
+            "ribosome_profiling_molecule_indexes": self.ribosome_profiling_molecule_indexes,
             "active_ribosome_fraction": self.sim_data.process.translation.ribosomeFractionActiveDict,
             "elongation_rates": self.sim_data.process.translation.ribosomeElongationRateDict,
             "variable_elongation": self.variable_elongation_translation,
@@ -953,6 +992,63 @@ class LoadSimData:
         translation = self.sim_data.process.translation
         transcription = self.sim_data.process.transcription
         metabolism = self.sim_data.process.metabolism
+        growth_rate_params = self.sim_data.growth_rate_parameters
+        molecule_groups = self.sim_data.molecule_groups
+        external_state = self.sim_data.external_state
+        relation = self.sim_data.relation
+
+        amino_acids = self.sim_data.molecule_groups.amino_acids
+        trna_synthetases_for_aas = []
+        for amino_acid in amino_acids:
+            trna_synthetases_for_aas.append(
+                relation.amino_acid_to_synthetase[amino_acid]
+            )
+
+        # Kinetic paramaters
+        # Set selenocysteine to a high value to represent unlimited
+        # charging
+        k_cat__per_s = np.array(
+            [
+                relation.synthetase_to_k_cat.get(synthetase, 1e4 / units.s).asNumber(
+                    1 / units.s
+                )
+                for synthetase in trna_synthetases_for_aas
+            ],
+            dtype=np.float64,
+        )
+        K_M_amino_acid__per_L = np.array(
+            [
+                (
+                    relation.synthetase_to_K_A.get(synthetase, 1 * units.umol / units.L)
+                    * constants.n_avogadro
+                ).asNumber(1 / units.L)
+                for synthetase in trna_synthetases_for_aas
+            ],
+            dtype=np.float64,
+        )
+        K_M_trna__per_L = np.array(
+            [
+                (
+                    relation.trna_to_K_T.get(trna, 1 * units.umol / units.L)
+                    * constants.n_avogadro
+                ).asNumber(1 / units.L)
+                for trna in transcription.uncharged_trna_names
+            ],
+            dtype=np.float64,
+        )
+
+        # Max curated kcats for coarse kinetic elongation
+        k_cats_dict = relation.synthetase_to_max_curated_k_cats
+        max_curated_kcats = []
+        curated = []
+        for synthetase in trna_synthetases_for_aas:
+            if synthetase in k_cats_dict:
+                max_curated_kcats.append(k_cats_dict[synthetase].asNumber(1 / units.s))
+                curated.append(True)
+            else:
+                max_curated_kcats.append(0)
+                curated.append(False)
+        max_curated_kcats = 1 / units.s * np.array(max_curated_kcats)
 
         polypeptide_elongation_config = {
             "time_step": time_step,
@@ -964,47 +1060,67 @@ class LoadSimData:
             "disable_ppgpp_elongation_inhibition": self.disable_ppgpp_elongation_inhibition,
             "variable_elongation": self.variable_elongation_translation,
             "translation_supply": self.translation_supply,
-            "trna_charging": self.trna_charging,
+            "steady_state_trna_charging": self.steady_state_trna_charging,
+            "kinetic_trna_charging": self.kinetic_trna_charging,
+            "coarse_kinetic_elongation": self.coarse_kinetic_elongation,
             # base parameters
             "n_avogadro": constants.n_avogadro,
-            "proteinIds": translation.monomer_data["id"],
-            "proteinLengths": translation.monomer_data["length"].asNumber(),
-            "proteinSequences": translation.translation_sequences,
-            "aaWeightsIncorporated": translation.translation_monomer_weights,
+            "protein_ids": translation.monomer_data["id"],
+            "protein_lengths": translation.monomer_data["length"].asNumber(),
+            "protein_sequences": translation.translation_sequences,
+            "monomer_weights_incorporated": translation.translation_monomer_weights,
             "endWeight": translation.translation_end_weight,
             "make_elongation_rates": translation.make_elongation_rates,
             "next_aa_pad": translation.next_aa_pad,
-            "ribosomeElongationRate": float(
-                self.sim_data.growth_rate_parameters.ribosomeElongationRate.asNumber(
-                    units.aa / units.s
-                )
+            "ribosome_elongation_rate": float(
+                growth_rate_params.ribosomeElongationRate.asNumber(units.aa / units.s)
             ),
+            "ribosome_profiling_molecules": self.ribosome_profiling_molecules,
+            "ribosome_profiling_molecule_indexes": self.ribosome_profiling_molecule_indexes,
+            "ribosome_profiling_listener_sizes": self.ribosome_profiling_listener_sizes,
+            "n_monomers": len(molecule_groups.amino_acids),
             # Amino acid supply calculations
             "translation_aa_supply": self.sim_data.translation_supply_rate,
-            "import_threshold": self.sim_data.external_state.import_constraint_threshold,
+            "import_threshold": external_state.import_constraint_threshold,
             # Data structures for charging
             "aa_from_trna": transcription.aa_from_trna,
             # Growth associated maintenance energy requirements for elongations
             "gtpPerElongation": constants.gtp_per_translation,
             # Bulk molecules
-            "ribosome30S": self.sim_data.molecule_ids.s30_full_complex,
-            "ribosome50S": self.sim_data.molecule_ids.s50_full_complex,
-            "amino_acids": self.sim_data.molecule_groups.amino_acids,
+            "ribosome30S": molecule_ids.s30_full_complex,
+            "ribosome50S": molecule_ids.s50_full_complex,
+            "amino_acids": molecule_groups.amino_acids,
             # parameters for specific elongation models
             "aa_exchange_names": np.array(
                 [
-                    self.sim_data.external_state.env_to_exchange_map[aa[:-3]]
-                    for aa in self.sim_data.molecule_groups.amino_acids
+                    external_state.env_to_exchange_map[aa[:-3]]
+                    for aa in molecule_groups.amino_acids
                 ]
             ),
-            "basal_elongation_rate": self.sim_data.constants.ribosome_elongation_rate_basal.asNumber(
+            "basal_elongation_rate": constants.ribosome_elongation_rate_basal.asNumber(
                 units.aa / units.s
             ),
-            "ribosomeElongationRateDict": self.sim_data.process.translation.ribosomeElongationRateDict,
-            "uncharged_trna_names": self.sim_data.process.transcription.uncharged_trna_names,
-            "proton": self.sim_data.molecule_ids.proton,
-            "water": self.sim_data.molecule_ids.water,
-            "cellDensity": constants.cell_density,
+            "ribosome_elongation_rate_dict": translation.ribosomeElongationRateDict,
+            "uncharged_trna_names": transcription.uncharged_trna_names,
+            "proton": molecule_ids.proton,
+            "water": molecule_ids.water,
+            "cell_density": constants.cell_density,
+            "n_codons": len(relation.codons),
+            "codon_sequences": relation.codon_sequences,
+            "residue_weights_by_codon": relation.residue_weights_by_codon,
+            "i_start_codon": relation.codons.index(molecule_ids.start_codon),
+            "trna_synthetases_for_aas": trna_synthetases_for_aas,
+            "is_map_substrate": translation.monomer_data[
+                "cleavage_of_initial_methionine"
+            ],
+            "n_trna_codon_pairs": len(relation.trna_codon_pairs),
+            "trnas_to_codons": relation.trnas_to_codons,
+            "codons_to_amino_acids": relation.codons_to_amino_acids,
+            "k_cat__per_s": k_cat__per_s,
+            "K_M_amino_acid__per_L": K_M_amino_acid__per_L,
+            "K_M_trna__per_L": K_M_trna__per_L,
+            "max_curated_kcats": max_curated_kcats,
+            "kcats_curated": curated,
             "elongation_max": (
                 constants.ribosome_elongation_rate_max
                 if self.variable_elongation_translation
@@ -1016,7 +1132,7 @@ class LoadSimData:
             "charging_molecule_names": transcription.charging_molecules,
             "synthetase_names": transcription.synthetase_names,
             "ppgpp_reaction_metabolites": metabolism.ppgpp_reaction_metabolites,
-            "elong_rate_by_ppgpp": self.sim_data.growth_rate_parameters.get_ribosome_elongation_rate_by_ppgpp,
+            "elong_rate_by_ppgpp": growth_rate_params.get_ribosome_elongation_rate_by_ppgpp,
             "rela": molecule_ids.RelA,
             "spot": molecule_ids.SpoT,
             "ppgpp": molecule_ids.ppGpp,
@@ -1054,7 +1170,7 @@ class LoadSimData:
             "aa_importers": metabolism.aa_importer_names,
             "aa_exporters": metabolism.aa_exporter_names,
             "get_pathway_enzyme_counts_per_aa": metabolism.get_pathway_enzyme_counts_per_aa,
-            "import_constraint_threshold": self.sim_data.external_state.import_constraint_threshold,
+            "import_constraint_threshold": external_state.import_constraint_threshold,
             "seed": self._seedFromName("PolypeptideElongation"),
             "emit_unique": self.emit_unique,
         }
@@ -1294,9 +1410,9 @@ class LoadSimData:
             "import_constraint_threshold": self.sim_data.external_state.import_constraint_threshold,
             "exchange_molecules": self.sim_data.external_state.all_external_exchange_molecules,
             # these are options given to the wholecell.sim.simulation
-            "use_trna_charging": self.trna_charging,
+            "steady_state_trna_charging": self.steady_state_trna_charging,
             "include_ppgpp": (not self.ppgpp_regulation)
-            or (not self.trna_charging)
+            or (not self.steady_state_trna_charging)
             or getattr(metabolism, "force_constant_ppgpp", False),
             "mechanistic_aa_transport": self.mechanistic_aa_transport,
             # these values came from the initialized environment state
@@ -1565,6 +1681,10 @@ class LoadSimData:
             "ribosome_50S_subunit": self.sim_data.molecule_ids.s50_full_complex,
             "amino_acids": self.sim_data.molecule_groups.amino_acids,
             "water": self.sim_data.molecule_ids.water,
+            # Ribosome profiling
+            "ribosome_profiling_molecules": self.ribosome_profiling_molecules,
+            "ribosome_profiling_molecule_indexes": self.ribosome_profiling_molecule_indexes,
+            "ribosome_profiling_listener_sizes": self.ribosome_profiling_listener_sizes,
             "seed": self._seedFromName("ChromosomeStructure"),
             "emit_unique": self.emit_unique,
         }
@@ -1831,10 +1951,15 @@ class LoadSimData:
             self.ppgpp_regulation,
             self.trna_attenuation,
             self.mechanistic_replisome,
+            self.kinetic_trna_charging,
         )
 
-        if self.trna_charging:
-            initialize_trna_charging(
+        if self.kinetic_trna_charging:
+            initialize_kinetic_trna_charging(
+                self.sim_data.condition, bulk_state, self.sim_data
+            )
+        elif self.steady_state_trna_charging:
+            initialize_steady_state_trna_charging(
                 bulk_state,
                 unique_molecules,
                 self.sim_data,
