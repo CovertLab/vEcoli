@@ -21,9 +21,9 @@ cimport cython
 @cython.wraparound(False)   # Deactivate negative indexing
 @cython.cdivision(True)		# Deactivate 0 division checking
 cpdef int get_initiations(
-	long [:] elongations,
-	long [:] lengths,
-	long [:] indexes,
+	const long [:] elongations,
+	const long [:] lengths,
+	const long [:] indexes,
 	):
 
 	cdef int n_initiations = 0
@@ -42,8 +42,8 @@ cpdef int get_initiations(
 @cython.wraparound(False)   # Deactivate negative indexing
 @cython.cdivision(True)		# Deactivate 0 division checking
 cpdef char get_codon_at(
-	char [:, :] sequences, # 8-bit signed integer
-	long [:] elongations,
+	const char [:, :] sequences, # 8-bit signed integer
+	const long [:] elongations,
 	long ith_ribosome,
 	long relative_position,
 	int absolute_position,
@@ -62,8 +62,8 @@ cpdef char get_codon_at(
 @cython.wraparound(False)   # Deactivate negative indexing
 @cython.cdivision(True)		# Deactivate 0 division checking
 cpdef (int, int) get_candidates_to_C(
-	char [:, :] sequences,
-	long [:] elongations,
+	const char [:, :] sequences,
+	const long [:] elongations,
 	char codon_id,
 	int candidates,
 	int relative_position,
@@ -90,8 +90,8 @@ cpdef (int, int) get_candidates_to_C(
 @cython.wraparound(False)   # Deactivate negative indexing
 @cython.cdivision(True)		# Deactivate 0 division checking
 cpdef (int, int) get_candidates_to_N(
-	char [:, :] sequences,
-	long [:] elongations,
+	const char [:, :] sequences,
+	const long [:] elongations,
 	char codon_id,
 	int candidates,
 	int relative_position,
@@ -118,8 +118,8 @@ cpdef (int, int) get_candidates_to_N(
 @cython.wraparound(False)   # Deactivate negative indexing
 @cython.cdivision(True)		# Deactivate 0 division checking
 cpdef int select_candidate(
-	char [:, :] sequences,
-	long [:] elongations,
+	const char [:, :] sequences,
+	const long [:] elongations,
 	int relative_position,
 	char codon_id,
 	int r,
@@ -143,8 +143,8 @@ cpdef int select_candidate(
 @cython.wraparound(False)   # Deactivate negative indexing
 @cython.cdivision(True)		# Deactivate 0 division checking
 cdef bint is_initial_state(
-	int [:] initial_state,
-	int [:] state,
+	const int [:] initial_state,
+	const int [:] state,
 	char size,
 	int i,
 	):
@@ -160,8 +160,8 @@ cdef bint is_initial_state(
 cpdef reconcile_via_ribosome_positions(
 	long [:] sequence_codons, # 64-bit integer
 	long [:] elongations, # 64-bit integer
-	long [:] kinetics_codons, # 64-bit integer
-	char [:, :] sequences, # 8-bit integer
+	const long [:] kinetics_codons, # 64-bit integer
+	const char [:, :] sequences, # 8-bit integer
 	char max_attempts, # 8-bit integer
 	):
 
