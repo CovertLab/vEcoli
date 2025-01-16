@@ -187,6 +187,22 @@ def not_a_process(value):
     return not (isinstance(value, Store) and value.topology)
 
 
+def zero_listener(listener: dict[str, Any]) -> dict[str, Any]:
+    """
+    Takes a listener dictionary and creates a zeroed version of it.
+    """
+    new_listener = {}
+    for key, value in listener.items():
+        if isinstance(value, dict):
+            new_listener[key] = zero_listener(value)
+        else:
+            zeros = np.zeros_like(value)
+            if zeros.shape == ():
+                zeros = zeros.item()
+            new_listener[key] = zeros
+    return new_listener
+
+
 def counts(states: np.ndarray, idx: int | np.ndarray) -> np.ndarray:
     """Helper function to pull out counts at given indices.
 

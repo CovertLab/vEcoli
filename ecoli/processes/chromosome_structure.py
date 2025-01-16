@@ -147,6 +147,16 @@ class ChromosomeStructure(Step):
 
         self.inactive_RNAPs_idx = None
 
+        self.ribosome_profiling_molecules = self.parameters[
+            "ribosome_profiling_molecules"
+        ]
+        self.ribosome_profiling_molecule_indexes = self.parameters[
+            "ribosome_profiling_molecule_indexes"
+        ]
+        self.ribosome_profiling_listener_sizes = self.parameters[
+            "ribosome_profiling_listener_sizes"
+        ]
+
         self.emit_unique = self.parameters.get("emit_unique", True)
 
     def ports_schema(self):
@@ -167,7 +177,16 @@ class ChromosomeStructure(Step):
                         "n_empty_fork_collisions": 0,
                         "empty_fork_collision_coordinates": [],
                     }
-                )
+                ),
+                "trna_charging": listener_schema(
+                    {
+                        f"collision_removed_ribosomes_{gene}": np.zeros(size, np.int64)
+                        for gene, size in zip(
+                            self.ribosome_profiling_molecules,
+                            self.ribosome_profiling_listener_sizes,
+                        )
+                    }
+                ),
             },
             "bulk": numpy_schema("bulk"),
             # Unique molecules
@@ -401,7 +420,13 @@ class ChromosomeStructure(Step):
                     "codirectional_collision_coordinates": RNAP_coordinates[
                         RNAP_codirectional_collision_mask
                     ],
-                }
+                },
+                "trna_charging": {
+                    collision_removed_gene: np.zeros_like(collision_removed_val)
+                    for collision_removed_gene, collision_removed_val in states[
+                        "listeners"
+                    ]["trna_charging"].items()
+                },
             },
             "bulk": [],
             "active_replisomes": {},
@@ -789,7 +814,31 @@ class ChromosomeStructure(Step):
         # Remove ribosomes that are bound to missing RNA molecules. This
         # includes both RNAs removed by this function and RNAs removed
         # by other processes (e.g. RNA degradation).
+        collision_removed_ribosomes = {}
+        for molecule, gene in self.ribosome_profiling_molecules.items():
+            listener_size = self.ribosome_profiling_listener_sizes[molecule]
+            collision_removed_ribosomes[gene] = np.zeros(listener_size)
+
         if n_removed_ribosomes > 0:
+            (
+                protein_indexes,
+                peptide_lengths,
+            ) = attrs(states["active_ribosome"], ["protein_index", "peptide_length"])
+            for molecule, gene in self.ribosome_profiling_molecules.items():
+                molecule_index = self.ribosome_profiling_molecule_indexes[molecule]
+                ribosomes_removed = np.logical_and(
+                    removed_ribosomes_mask,
+                    protein_indexes == molecule_index,
+                )
+                if np.any(ribosomes_removed):
+                    for position in peptide_lengths[np.where(ribosomes_removed)[0]]:
+                        collision_removed_ribosomes[gene][position] += 1
+
+            update["listeners"]["trna_charging"] = {
+                f"collision_removed_ribosomes_{gene}": n_removed
+                for gene, n_removed in collision_removed_ribosomes.items()
+            }
+
             update["active_ribosome"].update(
                 {"delete": np.where(removed_ribosomes_mask)[0]}
             )

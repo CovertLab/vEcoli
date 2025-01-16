@@ -20,6 +20,7 @@ from ecoli.library.schema import (
     counts,
     bulk_name_to_idx,
     listener_schema,
+    zero_listener,
 )
 
 from wholecell.utils import units
@@ -103,17 +104,18 @@ class PolypeptideInitiation(PartitionedProcess):
         self.ribosome30S = self.parameters["ribosome30S"]
         self.ribosome50S = self.parameters["ribosome50S"]
 
+        self.ribosome_profiling_molecules = self.parameters[
+            "ribosome_profiling_molecules"
+        ]
+        self.ribosome_profiling_molecule_indexes = self.parameters[
+            "ribosome_profiling_molecule_indexes"
+        ]
+        self.ribosome_profiling_number_of_ribosomes = self.parameters[
+            "ribosome_profiling_number_of_ribosomes"
+        ]
+
         self.seed = self.parameters["seed"]
         self.random_state = np.random.RandomState(seed=self.seed)
-
-        self.empty_update = {
-            "listeners": {
-                "ribosome_data": {
-                    "ribosomes_initialized": 0,
-                    "prob_translation_per_transcript": 0.0,
-                }
-            }
-        }
 
         self.monomer_ids = self.parameters["monomer_ids"]
 
@@ -149,6 +151,15 @@ class PolypeptideInitiation(PartitionedProcess):
                             np.zeros(len(self.monomer_ids), np.float64),
                             self.monomer_ids,
                         ),
+                        "activation_prob": 0.0,
+                        "n_ribosomes_to_activate": 0,
+                        "is_n_ribosomes_to_activate_reduced": False,
+                    }
+                ),
+                "trna_charging": listener_schema(
+                    {
+                        f"ribosome_initiation_{gene}": []
+                        for gene in self.ribosome_profiling_molecules.values()
                     }
                 ),
             },
@@ -277,8 +288,16 @@ class PolypeptideInitiation(PartitionedProcess):
         n_ribosomes_to_activate = np.int64(activation_prob * inactive_ribosome_count)
 
         if n_ribosomes_to_activate == 0:
-            update = dict(self.empty_update)
-            update["active_ribosome"] = {}
+            update = {
+                "listeners": {
+                    "ribosome_data": zero_listener(
+                        states["listeners"]["ribosome_data"]
+                    ),
+                    "trna_charging": zero_listener(
+                        states["listeners"]["trna_charging"]
+                    ),
+                }
+            }
             return self.empty_update
 
         # Cap the initiation probabilities at the maximum level physically
@@ -366,6 +385,10 @@ class PolypeptideInitiation(PartitionedProcess):
         nonzero_count = n_new_proteins > 0
         start_index = 0
 
+        ribosome_initiations_on_MOIs = {}
+        for molecule, gene in self.ribosome_profiling_molecules.items():
+            ribosome_initiations_on_MOIs[gene] = np.array([], dtype=np.int64)
+
         for protein_index, protein_counts in zip(
             np.arange(n_new_proteins.size)[nonzero_count], n_new_proteins[nonzero_count]
         ):
@@ -410,6 +433,19 @@ class PolypeptideInitiation(PartitionedProcess):
                 cistron_start_positions, n_ribosomes_per_RNA
             )
 
+            for molecule, gene in self.ribosome_profiling_molecules.items():
+                molecule_index = self.ribosome_profiling_molecule_indexes[molecule]
+
+                if protein_index == molecule_index:
+                    identifier = mRNA_indexes[
+                        start_index : start_index + protein_counts
+                    ]
+
+                    for x in identifier:
+                        if x not in self.ribosome_profiling_number_of_ribosomes[gene]:
+                            self.ribosome_profiling_number_of_ribosomes[gene].append(x)
+                    ribosome_initiations_on_MOIs[gene] = identifier
+
             start_index += protein_counts
 
         # Create active 70S ribosomes and assign their attributes
@@ -436,7 +472,13 @@ class PolypeptideInitiation(PartitionedProcess):
                     "max_p": max_p,
                     "max_p_per_protein": max_p_per_protein,
                     "is_n_ribosomes_to_activate_reduced": is_n_ribosomes_to_activate_reduced,
-                }
+                    "activation_prob": activation_prob,
+                    "n_ribosomes_to_activate": n_ribosomes_to_activate,
+                },
+                "trna_charging": {
+                    f"ribosome_initiation_{gene}": ribosome_initiations_on_MOIs[gene]
+                    for gene in self.ribosome_profiling_molecules.values()
+                },
             },
         }
 

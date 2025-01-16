@@ -52,6 +52,7 @@ def run_parca(config):
         variable_elongation_translation=config["variable_elongation_translation"],
         disable_ribosome_capacity_fitting=(not config["ribosome_fitting"]),
         disable_rnapoly_capacity_fitting=(not config["rnapoly_fitting"]),
+        optimize_trna_charging_kinetics=config["optimize_trna_charging_kinetics"],
     )
     print(f"{time.ctime()}: Saving sim_data")
     with open(sim_data_file, "wb") as f:
