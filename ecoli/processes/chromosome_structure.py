@@ -816,7 +816,7 @@ class ChromosomeStructure(Step):
         collision_removed_ribosomes = {}
         for molecule, gene in self.ribosome_profiling_molecules.items():
             listener_size = self.ribosome_profiling_listener_sizes[molecule]
-            collision_removed_ribosomes[gene] = np.zeros(listener_size)
+            collision_removed_ribosomes[gene] = np.zeros(listener_size, np.int64)
 
         if n_removed_ribosomes > 0:
             (
