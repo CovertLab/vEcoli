@@ -202,6 +202,19 @@ class LoadSimData:
         with open(sim_data_path, "rb") as sim_data_file:
             self.sim_data: "SimulationDataEcoli" = pickle.load(sim_data_file)
 
+        self.ribosome_profiling_molecule_indexes = {}
+        self.ribosome_profiling_listener_sizes = {}
+        self.ribosome_profiling_number_of_ribosomes = {}
+        monomer_data = self.sim_data.process.translation.monomer_data
+        for molecule, gene in self.ribosome_profiling_molecules.items():
+            molecule_index = np.where(monomer_data["id"] == molecule)[0][0]
+            listener_size = int(
+                1 + monomer_data["length"][molecule_index].asNumber(units.aa)
+            )
+            self.ribosome_profiling_molecule_indexes[molecule] = molecule_index
+            self.ribosome_profiling_listener_sizes[molecule] = listener_size
+            self.ribosome_profiling_number_of_ribosomes[gene] = []
+
         if condition is not None:
             self.sim_data.condition = condition
 
@@ -925,6 +938,9 @@ class LoadSimData:
             "translation_efficiencies": normalize(
                 self.sim_data.process.translation.translation_efficiencies_by_monomer
             ),
+            "ribosome_profiling_molecules": self.ribosome_profiling_molecules,
+            "ribosome_profiling_molecule_indexes": self.ribosome_profiling_molecule_indexes,
+            "ribosome_profiling_number_of_ribosomes": self.ribosome_profiling_number_of_ribosomes,
             "active_ribosome_fraction": self.sim_data.process.translation.ribosomeFractionActiveDict,
             "elongation_rates": self.sim_data.process.translation.ribosomeElongationRateDict,
             "variable_elongation": self.variable_elongation_translation,
@@ -1044,6 +1060,9 @@ class LoadSimData:
             "ribosome_elongation_rate": float(
                 growth_rate_params.ribosomeElongationRate.asNumber(units.aa / units.s)
             ),
+            "ribosome_profiling_molecules": self.ribosome_profiling_molecules,
+            "ribosome_profiling_molecule_indexes": self.ribosome_profiling_molecule_indexes,
+            "ribosome_profiling_listener_sizes": self.ribosome_profiling_listener_sizes,
             "n_monomers": len(molecule_groups.amino_acids),
             # Amino acid supply calculations
             "translation_aa_supply": self.sim_data.translation_supply_rate,
@@ -1614,17 +1633,6 @@ class LoadSimData:
         mature_rna_ids = transcription.mature_rna_data["id"]
         unprocessed_rna_indexes = np.where(transcription.rna_data["is_unprocessed"])[0]
 
-        ribosome_profiling_molecule_indexes = {}
-        ribosome_profiling_listener_sizes = {}
-        monomer_data = self.sim_data.process.translation.monomer_data
-        for molecule in self.ribosome_profiling_molecules.keys():
-            molecule_index = np.where(monomer_data["id"] == molecule)[0][0]
-            listener_size = int(
-                1 + monomer_data["length"][molecule_index].asNumber(units.aa)
-            )
-            ribosome_profiling_molecule_indexes[molecule] = molecule_index
-            ribosome_profiling_listener_sizes[molecule] = listener_size
-
         chromosome_structure_config = {
             "time_step": time_step,
             # Load parameters
@@ -1663,8 +1671,8 @@ class LoadSimData:
             "water": self.sim_data.molecule_ids.water,
             # Ribosome profiling
             "ribosome_profiling_molecules": self.ribosome_profiling_molecules,
-            "ribosome_profiling_molecule_indexes": ribosome_profiling_molecule_indexes,
-            "ribosome_profiling_listener_sizes": ribosome_profiling_listener_sizes,
+            "ribosome_profiling_molecule_indexes": self.ribosome_profiling_molecule_indexes,
+            "ribosome_profiling_listener_sizes": self.ribosome_profiling_listener_sizes,
             "seed": self._seedFromName("ChromosomeStructure"),
             "emit_unique": self.emit_unique,
         }

@@ -180,11 +180,10 @@ class ChromosomeStructure(Step):
                 ),
                 "trna_charging": listener_schema(
                     {
-                        f"collision_removed_ribosomes_{gene}": np.zeros(size, np.int64)
-                        for gene, size in zip(
-                            self.ribosome_profiling_molecules,
-                            self.ribosome_profiling_listener_sizes,
+                        f"collision_removed_ribosomes_{gene}": np.zeros(
+                            self.ribosome_profiling_listener_sizes[molecule], np.int64
                         )
+                        for molecule, gene in self.ribosome_profiling_molecules.items()
                     }
                 ),
             },

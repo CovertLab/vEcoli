@@ -156,6 +156,9 @@ class PolypeptideElongation(PartitionedProcess):
         "amino_acids": DEFAULT_AA_NAMES,
         "aa_exchange_names": DEFAULT_AA_NAMES,
         "basal_elongation_rate": 22.0,
+        "ribosome_profiling_molecules": {},
+        "ribosome_profiling_molecule_indexes": {},
+        "ribosome_profiling_listener_sizes": {},
         "ribosome_elongation_rate_dict": {
             "minimal": 17.388824902723737 * units.aa / units.s
         },
@@ -460,9 +463,10 @@ class PolypeptideElongation(PartitionedProcess):
                     {
                         **{
                             f"ribosome_positions_{gene}": np.zeros(
-                                self.ribosome_profiling_listener_sizes[gene], np.int64
+                                self.ribosome_profiling_listener_sizes[molecule],
+                                np.int64,
                             )
-                            for gene in self.ribosome_profiling_molecules.values()
+                            for molecule, gene in self.ribosome_profiling_molecules.items()
                         },
                         "codons_read": np.zeros(self.n_codons, np.int64),
                         "initiated": 0,

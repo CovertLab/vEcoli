@@ -50,6 +50,9 @@ class PolypeptideInitiation(PartitionedProcess):
     defaults = {
         "protein_lengths": [],
         "translation_efficiencies": [],
+        "ribosome_profiling_molecules": {},
+        "ribosome_profiling_molecule_indexes": {},
+        "ribosome_profiling_number_of_ribosomes": {},
         "active_ribosome_fraction": {},
         "elongation_rates": {},
         "variable_elongation": False,
