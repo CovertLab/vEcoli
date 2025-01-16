@@ -10,7 +10,7 @@ import json
 from wholecell.utils import units
 from wholecell.utils.polymerize import polymerize
 
-print_optimization = False
+print_optimization = True
 
 
 class Relation(object):
@@ -1373,9 +1373,7 @@ class Relation(object):
             trna_cistron_counts = transcription.tRNA_cistron_tu_mapping_matrix.dot(
                 container["count"][trna_TU_idx]
             )
-            trna_cistron_ids = transcription.cistron_data["id"][
-                transcription.cistron_data["is_tRNA"]
-            ]
+            trna_cistron_ids = np.array(transcription.uncharged_trna_names)
 
             trna_to_conc = {}
             for trna in trnas:
