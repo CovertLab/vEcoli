@@ -247,7 +247,7 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--log_updates",
-                action="store_true",
+                action=argparse.BooleanOptionalAction,
                 help=(
                     "Save updates from each process if this flag is set, "
                     "e.g. for use with blame plot."
@@ -255,7 +255,7 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--raw_output",
-                action="store_true",
+                action=argparse.BooleanOptionalAction,
                 help=(
                     "Whether to return data in raw format (dictionary"
                     " where keys are times, values are states). Requires"
@@ -267,19 +267,16 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--sim_data_path",
-                default=None,
                 help="Path to the sim_data (pickle from ParCa) to use for this experiment.",
             )
             self.parser.add_argument(
                 "--profile",
-                action="store_true",
-                default=False,
+                action=argparse.BooleanOptionalAction,
                 help="Print profiling information at the end.",
             )
             self.parser.add_argument(
                 "--initial_state_file",
                 action="store",
-                default="",
                 help='Name of initial state file (omit ".json" extension) under data/',
             )
             self.parser.add_argument(
@@ -310,8 +307,7 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--fail_at_total_time",
-                action="store_true",
-                default=False,
+                action=argparse.BooleanOptionalAction,
                 help="Simulation will raise TimeLimitException upon reaching total_time.",
             )
 
@@ -365,7 +361,9 @@ class SimConfig:
         # Then override the configuration file with any command-line
         # options.
         cli_config = {
-            key: value for key, value in vars(args).items() if value and key != "config"
+            key: value
+            for key, value in vars(args).items()
+            if value is not None and key != "config"
         }
         self.merge_config_dicts(self._config, cli_config)
 
