@@ -71,15 +71,29 @@ finishes, close and reopen your terminal before continuing with the
 > **Tip:** If any step in the `nextflow` installation fails,
 > try rerunning a few times to see if that fixes the issue.
 
+If you are installing the model for active development, we strongly
+recommend that you also install the development dependencies using:
+
+    uv sync --frozen --extra dev
+
+After that, you can run ``uv run pre-commit install`` to install
+a pre-commit hook that will run the ``ruff`` linter and formatter
+before all of your commits.
+
+The development dependencies also include ``pytest``, which lets
+you run the test suite, and ``mypy``, which can be invoked to
+perform static type checking.
+
 ## Test Installation
 
 To test your installation, from the top-level of the cloned repository, invoke:
 
-    uv run --env-file .env runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
+    uv run runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
 
-> **Note:** Start all of your commands to run scripts with `uv run --env-file .env`.
-> You can create an alias by appending `alias uvrun="uv run --env-file .env"`
-> to your `~/.zshrc` or `~/.bashrc`. Then, you can start commands with `uvrun`.
+> **Note:** Start all of your commands to run scripts with `uv run`. Alternatively,
+> you can source the Python virtual environment that `uv` created with
+> `source .venv/bin/activate` and use `python` as normal, though we recommend
+> sticking to `uv run` where possible.
 
 This will run the following basic simulation workflow:
 

@@ -502,7 +502,7 @@ from plain text. Here are stepwise instructions:
    .. code-block:: console
 
         $ cd doc
-        $ uv run --env-file .env make html
+        $ uv run make html
 
    Your HTML will now be in ``doc/_build/html``. To view it, open
    ``doc/_build/html/index.html`` in a web browser.
