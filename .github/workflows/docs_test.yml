@@ -15,7 +15,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-          version: "0.5.7"
+          version: "0.5.21"
       - name: Install Pandoc
         run: sudo apt-get install pandoc
       - name: Install model
