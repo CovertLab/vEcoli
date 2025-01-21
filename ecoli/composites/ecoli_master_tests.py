@@ -101,10 +101,12 @@ def test_division(agent_id="0", total_time=4):
     for name, mols in mother_state["unique"].items():
         d1_state = daughter_states[0]["unique"][name]
         d2_state = daughter_states[1]["unique"][name]
-        m_state = np.array(mols)
-        entryState_col = np.where(np.array(d1_state.dtype.names) == "_entryState")[0]
-        n_mother = m_state[entryState_col].sum()
-        n_daughter = d1_state["_entryState"].sum() + d2_state["_entryState"].sum()
+        mol_keys = sim.ecoli_experiment.state["agents"]["00"]["unique"][
+            name
+        ].value.dtype.names
+        entryState_col = np.where(np.array(mol_keys) == "_entryState")[0][0]
+        n_mother = sum(mols[entryState_col])
+        n_daughter = sum(d1_state[entryState_col]) + sum(d2_state[entryState_col])
         if name == "chromosome_domain":
             # Chromosome domain 0 is lost after division because
             # it has been fully split into child domains 1 and 2
@@ -113,7 +115,8 @@ def test_division(agent_id="0", total_time=4):
             n_mother, n_daughter, rtol=0.01
         ), f"{name}: mother has {n_mother}, daughters have {n_daughter}"
         # Assert that no unique mol is in both daughters
-        assert not (set(d1_state["unique_index"]) & set(d2_state["unique_index"]))
+        unique_idx_col = np.where(np.array(mol_keys) == "unique_index")[0][0]
+        assert not (set(d1_state[unique_idx_col]) & set(d2_state[unique_idx_col]))
 
     # asserts
     final_agents = output[total_time]["agents"].keys()
