@@ -59,10 +59,6 @@ Navigate into the cloned repository and use `uv` to install the model:
     cd vEcoli
     uv sync --frozen
 
-> **Note:** If your C compiler is not `clang`, run `CC={your compiler} uv sync --frozen`
-> instead to work around [this limitation](https://github.com/astral-sh/uv/issues/8429).
-> For example, `CC=gcc uv sync --frozen` for `gcc`.
-
 Finally, install `nextflow` [following these instructions](https://www.nextflow.io/docs/latest/install.html).
 If you choose to install Java with SDKMAN!, after the Java installation
 finishes, close and reopen your terminal before continuing with the
