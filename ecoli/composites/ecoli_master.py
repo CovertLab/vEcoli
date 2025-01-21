@@ -460,7 +460,7 @@ class Ecoli(Composer):
         }
         unique_topo["active_ribosome"] = ("unique", "active_ribosome")
         unique_topo["DnaA_boxes"] = ("unique", "DnaA_box")
-        params = {"unique_topo": unique_topo}
+        params = {"unique_topo": unique_topo, "emit_unique": config["emit_unique"]}
         for i in range(1, unique_update_counter):
             steps[f"unique_update_{i}"] = UniqueUpdate(params)
 
