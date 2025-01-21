@@ -55,7 +55,7 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic",
-    total_time=10,
+    total_time=1500,
     divide=True,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
@@ -312,7 +312,7 @@ def save_sim_output(folder, query, sim, save_model=False):
                 ("agents", agent, "listeners", "mass"),
                 ("agents", agent, "listeners", "unique_molecule_counts"),
                 ("agents", agent, "listeners", "rna_synth_prob"),
-                ("agents", agent, "RNAs",),
+                ("agents", agent, "listeners", "rna_counts"),
                 ("agents", agent, "bulk"),
             ]
         )
