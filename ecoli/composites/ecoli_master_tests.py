@@ -279,11 +279,39 @@ def plot_spatial_snapshots(data, sim, experiment_dir="ecoli_test"):
     )
 
 
+def test_emit_unique():
+    """
+    Test that the ``emit_unique`` configuration option works. This can be broken
+    if a new process is added whose ports schema connects to a unique molecule
+    without setting the ``_emit`` property to ``config['emit_unique']``.
+    """
+    sim = EcoliSim.from_file()
+    sim.config["emit_unique"] = True
+    sim.config["total_time"] = 1
+    sim.build_ecoli()
+    sim.run()
+    unique_molecules = sim.ecoli_experiment.state["agents"]["0"]["unique"].inner.keys()
+    data = sim.query(
+        [
+            (
+                "agents",
+                "0",
+                "unique",
+            )
+        ]
+    )
+    for val in data.values():
+        for unique_mol in unique_molecules:
+            assert unique_mol in val["agents"]["0"]["unique"]
+            assert isinstance(val["agents"]["0"]["unique"][unique_mol], list)
+
+
 test_library = {
     "1": test_division,
     "2": test_division_topology,
     "3": test_ecoli_generate,
     "4": test_lattice_lysis,
+    "5": test_emit_unique,
 }
 
 # run experiments in test_library from the command line with:
