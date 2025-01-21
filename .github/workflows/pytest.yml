@@ -17,7 +17,7 @@ jobs:
       uses: astral-sh/setup-uv@v4
       with:
         enable-cache: true
-        version: "0.5.7"
+        version: "0.5.21"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Test with pytest
@@ -44,7 +44,7 @@ jobs:
       uses: astral-sh/setup-uv@v4
       with:
         enable-cache: true
-        version: "0.5.7"
+        version: "0.5.21"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Mypy
@@ -58,7 +58,7 @@ jobs:
       uses: astral-sh/setup-uv@v4
       with:
         enable-cache: true
-        version: "0.5.7"
+        version: "0.5.21"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Ruff
