@@ -532,6 +532,10 @@ class PolypeptideElongation(PartitionedProcess):
             states["bulk_total"], self.amino_acid_idx
         )
         growth_limits_listener["aa_request_size"] = aa_counts_for_translation
+        # Simulations without mechanistic translation supply need this to be
+        # manually zeroed after division
+        proc_data = requests.setdefault("polypeptide_elongation", {})
+        proc_data.setdefault("aa_exchange_rates", np.zeros(len(self.amino_acids)))
 
         return requests
 
