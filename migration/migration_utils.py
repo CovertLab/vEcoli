@@ -309,7 +309,7 @@ def run_and_compare(
         ]
         actual_update["process_state"]["aa_exchange_rates"] = actual_update[
             "process_state"
-        ]["aa_exchange_rates"].asNumber()
+        ]["aa_exchange_rates"]
     # Sort delete indices to match wcEcoli sorted indices
     for unique_update in actual_update.get("unique", {}).values():
         if "delete" in unique_update:

@@ -1015,7 +1015,7 @@ class LoadSimData:
                     relation.trna_to_K_T.get(trna, 1 * units.umol / units.L)
                     * constants.n_avogadro
                 ).asNumber(1 / units.L)
-                for trna in trna_synthetases_for_aas
+                for trna in transcription.uncharged_trna_names
             ],
             dtype=np.float64,
         )
@@ -1095,9 +1095,6 @@ class LoadSimData:
             "residue_weights_by_codon": relation.residue_weights_by_codon,
             "i_start_codon": relation.codons.index(molecule_ids.start_codon),
             "trna_synthetases_for_aas": trna_synthetases_for_aas,
-            "free_trnas": transcription.rna_data["id"][
-                transcription.rna_data["is_tRNA"]
-            ].tolist(),
             "is_map_substrate": translation.monomer_data[
                 "cleavage_of_initial_methionine"
             ],

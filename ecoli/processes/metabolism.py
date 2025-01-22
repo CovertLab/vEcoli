@@ -360,7 +360,7 @@ class Metabolism(Step):
                     "_divider": "zero",
                 },
                 "aa_exchange_rates": {
-                    "_default": 0.0,
+                    "_default": np.zeros(len(self.aa_names)),
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "zero",
@@ -487,7 +487,7 @@ class Metabolism(Step):
             aa_in_media[self.removed_aa_uptake] = False
             exchange_rates = (
                 states["polypeptide_elongation"]["aa_exchange_rates"] * timestep
-            ).asNumber(CONC_UNITS / TIME_UNITS)
+            )
             aa_uptake_package = (
                 exchange_rates[aa_in_media],
                 self.aa_exchange_names[aa_in_media],

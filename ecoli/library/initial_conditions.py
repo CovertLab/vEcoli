@@ -2043,16 +2043,15 @@ def initialize_kinetic_trna_charging(condition, bulk_molecules, sim_data):
         return sim_data.relation.trna_condition_to_free_fraction[key]
 
     # Molecules
-    rna_data = sim_data.process.transcription.rna_data
-    free_trnas = rna_data["id"][rna_data["is_tRNA"]]
+    free_trnas = sim_data.process.transcription.uncharged_trna_names
     charged_trnas = sim_data.process.transcription.charged_trna_names
 
     # Fraction free
     f_free = [get_f_free(trna, condition) for trna in free_trnas]
 
     # Views
-    free_trna_idx = bulk_name_to_idx(bulk_molecules["id"], free_trnas)
-    charged_trna_idx = bulk_name_to_idx(bulk_molecules["id"], charged_trnas)
+    free_trna_idx = bulk_name_to_idx(free_trnas, bulk_molecules["id"])
+    charged_trna_idx = bulk_name_to_idx(charged_trnas, bulk_molecules["id"])
 
     # Distribute tRNA counts
     n_total = counts(bulk_molecules, free_trna_idx) + counts(
@@ -2062,7 +2061,5 @@ def initialize_kinetic_trna_charging(condition, bulk_molecules, sim_data):
     n_charged = n_total - n_free
 
     # Update bulk molecules
-    bulk_molecules.flags.writeable = True
     bulk_molecules["count"][free_trna_idx] = n_free
     bulk_molecules["count"][charged_trna_idx] = n_charged
-    bulk_molecules.flags.writeable = False
