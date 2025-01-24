@@ -727,9 +727,6 @@ class PolypeptideElongation(PartitionedProcess):
         n_elongations = result.nReactions
 
         # MODEL SPECIFIC
-        # next_amino_acid = all_sequences[
-        #     np.arange(len(sequence_elongations)), sequence_elongations
-        # ]
         next_amino_acid_count = self.elongation_model.next_amino_acids(
             all_sequences, sequence_elongations
         )
