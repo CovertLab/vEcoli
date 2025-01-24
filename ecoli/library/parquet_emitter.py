@@ -3,7 +3,7 @@ import os
 import pathlib
 from itertools import pairwise
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable, cast, Mapping, Optional
 from urllib import parse
 
@@ -697,6 +697,11 @@ class ParquetEmitter(Emitter):
         self.schema = pa.schema([])
         self.non_null_keys: set[str] = set()
         self.num_emits = 0
+        # Wait until next batch of emits to check whether last batch
+        # was successfully written to Parquet in order to avoid blocking
+        self.last_batch_future: Future = Future()
+        # Set either by EcoliSim or by EngineProcess if sim reaches division
+        self.success = False
         atexit.register(self._finalize)
 
     def _finalize(self):
@@ -880,7 +885,7 @@ class ParquetEmitter(Emitter):
             except (FileNotFoundError, OSError):
                 pass
             self.filesystem.create_dir(os.path.dirname(outfile))
-            self.executor.submit(
+            self.last_batch_future = self.executor.submit(
                 json_to_parquet,
                 self.temp_data.name,
                 self.encodings,
@@ -945,6 +950,8 @@ class ParquetEmitter(Emitter):
             self.temp_data.write("\n".encode("utf-8"))
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
+            # If last batch of emits failed, exception should be raised here
+            self.last_batch_future.result()
             self.temp_data.close()
             outfile = os.path.join(
                 self.outdir,
@@ -953,7 +960,7 @@ class ParquetEmitter(Emitter):
                 self.partitioning_path,
                 f"{self.num_emits}.pq",
             )
-            self.executor.submit(
+            self.last_batch_future = self.executor.submit(
                 json_to_parquet,
                 self.temp_data.name,
                 self.encodings,
