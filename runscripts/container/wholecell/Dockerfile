@@ -24,11 +24,11 @@
 #
 # It will start a shell where you can execute commands:
 #
-#     uv run pytest
+#     uv run --env-file .env pytest
 #
 # If this succeeds you can start running WCM code in the container, e.g.:
 #
-#     uv run runscripts/manual/runParca.py
+#     uv run --env-file .env runscripts/manual/runParca.py
 
 ARG from=wcm-runtime:latest
 FROM ${from}
