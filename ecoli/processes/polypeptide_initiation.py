@@ -52,7 +52,6 @@ class PolypeptideInitiation(PartitionedProcess):
         "translation_efficiencies": [],
         "ribosome_profiling_molecules": {},
         "ribosome_profiling_molecule_indexes": {},
-        "ribosome_profiling_number_of_ribosomes": {},
         "active_ribosome_fraction": {},
         "elongation_rates": {},
         "variable_elongation": False,
@@ -112,9 +111,6 @@ class PolypeptideInitiation(PartitionedProcess):
         ]
         self.ribosome_profiling_molecule_indexes = self.parameters[
             "ribosome_profiling_molecule_indexes"
-        ]
-        self.ribosome_profiling_number_of_ribosomes = self.parameters[
-            "ribosome_profiling_number_of_ribosomes"
         ]
 
         self.seed = self.parameters["seed"]
@@ -443,10 +439,6 @@ class PolypeptideInitiation(PartitionedProcess):
                     identifier = mRNA_indexes[
                         start_index : start_index + protein_counts
                     ]
-
-                    for x in identifier:
-                        if x not in self.ribosome_profiling_number_of_ribosomes[gene]:
-                            self.ribosome_profiling_number_of_ribosomes[gene].append(x)
                     ribosome_initiations_on_MOIs[gene] = identifier
 
             start_index += protein_counts

@@ -204,7 +204,6 @@ class LoadSimData:
 
         self.ribosome_profiling_molecule_indexes = {}
         self.ribosome_profiling_listener_sizes = {}
-        self.ribosome_profiling_number_of_ribosomes = {}
         monomer_data = self.sim_data.process.translation.monomer_data
         for molecule, gene in self.ribosome_profiling_molecules.items():
             molecule_index = np.where(monomer_data["id"] == molecule)[0][0]
@@ -213,7 +212,6 @@ class LoadSimData:
             )
             self.ribosome_profiling_molecule_indexes[molecule] = molecule_index
             self.ribosome_profiling_listener_sizes[molecule] = listener_size
-            self.ribosome_profiling_number_of_ribosomes[gene] = []
 
         if condition is not None:
             self.sim_data.condition = condition
@@ -940,7 +938,6 @@ class LoadSimData:
             ),
             "ribosome_profiling_molecules": self.ribosome_profiling_molecules,
             "ribosome_profiling_molecule_indexes": self.ribosome_profiling_molecule_indexes,
-            "ribosome_profiling_number_of_ribosomes": self.ribosome_profiling_number_of_ribosomes,
             "active_ribosome_fraction": self.sim_data.process.translation.ribosomeFractionActiveDict,
             "elongation_rates": self.sim_data.process.translation.ribosomeElongationRateDict,
             "variable_elongation": self.variable_elongation_translation,
