@@ -226,7 +226,7 @@ def test_lattice_lysis(plot=False):
     """
     Run plots:
     '''
-    > uv run ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
+    > uv run --env-file .env ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
     '''
 
     ANTIBIOTIC_KEY = 'nitrocefin'
@@ -324,6 +324,6 @@ test_library = {
 }
 
 # run experiments in test_library from the command line with:
-# uv run ecoli/composites/ecoli_master_tests.py -n [experiment id]
+# uv run --env-file .env ecoli/composites/ecoli_master_tests.py -n [experiment id]
 if __name__ == "__main__":
     run_library_cli(test_library)
