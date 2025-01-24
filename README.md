@@ -84,12 +84,12 @@ perform static type checking.
 
 To test your installation, from the top-level of the cloned repository, invoke:
 
-    uv run runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
+    uv run --env-file .env runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
 
-> **Note:** Start all of your commands to run scripts with `uv run`. Alternatively,
-> you can source the Python virtual environment that `uv` created with
-> `source .venv/bin/activate` and use `python` as normal, though we recommend
-> sticking to `uv run` where possible.
+> **Warning:** Always use `uv run --env-file .env` to run scripts. Add the
+> following line to `~/.bashrc` or `~/.zshrc` to create an alias for this:
+> `alias uvrun='uv run --env-file.env'`. `uvrun` should work after restarting
+> the shell.
 
 This will run the following basic simulation workflow:
 
