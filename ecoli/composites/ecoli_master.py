@@ -480,7 +480,11 @@ class Ecoli(Composer):
                 flow["mark_d_period"] = [
                     (f"unique_update_{unique_update_counter - 1}",)
                 ]
-                flow["division"] = [("mark_d_period",)]
+                # Need additional UniqueUpdate layer to update full chromosome attributes
+                # after MarkDPeriod but before Division
+                steps[f"unique_update_{unique_update_counter}"] = UniqueUpdate(params)
+                flow[f"unique_update_{unique_update_counter}"] = [("mark_d_period",)]
+                flow["division"] = [(f"unique_update_{unique_update_counter}",)]
             else:
                 flow["division"] = [(f"unique_update_{unique_update_counter - 1}",)]
 
