@@ -12,7 +12,7 @@ import warnings
 from vivarium.core.engine import Engine
 from vivarium.core.control import run_library_cli
 
-from ecoli.library.schema import bulk_name_to_idx
+from ecoli.library.schema import attrs, bulk_name_to_idx
 from ecoli.analysis.colony.snapshots import (
     plot_snapshots,
     format_snapshot_data,
@@ -31,17 +31,16 @@ def test_division(agent_id="0", total_time=4):
 
     # get initial mass from Ecoli composer
     sim = EcoliSim.from_file()
+    # Initial state saved right before division set to be
+    # triggered according to D period
     sim.config["initial_state_file"] = "vivecoli_t2527"
     sim.config["divide"] = True
-    sim.config["division_variable"] = ("listeners", "mass", "dry_mass")
     sim.config["agent_id"] = agent_id
     sim.config["total_time"] = total_time
     # Ensure unique molecules are emitted
     sim.config["emit_unique"] = True
     sim.build_ecoli()
 
-    # Set threshold so that mother divides after first timestep
-    sim.generated_initial_state["agents"]["0"]["division_threshold"] = 724.4
     sim.run()
 
     # retrieve output
@@ -123,6 +122,13 @@ def test_division(agent_id="0", total_time=4):
     print(f"initial agent id: {agent_id}")
     print(f"final agent ids: {final_agents}")
     assert len(final_agents) == 2
+    # Check that MarkDPeriod updated the has_triggered_division attribute
+    for agent_id in final_agents:
+        full_chrom = sim.ecoli_experiment.state["agents"][agent_id]["unique"][
+            "full_chromosome"
+        ].value
+        (has_triggered_division,) = attrs(full_chrom, ["has_triggered_division"])
+        assert np.all(has_triggered_division)
 
 
 def test_division_topology():
