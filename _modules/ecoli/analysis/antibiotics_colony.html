@@ -1,0 +1,282 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.antibiotics_colony &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.antibiotics_colony</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.antibiotics_colony</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">scipy.constants</span> <span class="kn">import</span> <span class="n">N_A</span>
+<span class="kn">from</span> <span class="nn">wholecell.utils.filepath</span> <span class="kn">import</span> <span class="n">ROOT_PATH</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;svg.fonttype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;font.family&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Arial&quot;</span>
+
+<span class="n">DE_GENES</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ROOT_PATH</span><span class="p">,</span> <span class="s2">&quot;reconstruction/ecoli/flat/tetracycline/gene_fc.csv&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">SPLIT_TIME</span> <span class="o">=</span> <span class="mi">11550</span>
+<span class="n">MAX_TIME</span> <span class="o">=</span> <span class="mi">26000</span>
+<span class="n">COUNTS_PER_FL_TO_NANOMOLAR</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1e-15</span><span class="p">)</span> <span class="o">/</span> <span class="n">N_A</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1e9</span><span class="p">)</span>
+
+<span class="c1"># Average generation time (average of all cells except those</span>
+<span class="c1"># in final generation of simulation IDs: &#39;2022-12-08_00-33-56_581605+0000&#39;,</span>
+<span class="c1"># &#39;2022-12-08_00-35-12_754291+0000&#39;, &#39;2022-12-08_00-35-28_562633+0000&#39;)</span>
+<span class="n">AVG_GEN_TIME</span> <span class="o">=</span> <span class="mf">3137.0669216061187</span>
+
+<span class="c1"># Mapping: Condition -&gt; Seed -&gt; Experiment ID</span>
+<span class="n">EXPERIMENT_ID_MAPPING</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;Glucose&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;2022-12-08_00-33-56_581605+0000&quot;</span><span class="p">,</span>
+        <span class="mi">100</span><span class="p">:</span> <span class="s2">&quot;2022-12-08_00-35-12_754291+0000&quot;</span><span class="p">,</span>
+        <span class="mi">10000</span><span class="p">:</span> <span class="s2">&quot;2022-12-08_00-35-28_562633+0000&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;Tetracycline (1.5 mg/L)&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;2023-01-05_01-00-44_215314+0000&quot;</span><span class="p">,</span>
+        <span class="mi">100</span><span class="p">:</span> <span class="s2">&quot;2023-01-05_01-00-52_399146+0000&quot;</span><span class="p">,</span>
+        <span class="mi">10000</span><span class="p">:</span> <span class="s2">&quot;2023-01-05_01-01-02_513996+0000&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;Tetracycline (4 mg/L)&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;2023-01-05_01-01-09_970526+0000&quot;</span><span class="p">},</span>
+    <span class="s2">&quot;Tetracycline (2 mg/L)&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;2023-01-05_01-01-16_783140+0000&quot;</span><span class="p">},</span>
+    <span class="s2">&quot;Tetracycline (1 mg/L)&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;2023-01-05_01-01-23_555787+0000&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;Tetracycline (0.5 mg/L)&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;2023-01-05_01-01-32_083738+0000&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;Ampicillin (2 mg/L)&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;2022-12-08_17-03-56_357734+0000&quot;</span><span class="p">,</span>
+        <span class="mi">100</span><span class="p">:</span> <span class="s2">&quot;2022-12-08_17-04-20_544970+0000&quot;</span><span class="p">,</span>
+        <span class="mi">10000</span><span class="p">:</span> <span class="s2">&quot;2022-12-08_17-04-52_137662+0000&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;Ampicillin (4 mg/L)&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;2022-12-08_17-08-04_777218+0000&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;Ampicillin (1.5 mg/L)&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;2022-12-08_17-07-14_437731+0000&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;Ampicillin (1 mg/L)&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;2022-12-08_17-06-35_367185+0000&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;Ampicillin (0.5 mg/L)&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;2022-12-08_19-13-14_431590+0000&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+
+<span class="n">PATHS_TO_LOAD</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;Dry mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;dry_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Protein mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;proteinMass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Dry mass fold change&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;dryMassFoldChange&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Protein mass fold change&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;proteinMassFoldChange&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;RNA mass fold change&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;rnaMassFoldChange&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Small molecule fold change&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;smallMoleculeFoldChange&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Cell mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;cell_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Water mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;water_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;RNA mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;rnaMass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;rRNA mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;rRnaMass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;tRNA mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;tRnaMass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;mRNA mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;mRnaMass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;DNA mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;dnaMass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Small molecule mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;smallMoleculeMass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Projection mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;projection_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Cytosol mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;cytosol_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Extracellular mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;extracellular_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Flagellum mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;flagellum_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Membrane mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;membrane_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Outer membrane mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;outer_membrane_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Periplasm mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;periplasm_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Pilus mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;pilus_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Inner membrane mass&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;inner_membrane_mass&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Growth rate&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;growth&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;AcrAB-TolC&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;TRANS-CPLX-201[m]&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Periplasmic tetracycline&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;periplasm&quot;</span><span class="p">,</span> <span class="s2">&quot;concentrations&quot;</span><span class="p">,</span> <span class="s2">&quot;tetracycline&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Cytoplasmic tetracycline&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;cytoplasm&quot;</span><span class="p">,</span> <span class="s2">&quot;concentrations&quot;</span><span class="p">,</span> <span class="s2">&quot;tetracycline&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Periplasmic ampicillin&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;periplasm&quot;</span><span class="p">,</span> <span class="s2">&quot;concentrations&quot;</span><span class="p">,</span> <span class="s2">&quot;ampicillin&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Active MarR&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;CPLX0-7710[c]&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Inactive MarR&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;marR-tet[c]&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;micF-ompF duplex&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;micF-ompF[c]&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;micF RNA&quot;</span><span class="p">:</span> <span class="p">(</span>
+        <span class="s2">&quot;bulk&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;MICF-RNA[c]&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="s2">&quot;30S subunit&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;CPLX0-3953[c]&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Inactive 30S subunit&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;CPLX0-3953-tetracycline[c]&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Active ribosomes&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;aggregated&quot;</span><span class="p">,</span> <span class="s2">&quot;active_ribosome_len&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Active RNAP&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;aggregated&quot;</span><span class="p">,</span> <span class="s2">&quot;active_RNAP_len&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Outer tet. permeability (cm/s)&quot;</span><span class="p">:</span> <span class="p">(</span>
+        <span class="s2">&quot;kinetic_parameters&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;outer_tetracycline_permeability&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="s2">&quot;Murein tetramer&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;CPD-12261[p]&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;PBP1a complex&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;CPLX0-7717[m]&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;PBP1a mRNA&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;mrna&quot;</span><span class="p">,</span> <span class="s2">&quot;EG10748_RNA&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;PBP1b alpha complex&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;CPLX0-3951[i]&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;PBP1b mRNA&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;mrna&quot;</span><span class="p">,</span> <span class="s2">&quot;EG10605_RNA&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;PBP1b gamma complex&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;CPLX0-8300[c]&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Wall cracked&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;wall_state&quot;</span><span class="p">,</span> <span class="s2">&quot;cracked&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;AmpC monomer&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;monomer&quot;</span><span class="p">,</span> <span class="s2">&quot;EG10040-MONOMER&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;ampC mRNA&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;mrna&quot;</span><span class="p">,</span> <span class="s2">&quot;EG10040_RNA&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Extension factor&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;wall_state&quot;</span><span class="p">,</span> <span class="s2">&quot;extension_factor&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Wall columns&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;wall_state&quot;</span><span class="p">,</span> <span class="s2">&quot;lattice_cols&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Unincorporated murein&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;murein_state&quot;</span><span class="p">,</span> <span class="s2">&quot;unincorporated_murein&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Incorporated murein&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;murein_state&quot;</span><span class="p">,</span> <span class="s2">&quot;incorporated_murein&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Shadow murein&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;murein_state&quot;</span><span class="p">,</span> <span class="s2">&quot;shadow_murein&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Max hole size&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;hole_size_distribution&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Porosity&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;porosity&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Active fraction PBP1a&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;pbp_state&quot;</span><span class="p">,</span> <span class="s2">&quot;active_fraction_PBP1A&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Active fraction PBP1b&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;pbp_state&quot;</span><span class="p">,</span> <span class="s2">&quot;active_fraction_PBP1B&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Boundary&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;boundary&quot;</span><span class="p">,),</span>
+    <span class="s2">&quot;Volume&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;volume&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Total mRNA&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;total_mrna&quot;</span><span class="p">,),</span>
+    <span class="s2">&quot;OmpF complex&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;CPLX0-7534[o]&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Exchanges&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;environment&quot;</span><span class="p">,</span> <span class="s2">&quot;exchange&quot;</span><span class="p">),</span>
+<span class="p">}</span>
+<span class="k">for</span> <span class="n">gene_data</span> <span class="ow">in</span> <span class="n">DE_GENES</span><span class="p">[[</span><span class="s2">&quot;Gene name&quot;</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;monomer_ids&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">gene_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;MicF&quot;</span><span class="p">:</span>
+        <span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">gene_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> mRNA&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;mrna&quot;</span><span class="p">,</span> <span class="n">gene_data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">gene_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> synth prob&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">,</span> <span class="n">gene_data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">gene_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">gene_data</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">gene_data</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">monomer_name</span> <span class="o">=</span> <span class="n">gene_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="n">gene_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">monomer_name</span><span class="si">}</span><span class="s2"> monomer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;monomer&quot;</span><span class="p">,</span> <span class="n">gene_data</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="c1"># Housekeeping gene GAPDH for normalization between samples</span>
+<span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="s2">&quot;GAPDH mRNA&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;mrna&quot;</span><span class="p">,</span> <span class="s2">&quot;EG10367_RNA&quot;</span><span class="p">)</span>
+<span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="s2">&quot;GAPDH synth prob&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">,</span> <span class="s2">&quot;EG10367_RNA&quot;</span><span class="p">)</span>
+<span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="s2">&quot;GAPDH monomer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;monomer&quot;</span><span class="p">,</span> <span class="s2">&quot;GAPDH-A-MONOMER&quot;</span><span class="p">)</span>
+<span class="c1"># RNAP monomers and mRNAs</span>
+<span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="s2">&quot;rpoA mRNA&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;mrna&quot;</span><span class="p">,</span> <span class="s2">&quot;EG10893_RNA&quot;</span><span class="p">)</span>
+<span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="s2">&quot;rpoB mRNA&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;mrna&quot;</span><span class="p">,</span> <span class="s2">&quot;EG10894_RNA&quot;</span><span class="p">)</span>
+<span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="s2">&quot;rpoC mRNA&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;mrna&quot;</span><span class="p">,</span> <span class="s2">&quot;EG10895_RNA&quot;</span><span class="p">)</span>
+<span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="s2">&quot;RpoA monomer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;monomer&quot;</span><span class="p">,</span> <span class="s2">&quot;EG10893-MONOMER&quot;</span><span class="p">)</span>
+<span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="s2">&quot;RpoB monomer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;monomer&quot;</span><span class="p">,</span> <span class="s2">&quot;RPOB-MONOMER&quot;</span><span class="p">)</span>
+<span class="n">PATHS_TO_LOAD</span><span class="p">[</span><span class="s2">&quot;RpoC monomer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;monomer&quot;</span><span class="p">,</span> <span class="s2">&quot;RPOC-MONOMER&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="restrict_data">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.html#ecoli.analysis.antibiotics_colony.restrict_data">[docs]</a>
+<span class="k">def</span> <span class="nf">restrict_data</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;If there is more than one condition in data, keep up</span>
+<span class="sd">    to SPLIT_TIME from the first condition and between SPLIT_TIME</span>
+<span class="sd">    and MAX_TIME from the the rest.&quot;&quot;&quot;</span>
+    <span class="n">conditions</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Condition&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">conditions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s2">&quot;Condition&quot;</span><span class="p">])</span>
+        <span class="n">condition_1_mask</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">conditions</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">SPLIT_TIME</span>
+        <span class="n">filtered_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">conditions</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">condition_1_mask</span><span class="p">,</span> <span class="p">:]]</span>
+        <span class="k">for</span> <span class="n">exp_condition</span> <span class="ow">in</span> <span class="n">conditions</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">condition_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">exp_condition</span><span class="p">][</span><span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">SPLIT_TIME</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">exp_condition</span><span class="p">][</span><span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">MAX_TIME</span>
+            <span class="p">)</span>
+            <span class="n">filtered_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">exp_condition</span><span class="p">]</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">condition_mask</span><span class="p">,</span> <span class="p">:])</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">filtered_data</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">MAX_TIME</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

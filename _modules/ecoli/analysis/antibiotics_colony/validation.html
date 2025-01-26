@@ -1,0 +1,724 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.antibiotics_colony.validation &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../antibiotics_colony.html">ecoli.analysis.antibiotics_colony</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.antibiotics_colony.validation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.antibiotics_colony.validation</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">curve_fit</span><span class="p">,</span> <span class="n">root_scalar</span>
+
+<span class="kn">from</span> <span class="nn">ecoli.analysis.antibiotics_colony</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DE_GENES</span><span class="p">,</span>
+    <span class="n">MAX_TIME</span><span class="p">,</span>
+    <span class="n">SPLIT_TIME</span><span class="p">,</span>
+    <span class="n">restrict_data</span><span class="p">,</span>
+    <span class="n">AVG_GEN_TIME</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="plot_colony_growth">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.validation.html#ecoli.analysis.antibiotics_colony.validation.plot_colony_growth">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_colony_growth</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">ax</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">plt</span><span class="o">.</span><span class="n">Axes</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">axs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">plt</span><span class="o">.</span><span class="n">Axes</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">antibiotic</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Tet.&quot;</span><span class="p">,</span>
+    <span class="n">antibiotic_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Initial external tet.&quot;</span><span class="p">,</span>
+    <span class="n">mic</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.375</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot traces of total colony mass and total colony growth rate. Can use</span>
+<span class="sd">    methodology described in Lambert and Pearson 2000 to empirically calculate</span>
+<span class="sd">    MIC from simulated data if a list of two axes is provided using `axs`</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: DataFrame where each row is an agent and each column is a variable</span>
+<span class="sd">            of interest. Must have these columns: &#39;Time&#39;, &#39;Condition&#39;, and</span>
+<span class="sd">            &#39;Dry Mass&#39;. The first experimental condition in the &#39;Condition&#39;</span>
+<span class="sd">            column is treated as a control (default gray). Include at most</span>
+<span class="sd">            2 conditions and 1 seed per condition.</span>
+<span class="sd">        ax: List of 2 Matplotlib Axes, one for colony mass and other for MIC</span>
+<span class="sd">        axs: List of 2 Matplotlib Axes, one for colony mass and other for MIC</span>
+<span class="sd">        antibiotic: Name of antibiotic to put as legend title</span>
+<span class="sd">        antibiotic_col: Name of column with initial external antibiotic concs.</span>
+<span class="sd">        mic: Minimum inhibitory concentration (uM, rounded to 3 decimal places)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">antibiotic_col</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">columns_to_include</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Dry mass&quot;</span><span class="p">,</span> <span class="s2">&quot;Time&quot;</span><span class="p">,</span> <span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">,</span> <span class="s2">&quot;Condition&quot;</span><span class="p">]</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">columns_to_include</span><span class="p">]</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">SPLIT_TIME</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">MAX_TIME</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">remaining_glucose_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">restrict_data</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">data</span><span class="p">,</span> <span class="n">remaining_glucose_data</span><span class="p">])</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">,</span> <span class="s2">&quot;Time&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+    <span class="c1"># Convert time to hours</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">3600</span>
+
+    <span class="n">cmap</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colormaps</span><span class="p">[</span><span class="s2">&quot;Greys&quot;</span><span class="p">]</span>
+    <span class="n">antibiotic_min</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">antibiotic_max</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span>
+        <span class="n">vmin</span><span class="o">=</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">antibiotic_min</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">antibiotic_max</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">antibiotic_max</span>
+    <span class="p">)</span>
+    <span class="n">antibiotic_concs</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+    <span class="n">palette</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">antibiotic_conc</span><span class="p">:</span> <span class="n">cmap</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">antibiotic_conc</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">antibiotic_conc</span> <span class="ow">in</span> <span class="n">antibiotic_concs</span>
+    <span class="p">}</span>
+    <span class="n">palette</span><span class="p">[</span><span class="n">mic</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">axs</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">Axes</span><span class="p">,</span> <span class="n">ax</span><span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">lineplot</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+        <span class="n">x</span><span class="o">=</span><span class="s2">&quot;Time&quot;</span><span class="p">,</span>
+        <span class="n">y</span><span class="o">=</span><span class="s2">&quot;Dry mass&quot;</span><span class="p">,</span>
+        <span class="n">hue</span><span class="o">=</span><span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">palette</span><span class="o">=</span><span class="n">palette</span><span class="p">,</span>
+        <span class="n">errorbar</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># Set y-limits so that major ticks surround data</span>
+    <span class="n">log_ylim</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">([</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Dry mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Dry mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()]),</span> <span class="mi">0</span>
+    <span class="p">)</span>
+    <span class="n">new_ymin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">log_ylim</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Dry mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+    <span class="n">new_ymax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">log_ylim</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Dry mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">new_ymin</span><span class="p">,</span> <span class="n">new_ymax</span><span class="p">)</span>
+    <span class="n">max_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">ticks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_x</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">))</span> <span class="o">+</span> <span class="p">[</span><span class="n">max_x</span><span class="p">]</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">tick</span><span class="p">)</span> <span class="k">for</span> <span class="n">tick</span> <span class="ow">in</span> <span class="n">ticks</span><span class="p">]</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">ticks</span><span class="o">=</span><span class="n">ticks</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
+    <span class="c1"># Log scale so linear means exponential growth</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">yscale</span><span class="o">=</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">antibiotic</span><span class="si">}</span><span class="s2"> (</span><span class="se">\u03bc</span><span class="s2">M)&quot;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">ypos</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">]</span>
+    <span class="n">concs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">palette</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">palette</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ypos</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">concs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">despine</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">trim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">axs</span><span class="p">:</span>
+        <span class="c1"># Calculate MIC according to method from Lambert and Pearson 2000</span>
+        <span class="n">background_auc</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">SPLIT_TIME</span> <span class="o">/</span> <span class="mi">3600</span><span class="p">,</span> <span class="s2">&quot;Dry mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">*</span> <span class="n">SPLIT_TIME</span>
+            <span class="o">/</span> <span class="mi">3600</span>
+        <span class="p">)</span>
+        <span class="n">post_tet_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">SPLIT_TIME</span> <span class="o">/</span> <span class="mi">3600</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">treatment_groups</span> <span class="o">=</span> <span class="n">post_tet_data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">)</span>
+        <span class="n">auc_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">antibiotic_conc</span><span class="p">,</span> <span class="n">treatment_data</span> <span class="ow">in</span> <span class="n">treatment_groups</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">antibiotic_conc</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">auc_dict</span><span class="p">[</span><span class="n">antibiotic_conc</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">trapezoid</span><span class="p">(</span><span class="n">treatment_data</span><span class="p">[</span><span class="s2">&quot;Dry mass&quot;</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="n">treatment_data</span><span class="p">[</span><span class="s2">&quot;Time&quot;</span><span class="p">])</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                    <span class="o">-</span> <span class="n">background_auc</span><span class="p">,</span>
+                    <span class="mi">0</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">baseline_auc</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">trapezoid</span><span class="p">(</span><span class="n">treatment_data</span><span class="p">[</span><span class="s2">&quot;Dry mass&quot;</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="n">treatment_data</span><span class="p">[</span><span class="s2">&quot;Time&quot;</span><span class="p">])</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                    <span class="o">-</span> <span class="n">background_auc</span>
+                <span class="p">)</span>
+        <span class="n">antibiotic_concs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">auc_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+        <span class="n">areas_under_curve</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">auc_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="o">/</span> <span class="n">baseline_auc</span>
+
+        <span class="k">def</span> <span class="nf">altered_gomperts</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">m</span><span class="p">)))</span>
+
+        <span class="n">popt</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="n">altered_gomperts</span><span class="p">,</span> <span class="n">antibiotic_concs</span><span class="p">,</span> <span class="n">areas_under_curve</span><span class="p">)</span>
+
+        <span class="n">ax_2</span> <span class="o">=</span> <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">ax_2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="n">antibiotic_concs</span><span class="p">,</span> <span class="n">areas_under_curve</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">)</span>
+        <span class="n">fit_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+            <span class="n">antibiotic_concs</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">antibiotic_concs</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1000000</span>
+        <span class="p">)</span>
+        <span class="n">ax_2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="mi">10</span><span class="o">**</span><span class="n">fit_x</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">apply_along_axis</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">altered_gomperts</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">popt</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">fit_x</span><span class="p">),</span>
+            <span class="s2">&quot;k&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">ax_2</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xscale</span><span class="o">=</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+        <span class="n">ax_2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">antibiotic</span><span class="si">}</span><span class="s2"> (</span><span class="se">\u03bc</span><span class="s2">M)&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+        <span class="n">ax_2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Fractional AUC&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+        <span class="c1"># Set x-limits so that major ticks surround data</span>
+        <span class="n">ax_2</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">inflection_tangent</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+            <span class="k">return</span> <span class="o">-</span><span class="n">b</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">))</span>
+
+        <span class="n">log10_mic</span> <span class="o">=</span> <span class="n">popt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">popt</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">inflection_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">antibiotic_concs</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">log10_mic</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)</span>
+        <span class="n">ax_2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="mi">10</span><span class="o">**</span><span class="n">inflection_x</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">apply_along_axis</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">inflection_tangent</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">popt</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">inflection_x</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;k--&quot;</span><span class="p">,</span>
+            <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">ax_2</span><span class="o">.</span><span class="n">scatter</span><span class="p">([</span><span class="mi">10</span><span class="o">**</span><span class="n">log10_mic</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">facecolors</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+        <span class="n">ax_2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">)</span>
+        <span class="n">ax_2</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ax_2</span><span class="o">.</span><span class="n">get_xticks</span><span class="p">()),</span> <span class="mi">10</span><span class="o">**</span><span class="n">log10_mic</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">cast</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ax_2</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">()),</span>
+                <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;MIC:</span><span class="se">\n</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="n">log10_mic</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">ticklabel</span> <span class="ow">in</span> <span class="n">ax_2</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">ticklabel</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">&quot;MIC:</span><span class="se">\n</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="n">log10_mic</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span>
+                <span class="n">ticklabel</span><span class="o">.</span><span class="n">set_color</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">antibiotic</span><span class="si">}</span><span class="s2"> MIC: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="n">popt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="o">/</span><span class="n">popt</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sns</span><span class="o">.</span><span class="n">despine</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax_2</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">trim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="plot_mrna_fc">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.validation.html#ecoli.analysis.antibiotics_colony.validation.plot_mrna_fc">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_mrna_fc</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">ax</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">Axes</span><span class="p">,</span>
+    <span class="n">genes_to_plot</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">highlight_genes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot scatter plot of simulated and experimental log2 fold change for</span>
+<span class="sd">    final mRNA concentrations of key genes regulated during tetracycline exposure.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: DataFrame where each row is an agent and each column is a variable</span>
+<span class="sd">            of interest. Must have these columns: &#39;Time&#39;, &#39;Condition&#39;, and &#39;Dry Mass&#39;.</span>
+<span class="sd">            The first experimental condition in the &#39;Condition&#39; column is treated as</span>
+<span class="sd">            a control.</span>
+<span class="sd">        ax: Single instance of Matplotlib Axes to plot on.</span>
+<span class="sd">        genes_to_plot: List of gene names to include in plot.</span>
+<span class="sd">        highlight_genes: Mapping of gene names to point colors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">MAX_TIME</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;ompF mRNA&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;micF-ompF duplex&quot;</span><span class="p">]</span>
+    <span class="n">mrna_cols</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">gene</span><span class="si">}</span><span class="s2"> mRNA&quot;</span> <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">genes_to_plot</span> <span class="k">if</span> <span class="n">gene</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;MicF&quot;</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="s2">&quot;GAPDH mRNA&quot;</span>
+    <span class="p">]</span>
+    <span class="n">mrna_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">mrna_cols</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;Condition&quot;</span><span class="p">,</span> <span class="s2">&quot;Volume&quot;</span><span class="p">]]</span>
+    <span class="n">conditions</span> <span class="o">=</span> <span class="n">mrna_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Condition&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+    <span class="c1"># Get mRNA concentrations aggregated over entire final colonies</span>
+    <span class="n">mrna_data</span> <span class="o">=</span> <span class="n">mrna_data</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s2">&quot;Condition&quot;</span><span class="p">])</span>
+    <span class="n">mrna_data</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">mrna_data</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">mrna_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Volume&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;Volume&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">mrna_data</span> <span class="o">=</span> <span class="n">mrna_data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;Condition&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="c1"># Normalize by housekeeping gene expression</span>
+    <span class="n">mrna_data</span> <span class="o">=</span> <span class="n">mrna_data</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">mrna_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;GAPDH mRNA&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># Convert to relative amounts assuming that first condition is control</span>
+    <span class="n">relative_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">mrna_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">conditions</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">/</span> <span class="n">mrna_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">conditions</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+    <span class="p">)</span>
+    <span class="n">relative_data</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">mrna_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; mRNA&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">mrna_name</span> <span class="ow">in</span> <span class="n">relative_data</span><span class="o">.</span><span class="n">index</span>
+    <span class="p">]</span>
+    <span class="n">relative_data</span> <span class="o">=</span> <span class="n">relative_data</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;Sim. RNA $</span><span class="se">\\</span><span class="s2">mathregular{log_2 FC}$&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="c1"># Compare against literature relative amounts</span>
+    <span class="n">tet_degenes</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">DE_GENES</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s2">&quot;Gene name&quot;</span><span class="p">,</span> <span class="s2">&quot;Fold change&quot;</span><span class="p">]]</span>
+        <span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;Gene name&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;MicF&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Fold change&quot;</span><span class="p">:</span> <span class="s2">&quot;Literature RNA $</span><span class="se">\\</span><span class="s2">mathregular{log_2 FC}$&quot;</span><span class="p">})</span>
+    <span class="p">)</span>
+    <span class="n">tet_degenes</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Literature RNA $</span><span class="se">\\</span><span class="s2">mathregular{log_2 FC}$&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span>
+        <span class="n">tet_degenes</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Literature RNA $</span><span class="se">\\</span><span class="s2">mathregular{log_2 FC}$&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">relative_data</span> <span class="o">=</span> <span class="n">relative_data</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tet_degenes</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">relative_data</span> <span class="o">=</span> <span class="n">relative_data</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="s2">&quot;Gene&quot;</span><span class="p">})</span>
+    <span class="n">palette</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">gene</span><span class="p">:</span> <span class="s2">&quot;k&quot;</span> <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">relative_data</span><span class="p">[</span><span class="s2">&quot;Gene&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()}</span>
+    <span class="k">if</span> <span class="n">highlight_genes</span><span class="p">:</span>
+        <span class="n">palette</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">palette</span><span class="p">,</span> <span class="o">**</span><span class="n">highlight_genes</span><span class="p">}</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">relative_data</span><span class="p">,</span>
+        <span class="n">x</span><span class="o">=</span><span class="s2">&quot;Literature RNA $</span><span class="se">\\</span><span class="s2">mathregular{log_2 FC}$&quot;</span><span class="p">,</span>
+        <span class="n">y</span><span class="o">=</span><span class="s2">&quot;Sim. RNA $</span><span class="se">\\</span><span class="s2">mathregular{log_2 FC}$&quot;</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">hue</span><span class="o">=</span><span class="s2">&quot;Gene&quot;</span><span class="p">,</span>
+        <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">palette</span><span class="o">=</span><span class="n">palette</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">min_fc</span> <span class="o">=</span> <span class="n">relative_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Literature RNA $</span><span class="se">\\</span><span class="s2">mathregular{log_2 FC}$&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">max_fc</span> <span class="o">=</span> <span class="n">relative_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Literature RNA $</span><span class="se">\\</span><span class="s2">mathregular{log_2 FC}$&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">validation_line</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">min_fc</span><span class="p">,</span> <span class="n">max_fc</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">validation_line</span><span class="p">,</span> <span class="n">validation_line</span><span class="p">,</span> <span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;0.4&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">highlight_genes</span><span class="p">:</span>
+        <span class="c1"># Start with label above point, then alternate</span>
+        <span class="n">direction</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">gene</span><span class="p">,</span> <span class="n">color</span> <span class="ow">in</span> <span class="n">highlight_genes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">location</span> <span class="o">=</span> <span class="n">relative_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">relative_data</span><span class="p">[</span><span class="s2">&quot;Gene&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">gene</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">xy</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">location</span><span class="p">[</span><span class="s2">&quot;Literature RNA $</span><span class="se">\\</span><span class="s2">mathregular{log_2 FC}$&quot;</span><span class="p">],</span>
+                <span class="n">location</span><span class="p">[</span><span class="s2">&quot;Sim. RNA $</span><span class="se">\\</span><span class="s2">mathregular{log_2 FC}$&quot;</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+                <span class="n">gene</span><span class="p">,</span>
+                <span class="n">xy</span><span class="o">=</span><span class="n">xy</span><span class="p">,</span>
+                <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="n">xy</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xy</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">direction</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">),</span>
+                <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
+                <span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
+                <span class="n">c</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                <span class="n">arrowprops</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;arrowstyle&quot;</span><span class="p">:</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="n">color</span><span class="p">},</span>
+                <span class="n">fontstyle</span><span class="o">=</span><span class="s2">&quot;italic&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">direction</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">despine</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">trim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="plot_protein_synth_inhib">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.validation.html#ecoli.analysis.antibiotics_colony.validation.plot_protein_synth_inhib">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_protein_synth_inhib</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">ax</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">Axes</span><span class="p">,</span>
+    <span class="n">literature</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot scatter plot of normalized % protein synthesis inhibition across a</span>
+<span class="sd">    variety of tetracycline concentrations.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: DataFrame where each row is an agent and each column is a variable</span>
+<span class="sd">            of interest. Must have these columns: &#39;Time&#39;, &#39;Condition&#39;, &#39;Seed&#39;,</span>
+<span class="sd">            and &#39;Dry Mass&#39;.</span>
+<span class="sd">        ax: Single instance of Matplotlib Axes to plot on.</span>
+<span class="sd">        literature: DataFrames with 3 columns: &#39;Tetracycline&#39;, &#39;Percent inhibition&#39;,</span>
+<span class="sd">            and &#39;Source&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Assume tetracycline is added at t = 0 (reached equilibrium by 400 s)</span>
+    <span class="n">sampled_time</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+        <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">400</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">500</span><span class="p">),</span> <span class="p">:</span>
+    <span class="p">]</span>
+    <span class="n">sampled_time</span><span class="p">[</span><span class="s2">&quot;Total ribosomes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">sampled_time</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Active ribosomes&quot;</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">sampled_time</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Inactive 30S subunit&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">sampled_time</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Cytoplasmic tetracycline&quot;</span><span class="p">]</span> <span class="o">*=</span> <span class="mi">1000</span>
+    <span class="n">sampled_time</span> <span class="o">=</span> <span class="n">sampled_time</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)</span>
+
+    <span class="n">grouped_agents</span> <span class="o">=</span> <span class="n">sampled_time</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;Condition&quot;</span><span class="p">,</span> <span class="s2">&quot;Seed&quot;</span><span class="p">,</span> <span class="s2">&quot;Agent ID&quot;</span><span class="p">])</span>
+    <span class="n">normed_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Condition&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;Normed delta&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;Tetracycline&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">),</span> <span class="n">agent_data</span> <span class="ow">in</span> <span class="n">grouped_agents</span><span class="p">:</span>
+        <span class="n">protein_deltas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Protein mass&quot;</span><span class="p">])</span>
+        <span class="c1"># Ignore final timestep (protein mass deltas require two timepoints)</span>
+        <span class="n">agent_data</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="c1"># Normalize by ribosome and RNA counts to match cell-free system</span>
+        <span class="n">normed_deltas</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">protein_deltas</span>
+            <span class="o">/</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Total ribosomes&quot;</span><span class="p">]</span>
+            <span class="o">/</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Total mRNA&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">normed_data</span><span class="p">[</span><span class="s2">&quot;Condition&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="n">normed_data</span><span class="p">[</span><span class="s2">&quot;Normed delta&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">normed_deltas</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+        <span class="n">normed_data</span><span class="p">[</span><span class="s2">&quot;Tetracycline&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Cytoplasmic tetracycline&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="n">normed_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">normed_data</span><span class="p">)</span>
+    <span class="n">normed_data</span> <span class="o">=</span> <span class="n">normed_data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;Condition&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">control</span> <span class="o">=</span> <span class="n">normed_data</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">normed_data</span><span class="p">[</span><span class="s2">&quot;Tetracycline&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">normed_data</span><span class="p">[</span><span class="s2">&quot;Percent inhibition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="mi">100</span>
+        <span class="o">-</span> <span class="p">(</span>
+            <span class="n">normed_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Normed delta&quot;</span><span class="p">]</span>
+            <span class="o">/</span> <span class="n">normed_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">control</span><span class="p">,</span> <span class="s2">&quot;Normed delta&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="o">*</span> <span class="mi">100</span>
+    <span class="p">)</span>
+    <span class="n">normed_data</span><span class="p">[</span><span class="s2">&quot;Source&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;This model&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">normed_data</span><span class="p">)</span>
+    <span class="n">normed_data</span> <span class="o">=</span> <span class="n">normed_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s2">&quot;Percent inhibition&quot;</span><span class="p">,</span> <span class="s2">&quot;Tetracycline&quot;</span><span class="p">,</span> <span class="s2">&quot;Source&quot;</span><span class="p">]]</span>
+    <span class="n">normed_data</span> <span class="o">=</span> <span class="n">normed_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">normed_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Tetracycline&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">palette</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;This model&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mi">1</span><span class="p">)}</span>
+    <span class="k">if</span> <span class="n">literature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">gray</span> <span class="o">=</span> <span class="mf">0.3</span>
+        <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">literature</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Source&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+            <span class="n">palette</span><span class="p">[</span><span class="n">source</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">gray</span><span class="p">)</span>
+            <span class="n">gray</span> <span class="o">+=</span> <span class="mf">0.3</span>
+        <span class="n">normed_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">normed_data</span><span class="p">,</span> <span class="n">literature</span><span class="p">])</span>
+
+    <span class="c1"># 3-parameter sigmoid function used to fit inhibition curves</span>
+    <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
+
+    <span class="n">ic_50</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">normed_data</span> <span class="o">=</span> <span class="n">normed_data</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;Source&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">normed_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Source&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()):</span>
+        <span class="n">source_data</span> <span class="o">=</span> <span class="n">normed_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">normed_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Source&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">source</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">fittedParameters</span><span class="p">,</span> <span class="n">pcov</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span>
+            <span class="n">func</span><span class="p">,</span> <span class="n">source_data</span><span class="p">[</span><span class="s2">&quot;Tetracycline&quot;</span><span class="p">],</span> <span class="n">source_data</span><span class="p">[</span><span class="s2">&quot;Percent inhibition&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+            <span class="n">source_data</span><span class="p">[</span><span class="s2">&quot;Tetracycline&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">source_data</span><span class="p">[</span><span class="s2">&quot;Tetracycline&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mi">10000</span>
+        <span class="p">)</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="p">(</span><span class="n">fittedParameters</span><span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">palette</span><span class="p">[</span><span class="n">source</span><span class="p">],</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">sol</span> <span class="o">=</span> <span class="n">root_scalar</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">fittedParameters</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">x1</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">ic_50</span><span class="p">[</span><span class="n">source</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; </span><span class="se">\u03bc</span><span class="s2">M&quot;</span>
+
+    <span class="n">new_palette</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">sources_new</span> <span class="o">=</span> <span class="n">normed_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Source&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources_new</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">orig_source</span> <span class="ow">in</span> <span class="n">palette</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">orig_source</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+                <span class="n">new_palette</span><span class="p">[</span><span class="n">source</span><span class="p">]</span> <span class="o">=</span> <span class="n">palette</span><span class="p">[</span><span class="n">orig_source</span><span class="p">]</span>
+    <span class="n">palette</span> <span class="o">=</span> <span class="n">new_palette</span>
+    <span class="n">markers</span> <span class="o">=</span> <span class="p">{</span><span class="n">source</span><span class="p">:</span> <span class="s2">&quot;o&quot;</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources_new</span><span class="p">}</span>
+    <span class="n">markers</span><span class="p">[</span><span class="s2">&quot;This model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;^&quot;</span>
+
+    <span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">normed_data</span><span class="p">,</span>
+        <span class="n">x</span><span class="o">=</span><span class="s2">&quot;Tetracycline&quot;</span><span class="p">,</span>
+        <span class="n">y</span><span class="o">=</span><span class="s2">&quot;Percent inhibition&quot;</span><span class="p">,</span>
+        <span class="n">hue</span><span class="o">=</span><span class="s2">&quot;Source&quot;</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">palette</span><span class="o">=</span><span class="n">palette</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="s2">&quot;Source&quot;</span><span class="p">,</span>
+        <span class="n">markers</span><span class="o">=</span><span class="n">markers</span><span class="p">,</span>
+        <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">s</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">100</span><span class="p">])</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">despine</span><span class="p">(</span><span class="n">offset</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">trim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">xticks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">])</span>
+    <span class="n">xticklabels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;$10^</span><span class="se">{{</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">exp</span><span class="p">)</span><span class="si">}</span><span class="se">}}</span><span class="s2">$&quot;</span> <span class="k">for</span> <span class="n">exp</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">xticks</span><span class="p">)]</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">xticks</span><span class="p">,</span> <span class="n">xticklabels</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="mf">0.9</span><span class="p">,</span>
+        <span class="s2">&quot;This model&quot;</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">=</span><span class="n">palette</span><span class="p">[</span><span class="s2">&quot;This model&quot;</span><span class="p">],</span>
+        <span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+        <span class="n">weight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">palette</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">!=</span> <span class="s2">&quot;This model&quot;</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="mf">0.8</span> <span class="o">-</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">i</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">,</span>
+                <span class="n">c</span><span class="o">=</span><span class="n">palette</span><span class="p">[</span><span class="n">source</span><span class="p">],</span>
+                <span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+                <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+            <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;% protein synth. inhib.&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Tetracycline (</span><span class="se">\u03bc</span><span class="s2">M)&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="plot_mass_fraction">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.validation.html#ecoli.analysis.antibiotics_colony.validation.plot_mass_fraction">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_mass_fraction</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot line plots of submass fold changes over generation time.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: DataFrame where each row is an agent and each column is a variable</span>
+<span class="sd">            of interest.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">submasses</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;Cell&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Dry&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Water&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Protein&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rRNA&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mRNA&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;tRNA&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;DNA&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Small molecule&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">grouped_agents</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;Condition&quot;</span><span class="p">,</span> <span class="s2">&quot;Seed&quot;</span><span class="p">,</span> <span class="s2">&quot;Agent ID&quot;</span><span class="p">])</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">),</span> <span class="n">agent_data</span> <span class="ow">in</span> <span class="n">grouped_agents</span><span class="p">:</span>
+        <span class="c1"># Start all agents at t = 0 min</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="n">times</span> <span class="o">/</span> <span class="mi">60</span>
+        <span class="k">for</span> <span class="n">submass</span> <span class="ow">in</span> <span class="n">submasses</span><span class="p">:</span>
+            <span class="n">agent_data</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">submass</span><span class="si">}</span><span class="s2"> fold change&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">submass</span><span class="si">}</span><span class="s2"> mass&quot;</span><span class="p">]</span>
+                <span class="o">/</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">submass</span><span class="si">}</span><span class="s2"> mass&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                <span class="n">times</span><span class="p">,</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">submass</span><span class="si">}</span><span class="s2"> fold change&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">submass</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time (min)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Mass fold change (normalized to t = 0 min)&quot;</span><span class="p">)</span>
+        <span class="n">out_dir</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;out/analysis/paper_figures/</span><span class="si">{</span><span class="n">condition</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">seed</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">.svg&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="plot_death_timescale_analysis">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.validation.html#ecoli.analysis.antibiotics_colony.validation.plot_death_timescale_analysis">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_death_timescale_analysis</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">axs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">plt</span><span class="o">.</span><span class="n">Axes</span><span class="p">],</span>
+    <span class="n">antibiotic_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Initial external amp.&quot;</span><span class="p">,</span>
+    <span class="n">mic</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.724</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create histogram of cell age (time since birth) until death and labelled</span>
+<span class="sd">    scatterplot of average time exposed to ampicillin until death against</span>
+<span class="sd">    initial external ampicillin concentration.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: DataFrame where each row is an agent and each column is a variable</span>
+<span class="sd">            of interest.</span>
+<span class="sd">        axes: List of 2 matplotlib Axes instances on which to draw plots</span>
+<span class="sd">        antibiotic_col: Name of column with initial external antibiotic concs.</span>
+<span class="sd">        mic: Minimum inhibitory concentration (uM, rounded to 3 decimal places)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">antibiotic_col</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">grouped_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;Condition&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Compile condition-specific lists of age of cell and total time that cell&#39;s</span>
+    <span class="c1"># lineage was exposed to ampicillin at time of cracking and death</span>
+    <span class="n">death_times</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">cracking_times</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">condition</span><span class="p">,</span> <span class="n">condition_data</span> <span class="ow">in</span> <span class="n">grouped_data</span><span class="p">:</span>
+        <span class="n">all_agents</span> <span class="o">=</span> <span class="n">condition_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Agent ID&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+        <span class="n">death_times</span><span class="p">[</span><span class="n">condition</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;age&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;exposure&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;amp&quot;</span><span class="p">:</span> <span class="n">condition_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">}</span>
+        <span class="n">cracking_times</span><span class="p">[</span><span class="n">condition</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;age&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;exposure&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;amp&quot;</span><span class="p">:</span> <span class="n">condition_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;antibiotic_conc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">}</span>
+        <span class="n">agents_data</span> <span class="o">=</span> <span class="n">condition_data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;Agent ID&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">agent_id</span><span class="p">,</span> <span class="n">agent_data</span> <span class="ow">in</span> <span class="n">agents_data</span><span class="p">:</span>
+            <span class="n">crack_time</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+                <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Wall cracked&quot;</span><span class="p">],</span> <span class="s2">&quot;Time&quot;</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">crack_time</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">birth_time</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+                <span class="n">cracking_times</span><span class="p">[</span><span class="n">condition</span><span class="p">][</span><span class="s2">&quot;age&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">crack_time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">birth_time</span><span class="p">)</span>
+                <span class="n">cracking_times</span><span class="p">[</span><span class="n">condition</span><span class="p">][</span><span class="s2">&quot;exposure&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">crack_time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">SPLIT_TIME</span><span class="p">)</span>
+                <span class="c1"># Cell has no descendants</span>
+                <span class="k">if</span> <span class="n">agent_id</span> <span class="o">+</span> <span class="s2">&quot;0&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">all_agents</span><span class="p">:</span>
+                    <span class="n">death_time</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                    <span class="c1"># Cell did not survive to end of simulation</span>
+                    <span class="k">if</span> <span class="n">death_time</span> <span class="o">!=</span> <span class="n">MAX_TIME</span><span class="p">:</span>
+                        <span class="n">death_times</span><span class="p">[</span><span class="n">condition</span><span class="p">][</span><span class="s2">&quot;age&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">death_time</span> <span class="o">-</span> <span class="n">birth_time</span><span class="p">)</span>
+                        <span class="n">death_times</span><span class="p">[</span><span class="n">condition</span><span class="p">][</span><span class="s2">&quot;exposure&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="n">death_time</span> <span class="o">-</span> <span class="n">SPLIT_TIME</span>
+                        <span class="p">)</span>
+
+    <span class="c1"># Plot avg # of generations to death vs amp conc (inc. reg. line)</span>
+    <span class="n">avg_times</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">amp_concs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">condition</span> <span class="ow">in</span> <span class="n">death_times</span><span class="p">:</span>
+        <span class="n">avg_times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">death_times</span><span class="p">[</span><span class="n">condition</span><span class="p">][</span><span class="s2">&quot;exposure&quot;</span><span class="p">]))</span>
+        <span class="n">amp_concs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">condition</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;Ampicillin (&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; mg/L)&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="n">avg_gens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">avg_times</span><span class="p">)</span> <span class="o">/</span> <span class="n">AVG_GEN_TIME</span>
+    <span class="n">amp_concs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">amp_concs</span><span class="p">)</span>
+    <span class="n">conc_sort_idx</span> <span class="o">=</span> <span class="n">amp_concs</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+    <span class="n">amp_concs</span> <span class="o">=</span> <span class="n">amp_concs</span><span class="p">[</span><span class="n">conc_sort_idx</span><span class="p">]</span>
+    <span class="n">avg_gens</span> <span class="o">=</span> <span class="n">avg_gens</span><span class="p">[</span><span class="n">conc_sort_idx</span><span class="p">]</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">amp_concs</span><span class="p">,</span> <span class="n">avg_gens</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">amp_concs</span><span class="p">,</span> <span class="n">avg_gens</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># Plot Boman and Ericksson 1963 data (inc. reg. line)</span>
+    <span class="n">lit_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;data/colony_data/lysis_ratios.csv&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">lit_data</span> <span class="o">=</span> <span class="n">lit_data</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;Ampicillin (mg/L)&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Avg. generations to lysis&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">lit_data</span><span class="p">[</span><span class="s2">&quot;Avg. generations to lysis&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">lit_data</span><span class="p">[</span><span class="s2">&quot;Avg. generations to lysis&quot;</span><span class="p">]</span>
+    <span class="n">lit_data</span> <span class="o">=</span> <span class="n">lit_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+        <span class="p">(</span><span class="n">lit_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Ampicillin (mg/L)&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">lit_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;Ampicillin (mg/L)&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">9</span><span class="p">),</span>
+        <span class="p">:,</span>
+    <span class="p">]</span>
+    <span class="n">lit_data</span> <span class="o">=</span> <span class="n">lit_data</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s2">&quot;Ampicillin (mg/L)&quot;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+        <span class="n">lit_data</span><span class="p">[</span><span class="s2">&quot;Ampicillin (mg/L)&quot;</span><span class="p">],</span>
+        <span class="n">lit_data</span><span class="p">[</span><span class="s2">&quot;Avg. generations to lysis&quot;</span><span class="p">],</span>
+        <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100</span> <span class="o">/</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">lit_data</span><span class="p">[</span><span class="s2">&quot;Ampicillin (mg/L)&quot;</span><span class="p">],</span>
+        <span class="n">lit_data</span><span class="p">[</span><span class="s2">&quot;Avg. generations to lysis&quot;</span><span class="p">],</span>
+        <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100</span> <span class="o">/</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Ampicillin (mg/L)&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Avg. generations to lysis&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">],</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">,</span> <span class="s2">&quot;6&quot;</span><span class="p">,</span> <span class="s2">&quot;8&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">,</span> <span class="s2">&quot;6&quot;</span><span class="p">,</span> <span class="s2">&quot;8&quot;</span><span class="p">],</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">ylim</span> <span class="o">=</span> <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+        <span class="mi">8</span><span class="p">,</span>
+        <span class="n">ylim</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="s2">&quot;Boman and Ericksson 1963&quot;</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100</span> <span class="o">/</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">verticalalignment</span><span class="o">=</span><span class="s2">&quot;top&quot;</span><span class="p">,</span>
+        <span class="n">horizontalalignment</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+        <span class="mi">8</span><span class="p">,</span>
+        <span class="n">ylim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.3</span><span class="p">,</span>
+        <span class="s2">&quot;MIC: 4 mg/L&quot;</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100</span> <span class="o">/</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">verticalalignment</span><span class="o">=</span><span class="s2">&quot;top&quot;</span><span class="p">,</span>
+        <span class="n">horizontalalignment</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+        <span class="mf">0.3</span><span class="p">,</span>
+        <span class="n">ylim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.6</span><span class="p">,</span>
+        <span class="s2">&quot;This model&quot;</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">verticalalignment</span><span class="o">=</span><span class="s2">&quot;top&quot;</span><span class="p">,</span>
+        <span class="n">horizontalalignment</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+        <span class="mf">0.3</span><span class="p">,</span>
+        <span class="n">ylim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.3</span><span class="p">,</span>
+        <span class="s2">&quot;MIC: 2 mg/L&quot;</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">verticalalignment</span><span class="o">=</span><span class="s2">&quot;top&quot;</span><span class="p">,</span>
+        <span class="n">horizontalalignment</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">despine</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">trim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">],</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">,</span> <span class="s2">&quot;6&quot;</span><span class="p">,</span> <span class="s2">&quot;8&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">,</span> <span class="s2">&quot;6&quot;</span><span class="p">,</span> <span class="s2">&quot;8&quot;</span><span class="p">],</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

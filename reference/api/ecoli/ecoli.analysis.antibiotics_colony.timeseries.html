@@ -1,0 +1,297 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.antibiotics_colony.timeseries &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ecoli.analysis.antibiotics_colony.validation" href="ecoli.analysis.antibiotics_colony.validation.html" />
+    <link rel="prev" title="ecoli.analysis.antibiotics_colony.tet_dry_mass" href="ecoli.analysis.antibiotics_colony.tet_dry_mass.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="ecoli.analysis.antibiotics_colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.antibiotics_colony</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.causality_network.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.causality_network</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.colony</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multidaughter.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multidaughter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multiexperiment.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multiexperiment</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multigeneration.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multigeneration</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multiseed.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multiseed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multivariant.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multivariant</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.single.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.single</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.composites.html"><code class="docutils literal notranslate"><span class="pre">ecoli.composites</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.experiments.html"><code class="docutils literal notranslate"><span class="pre">ecoli.experiments</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.library.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.processes.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.variants.html"><code class="docutils literal notranslate"><span class="pre">ecoli.variants</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../runscripts/runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.analysis.antibiotics_colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.antibiotics_colony</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.antibiotics_colony.timeseries</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/ecoli/ecoli.analysis.antibiotics_colony.timeseries.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-ecoli.analysis.antibiotics_colony.timeseries">
+<span id="ecoli-analysis-antibiotics-colony-timeseries"></span><h1><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.antibiotics_colony.timeseries</span></code><a class="headerlink" href="#module-ecoli.analysis.antibiotics_colony.timeseries" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.timeseries.make_tag_video">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.timeseries.</span></span><span class="sig-name descname"><span class="pre">make_tag_video</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_colors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">0,</span> <span class="pre">0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_membrane</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlight_agent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/timeseries.html#make_tag_video"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.timeseries.make_tag_video" title="Link to this definition"></a></dt>
+<dd><p>Make a video of snapshot images that span a replicate for a condition.
+In each of these videos, cells will be will be colored with highlight_color
+and intensity corresponding to their value of highlight_column.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>DataFrame</em>) – DataFrame where each row is an agent and each column is a variable
+of interest. Must have these columns: ‘Time’, ‘Death’, ‘Agent ID’,
+‘Boundary’, ‘Condition’, and ‘Seed’. 1 condition/seed at a time.</p></li>
+<li><p><strong>metadata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em><em>]</em><em>]</em>) – Nested dictionary where each condition is an outer key and each
+initial seed is an inner key. Each seed point to a dictionary with the
+following keys: ‘bounds’ is of the form [x, y] and gives the dimensions
+of the spatial environment and ‘fields’ is a dictionary timeseries of
+the ‘fields’ Store for that condition and initial seed</p></li>
+<li><p><strong>tag_colors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em>) – Mapping column names in <code class="docutils literal notranslate"><span class="pre">data</span></code> to either RGB tuples or
+dictionaries containing the <code class="docutils literal notranslate"><span class="pre">cmp</span></code> and <code class="docutils literal notranslate"><span class="pre">norm</span></code> keys for the
+<a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.Colormap.html#matplotlib.colors.Colormap" title="(in Matplotlib v3.10.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.colors.Colormap</span></code></a> and
+<a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.Normalize.html#matplotlib.colors.Normalize" title="(in Matplotlib v3.10.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.colors.Normalize</span></code></a> instances to use for that tag
+If dictionaries are used, the <code class="docutils literal notranslate"><span class="pre">min_color</span></code> key is overrriden</p></li>
+<li><p><strong>conc</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to normalize by volume before plotting</p></li>
+<li><p><strong>min_color</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a>) – Color for cells with lowest highlight_column value (default black)</p></li>
+<li><p><strong>out_prefix</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Prefix for output filename</p></li>
+<li><p><strong>show_membrane</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to draw outline for agents</p></li>
+<li><p><strong>figsize</strong> – Desired size of entire figure</p></li>
+<li><p><strong>highlight_agent</strong> – Mapping of agent IDs to <cite>membrane_color</cite> and <cite>membrane_width</cite>.
+Useful for highlighting specific agents, with rest using defaults</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.timeseries.plot_field_snapshots">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.timeseries.</span></span><span class="sig-name descname"><span class="pre">plot_field_snapshots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlight_lineage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlight_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">0,</span> <span class="pre">0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_pct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_pct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colorbar_decimals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_fig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_snapshots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(9,</span> <span class="pre">1.75)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/timeseries.html#plot_field_snapshots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.timeseries.plot_field_snapshots" title="Link to this definition"></a></dt>
+<dd><p>Plot a row of snapshot images that span a replicate for each condition.
+In each of these images, the cell corresponding to a highlighted lineage
+is colored while the others are white.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>DataFrame</em>) – DataFrame where each row is an agent and each column is a variable
+of interest. Must have these columns: ‘Time’, ‘Death’, ‘Agent ID’,
+‘Boundary’, ‘Condition’, and ‘Seed’. 1 condition/seed at a time.</p></li>
+<li><p><strong>metadata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em><em>]</em><em>]</em>) – Nested dictionary where each condition is an outer key and each
+initial seed is an inner key. Each seed point to a dictionary with the
+following keys: ‘bounds’ is of the form [x, y] and gives the dimensions
+of the spatial environment and ‘fields’ is a dictionary timeseries of
+the ‘fields’ Store for that condition and initial seed</p></li>
+<li><p><strong>highlight_lineage</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>None</em>) – Agent ID to plot lineage trace for</p></li>
+<li><p><strong>highlight_color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Color to plot highlight lineage with (default red)</p></li>
+<li><p><strong>min_pct</strong> – Percent of minimum field concentration to use as minimum value
+in colorbar (1 = 100%)</p></li>
+<li><p><strong>max_pct</strong> – Percent of maximum field concentration to use as maximum value
+in colorbar (1 = 100%)</p></li>
+<li><p><strong>colorbar_decimals</strong> – Number of decimals to include in colorbar labels.</p></li>
+<li><p><strong>return_fig</strong> – Whether to return the Figure</p></li>
+<li><p><strong>n_snapshots</strong> – Number of equally-spaced (temporally) snapshots</p></li>
+<li><p><strong>figsize</strong> – Desired size of entire figure</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.timeseries.plot_tag_snapshots">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.timeseries.</span></span><span class="sig-name descname"><span class="pre">plot_tag_snapshots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_colors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">snapshot_times</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">1,</span> <span class="pre">1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_membrane</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_fig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(9,</span> <span class="pre">1.75)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlight_agent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/timeseries.html#plot_tag_snapshots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.timeseries.plot_tag_snapshots" title="Link to this definition"></a></dt>
+<dd><p>Plot a row of snapshot images that span a replicate for each condition.
+In each of these images, cells will be will be colored with highlight_color
+and intensity corresponding to their value of highlight_column.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>DataFrame</em>) – DataFrame where each row is an agent and each column is a variable
+of interest. Must have these columns: ‘Time’, ‘Death’, ‘Agent ID’,
+‘Boundary’, ‘Condition’, and ‘Seed’. 1 condition/seed at a time.</p></li>
+<li><p><strong>metadata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em><em>]</em><em>]</em>) – Nested dictionary where each condition is an outer key and each
+initial seed is an inner key. Each seed point to a dictionary with the
+following keys: ‘bounds’ is of the form [x, y] and gives the dimensions
+of the spatial environment and ‘fields’ is a dictionary timeseries of
+the ‘fields’ Store for that condition and initial seed</p></li>
+<li><p><strong>tag_colors</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em>) – Mapping column names in <code class="docutils literal notranslate"><span class="pre">data</span></code> to either RGB tuples or
+dictionaries containing the <code class="docutils literal notranslate"><span class="pre">cmp</span></code> and <code class="docutils literal notranslate"><span class="pre">norm</span></code> keys for the
+<a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.Colormap.html#matplotlib.colors.Colormap" title="(in Matplotlib v3.10.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.colors.Colormap</span></code></a> and
+<a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.Normalize.html#matplotlib.colors.Normalize" title="(in Matplotlib v3.10.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.colors.Normalize</span></code></a> instances to use for that tag
+If dictionaries are used, the <code class="docutils literal notranslate"><span class="pre">min_color</span></code> key is overrriden</p></li>
+<li><p><strong>conc</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to normalize by volume before plotting</p></li>
+<li><p><strong>snapshot_times</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>ndarray</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.2)"><em>dtype</em></a><em>[</em><em>float64</em><em>]</em><em>]</em>) – Times (in seconds) to make snapshots for</p></li>
+<li><p><strong>min_color</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a>) – Color for cells with lowest highlight_column value (default white)</p></li>
+<li><p><strong>out_prefix</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>None</em>) – Prefix for output filename</p></li>
+<li><p><strong>show_membrane</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to draw outline for agents</p></li>
+<li><p><strong>return_fig</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to return figure. Only use with one tag.</p></li>
+<li><p><strong>figsize</strong> – Desired size of entire figure</p></li>
+<li><p><strong>highlight_agent</strong> – Mapping of agent IDs to <cite>membrane_color</cite> and <cite>membrane_width</cite>.
+Useful for highlighting specific agents, with rest using defaults</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.antibiotics_colony.timeseries.plot_timeseries">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.antibiotics_colony.timeseries.</span></span><span class="sig-name descname"><span class="pre">plot_timeseries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns_to_plot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlight_lineage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mark_death</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_lineages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.5,</span> <span class="pre">0.5,</span> <span class="pre">0.5)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/antibiotics_colony/timeseries.html#plot_timeseries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.antibiotics_colony.timeseries.plot_timeseries" title="Link to this definition"></a></dt>
+<dd><p>Plot selected traces with specific lineage highlighted and others in gray.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>DataFrame</em>) – DataFrame where each row is an agent and each column is a variable
+of interest. Must have these columns: ‘Time’, ‘Death’, ‘Agent ID’,
+‘Boundary’, ‘Condition’, and ‘Seed’. The first experimental condition
+in the ‘Condition’ column is treated as a control and plotted in gray.
+Include at most 2 conditions and 1 seed per condition. If more than 1
+condition is supplied, either ensure that they do not share any time
+points or run with the <code class="docutils literal notranslate"><span class="pre">restrict_data</span></code> option set to true.</p></li>
+<li><p><strong>axes</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html#matplotlib.axes.Axes" title="(in Matplotlib v3.10.0)"><em>Axes</em></a><em>]</em>) – Columns are plotted sequentially on these Axes.</p></li>
+<li><p><strong>columns_to_plot</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>]</em>) – Dictionary of columns in data to plot sequentially on
+axes. Each column name corresponds to a RGB tuple to color the trace
+of the highlighted lineage on that plot.</p></li>
+<li><p><strong>highlight_lineage</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Agent ID to plot lineage trace for. Alternatively,
+one of ‘mean’ or ‘median’.</p></li>
+<li><p><strong>conc</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to normalize data by volume and convert to nM</p></li>
+<li><p><strong>mark_death</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Mark cells that die with red X on time step of death</p></li>
+<li><p><strong>background_lineages</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to plot traces for other lineages (gray).</p></li>
+<li><p><strong>filter_time</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Apply default time filter for <code class="docutils literal notranslate"><span class="pre">data</span></code> (take first 11550
+seconds from assumed control condition and 11550-26000 seconds from
+all other conditions)</p></li>
+<li><p><strong>background_color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Color used to plot traces for non-highlighted agents</p></li>
+<li><p><strong>background_alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Alpha used to plot traces for non-highlighted agents</p></li>
+<li><p><strong>background_linewidth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Linewidth for non-highlighted agent traces</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ecoli.analysis.antibiotics_colony.tet_dry_mass.html" class="btn btn-neutral float-left" title="ecoli.analysis.antibiotics_colony.tet_dry_mass" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ecoli.analysis.antibiotics_colony.validation.html" class="btn btn-neutral float-right" title="ecoli.analysis.antibiotics_colony.validation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
