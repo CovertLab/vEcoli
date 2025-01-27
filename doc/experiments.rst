@@ -119,6 +119,11 @@ documented in :ref:`/workflows.rst`.
         "emit_topology" : false,
         "emit_processes" : false,
         "emit_config" : false,
+        # Whether to emit data from all molecules under ("unique",). Should only be
+        # used for debugging purposes because this will emit a lot of data. Prefer
+        # a dedicated listener to extract unique molecule information at simulation
+        # runtime instead.
+        "emit_unique": false,
         # Whether to save process updates to log_update stores. Should only be used
         # if choosing "timeseries" emitter. See "Log Updates" heading in "Composites"
         # documentation for more information.
