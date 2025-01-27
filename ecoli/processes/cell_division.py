@@ -65,7 +65,7 @@ class Division(Step):
     Division Deriver
      * Uses dry mass threshold that can be set in config via division_threshold
      * Samples division threshold from normal distribution centered around what
-       is expected for a medium when division_threshold == massDistribution
+       is expected for a medium when division_threshold == mass_distribution
      * If flag d_period is set to true (default), mass thresholds are ignored and
        the same D period mechanism as wcEcoli is used.
     """
@@ -87,7 +87,7 @@ class Division(Step):
         self.random_state = np.random.RandomState(seed=self.parameters["seed"])
 
         self.division_mass_multiplier = 1
-        if self.parameters["division_threshold"] == "massDistribution":
+        if self.parameters["division_threshold"] == "mass_distribution":
             division_random_seed = (
                 binascii.crc32(b"CellDivision", self.parameters["seed"]) & 0xFFFFFFFF
             )
@@ -115,8 +115,8 @@ class Division(Step):
 
     def next_update(self, timestep, states):
         # Figure out division threshold at first timestep if
-        # using massDistribution setting
-        if states["division_threshold"] == "massDistribution":
+        # using division_threshold is set to mass_distribution
+        if states["division_threshold"] == "mass_distribution":
             current_media_id = states["media_id"]
             return {
                 "division_threshold": (
