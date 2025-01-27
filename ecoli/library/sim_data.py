@@ -49,7 +49,7 @@ class LoadSimData:
         mar_regulon: bool = False,
         process_configs: Optional[dict[str, Any]] = None,
         amp_lysis: bool = False,
-        mass_distribution: bool = True,
+        initial_state_gaussian: bool = True,
         superhelical_density: bool = False,
         recycle_stalled_elongation: bool = False,
         mechanistic_replisome: bool = False,
@@ -99,11 +99,7 @@ class LoadSimData:
                 currently only used to configure :py:class:`~ecoli.processes.rna_interference.RnaInterference`
             amp_lysis: Enable ampicillin-induced lysis, adds ampicillin and
                 hydrolyzed ampicillin to bulk molecule store
-            mass_distribution: If ``config['division_variable']`` is
-                set to ``('listeners', 'mass', 'dry_mass')`` and
-                ``config['division_threshold']`` is set to ``'mass_distribution'``,
-                enabling this multiplies the division threshold by a Gaussian
-                noise factor. If the simulation is configured to generate an
+            initial_state_gaussian: If the simulation is configured to generate an
                 initial state from pickled simulation data (see option 3 in
                 :py:meth:`~ecoli.composites.ecoli_master.Ecoli.initial_state`),
                 enabling this adds Gaussian noise to the generated state
@@ -163,7 +159,7 @@ class LoadSimData:
 
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
-        self.mass_distribution = mass_distribution
+        self.initial_state_gaussian = initial_state_gaussian
         self.superhelical_density = superhelical_density
         self.mechanistic_replisome = mechanistic_replisome
         self.trna_attenuation = trna_attenuation
@@ -1781,7 +1777,7 @@ class LoadSimData:
         from a parent cell.
         """
         mass_coeff = 1.0
-        if self.mass_distribution:
+        if self.initial_state_gaussian:
             mass_coeff = self.random_state.normal(loc=1.0, scale=0.1)
 
         # if current_timeline_id is specified by a variant in sim_data,
