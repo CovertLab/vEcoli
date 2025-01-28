@@ -1,7 +1,9 @@
 {
-    "experiment_id": "Daily with AA",
+    "experiment_id": "daily-anaerobic",
     "single_daughters": true,
     "generations": 8,
+    "lineage_seed": 100,
+    "total_time": 10800.0,
     "fail_at_total_time": true,
     "trna_attenuation": false,
     "ppgpp_regulation": false,
@@ -11,6 +13,8 @@
     "d_period_division": false,
     "mechanistic_replisome": true,
     "mass_distribution": false,
+    "sim_data_path": null,
+    "skip_baseline": true,
     "emitter": "parquet",
     "emitter_arg": {
         "out_dir": "/scratch/groups/mcovert/vecoli"
@@ -19,6 +23,14 @@
         "single": {"mass_fraction_summary": {}}
     },
     "variants": {
-        "condition": {"condition": "no_oxygen"}
+        "condition": {"condition": {"value": ["no_oxygen"]}}
+    },
+    "sherlock": {
+        "runtime_image_name": "runtime-image",
+        "build_runtime_image": true,
+        "jenkins": true
+    },
+    "parca_options": {
+        "cpus": 4
     }
 }

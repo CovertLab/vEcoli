@@ -16,7 +16,7 @@
 #
 #     > docker run --name wholecelltest -it --rm ${USER}-wcm-code
 #
-# or if you used build.sh or build-wcm.sh to build using Cloud Build:
+# or if you used build-wcm.sh to build using Cloud Build:
 #
 #     > PROJECT="$(gcloud config get-value core/project)"
 #     > TAG="gcr.io/${PROJECT}/${USER}-wcm-code"
@@ -24,11 +24,11 @@
 #
 # It will start a shell where you can execute commands:
 #
-#     # pytest
+#     uv run pytest
 #
 # If this succeeds you can start running WCM code in the container, e.g.:
 #
-#     # python runscripts/manual/runParca.py
+#     uv run runscripts/manual/runParca.py
 
 ARG from=wcm-runtime:latest
 FROM ${from}
@@ -43,7 +43,7 @@ ENV IMAGE_GIT_HASH="$git_hash" \
 	IMAGE_TIMESTAMP="$timestamp"
 
 LABEL application="Whole Cell Model of Escherichia coli" \
-    email="allencentercovertlab@gmail.com" \
+    email="wholecellteam@lists.stanford.edu" \
     license="https://github.com/CovertLab/vEcoli/blob/master/LICENSE" \
     organization="Covert Lab at Stanford" \
     website="https://www.covert.stanford.edu/"
@@ -51,12 +51,10 @@ LABEL application="Whole Cell Model of Escherichia coli" \
 COPY . /vEcoli
 WORKDIR /vEcoli
 
-RUN make clean compile
-ENV PYTHONPATH=/vEcoli
+RUN uv sync --frozen
 
 # Since this build runs as root, set permissions so running the container as
-# another user will work: Aesara needs to write into the data dir it uses when
-# running as a user with no home dir, and Parca writes into /vEcoli/cache/.
-RUN (umask 000 && mkdir -p /.aesara /vEcoli/cache)
+# another user will work: Parca writes into /vEcoli/cache/.
+RUN (umask 000 && mkdir -p /vEcoli/cache)
 
 CMD ["/bin/bash"]

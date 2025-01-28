@@ -235,7 +235,7 @@ class EngineProcess(Process):
           access to. :py:class:`~ecoli.experiments.ecoli_engine_process.EcoliEngineProcess`
           has a custom :py:meth:`~vivarium.core.composer.Composer.generate_topology`
           method to ensure that each port name is wired to a user-specified store
-          in the outer simulation. Then, every time the :py:meth:`~.EngineProcess`
+          in the outer simulation. Then, every time the :py:class:`~.EngineProcess`
           is run, the value from the outer simulation store is copied to the store
           located at the path in the inner simulation, the inner simulation is
           incremented, and the final value of the store in the inner simulation
@@ -244,7 +244,7 @@ class EngineProcess(Process):
           value of stores in the inner simulation.
         - ``stub_schemas``: a mapping from process names to a mapping from
           paths in the inner simulation to the schema to use for the store at that
-          path. See :py:class:`~.StubSchemas` for more details.
+          path. See :py:class:`~.SchemaStub` for more details.
         - ``tunnel_out_schemas``: a mapping from names of ports for tunnels out
           to schemas to use for the stores that those ports point to. Helpful
           for ensuring consistency in schemas specified for these stores.
@@ -289,8 +289,8 @@ class EngineProcess(Process):
             "ignore",
             message="Incompatible schema "
             "assignment at .+ Trying to assign the value <bound method "
-            "UniqueNumpyUpdater\.updater .+ to key updater, which already "
-            "has the value <bound method UniqueNumpyUpdater\.updater",
+            r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
+            r"has the value <bound method UniqueNumpyUpdater\.updater",
         )
         self.sim = Engine(
             processes=processes,

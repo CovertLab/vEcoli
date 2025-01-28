@@ -1,0 +1,81 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "Cython",
+    "numpy"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vEcoli"
+version = "1.1.0"
+description = "Whole Cell E. coli Model"
+requires-python = "==3.12.8"
+dependencies = [
+    "numpy",
+    "scipy",
+    "biopython",
+    "cvxpy",
+    "cython",
+    "dill",
+    "duckdb",
+    "ete3",
+    "gcsfs",
+    "pyarrow",
+    "ipdb",
+    "ipython",
+    "jupyter",
+    "line-profiler",
+    "altair",
+    "numba",
+    "orjson",
+    # Constraint can be removed once cvxpy supports newer ortools
+    "ortools<=9.9.3963",
+    "pandas",
+    "polars",
+    "pymunk",
+    "scikit-image",
+    "scikit-learn",
+    "seaborn",
+    "swiglpk",
+    "sympy",
+    "tqdm",
+    "unum",
+    "vivarium-core",
+    "pysal",
+    "opencv-python-headless",
+    "statsmodels",
+    "ecos",
+    "nbclassic",
+    "matplotlib",
+    "pyqt5",
+    "iteround",
+    "wheel",
+    "stochastic-arrow",
+    "autograd",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "mypy",
+    "ruff",
+    "pre-commit",
+]
+docs = [
+    "Sphinx",
+    "sphinx-rtd-theme",
+    "nbsphinx"
+]
+
+[tool.setuptools]
+packages = [
+    "ecoli",
+    "migration", 
+    "reconstruction",
+    "runscripts",
+    "validation",
+    "wholecell"
+]
