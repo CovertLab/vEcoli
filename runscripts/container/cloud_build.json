@@ -4,17 +4,17 @@
         "name": "gcr.io/cloud-builders/docker",
         "args": [
             "build",
-            "--build-arg", "from=${_REGION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${_WCM_RUNTIME}",
+            "--build-arg", "from=${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${_WCM_RUNTIME}",
             "--build-arg", "git_hash=${_GIT_HASH}",
             "--build-arg", "git_branch=${_GIT_BRANCH}",
             "--build-arg", "timestamp=${_TIMESTAMP}",
-            "-t", "${_REGION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${_WCM_CODE}",
-            "-f", "cloud/docker/wholecell/Dockerfile",
+            "-t", "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${_WCM_CODE}",
+            "-f", "runscripts/container/wholecell/Dockerfile",
             "."
         ]
     }
     ],
     "images": [
-        "${_REGION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${_WCM_CODE}"
+        "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${_WCM_CODE}"
     ]
 }

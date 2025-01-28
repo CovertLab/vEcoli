@@ -2,11 +2,6 @@
 
 name: Workflow
 
-# Improves reproducibility and speed
-env:
-  OPENBLAS_NUM_THREADS: 1
-  OMP_NUM_THREADS: 1
-
 on:
   push:
     branches: [master]
@@ -16,71 +11,50 @@ on:
 jobs:
   Reproducibility:
     runs-on: macos-latest
-    strategy:
-      matrix:
-        python-version: ["3.11"]
     steps:
     - uses: actions/checkout@v2
-    - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip wheel
-        pip install numpy==1.26.4
-        pip install -r requirements.txt
-    - name: Compile Cython components
-      run: |
-        make clean compile
-    - name: Set PYTHONPATH
-      run: |
-        echo "PYTHONPATH=." >> $GITHUB_ENV
+        enable-cache: true
+        version: "0.5.21"
+    - name: Install model
+      run: USE_CYTHON=1 uv sync --frozen
     - name: Test ParCa reproducibility
       run: |
-        python runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
+        uv run runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
             -c 3 -o out/parca_1
-        python runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
+        uv run runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
             -c 3 -o out/parca_2
-        python runscripts/debug/compare_pickles.py out/parca_1/kb out/parca_2/kb
+        uv run runscripts/debug/compare_pickles.py out/parca_1/kb out/parca_2/kb
     - name: Test simulation reproducibility
       run: |
-        python ecoli/experiments/ecoli_master_sim.py \
+        uv run ecoli/experiments/ecoli_master_sim.py \
             --generations 1 --emitter parquet --emitter_arg out_dir='out' \
             --experiment_id "parca_1" --daughter_outdir "out/parca_1" \
             --sim_data_path "out/parca_1/kb/simData.cPickle" --fail_at_total_time &
-        python ecoli/experiments/ecoli_master_sim.py \
+        uv run ecoli/experiments/ecoli_master_sim.py \
             --generations 1 --emitter parquet --emitter_arg out_dir='out' \
             --experiment_id "parca_2" --daughter_outdir "out/parca_2" \
             --sim_data_path "out/parca_2/kb/simData.cPickle" --fail_at_total_time
-        python runscripts/debug/diff_simouts.py -o "out" "parca_1*" "parca_2*"
+        uv run runscripts/debug/diff_simouts.py -o "out" "parca_1*" "parca_2*"
   Two-gens:
     runs-on: macos-latest
-    strategy:
-      matrix:
-        python-version: ["3.11"]
     steps:
     - uses: actions/checkout@v2
-    - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip wheel
-        pip install numpy==1.26.4 mypy
-        pip install -r requirements.txt
-    - name: Install nextflow
+        enable-cache: true
+        version: "0.5.21"
+    - name: Install model
+      run: USE_CYTHON=1 uv sync --frozen
+    - name: Install nextflow edge
       run: |
         curl -s https://get.nextflow.io | bash
         chmod +x nextflow
         echo "PATH=.:$PATH" >> $GITHUB_ENV
-    - name: Compile Cython components
-      run: |
-        make clean compile
-    - name: Set PYTHONPATH
-      run: |
-        echo "PYTHONPATH=." >> $GITHUB_ENV
+        NXF_EDGE=1 ./nextflow self-update
     - name: Two generations
       run: |
-        python runscripts/workflow.py --config ecoli/composites/ecoli_configs/two_generations.json
+        uv run runscripts/workflow.py --config ecoli/composites/ecoli_configs/two_generations.json

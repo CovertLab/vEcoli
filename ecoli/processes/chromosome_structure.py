@@ -12,15 +12,20 @@ import numpy as np
 import numpy.typing as npt
 import warnings
 from vivarium.core.process import Step
+from vivarium.core.composer import Composer
+from vivarium.core.engine import Engine
 
+from ecoli.processes.global_clock import GlobalClock
+from ecoli.processes.unique_update import UniqueUpdate
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
-    create_unique_indexes,
     listener_schema,
     numpy_schema,
     attrs,
     bulk_name_to_idx,
+    get_free_indices,
 )
+from ecoli.library.json_state import get_state_from_file
 from wholecell.utils.polymerize import buildSequences
 
 # Register default topology for this process, associating it with process name
@@ -50,8 +55,7 @@ TOPOLOGY = {
     "promoters": ("unique", "promoter"),
     "DnaA_boxes": ("unique", "DnaA_box"),
     "genes": ("unique", "gene"),
-    # TODO(vivarium): Only include if superhelical density flag is passed
-    # "chromosomal_segments": ("unique", "chromosomal_segment")
+    "chromosomal_segments": ("unique", "chromosomal_segment"),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
     "next_update_time": ("next_update_time", "chromosome_structure"),
@@ -66,7 +70,7 @@ class ChromosomeStructure(Step):
     topology = TOPOLOGY
     defaults = {
         # Load parameters
-        "RNA_sequences": [],
+        "rna_sequences": [],
         "protein_sequences": [],
         "n_TUs": 1,
         "n_TFs": 1,
@@ -74,7 +78,7 @@ class ChromosomeStructure(Step):
         "n_fragment_bases": 1,
         "replichore_lengths": [0, 0],
         "relaxed_DNA_base_pairs_per_turn": 1,
-        "terC_index": 1,
+        "terC_index": -1,
         "calculate_superhelical_densities": False,
         # Get placeholder value for chromosome domains without children
         "no_child_place_holder": -1,
@@ -89,6 +93,13 @@ class ChromosomeStructure(Step):
         "water": "water",
         "seed": 0,
         "emit_unique": False,
+        "rna_ids": [],
+        "n_mature_rnas": 0,
+        "mature_rna_ids": [],
+        "mature_rna_end_positions": [],
+        "mature_rna_nt_counts": [],
+        "unprocessed_rna_index_mapping": {},
+        "time_step": 1.0,
     }
 
     # Constructor
@@ -138,12 +149,6 @@ class ChromosomeStructure(Step):
 
         self.emit_unique = self.parameters.get("emit_unique", True)
 
-        self.chromosome_segment_index = 0
-        self.promoter_index = 60000
-        self.DnaA_box_index = 60000
-
-        self.random_state = np.random.RandomState(seed=self.parameters["seed"])
-
     def ports_schema(self):
         ports = {
             "listeners": {
@@ -159,6 +164,8 @@ class ChromosomeStructure(Step):
                             np.zeros(self.n_TUs, np.int64),
                             self.rna_ids,
                         ),
+                        "n_empty_fork_collisions": 0,
+                        "empty_fork_collision_coordinates": [],
                     }
                 )
             },
@@ -185,6 +192,9 @@ class ChromosomeStructure(Step):
             "DnaA_boxes": numpy_schema(
                 "DnaA_boxes", emit=self.parameters["emit_unique"]
             ),
+            "chromosomal_segments": numpy_schema(
+                "chromosomal_segments", emit=self.parameters["emit_unique"]
+            ),
             "genes": numpy_schema("genes", emit=self.parameters["emit_unique"]),
             "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
@@ -194,21 +204,6 @@ class ChromosomeStructure(Step):
                 "_divider": "set",
             },
         }
-
-        # TODO: Work on this functionality
-        if self.calculate_superhelical_densities:
-            ports["chromosomal_segments"] = {
-                "*": {
-                    "boundary_molecule_indexes": {
-                        "_default": np.empty((0, 2), dtype=np.int64)
-                    },
-                    "boundary_coordinates": {
-                        "_default": np.empty((0, 2), dtype=np.int64)
-                    },
-                    "domain_index": {"_default": 0},
-                    "linking_number": {"_default": 0},
-                }
-            }
 
         return ports
 
@@ -327,24 +322,28 @@ class ChromosomeStructure(Step):
                     ]
 
                     # Get mask for molecules on this domain that are out of range
+                    # It's rare but we have to remove molecules at the exact same
+                    # coordinates as the replisomes as well so that they do not break
+                    # the chromosome segment calculations if they are removed by a
+                    # different process (hence, >= and <= instead of > and <)
                     domain_mask = np.logical_and.reduce(
                         (
                             domain_indexes == domain_index,
-                            coordinates > domain_replisome_coordinates.min(),
-                            coordinates < domain_replisome_coordinates.max(),
+                            coordinates >= domain_replisome_coordinates.min(),
+                            coordinates <= domain_replisome_coordinates.max(),
                         )
                     )
 
                 # Domain has no active replisomes
                 else:
-                    # Domain has child domains (has finished replicating)
-                    if (
-                        child_domains[all_chromosome_domain_indexes == domain_index, 0]
-                        != self.no_child_place_holder
-                    ):
+                    children_of_domain = child_domains[
+                        all_chromosome_domain_indexes == domain_index
+                    ]
+                    # Child domains are full chromosomes (domain has finished replicating)
+                    if np.all(np.isin(children_of_domain, mother_domain_indexes)):
                         # Remove all molecules on this domain
                         domain_mask = domain_indexes == domain_index
-                    # Domain has not started replication
+                    # Domain has not started replication or replication was interrupted
                     else:
                         continue
 
@@ -365,12 +364,6 @@ class ChromosomeStructure(Step):
         removed_DnaA_boxes_mask = get_removed_molecules_mask(
             DnaA_box_domain_indexes, DnaA_box_coordinates
         )
-
-        # Get attribute arrays of remaining RNAPs
-        remaining_RNAPs_mask = np.logical_not(removed_RNAPs_mask)
-        remaining_RNAP_domain_indexes = RNAP_domain_indexes[remaining_RNAPs_mask]
-        remaining_RNAP_coordinates = RNAP_coordinates[remaining_RNAPs_mask]
-        remaining_RNAP_unique_indexes = RNAP_unique_indexes[remaining_RNAPs_mask]
 
         # Build masks for head-on and co-directional collisions between RNAPs
         # and replication forks
@@ -408,6 +401,7 @@ class ChromosomeStructure(Step):
             "RNAs": {},
             "active_ribosome": {},
             "full_chromosomes": {},
+            "chromosomal_segments": {},
             "promoters": {},
             "genes": {},
             "DnaA_boxes": {},
@@ -436,6 +430,9 @@ class ChromosomeStructure(Step):
             all_new_segment_domain_indexes = np.array([], dtype=np.int32)
             all_new_linking_numbers = np.array([], dtype=np.float64)
 
+            # Iteratively tally RNAPs that were removed due to collisions with
+            # replication forks with or without replisomes on each domain
+            removed_RNAP_masks_all_domains = np.full_like(removed_RNAPs_mask, False)
             for domain_index in np.unique(all_chromosome_domain_indexes):
                 # Skip domains that have completed replication
                 if np.all(domain_index < mother_domain_indexes):
@@ -444,11 +441,14 @@ class ChromosomeStructure(Step):
                 domain_spans_oriC = domain_index in origin_domain_indexes
                 domain_spans_terC = domain_index in mother_domain_indexes
 
-                # Get masks for segments and RNAPs in this domain
-                segments_domain_mask = segment_domain_indexes == domain_index
-                RNAP_domain_mask = remaining_RNAP_domain_indexes == domain_index
+                # Parse attributes of remaining RNAPs in this domain
+                RNAPs_domain_mask = RNAP_domain_indexes == domain_index
+                RNAP_coordinates_this_domain = RNAP_coordinates[RNAPs_domain_mask]
+                RNAP_unique_indexes_this_domain = RNAP_unique_indexes[RNAPs_domain_mask]
+                domain_remaining_RNAPs_mask = ~removed_RNAPs_mask[RNAPs_domain_mask]
 
                 # Parse attributes of segments in this domain
+                segments_domain_mask = segment_domain_indexes == domain_index
                 boundary_molecule_indexes_this_domain = boundary_molecule_indexes[
                     segments_domain_mask, :
                 ]
@@ -457,29 +457,59 @@ class ChromosomeStructure(Step):
                 ]
                 linking_numbers_this_domain = linking_numbers[segments_domain_mask]
 
-                # Parse attributes of remaining RNAPs in this domain
-                new_molecule_coordinates_this_domain = remaining_RNAP_coordinates[
-                    RNAP_domain_mask
-                ]
-                new_molecule_indexes_this_domain = remaining_RNAP_unique_indexes[
-                    RNAP_domain_mask
-                ]
-
+                new_molecule_coordinates_this_domain = np.array([], dtype=np.int64)
+                new_molecule_indexes_this_domain = np.array([], dtype=np.int64)
                 # Append coordinates and indexes of replisomes on this domain,
                 # if any
                 if not domain_spans_oriC:
                     replisome_domain_mask = replisome_domain_indexes == domain_index
+                    replisome_coordinates_this_domain = replisome_coordinates[
+                        replisome_domain_mask
+                    ]
+                    replisome_molecule_indexes_this_domain = replisome_unique_indexes[
+                        replisome_domain_mask
+                    ]
+
+                    # If one or more replisomes was removed in the last time step,
+                    # use the last known location and molecule index.
+                    if len(replisome_molecule_indexes_this_domain) != 2:
+                        assert len(replisome_molecule_indexes_this_domain) < 2
+                        (
+                            replisome_coordinates_this_domain,
+                            replisome_molecule_indexes_this_domain,
+                        ) = get_last_known_replisome_data(
+                            boundary_coordinates_this_domain,
+                            boundary_molecule_indexes_this_domain,
+                            replisome_coordinates_this_domain,
+                            replisome_molecule_indexes_this_domain,
+                        )
+                        # Assume that RNAPs that run into a replication fork
+                        # are removed even if there is no replisome
+                        RNAPs_on_forks = np.isin(
+                            RNAP_coordinates_this_domain,
+                            replisome_coordinates_this_domain,
+                        )
+                        domain_remaining_RNAPs_mask = np.logical_and(
+                            domain_remaining_RNAPs_mask, ~RNAPs_on_forks
+                        )
+                        full_removed_RNAPs_mask = np.full_like(
+                            removed_RNAPs_mask, False
+                        )
+                        full_removed_RNAPs_mask[RNAPs_domain_mask] = RNAPs_on_forks
+                        removed_RNAP_masks_all_domains = np.logical_or(
+                            removed_RNAP_masks_all_domains, full_removed_RNAPs_mask
+                        )
 
                     new_molecule_coordinates_this_domain = np.concatenate(
                         (
                             new_molecule_coordinates_this_domain,
-                            replisome_coordinates[replisome_domain_mask],
+                            replisome_coordinates_this_domain,
                         )
                     )
                     new_molecule_indexes_this_domain = np.concatenate(
                         (
                             new_molecule_indexes_this_domain,
-                            replisome_unique_indexes[replisome_domain_mask],
+                            replisome_molecule_indexes_this_domain,
                         )
                     )
 
@@ -492,19 +522,80 @@ class ChromosomeStructure(Step):
                     replisome_parent_domain_mask = (
                         replisome_domain_indexes == parent_domain_index
                     )
+                    replisome_coordinates_parent_domain = replisome_coordinates[
+                        replisome_parent_domain_mask
+                    ]
+                    replisome_molecule_indexes_parent_domain = replisome_unique_indexes[
+                        replisome_parent_domain_mask
+                    ]
+
+                    # If one or more replisomes was removed in the last time step,
+                    # use the last known location and molecule index.
+                    if len(replisome_molecule_indexes_parent_domain) != 2:
+                        assert len(replisome_molecule_indexes_parent_domain) < 2
+                        # Parse attributes of segments in parent domain
+                        parent_segments_domain_mask = (
+                            segment_domain_indexes == parent_domain_index
+                        )
+                        boundary_molecule_indexes_parent_domain = (
+                            boundary_molecule_indexes[parent_segments_domain_mask, :]
+                        )
+                        boundary_coordinates_parent_domain = boundary_coordinates[
+                            parent_segments_domain_mask, :
+                        ]
+                        (
+                            replisome_coordinates_parent_domain,
+                            replisome_molecule_indexes_parent_domain,
+                        ) = get_last_known_replisome_data(
+                            boundary_coordinates_parent_domain,
+                            boundary_molecule_indexes_parent_domain,
+                            replisome_coordinates_parent_domain,
+                            replisome_molecule_indexes_parent_domain,
+                        )
+                        # Assume that RNAPs that run into a replication fork
+                        # are removed even if there is no replisome
+                        RNAPs_on_forks = np.isin(
+                            RNAP_coordinates_this_domain,
+                            replisome_coordinates_parent_domain,
+                        )
+                        domain_remaining_RNAPs_mask = np.logical_and(
+                            domain_remaining_RNAPs_mask, ~RNAPs_on_forks
+                        )
+                        full_removed_RNAPs_mask = np.full_like(
+                            removed_RNAPs_mask, False
+                        )
+                        full_removed_RNAPs_mask[RNAPs_domain_mask] = RNAPs_on_forks
+                        removed_RNAP_masks_all_domains = np.logical_or(
+                            removed_RNAP_masks_all_domains, full_removed_RNAPs_mask
+                        )
 
                     new_molecule_coordinates_this_domain = np.concatenate(
                         (
                             new_molecule_coordinates_this_domain,
-                            replisome_coordinates[replisome_parent_domain_mask],
+                            replisome_coordinates_parent_domain,
                         )
                     )
                     new_molecule_indexes_this_domain = np.concatenate(
                         (
                             new_molecule_indexes_this_domain,
-                            replisome_unique_indexes[replisome_parent_domain_mask],
+                            replisome_molecule_indexes_parent_domain,
                         )
                     )
+
+                # Add remaining RNAPs in this domain after accounting for removals
+                # due to collisions with replication forks
+                new_molecule_coordinates_this_domain = np.concatenate(
+                    (
+                        new_molecule_coordinates_this_domain,
+                        RNAP_coordinates_this_domain[domain_remaining_RNAPs_mask],
+                    )
+                )
+                new_molecule_indexes_this_domain = np.concatenate(
+                    (
+                        new_molecule_indexes_this_domain,
+                        RNAP_unique_indexes_this_domain[domain_remaining_RNAPs_mask],
+                    )
+                )
 
                 # If there are no molecules left on this domain, continue
                 if len(new_molecule_indexes_this_domain) == 0:
@@ -555,33 +646,33 @@ class ChromosomeStructure(Step):
                 )
 
             # Add new chromosomal segments
-            n_segments = len(all_new_linking_numbers)
-
-            if "chromosomal_segments" in states and states["chromosomal_segments"]:
-                self.chromosome_segment_index = (
-                    int(
-                        max(
-                            [
-                                int(index)
-                                for index in list(states["chromosomal_segments"].keys())
-                            ]
-                        )
-                    )
-                    + 1
-                )
-
             update["chromosomal_segments"].update(
                 {
                     "add": {
-                        "unique_index": np.arange(
-                            self.chromosome_segment_index,
-                            self.chromosome_segment_index + n_segments,
-                        ),
                         "boundary_molecule_indexes": all_new_boundary_molecule_indexes,
                         "boundary_coordinates": all_new_boundary_coordinates,
                         "domain_index": all_new_segment_domain_indexes,
                         "linking_number": all_new_linking_numbers,
                     }
+                }
+            )
+
+            # Figure out if any additional RNAPs were removed due to collisions with
+            # replication forks where there were no replisomes
+            empty_fork_RNAP_collision_mask = np.logical_and(
+                removed_RNAP_masks_all_domains,
+                np.logical_not(
+                    np.logical_or(
+                        RNAP_headon_collision_mask, RNAP_codirectional_collision_mask
+                    )
+                ),
+            )
+            update["listeners"]["rnap_data"].update(
+                {
+                    "n_empty_fork_collisions": empty_fork_RNAP_collision_mask.sum(),
+                    "empty_fork_collision_coordinates": RNAP_coordinates[
+                        empty_fork_RNAP_collision_mask
+                    ],
                 }
             )
 
@@ -783,11 +874,9 @@ class ChromosomeStructure(Step):
             )
 
             # Add new promoters with new domain indexes
-            promoter_indices = create_unique_indexes(n_new_promoters, self.random_state)
             update["promoters"].update(
                 {
                     "add": {
-                        "unique_index": promoter_indices,
                         "TU_index": promoter_TU_indexes_new,
                         "coordinates": promoter_coordinates_new,
                         "domain_index": promoter_domain_indexes_new,
@@ -817,11 +906,9 @@ class ChromosomeStructure(Step):
             )
 
             # Add new genes with new domain indexes
-            gene_indices = create_unique_indexes(n_new_genes, self.random_state)
             update["genes"].update(
                 {
                     "add": {
-                        "unique_index": gene_indices,
                         "cistron_index": gene_cistron_indexes_new,
                         "coordinates": gene_coordinates_new,
                         "domain_index": gene_domain_indexes_new,
@@ -850,12 +937,8 @@ class ChromosomeStructure(Step):
             )
 
             # Add new DnaA boxes with new domain indexes
-            DnaA_box_indices = create_unique_indexes(
-                n_new_DnaA_boxes, self.random_state
-            )
             dict_dna = {
                 "add": {
-                    "unique_index": DnaA_box_indices,
                     "coordinates": DnaA_box_coordinates_new,
                     "domain_index": DnaA_box_domain_indexes_new,
                     "DnaA_bound": np.zeros(n_new_DnaA_boxes, dtype=np.bool_),
@@ -1155,3 +1238,466 @@ class ChromosomeStructure(Step):
             "boundary_coordinates": new_boundary_coordinates,
             "linking_numbers": new_linking_numbers,
         }
+
+
+def get_last_known_replisome_data(
+    boundary_coordinates: np.ndarray,
+    boundary_molecule_indexes: np.ndarray,
+    replisome_coordinates: np.ndarray,
+    replisome_molecule_indexes: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Gets the last known coordinates and molecule indexes of both replisomes
+    for a chromosome domain.
+
+    Args:
+        boundary_coordinates: (N, 2) array of chromosomal coordinates of
+            all boundary molecules in the domain during the last time step.
+        boundary_molecule_indexes: (N, 2) array of unique indexes of all
+            boundary molecules in the domain during the last time step.
+        replisome_coordinates: (1,) or (0,) array of chromosomal coordinates of
+            the replisomes in the domain in the current time step.
+        replisome_molecule_indexes: (1,) or (0,) array of unique indexes of the
+            replisomes in the domain in the current time step.
+
+    Returns:
+        Tuple of the following format::
+
+            (
+                (2,) array of last known replisome coordinates in domain,
+                (2,) array of last known replisome molecule indexes in domain
+            )
+    """
+    # Sort old boundary coordinates and molecule indexes to find first index
+    # where left boundary is non-negative
+    boundary_coordinates_argsort = np.argsort(boundary_coordinates[:, 0])
+    boundary_coordinates_sorted = boundary_coordinates[boundary_coordinates_argsort]
+    boundary_molecule_indexes_sorted = boundary_molecule_indexes[
+        boundary_coordinates_argsort
+    ]
+    replisome_index = np.argmax(boundary_coordinates_sorted[:, 0] >= 0)
+    # If positive coordinate replisome still exists, add
+    # last known info on negative coordinate replisome.
+    if np.any(replisome_coordinates > 0):
+        replisome_coordinates = np.insert(
+            replisome_coordinates,
+            0,
+            boundary_coordinates_sorted[replisome_index - 1, 1],
+        )
+        replisome_molecule_indexes = np.insert(
+            replisome_molecule_indexes,
+            0,
+            boundary_molecule_indexes_sorted[replisome_index - 1, 1],
+        )
+    # If negative coordinate replisome still exists, add
+    # last known info on positive coordinate replisome.
+    elif np.any(replisome_coordinates < 0):
+        replisome_coordinates = np.insert(
+            replisome_coordinates, 0, boundary_coordinates_sorted[replisome_index, 0]
+        )
+        replisome_molecule_indexes = np.insert(
+            replisome_molecule_indexes,
+            0,
+            boundary_molecule_indexes_sorted[replisome_index, 0],
+        )
+    # If neither replisomes exist, use last known info on both.
+    else:
+        replisome_coordinates = np.array(
+            [
+                boundary_coordinates_sorted[replisome_index - 1, 1],
+                boundary_coordinates_sorted[replisome_index, 0],
+            ]
+        )
+        replisome_molecule_indexes = np.array(
+            [
+                boundary_molecule_indexes_sorted[replisome_index - 1, 1],
+                boundary_molecule_indexes_sorted[replisome_index, 0],
+            ]
+        )
+
+    return replisome_coordinates, replisome_molecule_indexes
+
+
+def test_superhelical_removal_sim():
+    """
+    Run a single time step simulation of :py:class:`~.ChromosomeStructure`
+    that tests some edge cases in superhelical density calculations. Start with
+    a chromosome that has four active replication forks for a total of 4 replisomes
+    and 5 chromosome domains. There are 4 RNAPs per domain and 1 to 2 of those
+    will be intentionally placed at the same coordinates as a replisome per domain.
+    They should be removed, causing some segment boundaries to be redefined.
+    Additionally, 3 of the replisomes will be removed. This should be detected
+    and superhelical density calculations should still work using the last known
+    information for the removed replisomes.
+    """
+    # Get topology for UniqueUpdate Steps
+    unique_topology = TOPOLOGY.copy()
+    for non_unique in [
+        "bulk",
+        "listeners",
+        "global_time",
+        "timestep",
+        "next_update_time",
+    ]:
+        unique_topology.pop(non_unique)
+
+    class TestComposer(Composer):
+        def generate_processes(self, config):
+            return {
+                "chromosome_structure": ChromosomeStructure(
+                    {
+                        "inactive_RNAPs": "APORNAP-CPLX[c]",
+                        "ppi": "PPI[c]",
+                        "active_tfs": ["CPLX-125[c]"],
+                        "ribosome_30S_subunit": "CPLX0-3953[c]",
+                        "ribosome_50S_subunit": "CPLX0-3962[c]",
+                        "amino_acids": ["L-ALPHA-ALANINE[c]"],
+                        "water": "WATER[c]",
+                        "mature_rna_ids": ["alaT-tRNA[c]"],
+                        "fragmentBases": ["polymerized_ATP[c]"],
+                        "replichore_lengths": [100000, 100000],
+                        "calculate_superhelical_densities": True,
+                    }
+                ),
+                "unique_update": UniqueUpdate({"unique_topo": unique_topology}),
+                "global_clock": GlobalClock(),
+            }
+
+        def generate_topology(self, config):
+            return {
+                "chromosome_structure": TOPOLOGY,
+                "unique_update": unique_topology,
+                "global_clock": {
+                    "global_time": ("global_time",),
+                    "next_update_time": ("next_update_time",),
+                },
+            }
+
+        def generate_flow(self, config):
+            return {
+                "chromosome_structure": [],
+                "unique_update": [("chromosome_structure",)],
+            }
+
+    composer = TestComposer()
+    template_initial_state = get_state_from_file()
+    # Zero out all unique molecules
+    for unique_mol in template_initial_state["unique"].values():
+        unique_mol.flags.writeable = True
+        unique_mol["_entryState"] = 0
+        unique_mol.flags.writeable = False
+    # Set up a single full chromosome
+    full_chromosomes = template_initial_state["unique"]["full_chromosome"]
+    full_chromosomes.flags.writeable = True
+    full_chromosomes["_entryState"][0] = 1
+    full_chromosomes["domain_index"][0] = 0
+    full_chromosomes["unique_index"][0] = 0
+    full_chromosomes.flags.writeable = False
+    # Set up chromosome domains
+    chromosome_domains, replisome_idx = get_free_indices(
+        template_initial_state["unique"]["chromosome_domain"], 5
+    )
+    chromosome_domains.flags.writeable = True
+    chromosome_domains["_entryState"][replisome_idx] = 1
+    chromosome_domains["domain_index"][replisome_idx] = np.arange(5)
+    chromosome_domains["unique_index"][replisome_idx] = np.arange(5)
+    chromosome_domains["child_domains"][replisome_idx] = [
+        [1, 2],
+        [3, 4],
+        [-1, -1],
+        [-1, -1],
+        [-1, -1],
+    ]
+    chromosome_domains.flags.writeable = False
+    template_initial_state["unique"]["chromosome_domain"] = chromosome_domains
+    # Set up 1 oriC per domain that is not actively replicating
+    oriCs, oriC_idx = get_free_indices(template_initial_state["unique"]["oriC"], 3)
+    oriCs.flags.writeable = True
+    oriCs["_entryState"][oriC_idx] = 1
+    oriCs["domain_index"][oriC_idx] = [2, 3, 4]
+    oriCs["unique_index"][oriC_idx] = np.arange(3)
+    oriCs.flags.writeable = False
+    template_initial_state["unique"]["oriC"] = oriCs
+    # Set up replisome for actively replicating domain
+    # Notice that the replisomes previously at 45000, 20000, and -20000
+    # when the chromosomal segment data below was tabulated are removed
+    active_replisomes, replisome_idx = get_free_indices(
+        template_initial_state["unique"]["active_replisome"], 1
+    )
+    active_replisomes.flags.writeable = True
+    active_replisomes["_entryState"][replisome_idx] = 1
+    active_replisomes["domain_index"][replisome_idx] = 0
+    active_replisomes["coordinates"][replisome_idx] = -50000
+    active_replisomes["unique_index"][replisome_idx] = 0
+    active_replisomes.flags.writeable = False
+    template_initial_state["unique"]["active_replisome"] = active_replisomes
+    # Set up 4 RNAPs per domain, some of which will intentionally have
+    # the same coordinates as replisomes (either active or removed)
+    active_RNAP = template_initial_state["unique"]["active_RNAP"]
+    active_RNAP.flags.writeable = True
+    coordinates_per_domain = [
+        [-65000, -50000, 60000, 75000],
+        [-40000, -26000, 25000, 35000],
+        [-30000, -10000, 20000, 40000],
+        [-20000, -15000, 10000, 15000],
+    ]
+    for i in range(4):
+        active_RNAP["_entryState"][i * 4 : (i + 1) * 4] = 1
+        active_RNAP["domain_index"][i * 4 : (i + 1) * 4] = i
+        active_RNAP["is_forward"][i * 4 : (i + 1) * 4] = True
+        active_RNAP["coordinates"][i * 4 : (i + 1) * 4] = coordinates_per_domain[i]
+        active_RNAP["unique_index"][i * 4 : (i + 1) * 4] = np.arange(
+            4 + i * 4, 4 + (i + 1) * 4
+        )
+    # Special domain 4 that will be left with no molecules
+    active_RNAP["_entryState"][16:18] = 1
+    active_RNAP["domain_index"][16:18] = 4
+    active_RNAP["is_forward"][16:18] = True
+    active_RNAP["coordinates"][16:18] = [-20000, 20000]
+    active_RNAP["unique_index"][16:18] = np.arange(20, 22)
+    active_RNAP.flags.writeable = False
+    # Construct chromosomal segments by domain
+    # Assume that RNAPs have advanced 1000 bp from their initial coordinates
+    # and replisomes have advanced 5000 bp
+    boundary_coordinates = []
+    boundary_molecule_indexes = []
+    domain_index = []
+    linking_number = []
+    # Segments for domain 0
+    # - Includes replisome at 45000 (index 1) that will be removed
+    # - Includes RNAP (index 5) that will conflict with replisome at -50000 (index 0)
+    boundary_coordinates.extend(
+        [[-64000, -49000], [-49000, -45000], [45000, 59000], [59000, 74000]]
+    )
+    boundary_molecule_indexes.extend([[4, 5], [5, 0], [1, 6], [6, 7]])
+    domain_index.extend([0, 0, 0, 0])
+    linking_number.extend([1, 1, 1, 1])
+    # Segments for domain 1
+    # - Includes replisome at 20000 (index 2) that will be removed
+    # - Includes replisome at -20000 (index 3) that will be removed
+    # - Parent domain replisome at 45000 (index 1) will be removed
+    boundary_coordinates.extend(
+        [
+            [-45000, -39000],
+            [-39000, -25000],
+            [-25000, -20000],
+            [20000, 24000],
+            [24000, 34000],
+            [34000, 45000],
+        ]
+    )
+    boundary_molecule_indexes.extend(
+        [[0, 8], [8, 9], [9, 3], [2, 10], [10, 11], [11, 1]]
+    )
+    domain_index.extend([1, 1, 1, 1, 1, 1])
+    linking_number.extend([1, 1, 1, 1, 1, 1])
+    # Segments for domain 2
+    # - Parent domain replisome at 45000 (index 1) will be removed
+    boundary_coordinates.extend(
+        [
+            [-45000, -29000],
+            [-29000, -9000],
+            [-9000, 19000],
+            [19000, 39000],
+            [39000, 45000],
+        ]
+    )
+    boundary_molecule_indexes.extend([[0, 12], [12, 13], [13, 14], [14, 15], [15, 1]])
+    domain_index.extend([2, 2, 2, 2, 2])
+    linking_number.extend([1, 1, 1, 1, 1])
+    # Segments for domain 3
+    # - Includes RNAP (index 16) that will conflict with replisome that will
+    # be removed at -20000 (index 3)
+    # - Includes replisome at 20000 (index 2) that will be removed
+    boundary_coordinates.extend(
+        [
+            [-20000, -19000],
+            [-19000, -14000],
+            [-14000, 9000],
+            [9000, 14000],
+            [14000, 20000],
+        ]
+    )
+    boundary_molecule_indexes.extend([[3, 16], [16, 17], [17, 18], [18, 19], [19, 2]])
+    domain_index.extend([3, 3, 3, 3, 3])
+    linking_number.extend([1, 1, 1, 1, 1])
+    # Segments for domain 4
+    # - Includes RNAP (index 20) that will conflict with replisome that will
+    # be removed at -20000 (index 3)
+    # - Includes RNAP (index 23) that will conflict with replisome that will
+    # be removed at 20000 (index 2)
+    boundary_coordinates.extend([[-20000, -19000], [-19000, 19000], [19000, 20000]])
+    boundary_molecule_indexes.extend([[3, 20], [20, 21], [21, 2]])
+    domain_index.extend([4, 4, 4])
+    linking_number.extend([1, 1, 1])
+    chromosomal_segments, segment_idx = get_free_indices(
+        template_initial_state["unique"]["chromosomal_segment"], len(linking_number)
+    )
+    chromosomal_segments.flags.writeable = True
+    chromosomal_segments["_entryState"][segment_idx] = 1
+    chromosomal_segments["boundary_coordinates"][segment_idx] = boundary_coordinates
+    chromosomal_segments["boundary_molecule_indexes"][segment_idx] = (
+        boundary_molecule_indexes
+    )
+    chromosomal_segments["domain_index"][segment_idx] = domain_index
+    chromosomal_segments["linking_number"][segment_idx] = linking_number
+    chromosomal_segments["unique_index"][segment_idx] = np.arange(len(linking_number))
+    chromosomal_segments.flags.writeable = False
+    template_initial_state["unique"]["chromosomal_segment"] = chromosomal_segments
+    # Since unique numpy updater is an class method, internal
+    # deepcopying in vivarium-core causes this warning to appear
+    warnings.filterwarnings(
+        "ignore",
+        message="Incompatible schema "
+        "assignment at .+ Trying to assign the value <bound method "
+        r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
+        r"has the value <bound method UniqueNumpyUpdater\.updater",
+    )
+    engine = Engine(
+        composite=composer.generate(),
+        initial_state=template_initial_state,
+    )
+    engine.update(1)
+    state = engine.state.get_value()
+    # Check that right number of collisions happened at right coordinates
+    rnap_data = state["listeners"]["rnap_data"]
+    assert rnap_data["n_total_collisions"] == 1
+    assert rnap_data["n_headon_collisions"] == 1
+    assert rnap_data["n_codirectional_collisions"] == 0
+    assert np.array_equal(
+        rnap_data["headon_collision_coordinates"], np.array([-50000], dtype=int)
+    )
+    assert rnap_data["n_empty_fork_collisions"] == 3
+    assert np.array_equal(
+        rnap_data["empty_fork_collision_coordinates"],
+        np.array([-20000, -20000, 20000], dtype=int),
+    )
+    # Check chromosomal segments
+    chromosomal_segments = state["unique"]["chromosomal_segment"][
+        state["unique"]["chromosomal_segment"]["_entryState"].view(np.bool_)
+    ]
+    assert np.array_equal(
+        chromosomal_segments["boundary_coordinates"],
+        np.array(
+            [
+                # Domain 0
+                [-100000, -65000],
+                [-65000, -50000],
+                [45000, 60000],
+                [60000, 75000],
+                [75000, 100000],
+                # Domain 1
+                [-50000, -40000],
+                [-40000, -26000],
+                [-26000, -20000],
+                [20000, 25000],
+                [25000, 35000],
+                [35000, 45000],
+                # Domain 2
+                [-50000, -30000],
+                [-30000, -10000],
+                [-10000, 20000],
+                [20000, 40000],
+                [40000, 45000],
+                # Domain 3
+                [-20000, -15000],
+                [-15000, 10000],
+                [10000, 15000],
+                [15000, 20000],
+                # Domain 4
+                [-20000, 20000],
+            ],
+            dtype=int,
+        ),
+    )
+    assert np.array_equal(
+        chromosomal_segments["boundary_molecule_indexes"],
+        np.array(
+            [
+                # Domain 0: index 5 is gone due to conflict with replisome,
+                # segments were added flanking terC (-1 placeholder index),
+                # index 1 replisome is gone but still exists as placeholder
+                # for replication fork in our superhelical density calculations
+                [-1, 4],
+                [4, 0],
+                [1, 6],
+                [6, 7],
+                [7, -1],
+                # Domain 1: index 1, 2, and 3 replisomes are removed but still exist
+                # here as placeholders
+                [0, 8],
+                [8, 9],
+                [9, 3],
+                [2, 10],
+                [10, 11],
+                [11, 1],
+                # Domain 2: index 1 replisome was removed but still exists here
+                # as a placeholder
+                [0, 12],
+                [12, 13],
+                [13, 14],
+                [14, 15],
+                [15, 1],
+                # Domain 3: index 2 and 3 replisomes are removed but still exist
+                # here as placeholders, index 16 RNAP was removed due to conflict
+                # with replisome placeholder index 3
+                [3, 17],
+                [17, 18],
+                [18, 19],
+                [19, 2],
+                # Domain 4: index 2 and 3 replisomes were removed but still exist
+                # here as placeholders, index 20 and 21 RNAPs were removed due to
+                # conflicts with replisome placeholders
+                [3, 2],
+            ],
+            dtype=int,
+        ),
+    )
+    assert np.array_equal(
+        chromosomal_segments["domain_index"],
+        np.array(
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4], dtype=int
+        ),
+    )
+    assert np.array_equal(
+        chromosomal_segments["linking_number"],
+        np.array(
+            [
+                # Domain 0: terC segments have 0 linking number, second segment
+                # combines two original segments due to removed RNAP index 5
+                0,
+                2,
+                1,
+                1,
+                0,
+                # Domain 1: No molecule boundaries were changed
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                # Domain 2: No molecule boundaries were changed
+                1,
+                1,
+                1,
+                1,
+                1,
+                # Domain 3: First segment combines two original segments due to
+                # removed RNAP index 16
+                2,
+                1,
+                1,
+                1,
+                # Domain 4: Sole segment combines all three original segments
+                # due to removed RNAP index 20 and 21, leaving only a single
+                # segment between two unoccupied replication forks
+                3,
+            ],
+            dtype=float,
+        ),
+    )
+
+
+if __name__ == "__main__":
+    test_superhelical_removal_sim()

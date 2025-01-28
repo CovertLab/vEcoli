@@ -12,8 +12,13 @@ TODO:
 
 import numpy as np
 
-from ._build_sequences import buildSequences, computeMassIncrease
-from ._fastsums import sum_monomers, sum_monomers_reference_implementation
+try:
+    from ._build_sequences import buildSequences, computeMassIncrease
+    from ._fastsums import sum_monomers, sum_monomers_reference_implementation
+except ImportError as exc:
+    raise RuntimeError(
+        "Failed to import Cython module. Try running 'make clean compile'."
+    ) from exc
 
 # Reexport these Cython functions. Declaring them avoids
 # "unused import statement" warnings.

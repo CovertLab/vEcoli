@@ -3,6 +3,7 @@
 Metabolism using user-friendly FBA
 ==================================
 """
+
 import argparse
 
 # vivarium-core imports
@@ -18,54 +19,54 @@ import pathlib
 import datetime
 import dill
 
+
 def run_ecoli_with_metabolism_redux(
-        filename='metabolism_redux',
-        total_time=5000,
-        divide=True,
-        initial_state_file='wcecoli_t0',
-        progress_bar=True,
-        log_updates=False,
-        emitter='timeseries',
-        name='metabolism-redux',
-        raw_output=False,
-        save=False,
-        # save_times=4,
+    filename="metabolism_redux",
+    total_time=5000,
+    divide=True,
+    initial_state_file="wcecoli_t0",
+    progress_bar=True,
+    log_updates=False,
+    emitter="timeseries",
+    name="metabolism-redux",
+    raw_output=False,
+    save=False,
+    # save_times=4,
 ):
     # filename = 'default'
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
     sim.total_time = total_time
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
-    sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+    sim.initial_state = get_state_from_file(path=f"data/{initial_state_file}.json")
     sim.raw_output = raw_output
     sim.save = save
-
 
     sim.build_ecoli()
     sim.run()
 
     query = []
-    folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
+    folder = f"out/fbagd/{name}_{total_time}_{datetime.date.today()}/"
     save_sim_output(folder, query, sim, save_model=True)
+
 
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
-    filename="metabolism_redux_classic", # do not change this name
-    total_time=400, #1300
+    filename="metabolism_redux_classic",
+    total_time=10,
     divide=True,
     initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
-    emitter="timeseries",  # 'tximeseries',
-    # this is the name of the out file you will create
-    name="metabolism-redux-classic-BASAL_NEW-modified_process_new_rxn_name",
+    emitter="timeseries",  # 'timeseries',
+    name="convex_kinetics_minimal",
     raw_output=False,
     save=True,
-    save_times=[1, 10, 200, 400],
-    condition="basal",  # basal, with_aa, acetate
-    fixed_media="minimal",  # minimal, minimal_plus_amino_acids, minimal_acetate
+    save_times=[1, 10],
+    condition="basal",  # basal, with_aa
+    fixed_media="minimal",  # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
@@ -103,23 +104,24 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.run()
 
     query = []
-    folder = f'out/cofactors/{name}_{total_time}_{datetime.date.today()}/'
+    folder = f"out/cofactors/{name}_{total_time}_{datetime.date.today()}/"
     save_sim_output(folder, query, sim, save_model=True)
 
+
 def run_colony(
-        filename='metabolism_redux_classic',
-        total_time=1500,
-        divide=True,
-        # initial_state_file='wcecoli_t0', # 'met_division_test_state',
-        progress_bar=True,
-        log_updates=False,
-        emitter='timeseries', # 'timeseries',
-        name='metabolism-redux-classic-rich',
-        raw_output=False,
-        save=True,
-        save_times=[1, 200, 400, 1300],
-        condition = "with_aa", # basal, with_aa
-        fixed_media = "minimal_plus_amino_acids" # minimal, minimal_plus_amino_acids
+    filename="metabolism_redux_classic",
+    total_time=1400,
+    divide=True,
+    # initial_state_file='wcecoli_t0', # 'met_division_test_state',
+    progress_bar=True,
+    log_updates=False,
+    emitter="timeseries",  # 'timeseries',
+    name="metabolism-redux-classic-rich",
+    raw_output=False,
+    save=True,
+    save_times=[1, 200, 400, 1300],
+    condition="with_aa",  # basal, with_aa
+    fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
@@ -136,7 +138,7 @@ def run_colony(
     sim.condition = condition
     sim.fixed_media = fixed_media
 
-    for seed in [i for i in range(20, 29, 1)]:
+    for seed in [i for i in range(4, 9, 1)]:
         sim.seed = seed
 
         sim.build_ecoli()
@@ -144,20 +146,20 @@ def run_colony(
         sim.run()
 
         query = []
-        folder = f'out/cofactors/rich-{seed}/'
+        folder = f"out/cofactors/rich-{seed}/"
         save_sim_output(folder, query, sim, save_model=False)
 
 
 @pytest.mark.slow
 def test_ecoli_with_metabolism_redux(
-        filename='metabolism_redux',
-        total_time=4,
-        divide=False,
-        progress_bar=True,
-        log_updates=False,
-        emitter='timeseries',
+    filename="metabolism_redux",
+    total_time=4,
+    divide=False,
+    progress_bar=True,
+    log_updates=False,
+    emitter="timeseries",
 ):
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
     sim.total_time = total_time
     sim.divide = divide
     sim.progress_bar = progress_bar
@@ -168,15 +170,16 @@ def test_ecoli_with_metabolism_redux(
     # run simulation and add asserts to output
     sim.run()
 
+
 @pytest.mark.slow
 def test_ecoli_with_metabolism_redux_div(
-        filename='metabolism_redux',
-        total_time=4,
-        divide=True,
-        emitter='timeseries',
+    filename="metabolism_redux",
+    total_time=4,
+    divide=True,
+    emitter="timeseries",
 ):
     # TODO (Cyrus) - Add test that affirms structure of output query.
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
     sim.total_time = total_time
     sim.divide = divide
     sim.emitter = emitter
@@ -184,29 +187,39 @@ def test_ecoli_with_metabolism_redux_div(
 
     sim.run()
 
-
     query = []
-    agents = sim.query()['agents'].keys()
+    agents = sim.query()["agents"].keys()
     for agent in agents:
-        query.extend([('agents', agent, 'listeners', 'fba_results'),
-                      ('agents', agent, 'listeners', 'mass'),
-                      ('agents', agent, 'bulk')])
+        query.extend(
+            [
+                ("agents", agent, "listeners", "fba_results"),
+                ("agents", agent, "listeners", "mass"),
+                ("agents", agent, "bulk"),
+            ]
+        )
     output = sim.query(query)
 
     # test that water is being used (model is running)
-    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_exchange_dmdt']['WATER']) != 0
+    assert (
+        sum(
+            output["agents"][agent]["listeners"]["fba_results"][
+                "estimated_exchange_dmdt"
+            ]["WATER"]
+        )
+        != 0
+    )
 
 
 @pytest.mark.slow
 def test_ecoli_with_metabolism_classic(
-        filename='metabolism_redux_classic',
-        total_time=4,
-        divide=False,
-        progress_bar=True,
-        log_updates=False,
-        emitter='timeseries',
+    filename="metabolism_redux_classic",
+    total_time=4,
+    divide=False,
+    progress_bar=True,
+    log_updates=False,
+    emitter="timeseries",
 ):
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
     sim.total_time = total_time
     sim.divide = divide
     sim.progress_bar = progress_bar
@@ -244,15 +257,16 @@ def test_ecoli_with_metabolism_classic(
 #     # assert division occured
 #     assert len(sim.query()['agents']) == 3, "Cell did not divide in metabolism division test"
 
+
 def run_ecoli_with_default_metabolism(
-        filename='default',
-        total_time=10,
-        divide=False,
-        progress_bar=True,
-        log_updates=False,
-        emitter='timeseries',
+    filename="default",
+    total_time=10,
+    divide=False,
+    progress_bar=True,
+    log_updates=False,
+    emitter="timeseries",
 ):
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
     sim.total_time = total_time
     sim.divide = divide
     sim.progress_bar = progress_bar
@@ -264,46 +278,54 @@ def run_ecoli_with_default_metabolism(
     # output = sim.query()
     output = sim.ecoli_experiment.emitter.get_timeseries()
 
-
-    folder = f'out/fbagd/{total_time}/{datetime.datetime.now()}/'
+    folder = f"out/fbagd/{total_time}/{datetime.datetime.now()}/"
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
-    np.save(folder + 'fba_results.npy', output['listeners']['fba_results'])
-    np.save(folder + 'mass.npy', output['listeners']['mass'])
-    np.save(folder + 'bulk.npy', output['bulk'])
-    np.save(folder + 'stoichiometry.npy', sim.ecoli_experiment.steps['ecoli-metabolism'].model.stoichiometry)
+    np.save(folder + "fba_results.npy", output["listeners"]["fba_results"])
+    np.save(folder + "mass.npy", output["listeners"]["mass"])
+    np.save(folder + "bulk.npy", output["bulk"])
+    np.save(
+        folder + "stoichiometry.npy",
+        sim.ecoli_experiment.steps["ecoli-metabolism"].model.stoichiometry,
+    )
+
 
 experiment_library = {
-    '2': run_ecoli_with_metabolism_redux,
-    '2a': run_ecoli_with_metabolism_redux_classic,
-    '2b': run_colony,
-    '3': test_ecoli_with_metabolism_redux,
-    '3a': test_ecoli_with_metabolism_classic,
-    '4': test_ecoli_with_metabolism_redux_div,
-    '5': run_ecoli_with_default_metabolism,
+    "2": run_ecoli_with_metabolism_redux,
+    "2a": run_ecoli_with_metabolism_redux_classic,
+    "2b": run_colony,
+    "3": test_ecoli_with_metabolism_redux,
+    "3a": test_ecoli_with_metabolism_classic,
+    "4": test_ecoli_with_metabolism_redux_div,
+    "5": run_ecoli_with_default_metabolism,
 }
 
 
 def save_sim_output(folder, query, sim, save_model=False):
-    agents = sim.query()['agents'].keys()
+    agents = sim.query()["agents"].keys()
     for agent in agents:
         query = []
-        query.extend([('agents', agent, 'listeners', 'fba_results'),
-                      ('agents', agent, 'listeners', 'mass'),
-                      ('agents', agent, 'listeners', 'unique_molecule_counts'),
-                      ('agents', agent, 'bulk')])
+        query.extend(
+            [
+                ("agents", agent, "listeners", "fba_results"),
+                ("agents", agent, "listeners", "mass"),
+                ("agents", agent, "listeners", "unique_molecule_counts"),
+                ("agents", agent, "bulk"),
+            ]
+        )
         output = sim.query(query)
         pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
-        np.save(folder +  f'{agent}_output.npy', output)
+        np.save(folder + f"{agent}_output.npy", output)
 
     if save_model:
-        f = open(folder + 'agent_steps.pkl', 'wb')
-        dill.dump(sim.ecoli_experiment.steps['agents'][agent], f)
+        f = open(folder + "agent_steps.pkl", "wb")
+        dill.dump(sim.ecoli_experiment.steps["agents"][agent], f)
         f.close()
+
 
 # run experiments with command line arguments: python ecoli/experiments/metabolism_redux_sim.py -n exp_id
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='user-friendly metabolism')
-    parser.add_argument('--name', '-n', default=[], nargs='+', help='test ids to run')
+    parser = argparse.ArgumentParser(description="user-friendly metabolism")
+    parser.add_argument("--name", "-n", default=[], nargs="+", help="test ids to run")
     args = parser.parse_args()
     run_all = not args.name
 

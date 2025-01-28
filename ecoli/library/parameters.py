@@ -264,7 +264,8 @@ PARAMETER_DICT = {
     "cell_wall": {
         "strand_length_data": Parameter(
             os.path.join(
-                ROOT_PATH, "data/cell_wall/murein_strand_length_distribution.csv"
+                ROOT_PATH,
+                "reconstruction/ecoli/flat/cell_wall/murein_strand_length_distribution.csv",
             ),
             "Obermann, W., & Höltje, J. (1994).",
         ),
