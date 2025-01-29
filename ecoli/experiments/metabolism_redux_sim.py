@@ -55,18 +55,19 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic",
-    total_time=10,
+    total_time=1500,
     divide=True,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries',
-    name="convex_kinetics_minimal",
+    name="cofactors",
     raw_output=False,
+    emit_unique=True,
     save=True,
     save_times=[1, 10],
-    condition="basal",  # basal, with_aa
-    fixed_media="minimal",  # minimal, minimal_plus_amino_acids
+    condition="with_aa",  # basal, with_aa
+    fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
@@ -77,6 +78,7 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.emitter = emitter
     # sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
+    sim.emit_unique = emit_unique
     sim.save = save
     sim.save_times = save_times
 
@@ -110,7 +112,7 @@ def run_ecoli_with_metabolism_redux_classic(
 
 def run_colony(
     filename="metabolism_redux_classic",
-    total_time=1400,
+    total_time=2700,
     divide=True,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
@@ -120,8 +122,8 @@ def run_colony(
     raw_output=False,
     save=True,
     save_times=[1, 200, 400, 1300],
-    condition="with_aa",  # basal, with_aa
-    fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
+    condition="basal",  # basal, with_aa
+    fixed_media="minimal",  # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
@@ -138,7 +140,7 @@ def run_colony(
     sim.condition = condition
     sim.fixed_media = fixed_media
 
-    for seed in [i for i in range(4, 9, 1)]:
+    for seed in [i for i in range(11, 20, 1)]:
         sim.seed = seed
 
         sim.build_ecoli()
@@ -146,7 +148,7 @@ def run_colony(
         sim.run()
 
         query = []
-        folder = f"out/cofactors/rich-{seed}/"
+        folder = f"out/cofactors/minimal-{seed}/"
         save_sim_output(folder, query, sim, save_model=False)
 
 
@@ -309,6 +311,8 @@ def save_sim_output(folder, query, sim, save_model=False):
                 ("agents", agent, "listeners", "fba_results"),
                 ("agents", agent, "listeners", "mass"),
                 ("agents", agent, "listeners", "unique_molecule_counts"),
+                ("agents", agent, "listeners", "rna_synth_prob"),
+                ("agents", agent, "listeners", "rna_counts"),
                 ("agents", agent, "bulk"),
             ]
         )
