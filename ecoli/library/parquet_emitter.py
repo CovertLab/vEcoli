@@ -105,7 +105,8 @@ def json_to_parquet(
 
 def get_dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, str]:
     """
-    Creates DuckDB SQL strings for sim configs and outputs.
+    Creates DuckDB SQL strings for sim outputs, configs, and metadata on which
+    sims were successful.
 
     Args:
         out_dir: Path to output directory for workflows to retrieve data
@@ -117,11 +118,13 @@ def get_dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, 
             in the output of the subsequent experiment ID(s).
 
     Returns:
-        2-element tuple containing
+        3-element tuple containing
 
         - **history_sql**: SQL query for sim output (see :py:func:`~.read_stacked_columns`),
         - **config_sql**: SQL query for sim configs (see :py:func:`~.get_field_metadata`
           and :py:func:`~.get_config_value`)
+        - **success_sql**: SQL query for metadata marking successful sims
+          (see :py:func:`~.read_stacked_columns`)
 
     """
     sql_queries = []
@@ -450,11 +453,11 @@ def open_arbitrary_sim_data(sim_data_dict: dict[str, dict[int, Any]]) -> pa.Nati
 def read_stacked_columns(
     history_sql: str,
     columns: list[str],
-    projections: Optional[list[str]] = None,
     remove_first: bool = False,
     func: Optional[Callable[[pa.Table], pa.Table]] = None,
     conn: Optional[duckdb.DuckDBPyConnection] = None,
     order_results: bool = True,
+    success_sql: Optional[str] = None,
 ) -> pa.Table | str:
     """
     Loads columns for many cells. If you would like to perform more advanced
@@ -476,7 +479,6 @@ def read_stacked_columns(
         history_sql, config_sql, _ = get_dataset_sql('out/', 'exp_id')
         subquery = read_stacked_columns(
             history_sql,
-            ["bulk", "listeners__enzyme_kinetics__counts_to_molar"],
             # Note DuckDB arrays are 1-indexed
             ["bulk[100 + 1] + bulk[1000 + 1] + bulk[10000 + 1] AS bulk_sum",
             "listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar"],
@@ -524,11 +526,8 @@ def read_stacked_columns(
     Args:
         history_sql: DuckDB SQL string from :py:func:`~.get_dataset_sql`,
             potentially with filters appended in ``WHERE`` clause
-        columns: Names of columns to read data for. Unless you need to perform
-            a computation involving multiple columns, calling this function
-            many times with one column each time will use less RAM.
-        projections: Expressions to project from ``columns`` that are read.
-            If not given, all ``columns`` are projected as is.
+        columns: Names of columns to read data for. Alternatively, DuckDB
+            expressions of columns (e.g. ``mean(listeners__mass__cell_mass)``).
         remove_first: Remove data for first timestep of each cell
         func: Function to call on data for each cell, should take and
             return a PyArrow table with columns equal to ``columns``
@@ -542,26 +541,33 @@ def read_stacked_columns(
             ``time``. If no ``conn`` is provided, this can usually be disabled
             and any sorting can be deferred until the last step in the query with
             a manual ``ORDER BY``. Doing this can greatly reduce RAM usage.
+        success_sql: Final DuckDB SQL string from :py:func:`~.get_dataset_sql`.
+            If provided, will be used to filter out unsuccessful sims.
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
-    if projections is None:
-        projections = columns.copy()
-    projections.append(id_cols)
-    projections = ", ".join(projections)
-    sql_query = f"SELECT {projections} FROM ({history_sql})"
-    # Use an antijoin to remove rows for first timestep of each sim
+    columns.append(id_cols)
+    columns = ", ".join(columns)
+    sql_query = f"SELECT {columns} FROM ({history_sql})"
+    # Use a semi join to filter out unsuccessful sims
+    if success_sql is not None:
+        sql_query = f"""
+            SELECT * FROM ({sql_query})
+            SEMI JOIN ({success_sql})
+            USING (experiment_id, variant, lineage_seed, generation, agent_id)
+            """
+    # Use an anti join to remove rows for first timestep of each sim
     if remove_first:
         sql_query = f"""
             SELECT * FROM ({sql_query})
-            WHERE (experiment_id, variant, lineage_seed, generation,
-                agent_id, time)
-            NOT IN (
+            ANTI JOIN (
                 SELECT (experiment_id, variant, lineage_seed, generation,
                     agent_id, MIN(time))
                 FROM ({history_sql.replace("COLNAMEHERE", "time")})
                 GROUP BY experiment_id, variant, lineage_seed, generation,
                     agent_id
-            )"""
+            ) USING (experiment_id, variant, lineage_seed, generation,
+                agent_id, time)
+            """
     if func is not None:
         if conn is None:
             raise RuntimeError("`conn` must be provided with `func`.")
@@ -719,7 +725,7 @@ class ParquetEmitter(Emitter):
         Unless more than 10 simulations finish at the exact same time, the ``_metadata``
         file in the folder for experiment ID + :py:data:`~.EXPERIMENT_SCHEMA_SUFFIX`
         should contain a schema that unifies the output of all finished simulations.
-        The subquery generated by :py:func:`~.get_dataset_sql` reads this file first
+        The ``history_sql`` generated by :py:func:`~.get_dataset_sql` reads this file first
         to ensure that all columns are read as the correct type."""
         outfile = os.path.join(
             self.outdir,
