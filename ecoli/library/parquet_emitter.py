@@ -792,6 +792,11 @@ class ParquetEmitter(Emitter):
                 self.partitioning_path,
                 "s.pq",
             )
+            try:
+                self.filesystem.delete_dir(os.path.dirname(success_file))
+            except (FileNotFoundError, OSError):
+                pass
+            self.filesystem.create_dir(os.path.dirname(success_file))
             pq.write_table(
                 pa.table({"success": [True]}),
                 success_file,
