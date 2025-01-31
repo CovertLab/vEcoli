@@ -39,6 +39,7 @@ from ecoli.processes.cell_division import DivisionDetected
 from ecoli.processes.registries import topology_registry
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+from ecoli.library.parquet_emitter import ParquetEmitter
 from ecoli.library.schema import not_a_process
 
 from runscripts.workflow import LIST_KEYS_TO_MERGE
@@ -857,6 +858,9 @@ class EcoliSim:
                 )
                 with open("division_time.sh", "w") as f:
                     f.write(f"export division_time={self.ecoli_experiment.global_time}")
+                # Tell Parquet emitter that simulation was successful
+                if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
+                    self.ecoli_experiment.emitter.success = True
                 sys.exit()
         self.ecoli_experiment.end()
         if self.profile:
