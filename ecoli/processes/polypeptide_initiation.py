@@ -277,9 +277,17 @@ class PolypeptideInitiation(PartitionedProcess):
         n_ribosomes_to_activate = np.int64(activation_prob * inactive_ribosome_count)
 
         if n_ribosomes_to_activate == 0:
-            update = dict(self.empty_update)
-            update["active_ribosome"] = {}
-            return self.empty_update
+            update = {
+                "listeners": {
+                    "ribosome_data": np.zeros_like(
+                        states["listeners"]["ribosome_data"]
+                    ),
+                    "trna_charging": np.zeros_like(
+                        states["listeners"]["trna_charging"]
+                    ),
+                }
+            }
+            return update
 
         # Cap the initiation probabilities at the maximum level physically
         # allowed from the known ribosome footprint sizes based on the

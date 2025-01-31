@@ -300,7 +300,7 @@ class PolypeptideElongation(PartitionedProcess):
                         "aa_allocated": ([0] * len(self.amino_acids), self.amino_acids),
                         "aa_pool_size": ([0] * len(self.amino_acids), self.amino_acids),
                         "aa_request_size": (
-                            [0.0] * len(self.amino_acids),
+                            [0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         "active_ribosome_allocated": 0,
@@ -1064,7 +1064,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             * f
             * states["timestep"]
             / self.counts_to_molar.asNumber(MICROMOLAR_UNITS)
-        )
+        ).astype(np.int64)
 
         total_trna = charged_trna_array + uncharged_trna_array
         final_charged_trna = stochasticRound(
