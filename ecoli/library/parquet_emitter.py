@@ -103,7 +103,7 @@ def json_to_parquet(
     pathlib.Path(ndjson).unlink()
 
 
-def get_dataset_sql(out_dir: str) -> tuple[str, str]:
+def get_dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, str]:
     """
     Creates DuckDB SQL strings for sim configs and outputs.
 
@@ -111,6 +111,10 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
         out_dir: Path to output directory for workflows to retrieve data
             for (relative or absolute local path OR URI beginning with
             ``gcs://`` or ``gs://`` for Google Cloud Storage bucket)
+        experiment_ids: List of experiment IDs to include in query. To read data
+            from more than one experiment ID, the listeners in the output of the
+            first experiment ID in the list must be a strict subset of the listeners
+            in the output of the subsequent experiment ID(s).
 
     Returns:
         2-element tuple containing
@@ -120,35 +124,34 @@ def get_dataset_sql(out_dir: str) -> tuple[str, str]:
           and :py:func:`~.get_config_value`)
 
     """
-    return (
-        f"""
-        FROM read_parquet(
-            ['{os.path.join(out_dir, '*')}/history/*/{EXPERIMENT_SCHEMA_SUFFIX}',
-            '{os.path.join(out_dir, '*')}/history/*/*/*/*/*/*.pq'],
-            hive_partitioning = true,
-            hive_types = {{
-                'experiment_id': VARCHAR,
-                'variant': BIGINT,
-                'lineage_seed': BIGINT,
-                'generation': BIGINT,
-                'agent_id': VARCHAR,
-            }}
+    sql_queries = []
+    for query_type in ("history", "configuration", "success"):
+        query_files = []
+        if query_type == "history":
+            query_files.append(
+                f"'{os.path.join(out_dir, experiment_ids[0])}/{query_type}/*/{EXPERIMENT_SCHEMA_SUFFIX}'"
+            )
+        for experiment_id in experiment_ids:
+            query_files.append(
+                f"'{os.path.join(out_dir, experiment_id)}/{query_type}/*/*/*/*/*/*.pq'"
+            )
+        query_files = ", ".join(query_files)
+        sql_queries.append(
+            f"""
+            FROM read_parquet(
+                [{query_files}],
+                hive_partitioning = true,
+                hive_types = {{
+                    'experiment_id': VARCHAR,
+                    'variant': BIGINT,
+                    'lineage_seed': BIGINT,
+                    'generation': BIGINT,
+                    'agent_id': VARCHAR,
+                }}
+            )
+            """
         )
-        """,
-        f"""
-        FROM read_parquet(
-            '{os.path.join(out_dir, '*')}/configuration/*/*/*/*/*/*.pq',
-            hive_partitioning = true,
-            hive_types = {{
-                'experiment_id': VARCHAR,
-                'variant': BIGINT,
-                'lineage_seed': BIGINT,
-                'generation': BIGINT,
-                'agent_id': VARCHAR,
-            }}
-        )
-        """,
-    )
+    return sql_queries[0], sql_queries[1], sql_queries[2]
 
 
 def num_cells(conn: duckdb.DuckDBPyConnection, subquery: str) -> int:
@@ -470,7 +473,7 @@ def read_stacked_columns(
         import duckdb
         from ecoli.library.parquet_emitter import (
             get_dataset_sql, read_stacked_columns)
-        history_sql, config_sql = get_dataset_sql('out/')
+        history_sql, config_sql, _ = get_dataset_sql('out/', 'exp_id')
         subquery = read_stacked_columns(
             history_sql,
             ["bulk", "listeners__enzyme_kinetics__counts_to_molar"],
@@ -495,7 +498,7 @@ def read_stacked_columns(
         import pyarrow as pa
         from ecoli.library.parquet_emitter import (
             get_dataset_sql, ndlist_to_ndarray, read_stacked_columns)
-        history_sql, config_sql = get_dataset_sql('out/')
+        history_sql, config_sql, _ = get_dataset_sql('out/', 'exp_id')
         # Load sim data
         with open("reconstruction/sim_data/kb/simData.cPickle", "rb") as f:
             sim_data = pickle.load(f)
