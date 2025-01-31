@@ -297,7 +297,7 @@ class PolypeptideInitiation(PartitionedProcess):
                     ),
                 }
             }
-            return self.empty_update
+            return update
 
         # Cap the initiation probabilities at the maximum level physically
         # allowed from the known ribosome footprint sizes based on the
