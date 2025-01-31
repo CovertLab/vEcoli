@@ -189,7 +189,7 @@ class EcoliEngineProcess(Composer):
             "inner_composer": EcoliInnerSim,
             "inner_composer_config": inner_composer_config,
             "tunnels_in": dict(
-                {f'{"-".join(path)}_tunnel': path for path in config["tunnels_in"]}
+                {f"{'-'.join(path)}_tunnel": path for path in config["tunnels_in"]}
             ),
             "emit_paths": config["emit_paths"],
             "tunnel_out_schemas": config["tunnel_out_schemas"],
@@ -219,7 +219,7 @@ class EcoliEngineProcess(Composer):
             },
         }
         for path in config["tunnels_in"]:
-            topology["cell_process"][f'{"-".join(path)}_tunnel'] = path
+            topology["cell_process"][f"{'-'.join(path)}_tunnel"] = path
         if config["lysis_config"]:
             topology["lysis"] = {
                 "trigger": ("burst",),
@@ -243,8 +243,8 @@ def colony_save_states(engine, config):
     for time in config["save_times"]:
         if time > config["total_time"]:
             raise ValueError(
-                f'Config contains save_time ({time}) > total '
-                f'time ({config["total_time"]})'
+                f"Config contains save_time ({time}) > total "
+                f"time ({config['total_time']})"
             )
 
     for i in range(len(config["save_times"])):

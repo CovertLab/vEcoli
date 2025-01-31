@@ -169,10 +169,10 @@ def plot_exp_growth_rate(data, metadata, highlight_agent_id):
     data = restrict_data(data)
     final_ratios = data.loc[data.Time == 26000, "Doubling rate"] / mean_growth_rate
     print(
-        f"Mean doubling rate at t=26000 of tet. vs glc. sim.: {final_ratios.mean()*100}%"
+        f"Mean doubling rate at t=26000 of tet. vs glc. sim.: {final_ratios.mean() * 100}%"
     )
     print(
-        f"Std. dev. doubling rate at t=26000 of tet. vs glc. sim.: {final_ratios.std()*100}%"
+        f"Std. dev. doubling rate at t=26000 of tet. vs glc. sim.: {final_ratios.std() * 100}%"
     )
 
 

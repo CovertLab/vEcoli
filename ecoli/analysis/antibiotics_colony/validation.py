@@ -175,7 +175,7 @@ def plot_colony_growth(
         for ticklabel in ax_2.get_xticklabels():
             if ticklabel.get_text() == f"MIC:\n{np.round(10**log10_mic, 1)}":
                 ticklabel.set_color((0, 0.4, 1))
-        print(f"{antibiotic} MIC: {str(10**(popt[-1]+1/popt[-2]))}")
+        print(f"{antibiotic} MIC: {str(10 ** (popt[-1] + 1 / popt[-2]))}")
         sns.despine(ax=ax_2, offset=3, trim=True)
 
 
