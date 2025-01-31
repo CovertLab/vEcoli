@@ -476,7 +476,7 @@ def make_figure_s1(data, metadata):
         ax.text(
             51,
             cross_sec.mean(),
-            f"{np.round(sample_time/3600, 1)} hr",
+            f"{np.round(sample_time / 3600, 1)} hr",
             horizontalalignment="left",
             verticalalignment="center",
             c=color,
@@ -546,10 +546,7 @@ def make_figure_s5(data, metadata):
                 va="top",
                 transform=ax.transAxes,
             )
-        print(
-            f"{monomer_1} vs. {monomer_2}: r = {r},"
-            f" Bonferroni corrected p = {adj_p}"
-        )
+        print(f"{monomer_1} vs. {monomer_2}: r = {r}, Bonferroni corrected p = {adj_p}")
     os.makedirs("out/analysis/paper_figures/", exist_ok=True)
     plt.savefig("out/analysis/paper_figures/fig_s5_supp_protein_pairplot.svg")
     plt.close()

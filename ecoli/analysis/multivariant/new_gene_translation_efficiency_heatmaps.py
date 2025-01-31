@@ -253,8 +253,7 @@ def get_mean_and_std_matrices(
     if custom_sql is None:
         if len(columns) > 1:
             raise RuntimeError(
-                "Must provide custom SQL expression to handle "
-                "multiple columns at once."
+                "Must provide custom SQL expression to handle multiple columns at once."
             )
         custom_sql = f"""
             WITH avg_per_cell AS (
@@ -1003,7 +1002,7 @@ def plot_heatmaps(
         plot_suffix = plot_suffix + "_std_dev"
     elif summary_statistic != "mean":
         raise Exception(
-            "mean and std_dev are the only currently supported" " summary statistics"
+            "mean and std_dev are the only currently supported summary statistics"
         )
 
     if is_dashboard:
