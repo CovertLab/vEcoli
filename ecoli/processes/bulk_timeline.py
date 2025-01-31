@@ -58,7 +58,7 @@ class BulkTimelineProcess(Process):
                                 if i == len(path) - 1:
                                     raise Exception(
                                         "Timeline trying to set "
-                                        f"value at branch {path[:i+1]} and "
+                                        f"value at branch {path[: i + 1]} and "
                                         f"its leaves at the same time"
                                     )
                             curr = curr[subpath]

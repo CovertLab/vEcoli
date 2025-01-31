@@ -291,18 +291,18 @@ def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> 
         if isinstance(indices, list):
             if isinstance(indices[0], int):
                 one_indexed_idx = ", ".join(str(i + 1) for i in indices)
-                select_expr = f"list_transform(list_select(x_{i+1}, [{one_indexed_idx}]), x_{i} -> {select_expr})"
+                select_expr = f"list_transform(list_select(x_{i + 1}, [{one_indexed_idx}]), x_{i} -> {select_expr})"
             elif isinstance(indices[0], bool):
-                select_expr = f"list_transform(list_where(x_{i+1}, {indices}), x_{i} -> {select_expr})"
+                select_expr = f"list_transform(list_where(x_{i + 1}, {indices}), x_{i} -> {select_expr})"
             else:
                 raise TypeError("Indices must be integers or boolean masks.")
         elif indices == ":":
-            select_expr = f"list_transform(x_{i+1}, x_{i} -> {select_expr})"
+            select_expr = f"list_transform(x_{i + 1}, x_{i} -> {select_expr})"
         elif isinstance(first_idx, int):
-            select_expr = f"list_transform(x_{i+1}[{cast(int, indices) + 1}], x_{i} -> {select_expr})"
+            select_expr = f"list_transform(x_{i + 1}[{cast(int, indices) + 1}], x_{i} -> {select_expr})"
         else:
             raise TypeError("All indices must be lists, ints, or ':'.")
-    select_expr = select_expr.replace(f"x_{i+1}", name)
+    select_expr = select_expr.replace(f"x_{i + 1}", name)
     return select_expr + f" AS {name}"
 
 

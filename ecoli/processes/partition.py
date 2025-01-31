@@ -36,7 +36,7 @@ class Requester(Step):
         assert isinstance(parameters["process"], PartitionedProcess)
         if parameters["process"].parallel:
             raise RuntimeError("PartitionedProcess objects cannot be parallelized.")
-        parameters["name"] = f'{parameters["process"].name}_requester'
+        parameters["name"] = f"{parameters['process'].name}_requester"
         super().__init__(parameters)
 
     def update_condition(self, timestep, states):
@@ -127,7 +127,7 @@ class Evolver(Step):
 
     def __init__(self, parameters=None):
         assert isinstance(parameters["process"], PartitionedProcess)
-        parameters["name"] = f'{parameters["process"].name}_evolver'
+        parameters["name"] = f"{parameters['process'].name}_evolver"
         super().__init__(parameters)
 
     def update_condition(self, timestep, states):

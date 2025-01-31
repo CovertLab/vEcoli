@@ -343,7 +343,7 @@ def test_detect_holes():
                         ax.text(
                             c,
                             r,
-                            f"{set(hole_view[r, c]) if len(hole_view[r,c]) > 0 else ''}",
+                            f"{set(hole_view[r, c]) if len(hole_view[r, c]) > 0 else ''}",
                             ha="center",
                             va="center",
                             color="w",
@@ -408,7 +408,7 @@ def test_runtime():
                 max_hole.append(hole_sizes.max() if len(hole_sizes) > 0 else 0)
 
                 print(
-                    f"[{method_name}] Runtime for side length {s}, density {d:.1f} : {tock-tick} seconds"
+                    f"[{method_name}] Runtime for side length {s}, density {d:.1f} : {tock - tick} seconds"
                 )
 
             axs[0].plot(
@@ -492,7 +492,7 @@ def test_merge_time():
 
     for r, s in enumerate(side_length):
         for c, d in enumerate(density):
-            f = f"out/hole_detection/merge_profile/prof_{s}_{int(d*10)}"
+            f = f"out/hole_detection/merge_profile/prof_{s}_{int(d * 10)}"
             cProfile.run(
                 f"run_test_case({s}, {d})",
                 f,

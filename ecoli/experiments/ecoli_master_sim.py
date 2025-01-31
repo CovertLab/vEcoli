@@ -227,8 +227,7 @@ class SimConfig:
                 action="store",
                 nargs="*",
                 help=(
-                    "Key-value pairs, separated by `=`, to include in "
-                    "emitter config."
+                    "Key-value pairs, separated by `=`, to include in emitter config."
                 ),
             )
             self.parser.add_argument(
