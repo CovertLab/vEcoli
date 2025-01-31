@@ -775,6 +775,27 @@ class ParquetEmitter(Emitter):
         pq.write_metadata(
             unified_schema, experiment_schema_path, filesystem=self.filesystem
         )
+        # Hive-partitioned directory that only contains successful sims
+        if self.success:
+            success_file = os.path.join(
+                self.outdir,
+                self.experiment_id,
+                "success",
+                self.partitioning_path,
+                "s.pq",
+            )
+            try:
+                self.filesystem.delete_dir(os.path.dirname(success_file))
+            except (FileNotFoundError, OSError):
+                pass
+            self.filesystem.create_dir(os.path.dirname(success_file))
+            pq.write_table(
+                pa.table({"success": [True]}),
+                success_file,
+                filesystem=self.filesystem,
+                use_dictionary=False,
+                write_statistics=False,
+            )
 
     def emit(self, data: dict[str, Any]):
         """
