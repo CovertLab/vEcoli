@@ -325,24 +325,27 @@ def main():
                 query_strings[data_filters] = (
                     f"SELECT * FROM ({history_sql}) WHERE {data_filters}",
                     f"SELECT * FROM ({config_sql}) WHERE {data_filters}",
+                    f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
                 )
         else:
             query_strings[data_filters] = (
                 f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
+                f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
             )
         os.makedirs(curr_outdir, exist_ok=True)
         for analysis_name in config[analysis_type]:
             analysis_mod = importlib.import_module(
                 f"ecoli.analysis.{analysis_type}.{analysis_name}"
             )
-            for data_filters, (history_q, config_q) in query_strings.items():
+            for data_filters, (history_q, config_q, success_q) in query_strings.items():
                 print(f"Running {analysis_type} {analysis_name} with {data_filters}.")
                 analysis_mod.plot(
                     config[analysis_type][analysis_name],
                     conn,
                     history_q,
                     config_q,
+                    success_q,
                     sim_data_dict,
                     config["validation_data_path"],
                     curr_outdir,
