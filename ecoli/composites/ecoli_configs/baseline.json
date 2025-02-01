@@ -1,0 +1,19 @@
+{
+    "experiment_id": "baseline_fixed",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 16
+    },
+    "sim_data_path": null,
+    "fail_at_total_time": true,
+    "generations": 24,
+    "n_init_sims": 16,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}}
+    }
+}

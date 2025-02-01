@@ -1,0 +1,31 @@
+{
+    "experiment_id": "anaerobic_6_hrs",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 16
+    },
+    "variants": {
+        "condition": {
+            "condition": {
+                "value": ["no_oxygen"]
+            }
+        }
+    },
+    "total_time": 21600.0,
+    "skip_baseline": true,
+    "sim_data_path": null,
+    "fail_at_total_time": true,
+    "generations": 24,
+    "n_init_sims": 16,
+    "d_period": false,
+    "division_threshold": "mass_distribution",
+    "division_variable": ["listeners", "mass", "dry_mass"],
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}}
+    }
+}
