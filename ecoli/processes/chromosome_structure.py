@@ -750,9 +750,6 @@ class ChromosomeStructure(Step):
                         base_counts += np.bincount(
                             seq[:sl], minlength=self.n_fragment_bases
                         )
-                    base_counts += np.bincount(
-                        seq[:sl], minlength=self.n_fragment_bases
-                    )
 
                 # Increment counts of mature RNAs, fragment NTPs and phosphates
                 update["bulk"].append((self.mature_rna_idx, mature_rna_counts))
