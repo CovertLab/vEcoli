@@ -10,3 +10,5 @@
 "EG10808_RNA"	10		"fit_sim_data_1.py"	"pyrE, orotate phosphoribosyltransferase; Needed for UTP synthesis, transcriptional regulation by UTP is not included in the model"
 "EG10581_RNA"	10			"metA, homoserine O-succinyltransferase; Met synthesis enzyme with low protein expression on aa_synthesis_enzymes parca analysis plot"
 "EG10091_RNA"	10			"asnA, asparagine synthetase A; Asn synthesis enzyme with low protein expression on aa_synthesis_enzymes parca analysis plot"
+"G7652_RNA"	10			"ubiU, necessary for anaerobic ubiquinone biosynthesis"
+"G7653_RNA"	10			"ubiV, necessary for anaerobic ubiquinone biosynthesis"
