@@ -243,7 +243,9 @@ Interactive Containers
   Install
   `Docker <https://docs.docker.com/engine/install/>`_ and
   `Google Cloud Storage FUSE <https://cloud.google.com/storage/docs/cloud-storage-fuse/install>`_
-  on your VM before continuing.
+  on your VM before continuing. For Docker, complete
+  `these additional steps <https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user>`_
+  to run without root privileges. Finally, add ``user_allow_other`` to ``/etc/fuse.conf``.
 
 Since all steps of the workflow are run inside Docker containers, it can be
 helpful to launch an interactive instance of the container for debugging.
