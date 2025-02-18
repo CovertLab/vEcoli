@@ -1,6 +1,6 @@
 "id"	"stoichiometry"	"common_name"	"_comments"
 "PUTA-CPLXBND_RXN"	{"PUTA-CPLXBND": 1, "PUTA-CPLX": -1, "PRO": -2}	"Reaction required to produce 1CS TF PUTA-CPLXBND"
-"FNR-4FE-4S_RXN"	{"FNR-4FE-4S-CPLX": 1, "CPLX0-7797": -1, "4FE-4S": -1}	"Reaction required to produce 1CS TF FNR-4FE-4S-CPLX"
+"FNR-4FE-4S_RXN"	{"FNR-4FE-4S-CPLX": 1, "CPLX0-7797": -1, "CPD-7": -1}	"Reaction required to produce 1CS TF FNR-4FE-4S-CPLX"
 "CPLX0-7796_EQUILIBRIUM_RXN"	{"CPLX0-7796": 1, "CPLX0-7796APO": -1, "S-ADENOSYLMETHIONINE": -2}	"Reaction required along with complexation reaction CPLX0-7796APO_RXN to produce 1CS TF CPLX0-7796"
 # TODO (ggsun): Have the 2CS process handle these reactions
 "ARCB-OXYGEN_RXN"	{"ARCB-OXYGEN-CPLX": 1, "ARCB-CPLX": -1, "OXYGEN-MOLECULE": -1}	"Reaction required to produce 2CS TF ARCB-OXYGEN-CPLX"
