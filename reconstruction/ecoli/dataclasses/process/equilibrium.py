@@ -64,7 +64,7 @@ class Equilibrium(object):
         # TODO (ggsun): check if this list is accurate
         MOLECULES_THAT_WILL_EXIST_IN_SIMULATION = (
             [m["Metabolite"] for m in raw_data.metabolite_concentrations]
-            + ["LEU", "S-ADENOSYLMETHIONINE", "ARABINOSE", "4FE-4S"]
+            + ["LEU", "S-ADENOSYLMETHIONINE", "ARABINOSE", "CPD-7"]
             + two_component_system_ligands
         )
 

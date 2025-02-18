@@ -1,7 +1,7 @@
 # File specifies recipes for making different media by adding ingredients to base media defined in ```media/```
 "media id"	"base media"	"base media volume (units.L)"	"added media"	"added media volume (units.L)"	"ingredients"	"ingredients weight (units.g)"	"ingredients counts (units.mmol)"	"ingredients volume (units.L)"
 "minimal"	"MIX0-57"	1.0	""	0	[]	[]	[]	[]
-"minimal_minus_oxygen"	"MIX0-57"	1.0	""	0	["OXYGEN-MOLECULE", "4FE-4S"]	[-Infinity, Infinity]	[]	[]
+"minimal_minus_oxygen"	"MIX0-57"	1.0	""	0	["OXYGEN-MOLECULE", "CPD-7"]	[-Infinity, Infinity]	[]	[]
 "minimal_plus_amino_acids"	"MIX0-57"	0.8	"5X_supplement_EZ"	0.2	[]	[]	[]	[]
 "minimal_no_glucose"	"MIX0-55"	1.0	""	0	[]	[]	[]	[]
 "minimal_acetate"	"MIX0-58"	1.0	""	0	[]	[]	[]	[]
