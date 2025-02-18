@@ -138,7 +138,7 @@ EQUILIBRIUM_COMPLEXES_IN_COMPLEXATION = [
 
 # Metabolites that are used as ligands in equilibrium, but do not participate
 # in any metabolic reactions
-METABOLITES_ONLY_IN_EQUILIBRIUM = ["CPD-7[c]"]
+METABOLITES_ONLY_IN_EQUILIBRIUM: list[str] = []
 
 # Molecules in 2CS (two component system) reactions that are not proteins
 NONPROTEIN_MOLECULES_IN_2CS = [
