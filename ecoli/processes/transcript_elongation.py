@@ -304,10 +304,10 @@ class TranscriptElongation(PartitionedProcess):
                 "listeners": {
                     "transcript_elongation_listener": {
                         "count_NTPs_used": 0,
-                        "count_rna_synthesized": np.zeros(len(self.rnaIds)),
+                        "count_rna_synthesized": np.zeros(len(self.rnaIds), dtype=int),
                     },
                     "growth_limits": {
-                        "ntp_used": np.zeros(len(self.ntp_ids)),
+                        "ntp_used": np.zeros(len(self.ntp_ids), dtype=int),
                         "ntp_allocated": ntpCounts,
                     },
                     "rnap_data": {
