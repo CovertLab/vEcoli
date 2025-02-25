@@ -514,11 +514,19 @@ class NetworkFlowGLPK(NetworkFlowProblemBase):
                 self._smcp.presolve = glp.GLP_OFF
 
         if result != 0:
-            raise RuntimeError(
-                SIMPLEX_RETURN_CODE_TO_STRING.get(
-                    result, "GLP_?: UNKNOWN SOLVER RETURN VALUE"
-                )
+            error_str = SIMPLEX_RETURN_CODE_TO_STRING.get(
+                result, "GLP_?: UNKNOWN SOLVER RETURN VALUE"
             )
+            print(f"{error_str}. Trying to scale problem first.")
+            glp.glp_scale_prob(self._lp, glp.GLP_SF_AUTO)
+            result = glp.glp_simplex(self._lp, self._smcp)
+            if result != 0:
+                raise RuntimeError(
+                    SIMPLEX_RETURN_CODE_TO_STRING.get(
+                        result, "GLP_?: UNKNOWN SOLVER RETURN VALUE"
+                    )
+                )
+            glp.glp_unscale_prob(self._lp)
         if self.status_code != glp.GLP_OPT:
             raise RuntimeError(self.status_string)
 
