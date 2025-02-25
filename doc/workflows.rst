@@ -713,7 +713,7 @@ the output directory specified via ``out_dir`` or ``out_uri`` under the
     - ``configuration``: Hive-partitioned Parquet files
       of simulation configs. See :ref:`/output.rst`.
     - ``success``: Hive-partitioned Parquet files that
-      only exist for successful simulations. 
+      only exist for successful simulations.
     - ``parca``: Pickle files saved by :py:mod:`runscripts.parca`.
 
         - ``simData.cPickle``: :py:class:`~reconstruction.ecoli.simulation_data.SimulationDataEcoli`
