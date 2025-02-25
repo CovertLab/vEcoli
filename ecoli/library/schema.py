@@ -182,6 +182,22 @@ def create_unique_indices(
     return unique_indices
 
 
+def zero_listener(listener: dict[str, Any]) -> dict[str, Any]:
+    """
+    Takes a listener dictionary and creates a zeroed version of it.
+    """
+    new_listener = {}
+    for key, value in listener.items():
+        if isinstance(value, dict):
+            new_listener[key] = zero_listener(value)
+        else:
+            zeros = np.zeros_like(value)
+            if zeros.shape == ():
+                zeros = zeros.item()
+            new_listener[key] = zeros
+    return new_listener
+
+
 def not_a_process(value):
     """Returns ``True`` if not a :py:class:`vivarium.core.process.Process` instance."""
     return not (isinstance(value, Store) and value.topology)
