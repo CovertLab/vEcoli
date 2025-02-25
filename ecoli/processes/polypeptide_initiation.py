@@ -20,6 +20,7 @@ from ecoli.library.schema import (
     counts,
     bulk_name_to_idx,
     listener_schema,
+    zero_listener,
 )
 
 from wholecell.utils import units
@@ -279,12 +280,7 @@ class PolypeptideInitiation(PartitionedProcess):
         if n_ribosomes_to_activate == 0:
             update = {
                 "listeners": {
-                    "ribosome_data": np.zeros_like(
-                        states["listeners"]["ribosome_data"]
-                    ),
-                    "trna_charging": np.zeros_like(
-                        states["listeners"]["trna_charging"]
-                    ),
+                    "ribosome_data": zero_listener(states["listeners"]["ribosome_data"])
                 }
             }
             return update
