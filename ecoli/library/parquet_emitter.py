@@ -88,19 +88,21 @@ def json_to_parquet(
     """
     parse_options = pj.ParseOptions(explicit_schema=schema)
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
-    t = pj.read_json(ndjson, read_options=read_options, parse_options=parse_options)
-    pq.write_table(
-        t,
-        outfile,
-        use_dictionary=False,
-        compression="zstd",
-        column_encoding=encodings,
-        filesystem=filesystem,
-        # Writing statistics with giant nested columns bloats metadata
-        # and dramatically slows down reading while increasing RAM usage
-        write_statistics=False,
-    )
-    pathlib.Path(ndjson).unlink()
+    try:
+        t = pj.read_json(ndjson, read_options=read_options, parse_options=parse_options)
+        pq.write_table(
+            t,
+            outfile,
+            use_dictionary=False,
+            compression="zstd",
+            column_encoding=encodings,
+            filesystem=filesystem,
+            # Writing statistics with giant nested columns bloats metadata
+            # and dramatically slows down reading while increasing RAM usage
+            write_statistics=False,
+        )
+    finally:
+        pathlib.Path(ndjson).unlink()
 
 
 def get_dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, str]:
