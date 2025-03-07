@@ -63,6 +63,12 @@ BAD_RXNS = [
     "RXN-22461",
     "RXN-22462",
     "RXN-22463",
+    "PYRROLINECARBDEHYDROG-RXN",
+    "RXN0-7008-PRO/UBIQUINONE-8//L-DELTA1-PYRROLINE_5-CARBOXYLATE/CPD-9956/PROTON.67.",
+    "GLUCOKIN-RXN-GLC/ATP//ALPHA-GLC-6-P/ADP/PROTON.34.", # gets confused with PTS
+    "PRPPSYN-RXN-CPD-15318/ATP//PRPP/AMP/PROTON.31.", # duplicate
+    "TRANS-RXN0-574-GLC//GLC.9.", # duplicate
+    "GLUCOKIN-RXN-GLC/ATP//D-glucopyranose-6-phosphate/ADP/PROTON.48.", # duplicate
 ]
 
 # not key central carbon met
