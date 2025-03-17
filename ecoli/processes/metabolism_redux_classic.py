@@ -63,6 +63,12 @@ BAD_RXNS = [
     "RXN-22461",
     "RXN-22462",
     "RXN-22463",
+    "PYRROLINECARBDEHYDROG-RXN",
+    "RXN0-7008-PRO/UBIQUINONE-8//L-DELTA1-PYRROLINE_5-CARBOXYLATE/CPD-9956/PROTON.67.",
+    "GLUCOKIN-RXN-GLC/ATP//ALPHA-GLC-6-P/ADP/PROTON.34.", # gets confused with PTS
+    "PRPPSYN-RXN-CPD-15318/ATP//PRPP/AMP/PROTON.31.", # duplicate
+    "TRANS-RXN0-574-GLC//GLC.9.", # duplicate
+    "GLUCOKIN-RXN-GLC/ATP//D-glucopyranose-6-phosphate/ADP/PROTON.48.", # duplicate
 ]
 
 # not key central carbon met
@@ -286,6 +292,7 @@ class MetabolismReduxClassic(Step):
                         "time_per_step": 0.0,
                         "estimated_fluxes": [],
                         "estimated_homeostatic_dmdt": [],
+                        "homeostatic_metabolite_counts": [],
                         "target_homeostatic_dmdt": [],
                         "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
@@ -442,7 +449,9 @@ class MetabolismReduxClassic(Step):
             # combined binary kinetic idx with binary reaction idx and remove overlaps
             binary_kinetic_idx = (
                 np.unique(np.append(binary_kinetic_idx[0], binary_reaction_idx[0])),
-            )
+            )[0]
+
+        self.binary_kinetic_idx = binary_kinetic_idx
 
         # TODO: Figure out how to handle changing media ID
 
@@ -522,6 +531,7 @@ class MetabolismReduxClassic(Step):
                     "estimated_fluxes": estimated_reaction_fluxes,
                     "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
                     "target_homeostatic_dmdt": target_homeostatic_dmdt,
+                    "homeostatic_metabolite_counts": homeostatic_metabolite_counts,
                     "target_kinetic_fluxes": target_kinetic_flux,
                     "target_kinetic_bounds": target_kinetic_bounds,
                     "estimated_exchange_dmdt": estimated_exchange_dmdt,
@@ -655,6 +665,7 @@ class NetworkFlowModel:
         maintenance_target: float = 0,
         kinetic_targets: Optional[Iterable[float]] = None,
         binary_kinetic_idx: Optional[Iterable[int]] = None,
+        force_flow_idx: Optional[Iterable[float]] = None,
         objective_weights: Optional[Mapping[str, float]] = None,
         upper_flux_bound: float = 100,
         solver=cp.GLOP,
@@ -675,8 +686,11 @@ class NetworkFlowModel:
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == maintenance_target)
         # If enzymes not present, constrain rxn flux to 0
-        if binary_kinetic_idx:
+        if binary_kinetic_idx is not None:
             constr.append(v[binary_kinetic_idx] == 0)
+        # If want to force flow through reactions, constrain rxn flux to 1 by idx
+        if force_flow_idx is not None:
+            constr.append(v[force_flow_idx] == 1)
 
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
