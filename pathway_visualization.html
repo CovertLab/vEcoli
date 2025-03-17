@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Escher Builder</title>
+
+    <script src="https://unpkg.com/escher@1.8.1/dist/escher.min.js"></script>
+
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, height=device-height,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui"/>
+  </head>
+  <body>
+    <div style="height: 100%; width: 100%;" id="map-container"></div>
+
+    <script>
+     /* Data from python */
+     var data = get_data();
+     escher.Builder(data.map_data, data.model_data, data.embedded_css,
+                    escher.libs.d3_select('#map-container'), data.options);
+
+     function b64DecodeUnicode(str) {
+       return decodeURIComponent(Array.prototype.map.call(atob(str), function(c) {
+         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+       }).join(''))
+     }
+
+     // Put this at the end so Chrome doesn't cut off the code above.
+     function get_data() {
+       /** Return the data passed in by the Python module. */
+       const data = {
+         // defaults
+         map_data: null,
+         model_data: null,
+         embedded_css: null,
+         options: {
+           fill_screen: true,
+         }
+       };
+       
+       data.map_data = JSON.parse(b64DecodeUnicode('bnVsbA=='));
+       
+       
+       data.model_data = JSON.parse(b64DecodeUnicode('eyJtZXRhYm9saXRlcyI6IFt7ImlkIjogIkJVVEFOT0xbY10iLCAibmFtZSI6ICIiLCAiY29tcGFydG1lbnQiOiAiIn0sIHsiaWQiOiAiQlVUWUwtSFlEUk9QRVJPWElERVtjXSIsICJuYW1lIjogIiIsICJjb21wYXJ0bWVudCI6ICIifSwgeyJpZCI6ICJOQURIW2NdIiwgIm5hbWUiOiAiIiwgImNvbXBhcnRtZW50IjogIiJ9LCB7ImlkIjogIk5BRFtjXSIsICJuYW1lIjogIiIsICJjb21wYXJ0bWVudCI6ICIifSwgeyJpZCI6ICJQUk9UT05bY10iLCAibmFtZSI6ICIiLCAiY29tcGFydG1lbnQiOiAiIn0sIHsiaWQiOiAiMkN5cy1QZXJveGlyZWRveGlucy1XaXRoLUh5ZHJveHlDeXNbY10iLCAibmFtZSI6ICIiLCAiY29tcGFydG1lbnQiOiAiIn0sIHsiaWQiOiAiUmVkdWNlZC1DeXMyLVBlcm94aXJlZG94aW5zW2NdIiwgIm5hbWUiOiAiIiwgImNvbXBhcnRtZW50IjogIiJ9XSwgInJlYWN0aW9ucyI6IFt7ImlkIjogIlI0LVJYTi1CVVRZTC1IWURST1BFUk9YSURFIiwgIm5hbWUiOiAiIiwgIm1ldGFib2xpdGVzIjogeyJCVVRBTk9MW2NdIjogMSwgIkJVVFlMLUhZRFJPUEVST1hJREVbY10iOiAtMSwgIk5BREhbY10iOiAtMSwgIk5BRFtjXSI6IDEsICJQUk9UT05bY10iOiAtMX0sICJsb3dlcl9ib3VuZCI6IDAuMCwgInVwcGVyX2JvdW5kIjogMTAwMC4wLCAiZ2VuZV9yZWFjdGlvbl9ydWxlIjogIiJ9LCB7ImlkIjogIlJYTi0xOTk1My1SZWR1Y2VkLUN5czItUGVyb3hpcmVkb3hpbnMiLCAibmFtZSI6ICIiLCAibWV0YWJvbGl0ZXMiOiB7IjJDeXMtUGVyb3hpcmVkb3hpbnMtV2l0aC1IeWRyb3h5Q3lzW2NdIjogMSwgIkJVVEFOT0xbY10iOiAxLCAiQlVUWUwtSFlEUk9QRVJPWElERVtjXSI6IDEsICJSZWR1Y2VkLUN5czItUGVyb3hpcmVkb3hpbnNbY10iOiAtMX0sICJsb3dlcl9ib3VuZCI6IDAuMCwgInVwcGVyX2JvdW5kIjogMTAwMC4wLCAiZ2VuZV9yZWFjdGlvbl9ydWxlIjogIiJ9XSwgImdlbmVzIjogW10sICJpZCI6ICJDdXN0b21fUGF0aHdheSIsICJjb21wYXJ0bWVudHMiOiB7fSwgInZlcnNpb24iOiAiMSJ9'));
+       
+       
+       
+       const newOptions = JSON.parse(b64DecodeUnicode('eyJlbmFibGVfa2V5cyI6IGZhbHNlLCAiZW5hYmxlX3Rvb2x0aXBzIjogZmFsc2UsICJmdWxsX3NjcmVlbl9idXR0b24iOiB7ImVuYWJsZV9rZXlzIjogdHJ1ZSwgInNjcm9sbF9iZWhhdmlvciI6ICJwYW4iLCAiZW5hYmxlX2VkaXRpbmciOiB0cnVlLCAibWVudSI6ICJhbGwiLCAiZW5hYmxlX3Rvb2x0aXBzIjogWyJsYWJlbCJdfSwgInNjcm9sbF9iZWhhdmlvciI6ICJub25lIn0='));
+       data.options = Object.assign({}, data.options, newOptions);
+       
+       return data;
+     }
+    </script>
+  </body>
+</html>
