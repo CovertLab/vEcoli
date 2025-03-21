@@ -142,7 +142,7 @@ def main():
         "--outdir", "-o", help="Directory that all analysis output is saved to."
     )
     parser.add_argument(
-        "--n_cpus", "-n", help="Number of CPUs to use for DuckDB and PyArrow."
+        "--n_cpus", "-n", type=int, help="Number of CPUs to use for DuckDB and PyArrow."
     )
     parser.add_argument(
         "--variant_metadata_path",
@@ -184,13 +184,14 @@ def main():
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
     if "out_uri" not in config["emitter"]:
+        # TODO (Albert): push these two lines of changes to master branch
         if "out_dir" in config["emitter"]:
             out_uri = os.path.abspath(config["emitter"]["out_dir"])
         else:
             out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
         gcs_bucket = True
     else:
-        out_uri = config["emitter"]["out_uri"]
+        out_uri = config["emitter_arg"]["out_uri"]
         assert (
             parse.urlparse(out_uri).scheme == "gcs"
             or parse.urlparse(out_uri).scheme == "gs"

@@ -9,23 +9,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: "3.11"
-      - name: Install dependencies
-        run: |
-          sudo apt-get install pandoc
-          python -m pip install --upgrade pip wheel
-          pip install numpy==1.26.4
-          pip install -r doc/requirements.txt
-      - name: Compile Cython components
-        run: |
-          make compile
+          enable-cache: true
+          version: "0.5.21"
+      - name: Install Pandoc
+        run: sudo apt-get install pandoc
+      - name: Install model
+        run: USE_CYTHON=1 uv sync --frozen --extra docs
       - name: Build documentation
         run: |
           cd doc
-          make html
+          uv run make html
       - name: Deploy documentation to GitHub pages
         run: |
           cd doc/_build/html

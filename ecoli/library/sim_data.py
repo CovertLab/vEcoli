@@ -562,7 +562,7 @@ class LoadSimData:
     def _seedFromName(self, name):
         return binascii.crc32(name.encode("utf-8"), self.seed) & 0xFFFFFFFF
 
-    def get_config_by_name(self, name, time_step=1, parallel=False):
+    def get_config_by_name(self, name, time_step=1):
         name_config_mapping = {
             "ecoli-tf-binding": self.get_tf_binding_config,
             "ecoli-transcript-initiation": self.get_transcript_initiation_config,
@@ -601,13 +601,13 @@ class LoadSimData:
         }
 
         try:
-            return name_config_mapping[name](time_step=time_step, parallel=parallel)
+            return name_config_mapping[name](time_step=time_step)
         except KeyError:
             raise KeyError(
                 f"Process of name {name} is not known to LoadSimData.get_config_by_name"
             )
 
-    def get_chromosome_replication_config(self, time_step=1, parallel=False):
+    def get_chromosome_replication_config(self, time_step=1):
         get_dna_critical_mass = self.sim_data.mass.get_dna_critical_mass
         doubling_time = self.sim_data.condition_to_doubling_time[
             self.sim_data.condition
@@ -635,7 +635,6 @@ class LoadSimData:
 
         chromosome_replication_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "max_time_step": self.sim_data.process.replication.max_time_step,
             "get_dna_critical_mass": get_dna_critical_mass,
             "criticalInitiationMass": get_dna_critical_mass(doubling_time),
@@ -668,7 +667,6 @@ class LoadSimData:
     def get_tf_binding_config(self, time_step=1, parallel=False):
         tf_binding_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
             "rna_ids": self.sim_data.process.transcription.rna_data["id"],
             "get_binding_unbinding_matrices": self.sim_data.process.transcription_regulation.get_tf_binding_unbinding_matrices,
@@ -691,10 +689,9 @@ class LoadSimData:
 
         return tf_binding_config
 
-    def get_transcript_initiation_config(self, time_step=1, parallel=False):
+    def get_transcript_initiation_config(self, time_step=1):
         transcript_initiation_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "fracActiveRnapDict": self.sim_data.process.transcription.rnapFractionActiveDict,
             "rnaLengths": self.sim_data.process.transcription.rna_data["length"],
             "rnaPolymeraseElongationRateDict": self.sim_data.process.transcription.rnaPolymeraseElongationRateDict,
@@ -751,10 +748,9 @@ class LoadSimData:
 
         return transcript_initiation_config
 
-    def get_transcript_elongation_config(self, time_step=1, parallel=False):
+    def get_transcript_elongation_config(self, time_step=1):
         transcript_elongation_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "max_time_step": self.sim_data.process.transcription.max_time_step,
             "rnaPolymeraseElongationRateDict": self.sim_data.process.transcription.rnaPolymeraseElongationRateDict,
             "rnaIds": self.sim_data.process.transcription.rna_data["id"],
@@ -790,7 +786,7 @@ class LoadSimData:
 
         return transcript_elongation_config
 
-    def get_rna_degradation_config(self, time_step=1, parallel=False):
+    def get_rna_degradation_config(self, time_step=1):
         transcription = self.sim_data.process.transcription
         rna_ids = list(transcription.rna_data["id"])
         mature_rna_ids = list(transcription.mature_rna_data["id"])
@@ -803,7 +799,6 @@ class LoadSimData:
 
         rna_degradation_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "rna_ids": rna_ids,
             "mature_rna_ids": mature_rna_ids,
             "cistron_ids": cistron_ids,
@@ -906,10 +901,9 @@ class LoadSimData:
 
         return rna_degradation_config
 
-    def get_polypeptide_initiation_config(self, time_step=1, parallel=False):
+    def get_polypeptide_initiation_config(self, time_step=1):
         polypeptide_initiation_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "protein_lengths": self.sim_data.process.translation.monomer_data[
                 "length"
             ].asNumber(),
@@ -944,7 +938,7 @@ class LoadSimData:
 
         return polypeptide_initiation_config
 
-    def get_polypeptide_elongation_config(self, time_step=1, parallel=False):
+    def get_polypeptide_elongation_config(self, time_step=1):
         constants = self.sim_data.constants
         molecule_ids = self.sim_data.molecule_ids
         translation = self.sim_data.process.translation
@@ -953,7 +947,6 @@ class LoadSimData:
 
         polypeptide_elongation_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             # simulation options
             "aa_supply_in_charging": self.aa_supply_in_charging,
             "adjust_timestep_for_charging": self.adjust_timestep_for_charging,
@@ -1061,10 +1054,9 @@ class LoadSimData:
 
         return polypeptide_elongation_config
 
-    def get_complexation_config(self, time_step=1, parallel=False):
+    def get_complexation_config(self, time_step=1):
         complexation_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "stoichiometry": self.sim_data.process.complexation.stoich_matrix()
             .astype(np.int64)
             .T,
@@ -1078,10 +1070,9 @@ class LoadSimData:
 
         return complexation_config
 
-    def get_two_component_system_config(self, time_step=1, parallel=False):
+    def get_two_component_system_config(self, time_step=1):
         two_component_system_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "jit": False,
             # TODO -- wcEcoli has this in 1/mmol, why?
             "n_avogadro": self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
@@ -1097,10 +1088,9 @@ class LoadSimData:
         # return two_component_system_config, stoichI, stoichJ, stoichV
         return two_component_system_config
 
-    def get_equilibrium_config(self, time_step=1, parallel=False):
+    def get_equilibrium_config(self, time_step=1):
         equilibrium_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "jit": False,
             "n_avogadro": self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
             "cell_density": self.sim_data.constants.cell_density.asNumber(
@@ -1119,6 +1109,7 @@ class LoadSimData:
 
         return equilibrium_config
 
+<<<<<<< HEAD
     def get_tf_ligand_binding_config(self, time_step=1, parallel=False):
         tf_ligand_binding_config = {
             "time_step": time_step,
@@ -1144,9 +1135,11 @@ class LoadSimData:
         return tf_ligand_binding_config
 
     def get_protein_degradation_config(self, time_step=1, parallel=False):
+=======
+    def get_protein_degradation_config(self, time_step=1):
+>>>>>>> a7bf8227ee6ea5a7970bdc6865d08594c4225a01
         protein_degradation_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "raw_degradation_rate": self.sim_data.process.translation.monomer_data[
                 "deg_rate"
             ].asNumber(1 / units.s),
@@ -1165,7 +1158,7 @@ class LoadSimData:
 
         return protein_degradation_config
 
-    def get_metabolism_redux_config(self, time_step=1, parallel=False):
+    def get_metabolism_redux_config(self, time_step=1):
         metabolism = self.sim_data.process.metabolism
         aa_names = self.sim_data.molecule_groups.amino_acids
         aa_exchange_names = np.array(
@@ -1202,7 +1195,6 @@ class LoadSimData:
 
         metabolism_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             # stoich
             "stoich_dict": metabolism.reaction_stoich,
             "maintenance_reaction": metabolism.maintenance_reaction,
@@ -1267,7 +1259,7 @@ class LoadSimData:
 
         return metabolism_config
 
-    def get_metabolism_config(self, time_step=1, parallel=False):
+    def get_metabolism_config(self, time_step=1):
         # bad_rxns = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300"]
         # for rxn in bad_rxns:
         #     self.sim_data.process.metabolism.reaction_stoich.pop(rxn, None)
@@ -1310,7 +1302,6 @@ class LoadSimData:
 
         metabolism_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             # metabolism parameters
             "stoichiometry": metabolism.reaction_stoich,
             "catalyst_ids": metabolism.catalyst_ids,
@@ -1366,7 +1357,7 @@ class LoadSimData:
 
         return metabolism_config
 
-    def get_mass_config(self, time_step=1, parallel=False):
+    def get_mass_config(self, time_step=1):
         bulk_ids = self.sim_data.internal_state.bulk_molecules.bulk_data["id"]
         molecular_weights = {}
         for molecule_id in bulk_ids:
@@ -1395,7 +1386,7 @@ class LoadSimData:
         }
         return mass_config
 
-    def get_mass_listener_config(self, time_step=1, parallel=False):
+    def get_mass_listener_config(self, time_step=1):
         u_masses = self.sim_data.internal_state.unique_molecule.unique_molecule_masses
         molecule_ids = tuple(sorted(u_masses["id"]))
         molecule_id_to_mass = {}
@@ -1448,10 +1439,9 @@ class LoadSimData:
 
         return mass_config
 
-    def get_rna_counts_listener_config(self, time_step=1, parallel=False):
+    def get_rna_counts_listener_config(self, time_step=1):
         counts_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "all_TU_ids": self.sim_data.process.transcription.rna_data["id"],
             "mRNA_indexes": np.where(
                 self.sim_data.process.transcription.rna_data["is_mRNA"]
@@ -1484,10 +1474,9 @@ class LoadSimData:
 
         return counts_config
 
-    def get_monomer_counts_listener_config(self, time_step=1, parallel=False):
+    def get_monomer_counts_listener_config(self, time_step=1):
         monomer_counts_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             # Get IDs of all bulk molecules
             "bulk_molecule_ids": self.sim_data.internal_state.bulk_molecules.bulk_data[
                 "id"
@@ -1537,12 +1526,11 @@ class LoadSimData:
 
         return monomer_counts_config
 
-    def get_allocator_config(self, time_step=1, parallel=False, process_names=None):
+    def get_allocator_config(self, time_step=1, process_names=None):
         if not process_names:
             process_names = []
         allocator_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "molecule_names": self.sim_data.internal_state.bulk_molecules.bulk_data[
                 "id"
             ],
@@ -1560,14 +1548,13 @@ class LoadSimData:
         }
         return allocator_config
 
-    def get_chromosome_structure_config(self, time_step=1, parallel=False):
+    def get_chromosome_structure_config(self, time_step=1):
         transcription = self.sim_data.process.transcription
         mature_rna_ids = transcription.mature_rna_data["id"]
         unprocessed_rna_indexes = np.where(transcription.rna_data["is_unprocessed"])[0]
 
         chromosome_structure_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             # Load parameters
             "rna_sequences": transcription.transcription_sequences,
             "protein_sequences": self.sim_data.process.translation.translation_sequences,
@@ -1608,10 +1595,9 @@ class LoadSimData:
         }
         return chromosome_structure_config
 
-    def get_rna_interference_config(self, time_step=1, parallel=False):
+    def get_rna_interference_config(self, time_step=1):
         rna_interference_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "srna_ids": self.srna_ids,
             "target_tu_ids": self.target_tu_ids,
             "binding_probs": self.binding_probs,
@@ -1623,14 +1609,13 @@ class LoadSimData:
         }
         return rna_interference_config
 
-    def get_tetracycline_ribosome_equilibrium_config(self, time_step=1, parallel=False):
+    def get_tetracycline_ribosome_equilibrium_config(self, time_step=1):
         rna_ids = self.sim_data.process.transcription.rna_data["id"]
         is_trna = self.sim_data.process.transcription.rna_data["is_tRNA"].astype(
             np.bool_
         )
         tetracycline_ribosome_equilibrium_config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "trna_ids": rna_ids[is_trna],
             # Ensure that a new seed is set upon division
             "seed": self.random_state.randint(RAND_MAX),
@@ -1638,14 +1623,13 @@ class LoadSimData:
         }
         return tetracycline_ribosome_equilibrium_config
 
-    def get_rna_maturation_config(self, time_step=1, parallel=False):
+    def get_rna_maturation_config(self, time_step=1):
         transcription = self.sim_data.process.transcription
         rna_data = transcription.rna_data
         mature_rna_data = transcription.mature_rna_data
 
         config = {
             "time_step": time_step,
-            "_parallel": parallel,
             # Get matrices and vectors that describe maturation reactions
             "stoich_matrix": transcription.rna_maturation_stoich_matrix,
             "enzyme_matrix": transcription.rna_maturation_enzyme_matrix.astype(int),
@@ -1707,10 +1691,9 @@ class LoadSimData:
 
         return config
 
-    def get_tf_unbinding_config(self, time_step=1, parallel=False):
+    def get_tf_unbinding_config(self, time_step=1):
         config = {
             "time_step": time_step,
-            "_parallel": parallel,
             "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
             "submass_indices": self.submass_indices,
             "emit_unique": self.emit_unique,
@@ -1726,10 +1709,9 @@ class LoadSimData:
         ).asNumber(units.fg)
         return config
 
-    def get_rna_synth_prob_listener_config(self, time_step=1, parallel=False):
+    def get_rna_synth_prob_listener_config(self, time_step=1):
         return {
             "time_step": time_step,
-            "_parallel": parallel,
             "gene_ids": self.sim_data.process.transcription.cistron_data["gene_id"],
             "rna_ids": self.sim_data.process.transcription.rna_data["id"],
             "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
@@ -1738,28 +1720,25 @@ class LoadSimData:
             "emit_unique": self.emit_unique,
         }
 
-    def get_dna_supercoiling_listener_config(self, time_step=1, parallel=False):
+    def get_dna_supercoiling_listener_config(self, time_step=1):
         return {
             "time_step": time_step,
-            "_parallel": parallel,
             "relaxed_DNA_base_pairs_per_turn": self.sim_data.process.chromosome_structure.relaxed_DNA_base_pairs_per_turn,
             "emit_unique": self.emit_unique,
         }
 
-    def get_unique_molecule_counts_config(self, time_step=1, parallel=False):
+    def get_unique_molecule_counts_config(self, time_step=1):
         return {
             "time_step": time_step,
-            "_parallel": parallel,
             "unique_ids": self.sim_data.internal_state.unique_molecule.unique_molecule_masses[
                 "id"
             ],
             "emit_unique": self.emit_unique,
         }
 
-    def get_ribosome_data_listener_config(self, time_step=1, parallel=False):
+    def get_ribosome_data_listener_config(self, time_step=1):
         return {
             "time_step": time_step,
-            "_parallel": parallel,
             "monomer_ids": self.sim_data.process.translation.monomer_data[
                 "id"
             ].tolist(),
@@ -1776,10 +1755,9 @@ class LoadSimData:
             "emit_unique": self.emit_unique,
         }
 
-    def get_rnap_data_listener_config(self, time_step=1, parallel=False):
+    def get_rnap_data_listener_config(self, time_step=1):
         return {
             "time_step": time_step,
-            "_parallel": parallel,
             "stable_RNA_indexes": np.where(
                 np.logical_or(
                     self.sim_data.process.transcription.rna_data["is_rRNA"],
@@ -1791,17 +1769,16 @@ class LoadSimData:
             "emit_unique": self.emit_unique,
         }
 
-    def get_exchange_data_config(self, time_step=1, parallel=False):
+    def get_exchange_data_config(self, time_step=1):
         return {
             "time_step": time_step,
-            "_parallel": parallel,
             "external_state": self.sim_data.external_state,
             "environment_molecules": list(
                 self.sim_data.external_state.env_to_exchange_map.keys()
             ),
         }
 
-    def get_media_update_config(self, time_step=1, parallel=False):
+    def get_media_update_config(self, time_step=1):
         # if current_timeline_id is specified by a variant in sim_data,
         # look it up in saved_timelines.
         if self.sim_data.external_state.current_timeline_id:
@@ -1812,12 +1789,11 @@ class LoadSimData:
             current_timeline = self.media_timeline
         return {
             "time_step": time_step,
-            "_parallel": parallel,
             "saved_media": self.sim_data.external_state.saved_media,
             "media_id": current_timeline[0][1],
         }
 
-    def get_bulk_timeline_config(self, time_step=1, parallel=False):
+    def get_bulk_timeline_config(self, time_step=1):
         # if current_timeline_id is specified by a variant in sim_data, look it up in saved_timelines.
         if self.sim_data.external_state.current_timeline_id:
             current_timeline = self.sim_data.external_state.saved_timelines[
@@ -1827,7 +1803,6 @@ class LoadSimData:
             current_timeline = self.media_timeline
         return {
             "time_step": time_step,
-            "_parallel": parallel,
             "timeline": {
                 time: {("media_id",): media_id} for time, media_id in current_timeline
             },

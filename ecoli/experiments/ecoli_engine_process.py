@@ -352,7 +352,7 @@ def run_simulation(config):
 
     experiment_id = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S_%f%z")
     emitter_config = {"type": config["emitter"]}
-    for key, value in config["emitter_arg"]:
+    for key, value in config["emitter_arg"].items():
         emitter_config[key] = value
     base_config = {
         "agent_id": config["agent_id"],
@@ -460,8 +460,8 @@ def run_simulation(config):
         "ignore",
         message="Incompatible schema "
         "assignment at .+ Trying to assign the value <bound method "
-        "UniqueNumpyUpdater\.updater .+ to key updater, which already "
-        "has the value <bound method UniqueNumpyUpdater\.updater",
+        r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
+        r"has the value <bound method UniqueNumpyUpdater\.updater",
     )
     engine = Engine(
         processes=composite.processes,

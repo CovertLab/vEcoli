@@ -12,7 +12,7 @@ import warnings
 from vivarium.core.engine import Engine
 from vivarium.core.control import run_library_cli
 
-from ecoli.library.schema import bulk_name_to_idx
+from ecoli.library.schema import attrs, bulk_name_to_idx
 from ecoli.analysis.colony.snapshots import (
     plot_snapshots,
     format_snapshot_data,
@@ -31,17 +31,16 @@ def test_division(agent_id="0", total_time=4):
 
     # get initial mass from Ecoli composer
     sim = EcoliSim.from_file()
+    # Initial state saved right before division set to be
+    # triggered according to D period
     sim.config["initial_state_file"] = "vivecoli_t2527"
     sim.config["divide"] = True
-    sim.config["division_variable"] = ("listeners", "mass", "dry_mass")
     sim.config["agent_id"] = agent_id
     sim.config["total_time"] = total_time
     # Ensure unique molecules are emitted
     sim.config["emit_unique"] = True
     sim.build_ecoli()
 
-    # Set threshold so that mother divides after first timestep
-    sim.generated_initial_state["agents"]["0"]["division_threshold"] = 724.4
     sim.run()
 
     # retrieve output
@@ -101,10 +100,12 @@ def test_division(agent_id="0", total_time=4):
     for name, mols in mother_state["unique"].items():
         d1_state = daughter_states[0]["unique"][name]
         d2_state = daughter_states[1]["unique"][name]
-        m_state = np.array(mols)
-        entryState_col = np.where(np.array(d1_state.dtype.names) == "_entryState")[0]
-        n_mother = m_state[entryState_col].sum()
-        n_daughter = d1_state["_entryState"].sum() + d2_state["_entryState"].sum()
+        mol_keys = sim.ecoli_experiment.state["agents"]["00"]["unique"][
+            name
+        ].value.dtype.names
+        entryState_col = np.where(np.array(mol_keys) == "_entryState")[0][0]
+        n_mother = sum(mols[entryState_col])
+        n_daughter = sum(d1_state[entryState_col]) + sum(d2_state[entryState_col])
         if name == "chromosome_domain":
             # Chromosome domain 0 is lost after division because
             # it has been fully split into child domains 1 and 2
@@ -113,13 +114,21 @@ def test_division(agent_id="0", total_time=4):
             n_mother, n_daughter, rtol=0.01
         ), f"{name}: mother has {n_mother}, daughters have {n_daughter}"
         # Assert that no unique mol is in both daughters
-        assert not (set(d1_state["unique_index"]) & set(d2_state["unique_index"]))
+        unique_idx_col = np.where(np.array(mol_keys) == "unique_index")[0][0]
+        assert not (set(d1_state[unique_idx_col]) & set(d2_state[unique_idx_col]))
 
     # asserts
     final_agents = output[total_time]["agents"].keys()
     print(f"initial agent id: {agent_id}")
     print(f"final agent ids: {final_agents}")
     assert len(final_agents) == 2
+    # Check that MarkDPeriod updated the has_triggered_division attribute
+    for agent_id in final_agents:
+        full_chrom = sim.ecoli_experiment.state["agents"][agent_id]["unique"][
+            "full_chromosome"
+        ].value
+        (has_triggered_division,) = attrs(full_chrom, ["has_triggered_division"])
+        assert np.all(has_triggered_division)
 
 
 def test_division_topology():
@@ -149,8 +158,8 @@ def test_division_topology():
         "ignore",
         message="Incompatible schema "
         "assignment at .+ Trying to assign the value <bound method "
-        "UniqueNumpyUpdater\.updater .+ to key updater, which already "
-        "has the value <bound method UniqueNumpyUpdater\.updater",
+        r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
+        r"has the value <bound method UniqueNumpyUpdater\.updater",
     )
     sim.ecoli_experiment = Engine(**experiment_config)
 
@@ -217,7 +226,7 @@ def test_lattice_lysis(plot=False):
     """
     Run plots:
     '''
-    > python ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
+    > uv run ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
     '''
 
     ANTIBIOTIC_KEY = 'nitrocefin'
@@ -279,14 +288,42 @@ def plot_spatial_snapshots(data, sim, experiment_dir="ecoli_test"):
     )
 
 
+def test_emit_unique():
+    """
+    Test that the ``emit_unique`` configuration option works. This can be broken
+    if a new process is added whose ports schema connects to a unique molecule
+    without setting the ``_emit`` property to ``config['emit_unique']``.
+    """
+    sim = EcoliSim.from_file()
+    sim.config["emit_unique"] = True
+    sim.config["total_time"] = 1
+    sim.build_ecoli()
+    sim.run()
+    unique_molecules = sim.ecoli_experiment.state["agents"]["0"]["unique"].inner.keys()
+    data = sim.query(
+        [
+            (
+                "agents",
+                "0",
+                "unique",
+            )
+        ]
+    )
+    for val in data.values():
+        for unique_mol in unique_molecules:
+            assert unique_mol in val["agents"]["0"]["unique"]
+            assert isinstance(val["agents"]["0"]["unique"][unique_mol], list)
+
+
 test_library = {
     "1": test_division,
     "2": test_division_topology,
     "3": test_ecoli_generate,
     "4": test_lattice_lysis,
+    "5": test_emit_unique,
 }
 
 # run experiments in test_library from the command line with:
-# python ecoli/composites/ecoli_master_tests.py -n [experiment id]
+# uv run ecoli/composites/ecoli_master_tests.py -n [experiment id]
 if __name__ == "__main__":
     run_library_cli(test_library)

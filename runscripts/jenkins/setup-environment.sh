@@ -1,14 +1,7 @@
 set -e
 
-export PYTHONPATH=$PWD
-module load wcEcoli/python3 java/18.0.2 biology nextflow
+# Load newer Git and Java for nextflow 
+module load system git java/21.0.4
 
-export PATH="${GROUP_HOME}/pyenv/bin:${PATH}"
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-
-### Edit this line to make this branch use another pyenv
-pyenv local viv-ecoli
-pyenv activate
-
-make clean compile
+export PATH=$PATH:$GROUP_HOME/vEcoli_env
+source $GROUP_HOME/vEcoli_env/.venv/bin/activate

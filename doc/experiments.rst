@@ -65,7 +65,7 @@ with options loaded later on overriding those from earlier sources:
 In most cases, configuration options that appear in more than one
 of the above sources are successively overriden in their entirety. The sole
 exceptions are configuration options listed in
-:py:attr:`~ecoli.experiments.ecoli_master_sim.LIST_KEYS_TO_MERGE`. These
+:py:attr:`~runscripts.workflow.LIST_KEYS_TO_MERGE`. These
 options hold lists of values that are concatenated with one another instead
 of being wholly overriden.
 
@@ -91,12 +91,11 @@ documented in :ref:`/workflows.rst`.
         # chains if possible.
         "inherit_from": [],
         # String that uniquely identifies simulation (or workflow if passed
-        # as input to runscripts/workflow.py). Avoid special characters as we
-        # quote experiment IDs using urlparse.parse.quote_plus, which may make
-        # experiment IDs with special characters hard to deciphe later.
+        # as input to runscripts/workflow.py). Special characters and spaces
+        # are not allowed (hyphens are OK).
         "experiment_id": "experiment_id_one"
         # Whether to append date and time to experiment ID in the following format
-        # experiment_id_%d-%m-%Y_%H-%M-%S.
+        # experiment_id_%Y%m%d-%H%M%S.
         "suffix_time": true,
         # Optional string description of simulation
         "description": "",
@@ -120,6 +119,11 @@ documented in :ref:`/workflows.rst`.
         "emit_topology" : false,
         "emit_processes" : false,
         "emit_config" : false,
+        # Whether to emit data from all molecules under ("unique",). Should only be
+        # used for debugging purposes because this will emit a lot of data. Prefer
+        # a dedicated listener to extract unique molecule information at simulation
+        # runtime instead.
+        "emit_unique": false,
         # Whether to save process updates to log_update stores. Should only be used
         # if choosing "timeseries" emitter. See "Log Updates" heading in "Composites"
         # documentation for more information.
@@ -182,9 +186,6 @@ documented in :ref:`/workflows.rst`.
         # to this initial agent ID for each daughter cell (only "0" if not
         # simulating both daughter cells, see "Workflow" documentation).
         "agent_id": "0",
-        # Run each Process in parallel. This incurs a lot of overhead and most
-        # processes in our model are Steps anyways. Keep at default: False.
-        "parallel": false,
         # Whether to add processes and associated topologies for cell
         # division. See "Division Modifications" heading in "Composites" docs.
         "divide": true,
@@ -365,6 +366,12 @@ Here are some general rules to remember when writing your own JSON config files:
 - Comments are not allowed
 - Tuples (e.g. in topologies or flows) are written as lists (``["bulk"]`` instead of ``("bulk",)``)
 
+.. note::
+    It is strongly recommended that ``fail_at_total_time`` be set to ``True``
+    when running multi-generation workflows. If a simulation reaches total time
+    without dividing, this results in a more informative error message instead
+    of a Nextflow error about missing daughter cell states.
+
 ------
 Output
 ------
@@ -448,12 +455,18 @@ Configuring Colony Simulations
 
 All of the configuration
 options listed above still apply to simulations started with
-:py:mod:`~ecoli.experiments.ecoli_engine_process`. There are only two new options:
+:py:mod:`~ecoli.experiments.ecoli_engine_process`. There are only three new options:
 
 - ``engine_process_reports``: List of paths (e.g. ``["bulk"]`` for bulk store) inside
   each cell to save in final colony output.
 - ``emit_paths``: List of paths in outer simulation (e.g. locations of each cell in
   spatial environment) to save in final colony output.
+- ``parallel``: In :py:mod:`~ecoli.experiments.ecoli_engine_process`, each simulated
+  cell is contained within a single process (specifically, an instance of
+  :py:class:`~ecoli.processes.engine_process.EngineProcess`). Therefore, assuming
+  cells only need to communicate a tiny amount of information between one another,
+  interprocess overhead is low and running these cells in parallel can greatly speed
+  up the colony simulation.
 
 In addition to these new configuration options, several previously mentioned options
 become much more useful in the context of colony simulations:
@@ -463,12 +476,6 @@ become much more useful in the context of colony simulations:
   ``initial_state_file`` without having to wait for 16 generations every time.
   The names of the files saved can be given an optional prefix configured via the
   ``colony_save_prefix`` option.
-- ``parallel``: In :py:mod:`~ecoli.experiments.ecoli_engine_process`, each simulated
-  cell is contained within a single process (specifically, an instance of
-  :py:class:`~ecoli.processes.engine_process.EngineProcess`). Therefore, assuming
-  cells only need to communicate a tiny amount of information between one another,
-  interprocess overhead is low and running these cells in parallel can greatly speed
-  up the colony simulation.
 - ``spatial_environment`` and ``spatial_environment_config``: The benefit of running
   simulations inside a shared, dynamic spatial environment is only fully realized when
   many cells are interacting with one another inside this environment.

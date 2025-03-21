@@ -43,4 +43,6 @@ for developing and running the model. We recommend new users read through the se
    output
    tutorial
    docs
+   gcloud
+   ci
    API Reference <reference/api_ref.rst>

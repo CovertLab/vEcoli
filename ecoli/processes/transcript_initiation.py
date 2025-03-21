@@ -24,12 +24,13 @@ import copy
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import (
-    create_unique_indexes,
+    create_unique_indices,
     listener_schema,
     numpy_schema,
     counts,
     attrs,
     bulk_name_to_idx,
+    MetadataArray,
 )
 
 from wholecell.utils import units
@@ -264,9 +265,6 @@ class TranscriptInitiation(PartitionedProcess):
 
         self.seed = self.parameters["seed"]
         self.random_state = np.random.RandomState(seed=self.seed)
-        # Use separate random state instance to create unique indices
-        # so results are directly comparable with wcEcoli
-        self.unique_idx_random_state = np.random.RandomState(seed=self.seed)
 
         # Helper indices for Numpy indexing
         self.ppgpp_idx = None
@@ -598,9 +596,7 @@ class TranscriptInitiation(PartitionedProcess):
         is_forward = self.transcription_direction[TU_index_partial_RNAs]
 
         # new RNAPs
-        RNAP_indexes = create_unique_indexes(
-            n_RNAPs_to_activate, self.unique_idx_random_state
-        )
+        RNAP_indexes = create_unique_indices(n_RNAPs_to_activate, states["RNAs"])
         update["active_RNAPs"].update(
             {
                 "add": {
@@ -617,13 +613,9 @@ class TranscriptInitiation(PartitionedProcess):
 
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
-        rna_indices = create_unique_indexes(
-            n_RNAPs_to_activate, self.unique_idx_random_state
-        )
         update["RNAs"].update(
             {
                 "add": {
-                    "unique_index": rna_indices,
                     "TU_index": TU_index_partial_RNAs,
                     "transcript_length": np.zeros(cast(int, n_RNAPs_to_activate)),
                     "is_mRNA": is_mRNA,
@@ -1092,22 +1084,30 @@ def test_transcript_initiation(return_data=False):
         "listeners": {"mass": {"cell_mass": 1000, "dry_mass": 350}},
     }
     unique_state = {
-        "full_chromosome": np.array(
-            [
-                (1, 0, 0, 0, False, 0) + (0,) * 9,
-            ],
-            dtype=chromosome_dtypes + submass_dtypes,
+        "full_chromosome": MetadataArray(
+            np.array(
+                [
+                    (1, 0, 0, 0, False, 0) + (0,) * 9,
+                ],
+                dtype=chromosome_dtypes + submass_dtypes,
+            ),
+            1,
         ),
-        "promoter": np.array(
-            [
-                (i, 1, i, [False] * 4, subdata["replication_coordinate"], 0, i)
-                + (0,) * 9
-                for i, subdata in enumerate(rna_data)
-            ],
-            dtype=promoter_dtypes + submass_dtypes,
+        "promoter": MetadataArray(
+            np.array(
+                [
+                    (i, 1, i, [False] * 4, subdata["replication_coordinate"], 0, i)
+                    + (0,) * 9
+                    for i, subdata in enumerate(rna_data)
+                ],
+                dtype=promoter_dtypes + submass_dtypes,
+            ),
+            len(rna_data),
         ),
-        "RNA": np.array([], dtype=rna_dtypes + submass_dtypes),
-        "active_RNAP": np.array([], dtype=active_rnap_dtypes + submass_dtypes),
+        "RNA": MetadataArray(np.array([], dtype=rna_dtypes + submass_dtypes), 0),
+        "active_RNAP": MetadataArray(
+            np.array([], dtype=active_rnap_dtypes + submass_dtypes), 0
+        ),
     }
     initial_state["unique"] = unique_state
 

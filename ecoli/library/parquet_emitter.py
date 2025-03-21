@@ -542,7 +542,7 @@ def read_stacked_columns(
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
     if projections is None:
-        projections = columns
+        projections = columns.copy()
     projections.append(id_cols)
     projections = ", ".join(projections)
     sql_query = f"SELECT {projections} FROM ({history_sql})"
@@ -762,7 +762,11 @@ class ParquetEmitter(Emitter):
             unified_schema, unified_schema_path, filesystem=self.filesystem
         )
         experiment_schema_path = os.path.join(
-            self.outdir, "history", self.experiment_id, EXPERIMENT_SCHEMA_SUFFIX
+            self.outdir,
+            self.experiment_id,
+            "history",
+            f"experiment_id={self.experiment_id}",
+            EXPERIMENT_SCHEMA_SUFFIX,
         )
         self.filesystem.create_dir(os.path.dirname(experiment_schema_path))
         pq.write_metadata(
@@ -849,7 +853,7 @@ class ParquetEmitter(Emitter):
             # create new folder for config / simulation output
             try:
                 self.filesystem.delete_dir(os.path.dirname(outfile))
-            except FileNotFoundError:
+            except (FileNotFoundError, OSError):
                 pass
             self.filesystem.create_dir(os.path.dirname(outfile))
             self.executor.submit(
@@ -867,7 +871,7 @@ class ParquetEmitter(Emitter):
             )
             try:
                 self.filesystem.delete_dir(history_outdir)
-            except FileNotFoundError:
+            except (FileNotFoundError, OSError):
                 pass
             self.filesystem.create_dir(history_outdir)
             return

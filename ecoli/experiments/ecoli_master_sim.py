@@ -41,20 +41,7 @@ from ecoli.processes.registries import topology_registry
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.schema import not_a_process
 
-
-LIST_KEYS_TO_MERGE = (
-    "save_times",
-    "add_processes",
-    "exclude_processes",
-    "processes",
-    "engine_process_reports",
-    "initial_state_overrides",
-)
-"""
-Special configuration keys that are list values which are concatenated
-together when they are found in multiple sources (e.g. default JSON and
-user-specified JSON) instead of being directly overriden.
-"""
+from runscripts.workflow import LIST_KEYS_TO_MERGE
 
 
 class TimeLimitError(RuntimeError):
@@ -136,7 +123,7 @@ def report_profiling(stats: pstats.Stats) -> None:
     stats.sort_stats("cumtime").print_stats(20)
 
 
-def key_value_pair(argument_string: str) -> list[str]:
+def parse_key_value_args(args_list: list[str]) -> dict[str, str]:
     """Parses key-value pairs specified as strings of the form ``key=value``
     via CLI. See ``emitter_arg`` option in
     :py:class:`~ecoli.experiments.ecoli_master_sim.SimConfig`.
@@ -147,10 +134,15 @@ def key_value_pair(argument_string: str) -> list[str]:
     Returns:
         ``[key, value]``
     """
-    split = argument_string.split("=")
-    if len(split) != 2:
-        raise ValueError("Key-value pair arguments must have exactly one `=`.")
-    return split
+    # Create an empty dictionary to store the parsed key-value pairs
+    parsed_dict = {}
+    for item in args_list:
+        if "=" in item:
+            key, value = item.split("=", 1)
+            parsed_dict[key] = value
+        else:
+            raise ValueError(f"Argument '{item}' is not in the form key=value")
+    return parsed_dict
 
 
 def prepare_save_state(state: dict[str, Any]) -> None:
@@ -165,6 +157,7 @@ def prepare_save_state(state: dict[str, Any]) -> None:
     state["bulk_dtypes"] = str(state["bulk"].dtype)
     state["unique_dtypes"] = {}
     for name, mols in state["unique"].items():
+        state["unique"][name] = np.asarray(mols)
         state["unique_dtypes"][name] = str(mols.dtype)
 
 
@@ -233,7 +226,6 @@ class SimConfig:
                 "--emitter_arg",
                 action="store",
                 nargs="*",
-                type=key_value_pair,
                 help=(
                     "Key-value pairs, separated by `=`, to include in "
                     "emitter config."
@@ -365,6 +357,8 @@ class SimConfig:
         updates config.
         """
         args = self.parser.parse_args()
+        if args.emitter_arg is not None:
+            args.emitter_arg = parse_key_value_args(args.emitter_arg)
         # First load in a configuration file, if one was specified.
         config_path = getattr(args, "config", None)
         if config_path:
@@ -638,13 +632,6 @@ class EcoliSim:
         ``True``. Spatial environment config options are loaded from
         ``config['spatial_environment_config`]``. See
         ``ecoli/composites/ecoli_configs/spatial.json`` for an example.
-
-        .. note::
-            When loading from a saved state with a file name of the format
-            ``vivecoli_t{save time}``, the simulation seed is automatically
-            set to ``config['seed'] + {save_time}`` to prevent
-            :py:func:`~ecoli.library.schema.create_unique_indexes` from
-            generating clashing indices.
         """
         # build processes, topology, configs
         self.processes = self._retrieve_processes(
@@ -659,14 +646,6 @@ class EcoliSim:
         self.process_configs = self._retrieve_process_configs(
             self.process_configs, self.processes
         )
-
-        # Prevent clashing unique indices by reseeding when loading
-        # a saved state (assumed to have name 'vivecoli_t{save time}')
-        initial_state_path = self.config.get("initial_state_file", "")
-        if initial_state_path.startswith("vivecoli"):
-            time_str = initial_state_path[len("vivecoli_t") :]
-            seed = int(float(time_str))
-            self.config["seed"] += seed
 
         # initialize the ecoli composer
         ecoli_composer = ecoli.composites.ecoli_master.Ecoli(self.config)
@@ -794,13 +773,11 @@ class EcoliSim:
                         "Must provide out_dir or out_uri"
                         " as emitter argument fo r parquet emitter."
                     )
-        elif isinstance(self.emitter, dict):
-            self.emitter_config = self.emitter
         else:
             raise RuntimeError(
-                "Emitter option must either be a string"
-                " representing the emitter type or a dictionary with the"
-                " emitter type as well as any emitter config options."
+                "Emitter option must be a string"
+                " representing the emitter type with any additional config"
+                " options under the emitter_arg key."
             )
         experiment_config = {
             "description": self.description,
@@ -825,10 +802,15 @@ class EcoliSim:
                 self.experiment_id_base = self.experiment_id
             if self.suffix_time:
                 self.experiment_id = datetime.now().strftime(
-                    f"{self.experiment_id_base}_%d-%m-%Y_%H-%M-%S"
+                    f"{self.experiment_id_base}_%Y%m%d-%H%M%S"
                 )
-            # Special characters can break Hive partitioning so quote them
-            self.experiment_id = parse.quote_plus(self.experiment_id)
+            # Special characters can break Hive partitioning so do not allow them
+            if self.experiment_id != parse.quote_plus(self.experiment_id):
+                raise TypeError(
+                    "Experiment ID cannot contain special characters"
+                    f"that change the string when URL quoted: {self.experiment_id}"
+                    f" != {parse.quote_plus(self.experiment_id)}"
+                )
             experiment_config["experiment_id"] = self.experiment_id
         experiment_config["profile"] = self.profile
 
@@ -838,8 +820,8 @@ class EcoliSim:
             "ignore",
             message="Incompatible schema "
             "assignment at .+ Trying to assign the value <bound method "
-            "UniqueNumpyUpdater.updater .+ to key updater, which already "
-            "has the value <bound method UniqueNumpyUpdater.updater",
+            r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
+            r"has the value <bound method UniqueNumpyUpdater\.updater",
         )
         self.ecoli_experiment = Engine(**experiment_config)
 
