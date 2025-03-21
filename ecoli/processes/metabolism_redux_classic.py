@@ -516,6 +516,7 @@ class NetworkFlowModel:
             if kinetic_reactions
             else None
         )
+        #self.kinetic_rxns = kinetic_reactions
 
         # steady state indices, secretion indices
         self.intermediates = list(set(self.mets) - set(homeostatic_metabolites))
@@ -584,6 +585,12 @@ class NetworkFlowModel:
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
 
+        # For purF, constrain it to kinetics (TODO (Albert): move to raw data)
+        # purF_kinetic_idx = self.kinetic_rxns.index("PRPPAMIDOTRANS-RXN (reverse)")
+        # purF_rxn_idx = self.rxns.index("PRPPAMIDOTRANS-RXN (reverse)")
+        # constr.append(v[purF_rxn_idx] == kinetic_targets[purF_kinetic_idx, 1])
+
+
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == maintenance_target)
         # If enzymes not present, constrain rxn flux to 0
@@ -594,6 +601,31 @@ class NetworkFlowModel:
 
         loss = 0
         loss += cp.norm1(dm[self.homeostatic_idx] - homeostatic_targets)
+
+        # AMP_GMP_idxs = np.array([self.met_map[x] for x in ['GMP[c]', 'AMP[c]']])
+        # AMP_GMP_hom_mask = np.isin(self.homeostatic_idx, AMP_GMP_idxs)
+        # loss -= cp.norm1(dm[AMP_GMP_idxs] - homeostatic_targets[AMP_GMP_hom_mask])
+        # loss += 1e-1 * cp.norm2(dm[AMP_GMP_idxs]) / cp.norm1(dm[AMP_GMP_idxs])
+        # IMP becomes AMP and GMP via purAB and guaBA.
+        # GMP disappears via degradation, appears via RNA degradation, etc.
+        # GMP is turned into GDP, the main point of flux (2.79 * 10^-1)
+        # If I have no homeostatic weights on AMP or GMP,
+        # but I do weight the dm for AMP and GMP,
+
+        # Ok basically, accounting for all other fluxes, there's a net loss
+        # of GMP, and a net loss of AMP. So AMP should be produced by a
+        # certain flux through purB, and likewise for GMP through guaA.
+        # Now XMP and adenylosuccinate are both intermediates. For
+        # purA, the flux is equal to that through purB. For guaB, the flux
+        # through guaA (through ammonia!?) is a bit more than the flux
+        # through guaB, which mostly is from xanthine salvage from hypoxanthine.
+        # So now, if ADP/ATP/GDP/GTP levels don't change, we want AMP and GMP
+        # to rise if purF gives more flux. We want them to rise or fall
+        # approximately in a balanced manner, and so maybe just weight
+        # their dm a lil bit but squared? This way they'll rise, and
+        # maybe other fluxes will change a lil bit too but that's ok
+        # and could be interesting in its own right (prob not too meaningful though)?
+
         loss += (
             objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
             if "secretion" in objective_weights
