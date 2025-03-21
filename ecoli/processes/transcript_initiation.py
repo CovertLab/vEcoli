@@ -51,6 +51,7 @@ TOPOLOGY = {
     "RNAs": ("unique", "RNA"),
     "active_RNAPs": ("unique", "active_RNAP"),
     "promoters": ("unique", "promoter"),
+    "tf_binding_sites": ("unique", "tf_binding_site"),
     "bulk": ("bulk",),
     "listeners": ("listeners",),
     "timestep": ("timestep",),
@@ -213,6 +214,9 @@ class TranscriptInitiation(PartitionedProcess):
 
         self.n_TUs = len(self.basal_aff)
 
+        # Get two peak TU data
+        self.two_peak_data = self.parameters["two_peak_TU_data"]
+
         # Determine changes from genetic perturbations
         self.genetic_perturbations = {}
         self.perturbations = self.parameters["perturbations"]
@@ -275,6 +279,7 @@ class TranscriptInitiation(PartitionedProcess):
                 "full_chromosomes", emit=self.parameters["emit_unique"]
             ),
             "promoters": numpy_schema("promoters", emit=self.parameters["emit_unique"]),
+            "tf_binding_sites": numpy_schema("tf_binding_sites", emit=self.parameters["emit_unique"]),
             "RNAs": numpy_schema("RNAs", emit=self.parameters["emit_unique"]),
             "active_RNAPs": numpy_schema(
                 "active_RNAPs", emit=self.parameters["emit_unique"]
@@ -348,7 +353,7 @@ class TranscriptInitiation(PartitionedProcess):
 
                 # Get the regulating tf-binding-site index
                 tf_idx = self.two_peak_data['tf_idx'][i]
-                tf_binding_site = self.two_peak_data['tf_binding_site_index'][i]
+                tf_binding_site = self.two_peak_data['tf_binding_site_idx'][i]
                 is_reg_binding_site = (tf_binding_site_index == tf_binding_site)
                 binding_site_domain_idx = tf_binding_site_domain_index[is_reg_binding_site]
                 reg_bound_TF = bound_TF[is_reg_binding_site]
@@ -373,22 +378,23 @@ class TranscriptInitiation(PartitionedProcess):
                 # Change affinities accordingly
                 # TODO: need to think about how to interact with ppGpp regulation and attenuation if
                 # there are genes that overlap
-                TF_is_bound = np.array(TF_is_bound)
-                TU_tf_is_bound = is_reg[TF_is_bound]
-                TU_tf_not_bound = is_reg[~TF_is_bound]
-                final_aff[TU_tf_is_bound] = self.two_peak_data["bound_affinity"]
-                final_aff[TU_tf_not_bound] = self.two_peak_data["unbound_affinity"]
+                reg_idxs = np.where(is_reg)[0]
+                TF_is_bound = np.array(TF_is_bound, dtype=bool)
+                TU_tf_bound_idxs = reg_idxs[TF_is_bound]
+                TU_tf_not_bound_idxs = reg_idxs[~TF_is_bound]
+                final_aff[TU_tf_bound_idxs] = self.two_peak_data["bound_affinity"][i]
+                final_aff[TU_tf_not_bound_idxs] = self.two_peak_data["unbound_affinity"][i]
 
             return final_aff
 
         if states["full_chromosomes"]["_entryState"].sum() > 0:
             # Get attributes of tf-binding sites and promoters
             tf_binding_site_index, tf_binding_site_domain_index, tf_binding_site_bound_TF = attrs(
-                states["tf_binding_site"],
+                states["tf_binding_sites"],
                 ["tf_binding_site_index", "domain_index", "bound_TF"])
 
             promoter_TU_index, promoter_domain_index = attrs(
-                states["promoter"], ["TU_index", "domain_index"]
+                states["promoters"], ["TU_index", "domain_index"]
             )
 
             if self.ppgpp_regulation:
@@ -421,7 +427,8 @@ class TranscriptInitiation(PartitionedProcess):
                 self.fracActiveRnap = self.fracActiveRnapDict[current_media_id]
                 #ppgpp_scale = 1
 
-            self.promoter_init_affs = _apply_TF_effects(basal_aff, tf_binding_site_index, tf_binding_site_domain_index,
+            promoter_basal_affs = basal_aff[promoter_TU_index]
+            self.promoter_init_affs = _apply_TF_effects(promoter_basal_affs, tf_binding_site_index, tf_binding_site_domain_index,
                               tf_binding_site_bound_TF, promoter_TU_index, promoter_domain_index)
 
             # TODO: is this right? might need changing?
@@ -435,7 +442,7 @@ class TranscriptInitiation(PartitionedProcess):
             # Adjust affinities to not be negative
             self.promoter_init_affs[self.promoter_init_affs < 0] = 0.0
 
-            # TODO: fix this part
+            # TODO: might change this part to still keep mRNA total affinities constant?
             if not self.ppgpp_regulation:
                 # Adjust synthesis probabilities depending on environment
                 synthProbFractions = self.rnaSynthProbFractions[current_media_id]
@@ -451,7 +458,7 @@ class TranscriptInitiation(PartitionedProcess):
                     ),
                     promoter_TU_index,
                     group_fixed_indexes=[self.idx_tRNA, self.idx_rRNA],
-                    group_fixed_probs=[synthProbFractions["tRNA"], synthProbFractions["rRNA"]]
+                    group_fixed_probs=[synthProbFractions["tRna"], synthProbFractions["rRna"]]
                 )
 
                 # TODO: what to do about this assert?
@@ -464,7 +471,7 @@ class TranscriptInitiation(PartitionedProcess):
         # If there are no chromosomes in the cell, set all probs to zero
         else:
             self.promoter_init_probs = np.zeros(
-                states["promoters"]["_entryState"].sum()
+                states["promoter"]["_entryState"].sum()
             )
 
         self.rnaPolymeraseElongationRate = self.rnaPolymeraseElongationRateDict[
@@ -708,7 +715,7 @@ class TranscriptInitiation(PartitionedProcess):
 
         return activation_prob
 
-    def _rescale_initiation_affs(self, fixed_indexes, fixed_synth_probs,  TU_index,
+    def _rescale_initiation_affs(self, fixed_indexes, fixed_synth_probs, TU_index,
                                  group_fixed_indexes=None, group_fixed_probs=None):
         """
         Rescales the initiation affinities of indicated promoters such that the
@@ -731,7 +738,7 @@ class TranscriptInitiation(PartitionedProcess):
         # for a more detailed description.
         all_fixed_indexes = np.concatenate(tuple(group_fixed_indexes))
         all_fixed_indexes = np.concatenate((fixed_indexes, all_fixed_indexes))
-        fixed_all_mask = (TU_index in all_fixed_indexes)
+        fixed_all_mask = np.isin(TU_index, all_fixed_indexes)
         sum_other_affinities = self.promoter_init_affs[~fixed_all_mask].sum()
 
         all_fixed_probs = np.concatenate((fixed_synth_probs, group_fixed_probs))
@@ -752,7 +759,7 @@ class TranscriptInitiation(PartitionedProcess):
 
         # Scale group indexes's affinities to match the required sum.
         for idx, group_idxs in enumerate(group_fixed_indexes):
-            fixed_mask = (TU_index in group_idxs)
+            fixed_mask = np.isin(TU_index, group_idxs)
             self.promoter_init_affs[fixed_mask] *= (group_fixed_ks[idx]
                             / self.promoter_init_affs[fixed_mask].sum())
 
@@ -1075,6 +1082,7 @@ def test_transcript_initiation(return_data=False):
         ("domain_index", "<i4"),
         ("unique_index", "<i8"),
     ]
+    # TODO: fix this with new tf_binding_sites, etc.
     initial_state = {
         "environment": {"media_id": "minimal"},
         "bulk": np.array(

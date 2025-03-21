@@ -48,8 +48,8 @@ USE_UINT16 = {
     "listeners__complexation_listener__complexation_events",
     "listeners__rnap_data__active_rnap_n_bound_ribosomes",
     "listeners__rnap_data__active_rnap_domain_indexes",
-    "listeners__rna_synth_prob__bound_TF_indexes",
-    "listeners__rna_synth_prob__bound_TF_domains",
+    #"listeners__rna_synth_prob__bound_TF_indexes",
+    #"listeners__rna_synth_prob__bound_TF_domains",
 }
 """uint16 is 4x smaller than int64 for values between 0 - 65,535."""
 

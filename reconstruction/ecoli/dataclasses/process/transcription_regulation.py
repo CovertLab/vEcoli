@@ -22,8 +22,9 @@ class TranscriptionRegulation(object):
     """
 
     def __init__(self, raw_data, sim_data):
-        # Build lookups
+        # Build lookups and oric, terc coordinates
         self._build_lookups(raw_data)
+        self._build_oric_terc_coordinates(raw_data, sim_data)
 
         # Store list of transcription factor IDs
         self.tf_ids = list(sorted(sim_data.tf_to_active_inactive_conditions.keys()))
@@ -87,47 +88,12 @@ class TranscriptionRegulation(object):
         """
         return float(signal) ** power / (float(signal) ** power + float(Kd) ** power)
 
-    def get_delta_aff_matrix(
-        self, dense=False, ppgpp=False
-    ) -> Union[sparse.csr_matrix, np.ndarray]:
-        """
-        Returns the delta affinity matrix mapping the promoter binding effect
-        of each TF to each gene.
-
-        Args:
-                dense: If True, returns a dense matrix, otherwise csr sparse
-                ppgpp: If True, normalizes delta affinities to be on the same
-                        scale as ppGpp normalized affinities since delta_aff is
-                        calculated based on basal_aff which is not normalized to 1
-
-        Returns:
-                delta_aff: matrix of affinities changes expected with a TF
-                        binding to a promoter for each gene (n genes, m TFs)
-        """
-
-        ppgpp_scaling = self.basal_aff[self.delta_aff["deltaI"]]
-        ppgpp_scaling[ppgpp_scaling == 0] = 1
-        scaling_factor = ppgpp_scaling if ppgpp else 1.0
-        delta_aff = sparse.csr_matrix(
-            (
-                self.delta_aff["deltaV"] / scaling_factor,
-                (self.delta_aff["deltaI"], self.delta_aff["deltaJ"]),
-            ),
-            shape=self.delta_aff["shape"],
-        )
-
-        if dense:
-            delta_aff = delta_aff.toarray()
-
-        return delta_aff
-
     def get_tf_binding_unbinding_matrices(self, dense=False) -> (Union[sparse.csr_matrix, np.ndarray],
             Union[sparse.csr_matrix, np.ndarray]):
         """
         Returns the binding and unbinding rate matrices mapping each TF to each binding site.
         """
         assert self._binding_rates_shape == self._unbinding_rates_shape
-
         binding_rates = sparse.csr_matrix(
             (
                 self._binding_rates_v,
@@ -164,8 +130,14 @@ class TranscriptionRegulation(object):
         self._unbinding_rates_j = []
         self._unbinding_rates_v = []
         self._unbinding_rates_shape = (len(self.tf_binding_site_ids), len(self.tf_ids))
+
+        binding_site_ids = []
         for row in raw_data.tf_binding_site_rates:
             binding_site_id = row["binding_site_id"]
+            if binding_site_id in binding_site_ids:
+                raise Exception("Duplicated binding site id in tf_binding_site_rates.tsv")
+            binding_site_ids.append(binding_site_id)
+
             tf_id = row["TF"]
             binding_rate = row["binding_rate"]
             unbinding_rate = row["unbinding_rate"]
@@ -175,11 +147,11 @@ class TranscriptionRegulation(object):
 
             self._binding_rates_i.append(binding_site_idx)
             self._binding_rates_j.append(tf_idx)
-            self._binding_rates_v.append(binding_rate)
+            self._binding_rates_v.append(binding_rate.asNumber(1/units.s))
 
             self._unbinding_rates_i.append(binding_site_idx)
             self._unbinding_rates_j.append(tf_idx)
-            self._unbinding_rates_v.append(unbinding_rate)
+            self._unbinding_rates_v.append(unbinding_rate.asNumber(1/units.s))
 
     def _build_lookups(self, raw_data):
         """
@@ -260,19 +232,24 @@ class TranscriptionRegulation(object):
         # is either a gene or TU within one of the raw data flat files. If
         # it's not in tu_to_genes or gene_to_tus, it's because it corresponds
         # to a removed TU.
+
+        tf_bind_site_with_rates = [x["binding_site_id"] for x in raw_data.tf_binding_site_rates]
         tf_bind_site_to_tus = {}
         tf_bind_site_to_tfs = {}
         for row in raw_data.tf_binding_sites:
-            curated_tus = []
-            tus_or_genes = row["regulated_TUs_or_genes"]
-            for x in tus_or_genes:
-                if x in tu_to_genes:
-                    curated_tus.append(x)
-                elif x in gene_to_tus:
-                    curated_tus.extend(gene_to_tus[x])
+            # NOTE: we only save binding sites which have binding/unbinding rates
+            # TODO: maybe remove this (will have to work around coordinates issue below)
+            if row["binding_site_id"] in tf_bind_site_with_rates:
+                curated_tus = []
+                tus_or_genes = row["regulated_TUs_or_genes"]
+                for x in tus_or_genes:
+                    if x in tu_to_genes:
+                        curated_tus.append(x)
+                    elif x in gene_to_tus:
+                        curated_tus.extend(gene_to_tus[x])
 
-            tf_bind_site_to_tus[row["binding_site_id"]] = curated_tus
-            tf_bind_site_to_tfs[row["binding_site_id"]] = row["binding_TFs"]
+                tf_bind_site_to_tus[row["binding_site_id"]] = curated_tus
+                tf_bind_site_to_tfs[row["binding_site_id"]] = row["binding_TFs"]
 
         self.tf_bind_site_to_tus = tf_bind_site_to_tus
         self.tf_bind_site_to_tfs = tf_bind_site_to_tfs
@@ -280,7 +257,10 @@ class TranscriptionRegulation(object):
 
         tf_bind_site_to_coords = {x["binding_site_id"]: x["coordinates"]
                                   for x in raw_data.tf_binding_sites}
-        self.tf_binding_site_coords = np.array([tf_bind_site_to_coords[x] for x in self.tf_binding_site_ids])
+        # TODO: this will break if a binding site with rates has no coordinate (some binding sites have no annotated coordinate)
+        # Maybe insert the coordinate of a TU or gene it regulates?
+        raw_tf_binding_site_coords = [int(tf_bind_site_to_coords[x]) for x in self.tf_binding_site_ids]
+        self.tf_binding_site_coords = np.array([self._get_relative_coordinates(x) for x in raw_tf_binding_site_coords])
 
     def _initialize_one_peak_genes(self, raw_data):
         gene_symbol_to_id = {x["symbol"]: x["id"] for x in raw_data.genes}
@@ -358,7 +338,7 @@ class TranscriptionRegulation(object):
             "unbound_affinity": None,
             "bound_affinity": None,
             "condition": None,
-            "tf_binding_site_index": None,
+            "tf_binding_site_idx": None,
         }
 
     def set_TF_reg_operons(self, sim_data):
@@ -494,6 +474,11 @@ class TranscriptionRegulation(object):
             # Get TF that regulates these TUs (should only be one, and matches the TF idx in two_peak_gene_data)
             regulating_TFs = np.where(tf_binding_site_TF_matrix[tf_binding_site_idx, :] == 1)[0]
             regulated_TUs = np.where(tf_binding_site_TU_matrix[tf_binding_site_idx, :] == 1)[0]
+            # Remove TUs that are regulated by the binding site but not part of the same operon as the cistron
+            # (e.g. for divergently transcribed operons)
+            regulated_TUs = regulated_TUs[np.isin(regulated_TUs, two_peak_cistron_idx_to_operon_TUs[idx])]
+
+            # Check there's only one TF and TF-binding site
             if len(regulating_TFs) != 1:
                 raise ValueError("Two-peak cistron must be regulated by only one TF")
             if regulating_TFs[0] != self.two_peak_gene_data["tf_idx"][i]:

@@ -151,7 +151,7 @@ class TFLigandBinding(PartitionedProcess):
         ligand_concs = ligand_counts * counts_to_conc
 
         bound_frac = self.ligand_bound_fraction(ligand_concs)
-        target_bound_tfs = total_tf_counts * bound_frac
+        target_bound_tfs = total_tf_counts.astype(float) * bound_frac
         target_rxn_fluxes = target_bound_tfs - bound_tf_counts.astype(float)
         bound_tf_coeffs = np.array([self.stoich_matrix[i, idx] for i, idx in enumerate(self.bound_tf_idxs)]).astype(float)
         target_rxn_fluxes /= bound_tf_coeffs

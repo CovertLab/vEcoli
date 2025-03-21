@@ -839,7 +839,8 @@ def initialize_transcription_factors(
     # TODO: get actual second-order rate constant, also what are units supposed to be?
     # TODO: Consider concentration of binding site on DNA, etc.?
     # Get binding and unbinding rates based on present tf-binding sites
-    raw_binding_rates_matrix, raw_unbinding_rates_matrix = transcription_regulation.get_binding_unbinding_matrices(dense=True)
+    raw_binding_rates_matrix, raw_unbinding_rates_matrix = transcription_regulation.get_tf_binding_unbinding_matrices(
+        dense=True)
     binding_rates = raw_binding_rates_matrix[tf_binding_site_index, :]
     unbinding_rates = raw_unbinding_rates_matrix[tf_binding_site_index, :]
     rate_ratio = binding_rates / unbinding_rates
@@ -860,7 +861,7 @@ def initialize_transcription_factors(
         nonzero_mask = (ratio != 0)
         nonzero_ratios = ratio[nonzero_mask]
         # Solve linear equation
-        M = np.zeros(len(nonzero_ratios), len(nonzero_ratios))
+        M = np.zeros((len(nonzero_ratios), len(nonzero_ratios)))
         for k in range(len(nonzero_ratios)):
             M[k, :] = nonzero_ratios[k]
             M[k, k] += 1
@@ -871,7 +872,7 @@ def initialize_transcription_factors(
         is_bound = random_state.binomial(len(fraction_bound), fraction_bound)
         if np.sum(is_bound) > tf_count:
             is_bound = np.zeros(len(fraction_bound), dtype=bool)
-            is_bound[random_state.choice(len(fraction_bound), tf_count, p=fraction_bound, replace=False)] = 1
+            is_bound[random_state.choice(len(fraction_bound), tf_count, p=normalize(fraction_bound), replace=False)] = 1
 
         # Update bound_TF array and TF counts
         active_tf_view[idx] -= np.sum(is_bound)
@@ -883,13 +884,13 @@ def initialize_transcription_factors(
     bulk_state["count"][active_tf_view_idx] = active_tf_view
 
     # Update tf-binding-site objects
-    unique_molecules["tf_binding_sites"]["bound_TF"] = bound_TF
+    unique_molecules["tf_binding_site"]["bound_TF"] = bound_TF
 
     mass_diff = active_tf_masses[bound_TF, :]
     binding_site_is_free = (bound_TF == transcription_regulation.unbound_tf_binding_site_idx)
-    mass_diff[binding_site_is_free, :] = 0. * units.fg  # TODO: get units from somewhere
+    mass_diff[binding_site_is_free, :] = 0.
     for submass, i in sim_data.submass_name_to_index.items():
-        unique_molecules["tf_binding_sites"][f"massDiff_{submass}"] = mass_diff[:, i]
+        unique_molecules["tf_binding_site"][f"massDiff_{submass}"] = mass_diff[:, i]
 
 
 def initialize_transcription(
@@ -951,7 +952,7 @@ def initialize_transcription(
 
             # Get the regulating tf-binding-site index
             tf_idx = two_peak_data['tf_idx'][i]
-            tf_binding_site = two_peak_data['tf_binding_site_index'][i]
+            tf_binding_site = two_peak_data['tf_binding_site_idx'][i]
             is_reg_binding_site = (tf_binding_site_index == tf_binding_site)
             binding_site_domain_idx = tf_binding_site_domain_index[is_reg_binding_site]
             reg_bound_TF = bound_TF[is_reg_binding_site]
@@ -976,11 +977,14 @@ def initialize_transcription(
             # Change affinities accordingly
             # TODO: need to think about how to interact with ppGpp regulation and attenuation if
             # there are genes that overlap
-            TF_is_bound = np.array(TF_is_bound)
-            TU_tf_is_bound = is_reg[TF_is_bound]
-            TU_tf_not_bound = is_reg[~TF_is_bound]
-            final_aff[TU_tf_is_bound] = two_peak_data["bound_affinity"]
-            final_aff[TU_tf_not_bound] = two_peak_data["unbound_affinity"]
+            reg_idxs = np.where(is_reg)[0]
+            TF_is_bound = np.array(TF_is_bound, dtype=bool)
+            TU_tf_bound_idxs = reg_idxs[TF_is_bound]
+            TU_tf_not_bound_idxs = reg_idxs[~TF_is_bound]
+            final_aff[TU_tf_bound_idxs] = two_peak_data["bound_affinity"][i]
+            final_aff[TU_tf_not_bound_idxs] = two_peak_data["unbound_affinity"][i]
+
+        return final_aff
 
     # Get attributes of promoters and tf-binding sites
     tf_binding_site_index, tf_binding_site_domain_index, tf_binding_site_bound_TF = attrs(
@@ -994,9 +998,7 @@ def initialize_transcription(
     if ppgpp_regulation:
         doubling_time = sim_data.condition_to_doubling_time[sim_data.condition]
         ppgpp_conc = sim_data.growth_rate_parameters.get_ppGpp_conc(doubling_time)
-        basal_aff, _ = transcription.synth_aff_from_ppgpp(
-            ppgpp_conc
-        )
+        basal_aff = transcription.synth_aff_from_ppgpp(ppgpp_conc)
         if trna_attenuation:
             # TODO: might need to switch order with TF-effects if there are overlapping genes
             # since TF-effects overrides this
@@ -1022,7 +1024,8 @@ def initialize_transcription(
         ]
         # ppgpp_scale = 1
 
-    promoter_init_affs = _apply_TF_effects(basal_aff, tf_binding_site_index, tf_binding_site_domain_index,
+    promoter_basal_affs = basal_aff[promoter_TU_index]
+    promoter_init_affs = _apply_TF_effects(promoter_basal_affs, tf_binding_site_index, tf_binding_site_domain_index,
                       tf_binding_site_bound_TF, promoter_TU_index, promoter_domain_index)
 
     # Determine changes from genetic perturbations

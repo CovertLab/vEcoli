@@ -48,6 +48,7 @@ TOPOLOGY = {
         "full_chromosome",
     ),
     "promoters": ("unique", "promoter"),
+    "tf_binding_sites": ("unique", "tf_binding_site"),
     "DnaA_boxes": ("unique", "DnaA_box"),
     "genes": ("unique", "gene"),
     # TODO(vivarium): Only include if superhelical density flag is passed
@@ -83,6 +84,7 @@ class ChromosomeStructure(Step):
         "fragmentBases": [],
         "ppi": "ppi",
         "active_tfs": [],
+        "unbound_tf_binding_site_idx": -1,
         "ribosome_30S_subunit": "30S",
         "ribosome_50S_subunit": "50S",
         "amino_acids": [],
@@ -116,6 +118,7 @@ class ChromosomeStructure(Step):
         self.unprocessed_rna_index_mapping = self.parameters[
             "unprocessed_rna_index_mapping"
         ]
+        self.unbound_tf_binding_site_idx = self.parameters["unbound_tf_binding_site_idx"]
 
         # Load sim options
         self.calculate_superhelical_densities = self.parameters[
@@ -182,6 +185,7 @@ class ChromosomeStructure(Step):
                 "full_chromosomes", emit=self.parameters["emit_unique"]
             ),
             "promoters": numpy_schema("promoters", emit=self.parameters["emit_unique"]),
+            "tf_binding_sites": numpy_schema("tf_binding_sites", emit=self.parameters["emit_unique"]),
             "DnaA_boxes": numpy_schema(
                 "DnaA_boxes", emit=self.parameters["emit_unique"]
             ),
@@ -292,9 +296,16 @@ class ChromosomeStructure(Step):
             promoter_TU_indexes,
             promoter_domain_indexes,
             promoter_coordinates,
-            promoter_bound_TFs,
         ) = attrs(
-            states["promoters"], ["TU_index", "domain_index", "coordinates", "bound_TF"]
+            states["promoters"], ["TU_index", "domain_index", "coordinates"]
+        )
+        (
+            tf_binding_site_indexes,
+            tf_binding_site_domain_indexes,
+            tf_binding_site_coordinates,
+            tf_binding_site_bound_TF,
+        ) = attrs(
+            states["tf_binding_sites"], ["tf_binding_site_index", "domain_index", "coordinates", "bound_TF"]
         )
         (gene_cistron_indexes, gene_domain_indexes, gene_coordinates) = attrs(
             states["genes"], ["cistron_index", "domain_index", "coordinates"]
@@ -359,6 +370,9 @@ class ChromosomeStructure(Step):
         removed_promoters_mask = get_removed_molecules_mask(
             promoter_domain_indexes, promoter_coordinates
         )
+        removed_tf_binding_sites_mask = get_removed_molecules_mask(
+            tf_binding_site_domain_indexes, tf_binding_site_coordinates
+        )
         removed_genes_mask = get_removed_molecules_mask(
             gene_domain_indexes, gene_coordinates
         )
@@ -411,6 +425,7 @@ class ChromosomeStructure(Step):
             "promoters": {},
             "genes": {},
             "DnaA_boxes": {},
+            "tf_binding_sites": {},
         }
 
         if self.calculate_superhelical_densities:
@@ -763,13 +778,13 @@ class ChromosomeStructure(Step):
             # Delete original promoters
             update["promoters"].update({"delete": np.where(removed_promoters_mask)[0]})
 
-            # Add freed active tfs
-            update["bulk"].append(
-                (
-                    self.active_tfs_idx,
-                    promoter_bound_TFs[removed_promoters_mask, :].sum(axis=0),
-                )
-            )
+            # # Add freed active tfs
+            # update["bulk"].append(
+            #     (
+            #         self.active_tfs_idx,
+            #         promoter_bound_TFs[removed_promoters_mask, :].sum(axis=0),
+            #     )
+            # )
 
             # Set up attributes for the replicated promoters
             promoter_TU_indexes_new = np.repeat(
@@ -791,9 +806,49 @@ class ChromosomeStructure(Step):
                         "TU_index": promoter_TU_indexes_new,
                         "coordinates": promoter_coordinates_new,
                         "domain_index": promoter_domain_indexes_new,
-                        "bound_TF": np.zeros(
-                            (n_new_promoters, self.n_TFs), dtype=np.bool_
-                        ),
+                    }
+                }
+            )
+
+        ##############################
+        # Replicate tf-binding sites #
+        ##############################
+        n_new_tf_binding_sites = 2 * np.count_nonzero(removed_tf_binding_sites_mask)
+
+        if n_new_tf_binding_sites > 0:
+            # Delete original tf_binding_sites
+            update["tf_binding_sites"].update({"delete": np.where(removed_tf_binding_sites_mask)[0]})
+
+            # TODO: decide whether to keep this or prevent replisome from removing TFs?
+            # Add freed active tfs
+            update["bulk"].append(
+                 (
+                     self.active_tfs_idx,
+                     [np.sum((tf_binding_site_bound_TF == i)) for i in range(len(self.active_tfs))]
+                 )
+            )
+
+            # Set up attributes for the replicated TF binding sites
+            tf_binding_site_indexes_new = np.repeat(
+                tf_binding_site_indexes[removed_tf_binding_sites_mask], 2
+            )
+            (tf_binding_site_coordinates_new, tf_binding_site_domain_indexes_new) = (
+              get_replicated_motif_attributes(
+                    tf_binding_site_coordinates[removed_tf_binding_sites_mask],
+                    tf_binding_site_domain_indexes[removed_tf_binding_sites_mask],
+                )
+            )
+
+            # Add new TF binding sites with new domain indexes
+            tf_binding_site_indices = create_unique_indexes(n_new_tf_binding_sites, self.random_state)
+            update["tf_binding_sites"].update(
+                {
+                    "add": {
+                        "unique_index": tf_binding_site_indices,
+                        "tf_binding_site_index": tf_binding_site_indexes_new,
+                        "coordinates": tf_binding_site_coordinates_new,
+                        "domain_index": tf_binding_site_domain_indexes_new,
+                        "bound_TF": np.ones(len(tf_binding_site_indices)) * self.unbound_tf_binding_site_idx,
                     }
                 }
             )

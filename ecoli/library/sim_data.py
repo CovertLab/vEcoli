@@ -564,7 +564,7 @@ class LoadSimData:
 
     def get_config_by_name(self, name, time_step=1, parallel=False):
         name_config_mapping = {
-            "ecoli-tf-binding": self.get_tf_config,
+            "ecoli-tf-binding": self.get_tf_binding_config,
             "ecoli-transcript-initiation": self.get_transcript_initiation_config,
             "ecoli-transcript-elongation": self.get_transcript_elongation_config,
             "ecoli-rna-degradation": self.get_rna_degradation_config,
@@ -670,6 +670,7 @@ class LoadSimData:
             "time_step": time_step,
             "_parallel": parallel,
             "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
+            "rna_ids": self.sim_data.process.transcription.rna_data["id"],
             "get_binding_unbinding_matrices": self.sim_data.process.transcription_regulation.get_tf_binding_unbinding_matrices,
             "tf_binding_site_unbound_idx": self.sim_data.process.transcription_regulation.unbound_tf_binding_site_idx,
             "get_tf_binding_site_to_TU_matrix": self.sim_data.relation.tf_binding_site_to_tus_mapping,
@@ -701,6 +702,7 @@ class LoadSimData:
             "make_elongation_rates": self.sim_data.process.transcription.make_elongation_rates,
             "active_rnap_footprint_size": self.sim_data.process.transcription.active_rnap_footprint_size,
             "basal_aff": self.sim_data.process.transcription_regulation.basal_aff,
+            "two_peak_TU_data": self.sim_data.process.transcription_regulation.two_peak_TU_data,
             "perturbations": getattr(self.sim_data, "genetic_perturbations", {}),
             "rna_data": self.sim_data.process.transcription.rna_data,
             "idx_rRNA": np.where(
@@ -1596,6 +1598,7 @@ class LoadSimData:
             "active_tfs": [
                 x + "[c]" for x in self.sim_data.process.transcription_regulation.tf_ids
             ],
+            "unbound_tf_binding_site_idx": self.sim_data.process.transcription_regulation.unbound_tf_binding_site_idx,
             "ribosome_30S_subunit": self.sim_data.molecule_ids.s30_full_complex,
             "ribosome_50S_subunit": self.sim_data.molecule_ids.s50_full_complex,
             "amino_acids": self.sim_data.molecule_groups.amino_acids,

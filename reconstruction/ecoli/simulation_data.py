@@ -30,6 +30,7 @@ from reconstruction.ecoli.dataclasses.growth_rate_dependent_parameters import (
 from reconstruction.ecoli.dataclasses.relation import Relation
 from reconstruction.ecoli.dataclasses.adjustments import Adjustments
 from wholecell.utils.fitting import normalize
+from wholecell.utils import units
 
 
 VERBOSE = False
@@ -332,29 +333,29 @@ class SimulationDataEcoli(object):
                         expression for (eg. 'basal', 'with_aa', etc)
         """
 
-        ppgpp = self.growth_rate_parameters.get_ppGpp_conc(
-            self.condition_to_doubling_time[condition]
-        )
-        delta_aff = self.process.transcription_regulation.get_delta_aff_matrix(
-            ppgpp=True
-        )
-        p_promoter_bound = np.array(
-            [
-                self.pPromoterBound[condition][tf]
-                for tf in self.process.transcription_regulation.tf_ids
-            ]
-        )
-        delta = delta_aff @ p_promoter_bound
-        aff, factor = self.process.transcription.synth_aff_from_ppgpp(
-            ppgpp, self.process.replication.get_average_copy_number
-        )
-        rna_expression = aff * (1 + delta) / factor
+        tau = self.condition_to_doubling_time[condition]
+        ppgpp = self.growth_rate_parameters.get_ppGpp_conc(tau)
 
-        # For cases with no basal ppGpp expression, assume the delta prob is the
-        # same as without ppGpp control
-        mask = aff == 0
-        rna_expression[mask] = delta[mask] / factor[mask]
+        aff = self.process.transcription.synth_aff_from_ppgpp(ppgpp)
+        two_peak_data = self.process.transcription_regulation.two_peak_TU_data
+        for i, TU_idx in enumerate(two_peak_data["TU_idx"]):
+            condition_info = two_peak_data["condition"][i]
+            if condition in condition_info["bound"]:
+                aff[TU_idx] = two_peak_data["bound_affinity"][i]
+            elif condition in condition_info["unbound"]:
+                aff[TU_idx] = two_peak_data["unbound_affinity"][i]
+            else:
+                raise ValueError("Condition not in two_peak_TU_data for TU idx {}".format(
+                    str(TU_idx)))
 
+        # Calculate RNA expression by accounting for copy number and loss rates
+        growth = (np.log(2) / tau).asNumber(1 / units.s)
+        loss = growth + self.process.transcription.rna_data['deg_rate'].asNumber(1 / units.s)
+        n_avg_copy = self.process.replication.get_average_copy_number(
+            tau.asNumber(units.min), self.process.transcription.rna_data['replication_coordinate'])
+        rna_expression = aff * (n_avg_copy / loss)
+
+        # Remove negative values of RNA expression, and normalize
         rna_expression[rna_expression < 0] = 0
         return normalize(rna_expression)
 

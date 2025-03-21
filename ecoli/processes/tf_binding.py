@@ -29,7 +29,7 @@ from ecoli.processes.registries import topology_registry
 # Register default topology for this process, associating it with process name
 NAME = "ecoli-tf-binding"
 TOPOLOGY = {
-    "promoters": ("unique", "promoter"),
+    "tf_binding_sites": ("unique", "tf_binding_site"),
     "bulk": ("bulk",),
     "listeners": ("listeners",),
     "timestep": ("timestep",),
@@ -46,6 +46,7 @@ class TfBinding(Step):
     topology = TOPOLOGY
     defaults = {
         "tf_ids": [],
+        "rna_ids": [],
         "get_binding_unbinding_matrices": None,
         "tf_binding_site_unbound_idx": -1,
         "get_tf_binding_site_to_TU_matrix": None,
@@ -84,20 +85,15 @@ class TfBinding(Step):
         self.tf_ids = self.parameters["tf_ids"]
         self.n_TF = len(self.tf_ids)
 
+        # Get rna_ids
+        self.rna_ids = self.parameters["rna_ids"]
+        self.n_TU = len(self.rna_ids)
+
         self.get_binding_unbinding_matrices = self.parameters["get_binding_unbinding_matrices"]
         self.tf_unbound_idx = self.parameters["tf_binding_site_unbound_idx"]
 
-        # Get total counts of transcription units
-        #self.n_TU = self.raw_binding_rates["shape"][0]
-        # Get total number of binding sites that a given TF can bind to, by looking at binding matrices
-        binding_rates, _ = self.get_binding_unbinding_matrices()
-        can_bind = (binding_rates.asNumber() > 0.).astype(int)
-        self.n_binding_sites_per_TF = np.sum(can_bind, axis=0)
-
         # Get tf-binding-site to TUs mapping matrix
         self.get_tf_binding_site_to_TU_matrix = self.parameters["get_tf_binding_site_to_TU_matrix"]
-        tf_binding_site_to_TU_matrix = self.get_tf_binding_site_to_TU_matrix(dense=True)
-        self.n_TU = np.size(tf_binding_site_to_TU_matrix)[1]
 
         # Get constants
         self.n_avogadro = self.parameters["n_avogadro"]
@@ -133,7 +129,7 @@ class TfBinding(Step):
             self.marR_tet = "marR-tet[c]"
         self.submass_indices = self.parameters["submass_indices"]
 
-        self.time_step = self.parameters["time_step"] * units.s # TODO: where to get units?
+        self.time_step = self.parameters["time_step"] # TODO: where to save that units are units.s?
 
     def ports_schema(self):
         return {
@@ -198,12 +194,11 @@ class TfBinding(Step):
             return {"tf_binding_sites": {}}
 
         # Get attributes of all TF-binding sites
-        binding_site_index, bound_TF = attrs(states["tf_binding_site"], [
+        binding_site_index, bound_TF = attrs(states["tf_binding_sites"], [
             "tf_binding_site_index", "bound_TF"])
 
         new_bound_TF = copy.deepcopy(bound_TF)
         binding_site_is_free = (new_bound_TF == self.tf_unbound_idx)
-
         n_available_binding_sites = np.zeros(self.n_TF, dtype=int)
         n_bound_binding_sites = np.zeros(self.n_TF, dtype=int)
         n_binding_events = np.zeros(self.n_TF, dtype=int)
@@ -231,6 +226,11 @@ class TfBinding(Step):
         binding_rates = raw_binding_rates_matrix[binding_site_index, :]
         unbinding_rates = raw_unbinding_rates_matrix[binding_site_index, :]
 
+        # For listener: get total number of (bound or unbound) binding sites that a given TF could bind to,
+        # by looking at binding matrices
+        can_bind = (binding_rates > 0.).astype(int)
+        n_binding_sites_per_TF = np.sum(can_bind, axis=0)
+
         # TODO: figure out whether can simplify using these nonzero stuff?
         # binding_rates_nonzero_idxs = np.nonzero(binding_rates)
         # unbinding_rates_nonzero_idxs = np.nonzero(unbinding_rates)
@@ -240,7 +240,7 @@ class TfBinding(Step):
         # Calculate final binding rates accounting for reactant concentrations
         binding_rates_final = np.multiply(binding_rates, active_tf_counts)
         # TODO: how to ensure they're multiplying on the right axis?
-        binding_rates_final = np.multiply(binding_rates_final, binding_site_is_free)
+        binding_rates_final[~binding_site_is_free, :] = 0.
 
         # Run Gillespie simulation for binding reactions for the length of timestep
         rxn_time = 0
@@ -253,7 +253,7 @@ class TfBinding(Step):
             rxn_time += 1/total_rates * np.log(1/r1)
 
             # If we surpass the current timestep, don't perform reaction
-            if rxn_time > (self.time_step).asNumber(units.min):
+            if rxn_time > self.time_step:
                 break
 
             # Choose a reaction to perform
@@ -266,7 +266,7 @@ class TfBinding(Step):
 
             # Decrement the TF (given by column index), change the bound_TF
             assert active_tf_counts[rxn_index[1]] > 0
-            assert (binding_site_is_free[rxn_index[0], rxn_index[1]] == True)
+            assert binding_site_is_free[rxn_index[0]]
             active_tf_counts[rxn_index[1]] -= 1
             new_bound_TF[rxn_index[0]] = rxn_index[1]
             binding_site_is_free[rxn_index[0]] = False
@@ -276,21 +276,21 @@ class TfBinding(Step):
 
             # Recalculate binding rates for next step
             binding_rates_final = np.multiply(binding_rates, active_tf_counts)
-            binding_rates_final = np.multiply(binding_rates_final, binding_site_is_free)
+            binding_rates_final[~binding_site_is_free, :] = 0.
 
         # Unbinding
-        final_unbinding_rates = []
+        # Create unbinding rates array from bound TFs; units are 1/min
+        unbinding_rates_final = []
         for i, tf_idx in enumerate(bound_TF):
             if tf_idx != self.tf_unbound_idx:
-                final_unbinding_rates.append(unbinding_rates[i, tf_idx])
+                unbinding_rates_final.append(unbinding_rates[i, tf_idx])
             else:
-                final_unbinding_rates.append(0./units.min)
-        # Only one TF can bind per site
-        unbinding_rates = np.sum(unbinding_rates, axis=1)
+                unbinding_rates_final.append(0.)
+
         # Poisson distribution for probability of event occurring
         unbinding_events = self.random_state.poisson(
-            self.time_step.asNumber(units.min) * unbinding_rates,
-            size=len(unbinding_rates))
+            self.time_step / 60 * np.array(unbinding_rates_final), # TODO: where to save units of seconds for self.time_step?
+            size=len(unbinding_rates_final))
         # At most one event can occur
         unbinding_events = (unbinding_events > 0)
 
@@ -308,9 +308,9 @@ class TfBinding(Step):
 
         # Update tf-binding-site objects
         mass_start = self.active_tf_masses[bound_TF, :]
-        mass_start[(bound_TF == self.tf_unbound_idx), :] = 0. * units.fg
+        mass_start[(bound_TF == self.tf_unbound_idx), :] = 0.
         mass_end = self.active_tf_masses[new_bound_TF, :]
-        mass_end[binding_site_is_free, :] = 0. * units.fg # TODO: get units from somewhere
+        mass_end[binding_site_is_free, :] = 0.
         mass_diffs = mass_end - mass_start
         submass_update = {
             submass: attrs(states["tf_binding_sites"], [submass])[0] + mass_diffs[:, i]
@@ -330,11 +330,12 @@ class TfBinding(Step):
         # 2. For each TU, how many of each kind of TF is bound to it by the end.
         n_bound_binding_sites = np.array([len(np.where(new_bound_TF == idx)[0])
                                  for idx in range(self.n_TF)])
-        n_available_binding_sites = self.n_binding_sites_per_TF - n_bound_binding_sites
+        n_available_binding_sites = n_binding_sites_per_TF - n_bound_binding_sites
 
-        tf_binding_site_to_TU_matrix = self.get_tf_binding_site_to_TU_matrix(dense=True)
+        tf_binding_site_to_TU_matrix = self.get_tf_binding_site_to_TU_matrix()
         for i in range(self.n_TU):
-            tfs_bound = new_bound_TF[tf_binding_site_to_TU_matrix[:, i]]
+            binding_sites_of_TU = tf_binding_site_to_TU_matrix[:, i].astype(bool)
+            tfs_bound = new_bound_TF[binding_sites_of_TU[binding_site_index]]
             for tf_idx in tfs_bound:
                 if tf_idx != self.tf_unbound_idx:
                     n_bound_TF_per_TU[i, tf_idx] += 1
