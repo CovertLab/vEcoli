@@ -6,10 +6,14 @@ import matplotlib.pyplot as plt
 import csv
 import scipy.cluster as cluster
 import scipy.spatial as spatial
-from explore_rnaseq import OUTPUT_DIR, BASE_DIR
+import json
+
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+OUTPUT_DIR = os.path.join(BASE_DIR, 'plots')
 
 # interesting notes: ada does +/- autoregulation, weird, ask Markus?
 # araC also does some +/- regulation
+
 # bglG does attenuation on its 3 genes (postiive, so when bglG active, it turns on its own)
 # bolA has some +/- stuff (it says it binds, but doesn't say what direction)
 # chbR has +/- tho it seems legit (maybe coming from a ligand?)
@@ -387,7 +391,7 @@ class EcocycReg(object):
         self.gene_synonyms = gene_synonyms
     # TODO: fix duplication, what if there r genes where the same javi's repo gene is a synonym for multiple genes in ecocyc?
 
-    def init_transcr_reg_data(self, write_file):
+    def init_transcr_reg_data(self, write_file=None):
         binding_site_to_evidence = {}
         binding_site_to_tf = {}
         with open(os.path.join(BASE_DIR, "tf-binding-site-evidence-codes.tsv"), 'r') as f:
@@ -466,20 +470,23 @@ class EcocycReg(object):
         self.all_tfs = np.array(sorted(list(all_tfs)))
         self.gene_to_tf_evidence = gene_to_tf_evidence
 
-        direct_exp_ev = set()
-        expression_exp_ev = set()
+        direct_expression_ev = set()
+        direct_binding_ev = set()
         comp_ev = set()
-        high_throughput_exp_ev = set()
-        no_direct_ev = set()
+        htp_expression_ev = set()
+        htp_binding_ev = set()
+        person_statement = set()
         for ev in all_evidence:
             if ev[:10] == "EV-EXP-IDA":
-                direct_exp_ev.add(ev)
+                direct_binding_ev.add(ev)
             elif ev[:10] == "EV-EXP-IMP":
-                direct_exp_ev.add(ev)
+                # TODO: what to do about this?
+                direct_expression_ev.add(ev)
+                direct_binding_ev.add(ev)
             elif ev[:7] == "EV-COMP":
                 comp_ev.add(ev)
             elif ev[:11] == "EV-EXP-CHIP":
-                high_throughput_exp_ev.add(ev)
+                htp_binding_ev.add(ev)
             elif ev in ["EV-EXP-IEP-GENE-EXPRESSION-ANALYSIS",
                         "EV-EXP-IEP-GFP",
                         "EV-EXP-IEP-LUCIFERASE",
@@ -490,20 +497,22 @@ class EcocycReg(object):
                         "EV-EXP-IEP-QRTPCR",
                         "EV-EXP-IEP-RTPCR"
                         ]:
-                expression_exp_ev.add(ev)
+                direct_expression_ev.add(ev)
             elif ev in ["EV-EXP-IEP-MICROARRAY",
-                        "EV-EXP-IEP-RNA-SEQ",
-                        "EV-HTP-HDA-3D-SEQ",
-                        "EV-EXP-GSELEX"
-                        ]:
-                high_throughput_exp_ev.add(ev)
+                        "EV-EXP-IEP-RNA-SEQ"]:
+                htp_expression_ev.add(ev)
+            elif ev in ["EV-HTP-HDA-3D-SEQ",
+                        "EV-EXP-GSELEX"]:
+                htp_binding_ev.add(ev)
             else:
-                no_direct_ev.add(ev)
-        self.direct_exp_ev = direct_exp_ev
-        self.expression_exp_ev = expression_exp_ev
+                person_statement.add(ev)
+
+        self.direct_expression_ev = direct_expression_ev
+        self.direct_binding_ev = direct_binding_ev
         self.comp_ev = comp_ev
-        self.high_throughput_exp_ev = high_throughput_exp_ev
-        self.no_direct_ev = no_direct_ev
+        self.htp_expression_ev = htp_expression_ev
+        self.htp_binding_ev = htp_binding_ev
+        self.person_statement = person_statement
 
         gene_to_tf_evidence_cat = {}
         for gene in gene_to_tf_evidence:
@@ -511,24 +520,27 @@ class EcocycReg(object):
             for tf in gene_to_tf_evidence[gene]:
                 gene_to_tf_evidence_cat[gene][tf] = set()
                 for ev in gene_to_tf_evidence[gene][tf]:
-                    if ev in self.direct_exp_ev:
-                        gene_to_tf_evidence_cat[gene][tf].add('direct')
-                    elif ev in self.expression_exp_ev:
-                        gene_to_tf_evidence_cat[gene][tf].add('expression')
-                    elif ev in self.comp_ev:
-                        gene_to_tf_evidence_cat[gene][tf].add('comp')
-                    elif ev in self.high_throughput_exp_ev:
-                        gene_to_tf_evidence_cat[gene][tf].add('htp')
-                    elif ev in self.no_direct_ev:
-                        gene_to_tf_evidence_cat[gene][tf].add('no-direct')
+                    if ev in self.direct_expression_ev:
+                        gene_to_tf_evidence_cat[gene][tf].add('DE')
+                    if ev in self.direct_binding_ev:
+                        gene_to_tf_evidence_cat[gene][tf].add('DB')
+                    if ev in self.comp_ev:
+                        gene_to_tf_evidence_cat[gene][tf].add('C')
+                    if ev in self.htp_expression_ev:
+                        gene_to_tf_evidence_cat[gene][tf].add('HE')
+                    if ev in self.htp_binding_ev:
+                        gene_to_tf_evidence_cat[gene][tf].add('HB')
+                    if ev in self.person_statement:
+                        gene_to_tf_evidence_cat[gene][tf].add("P")
         self.gene_to_tf_evidence_cat = gene_to_tf_evidence_cat
 
-        with open(write_file, 'w') as f:
-            writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-            header = ['tf', 'perturbed']
-            writer.writerow(header)
-            for tf in self.all_tfs:
-                writer.writerow([tf, ''])
+        if write_file:
+            with open(write_file, 'w') as f:
+                writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+                header = ['tf', 'perturbed']
+                writer.writerow(header)
+                for tf in self.all_tfs:
+                    writer.writerow([tf, ''])
 
         # TODO: categorize evidences into firm exp, high-throughput, not firm computational, etc.
 
@@ -562,11 +574,18 @@ class EcocycReg(object):
 
         # First plot: number of regulators for non-one-peak genes versus one-peak genes
         all_gene_num_regs = []
+        all_gene_regs = []
         for gene in self.all_genes:
-            if gene in self.gene_to_tf_evidence:
-                all_gene_num_regs.append(len(self.gene_to_tf_evidence[gene]))
+            if gene in self.gene_to_tf_evidence_cat:
+                all_gene_num_regs.append(len(self.gene_to_tf_evidence_cat[gene]))
+                all_gene_regs.append(self.gene_to_tf_evidence_cat[gene])
             else:
                 all_gene_num_regs.append(0)
+                all_gene_regs.append({})
+
+
+        regulator_ecomac_names = np.array(self.ecocyc_to_ecomac_names(self.regulators, ecomac_names))
+        one_peak_is_regulator = np.isin(one_peak_genes, regulator_ecomac_names)
 
         ecomac_all_gene_names = self.ecocyc_to_ecomac_names(self.all_genes, ecomac_names)
         one_peak_gene_num_regs = []
@@ -576,12 +595,7 @@ class EcocycReg(object):
                 # Record the number of regs of one-peak genes
                 idx = np.where(ecomac_all_gene_names == gene)[0][0]
                 one_peak_gene_num_regs.append(all_gene_num_regs[idx])
-                # Record the TF regulations for one-peak genes
-                ecocyc_gene = self.all_genes[idx]
-                if ecocyc_gene in self.gene_to_tf_evidence_cat:
-                    one_peak_gene_regs.append(self.gene_to_tf_evidence_cat[ecocyc_gene])
-                else:
-                    one_peak_gene_regs.append({})
+                one_peak_gene_regs.append(all_gene_regs[idx])
             else:
                 one_peak_gene_num_regs.append(-1)
                 one_peak_gene_regs.append({})
@@ -589,50 +603,57 @@ class EcocycReg(object):
         one_peak_gene_num_regs = np.array(one_peak_gene_num_regs)
         one_peak_gene_regs = np.array(one_peak_gene_regs)
         all_gene_num_regs = np.array(all_gene_num_regs)
+        all_gene_regs = np.array(all_gene_regs)
         #reg_genes = np.array(sorted(list(self.gene_to_tf_evidence.keys())))
         #in_all_genes = [gene in self.all_genes for gene in reg_genes]
 
         max_num_reg = np.max(all_gene_num_regs)
-        one_peak_hist, bins = np.histogram(one_peak_gene_num_regs, bins=np.arange(-1, max_num_reg + 1, 1))
+        one_peak_hist, bins = np.histogram(one_peak_gene_num_regs, bins=[-1, 0, 1, 2, 3, max_num_reg+1])
         one_peak_hist = one_peak_hist / np.sum(one_peak_hist)
-        all_hist, _ = np.histogram(all_gene_num_regs, bins=np.arange(-1, max_num_reg + 1, 1))
+        all_hist, _ = np.histogram(all_gene_num_regs, bins=[-1, 0, 1, 2, 3, max_num_reg+1])
         all_hist = all_hist / np.sum(all_hist)
 
-        fig, axs = plt.subplots(2, figsize=(20, 10))
-        axs[0].bar(np.arange(0, 3 * (max_num_reg + 1), step=3),
+        fig, axs = plt.subplots(4, figsize=(10, 25))
+        axs[0].bar(np.arange(0, 3 * 5, step=3),
                    one_peak_hist, width=1, align='edge', color='r',
-                   tick_label=bins[:-1], label='One-peak')
-        axs[0].bar(np.arange(1, 3 * (max_num_reg + 1) + 1, step=3),
+                   tick_label=['-1', '0', '1', '2', '>3'], label='One-peak')
+        axs[0].bar(np.arange(1, 3 * 5 + 1, step=3),
                    all_hist, width=1, align='edge', color='b',
                    label='All')
+        axs[0].set_ylim(0, 1.0)
         axs[0].legend()
         axs[0].set_title("Histogram of fraction of genes with n regulators")
         axs[0].set_xlabel("Number of regulators")
+        axs[0].set_ylabel("Fraction of genes")
 
-        plt.tight_layout()
-        plt.savefig(plot_file)
-        plt.close('all')
+        ## For one-regulator genes, get
+        is_one_reg_gene = (all_gene_num_regs == 1)
+        all_one_reg_gene_regs = all_gene_regs[is_one_reg_gene]
+        all_one_reg_genes = np.array(self.all_genes)[is_one_reg_gene]
 
         is_one_reg_one_peak_genes = (one_peak_gene_num_regs == 1)
         one_reg_one_peak_genes = one_peak_genes[is_one_reg_one_peak_genes]
         one_reg_one_peak_gene_regs = one_peak_gene_regs[is_one_reg_one_peak_genes]
 
-        one_reg_one_peak_gene_ev = []
-        one_reg_one_peak_gene_tf = []
-        for tf_dict in one_reg_one_peak_gene_regs:
-            for tf, evidences in tf_dict.items():
-                one_reg_one_peak_gene_tf.append(tf)
-                if 'direct' in evidences:
-                    one_reg_one_peak_gene_ev.append(0)
-                elif 'expression' in evidences:
-                    one_reg_one_peak_gene_ev.append(1)
-                elif 'comp' in evidences:
-                    one_reg_one_peak_gene_ev.append(2)
-                elif 'htp' in evidences:
-                    one_reg_one_peak_gene_ev.append(3)
-                elif 'no-direct' in evidences:
-                    one_reg_one_peak_gene_ev.append(4)
-        one_reg_one_peak_gene_ev = np.array(one_reg_one_peak_gene_ev)
+        def _get_ev_id(evidences):
+            if 'DE' in evidences:
+                if ('HB' in evidences) | ('DB' in evidences):
+                    ev_id = 1
+                else:
+                    ev_id = 2
+            elif 'DB' in evidences:
+                if ('HE' in evidences) | ('DE' in evidences):
+                    ev_id = 1
+                else:
+                    ev_id = 2
+            elif ('HE' in evidences) | ('HB' in evidences):
+                # TODO: maybe split into whether both are present or only one?
+                ev_id = 3
+            elif 'C' in evidences:
+                ev_id = 4
+            else:
+                ev_id = 5
+            return ev_id
 
         tf_perturbed = {}
         with open(tf_annotations_file, 'r') as f:
@@ -641,24 +662,128 @@ class EcocycReg(object):
             for line in reader:
                 if len(line[1]) > 0:
                     tf_perturbed[line[0]] = int(line[1])
-        one_reg_one_peak_gene_tf_perturbed = np.array([tf_perturbed[tf] for tf in one_reg_one_peak_gene_tf])
 
-        one_reg_one_peak_gene_status = []
+        all_gene_ev_perturbed = []
+        one_peak_ev_perturbed = []
+
+        all_gene_perturbed = []
+        one_peak_perturbed = []
+        for tf_dict in all_gene_regs:
+            if len(tf_dict) == 0:
+                continue
+            has_reg = 0
+            has_perturbed = 0
+            for tf, evidences in tf_dict.items():
+                ev_id = _get_ev_id(evidences)
+                if tf not in tf_perturbed:
+                    continue
+                perturbed = tf_perturbed[tf]
+                if perturbed:
+                    has_perturbed = 1
+                if perturbed & (ev_id == 1):
+                    has_reg = 1
+                    break
+            all_gene_ev_perturbed.append(has_reg)
+            all_gene_perturbed.append(has_perturbed)
+
+
+        for tf_dict in one_peak_gene_regs:
+            if len(tf_dict) == 0:
+                continue
+            has_reg = 0
+            has_perturbed = 0
+            for tf, evidences in tf_dict.items():
+                ev_id = _get_ev_id(evidences)
+                if tf not in tf_perturbed:
+                    continue
+                perturbed = tf_perturbed[tf]
+                if perturbed:
+                    has_perturbed = 1
+                if (perturbed) & (ev_id == 1):
+                    has_reg = 1
+                    break
+            one_peak_ev_perturbed.append(has_reg)
+            one_peak_perturbed.append(has_perturbed)
+
+        all_gene_ev_perturbed = np.array(all_gene_ev_perturbed, dtype=bool)
+        one_peak_ev_perturbed = np.array(one_peak_ev_perturbed, dtype=bool)
+
+        one_peak_reg_genes = np.array(one_peak_genes)[(one_peak_gene_num_regs > 0)]
+        all_reg_genes = np.array(self.all_genes)[(all_gene_num_regs > 0)]
+        one_peak_ev_perturbed_genes = one_peak_reg_genes[one_peak_ev_perturbed]
+        all_ev_perturbed_genes = all_reg_genes[all_gene_ev_perturbed]
+
+        all_ev_perturbed_is_regulator = np.isin(all_ev_perturbed_genes, self.regulators)
+        one_peak_ev_perturbed_is_regulator = np.isin(one_peak_ev_perturbed_genes, regulator_ecomac_names)
+
+        # one_reg_one_peak_gene_status = np.zeros((5, 4))
+        # all_one_reg_gene_status = np.zeros((5, 4))
+        #
+        # for ev, perturb in zip(one_reg_one_peak_gene_ev, one_reg_one_peak_gene_tf_perturbed):
+        #     one_reg_one_peak_gene_status[ev-1, perturb+1] += 1
+        # for ev, perturb in zip(all_one_reg_gene_ev, all_one_reg_gene_tf_perturbed):
+        #     all_one_reg_gene_status[ev-1, perturb+1] += 1
+        # one_reg_one_peak_gene_status = one_reg_one_peak_gene_status / np.sum(one_reg_one_peak_gene_status)
+        # all_one_reg_gene_status = all_one_reg_gene_status / np.sum(all_one_reg_gene_status)
+        #
+        # tick_labels = ["NP, Exp+Bind", "NP, Exp or Bind", "NP, HTP", "N, Comp", "NP, Person",
+        #     "P, Exp+Bind", "P, Exp or Bind", "P, HTP", "P, Comp", "P, Person",
+        #                "N, Exp+Bind", "N, Exp or Bind", "N, HTP", "N, Comp", "N, Person",
+        #                "H, Exp+Bind", "H, Exp or Bind", "H, HTP", "H, Comp", "H, Person",]
+        axs[1].bar([0],
+                   np.array([np.sum(one_peak_ev_perturbed)]) / len(one_peak_ev_perturbed),
+                   width=1, align='edge', color='r',
+                   label='One-peak')
+        axs[1].bar([1],
+                   np.array([np.sum(all_gene_ev_perturbed)]) / len(all_gene_ev_perturbed),
+                   width=1, align='edge', color='b',
+                   tick_label=['has firm evidence + TF perturbed'], label="All")
+        axs[1].legend()
+        axs[1].set_title("Fraction of regulated genes with at least one regulation with perturbed TF and firm evidence")
+        axs[1].set_ylim(0, 1)
+
+        axs[2].bar([0],
+                   np.array([np.sum(one_peak_ev_perturbed_is_regulator)]) / len(one_peak_ev_perturbed_is_regulator),
+                   width=1, align='edge', color='r',
+                   label='One-peak')
+        axs[2].bar([1],
+                   np.array([np.sum(all_ev_perturbed_is_regulator)]) / len(all_ev_perturbed_is_regulator),
+                   width=1, align='edge', color='b',
+                   tick_label=['Is regulator'], label="All")
+        axs[2].legend()
+        axs[2].set_title("Fraction of firmly perturbed genes that are regulators")
+        axs[2].set_ylim(0, 1)
+
+        axs[3].bar([0],
+                   np.array([np.sum(~one_peak_ev_perturbed_is_regulator)]) / len(one_peak_genes),
+                   width=1, align='edge', color='r',
+                   label='One-peak')
+        axs[3].bar([1],
+                   np.array([np.sum(~all_ev_perturbed_is_regulator)]) / len(self.all_genes),
+                   width=1, align='edge', color='b',
+                   tick_label=['Ultimately regulated'], label="All")
+        axs[3].legend()
+        axs[3].set_title("Fraction of genes which are 'ultimately regulated'")
+        axs[3].set_ylim(0, 1)
+
+        plt.tight_layout()
+        plt.savefig(plot_file)
+        plt.close('all')
+
         # 0 means direct evidence and tf is perturbed.
         # 1 means direct evidence, but tf is not perturbed
         # 2 means not direct evidence, and tf is perturbed
         # 3 means not direct evidence, and tf is not perturbed
-        for ev, perturb in zip(one_reg_one_peak_gene_ev, one_reg_one_peak_gene_tf_perturbed):
-            if ev == 0:
-                if perturb == 1:
-                    one_reg_one_peak_gene_status.append(0)
-                else:
-                    one_reg_one_peak_gene_status.append(1)
-            else:
-                if perturb == 1:
-                    one_reg_one_peak_gene_status.append(2)
-                else:
-                    one_reg_one_peak_gene_status.append(3)
+            # if ev == 0:
+            #     if perturb == 1:
+            #         one_reg_one_peak_gene_status.append(0)
+            #     else:
+            #         one_reg_one_peak_gene_status.append(1)
+            # else:
+            #     if perturb == 1:
+            #         one_reg_one_peak_gene_status.append(2)
+            #     else:
+            #         one_reg_one_peak_gene_status.append(3)
 
         # All genes in reg_genes are indeed in all_genes. So for every gene in all_genes, if it's in reg_genes, it'll be counted.
         # Makes sense since we used genes^?name for both.
@@ -1106,6 +1231,17 @@ class PlotComponents(object):
             os.mkdir(self.components_dir)
 
 
+    def plot_freq_components_grid(self, plot_file):
+        fig, axs = plt.subplots(2, figsize=(50, 150))
+        axs[0].pcolor(self.samples)
+        axs[0].set_xticks(np.arange(len(self.components))+0.5)
+        axs[0].set_xticklabels([sorted(list(x))[0] for x in self.components])
+
+        plt.tight_layout()
+        plt.savefig(plot_file)
+        plt.close('all')
+
+
     def plot_statistics_with_special(self, expression, symbols, special_genes, special_components,
                                      genes_in_regulator_operon,
                                      p_values_file, t_stats_file, diff_means_file, plot_file, plot_file_comps):
@@ -1438,10 +1574,10 @@ class PlotComponents(object):
             includes_compound = self.samples[:, idx].astype(bool)
 
             axs[idx, 0].hist(expression[includes_compound], bins=self.n_bins(expression))
-            axs[idx, 0].set_title("Has" + comp)
+            axs[idx, 0].set_title("Has" + str(comp))
 
             axs[idx, 1].hist(expression[~includes_compound], bins=self.n_bins(expression))
-            axs[idx, 1].set_title("Does not have" + comp)
+            axs[idx, 1].set_title("Does not have" + str(comp))
         plt.tight_layout()
         plt.savefig(os.path.join(self.components_dir, plot_name))
         plt.close('all')
@@ -1534,7 +1670,7 @@ class PlotComponents(object):
             comp_idx = np.where(self.components == comp)[0][0]
             if self.total_freqs[comp_idx] < comp_freq_cutoff:
                 is_low_freq.append(True)
-            elif self.total_freqs[comp_idx] > (len(self.samples) - 50):
+            elif self.total_freqs[comp_idx] > (len(self.samples) - comp_freq_cutoff):
                 is_low_freq.append(True)
             else:
                 is_low_freq.append(False)
@@ -1549,8 +1685,13 @@ class PlotComponents(object):
         diff_means_low_freq = diff_means[:, is_low_freq]
         p_values_high_freq = p_values[:, is_high_freq]
 
+        arg_max_diff_means = np.argmax(diff_means, axis=1)
+        max_diff_means_components = all_components[arg_max_diff_means]
         max_diff_means = np.max(diff_means, axis=1)
-        min_p_values = np.min(p_values, axis=1)
+
+        arg_min_p_values = np.argmin(p_values_high_freq, axis=1)
+        min_p_values_components = high_freq_components[arg_min_p_values]
+        min_p_values = np.min(p_values_high_freq, axis=1)
 
         # Identify one-peak genes
         diff_means_one_peak = (max_diff_means < diff_means_cutoff)
@@ -1560,22 +1701,26 @@ class PlotComponents(object):
         is_one_peak = np.logical_and(is_one_peak, standard_dev_one_peak)
 
         one_peak_genes = np.array(all_genes)[is_one_peak]
+        one_peak_standard_dev = standard_devs[is_one_peak]
         one_peak_max_dm = max_diff_means[is_one_peak]
+        one_peak_max_dm_components = max_diff_means_components[is_one_peak]
         one_peak_min_p = min_p_values[is_one_peak]
+        one_peak_min_p_components = min_p_values_components[is_one_peak]
 
         # Write to file
         with open(write_file, 'w') as f:
             writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-            header = ['gene', 'min_p_value_high_freq', 'max_diff_means_low_freq']
+            header = ['gene', 'min_p_value_high_freq', 'min_p_component', 'max_diff_means_low_freq', 'max_diff_component', 'standard_dev']
             writer.writerow(header)
-            for gene, max_dm, min_p in zip(
-                    one_peak_genes, one_peak_max_dm, one_peak_min_p):
-                writer.writerow([gene, min_p, max_dm])
+            for gene, max_dm, max_dm_c, min_p, min_p_c, standard_dev in zip(
+                    one_peak_genes, one_peak_max_dm, one_peak_max_dm_components,
+                    one_peak_min_p, one_peak_min_p_components, one_peak_standard_dev):
+                writer.writerow([gene, min_p, min_p_c, max_dm, max_dm_c, standard_dev])
 
         import ipdb; ipdb.set_trace()
 
 
-    def plot_stats_for_high_freq_components(self, p_value_file, special_genes, special_components, genes_in_regulator_operon, plot_file_p_value,
+    def plot_stats_for_high_freq_components(self, cutoff, p_value_file, special_genes, special_components, genes_in_regulator_operon, plot_file_p_value,
                                             write_file):
         # Read p-values from given file
         all_genes = []
@@ -1608,9 +1753,9 @@ class PlotComponents(object):
             #     is_low_freq.append(False)
             #     continue
             comp_idx = np.where(self.components == comp)[0][0]
-            if self.total_freqs[comp_idx] < 50:
+            if self.total_freqs[comp_idx] < cutoff:
                 is_low_freq.append(True)
-            elif self.total_freqs[comp_idx] > (len(self.samples) - 50):
+            elif self.total_freqs[comp_idx] > (len(self.samples) - cutoff):
                 is_low_freq.append(True)
             else:
                 is_low_freq.append(False)
@@ -1716,12 +1861,12 @@ class PlotComponents(object):
         axs[1, 1].set_xlim(-100, 1)
         axs[1, 1].set_ylim(-100, 1)
         axs[1, 1].set_title("coliNet high-frequency gene component pairs p-values versus min p-values of the genes")
-        axs[1, 1].set_xlabel("Maximum p-values")
+        axs[1, 1].set_xlabel("Minimum p-values")
         axs[1, 1].set_ylabel("coliNet p-values")
         for j, txt in enumerate(special_gene_values):
             axs[1, 1].annotate(txt, (log_special_gene_min_p[j],
                                      log_special_p[j]),
-                               size=5)
+                               size=10)
 
         axs[1, 1].legend()
 
@@ -1738,11 +1883,9 @@ class PlotComponents(object):
                     special_gene_min_p_component, log_special_gene_min_p):
                 writer.writerow([gene, coliNet_comp, coliNet_p_values, min_p_comp, min_p_values])
 
-        import ipdb;
-        ipdb.set_trace()
 
-    def plot_stats_for_low_freq_components(self, p_value_file, diff_means_file, special_genes, special_components,
-                                        genes_in_regulator_operon, plot_file_p_value, plot_file_diff_means,
+    def plot_stats_for_low_freq_components(self, cutoff, diff_means_file, special_genes, special_components,
+                                        genes_in_regulator_operon, plot_file_diff_means,
                                         write_file):
         # Read p-values from given file
         all_genes = []
@@ -1784,9 +1927,9 @@ class PlotComponents(object):
             #     is_low_freq.append(False)
             #     continue
             comp_idx = np.where(self.components == comp)[0][0]
-            if self.total_freqs[comp_idx] < 50:
+            if self.total_freqs[comp_idx] < cutoff:
                 is_low_freq.append(True)
-            elif self.total_freqs[comp_idx] > (len(self.samples) - 50):
+            elif self.total_freqs[comp_idx] > (len(self.samples) - cutoff):
                 is_low_freq.append(True)
             else:
                 is_low_freq.append(False)
@@ -1845,7 +1988,7 @@ class PlotComponents(object):
         special_gene_max_diff_means = np.array(special_gene_max_diff_means)
 
         # Make plots
-        fig, axs = plt.subplots(nrows=2, ncols=3, figsize=(15, 10))
+        fig, axs = plt.subplots(nrows=2, ncols=3, figsize=(60, 40))
         # axs[0, 0].hist(np.log10(p_values_low_freq.flatten()), bins=np.arange(-30, 1, 1))
         # axs[0, 0].set_title("Histogram of all low-frequency component p-values")
         #
@@ -1922,7 +2065,6 @@ class PlotComponents(object):
                 writer.writerow([gene, coliNet_comp, coliNet_diff_means, max_dm_comp, max_diff_means])
 
 
-        import ipdb; ipdb.set_trace()
 
 
     def detect_reg_MWU(self, expression, gene_names, u_stat_file, p_value_file, diff_means_file):
@@ -2142,6 +2284,164 @@ class PlotComponents(object):
         #         return cdfs, fraction_treatment
         #         # Another thing is to look at each component, and just look whether it deviates significantly from overall. Hmm.
         #         # TODO: depleted will contain most things.
+
+
+
+
+    def write_second_peak_data(self, gene_names, expression, first_comp_p_values, first_comp_diff_means, write_file,
+                               comp_freq_cutoff=50, diff_means_cutoff=1.0, p_value_cutoff=1e-15):
+        file_genes = []
+        diff_means = []
+        p_values = []
+
+        # Read diff-means file
+        with open(first_comp_diff_means, 'r') as f:
+            csv_reader = csv.reader(f, delimiter='\t')
+            row1 = next(csv_reader)
+            all_components_raw = np.array(row1[1:])
+            all_components = []
+            for comp in all_components_raw:
+                comp_convert = comp[1:-1].split(', ')
+                comp_convert_2 = set([x[1:-1] for x in comp_convert])
+                all_components.append(comp_convert_2)
+
+            for line in csv_reader:
+                file_genes.append(line[0])
+                diff_means.append([float(x) for x in line[1:]])
+
+        # Read p-values file
+        with open(first_comp_p_values, 'r') as f:
+            csv_reader = csv.reader(f, delimiter='\t')
+            row1 = next(csv_reader)
+            for line in csv_reader:
+                p_values.append([float(x) for x in line[1:]])
+
+
+        file_genes = np.array(file_genes)
+        file_components = np.array(all_components)
+        p_values = np.array(p_values) + 1e-200
+        diff_means = np.array(diff_means)
+
+        # Identify low-frequency components
+        is_low_freq = []
+        for comp in file_components:
+            if comp not in self.components:
+                import ipdb; ipdb.set_trace()
+            comp_idx = np.where(self.components == comp)[0][0]
+            if self.total_freqs[comp_idx] < comp_freq_cutoff:
+                is_low_freq.append(True)
+            elif self.total_freqs[comp_idx] > (len(self.samples) - comp_freq_cutoff):
+                is_low_freq.append(True)
+            else:
+                is_low_freq.append(False)
+        is_low_freq = np.array(is_low_freq)
+        low_freq_components = file_components[is_low_freq]
+        high_freq_components = file_components[~is_low_freq]
+
+        # Array to store results: first key is gene, second key is
+        # first_comp, third key is with or without first comp,
+        # fourth key is second_comp, value is ('dm', value) for diff_means
+        # or ('pv', value) for p-values
+        second_peak_results = {}
+
+        for i, gene in enumerate(file_genes):
+            if gene not in ['prs', 'purF', 'purT', 'purK', 'purE', 'purC', 'purD', 'purH', 'purL',
+                            'purM', 'purB', 'purA', 'guaA', 'carA', 'carB', 'pyrC', 'pyrD', 'add', 'codA']:
+                continue
+
+            gene_idx = np.where(np.array(gene_names) == gene)[0][0]
+            second_peak_results[gene] = {}
+
+            # Get the first comps that make a significant diff-means OR p-values
+            low_freq_diff_means = diff_means[i, is_low_freq]
+            high_freq_p_values = p_values[i, ~is_low_freq]
+            has_sig_diff_means = (low_freq_diff_means > diff_means_cutoff)
+            has_sig_p_values = (high_freq_p_values < p_value_cutoff)
+            sig_first_comps = np.concatenate((low_freq_components[has_sig_diff_means],
+                                              high_freq_components[has_sig_p_values]))
+
+            for first_comp in sig_first_comps:
+                second_peak_results[gene][str(tuple(sorted(first_comp)))] = {1: {}, 0: {}}
+
+                # Get all samples with or without this first component
+                first_comp_idx = np.where(self.components == first_comp)[0][0]
+                has_first_comp = self.samples[:, first_comp_idx]
+
+                exp_with_first_comp = expression[gene_idx, has_first_comp]
+                exp_without_first_comp = expression[gene_idx, ~has_first_comp]
+                samples_with_first_comp = self.samples[has_first_comp, :]
+                samples_without_first_comp = self.samples[~has_first_comp, :]
+
+                for j, (test_exp, test_sample) in enumerate([(exp_without_first_comp, samples_without_first_comp),
+                                              (exp_with_first_comp, samples_with_first_comp)]):
+                    # Collapse redundant components
+                    # Then, compare expression with and without each unique-pattern set of components
+                    # Store data corresponding to this first component and to each second component
+                    second_comp_patterns = np.unique(test_sample, axis=1).T
+                    collapsed_second_comps = []
+                    for pattern in second_comp_patterns:
+                        # Get all components which have this same pattern
+                        this_pattern_second_comp = set()
+                        for k, test_comp_pattern in enumerate(test_sample.T):
+                            if np.array_equal(pattern, test_comp_pattern):
+                                this_pattern_second_comp.update(self.components[k])
+                        collapsed_second_comps.append(this_pattern_second_comp)
+
+                        # If these components can separate the samples into two bins,
+                        # compare the expression of these two bins with diff-means and
+                        # t-tests
+                        if (np.sum(pattern) > 0) & (np.sum(~pattern) > 0):
+                            exp_with_second_comp = test_exp[pattern]
+                            exp_without_second_comp = test_exp[~pattern]
+
+                            # Find diff-means for low-frequency second component
+                            if (np.sum(pattern) < 50) | (np.sum(~pattern) < 50):
+                                this_pair_diff_means = np.mean(exp_with_second_comp) - np.mean(exp_without_second_comp)
+                                if np.abs(this_pair_diff_means) > diff_means_cutoff:
+                                    # Record data in dictionary
+                                    second_peak_results[gene][
+                                        str(tuple(sorted(first_comp)))][
+                                        j][
+                                        str(tuple(sorted(this_pattern_second_comp)))] = ('dm', this_pair_diff_means)
+                            # Find p-value for high-frequency second component
+                            else:
+                                result = stats.ttest_ind(exp_with_second_comp, exp_without_second_comp, equal_var=False)
+                                this_pair_p_value = result.pvalue
+                                if this_pair_p_value < p_value_cutoff:
+                                    # Record data in dictionary
+                                    second_peak_results[gene][
+                                        str(tuple(sorted(first_comp)))][
+                                        j][
+                                        str(tuple(sorted(this_pattern_second_comp)))] = ('pv', this_pair_p_value)
+
+            print(i)
+
+        import ipdb; ipdb.set_trace()
+        # TODO: only write if it might seem like a two-peak based on the bins, like e.g. purC
+        candidate_two_peak_genes = {}
+        for gene in second_peak_results:
+            for k, v in second_peak_results[gene].items():
+                is_two_peak = 1
+                for x in v[1]:
+                    if x not in ["('furfural',)", "('CHIR-090',)", "('DMSO',)"]:
+                        is_two_peak = 0
+                for x in v[0]:
+                    if x not in ["('furfural',)", "('CHIR-090',)", "('DMSO',)"]:
+                        is_two_peak = 0
+
+                if is_two_peak:
+                    if gene not in candidate_two_peak_genes:
+                        candidate_two_peak_genes[gene] = {}
+                    candidate_two_peak_genes[gene][k] = v
+
+        with open(write_file, 'w', encoding='utf-8') as f:
+            json.dump(candidate_two_peak_genes, f, ensure_ascii=False, indent=4)
+
+        # TODO: run samples/freq_components/this again with the J. Wang IrrE thing corrected and see what happens
+        import ipdb; ipdb.set_trace()
+
+
+
 
     def candidate_two_peak(self, gene_names, expression, all_regs_file, write_pt_file):
         # Possible criteria: 1. when we separate it by some component, the two sides are statistically

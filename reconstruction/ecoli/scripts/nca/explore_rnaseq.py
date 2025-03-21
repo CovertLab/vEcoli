@@ -17,7 +17,6 @@ from get_media_composition import MediaComps
 import copy
 from sklearn import mixture
 
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 
 # TODO: plot normal and other on same
@@ -44,7 +43,6 @@ PRECISE2_SEQ_FILE = os.path.join(PRECISE2_SEQ_DIR, 'PRECISE2_counts.csv')
 
 
 # Output plots
-OUTPUT_DIR = os.path.join(BASE_DIR, 'plots')
 SAMPLE_REG_DIR = os.path.join(OUTPUT_DIR, "detect_sample_regs")
 
 # Constants for EM-GMM
@@ -175,7 +173,15 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                 if line[author_idx] == "S. Durand":
                     if line[cel_idx] in ["GSM490262", "GSM490264", "GSM490266"]:
                         continue
-                # TODO: whether to keep JM109 strain?
+                if line[author_idx] == "J. Wang":
+                    if line[cel_idx] in ["GSM862032", "GSM862033", "GSM862034"]:
+                        continue
+                if line[author_idx] == "M. Caldara":
+                    # Since the strain used has methionine biosynthesis gene deletion (even though methionine is added to medium)
+                    # TODO: whether to still keep this?
+                    continue
+                if line[author_idx] == "C. Peano":
+                    continue
 
             if no_nongrowing:
                 if line[author_idx] == "F. Haddadin":
@@ -239,7 +245,7 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                     if line[treatment_idxs[1]] in ["stationary", "transition"]:
                         continue
                 if line[author_idx] == "Y. Asakura":
-                    # TODO: whether to keep the 0 time-point ones?
+                    # TODO: try keeping the 0 time-point ones? YA027 parent strain?
                     continue
                 if line[author_idx] == "H. Alper":
                     if line[treatment_idxs[0]] in ["20g/L 5g/L 1mM", "40g/L 5g/L 1mM"]:
@@ -302,6 +308,12 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                     # TODO: pretty arbitrary, idk whether to keep? bc might be stationary phase after 5 hrs, idk.
                     if int(line[treatment_idxs[2]]) > 300:
                         continue
+                if line[author_idx] == "K. Zhu":
+                    # CHIR-090 is at 10x MIC, so kills the cells.
+                    # Adding the extra three DMSO samples probably doesn't do much, so we'll take those out as well.
+                    # TODO: whether to keep the DMSO? it seems to cause some slight differences in e.g. purC, but
+                    # that's probably just due to condition effects bc CHIR-090 does the same thing. 
+                    continue
 
             if "magnetic field" in line[treatment_idxs[1]]:
                 continue
@@ -317,6 +329,9 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                     continue
             if "microgravity" in line[treatment_idxs[1]]:
                 continue
+            if line[medium_idx] == "K medium":
+                if line[cel_idx] in ["GSM183473", "GSM183490", "GSM183493", "GSM183496", "GSM183499"]:
+                    continue
 
         # TODO: take glucose out of LB, but check where u should add it back in! Check each LB media to find what the added
         # carbon source is, if there is one!
@@ -378,10 +393,6 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                 elif line[cel_idx] == "GSM351282":
                     treatment = "anaerobic"
                     component = "anaerobic"
-            # elif line[strain_idx] == "JM109":
-            #     # TODO: remove this, just used to check if strain JM109 makes a difference
-            #     treatment = "JM109"
-            #     component = "JM109"
             elif line[author_idx] == "G. Vemuri":
                 treatment = "1g/L" + "glucose"
                 component = "glucose"
@@ -397,6 +408,16 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                 if line[cel_idx] in ["GSM909096", "GSM909098", "GSM909100", "GSM909102"]:
                     treatment = "colicin M"
                     component = "colicin M"
+            elif line[medium_idx] == "K medium":
+                if line[cel_idx] in ["GSM175728", "GSM183488", "GSM183494"]:
+                    treatment = "glucose 30C methionine"
+                elif line[cel_idx] in ["GSM175737", "GSM183470", "GSM183489", "GSM183495"]:
+                    treatment = "glucose 30C methionine highOsm"
+                elif line[cel_idx] in ["GSM183471", "GSM183491", "GSM183497"]:
+                    treatment = "glucose 43C methionine"
+                elif line[cel_idx] in ["GSM183472", "GSM183492", "GSM183498"]:
+                    treatment = "glucose 43C methionine highOsm"
+                component = treatment
             else:
                 treatment = line[treatment_idxs[0]] + line[treatment_idxs[1]]
                 component = line[treatment_idxs[1]]
@@ -1182,7 +1203,7 @@ def compare_tail_stimulon_classify(gene_names, all_genes, seq_data, sample_data,
 #     return scores, ps, sizes
 
 def compare_tail_stimulon_enrichment(gene_name, cutoff, all_genes, seq_data, sample_data):
-    total_compounds, vectorized_treatments = test_treatments()
+    #total_compounds, vectorized_treatments = test_treatments()
     #compare_components = CompareComponents(total_compounds, vectorized_treatments)
 
     _, expression = get_gene_exp(all_genes, seq_data, gene_names=[gene_name])
@@ -1304,14 +1325,14 @@ def PRECISE2_hist_from_exp(expression, gene_names, title):
     fig, axs = plt.subplots(n_genes, figsize=(5, 5 * n_genes))
     if n_genes > 1:
         for i, (exp, gene) in enumerate(zip(expression, gene_names)):
-            axs[i].hist(exp, bins=n_bins(exp))
+            axs[i].hist(np.log10(exp+1), bins=n_bins(np.log10(exp+1)))
             axs[i].set_title(str(gene))
-            axs[i].set_xlabel("Log2(gene expression fraction), arbitrary units")
+            axs[i].set_xlabel("Log10(gene expression counts), arbitrary units")
             axs[i].set_ylabel("Counts of microarray experiments")
     else:
         exp = expression[0]
         gene = gene_names[0]
-        axs.hist(exp, bins=n_bins(exp))
+        axs.hist(np.log10(exp), bins=n_bins(exp))
         axs.set_title(str(gene))
         axs.set_xlabel("Log2(gene expression fraction), arbitrary units")
         axs.set_ylabel("Counts of microarray experiments")
@@ -2281,6 +2302,31 @@ def write_one_peak_genes(all_genes, gene_file, expression, write_file):
         for gene in one_peak_genes:
             writer.writerow([gene])
 
+def plot_overlapping_one_peak_genes(one_peak_file, plot_file):
+    symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+    one_peak_genes = []
+    with open(one_peak_file, 'r') as f:
+        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+        next(reader)
+        for line in reader:
+            one_peak_genes.append(line[0])
+
+    fig, axs = plt.subplots(2, figsize=(20, 40))
+    symbols = np.array(symbols)
+    for gene in one_peak_genes:
+        idx = np.where(symbols == gene)[0][0]
+        exp = seq_data[idx]
+        exp = exp - np.mean(exp)
+        axs[0].hist(exp, bins=80, range=(-8, 8), alpha=0.1)
+    axs[0].set_title("Overlapping histograms of "+str(len(one_peak_genes))+" one-peak genes")
+    axs[0].set_xlabel("log2(expression value) minus mean of expression")
+    axs[0].set_ylabel("Frequency (out of ~800)")
+
+    plt.tight_layout()
+    plt.savefig(plot_file)
+    plt.close('all')
+
+
 def two_peak_reg_analyze(all_genes, two_peak_file, plot_file, plot_file_reg, exclude_sigma=True):
     excluded_components = ['selenate', 'formate', 'tannin-extract', 'propylene glycol',
                            'MOPS', 'clinostat - microgravity', 'cefsulodin', 'mecillinam',
@@ -2429,25 +2475,64 @@ if __name__ == '__main__':
     # #symbols, sample_data, seq_data = load_data()
     #colinetdata = coliNetData()
     #simple_operon, simple_tf, one_to_one = colinetdata.get_simple_reg()
-    #symbols, seq_data = load_PRECISE2_data()
+    # symbols, seq_data = load_PRECISE2_data()
+    #
+    # dpiAB_regulon = ['b0620', 'b0619']
+    # purRC = ['b1658', 'b2476']
+    # birA_regulon = ['b0775', 'b0777', 'b0778', 'b0776', 'b3973']
+    # rutA_regulon = ['b1012', 'b1011', 'b1010', 'b1009', 'b1008', 'b1007', 'b1006']
+    # trpR_regulon = ['b1260', 'b1261', 'b1262', 'b1263', 'b1264', 'b4393']
+    # _, exp = get_gene_exp(symbols, seq_data, gene_names=trpR_regulon)
+    # PRECISE2_hist_from_exp(exp, ['trpA', 'trpB', 'trpC', 'trpD', 'trpE', 'trpR'], 'trpR_operon_PRECISE2')
+    # plot_overlapping_one_peak_genes(
+    #     os.path.join(SAMPLE_REG_DIR, "one_peak_genes_v5_3"),
+    # os.path.join(SAMPLE_REG_DIR, "all_one_peak_genes_overlap_plot.png"))
+    # symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+    # plot_components = PlotComponents(total_components, vectorized_samples)
+    # plot_components.plot_freq_components_grid(os.path.join(SAMPLE_REG_DIR, "sample_components_grid"))
+    # gene_exp_hist(["lolB", "dnaT"], symbols, seq_data, sample_data, "lolB_dnaT")
+    # gene_names = []
+    # with open(os.path.join(SAMPLE_REG_DIR, "one_peak_genes_v5_3"), 'r') as f:
+    #     reader = csv.reader(f, delimiter='\t')
+    #     next(reader)
+    #     for line in reader:
+    #         gene_names.append(line[0])
+    #
+    # with open(os.path.join(SAMPLE_REG_DIR, "one_peak_genes_v5_3_gene_only"), 'w') as f:
+    #     writer = csv.writer(f, delimiter='\t')
+    #     for gene in gene_names:
+    #         writer.writerow([gene])
+    # import ipdb; ipdb.set_trace()
 
-    #dpiAB_regulon = ['b0620', 'b0619']
-    #purRC = ['b1658', 'b2476']
-    #birA_regulon = ['b0775', 'b0777', 'b0778', 'b0776', 'b3973']
-    #_, exp = get_gene_exp(symbols, seq_data, gene_names=birA_regulon)
-    #PRECISE2_hist_from_exp(exp, ['bioB', 'bioC', 'bioD', 'bioF'], 'birA_regulon_PRECISE2')
+    def plot_gene_components(genes, comp1, comp2, title):
+        symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+        _, exp = get_gene_exp(symbols, seq_data, gene_names=genes)
+        plot_components = PlotComponents(total_components, vectorized_samples)
+        plot_components.plot_exp_control_components(exp, title, genes, comp1, comp2)
 
-    symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+    def plot_gene_all_components(gene, title):
+        symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+        _, exp = get_gene_exp(symbols, seq_data, gene_names=[gene])
+        plot_components = PlotComponents(total_components, vectorized_samples)
+        plot_components.plot_all_components(exp[0], title)
 
-    _, exp = get_gene_exp(symbols, seq_data, gene_names=['iclR', 'dsdX'])
-    plot_components = PlotComponents(total_components, vectorized_samples)
-    plot_components.plot_exp_control_components(exp, "iclR_dsdX_one_peak_test", ['iclR', 'dsdX'],
-                                                {'trehalose', 'mannose', 'riboflavin', 'nucleosides',
-                                                 'boron', 'fatty acids', 'thymine', 'folic acid',
-                                                 'niacinamide', 'pyridoxine',
-                                                 'tryptone-peculiar', 'yeast extract other',
-                                                 'Al3+', 'choline', 'Ni2+'}
-                                               , {'anaerobic'})
+    plot_gene_components(['trpA', 'trpB', 'trpC', 'trpD', 'trpE'],
+    {'aspartate', 'threonine', 'phenylalanine', 'glutamate', 'arginine',
+     'glycine', 'isoleucine', 'serine', 'tryptophan', 'histidine', 'valine',
+     'lysine', 'leucine', 'asparagine', 'glutamine', 'tyrosine', 'alanine'}
+                         , {'methionine'}, "trp_biosynthesis")
+
+    #symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+    #compare_tail_stimulon_enrichment("gmk", 11.5, symbols, seq_data, sample_data)
+    #plot_gene_all_components('adk', "adk_all_components")
+    import ipdb; ipdb.set_trace()
+    #plot_gene_all_components('lldP', 'lldP_all_comp')
+    # plot_gene_components(['yaiE', 'yfiH', 'deoD', 'add', 'xapA', 'gsk', 'gpt', 'hpt', 'rihC', 'apt'],
+    #                     {'adenine'},
+    #                     {'pantothenate', 'cytosine', 'uracil', 'guanine'},
+    #                     "adenine_salvage_genes")
+
+    #import ipdb; ipdb.set_trace()
     # ecocyc = EcocycReg(BASE_DIR)
     # ecocyc.init_transcr_reg_data(os.path.join(SAMPLE_REG_DIR, "ecocyc_reg_tfs"))
     # ecocyc.one_peak_transcr_reg_info(symbols, os.path.join(SAMPLE_REG_DIR,
@@ -2455,7 +2540,6 @@ if __name__ == '__main__':
     #                                  os.path.join(SAMPLE_REG_DIR, "ecocyc_reg_tfs_annotated"),
     #                                               "",
     #                                  os.path.join(SAMPLE_REG_DIR, "one_peak_genes_num_reg_v5"))
-    import ipdb; ipdb.set_trace()
     candidate_genes = ['FruR', 'acrR', 'adiA_adiY', 'alpA', 'arcA', 'arsR', 'atoC',
        'birA_murA', 'cadC', 'cbl', 'cspA', 'cytR', 'fadR', 'flhDC',
        'gatR_1', 'gntR', 'kdpDE', 'leuO', 'malT', 'mhpR', 'mlc', 'modE',
@@ -2618,28 +2702,46 @@ if __name__ == '__main__':
     #plot_genes_filtered_components(["msrA", "ytfT"], "check_bicarbonate", "bicarbonate", "arginine")
     #plot_genes_filtered_components(["lolB", "dcuR"], "check_fumarate", "fumarate", "arginine")
     #plot_genes_filtered_components(["potE", "znuA", 'nuoM', 'nuoG'], "check_homopipes", "HOMOPIPES", "pH5.5")
-    symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
 
-    plot_components = PlotComponents(total_components, vectorized_samples)
-    plot_components.write_one_peak_genes(
-        seq_data,
-        symbols,
-        os.path.join(SAMPLE_REG_DIR, "p_values_v5"),
-        os.path.join(SAMPLE_REG_DIR, "diff_means_v5"),
-        1.0,
-        -10,
-        0.8,
-        50,
-        os.path.join(SAMPLE_REG_DIR, "one_peak_genes_v5_tight")
-    )
+    # #
+    # ecocyc = EcocycReg(BASE_DIR)
+    # ecocyc.init_transcr_reg_data()
+    # ecocyc.one_peak_transcr_reg_info(symbols, os.path.join(SAMPLE_REG_DIR, "one_peak_genes_v5_3"),
+    #                                  os.path.join(SAMPLE_REG_DIR, "ecocyc_reg_tfs_annotated"),
+    #                                  "",
+    #                                  os.path.join(SAMPLE_REG_DIR, "new_one_peak_genes_reg_plot_v5_3"))
+
+    #symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+
+
+    # plot_components = PlotComponents(total_components, vectorized_samples)
+    # plot_components.write_second_peak_data(symbols, seq_data,
+    #                                        os.path.join(SAMPLE_REG_DIR, "p_values_v6"),
+    #                                        os.path.join(SAMPLE_REG_DIR, "diff_means_v6"),
+    #                                        os.path.join(SAMPLE_REG_DIR, "second_peak_results_v6.json"))
+    #import ipdb; ipdb.set_trace()
+
+    # plot_components.write_one_peak_genes(
+    #     seq_data,
+    #     symbols,
+    #     os.path.join(SAMPLE_REG_DIR, "p_values_v5"),
+    #     os.path.join(SAMPLE_REG_DIR, "diff_means_v5"),
+    #     1.0,
+    #     -15,
+    #     0.65,
+    #     50,
+    #     os.path.join(SAMPLE_REG_DIR, "one_peak_genes_v5_3")
+    #)
     # plot_components.write_stats_for_low_spread_genes(seq_data, symbols, os.path.join(SAMPLE_REG_DIR, "mwu_u_stats_v4"),
     #                                                 os.path.join(SAMPLE_REG_DIR, "mwu_p_values_v4"),
     #                                                  os.path.join(SAMPLE_REG_DIR, "mwu_diff_means_v4"))
     #import ipdb; ipdb.set_trace()
-    #plot_components.write_freq_components(os.path.join(SAMPLE_REG_DIR, "freq_components_v5"))
-    #plot_components.detect_reg(seq_data, symbols, os.path.join(SAMPLE_REG_DIR, "p_values_v5"),
-    #                          os.path.join(SAMPLE_REG_DIR, "t_statistics_v5"),
-    #                           os.path.join(SAMPLE_REG_DIR, "diff_means_v5"))
+    #plot_components.write_freq_components(os.path.join(SAMPLE_REG_DIR, "freq_components_v6"))
+    #plot_components.detect_reg(seq_data, symbols, os.path.join(SAMPLE_REG_DIR, "p_values_v6"),
+    #                         os.path.join(SAMPLE_REG_DIR, "t_statistics_v6"),
+    #                          os.path.join(SAMPLE_REG_DIR, "diff_means_v6"))
+
+    import ipdb; idpb.set_trace()
     # plot_components.write_stats_for_low_spread_genes(seq_data, symbols, os.path.join(SAMPLE_REG_DIR, "mwu_u_stats_v4"),
     #                                                 os.path.join(SAMPLE_REG_DIR, "mwu_p_values_v4"))
     #fumarate_reg_genes = ['dctA', 'fumB', 'dcuB', 'frdA', 'frdB', 'frdC', 'frdD']
@@ -2676,15 +2778,15 @@ if __name__ == '__main__':
     # TODO: look at samples for minimum p-values
     # TODO: look at the histograms for genes that are regulated by both nitrate and anaerobic, etc.
 
-    coliNet = coliNetData()
-    colinet_genes = coliNet.gene_names
-    # NOTE: includes genes that are not regulators themselves but are in the same operon as regulators
-    colinet_genes_in_regulator = coliNet.gene_in_regulator_operon
-
-    ecocyc = EcocycReg(BASE_DIR)
-    ecomac_colinet_names = ecocyc.ecocyc_to_ecomac_names(colinet_genes, symbols)
-
-    colinet_reg_components = coliNet.gene_reg_components
+    # coliNet = coliNetData()
+    # colinet_genes = coliNet.gene_names
+    # # NOTE: includes genes that are not regulators themselves but are in the same operon as regulators
+    # colinet_genes_in_regulator = coliNet.gene_in_regulator_operon
+    #
+    # ecocyc = EcocycReg(BASE_DIR)
+    # ecomac_colinet_names = ecocyc.ecocyc_to_ecomac_names(colinet_genes, symbols)
+    #
+    # colinet_reg_components = coliNet.gene_reg_components
 
 
 
@@ -2692,21 +2794,19 @@ if __name__ == '__main__':
     #                          os.path.join(SAMPLE_REG_DIR, "t_statistics_v5"),
     #                           os.path.join(SAMPLE_REG_DIR, "diff_means_v5"))
 
-    plot_components.plot_stats_for_high_freq_components(
-        os.path.join(SAMPLE_REG_DIR, "p_values_v5"),
-        ecomac_colinet_names, colinet_reg_components,
-        colinet_genes_in_regulator,
-        os.path.join(SAMPLE_REG_DIR, "plot_high_freq_p_values_with_special_v5"),
-        os.path.join(SAMPLE_REG_DIR, "write_coliNet_comp_vs_min_p_comp_high_frq_v5")
-    )
-    # plot_components.plot_stats_for_low_freq_components(
-    #     os.path.join(SAMPLE_REG_DIR, "mwu_p_values_v4"),
-    #     os.path.join(SAMPLE_REG_DIR, "diff_means_v5"),
+    # plot_components.plot_stats_for_high_freq_components(
+    #     50, os.path.join(SAMPLE_REG_DIR, "p_values_v5"),
     #     ecomac_colinet_names, colinet_reg_components,
     #     colinet_genes_in_regulator,
-    #     os.path.join(SAMPLE_REG_DIR, "plot_mwu_p_values_with_special"),
-    #     os.path.join(SAMPLE_REG_DIR, "exclude_some_plot_low_freq_diff_means_with_special_v5"),
-    #     os.path.join(SAMPLE_REG_DIR, "exclude_some_write_coliNet_comp_vs_max_dm_comp_low_freq_v5"))
+    #     os.path.join(SAMPLE_REG_DIR, "plot_high_freq_p_values_with_special_v5_3"),
+    #     os.path.join(SAMPLE_REG_DIR, "write_coliNet_comp_vs_min_p_comp_high_frq_v5_3")
+    # )
+    # plot_components.plot_stats_for_low_freq_components(
+    #     50, os.path.join(SAMPLE_REG_DIR, "diff_means_v5"),
+    #     ecomac_colinet_names, colinet_reg_components,
+    #     colinet_genes_in_regulator,
+    #     os.path.join(SAMPLE_REG_DIR, "plot_low_freq_diff_means_with_special_v5_3"),
+    #     os.path.join(SAMPLE_REG_DIR, "write_coliNet_comp_vs_max_dm_comp_low_freq_v5_3"))
 
     # Idea: if we look at all genes,
     # So what are we looking for? A way to say, these genes are one-peak bc for any component, some statistic is less than
@@ -2751,8 +2851,10 @@ if __name__ == '__main__':
     #                os.path.join(SAMPLE_REG_DIR, "one_peak_reg_by_argR2"))
     #filtered_exp, filtered_components, filtered_samples, gene_names = _get_filtered_data()
     #plot_components = PlotComponents(filtered_components, filtered_samples)
-    # plot_components.candidate_two_peak(gene_names, filtered_exp, os.path.join(SAMPLE_REG_DIR, "all_regs2"),
-    #                                    os.path.join(SAMPLE_REG_DIR, "two_peak_all_regs"))
+    #plot_components.candidate_two_peak(gene_names, filtered_exp, os.path.join(SAMPLE_REG_DIR, "all_regs2"),
+    #                                   os.path.join(SAMPLE_REG_DIR, "two_peak_all_regs"))
+
+
     #plot_components.identify_two_peak(os.path.join(SAMPLE_REG_DIR, "two_peak_all_regs"),
     #                                  os.path.join(SAMPLE_REG_DIR, "two_peak_genes"))
     #two_peak_reg_analyze(gene_names, os.path.join(SAMPLE_REG_DIR, "two_peak_genes"),
@@ -2838,7 +2940,7 @@ if __name__ == '__main__':
     # peaks = peak_finder.detect_peaks(exp[0], plot_name='araJ1010')
     # peak_finder.gene_data(symbols, exp, 'test_all_peaks', 'test_all_peaks.txt')
 
-    compare_tail_stimulon_enrichment("ytfT", 8, symbols, seq_data, sample_data)
+
     import ipdb; ipdb.set_trace()
     # TODO: fix the norfloxacin ones that actually do have arabinose
     # TODO: make a fcn that can plot for any gene given any components
