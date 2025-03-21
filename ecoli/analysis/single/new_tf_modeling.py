@@ -54,8 +54,8 @@ def plot(
 
     purR_tf_binding_name = purR_tf_name + " binding"
     purR_tf_unbinding_name = purR_tf_name + " unbinding"
-    purR_tf_bound_promoters_name = purR_tf_name + " bound promoters"
-    purR_tf_avail_promoters_name = purR_tf_name + " available promoters"
+    purR_tf_bound_binding_sites_name = purR_tf_name + " bound binding sites"
+    purR_tf_avail_binding_sites_name = purR_tf_name + " available binding sites"
     purR_bound_purC_name = "purR bound to purC"
 
     purC_monomer_id = "SAICARSYN-MONOMER"
@@ -152,11 +152,11 @@ def plot(
     purR_tf_unbinding = named_idx(
         "listeners__rna_synth_prob__n_unbinding_events", [purR_tf_unbinding_name], [purR_tf_idx]
     )
-    purR_tf_bound_promoters = named_idx(
-        "listeners__rna_synth_prob__n_bound_promoters", [purR_tf_bound_promoters_name], [purR_tf_idx]
+    purR_tf_bound_binding_sites = named_idx(
+        "listeners__rna_synth_prob__n_bound_binding_sites", [purR_tf_bound_binding_sites_name], [purR_tf_idx]
     )
-    purR_tf_available_promoters = named_idx(
-        "listeners__rna_synth_prob__n_available_promoters", [purR_tf_avail_promoters_name], [purR_tf_idx]
+    purR_tf_available_binding_sites = named_idx(
+        "listeners__rna_synth_prob__n_available_binding_sites", [purR_tf_avail_binding_sites_name], [purR_tf_idx]
     )
     purR_bound_to_purC = ndidx_to_duckdb_expr(
         "listeners__rna_synth_prob__n_bound_TF_per_TU", [purC_tu_idx, purR_tf_idx]
@@ -171,14 +171,14 @@ def plot(
          "listeners__rna_synth_prob__actual_rna_synth_prob",
          "listeners__rna_synth_prob__rna_synth_aff",
          "bulk",
-         "listeners__enzyme_kinetics__metabolite_counts_final",
+         "listenners__enzyme_kinetics__metabolite_counts_final",
          "listeners__rna_synth_prob__n_binding_events",
          "listeners__rna_synth_prob__n_unbinding_events",
-         "listeners__rna_synth_prob__n_bound_promoters",
-         "listeners__rna_synth_prob__n_available_promoters"],
+         "listeners__rna_synth_prob__n_bound_binding_sites",
+         "listeners__rna_synth_prob__n_available_binding_sites"],
         [purC_mRNA, purC_purR_monomers, purC_gene, purC_rna_synth_prob, purC_rna_synth_aff,
          purR_bulk, hypoxanthine_metab_counts, purR_tf_binding, purR_tf_unbinding,
-         purR_tf_bound_promoters, purR_tf_available_promoters],
+         purR_tf_bound_binding_sites, purR_tf_available_binding_sites],
         conn=conn,
     )
     # purR_bound_to_purC_data = read_stacked_columns(
@@ -233,7 +233,7 @@ def plot(
         axs[5].plot(purC_dataframe["time"], purC_dataframe[x], label=x)
     axs[5].plot(purC_dataframe["time"], purC_dataframe[purR_monomer_name], label=purR_monomer_name)
     # TODO: check, if a purR is bound to DNA, is it still counted in bulk molecules?
-    axs[5].plot(purC_dataframe["time"], purC_dataframe[purR_tf_bound_promoters_name], label=purR_tf_bound_promoters_name)
+    axs[5].plot(purC_dataframe["time"], purC_dataframe[purR_tf_bound_binding_sites_name], label=purR_tf_bound_binding_sites_name)
     axs[5].set_title("purR counts")
     axs[5].legend()
 
@@ -245,8 +245,8 @@ def plot(
     axs[7].legend()
     axs[7].set_title("PurR total binding and unbinding events")
 
-    axs[8].plot(purC_dataframe["time"], purC_dataframe[purR_tf_bound_promoters_name], label=purR_tf_bound_promoters_name)
-    axs[8].plot(purC_dataframe["time"], purC_dataframe[purR_tf_avail_promoters_name], label=purR_tf_avail_promoters_name)
+    axs[8].plot(purC_dataframe["time"], purC_dataframe[purR_tf_bound_binding_sites_name], label=purR_tf_bound_binding_sites_name)
+    axs[8].plot(purC_dataframe["time"], purC_dataframe[purR_tf_avail_binding_sites_name], label=purR_tf_avail_binding_sites_name)
     axs[8].legend()
     axs[8].set_title("purR-binding promoters")
 
