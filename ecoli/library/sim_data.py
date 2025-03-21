@@ -664,7 +664,7 @@ class LoadSimData:
 
         return chromosome_replication_config
 
-    def get_tf_binding_config(self, time_step=1, parallel=False):
+    def get_tf_binding_config(self, time_step=1):
         tf_binding_config = {
             "time_step": time_step,
             "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
@@ -1109,7 +1109,6 @@ class LoadSimData:
 
         return equilibrium_config
 
-<<<<<<< HEAD
     def get_tf_ligand_binding_config(self, time_step=1, parallel=False):
         tf_ligand_binding_config = {
             "time_step": time_step,
@@ -1134,10 +1133,7 @@ class LoadSimData:
 
         return tf_ligand_binding_config
 
-    def get_protein_degradation_config(self, time_step=1, parallel=False):
-=======
     def get_protein_degradation_config(self, time_step=1):
->>>>>>> a7bf8227ee6ea5a7970bdc6865d08594c4225a01
         protein_degradation_config = {
             "time_step": time_step,
             "raw_degradation_rate": self.sim_data.process.translation.monomer_data[
