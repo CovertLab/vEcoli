@@ -4,7 +4,7 @@ Chromosome Structure
 ====================
 
 - Resolve collisions between molecules and replication forks on the chromosome.
-- Remove and replicate promoters and motifs that are traversed by replisomes.
+- Remove and replicate promoters, motifs, and tf-binding-sites that are traversed by replisomes.
 - Reset the boundaries and linking numbers of chromosomal segments.
 """
 
@@ -869,14 +869,6 @@ class ChromosomeStructure(Step):
             # Delete original promoters
             update["promoters"].update({"delete": np.where(removed_promoters_mask)[0]})
 
-            # # Add freed active tfs
-            # update["bulk"].append(
-            #     (
-            #         self.active_tfs_idx,
-            #         promoter_bound_TFs[removed_promoters_mask, :].sum(axis=0),
-            #     )
-            # )
-
             # Set up attributes for the replicated promoters
             promoter_TU_indexes_new = np.repeat(
                 promoter_TU_indexes[removed_promoters_mask], 2
@@ -929,11 +921,9 @@ class ChromosomeStructure(Step):
             )
 
             # Add new TF binding sites with new domain indexes
-            tf_binding_site_indices = create_unique_indexes(n_new_tf_binding_sites, self.random_state)
             update["tf_binding_sites"].update(
                 {
                     "add": {
-                        "unique_index": tf_binding_site_indices,
                         "tf_binding_site_index": tf_binding_site_indexes_new,
                         "coordinates": tf_binding_site_coordinates_new,
                         "domain_index": tf_binding_site_domain_indexes_new,
