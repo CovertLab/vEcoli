@@ -54,6 +54,7 @@ dependencies = [
     "wheel",
     "stochastic-arrow",
     "autograd",
+    "astropy>=7.0.1",
 ]
 
 [project.optional-dependencies]
