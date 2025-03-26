@@ -1950,7 +1950,7 @@ wheels = [
 
 [[package]]
 name = "ortools"
-version = "9.11.4210"
+version = "9.12.4544"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absl-py" },
@@ -1960,11 +1960,12 @@ dependencies = [
     { name = "protobuf" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/21/36/f6292656614fcf979bef92ca2dc117b9207185a816317a5bb4ff4ec1bf4b/ortools-9.11.4210-cp312-cp312-macosx_10_15_x86_64.whl", hash = "sha256:079bea08c6341dcfe3fb9586eb6edec6ae80f4ed16ed366fd7a46ef4b5709009", size = 22328002 },
-    { url = "https://files.pythonhosted.org/packages/0c/7e/5497823b8a5b8d26d976425f0721e3bf0871deb05c65d61323523cabb39c/ortools-9.11.4210-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:7f55124f9d1afa6434d0d6de07c6a4eb836f29b00b3413d27138634d5d79b606", size = 20654740 },
-    { url = "https://files.pythonhosted.org/packages/45/06/a7a622da3d7b7a0e6f01ffef4229b9627f64c1c920cafa71ba9607524801/ortools-9.11.4210-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1f48e3d4053a169440608d881c1abd2a706db885d9b0af85bf45b444a1fec244", size = 26414535 },
-    { url = "https://files.pythonhosted.org/packages/3c/38/b2e915c4b3f3bf966d2d73e69ee4c72a09452822ea912af0a506a32e2a48/ortools-9.11.4210-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:03ecd32e5d760d48e59832ef6bf724f8cac95e4e40db72a7fb912abf7adcf931", size = 28053736 },
-    { url = "https://files.pythonhosted.org/packages/b1/d8/9a4589e4ab103e809f2de718ddb6718f2547cdd785d3d7efd4da958a9c29/ortools-9.11.4210-cp312-cp312-win_amd64.whl", hash = "sha256:bc1b6e4cc0a121ef888481a99194765e6df72d4d3da81f928543171a2bac8cbb", size = 142461842 },
+    { url = "https://files.pythonhosted.org/packages/1e/be/1c441fd1a28380388a6a79269f718ab48d139166eda635df471bd2f17f25/ortools-9.12.4544-cp312-cp312-macosx_10_15_x86_64.whl", hash = "sha256:16768b19fcb3053f44bd84c460cb978f2a29d74e3a5d9ba06123589feb10af12", size = 20356632 },
+    { url = "https://files.pythonhosted.org/packages/89/77/ba188f8e796d4480e57f58b55cfdb52a7e8e60c85650a5e7819c2d7a3c31/ortools-9.12.4544-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:67fe1b865327745678a24066d826db25a1019aa207ea9017ca01af2cf2145652", size = 18347780 },
+    { url = "https://files.pythonhosted.org/packages/35/af/59a1d23e038034db124f45948ad4ad4a8ab611fb5fdbb91e6055ede67882/ortools-9.12.4544-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:5550fe9ee552b7b8ed01cad91d58a68ec0e48cd40dd2779c10b1991429a77058", size = 23149421 },
+    { url = "https://files.pythonhosted.org/packages/6a/ae/44031d5cf13d82e9025ff8125705daf6ea9b84fd260f14487a76289e4bd4/ortools-9.12.4544-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:922121d6f48f8eeb1eb88a8c645ff00b61f60856319314ce2b8f220fab896083", size = 24950806 },
+    { url = "https://files.pythonhosted.org/packages/ba/80/8e47c0cfd6f293674a4c52f111c0cae86f9e74d3b14f8c38dc6e1160e93a/ortools-9.12.4544-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:e29f24c4a8bbf3cc0ab7a3d32809d578b15ac35d8d1954b660f6951f8205dd30", size = 26690596 },
+    { url = "https://files.pythonhosted.org/packages/2b/80/c3bd82d246d7c32176b13504743ce8e8e5e3f0b17fa79bc0747fc4e090bf/ortools-9.12.4544-cp312-cp312-win_amd64.whl", hash = "sha256:4faee45703acf4d12efbb2d8b6b3da09bfadecf1404ccbe4ea5fad687ed350b2", size = 18073509 },
 ]
 
 [[package]]
@@ -2060,7 +2061,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess" },
+    { name = "ptyprocess", marker = "sys_platform != 'emscripten'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450 }
 wheels = [
@@ -2227,16 +2228,16 @@ wheels = [
 
 [[package]]
 name = "protobuf"
-version = "5.26.1"
+version = "5.29.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d2/e5/7e22ca7201a6b1040aae7787d0fe6cd970311da376a86fdafa5182be1d1b/protobuf-5.26.1.tar.gz", hash = "sha256:8ca2a1d97c290ec7b16e4e5dff2e5ae150cc1582f55b5ab300d45cb0dfa90e51", size = 393518 }
+sdist = { url = "https://files.pythonhosted.org/packages/17/7d/b9dca7365f0e2c4fa7c193ff795427cfa6290147e5185ab11ece280a18e7/protobuf-5.29.4.tar.gz", hash = "sha256:4f1dfcd7997b31ef8f53ec82781ff434a28bf71d9102ddde14d076adcfc78c99", size = 424902 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/eb/966e06bffa17a052f32d4f89f1721e358e47d554c6b0c73b487e5aa99f5e/protobuf-5.26.1-cp310-abi3-win32.whl", hash = "sha256:3c388ea6ddfe735f8cf69e3f7dc7611e73107b60bdfcf5d0f024c3ccd3794e23", size = 400018 },
-    { url = "https://files.pythonhosted.org/packages/8d/83/d70cb6fedb1f38318af01f0035f2103732630af0ca323c0198122b49323b/protobuf-5.26.1-cp310-abi3-win_amd64.whl", hash = "sha256:e6039957449cb918f331d32ffafa8eb9255769c96aa0560d9a5bf0b4e00a2a33", size = 420904 },
-    { url = "https://files.pythonhosted.org/packages/1e/40/2eb2bf643d4b060b1602a25748b48d75431f4951be2470f8ae136952b3d3/protobuf-5.26.1-cp37-abi3-macosx_10_9_universal2.whl", hash = "sha256:38aa5f535721d5bb99861166c445c4105c4e285c765fbb2ac10f116e32dcd46d", size = 404043 },
-    { url = "https://files.pythonhosted.org/packages/c8/ac/6f4f48aa5472bf4b58f962a0c910e26bb7b648c141435cbe32b797768985/protobuf-5.26.1-cp37-abi3-manylinux2014_aarch64.whl", hash = "sha256:fbfe61e7ee8c1860855696e3ac6cfd1b01af5498facc6834fcc345c9684fb2ca", size = 300876 },
-    { url = "https://files.pythonhosted.org/packages/2c/2a/d2741cad35fa5f06d9c59dda3274e5727ca11075dfd7de3f69c100efdcad/protobuf-5.26.1-cp37-abi3-manylinux2014_x86_64.whl", hash = "sha256:f7417703f841167e5a27d48be13389d52ad705ec09eade63dfc3180a959215d7", size = 302823 },
-    { url = "https://files.pythonhosted.org/packages/d8/ba/1c8528299fe9082f9400e6f4eb021cb3311943b2bff9267d5e24e4b4a4d8/protobuf-5.26.1-py3-none-any.whl", hash = "sha256:da612f2720c0183417194eeaa2523215c4fcc1a1949772dc65f05047e08d5932", size = 161228 },
+    { url = "https://files.pythonhosted.org/packages/9a/b2/043a1a1a20edd134563699b0e91862726a0dc9146c090743b6c44d798e75/protobuf-5.29.4-cp310-abi3-win32.whl", hash = "sha256:13eb236f8eb9ec34e63fc8b1d6efd2777d062fa6aaa68268fb67cf77f6839ad7", size = 422709 },
+    { url = "https://files.pythonhosted.org/packages/79/fc/2474b59570daa818de6124c0a15741ee3e5d6302e9d6ce0bdfd12e98119f/protobuf-5.29.4-cp310-abi3-win_amd64.whl", hash = "sha256:bcefcdf3976233f8a502d265eb65ea740c989bacc6c30a58290ed0e519eb4b8d", size = 434506 },
+    { url = "https://files.pythonhosted.org/packages/46/de/7c126bbb06aa0f8a7b38aaf8bd746c514d70e6a2a3f6dd460b3b7aad7aae/protobuf-5.29.4-cp38-abi3-macosx_10_9_universal2.whl", hash = "sha256:307ecba1d852ec237e9ba668e087326a67564ef83e45a0189a772ede9e854dd0", size = 417826 },
+    { url = "https://files.pythonhosted.org/packages/a2/b5/bade14ae31ba871a139aa45e7a8183d869efe87c34a4850c87b936963261/protobuf-5.29.4-cp38-abi3-manylinux2014_aarch64.whl", hash = "sha256:aec4962f9ea93c431d5714ed1be1c93f13e1a8618e70035ba2b0564d9e633f2e", size = 319574 },
+    { url = "https://files.pythonhosted.org/packages/46/88/b01ed2291aae68b708f7d334288ad5fb3e7aa769a9c309c91a0d55cb91b0/protobuf-5.29.4-cp38-abi3-manylinux2014_x86_64.whl", hash = "sha256:d7d3f7d1d5a66ed4942d4fefb12ac4b14a29028b209d4bfb25c68ae172059922", size = 319672 },
+    { url = "https://files.pythonhosted.org/packages/12/fb/a586e0c973c95502e054ac5f81f88394f24ccc7982dac19c515acd9e2c93/protobuf-5.29.4-py3-none-any.whl", hash = "sha256:3fde11b505e1597f71b875ef2fc52062b6a9740e5f7c8997ce878b6009145862", size = 172551 },
 ]
 
 [[package]]
@@ -3536,54 +3537,54 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "altair" },
-    { name = "autograd" },
-    { name = "biopython" },
-    { name = "cvxpy" },
-    { name = "cython" },
-    { name = "dill" },
-    { name = "duckdb" },
-    { name = "ecos" },
-    { name = "ete3" },
-    { name = "gcsfs" },
-    { name = "ipdb" },
-    { name = "ipython" },
-    { name = "iteround" },
-    { name = "jupyter" },
-    { name = "line-profiler" },
-    { name = "matplotlib" },
+    { name = "altair", specifier = "==5.5.0" },
+    { name = "autograd", specifier = "==1.7.0" },
+    { name = "biopython", specifier = "==1.85" },
+    { name = "cvxpy", specifier = "==1.6.4" },
+    { name = "cython", specifier = "==3.0.12" },
+    { name = "dill", specifier = "==0.3.9" },
+    { name = "duckdb", specifier = "==1.2.1" },
+    { name = "ecos", specifier = "==2.0.14" },
+    { name = "ete3", specifier = "==3.1.3" },
+    { name = "gcsfs", specifier = "==2025.3.0" },
+    { name = "ipdb", specifier = "==0.13.13" },
+    { name = "ipython", specifier = "==9.0.2" },
+    { name = "iteround", specifier = "==1.0.4" },
+    { name = "jupyter", specifier = "==1.1.1" },
+    { name = "line-profiler", specifier = "==4.2.0" },
+    { name = "matplotlib", specifier = "==3.10.1" },
     { name = "mypy", marker = "extra == 'dev'" },
-    { name = "nbclassic" },
+    { name = "nbclassic", specifier = "==1.2.0" },
     { name = "nbsphinx", marker = "extra == 'docs'" },
-    { name = "numba" },
-    { name = "numpy" },
-    { name = "opencv-python-headless" },
-    { name = "orjson" },
-    { name = "ortools", specifier = "<9.12" },
-    { name = "pandas" },
-    { name = "polars" },
+    { name = "numba", specifier = "==0.61.0" },
+    { name = "numpy", specifier = "==2.1.3" },
+    { name = "opencv-python-headless", specifier = "==4.11.0.86" },
+    { name = "orjson", specifier = "==3.10.16" },
+    { name = "ortools", specifier = "<9.13" },
+    { name = "pandas", specifier = "==2.2.3" },
+    { name = "polars", specifier = "==1.26.0" },
     { name = "pre-commit", marker = "extra == 'dev'" },
-    { name = "pyarrow" },
-    { name = "pymunk" },
-    { name = "pyqt5" },
-    { name = "pysal" },
+    { name = "pyarrow", specifier = "==19.0.1" },
+    { name = "pymunk", specifier = "==6.11.1" },
+    { name = "pyqt5", specifier = "==5.15.11" },
+    { name = "pysal", specifier = "==25.1" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "ruff", marker = "extra == 'dev'" },
-    { name = "scikit-image" },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-    { name = "seaborn" },
+    { name = "scikit-image", specifier = "==0.25.2" },
+    { name = "scikit-learn", specifier = "==1.6.1" },
+    { name = "scipy", specifier = "==1.15.2" },
+    { name = "seaborn", specifier = "==0.13.2" },
     { name = "sphinx", marker = "extra == 'docs'" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
-    { name = "statsmodels" },
-    { name = "stochastic-arrow" },
-    { name = "swiglpk" },
-    { name = "sympy" },
-    { name = "tqdm" },
-    { name = "unum" },
-    { name = "vivarium-core" },
-    { name = "wheel" },
+    { name = "statsmodels", specifier = "==0.14.4" },
+    { name = "stochastic-arrow", specifier = "==1.1.0" },
+    { name = "swiglpk", specifier = "==5.0.12" },
+    { name = "sympy", specifier = "==1.13.3" },
+    { name = "tqdm", specifier = "==4.67.1" },
+    { name = "unum", specifier = "==4.2.1" },
+    { name = "vivarium-core", specifier = "==1.6.5" },
+    { name = "wheel", specifier = "==0.45.1" },
 ]
 provides-extras = ["dev", "docs"]
 
