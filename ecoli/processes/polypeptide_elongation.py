@@ -300,7 +300,7 @@ class PolypeptideElongation(PartitionedProcess):
                         "aa_allocated": ([0] * len(self.amino_acids), self.amino_acids),
                         "aa_pool_size": ([0] * len(self.amino_acids), self.amino_acids),
                         "aa_request_size": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         "active_ribosome_allocated": 0,
@@ -764,7 +764,9 @@ class BaseElongationModel(object):
     def amino_acid_counts(self, aasInSequences):
         return aasInSequences
 
-    def request(self, states, aasInSequences):
+    def request(
+        self, states: dict, aasInSequences: npt.NDArray[np.int64]
+    ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], dict]:
         aa_counts_for_translation = self.amino_acid_counts(aasInSequences)
 
         requests = {"bulk": [(self.process.amino_acid_idx, aa_counts_for_translation)]}
@@ -772,7 +774,7 @@ class BaseElongationModel(object):
         # Not modeling charging so set fraction charged to 0 for all tRNA
         fraction_charged = np.zeros(len(self.process.amino_acid_idx))
 
-        return fraction_charged, aa_counts_for_translation, requests
+        return fraction_charged, aa_counts_for_translation.astype(float), requests
 
     def final_amino_acids(self, total_aa_counts, charged_trna_counts):
         return total_aa_counts
@@ -930,7 +932,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             rate = super().elongation_rate(states)
         return rate
 
-    def request(self, states, aasInSequences):
+    def request(
+        self, states: dict, aasInSequences: npt.NDArray[np.int64]
+    ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], dict]:
         self.max_time_step = min(
             self.process.max_time_step, self.max_time_step * self.time_step_increase
         )
@@ -1064,7 +1068,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             * f
             * states["timestep"]
             / self.counts_to_molar.asNumber(MICROMOLAR_UNITS)
-        ).astype(np.int64)
+        )
 
         total_trna = charged_trna_array + uncharged_trna_array
         final_charged_trna = stochasticRound(
@@ -1140,13 +1144,13 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
                 random_state=self.process.random_state,
             )
 
-            request_ppgpp_metabolites = -delta_metabolites
+            request_ppgpp_metabolites = -delta_metabolites.astype(int)
             ppgpp_request = counts(states["bulk"], self.process.ppgpp_idx)
             bulk_request.append((self.process.ppgpp_idx, ppgpp_request))
             bulk_request.append(
                 (
                     self.process.ppgpp_rxn_metabolites_idx,
-                    request_ppgpp_metabolites.astype(int),
+                    request_ppgpp_metabolites,
                 )
             )
 
