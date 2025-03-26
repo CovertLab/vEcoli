@@ -1,8 +1,15 @@
-#!/bin/sh
+#!/bin/bash
 # Start an interactive Docker or Apptainer container from an image.
 # Supports optional bind mounts and Cloud Storage bucket mounting
 
 set -eu  # Exit on any error or unset variable
+
+unmount() {
+  fusermount -u $HOME/bucket_mnt &>/dev/null
+}
+
+# Ensure bucket is unmounted on script exit
+trap unmount EXIT
 
 # Default configuration variables
 WCM_IMAGE="${USER}-wcm-code"  # Default image name for Docker/Apptainer
@@ -65,7 +72,7 @@ else
       echo "=== Mounting Cloud Storage bucket ${BUCKET} ==="
       # Create mount point and mount bucket with gcsfuse
       mkdir -p $HOME/bucket_mnt
-      gcsfuse --implicit-dirs $BUCKET $HOME/bucket_mnt
+      gcsfuse -o allow_other --implicit-dirs $BUCKET $HOME/bucket_mnt
       # Nextflow mounts bucket to /mnt/disks so we need to copy that for
       # symlinks to work properly
       BIND_CWD="${BIND_CWD} -v ${HOME}/bucket_mnt:/mnt/disks/${BUCKET}"

@@ -3,6 +3,7 @@ CSV reader and writer that default to TAB delimiters.
 """
 
 import csv
+import _csv
 
 from io import TextIOWrapper
 from typing import (
@@ -19,7 +20,7 @@ from typing import (
 )
 
 
-DIALECT = Union[str, csv.Dialect, Type[csv.Dialect]]
+DIALECT = Union[str, _csv.Dialect, Type[_csv.Dialect], csv.Dialect, Type[csv.Dialect]]
 
 
 class reader(object):

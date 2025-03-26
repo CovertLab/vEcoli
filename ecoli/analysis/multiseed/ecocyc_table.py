@@ -73,6 +73,7 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
+    success_sql: str,
     sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
@@ -125,13 +126,6 @@ def plot(
     # Filter out first timestep for each cell because counts_to_molar is 0
     rna_subquery = read_stacked_columns(
         history_sql,
-        [
-            "bulk",
-            "listeners__unique_molecule_counts__active_ribosome",
-            "listeners__enzyme_kinetics__counts_to_molar",
-            "listeners__mass__dry_mass",
-            "listeners__rna_counts__mRNA_cistron_counts",
-        ],
         [
             # Extract only necessary bulk counts to reduce RAM usage
             f"list_select(bulk, {charged_tRNA_idx}) AS charged_tRNAs, "
@@ -441,11 +435,6 @@ def plot(
     complex_idx = [bulk_id_to_idx[cplx] for cplx in complex_ids]
     complex_subquery = read_stacked_columns(
         history_sql,
-        [
-            "bulk",
-            "listeners__enzyme_kinetics__counts_to_molar",
-            "listeners__mass__dry_mass",
-        ],
         [
             # Extract only complex bulk counts to reduce RAM usage
             f"list_select(bulk, {complex_idx}) AS complex_counts",

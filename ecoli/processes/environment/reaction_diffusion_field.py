@@ -135,9 +135,9 @@ class ReactionDiffusion(Process):
                 f"is not in declared fields {molecule_ids}"
             )
             kinetics_params = list(rxn_kinetics[list(kinetics_catalyst)[0]].keys())
-            assert "kcat_f" in kinetics_params, (
-                f"kinetic_parameters reaction {rxn_id} " f"needs a kcat_f parameters"
-            )
+            assert (
+                "kcat_f" in kinetics_params
+            ), f"kinetic_parameters reaction {rxn_id} needs a kcat_f parameters"
             kinetics_params.remove("kcat_f")
             assert len(kinetics_params) == 1, "only one km allowed"
             assert set(kinetics_params).issubset(molecule_ids), (
@@ -410,6 +410,6 @@ def main():
     )
 
 
-# uv run ecoli/processes/environment/reaction_diffusion_field.py
+# uv run --env-file .env ecoli/processes/environment/reaction_diffusion_field.py
 if __name__ == "__main__":
     main()

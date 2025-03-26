@@ -93,6 +93,7 @@ from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in
 
+from ecoli.library.parquet_emitter import ParquetEmitter
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.schema import remove_properties, empty_dict_divider, not_a_process
 from ecoli.library.updaters import inverse_updater_registry
@@ -516,6 +517,10 @@ class EngineProcess(Process):
             self.parameters["division_variable"]
         ).get_value()
         if self.parameters["divide"] and division_variable >= division_threshold:
+            # Finalize emits before division
+            if isinstance(self.emitter, ParquetEmitter):
+                self.emitter.success = True
+                self.emitter._finalize()
             # Perform division.
             daughters = []
             daughter_states = self.sim.state.divide_value()

@@ -3,7 +3,7 @@ import os
 import pathlib
 from itertools import pairwise
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable, cast, Mapping, Optional
 from urllib import parse
 
@@ -88,67 +88,75 @@ def json_to_parquet(
     """
     parse_options = pj.ParseOptions(explicit_schema=schema)
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
-    t = pj.read_json(ndjson, read_options=read_options, parse_options=parse_options)
-    pq.write_table(
-        t,
-        outfile,
-        use_dictionary=False,
-        compression="zstd",
-        column_encoding=encodings,
-        filesystem=filesystem,
-        # Writing statistics with giant nested columns bloats metadata
-        # and dramatically slows down reading while increasing RAM usage
-        write_statistics=False,
-    )
-    pathlib.Path(ndjson).unlink()
+    try:
+        t = pj.read_json(ndjson, read_options=read_options, parse_options=parse_options)
+        pq.write_table(
+            t,
+            outfile,
+            use_dictionary=False,
+            compression="zstd",
+            column_encoding=encodings,
+            filesystem=filesystem,
+            # Writing statistics with giant nested columns bloats metadata
+            # and dramatically slows down reading while increasing RAM usage
+            write_statistics=False,
+        )
+    finally:
+        pathlib.Path(ndjson).unlink()
 
 
-def get_dataset_sql(out_dir: str) -> tuple[str, str]:
+def get_dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, str]:
     """
-    Creates DuckDB SQL strings for sim configs and outputs.
+    Creates DuckDB SQL strings for sim outputs, configs, and metadata on which
+    sims were successful.
 
     Args:
         out_dir: Path to output directory for workflows to retrieve data
             for (relative or absolute local path OR URI beginning with
             ``gcs://`` or ``gs://`` for Google Cloud Storage bucket)
+        experiment_ids: List of experiment IDs to include in query. To read data
+            from more than one experiment ID, the listeners in the output of the
+            first experiment ID in the list must be a strict subset of the listeners
+            in the output of the subsequent experiment ID(s).
 
     Returns:
-        2-element tuple containing
+        3-element tuple containing
 
         - **history_sql**: SQL query for sim output (see :py:func:`~.read_stacked_columns`),
         - **config_sql**: SQL query for sim configs (see :py:func:`~.get_field_metadata`
           and :py:func:`~.get_config_value`)
+        - **success_sql**: SQL query for metadata marking successful sims
+          (see :py:func:`~.read_stacked_columns`)
 
     """
-    return (
-        f"""
-        FROM read_parquet(
-            ['{os.path.join(out_dir, '*')}/history/*/{EXPERIMENT_SCHEMA_SUFFIX}',
-            '{os.path.join(out_dir, '*')}/history/*/*/*/*/*/*.pq'],
-            hive_partitioning = true,
-            hive_types = {{
-                'experiment_id': VARCHAR,
-                'variant': BIGINT,
-                'lineage_seed': BIGINT,
-                'generation': BIGINT,
-                'agent_id': VARCHAR,
-            }}
+    sql_queries = []
+    for query_type in ("history", "configuration", "success"):
+        query_files = []
+        if query_type == "history":
+            query_files.append(
+                f"'{os.path.join(out_dir, experiment_ids[0])}/{query_type}/*/{EXPERIMENT_SCHEMA_SUFFIX}'"
+            )
+        for experiment_id in experiment_ids:
+            query_files.append(
+                f"'{os.path.join(out_dir, experiment_id)}/{query_type}/*/*/*/*/*/*.pq'"
+            )
+        query_files = ", ".join(query_files)
+        sql_queries.append(
+            f"""
+            FROM read_parquet(
+                [{query_files}],
+                hive_partitioning = true,
+                hive_types = {{
+                    'experiment_id': VARCHAR,
+                    'variant': BIGINT,
+                    'lineage_seed': BIGINT,
+                    'generation': BIGINT,
+                    'agent_id': VARCHAR,
+                }}
+            )
+            """
         )
-        """,
-        f"""
-        FROM read_parquet(
-            '{os.path.join(out_dir, '*')}/configuration/*/*/*/*/*/*.pq',
-            hive_partitioning = true,
-            hive_types = {{
-                'experiment_id': VARCHAR,
-                'variant': BIGINT,
-                'lineage_seed': BIGINT,
-                'generation': BIGINT,
-                'agent_id': VARCHAR,
-            }}
-        )
-        """,
-    )
+    return sql_queries[0], sql_queries[1], sql_queries[2]
 
 
 def num_cells(conn: duckdb.DuckDBPyConnection, subquery: str) -> int:
@@ -288,18 +296,18 @@ def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> 
         if isinstance(indices, list):
             if isinstance(indices[0], int):
                 one_indexed_idx = ", ".join(str(i + 1) for i in indices)
-                select_expr = f"list_transform(list_select(x_{i+1}, [{one_indexed_idx}]), x_{i} -> {select_expr})"
+                select_expr = f"list_transform(list_select(x_{i + 1}, [{one_indexed_idx}]), x_{i} -> {select_expr})"
             elif isinstance(indices[0], bool):
-                select_expr = f"list_transform(list_where(x_{i+1}, {indices}), x_{i} -> {select_expr})"
+                select_expr = f"list_transform(list_where(x_{i + 1}, {indices}), x_{i} -> {select_expr})"
             else:
                 raise TypeError("Indices must be integers or boolean masks.")
         elif indices == ":":
-            select_expr = f"list_transform(x_{i+1}, x_{i} -> {select_expr})"
+            select_expr = f"list_transform(x_{i + 1}, x_{i} -> {select_expr})"
         elif isinstance(first_idx, int):
-            select_expr = f"list_transform(x_{i+1}[{cast(int, indices) + 1}], x_{i} -> {select_expr})"
+            select_expr = f"list_transform(x_{i + 1}[{cast(int, indices) + 1}], x_{i} -> {select_expr})"
         else:
             raise TypeError("All indices must be lists, ints, or ':'.")
-    select_expr = select_expr.replace(f"x_{i+1}", name)
+    select_expr = select_expr.replace(f"x_{i + 1}", name)
     return select_expr + f" AS {name}"
 
 
@@ -447,11 +455,11 @@ def open_arbitrary_sim_data(sim_data_dict: dict[str, dict[int, Any]]) -> pa.Nati
 def read_stacked_columns(
     history_sql: str,
     columns: list[str],
-    projections: Optional[list[str]] = None,
     remove_first: bool = False,
     func: Optional[Callable[[pa.Table], pa.Table]] = None,
     conn: Optional[duckdb.DuckDBPyConnection] = None,
     order_results: bool = True,
+    success_sql: Optional[str] = None,
 ) -> pa.Table | str:
     """
     Loads columns for many cells. If you would like to perform more advanced
@@ -470,10 +478,9 @@ def read_stacked_columns(
         import duckdb
         from ecoli.library.parquet_emitter import (
             get_dataset_sql, read_stacked_columns)
-        history_sql, config_sql = get_dataset_sql('out/')
+        history_sql, config_sql, _ = get_dataset_sql('out/', 'exp_id')
         subquery = read_stacked_columns(
             history_sql,
-            ["bulk", "listeners__enzyme_kinetics__counts_to_molar"],
             # Note DuckDB arrays are 1-indexed
             ["bulk[100 + 1] + bulk[1000 + 1] + bulk[10000 + 1] AS bulk_sum",
             "listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar"],
@@ -495,7 +502,7 @@ def read_stacked_columns(
         import pyarrow as pa
         from ecoli.library.parquet_emitter import (
             get_dataset_sql, ndlist_to_ndarray, read_stacked_columns)
-        history_sql, config_sql = get_dataset_sql('out/')
+        history_sql, config_sql, _ = get_dataset_sql('out/', 'exp_id')
         # Load sim data
         with open("reconstruction/sim_data/kb/simData.cPickle", "rb") as f:
             sim_data = pickle.load(f)
@@ -521,11 +528,8 @@ def read_stacked_columns(
     Args:
         history_sql: DuckDB SQL string from :py:func:`~.get_dataset_sql`,
             potentially with filters appended in ``WHERE`` clause
-        columns: Names of columns to read data for. Unless you need to perform
-            a computation involving multiple columns, calling this function
-            many times with one column each time will use less RAM.
-        projections: Expressions to project from ``columns`` that are read.
-            If not given, all ``columns`` are projected as is.
+        columns: Names of columns to read data for. Alternatively, DuckDB
+            expressions of columns (e.g. ``mean(listeners__mass__cell_mass)``).
         remove_first: Remove data for first timestep of each cell
         func: Function to call on data for each cell, should take and
             return a PyArrow table with columns equal to ``columns``
@@ -539,26 +543,33 @@ def read_stacked_columns(
             ``time``. If no ``conn`` is provided, this can usually be disabled
             and any sorting can be deferred until the last step in the query with
             a manual ``ORDER BY``. Doing this can greatly reduce RAM usage.
+        success_sql: Final DuckDB SQL string from :py:func:`~.get_dataset_sql`.
+            If provided, will be used to filter out unsuccessful sims.
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
-    if projections is None:
-        projections = columns.copy()
-    projections.append(id_cols)
-    projections = ", ".join(projections)
-    sql_query = f"SELECT {projections} FROM ({history_sql})"
-    # Use an antijoin to remove rows for first timestep of each sim
+    columns.append(id_cols)
+    columns = ", ".join(columns)
+    sql_query = f"SELECT {columns} FROM ({history_sql})"
+    # Use a semi join to filter out unsuccessful sims
+    if success_sql is not None:
+        sql_query = f"""
+            SELECT * FROM ({sql_query})
+            SEMI JOIN ({success_sql})
+            USING (experiment_id, variant, lineage_seed, generation, agent_id)
+            """
+    # Use an anti join to remove rows for first timestep of each sim
     if remove_first:
         sql_query = f"""
             SELECT * FROM ({sql_query})
-            WHERE (experiment_id, variant, lineage_seed, generation,
-                agent_id, time)
-            NOT IN (
+            ANTI JOIN (
                 SELECT (experiment_id, variant, lineage_seed, generation,
                     agent_id, MIN(time))
                 FROM ({history_sql.replace("COLNAMEHERE", "time")})
                 GROUP BY experiment_id, variant, lineage_seed, generation,
                     agent_id
-            )"""
+            ) USING (experiment_id, variant, lineage_seed, generation,
+                agent_id, time)
+            """
     if func is not None:
         if conn is None:
             raise RuntimeError("`conn` must be provided with `func`.")
@@ -694,24 +705,29 @@ class ParquetEmitter(Emitter):
         self.schema = pa.schema([])
         self.non_null_keys: set[str] = set()
         self.num_emits = 0
+        # Wait until next batch of emits to check whether last batch
+        # was successfully written to Parquet in order to avoid blocking
+        self.last_batch_future: Future = Future()
+        # Set either by EcoliSim or by EngineProcess if sim reaches division
+        self.success = False
         atexit.register(self._finalize)
 
     def _finalize(self):
         """Convert remaining batched emits to Parquet at sim shutdown. This also
-        writes a ``_metadata`` file containing a unified Parquet schema as follows::
+        writes a ``_metadata`` file containing a unified Parquet schema as follows:
 
-            1. Read up to 10 most recently written ``_metadata`` files from other
-                simulations of the same experiment ID
-            2. Unifies those schemas with current sim schema (e.g. column that is
-                NULL is current sim but float in another is promoted to float)
-            3. Write unified schema to ``_metadata`` file in current sim output folder
-            4. Write unified schema to ``_metadata`` file in output folder for
-                sim of same experiment ID + :py:data:`~.EXPERIMENT_SCHEMA_SUFFIX`
+        1. Read up to 10 most recently written ``_metadata`` files from other
+           simulations of the same experiment ID
+        2. Unifies those schemas with current sim schema (e.g. column that is
+           NULL is current sim but float in another is promoted to float)
+        3. Write unified schema to ``_metadata`` file in current sim output folder
+        4. Write unified schema to ``_metadata`` file in output folder for
+           sim of same experiment ID + :py:data:`~.EXPERIMENT_SCHEMA_SUFFIX`
 
         Unless more than 10 simulations finish at the exact same time, the ``_metadata``
         file in the folder for experiment ID + :py:data:`~.EXPERIMENT_SCHEMA_SUFFIX`
         should contain a schema that unifies the output of all finished simulations.
-        The subquery generated by :py:func:`~.get_dataset_sql` reads this file first
+        The ``history_sql`` generated by :py:func:`~.get_dataset_sql` reads this file first
         to ensure that all columns are read as the correct type."""
         outfile = os.path.join(
             self.outdir,
@@ -772,11 +788,32 @@ class ParquetEmitter(Emitter):
         pq.write_metadata(
             unified_schema, experiment_schema_path, filesystem=self.filesystem
         )
+        # Hive-partitioned directory that only contains successful sims
+        if self.success:
+            success_file = os.path.join(
+                self.outdir,
+                self.experiment_id,
+                "success",
+                self.partitioning_path,
+                "s.pq",
+            )
+            try:
+                self.filesystem.delete_dir(os.path.dirname(success_file))
+            except (FileNotFoundError, OSError):
+                pass
+            self.filesystem.create_dir(os.path.dirname(success_file))
+            pq.write_table(
+                pa.table({"success": [True]}),
+                success_file,
+                filesystem=self.filesystem,
+                use_dictionary=False,
+                write_statistics=False,
+            )
 
     def emit(self, data: dict[str, Any]):
         """
         Flattens emit dictionary by concatenating nested key names with double
-        underscores (:py:func:~.flatten_dict), serializes flattened emit with
+        underscores (:py:func:`~.flatten_dict`), serializes flattened emit with
         ``orjson``, and writes newline-delimited JSONs in a temporary file to be
         batched for some number of timesteps before conversion to Parquet by
         :py:func:`~.json_to_parquet`.
@@ -856,7 +893,7 @@ class ParquetEmitter(Emitter):
             except (FileNotFoundError, OSError):
                 pass
             self.filesystem.create_dir(os.path.dirname(outfile))
-            self.executor.submit(
+            self.last_batch_future = self.executor.submit(
                 json_to_parquet,
                 self.temp_data.name,
                 self.encodings,
@@ -921,6 +958,8 @@ class ParquetEmitter(Emitter):
             self.temp_data.write("\n".encode("utf-8"))
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
+            # If last batch of emits failed, exception should be raised here
+            self.last_batch_future.result()
             self.temp_data.close()
             outfile = os.path.join(
                 self.outdir,
@@ -929,7 +968,7 @@ class ParquetEmitter(Emitter):
                 self.partitioning_path,
                 f"{self.num_emits}.pq",
             )
-            self.executor.submit(
+            self.last_batch_future = self.executor.submit(
                 json_to_parquet,
                 self.temp_data.name,
                 self.encodings,

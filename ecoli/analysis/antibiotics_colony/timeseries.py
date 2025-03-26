@@ -290,7 +290,7 @@ def plot_field_snapshots(
     os.makedirs("out/analysis/paper_figures/", exist_ok=True)
     snapshots_fig.savefig(
         "out/analysis/paper_figures/"
-        + f'{condition.replace("/", "_")}_seed_{seed}_fields.svg',
+        + f"{condition.replace('/', '_')}_seed_{seed}_fields.svg",
         bbox_inches="tight",
     )
     plt.close(snapshots_fig)
@@ -437,7 +437,7 @@ def plot_tag_snapshots(
             ax.set_title(ax.get_title(), y=1.05, size=9)
         if return_fig and len(tag_colors) == 1:
             return snapshots_fig
-        out_name = f'{condition.replace("/", "_")}_seed_{seed}_tags.svg'
+        out_name = f"{condition.replace('/', '_')}_seed_{seed}_tags.svg"
         out_name = highlight_column.replace("/", "_") + "_" + out_name
         if out_prefix:
             out_name = "_".join([out_prefix, out_name])
