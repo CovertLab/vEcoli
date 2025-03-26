@@ -19,6 +19,6 @@ jobs:
       - name: Audit main dependencies
         run: uv run --with pip-audit pip-audit -l
       - name: Audit dev dependencies
-        run: uv run --extras dev --with pip-audit pip-audit -l
+        run: uv run --extra dev --with pip-audit pip-audit -l
       - name: Audit docs dependencies
-        run: uv run --extras docs --with pip-audit pip-audit -l
+        run: uv run --extra docs --with pip-audit pip-audit -l
