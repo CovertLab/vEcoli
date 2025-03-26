@@ -35,7 +35,8 @@ model parameters (e.g. transcription probabilities). These parameters are used t
 
 ### Prerequisites
 
-Your system must have git, curl (or wget), and a C compiler.
+If your system has git, curl (or wget), and a C compiler
+(e.g. clang, gcc), proceed to the next section.
 
 On Ubuntu/Debian, apt can be used to install all three prerequisites:
 
@@ -52,7 +53,8 @@ Clone the repository:
     git clone https://github.com/CovertLab/vEcoli.git
 
 [Follow these instructions](https://docs.astral.sh/uv/getting-started/installation/)
-to install `uv`, our Python package and project manager of choice.
+to install `uv`, our Python package and project manager of choice. Once finished,
+close and reopen your terminal before continuing.
 
 Navigate into the cloned repository and use `uv` to install the model:
 
@@ -60,9 +62,10 @@ Navigate into the cloned repository and use `uv` to install the model:
     uv sync --frozen
 
 Finally, install `nextflow` [following these instructions](https://www.nextflow.io/docs/latest/install.html).
-If you choose to install Java with SDKMAN!, after the Java installation
-finishes, close and reopen your terminal before continuing with the
-`nextflow` installation steps.
+If your system has `wget` but not `curl`, replace `curl` in the commands
+with `wget -qO-`. If you choose to install Java with SDKMAN!, after
+the Java installation finishes, close and reopen your terminal before
+continuing with the `nextflow` installation steps.
 
 > **Tip:** If any step in the `nextflow` installation fails,
 > try rerunning a few times to see if that fixes the issue.
@@ -86,10 +89,10 @@ To test your installation, from the top-level of the cloned repository, invoke:
 
     uv run --env-file .env runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
 
-> **Warning:** Always use `uv run --env-file .env` to run scripts. Add the
-> following line to `~/.bashrc` or `~/.zshrc` to create an alias for this:
-> `alias uvrun='uv run --env-file.env'`. `uvrun` should work after restarting
-> the shell.
+> **Warning:** Always use `uv run --env-file .env` to run scripts. We recommend adding
+> the following to your `~/.bashrc` or `~/.zshrc` to create an alias for this:
+> `alias uvenv='uv run --env-file .env'`. `uvenv` should work after restarting
+> your terminal.
 
 This will run the following basic simulation workflow:
 
@@ -101,5 +104,9 @@ This will run the following basic simulation workflow:
 
 
 ## Next Steps
-Check out the [user guide](https://covertlab.github.io/vEcoli/) for a high-level
-tutorial of model development, details on key model components, and low-level API documentation.
+Review the online [user guide](https://covertlab.github.io/vEcoli/) to learn how
+to configure and run your own simulation workflows.
+
+If you encounter a problem that you cannot solve after searching the user guide
+(also linked in the repository sidebar), feel free to create a GitHub issue, and we will
+get back to you as soon as we can.
