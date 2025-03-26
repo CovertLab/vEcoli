@@ -286,7 +286,9 @@ def main():
 
     # Establish DuckDB connection
     conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("n_cpus"))
-    history_sql, config_sql = get_dataset_sql(out_uri)
+    history_sql, config_sql, success_sql = get_dataset_sql(
+        out_uri, config["experiment_id"]
+    )
     # If no explicit analysis type given, run all types in config JSON
     if "analysis_types" not in config:
         config["analysis_types"] = [
@@ -323,24 +325,27 @@ def main():
                 query_strings[data_filters] = (
                     f"SELECT * FROM ({history_sql}) WHERE {data_filters}",
                     f"SELECT * FROM ({config_sql}) WHERE {data_filters}",
+                    f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
                 )
         else:
             query_strings[data_filters] = (
                 f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
+                f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
             )
         os.makedirs(curr_outdir, exist_ok=True)
         for analysis_name in config[analysis_type]:
             analysis_mod = importlib.import_module(
                 f"ecoli.analysis.{analysis_type}.{analysis_name}"
             )
-            for data_filters, (history_q, config_q) in query_strings.items():
+            for data_filters, (history_q, config_q, success_q) in query_strings.items():
                 print(f"Running {analysis_type} {analysis_name} with {data_filters}.")
                 analysis_mod.plot(
                     config[analysis_type][analysis_name],
                     conn,
                     history_q,
                     config_q,
+                    success_q,
                     sim_data_dict,
                     config["validation_data_path"],
                     curr_outdir,

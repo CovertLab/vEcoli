@@ -164,8 +164,7 @@ class Equilibrium(PartitionedProcess):
             rxnFluxes[rev_rxn_idxs] = np.fmin(0, rxnFluxes[rev_rxn_idxs])
         else:
             raise ValueError(
-                "Could not get positive counts in equilibrium with"
-                " allocated molecules."
+                "Could not get positive counts in equilibrium with allocated molecules."
             )
 
         # Increment changes in molecule counts

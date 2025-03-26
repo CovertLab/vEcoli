@@ -25,6 +25,8 @@ profiles {
                 (((task.exitStatus == 137) || (task.exitStatus >= 50001 && task.exitStatus <= 50006))
                 && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore'
             }
+            // Ensure that symlinks are transferred over to bucket
+            stageOutMode = 'copy'
             // Retry once with more RAM if OOM
             memory = { 4.GB * task.attempt }
             maxRetries = 1
@@ -80,7 +82,7 @@ profiles {
             }
             container = params.container_image
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
-            queue = 'mcovert,owners,dev,normal'
+            queue = 'mcovert,owners,normal'
             executor = 'slurm'
             // Single core sims are slightly slower but can have shorter
             // queue times and is less damaging to future job priority
