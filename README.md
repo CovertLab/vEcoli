@@ -52,6 +52,10 @@ Clone the repository:
 
     git clone https://github.com/CovertLab/vEcoli.git
 
+> **Tip:** You can specify a directory to clone into after the
+> URL of the repository. Otherwise, the above command will clone into
+> a new directory called `vEcoli` in your current directory.
+
 [Follow these instructions](https://docs.astral.sh/uv/getting-started/installation/)
 to install `uv`, our Python package and project manager of choice. Once finished,
 close and reopen your terminal before continuing.
