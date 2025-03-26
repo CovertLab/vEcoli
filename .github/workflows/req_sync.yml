@@ -1,0 +1,29 @@
+name: Sync requirements.txt with uv.lock for Dependabot
+
+permissions:
+  contents: write
+
+on:
+  pull_request:
+    paths:
+      - 'uv.lock'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.6.10"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          uv export --all-extras > requirements.txt
+          git add .
+          git commit -m "Sync requirements.txt with uv.lock"
+          git push
