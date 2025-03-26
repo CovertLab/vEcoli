@@ -31,7 +31,7 @@ from wholecell.utils.fitting import normalize, masses_and_counts_for_homeostatic
 # NOTE: This threshold is arbitrary and was relaxed from 1e-9
 # to 1e-8 to fix failure to converge after scipy/scipy#20168.
 # Later relaxed to 3.3e-8 due to convergence failures on Sherlock.
-FITNESS_THRESHOLD = 3.3e-8
+FITNESS_THRESHOLD = 1e-8
 MAX_FITTING_ITERATIONS = 150
 N_SEEDS = 10
 
@@ -104,9 +104,9 @@ def fitSimData_1(raw_data, **kwargs):
 
     if sim_data is None:
         raise ValueError(
-            'sim_data is not specified.  Check that the'
-            f' load_intermediate function ({kwargs.get("load_intermediate")})'
-            ' is correct and matches a function to be run.'
+            "sim_data is not specified.  Check that the"
+            f" load_intermediate function ({kwargs.get('load_intermediate')})"
+            " is correct and matches a function to be run."
         )
 
     return sim_data
@@ -213,7 +213,6 @@ def input_adjustments(sim_data, cell_specs, debug=False, **kwargs):
     # Make adjustments for metabolic enzymes
     setTranslationEfficiencies(sim_data)
     set_balanced_translation_efficiencies(sim_data)
-    setRNAExpression(sim_data)
     setRNADegRates(sim_data)
     setProteinDegRates(sim_data)
 
@@ -1214,63 +1213,6 @@ def set_balanced_translation_efficiencies(sim_data):
         sim_data.process.translation.translation_efficiencies_by_monomer[
             protein_indexes
         ] = mean_trl_eff
-
-
-def setRNAExpression(sim_data):
-    """
-    This function's goal is to set expression levels for a subset of RNAs.
-    It first gathers the index of the RNA's it wants to modify, then changes
-    the expression levels of those RNAs, within sim_data, based on the
-    specified adjustment factor. If the specified ID is an RNA cistron, the
-    expression levels of all RNA molecules containing the cistron are adjusted.
-
-    Requires
-    --------
-    - For each RNA that needs to be modified, it takes in an adjustment factor.
-
-    Modifies
-    --------
-    - This function modifies the basal RNA expression levels set in sim_data,
-    for the chosen RNAs. It takes their current basal expression and multiplies
-    them by the factor specified in adjustments.
-    - After updating the basal expression levels for the given RNAs, the
-    function normalizes all the basal expression levels.
-    """
-    cistron_ids = set(sim_data.process.transcription.cistron_data["id"])
-    rna_id_to_index = {
-        rna_id[:-3]: i
-        for (i, rna_id) in enumerate(sim_data.process.transcription.rna_data["id"])
-    }
-
-    rna_index_to_adjustment = {}
-
-    for mol_id, adj_factor in sim_data.adjustments.rna_expression_adjustments.items():
-        if mol_id in cistron_ids:
-            # Find indexes of all RNAs containing the cistron
-            rna_indexes = sim_data.process.transcription.cistron_id_to_rna_indexes(
-                mol_id
-            )
-        elif mol_id in rna_id_to_index:
-            rna_indexes = rna_id_to_index[mol_id]
-        else:
-            raise ValueError(
-                f"Molecule ID {mol_id} not found in list of cistrons or transcription units."
-            )
-
-        # If multiple adjustments are made for the same RNA, take the maximum
-        # adjustment factor
-        for rna_index in rna_indexes:
-            rna_index_to_adjustment[rna_index] = max(
-                rna_index_to_adjustment.get(rna_index, 0), adj_factor
-            )
-
-    # Multiply all degradation rates with the specified adjustment factor
-    for rna_index, adj_factor in rna_index_to_adjustment.items():
-        sim_data.process.transcription.rna_expression["basal"][rna_index] *= adj_factor
-
-    sim_data.process.transcription.rna_expression["basal"] /= (
-        sim_data.process.transcription.rna_expression["basal"].sum()
-    )
 
 
 def setRNADegRates(sim_data):

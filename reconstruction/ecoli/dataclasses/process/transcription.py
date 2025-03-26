@@ -44,6 +44,7 @@ class Transcription(object):
 
         self._build_ppgpp_regulation(raw_data, sim_data)
         self._build_oric_terc_coordinates(raw_data, sim_data)
+        self._adjust_cistron_expression(raw_data, sim_data)
         self._build_cistron_data(raw_data, sim_data)
         self._build_rna_data(raw_data, sim_data)
         self._build_mature_rna_data(raw_data, sim_data)
@@ -552,6 +553,49 @@ class Transcription(object):
         # Initialize dictionary for fitted cistron expression levels. Values for
         # this dictionary are set in the parca.
         self.fit_cistron_expression = {}
+
+    def _adjust_cistron_expression(self, raw_data, sim_data):
+        """
+        This function's goal is to set expression levels for a user-defined subset of RNAs.
+        We must apply these expression adjustments before performing NNLS in order to
+        most accurately fit transcription unit expression.
+        """
+        original_totals = {}
+        adjusted_totals = {}
+        cistron_id_to_gene_id = {
+            gene["rna_ids"][0]: gene["id"] for gene in raw_data.genes
+        }
+        gene_expression_adjustments = {
+            cistron_id_to_gene_id[cistron_id]: adjustment
+            for cistron_id, adjustment in sim_data.adjustments.rna_expression_adjustments.items()
+        }
+        genes_to_adjust = {
+            cistron_id_to_gene_id[cistron_id]: cistron_id
+            for cistron_id in sim_data.adjustments.rna_expression_adjustments.keys()
+        }
+        for gene_data in getattr(
+            raw_data.rna_seq_data, f"rnaseq_{RNA_SEQ_ANALYSIS}_mean"
+        ):
+            for condition in gene_data:
+                if condition != "Gene":
+                    original_totals.setdefault(condition, 0)
+                    original_totals[condition] += gene_data[condition]
+                    if gene_data["Gene"] in gene_expression_adjustments:
+                        genes_to_adjust.pop(gene_data["Gene"], None)
+                        gene_data[condition] *= gene_expression_adjustments[
+                            gene_data["Gene"]
+                        ]
+                    adjusted_totals.setdefault(condition, 0)
+                    adjusted_totals[condition] += gene_data[condition]
+        # Renormalize to original totals
+        for gene_data in getattr(
+            raw_data.rna_seq_data, f"rnaseq_{RNA_SEQ_ANALYSIS}_mean"
+        ):
+            for condition in gene_data:
+                if condition != "Gene":
+                    gene_data[condition] *= (
+                        original_totals[condition] / adjusted_totals[condition]
+                    )
 
     def _build_rna_data(self, raw_data, sim_data):
         """
