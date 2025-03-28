@@ -4,8 +4,26 @@ pipeline {
     triggers {
         cron('H H * * *')
     }
-    
+
+    options {
+        // Configure shallow clone
+        skipDefaultCheckout(true)
+    }
+
     stages {
+        stage('Checkout') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    extensions: [
+                        [$class: 'CloneOption', depth: 1, noTags: false, shallow: true, reference: '']
+                    ],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
+            }
+        }
+
         stage('Glucose Minimal') {
             steps {
                 sh '''
@@ -42,6 +60,10 @@ pipeline {
                 channel: '#jenkins',
                 message: ":stop_button: *ABORTED:* Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' was aborted.\nTime: ${currentBuild.durationString}\n${env.BUILD_URL}"
             )
+        }
+
+        cleanup {
+            cleanWs()
         }
     }
 }
