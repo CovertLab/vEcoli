@@ -11,14 +11,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           version: "0.6.10"
-      - name: Audit main dependencies
-        run: uv run --with pip-audit pip-audit -l
-      - name: Audit dev dependencies
-        run: uv run --extra dev --with pip-audit pip-audit -l
-      - name: Audit docs dependencies
-        run: uv run --extra docs --with pip-audit pip-audit -l
+      - name: Audit dependencies
+        run: uv run --all-extras --with pip-audit pip-audit -l
