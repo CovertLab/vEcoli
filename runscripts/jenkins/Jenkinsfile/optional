@@ -1,0 +1,76 @@
+pipeline {
+    agent any
+    
+    triggers {
+        cron('H H * * *')
+    }
+
+    options {
+        // Configure shallow clone
+        skipDefaultCheckout(true)
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    extensions: [
+                        [$class: 'CloneOption', depth: 1, noTags: false, shallow: true, reference: '']
+                    ],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
+            }
+        }
+
+        stage('Optional Features') {
+            steps {
+                sh '''
+                TIMEOUT='18h'
+                code=0
+                timeout $TIMEOUT sh runscripts/jenkins/workflow.sh \
+                    runscripts/jenkins/configs/ecoli-no-growth-rate-control.json && 
+                    sh runscripts/jenkins/workflow.sh \
+                    runscripts/jenkins/configs/ecoli-no-operons.json && 
+                    sh runscripts/jenkins/workflow.sh \
+                    runscripts/jenkins/configs/ecoli-new-gene-gfp.json && 
+                    sh runscripts/jenkins/workflow.sh \
+                    runscripts/jenkins/configs/ecoli-superhelical-density.json || code=$?
+                [ $code -eq 124 ] && echo "Jenkins job timeout after $TIMEOUT"
+                exit $code
+                '''
+            }
+        }
+    }
+    
+    post {        
+        success {
+            slackSend(
+                color: 'good',
+                channel: '#jenkins',
+                message: ":white_check_mark: *SUCCESS:* Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' completed successfully.\nTime: ${currentBuild.durationString}\n${env.BUILD_URL}"
+            )
+        }
+        
+        failure {
+            slackSend(
+                color: 'danger',
+                channel: '#jenkins',
+                message: ":x: *FAILURE:* Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' failed.\nTime: ${currentBuild.durationString}\n${env.BUILD_URL}"
+            )
+        }
+        
+        aborted {
+            slackSend(
+                color: '#808080',
+                channel: '#jenkins',
+                message: ":stop_button: *ABORTED:* Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' was aborted.\nTime: ${currentBuild.durationString}\n${env.BUILD_URL}"
+            )
+        }
+
+        cleanup {
+            cleanWs()
+        }
+    }
+}
