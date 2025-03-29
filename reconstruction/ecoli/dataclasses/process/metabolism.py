@@ -317,7 +317,7 @@ class Metabolism(object):
         # compartments according to those given in the biomass objective.  Or,
         # if there is no compartment, assign it to the cytoplasm.
 
-        # TODO: add a source here for the hypoxanthine part
+        # TODO (Albert): add a source here for the hypoxanthine part
         concentration_sources = [
             "Park Concentration",
             "Lempp Concentration",
@@ -894,6 +894,8 @@ class Metabolism(object):
             [[min(v), sum(v) / len(v), max(v)] for v in self._compiled_saturation(subs)]
         )
 
+        # So for purF, want to update the capacity and saturation to be regulated
+        # by ppGpp, GMP, and AMP
         return KINETIC_CONSTRAINT_CONC_UNITS * K_CAT_UNITS * capacity * saturation
 
     def exchange_constraints(
@@ -1803,7 +1805,6 @@ class Metabolism(object):
                 print(f"*** {amino_acid}: {kcat_fwd:5.1f} {kcat_rev:5.1f} ***")
 
             if kcat_fwd is None:
-                import ipdb; ipdb.set_trace()
                 raise ValueError(
                     "Could not find positive forward and reverse"
                     f" kcat for {amino_acid}. Run with VERBOSE to check input"
@@ -2322,6 +2323,13 @@ class Metabolism(object):
             "OX-FLAVODOXIN2": "Oxidized-flavodoxins",
         }
 
+        # TODO (Albert): remove this when bug below is fixed
+        temp_change_rxn = {
+            "PRPPAMIDOTRANS-RXN": "PRPPAMIDOTRANS-RXN (reverse)"
+        }
+        if rxn_to_match in temp_change_rxn:
+            rxn_to_match = temp_change_rxn[rxn_to_match]
+
         # Match full reaction name from partial reaction in kinetics. Must
         # also match metabolites since there can be multiple reaction instances.
         match = False
@@ -2339,6 +2347,8 @@ class Metabolism(object):
                         and enz in stripped_enzs
                     ):
                         match_candidates.append(long_rxn)
+                # TODO (Albert): fix this: may be a bug if, rxn_to_match is a reverse reaction in metabolism_reactions.tsv,
+                # but doesn't have the reverse tag on it in metabolism_kinetics
 
         if len(match_candidates) == 0:
             if VERBOSE:
@@ -2386,6 +2396,7 @@ class Metabolism(object):
                     if VERBOSE:
                         print("No reverse reaction: {} {}".format(rxn, mets))
                     continue
+
 
             rxn_matches.append(rxn)
 
@@ -2557,6 +2568,14 @@ class Metabolism(object):
             if k != enzyme_str and (v in reactant_tags or v in product_tags)
         }
 
+        # TODO (Albert): replace this
+        if constraint['reactionID'] == 'PRPPAMIDOTRANS-RXN':
+            variables_with_tags.update({
+                'A': 'AMP[c]',
+                'G': 'GMP[c]',
+                'PPGPP': 'GUANOSINE-5DP-3DP'
+            })
+
         # Substitute values into custom equations
         ## Replace terms with known constant values or sim molecule IDs with concentrations
         custom_subs = {k: str(v) for k, v in zip(constant_keys, constant_values)}
@@ -2575,6 +2594,7 @@ class Metabolism(object):
         parsed_variables = re.findall(r"\w*", new_equation)[
             :-1
         ]  # Remove trailing empty match
+
         ## Ensure valid input of known variables or a float term
         for v in parsed_variables:
             if not (v == "" or v in custom_subs):
@@ -3245,7 +3265,7 @@ class ConcentrationUpdates(object):
                         concDict[mol_id] *= conc_change
 
             for moleculeName, setAmount in self.molecule_set_amounts.items():
-                # TODO: Might need to check conflicts with hypoxanthine or adenine, for example,
+                # TODO (Albert): Might need to check conflicts with hypoxanthine or adenine, for example,
                 # if they have a relative amount set, but are also a ligand. This is only
                 # if we restore some of the molecule_set_amounts functionality as before.
                 if (
