@@ -58,7 +58,7 @@ pipeline {
             slackSend(
                 color: '#808080',
                 channel: '#jenkins',
-                message: ":stop_button: *ABORTED:* Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' was aborted.\nTime: ${currentBuild.durationString}\n${env.BUILD_URL}"
+                message: ":octagonal_sign: *ABORTED:* Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' was aborted.\nTime: ${currentBuild.durationString}\n${env.BUILD_URL}"
             )
         }
 
