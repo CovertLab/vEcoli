@@ -1,0 +1,472 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.antibiotics_colony.metrics &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../antibiotics_colony.html">ecoli.analysis.antibiotics_colony</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.antibiotics_colony.metrics</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.antibiotics_colony.metrics</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">ast</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">variation</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.analysis.antibiotics_colony</span><span class="w"> </span><span class="kn">import</span> <span class="n">COUNTS_PER_FL_TO_NANOMOLAR</span>
+
+<span class="n">GLUCOSE_DATA</span> <span class="o">=</span> <span class="s2">&quot;data/colony_data/sim_dfs/2022-12-08_00-35-28_562633+0000.csv&quot;</span>
+<span class="n">TET_DATA</span> <span class="o">=</span> <span class="s2">&quot;data/colony_data/sim_dfs/2023-01-05_01-00-44_215314+0000.csv&quot;</span>
+<span class="n">AMP_DATA</span> <span class="o">=</span> <span class="s2">&quot;data/colony_data/sim_dfs/2022-12-08_17-03-56_357734+0000.csv&quot;</span>
+<span class="n">PERIPLASMIC_VOLUME_FRACTION</span> <span class="o">=</span> <span class="mf">0.2</span>
+
+
+<div class="viewcode-block" id="calculate_glucose_metrics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.metrics.html#ecoli.analysis.antibiotics_colony.metrics.calculate_glucose_metrics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_glucose_metrics</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s2">&quot;out/analysis/paper_figures/metrics/glc_metrics.txt&quot;</span>
+<span class="p">):</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">max_time</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="c1"># get birth, end time for each agent</span>
+    <span class="n">agent_lifetimes</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;Agent ID&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+        <span class="n">birth_time</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">),</span> <span class="n">end_time</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># get lifetime for each agent, which generation it was in</span>
+    <span class="n">agent_lifetimes</span><span class="p">[</span><span class="s2">&quot;gen_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">agent_lifetimes</span><span class="o">.</span><span class="n">end_time</span> <span class="o">-</span> <span class="n">agent_lifetimes</span><span class="o">.</span><span class="n">birth_time</span>
+    <span class="n">agent_lifetimes</span><span class="p">[</span><span class="s2">&quot;generation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">agent_lifetimes</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">len</span><span class="p">)</span>
+
+    <span class="c1"># get mean, std. dev generation time</span>
+    <span class="c1"># exclude cells present at end of sim and those that died</span>
+    <span class="n">non_final_agent_lifetimes</span> <span class="o">=</span> <span class="n">agent_lifetimes</span><span class="p">[</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="n">agent_id</span> <span class="o">+</span> <span class="s2">&quot;0&quot;</span> <span class="ow">in</span> <span class="n">agent_lifetimes</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">agent_id</span> <span class="ow">in</span> <span class="n">agent_lifetimes</span><span class="o">.</span><span class="n">index</span>
+        <span class="p">]</span>
+    <span class="p">]</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Mean doubling time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">non_final_agent_lifetimes</span><span class="o">.</span><span class="n">gen_time</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">60</span><span class="si">}</span><span class="s2"> min&quot;</span>
+    <span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Std dev doubling time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">non_final_agent_lifetimes</span><span class="o">.</span><span class="n">gen_time</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">60</span><span class="si">}</span><span class="s2"> min&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># get standard deviation in start time for each generation</span>
+    <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">stddev</span><span class="p">,</span> <span class="n">cv</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+        <span class="nb">range</span><span class="p">(</span><span class="n">agent_lifetimes</span><span class="o">.</span><span class="n">generation</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">agent_lifetimes</span><span class="o">.</span><span class="n">generation</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
+        <span class="n">agent_lifetimes</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;generation&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">birth_time</span><span class="o">.</span><span class="n">std</span><span class="p">(),</span>
+        <span class="n">agent_lifetimes</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;generation&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">birth_time</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">variation</span><span class="p">),</span>
+    <span class="p">):</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Standard deviation in start time of generation </span><span class="si">{</span><span class="n">g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">stddev</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">60</span><span class="si">}</span><span class="s2"> min&quot;</span>
+        <span class="p">)</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;CV in start time of generation </span><span class="si">{</span><span class="n">g</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv</span>
+
+    <span class="c1"># Get average proportion of cell lifetime in which ompF, tolC, ampC, or marR mRNAs are ever zero</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prop_zero</span><span class="p">(</span><span class="n">series</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">series</span><span class="o">.</span><span class="n">values</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">all_zero</span><span class="p">(</span><span class="n">series</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">series</span><span class="o">.</span><span class="n">values</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">prop_lifetime_zero</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;Agent ID&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+            <span class="n">ompF</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;ompF mRNA&quot;</span><span class="p">,</span> <span class="n">prop_zero</span><span class="p">),</span>
+            <span class="n">tolC</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;tolC mRNA&quot;</span><span class="p">,</span> <span class="n">prop_zero</span><span class="p">),</span>
+            <span class="n">ampC</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;ampC mRNA&quot;</span><span class="p">,</span> <span class="n">prop_zero</span><span class="p">),</span>
+            <span class="n">marR</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;marR mRNA&quot;</span><span class="p">,</span> <span class="n">prop_zero</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="n">prop_all_zero</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;Agent ID&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+            <span class="n">ompF</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;ompF mRNA&quot;</span><span class="p">,</span> <span class="n">all_zero</span><span class="p">),</span>
+            <span class="n">tolC</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;tolC mRNA&quot;</span><span class="p">,</span> <span class="n">all_zero</span><span class="p">),</span>
+            <span class="n">ampC</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;ampC mRNA&quot;</span><span class="p">,</span> <span class="n">all_zero</span><span class="p">),</span>
+            <span class="n">marR</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;marR mRNA&quot;</span><span class="p">,</span> <span class="n">all_zero</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">mrna</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;ompF&quot;</span><span class="p">,</span> <span class="s2">&quot;tolC&quot;</span><span class="p">,</span> <span class="s2">&quot;ampC&quot;</span><span class="p">,</span> <span class="s2">&quot;marR&quot;</span><span class="p">]:</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Average proportion of cell lifetime in which </span><span class="si">{</span><span class="n">mrna</span><span class="si">}</span><span class="s2"> mRNA is zero&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">prop_lifetime_zero</span><span class="p">[</span><span class="n">mrna</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">metrics</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Proportion of cells in which </span><span class="si">{</span><span class="n">mrna</span><span class="si">}</span><span class="s2"> was always zero&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prop_all_zero</span><span class="p">[</span>
+            <span class="n">mrna</span>
+        <span class="p">]</span>
+
+    <span class="c1"># End-point expression</span>
+    <span class="n">monomers</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;OmpF monomer&quot;</span><span class="p">,</span> <span class="s2">&quot;TolC monomer&quot;</span><span class="p">,</span> <span class="s2">&quot;AmpC monomer&quot;</span><span class="p">,</span> <span class="s2">&quot;MarR monomer&quot;</span><span class="p">]</span>
+    <span class="n">endpoint_expression</span> <span class="o">=</span> <span class="n">variation</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Time</span> <span class="o">==</span> <span class="n">max_time</span><span class="p">][</span><span class="n">monomers</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">monomer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">monomers</span><span class="p">):</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;CV for endpoint count of </span><span class="si">{</span><span class="n">monomer</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">endpoint_expression</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="c1"># Output results</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">metric</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="calculate_tet_metrics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.metrics.html#ecoli.analysis.antibiotics_colony.metrics.calculate_tet_metrics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_tet_metrics</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s2">&quot;out/analysis/paper_figures/metrics/tet_metrics.txt&quot;</span>
+<span class="p">):</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">min_time</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+
+    <span class="c1"># Mean, std dev, CV in OmpF, AcrAB-TolC, active ribosome, micF-ompF duplex</span>
+    <span class="c1"># concentrations when tet first added</span>
+    <span class="n">data_t0</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Time</span> <span class="o">==</span> <span class="n">min_time</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">molecule</span><span class="p">,</span> <span class="n">periplasmic</span> <span class="ow">in</span> <span class="p">{</span>
+        <span class="s2">&quot;OmpF complex&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;AcrAB-TolC&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;Active ribosomes&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;micF-ompF duplex&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">molecule_t0</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">data_t0</span><span class="p">[</span><span class="n">molecule</span><span class="p">]</span>
+                <span class="o">/</span> <span class="p">(</span>
+                    <span class="p">(</span>
+                        <span class="n">PERIPLASMIC_VOLUME_FRACTION</span>
+                        <span class="k">if</span> <span class="n">periplasmic</span>
+                        <span class="k">else</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">PERIPLASMIC_VOLUME_FRACTION</span>
+                    <span class="p">)</span>
+                    <span class="o">*</span> <span class="n">data_t0</span><span class="p">[</span><span class="s2">&quot;Volume&quot;</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="n">COUNTS_PER_FL_TO_NANOMOLAR</span>
+            <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="mi">3</span>
+        <span class="p">)</span>
+        <span class="n">metrics</span><span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;Mean </span><span class="si">{</span><span class="n">molecule</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">&#39;periplasmic&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">periplasmic</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;cytoplasmic&#39;</span><span class="si">}</span><span class="s2"> concentration at instant tet added (μM)&quot;</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">molecule_t0</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="n">metrics</span><span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;Std. dev. in </span><span class="si">{</span><span class="n">molecule</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">&#39;periplasmic&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">periplasmic</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;cytoplasmic&#39;</span><span class="si">}</span><span class="s2"> concentration at instant tet added (μM)&quot;</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">molecule_t0</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+        <span class="n">metrics</span><span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;CV in </span><span class="si">{</span><span class="n">molecule</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">&#39;periplasmic&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">periplasmic</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;cytoplasmic&#39;</span><span class="si">}</span><span class="s2"> concentration at instant tet added (μM)&quot;</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">molecule_t0</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">/</span> <span class="n">molecule_t0</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="c1"># Mean, std. dev., CV in outer membrane permeability when tet. first added</span>
+    <span class="n">om_perm</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Time</span> <span class="o">==</span> <span class="n">min_time</span><span class="p">,</span> <span class="s2">&quot;Outer tet. permeability (cm/s)&quot;</span><span class="p">]</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Mean OM perm. when tet. first added (nm/s)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">om_perm</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">*</span> <span class="mf">1e7</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Std. dev. OM perm. when tet. first added (nm/s)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">om_perm</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">*</span> <span class="mf">1e7</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;CV OM perm. when tet. first added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">om_perm</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">/</span> <span class="n">om_perm</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="c1"># Mean, std. dev., CV in outer membrane permeability 4 hours post-tet.</span>
+    <span class="n">om_perm</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">Time</span> <span class="o">==</span> <span class="n">min_time</span> <span class="o">+</span> <span class="mi">3600</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;Outer tet. permeability (cm/s)&quot;</span>
+    <span class="p">]</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Mean OM perm. 4 hrs after tet. added (nm/s)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">om_perm</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">*</span> <span class="mf">1e7</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Std. dev. OM perm. 4 hrs after tet. added (nm/s)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">om_perm</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">*</span> <span class="mf">1e7</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;CV OM perm. 4 hrs after tet. added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">om_perm</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">/</span> <span class="n">om_perm</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="c1"># Mean, std. dev., CV in periplasmic tetracycline conc. 8 sec after tet. added</span>
+    <span class="n">peri_tet</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Time</span> <span class="o">==</span> <span class="n">min_time</span> <span class="o">+</span> <span class="mi">8</span><span class="p">,</span> <span class="s2">&quot;Periplasmic tetracycline&quot;</span><span class="p">]</span>
+    <span class="n">metrics</span><span class="p">[</span>
+        <span class="s2">&quot;Mean periplasmic tetracycline concentration 8 sec. after tet. added (μM)&quot;</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="n">peri_tet</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">metrics</span><span class="p">[</span>
+        <span class="s2">&quot;Std. dev. periplasmic tetracycline concentration 8 sec. after tet. added (μM)&quot;</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="n">peri_tet</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;CV periplasmic tetracycline concentration 8 sec. after tet. added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">peri_tet</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">/</span> <span class="n">peri_tet</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Time to reach equilbrium in periplasmic, cytoplasmic tet conc</span>
+    <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1e-7</span>
+    <span class="n">DT</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="c1"># (Throwing away first few seconds to account for time to actually start importing tetracycline)</span>
+    <span class="n">discard</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">metrics</span><span class="p">[</span>
+        <span class="sa">f</span><span class="s2">&quot;Periplasmic tet equilibration time (abs(d[Tet]) &lt;= </span><span class="si">{</span><span class="n">epsilon</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">10</span><span class="o">**</span><span class="mi">6</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2"> nM) (seconds)&quot;</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">min_time</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">60</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)[</span><span class="s2">&quot;Periplasmic tetracycline&quot;</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">diff</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="o">&lt;</span> <span class="mf">1e-7</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">discard</span><span class="p">:]</span>
+        <span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
+        <span class="o">+</span> <span class="n">discard</span>
+    <span class="p">)</span> <span class="o">*</span> <span class="n">DT</span>
+
+    <span class="n">metrics</span><span class="p">[</span>
+        <span class="sa">f</span><span class="s2">&quot;Cytoplasmic tet equilibration time (abs(d[Tet]) &lt;= </span><span class="si">{</span><span class="n">epsilon</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">10</span><span class="o">**</span><span class="mi">6</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2"> nM) (seconds)&quot;</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">min_time</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">60</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)[</span><span class="s2">&quot;Cytoplasmic tetracycline&quot;</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">diff</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="o">&lt;</span> <span class="mf">1e-7</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">discard</span><span class="p">:]</span>
+        <span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
+        <span class="o">+</span> <span class="n">discard</span>
+    <span class="p">)</span> <span class="o">*</span> <span class="n">DT</span>
+
+    <span class="c1"># Mean, std. dev. ribosome concentration 2 minutes after tet added</span>
+    <span class="n">data_t2</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Time</span> <span class="o">==</span> <span class="n">data</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">60</span><span class="p">]</span>
+
+    <span class="n">ribosomes_t2</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">data_t2</span><span class="p">[</span><span class="s2">&quot;Active ribosomes&quot;</span><span class="p">]</span>
+            <span class="o">/</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">PERIPLASMIC_VOLUME_FRACTION</span><span class="p">)</span> <span class="o">*</span> <span class="n">data_t2</span><span class="p">[</span><span class="s2">&quot;Volume&quot;</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="o">*</span> <span class="n">COUNTS_PER_FL_TO_NANOMOLAR</span>
+        <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="mi">3</span>
+    <span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Mean ribosome concentration 2 mins after tet added (μM)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">ribosomes_t2</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Std. dev. in ribosome concentration 2 mins after tet added (μM)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">ribosomes_t2</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Mean, std. dev. in micF-ompF duplex concentration</span>
+    <span class="c1"># 10 minutes after tet added</span>
+    <span class="n">data_t10</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Time</span> <span class="o">==</span> <span class="n">data</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">*</span> <span class="mi">60</span><span class="p">]</span>
+
+    <span class="n">micF_ompF_t10</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">data_t10</span><span class="p">[</span><span class="s2">&quot;micF-ompF duplex&quot;</span><span class="p">]</span>
+            <span class="o">/</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">PERIPLASMIC_VOLUME_FRACTION</span><span class="p">)</span> <span class="o">*</span> <span class="n">data_t10</span><span class="p">[</span><span class="s2">&quot;Volume&quot;</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="o">*</span> <span class="n">COUNTS_PER_FL_TO_NANOMOLAR</span>
+        <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="mi">3</span>
+    <span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Mean micF-ompF duplex concentration 10 mins after tet added (μM)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">micF_ompF_t10</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span>
+        <span class="s2">&quot;Std. dev. in micF-ompF duplex concentration 10 mins after tet added (μM)&quot;</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="n">micF_ompF_t10</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+
+    <span class="c1"># &quot;Half-life&quot; of ompF monomer, mRNA</span>
+    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;OmpF monomer conc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;OmpF monomer&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">PERIPLASMIC_VOLUME_FRACTION</span> <span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">Volume</span><span class="p">)</span>
+    <span class="p">)</span> <span class="o">*</span> <span class="n">COUNTS_PER_FL_TO_NANOMOLAR</span>
+    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;ompF mRNA conc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;ompF mRNA&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">PERIPLASMIC_VOLUME_FRACTION</span> <span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">Volume</span><span class="p">)</span>
+    <span class="p">)</span> <span class="o">*</span> <span class="n">COUNTS_PER_FL_TO_NANOMOLAR</span>
+
+    <span class="n">ompf_monomer_trace</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)[</span><span class="s2">&quot;OmpF monomer conc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">ompf_mRNA_trace</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)[</span><span class="s2">&quot;ompF mRNA conc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;OmpF monomer half-life (min)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">ompf_monomer_trace</span> <span class="o">-</span> <span class="n">ompf_monomer_trace</span><span class="p">[</span><span class="n">min_time</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="o">*</span> <span class="n">DT</span>
+        <span class="o">/</span> <span class="mi">60</span>
+    <span class="p">)</span>
+
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;ompF mRNA half-life (min)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">ompf_mRNA_trace</span> <span class="o">-</span> <span class="n">ompf_mRNA_trace</span><span class="p">[</span><span class="n">min_time</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span> <span class="o">*</span> <span class="n">DT</span> <span class="o">/</span> <span class="mi">60</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Output results</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">metric</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="calculate_amp_metrics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.metrics.html#ecoli.analysis.antibiotics_colony.metrics.calculate_amp_metrics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_amp_metrics</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s2">&quot;out/analysis/paper_figures/metrics/amp_metrics.txt&quot;</span>
+<span class="p">):</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">min_time</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">data_t60</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Time</span> <span class="o">==</span> <span class="n">min_time</span> <span class="o">+</span> <span class="mi">60</span><span class="p">]</span>
+
+    <span class="c1"># Mean, std. dev., CV in AmpC concentration 1 min. post-amp.</span>
+    <span class="n">ampc_data</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">data_t60</span><span class="p">[</span><span class="s2">&quot;AmpC monomer&quot;</span><span class="p">]</span>
+        <span class="o">/</span> <span class="p">(</span><span class="n">data_t60</span><span class="p">[</span><span class="s2">&quot;Volume&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">PERIPLASMIC_VOLUME_FRACTION</span><span class="p">)</span>
+        <span class="o">*</span> <span class="n">COUNTS_PER_FL_TO_NANOMOLAR</span>
+        <span class="o">/</span> <span class="mi">1000</span>
+    <span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Mean AmpC when amp. first added (μM)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ampc_data</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Std. dev. AmpC when amp. first added (μM)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ampc_data</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;CV AmpC when amp. first added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ampc_data</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">/</span> <span class="n">ampc_data</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="c1"># Mean, std. dev., CV in ampicillin 1 min. post-amp.</span>
+    <span class="n">amp_conc</span> <span class="o">=</span> <span class="n">data_t60</span><span class="p">[</span><span class="s2">&quot;Periplasmic ampicillin&quot;</span><span class="p">]</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Mean amp. 1 min after amp. added (μM)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">amp_conc</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Std. dev. amp. 1 min after amp. added (μM)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">amp_conc</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;CV amp. 1 min after amp. added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">amp_conc</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">/</span> <span class="n">amp_conc</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="c1"># Mean, std. dev., CV in PBP1A active frac. 1 min. post-amp.</span>
+    <span class="n">pbp1a</span> <span class="o">=</span> <span class="n">data_t60</span><span class="p">[</span><span class="s2">&quot;Active fraction PBP1a&quot;</span><span class="p">]</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Mean PBP1A active frac. 1 min after amp. added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbp1a</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Std. dev. PBP1A active frac. 1 min after amp. added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbp1a</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;CV PBP1A active frac. 1 min after amp. added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbp1a</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">/</span> <span class="n">pbp1a</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="c1"># Mean, std. dev., CV in PBP1B active frac. 1 min. post-amp.</span>
+    <span class="n">pbp1b</span> <span class="o">=</span> <span class="n">data_t60</span><span class="p">[</span><span class="s2">&quot;Active fraction PBP1b&quot;</span><span class="p">]</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Mean PBP1B active frac. 1 min after amp. added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbp1b</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Std. dev. PBP1B active frac. 1 min after amp. added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbp1b</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;CV PBP1B active frac. 1 min after amp. added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbp1b</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">/</span> <span class="n">pbp1b</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="c1"># Mean, std. dev., CV in ampicillin 15 min. post-amp.</span>
+    <span class="n">amp_conc</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Time</span> <span class="o">==</span> <span class="n">min_time</span> <span class="o">+</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">15</span><span class="p">,</span> <span class="s2">&quot;Periplasmic ampicillin&quot;</span><span class="p">]</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Mean amp. 15 min after amp. added (μM)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">amp_conc</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;Std. dev. amp. 15 min after amp. added (μM)&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">amp_conc</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;CV amp. 15 min after amp. added&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">amp_conc</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">/</span> <span class="n">amp_conc</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="c1"># Output results</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">metric</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.metrics.html#ecoli.analysis.antibiotics_colony.metrics.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s2">&quot;out/analysis/paper_figures/metrics/&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Calculating glucose metrics...&quot;</span><span class="p">)</span>
+    <span class="n">glc_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+        <span class="n">GLUCOSE_DATA</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Agent ID&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;Seed&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">},</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span>
+    <span class="n">glc_data</span><span class="p">[</span><span class="s2">&quot;Boundary&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">glc_data</span><span class="p">[</span><span class="s2">&quot;Boundary&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">)</span>
+    <span class="n">calculate_glucose_metrics</span><span class="p">(</span><span class="n">glc_data</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">glc_data</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Calculating tetracycline metrics...&quot;</span><span class="p">)</span>
+    <span class="n">tet_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">TET_DATA</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Agent ID&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;Seed&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">},</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">tet_data</span><span class="p">[</span><span class="s2">&quot;Boundary&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tet_data</span><span class="p">[</span><span class="s2">&quot;Boundary&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">)</span>
+    <span class="n">calculate_tet_metrics</span><span class="p">(</span><span class="n">tet_data</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">tet_data</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Calculating ampicillin metrics...&quot;</span><span class="p">)</span>
+    <span class="n">amp_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">AMP_DATA</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Agent ID&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;Seed&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">},</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">amp_data</span><span class="p">[</span><span class="s2">&quot;Boundary&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">amp_data</span><span class="p">[</span><span class="s2">&quot;Boundary&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">)</span>
+    <span class="n">calculate_amp_metrics</span><span class="p">(</span><span class="n">amp_data</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">amp_data</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
