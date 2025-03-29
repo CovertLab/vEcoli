@@ -2,6 +2,10 @@
 
 name: QA
 
+permissions:
+  contents: read
+  pull-requests: write
+
 on:
   push:
     branches: [master]
@@ -14,15 +18,15 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-        version: "0.5.21"
+        version: "0.6.10"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Test with pytest
       run: |
-        uv run pytest --cov-report xml:cov.xml --cov=ecoli --cov=reconstruction --cov=wholecell --cov=runscripts --durations=0
+        uv run --env-file .env pytest --cov-report xml:cov.xml --cov=ecoli --cov=reconstruction --cov=wholecell --cov=runscripts --durations=0
     - name: Code Coverage Report
       uses: irongut/CodeCoverageSummary@v1.3.0
       with:
@@ -41,10 +45,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-        version: "0.5.21"
+        version: "0.6.10"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Mypy
@@ -55,10 +59,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-        version: "0.5.21"
+        version: "0.6.10"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Ruff

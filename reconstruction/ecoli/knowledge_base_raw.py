@@ -72,6 +72,7 @@ LIST_OF_DICT_FILENAMES = [
     # "transcription_units.tsv",  # special cased in the constructor
     "transcription_units_added.tsv",
     "transcription_units_removed.tsv",
+    "transcription_units_modified.tsv",
     "transcriptional_attenuation.tsv",
     "transcriptional_attenuation_removed.tsv",
     "tf_one_component_bound.tsv",
@@ -241,6 +242,11 @@ class KnowledgeBaseEcoli(object):
                 self.added_data.update(
                     {
                         "transcription_units": "transcription_units_added",
+                    }
+                )
+                self.modified_data.update(
+                    {
+                        "transcription_units": "transcription_units_modified",
                     }
                 )
 

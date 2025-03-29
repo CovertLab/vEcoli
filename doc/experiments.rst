@@ -205,6 +205,13 @@ documented in :ref:`/workflows.rst`.
         # and "division_variable" must be set to ["divide"] because the
         # ecoli.processes.cell_division.MarkDPeriod process sets the ["divide"]
         # store to True one D period after chromosome replication finishes.
+        # To use a mass doubling threshold, "d_period" must be False,
+        # "division_variable" must be set to ["listeners", "mass", "dry_mass"],
+        # and "division_threshold" must be set to either a hard-coded float
+        # (in femtograms) or "mass_distribution". The latter will trigger division
+        # after dry mass has increased by an amount dependent on environmental
+        # conditions (e.g. no oxygen, basal, with AA, etc.) multiplied by a
+        # Gaussian noise factor N(1, 0.1). See ecoli.processes.cell_division.Division.
         "division_threshold": true,
         # Path to store containing value that triggers division upon reaching
         # "division_threshold".

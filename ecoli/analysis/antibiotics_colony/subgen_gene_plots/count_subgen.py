@@ -75,10 +75,8 @@ def count_antibiotic_subgen(data):
     response_generational = (response_expression >= 1).sum()
     response_subgenerational = len(response_expression) - response_generational
     assert response_subgenerational == (response_expression < 1).sum()
-    print("Generational genes (antibiotic response): " f"{response_generational}")
-    print(
-        "Sub-generational genes (antibiotic response): " f"{response_subgenerational}"
-    )
+    print(f"Generational genes (antibiotic response): {response_generational}")
+    print(f"Sub-generational genes (antibiotic response): {response_subgenerational}")
 
 
 if __name__ == "__main__":

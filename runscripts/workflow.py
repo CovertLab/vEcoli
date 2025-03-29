@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import random
 import shutil
 import subprocess
 import warnings
@@ -362,6 +363,9 @@ def main():
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
         config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
+    # Use random seed for Jenkins CI runs
+    if config.get("sherlock", {}).get("jenkins", False):
+        config["lineage_seed"] = random.randint(0, 2**31 - 1)
     filesystem, outdir = fs.FileSystem.from_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
     out_uri = os.path.join(out_uri, experiment_id, "nextflow")

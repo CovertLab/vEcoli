@@ -114,19 +114,19 @@ def main():
     )
     parser.add_argument(
         "--remove-rrna-operons",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="Remove the seven rRNA operons. Does not have any effect if"
         " --no-operons specified.",
     )
     parser.add_argument(
         "--remove-rrff",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="Remove the rrfF gene. If operons are enabled,"
         " removes the rrfF gene from the rrnD operon.",
     )
     parser.add_argument(
         "--debug-parca",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="Make Parca calculate only one arbitrarily-chosen transcription"
         " factor condition when adjusting gene expression levels, leaving"
         " the other TFs at their input levels for faster Parca debugging."
@@ -141,7 +141,7 @@ def main():
     )
     parser.add_argument(
         "--save-intermediates",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="If set, saves sim_data and cell_specs at intermediate"
         " function calls in the parca.",
     )

@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 name = "vEcoli"
 version = "1.1.0"
 description = "Whole Cell E. coli Model"
-requires-python = "==3.12.8"
+requires-python = "==3.12.9"
 dependencies = [
     "numpy",
     "scipy",
@@ -31,7 +31,7 @@ dependencies = [
     "numba",
     "orjson",
     # Constraint can be removed once cvxpy supports newer ortools
-    "ortools<=9.9.3963",
+    "ortools<9.12",
     "pandas",
     "polars",
     "pymunk",

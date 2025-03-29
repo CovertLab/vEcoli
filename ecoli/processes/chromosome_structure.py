@@ -275,11 +275,21 @@ class ChromosomeStructure(Step):
         )
         (origin_domain_indexes,) = attrs(states["oriCs"], ["domain_index"])
         (mother_domain_indexes,) = attrs(states["full_chromosomes"], ["domain_index"])
-        (RNA_TU_indexes, transcript_lengths, RNA_RNAP_indexes, RNA_unique_indexes) = (
-            attrs(
-                states["RNAs"],
-                ["TU_index", "transcript_length", "RNAP_index", "unique_index"],
-            )
+        (
+            RNA_TU_indexes,
+            transcript_lengths,
+            RNA_RNAP_indexes,
+            RNA_full_transcript,
+            RNA_unique_indexes,
+        ) = attrs(
+            states["RNAs"],
+            [
+                "TU_index",
+                "transcript_length",
+                "RNAP_index",
+                "is_full_transcript",
+                "unique_index",
+            ],
         )
         (ribosome_protein_indexes, ribosome_peptide_lengths, ribosome_mRNA_indexes) = (
             attrs(
@@ -713,7 +723,9 @@ class ChromosomeStructure(Step):
 
             # Get sequences of incomplete transcripts
             incomplete_sequence_lengths = transcript_lengths[removed_RNAs_mask]
-            n_initiated_sequences = np.count_nonzero(incomplete_sequence_lengths)
+            # Under resource-limited conditions, some transcripts may be
+            # initiated but not elongated (zero length). Include them in the count.
+            n_initiated_sequences = (~RNA_full_transcript[removed_RNAs_mask]).sum()
             n_ppi_added = n_initiated_sequences
 
             if n_initiated_sequences > 0:
@@ -765,9 +777,6 @@ class ChromosomeStructure(Step):
                         base_counts += np.bincount(
                             seq[:sl], minlength=self.n_fragment_bases
                         )
-                    base_counts += np.bincount(
-                        seq[:sl], minlength=self.n_fragment_bases
-                    )
 
                 # Increment counts of mature RNAs, fragment NTPs and phosphates
                 update["bulk"].append((self.mature_rna_idx, mature_rna_counts))

@@ -51,7 +51,7 @@ class DivisionDetector(Step):
     def next_update(self, timestep, states):
         update = {}
         division_threshold = states["division_threshold"]
-        if division_threshold == "massDistribution":
+        if division_threshold == "mass_distribution":
             mass_inc = self.dry_mass_inc_dict[states["media_id"]]
             division_threshold = (
                 states["division_variable"]

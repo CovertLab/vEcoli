@@ -532,6 +532,10 @@ class PolypeptideElongation(PartitionedProcess):
             states["bulk_total"], self.amino_acid_idx
         )
         growth_limits_listener["aa_request_size"] = aa_counts_for_translation
+        # Simulations without mechanistic translation supply need this to be
+        # manually zeroed after division
+        proc_data = requests.setdefault("polypeptide_elongation", {})
+        proc_data.setdefault("aa_exchange_rates", np.zeros(len(self.amino_acids)))
 
         return requests
 
@@ -760,7 +764,9 @@ class BaseElongationModel(object):
     def amino_acid_counts(self, aasInSequences):
         return aasInSequences
 
-    def request(self, states, aasInSequences):
+    def request(
+        self, states: dict, aasInSequences: npt.NDArray[np.int64]
+    ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], dict]:
         aa_counts_for_translation = self.amino_acid_counts(aasInSequences)
 
         requests = {"bulk": [(self.process.amino_acid_idx, aa_counts_for_translation)]}
@@ -768,7 +774,7 @@ class BaseElongationModel(object):
         # Not modeling charging so set fraction charged to 0 for all tRNA
         fraction_charged = np.zeros(len(self.process.amino_acid_idx))
 
-        return fraction_charged, aa_counts_for_translation, requests
+        return fraction_charged, aa_counts_for_translation.astype(float), requests
 
     def final_amino_acids(self, total_aa_counts, charged_trna_counts):
         return total_aa_counts
@@ -926,7 +932,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             rate = super().elongation_rate(states)
         return rate
 
-    def request(self, states, aasInSequences):
+    def request(
+        self, states: dict, aasInSequences: npt.NDArray[np.int64]
+    ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], dict]:
         self.max_time_step = min(
             self.process.max_time_step, self.max_time_step * self.time_step_increase
         )
@@ -1141,13 +1149,13 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
                 random_state=self.process.random_state,
             )
 
-            request_ppgpp_metabolites = -delta_metabolites
+            request_ppgpp_metabolites = -delta_metabolites.astype(int)
             ppgpp_request = counts(states["bulk"], self.process.ppgpp_idx)
             bulk_request.append((self.process.ppgpp_idx, ppgpp_request))
             bulk_request.append(
                 (
                     self.process.ppgpp_rxn_metabolites_idx,
-                    request_ppgpp_metabolites.astype(int),
+                    request_ppgpp_metabolites,
                 )
             )
 
