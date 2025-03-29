@@ -927,7 +927,7 @@ class ChromosomeStructure(Step):
                         "tf_binding_site_index": tf_binding_site_indexes_new,
                         "coordinates": tf_binding_site_coordinates_new,
                         "domain_index": tf_binding_site_domain_indexes_new,
-                        "bound_TF": np.ones(len(tf_binding_site_indices)) * self.unbound_tf_binding_site_idx,
+                        "bound_TF": np.ones(len(tf_binding_site_indexes_new)) * self.unbound_tf_binding_site_idx,
                     }
                 }
             )
