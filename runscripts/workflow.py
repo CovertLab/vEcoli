@@ -632,6 +632,7 @@ until hq job list &>/dev/null ; do sleep 1 ; done
 hq alloc add slurm --time-limit 8h --resource "mem=sum(4000)" -- --partition=mcovert,owners,normal --mem=4GB
 """
             hyperqueue_exit = "hq job wait all; hq worker stop all; hq server stop"
+        nf_slurm_output = os.path.join(outdir, f"{experiment_id}_slurm.out")
         with open(batch_script, "w") as f:
             f.write(f"""#!/bin/bash
 #SBATCH --job-name="nextflow-{experiment_id}"
@@ -639,7 +640,7 @@ hq alloc add slurm --time-limit 8h --resource "mem=sum(4000)" -- --partition=mco
 #SBATCH --cpus-per-task 1
 #SBATCH --mem=8GB
 #SBATCH --partition=mcovert
-#SBATCH --output={experiment_id}_slurm.out
+#SBATCH --output={nf_slurm_output}
 set -e
 # Ensure HyperQueue shutdown on failure or interruption
 trap 'exitcode=$?; {hyperqueue_exit}' EXIT
@@ -652,7 +653,7 @@ nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
         )
         # Make stdout of workflow viewable in Jenkins
         if sherlock_config.get("jenkins", False):
-            forward_sbatch_output(batch_script, f"{experiment_id}_slurm.out")
+            forward_sbatch_output(batch_script, nf_slurm_output)
         else:
             subprocess.run(["sbatch", batch_script], check=True)
     shutil.rmtree(local_outdir)
