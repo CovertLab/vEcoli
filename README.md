@@ -29,8 +29,8 @@ model parameters (e.g. transcription probabilities). These parameters are used t
 > **Note:** The following instructions assume a local Linux or MacOS system. Windows users can
 > attempt to follow the same steps after setting up 
 > [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install). Refer to the following pages for non-local setups:
-> [Sherlock](https://covertlab.github.io/vEcoli/workflows.html#sherlock),
-> [other HPC cluster](https://covertlab.github.io/vEcoli/workflows.html#other-hpc-clusters),
+> [Sherlock](https://covertlab.github.io/vEcoli/hpc.html#sherlock),
+> [other HPC cluster](https://covertlab.github.io/vEcoli/hpc.html#other-clusters),
 > [Google Cloud](https://covertlab.github.io/vEcoli/gcloud.html).
 
 ### Prerequisites

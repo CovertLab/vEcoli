@@ -45,9 +45,9 @@ def get_new_gene_ids_and_indices(
             " the new gene option was enabled, but no new gene proteins "
             "were found."
         )
-    assert len(new_monomer_ids) == len(
-        new_gene_cistron_ids
-    ), "number of new gene monomers and cistrons should be equal"
+    assert len(new_monomer_ids) == len(new_gene_cistron_ids), (
+        "number of new gene monomers and cistrons should be equal"
+    )
     rna_data = sim_data.process.transcription.rna_data
     cistron_idx_dict = {rna[:-3]: i for i, rna in enumerate(rna_data["id"])}
     new_gene_indices = [

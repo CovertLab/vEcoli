@@ -68,7 +68,7 @@ def run_non_partitioned_process(
     # connect to bulk store so skip it)
     try:
         states["bulk_total"] = initial_state["bulk"]["count"].copy()
-        with open(f"{data_prefix}/bulk_partitioned_t" f"{initial_time}.json") as f:
+        with open(f"{data_prefix}/bulk_partitioned_t{initial_time}.json") as f:
             bulk_partitioned = json.load(f)
         states["bulk"].flags.writeable = True
         states["bulk"]["count"] = bulk_partitioned[type(process).__name__]
@@ -145,7 +145,7 @@ def run_partitioned_process(
     # Make process see wcEcoli partitioned molecule counts but
     # do not modify bulk_total port values
     states["bulk_total"] = bulk_total
-    with open(f"{data_prefix}/bulk_partitioned_t" f"{initial_time}.json") as f:
+    with open(f"{data_prefix}/bulk_partitioned_t{initial_time}.json") as f:
         bulk_partitioned = json.load(f)
     states["bulk"].flags.writeable = True
     states["bulk"]["count"] = bulk_partitioned[type(process).__name__]
@@ -628,9 +628,9 @@ class ComparisonTestSuite:
                 if not passed:
                     self.failure = True
                     if self.fail_loudly:
-                        assert (
-                            passed
-                        ), f'{indent}FAILED test "{test_structure.__name__}"'
+                        assert passed, (
+                            f'{indent}FAILED test "{test_structure.__name__}"'
+                        )
             elif isinstance(test_structure, list):
                 report = [
                     run_tests_iter(
@@ -712,12 +712,12 @@ def len_almost_equal(a, b):
 def array_equal(arr1, arr2):
     return (
         np.array_equal(arr1, arr2, equal_nan=True),
-        f"Total difference (actual-expected) is {np.sum(np.abs(arr1-arr2))}",
+        f"Total difference (actual-expected) is {np.sum(np.abs(arr1 - arr2))}",
     )
 
 
 def scalar_equal(v1, v2):
-    return v1 == v2, f"Difference (actual-expected) is {v1-v2}"
+    return v1 == v2, f"Difference (actual-expected) is {v1 - v2}"
 
 
 def array_almost_equal(arr1, arr2):

@@ -307,9 +307,9 @@ class SimulationDataEcoli(object):
                 self.conditions[condition] = {}
                 self.conditions[condition]["nutrients"] = nutrients
                 self.conditions[condition]["perturbations"] = (
-                    self.tf_to_active_inactive_conditions[
-                        tf
-                    ]["{} genotype perturbations".format(status)]
+                    self.tf_to_active_inactive_conditions[tf][
+                        "{} genotype perturbations".format(status)
+                    ]
                 )
                 self.condition_to_doubling_time[condition] = (
                     self.nutrient_to_doubling_time.get(nutrients, basal_dt)
