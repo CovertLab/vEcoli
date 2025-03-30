@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import random
+import select
 import shutil
 import subprocess
 import sys
@@ -328,8 +329,16 @@ def forward_sbatch_output(
 
         # First tail process to monitor the log
         tail_process = subprocess.Popen(
-            ["tail", "-f", output_log], stdout=subprocess.PIPE, text=True, bufsize=1
+            ["tail", "-f", output_log],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+            bufsize=1,
         )
+
+        # Poll object for monitoring the tail process stdout
+        poller = select.poll()
+        poller.register(tail_process.stdout, select.POLLIN)
 
         # Second process to check if job is still running
         while True:
@@ -340,23 +349,29 @@ def forward_sbatch_output(
                 stdout=subprocess.PIPE,
             ).stdout.strip()
 
+            # Check for output from tail process
+            if poller.poll(100):
+                line = tail_process.stdout.readline()
+                if line:
+                    print(line, end="", flush=True)
+
             # If job no longer exists in queue
             if not job_status:
                 # Give tail a moment to catch up with final output
                 time.sleep(5)
-                text = tail_process.stdout.read1().decode("utf-8")
-                print(text, end="", flush=True)
+                # Flush any remaining output
+                while poller.poll(100):
+                    line = tail_process.stdout.readline()
+                    if line:
+                        print(line, end="", flush=True)
                 break
 
-            # Read current tail output and print it
-            text = tail_process.stdout.read1().decode("utf-8")
-            print(text, end="", flush=True)
-
             # Wait a bit before checking job status again
-            time.sleep(5)
+            time.sleep(30)
 
         # Kill the tail process
         tail_process.terminate()
+        tail_process.wait()
 
         # Final check of job success
         job_state = (
