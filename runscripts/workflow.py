@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import pathlib
 import random
 import select
 import shutil
@@ -311,6 +312,11 @@ def forward_sbatch_output(
     Then, monitor the log file with `tail -f` and print the output to stdout.
     This function will exit when the job completes.
     """
+    # Delete any pre-existing log file
+    log_path = pathlib.Path(output_log)
+    if log_path.exists():
+        log_path.unlink()
+
     # Submit the job and get the job ID
     result = subprocess.run(
         ["sbatch", "--parsable", batch_script],
@@ -615,7 +621,7 @@ apptainer exec -B {repo_dir}:{repo_dir} \
             nf_profile = "sherlock_hq"
             hyperqueue_init = f"""
 # Set the directory which HyperQueue will use 
-export HQ_SERVER_DIR={os.path.join(out_uri, ".hq-server")}
+export HQ_SERVER_DIR={os.path.join(outdir, ".hq-server")}
 mkdir -p ${{HQ_SERVER_DIR}}
 
 # Start the server in the background (&) and wait until it has started
@@ -631,7 +637,7 @@ hq job wait all
 hq worker stop all
 hq server stop
 """
-        nextflow_slurm_output = os.path.join(out_uri, f"{experiment_id}_slurm.out")
+        nextflow_slurm_output = os.path.join(outdir, f"{experiment_id}_slurm.out")
         with open(batch_script, "w") as f:
             f.write(f"""#!/bin/bash
 #SBATCH --job-name="nextflow-{experiment_id}"
@@ -641,7 +647,6 @@ hq server stop
 #SBATCH --partition=mcovert
 #SBATCH --output={nextflow_slurm_output}
 {hyperqueue_init}
-
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
     -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume is not None else ""}
 {hyperqueue_exit}
@@ -652,6 +657,8 @@ nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
         # Make stdout of workflow viewable in Jenkins
         if sherlock_config.get("jenkins", False):
             forward_sbatch_output(batch_script, nextflow_slurm_output)
+        else:
+            subprocess.run(["sbatch", batch_script], check=True)
     shutil.rmtree(local_outdir)
 
 
