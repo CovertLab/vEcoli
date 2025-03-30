@@ -139,7 +139,7 @@ profiles {
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
             executor = 'hq'
             // Use Nextflow's retry logic instead of HyperQueue's built-in logic
-            clusterOptions = '--crash-limit=1', '--pin taskset'
+            clusterOptions = '--crash-limit=1'
             cpus = 1
             memory = {
                 if ( task.exitStatus in [137, 140] ) {
