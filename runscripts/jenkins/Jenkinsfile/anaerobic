@@ -39,62 +39,70 @@ pipeline {
     
     post {        
         success {
-            if (hasStatusChanged()) {
-                slackSend(
-                    color: 'good',
-                    channel: '#jenkins',
-                    message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} back to normal after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
-                )
-            } else {
-                echo "Job was successful just like last run, not sending Slack notification."
+            script {
+                if (hasStatusChanged()) {
+                    slackSend(
+                        color: 'good',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} back to normal after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                    )
+                } else {
+                    echo "Job was successful just like last run, not sending Slack notification."
+                }
             }
         }
         
         failure {
-            if (hasStatusChanged()) {
-                slackSend(
-                    color: 'danger',
-                    channel: '#jenkins',
-                    message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} failed after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
-                )
-            } else {
-                slackSend(
-                    color: 'danger',
-                    channel: '#jenkins',
-                    message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} is still failing after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
-                )
+            script {
+                if (hasStatusChanged()) {
+                    slackSend(
+                        color: 'danger',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} failed after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                    )
+                } else {
+                    slackSend(
+                        color: 'danger',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} is still failing after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                    )
+                }
             }
         }
         
         aborted {
-            if (hasStatusChanged()) {
-                slackSend(
-                    color: '#808080',
-                    channel: '#jenkins',
-                    message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} aborted after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
-                )
-            } else {
-                slackSend(
-                    color: '#808080',
-                    channel: '#jenkins',
-                    message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} aborted again after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
-                )
+            script {
+                if (hasStatusChanged()) {
+                    slackSend(
+                        color: '#808080',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} aborted after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                    )
+                } else {
+                    slackSend(
+                        color: '#808080',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} aborted again after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                    )
+                }
             }
         }
 
         unstable {
-            if (hasStatusChanged()) {
-                slackSend(
-                    color: 'warning',
-                    channel: '#jenkins',
-                    message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} unstable after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
-                )
-            } else {
-                slackSend(
-                    color: 'warning',
-                    channel: '#jenkins',
-                    message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} is still unstable after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
-                )
+            script {
+                if (hasStatusChanged()) {
+                    slackSend(
+                        color: 'warning',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} unstable after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                    )
+                } else {
+                    slackSend(
+                        color: 'warning',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} is still unstable after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                    )
+                }
             }
         }
 
