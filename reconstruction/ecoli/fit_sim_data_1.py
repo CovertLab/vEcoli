@@ -104,9 +104,9 @@ def fitSimData_1(raw_data, **kwargs):
 
     if sim_data is None:
         raise ValueError(
-            'sim_data is not specified.  Check that the'
-            f' load_intermediate function ({kwargs.get("load_intermediate")})'
-            ' is correct and matches a function to be run.'
+            "sim_data is not specified.  Check that the"
+            f" load_intermediate function ({kwargs.get('load_intermediate')})"
+            " is correct and matches a function to be run."
         )
 
     return sim_data
@@ -1409,9 +1409,9 @@ def rescaleMassForSolubleMetabolites(sim_data, bulkMolCntr, concDict, doubling_t
         [concDict[key].asNumber(molar_units) for key in targetMoleculeIds]
     )  # Have to strip and replace units to obtain the proper array data type
 
-    assert np.all(
-        targetMoleculeConcentrations.asNumber(molar_units) > 0
-    ), "Homeostatic dFBA objective requires non-zero (positive) concentrations"
+    assert np.all(targetMoleculeConcentrations.asNumber(molar_units) > 0), (
+        "Homeostatic dFBA objective requires non-zero (positive) concentrations"
+    )
 
     molecular_weights = sim_data.getter.get_masses(targetMoleculeIds)
 

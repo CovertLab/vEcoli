@@ -477,7 +477,7 @@ def diff_dirs(dir1: str, dir2: str, print_diff_lines: bool = True) -> int:
     count = 0
 
     for name, path1 in pickles1.items():
-        print(f'\n*** {name} {"*" * (75 - len(name))}')
+        print(f"\n*** {name} {'*' * (75 - len(name))}")
         path2 = pickles2.get(name)
         if path2:
             count += diff_files(path1, path2, print_diff_lines)
@@ -487,9 +487,7 @@ def diff_dirs(dir1: str, dir2: str, print_diff_lines: bool = True) -> int:
 
     only_in_dir2 = pickles2.keys() - pickles1.keys()
     if only_in_dir2:
-        print(
-            f"\n*** Pickle files in {dir2} but not {dir1}:\n" f"{sorted(only_in_dir2)}"
-        )
+        print(f"\n*** Pickle files in {dir2} but not {dir1}:\n{sorted(only_in_dir2)}")
         count += len(only_in_dir2)
 
     print(
