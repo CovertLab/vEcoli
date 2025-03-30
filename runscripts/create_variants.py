@@ -65,7 +65,7 @@ def parse_variants(
         operation = variant_config.pop("op")
     elif "op" in variant_config:
         raise TypeError(
-            "Variant only has a single parameter " "and should not define op key."
+            "Variant only has a single parameter and should not define op key."
         )
 
     # Perform pre-processing of parameters
@@ -155,7 +155,7 @@ def apply_and_save_variants(
         sim_data_copy = copy.deepcopy(sim_data)
         variant_metadata[i + 1] = params
         variant_sim_data = variant_mod.apply_variant(sim_data_copy, params)
-        outpath = os.path.join(outdir, f"{i+1}.cPickle")
+        outpath = os.path.join(outdir, f"{i + 1}.cPickle")
         with open(outpath, "wb") as f:
             pickle.dump(variant_sim_data, f)
     with open(os.path.join(outdir, "metadata.json"), "w") as f:

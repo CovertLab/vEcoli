@@ -33,9 +33,9 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    assert (
-        num_cells(conn, config_sql) == 1
-    ), "Mass fraction summary plot requires single-cell data."
+    assert num_cells(conn, config_sql) == 1, (
+        "Mass fraction summary plot requires single-cell data."
+    )
 
     mass_columns = {
         "Protein": "listeners__mass__protein_mass",

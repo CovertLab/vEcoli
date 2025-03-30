@@ -470,11 +470,11 @@ class GetterFunctions(object):
             ]
             if len(set(tu_rna_types)) > 1 and set(tu_rna_types) != {"rRNA", "tRNA"}:
                 raise ValueError(
-                    f'Transcription unit {tu["id"]} includes genes'
-                    f' that encode for two or more different types of RNAs.'
-                    f' Such transcription units are not supported by this'
-                    f' version of the model with the exception of rRNA'
-                    f' transcription units with tRNA genes.'
+                    f"Transcription unit {tu['id']} includes genes"
+                    f" that encode for two or more different types of RNAs."
+                    f" Such transcription units are not supported by this"
+                    f" version of the model with the exception of rRNA"
+                    f" transcription units with tRNA genes."
                 )
 
             if len(tu_rna_types) == 1:

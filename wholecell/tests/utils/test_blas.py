@@ -81,8 +81,8 @@ class Test_blas(unittest.TestCase):
                 )
             )
 
-        print(f'{"":62} {11 * "-"}')
-        print(f'{"":62} {round(total_nanoseconds):11,}')
+        print(f"{'':62} {11 * '-'}")
+        print(f"{'':62} {round(total_nanoseconds):11,}")
         print()
 
         # Issue #931: The expected value came from Numpy's copy of openblas on
