@@ -20,7 +20,7 @@ Sherlock
 On Sherlock, once a workflow is started with :mod:`runscripts.workflow`,
 an Apptainer image is built with all vEcoli Python dependencies using
 ``runscripts/container/build-runtime.sh``. Nextflow starts containers
-using this image that run the steps of the workflow. To run or interact
+using this image to run the steps of the workflow. To run or interact
 with the model without using :mod:`runscripts.workflow`, start an
 interactive container by following the steps in :ref:`sherlock-interactive`.
 
@@ -71,7 +71,7 @@ options to your configuration JSON (note the top-level ``sherlock`` key)::
       # build (or use directly, if build_runtime_image is false)
       "runtime_image_name": "",
       # Boolean, whether to use HyperQueue executor for simulation jobs
-      # (see section below)
+      # (see HyperQueue section below)
       "use_hyperqueue": true,
       # Boolean, denotes that a workflow is being run as part of Jenkins
       # continuous integration testing. Randomizes the initial seed and
@@ -96,19 +96,17 @@ runtime (see :doc:`gcloud`).
 
 .. warning::
     The emitter output directory (see description of ``emitter_arg``
-    in :ref:`json_config`) should be an absolute path to somewhere in your
-    ``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``). The path must
-    be absolute because Nextflow does not resolve environment variables like
-    ``$SCRATCH`` in paths.
+    in :ref:`json_config`) should be an absolute (NOT relative) path to a location
+    in your ``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``).
 
 .. note::
-    There is a 4 hour limit on each job in the workflow, including analyses.
+    There is a 4 hour time limit on each job in the workflow, including analyses.
     
 This is a generous limit designed to accomodate very slow-dividing cells.
-Generally, we recommend that analysis scripts which take more than a few minutes
-to run be excluded from your workflow configuration. Instead, create a SLURM batch
-script to run these analyses using :py:mod:`runscripts.analysis` directly. This
-also lets you request more CPU cores and RAM for better performance.
+Generally, we recommend that users exclude analysis scripts which take more
+than a few minutes to run from their workflow configuration. Instead, create a
+SLURM batch script to run these analyses using :py:mod:`runscripts.analysis`
+directly. This also lets you request more CPU cores and RAM for better performance.
 
 .. _sherlock-interactive:
 
@@ -124,7 +122,7 @@ run the following to build a new runtime image, picking any ``runtime_image_path
   
   runscripts/container/build-runtime.sh -r runtime_image_path -a
 
-Once you have a runtime image, you can start an interactive container with,
+Once you have a runtime image, you can start an interactive container as follows,
 substituting in your ``runtime_image_path``::
 
   runscripts/container/interactive.sh -w runtime_image_path -a

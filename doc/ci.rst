@@ -65,8 +65,8 @@ that, in essence, runs one or more workflows using the JSON configuration
 files located in ``runscripts/jenkins/configs``. These tests are designed to
 run daily (cron) on the latest commit of the ``master`` branch.
 
-The logs for **failed** tests are publicly viewable on the repository webiste by
-clicking on the commit status badge of the commit in question. Upon doing so, you
+The logs for **failed** tests are publicly viewable on the repository website by
+clicking on the relevant commit status badges. Upon doing so, you
 will be brought to a page with logs and a link to ``View more details on Jenkins vEcoli``.
 This link requires access to the Covert Lab's Sherlock partition.
 
