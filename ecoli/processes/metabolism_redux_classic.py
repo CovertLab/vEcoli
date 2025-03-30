@@ -728,9 +728,9 @@ def test_network_flow_model():
         solver=cp.GLOP,
     )
 
-    assert np.isclose(
-        solution.velocities, np.array([1, 1, 0])
-    ).all(), "Network flow toy model did not converge to correct solution."
+    assert np.isclose(solution.velocities, np.array([1, 1, 0])).all(), (
+        "Network flow toy model did not converge to correct solution."
+    )
 
 
 # TODO (Cyrus) Add test for entire process

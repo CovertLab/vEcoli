@@ -60,17 +60,17 @@ def load_data(
     glc_data_condition = glc_data["Condition"].unique()[0]
     amp_data_condition = amp_data["Condition"].unique()[0]
     assert "Glucose" in glc_data_condition, "glc_data was not from Glucose condition!"
-    assert (
-        "Ampicillin" in amp_data_condition
-    ), "amp_data was not from Ampicillin condition!"
-    assert (
-        glc_data["Seed"].unique().size == amp_data["Seed"].unique().size == 1
-    ), "One of glc_data or amp_data has data for more than one seed!"
+    assert "Ampicillin" in amp_data_condition, (
+        "amp_data was not from Ampicillin condition!"
+    )
+    assert glc_data["Seed"].unique().size == amp_data["Seed"].unique().size == 1, (
+        "One of glc_data or amp_data has data for more than one seed!"
+    )
     glc_data_seed = glc_data["Seed"].unique()[0]
     amp_data_seed = amp_data["Seed"].unique()[0]
-    assert (
-        glc_data_seed == amp_data_seed
-    ), "Seeds do not match across glc_data and amp_data!"
+    assert glc_data_seed == amp_data_seed, (
+        "Seeds do not match across glc_data and amp_data!"
+    )
 
     # Merge dataframes from before/after addition of ampicillin
     amp_data = pd.concat([glc_data[glc_data.Time < amp_data.Time.min()], amp_data])

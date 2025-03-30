@@ -502,9 +502,9 @@ def plot_snapshots(
         bounds = tuple(bound.to(units.um).magnitude for bound in bounds)
     # time steps that will be used
     if agents and fields:
-        assert set(list(agents.keys())) == set(
-            list(fields.keys())
-        ), "agent and field times are different"
+        assert set(list(agents.keys())) == set(list(fields.keys())), (
+            "agent and field times are different"
+        )
         time_vec = list(agents.keys())
     elif agents:
         time_vec = list(agents.keys())

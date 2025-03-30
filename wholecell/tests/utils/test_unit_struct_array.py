@@ -28,7 +28,7 @@ class Test_unit_struct_array(unittest.TestCase):
 
         with self.assertRaisesRegex(
             Exception,
-            "^UnitStructArray must be initialized with a dict storing " "units!\n$",
+            "^UnitStructArray must be initialized with a dict storing units!\n$",
         ):
             # noinspection PyTypeChecker
             UnitStructArray(self.struct_array, "foo")

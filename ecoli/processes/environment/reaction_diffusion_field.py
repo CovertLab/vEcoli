@@ -123,21 +123,21 @@ class ReactionDiffusion(Process):
                 for param_name, rxn_kinetic_param in rxn_kinetic_params.items():
                     if isinstance(rxn_kinetic_param, Quantity):
                         rxn_kinetic_params[param_name] = rxn_kinetic_param.magnitude
-            assert (
-                rxn_kinetics
-            ), "each reaction must have corresponding kinetic_parameters"
+            assert rxn_kinetics, (
+                "each reaction must have corresponding kinetic_parameters"
+            )
             kinetics_catalyst = rxn_kinetics.keys()
-            assert (
-                len(kinetics_catalyst) == 1
-            ), "each kinetic_parameters reaction must have only one enzyme"
+            assert len(kinetics_catalyst) == 1, (
+                "each kinetic_parameters reaction must have only one enzyme"
+            )
             assert set(kinetics_catalyst).issubset(molecule_ids), (
                 f"kinetic_parameters reaction {rxn_id} catalyst {catalyst} "
                 f"is not in declared fields {molecule_ids}"
             )
             kinetics_params = list(rxn_kinetics[list(kinetics_catalyst)[0]].keys())
-            assert (
-                "kcat_f" in kinetics_params
-            ), f"kinetic_parameters reaction {rxn_id} needs a kcat_f parameters"
+            assert "kcat_f" in kinetics_params, (
+                f"kinetic_parameters reaction {rxn_id} needs a kcat_f parameters"
+            )
             kinetics_params.remove("kcat_f")
             assert len(kinetics_params) == 1, "only one km allowed"
             assert set(kinetics_params).issubset(molecule_ids), (
