@@ -534,7 +534,9 @@ def main():
         if runtime_image_name is None:
             raise RuntimeError("Must supply name for runtime image.")
         if sherlock_config.get("build_runtime_image", False):
-            runtime_image_cmd = build_runtime_image_cmd(runtime_image_name, True)
+            runtime_image_cmd = " ".join(
+                build_runtime_image_cmd(runtime_image_name, True)
+            )
             container_build_script = os.path.join(local_outdir, "container.sh")
             with open(container_build_script, "w") as f:
                 f.write(f"""#!/bin/bash
