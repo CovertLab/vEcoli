@@ -358,7 +358,7 @@ def forward_sbatch_output(
             ).stdout.strip()
 
             # Check for output from tail process
-            if poller.poll(100):
+            while poller.poll(100):
                 line = tail_stdout.readline()
                 if line:
                     print(line, end="", flush=True)
