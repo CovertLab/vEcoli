@@ -638,7 +638,7 @@ hq alloc add slurm --time-limit 8h -- --partition=mcovert,owners,normal --mem=4G
 #SBATCH --job-name="nextflow-{experiment_id}"
 #SBATCH --time=7-00:00:00
 #SBATCH --cpus-per-task 1
-#SBATCH --mem=8GB
+#SBATCH --mem=6GB
 #SBATCH --partition=mcovert
 #SBATCH --output={nf_slurm_output}
 set -e
