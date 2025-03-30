@@ -552,7 +552,7 @@ def main():
 #SBATCH --time=01:00:00
 #SBATCH --cpus-per-task 2
 #SBATCH --mem=8GB
-#SBATCH --partition=mcovert
+#SBATCH --partition=mcovert,owners,normal
 #SBATCH --output={os.path.join(local_outdir, "container.out")}
 {runtime_image_cmd}
 apptainer exec -B {repo_dir}:{repo_dir} \
