@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import time
+from typing import cast, IO
 import warnings
 from datetime import datetime
 from urllib import parse
@@ -263,7 +264,7 @@ def generate_code(config):
     return "\n".join(run_parca), "\n".join(sim_imports), "\n".join(sim_workflow)
 
 
-def build_runtime_image_cmd(image_name, apptainer=False) -> str:
+def build_runtime_image_cmd(image_name, apptainer=False) -> list[str]:
     build_script = os.path.join(
         os.path.dirname(__file__), "container", "build-runtime.sh"
     )
@@ -341,10 +342,11 @@ def forward_sbatch_output(
             universal_newlines=True,
             bufsize=1,
         )
+        tail_stdout: IO[str] = cast(IO[str], tail_process.stdout)
 
         # Poll object for monitoring the tail process stdout
         poller = select.poll()
-        poller.register(tail_process.stdout, select.POLLIN)
+        poller.register(tail_stdout, select.POLLIN)
 
         # Second process to check if job is still running
         while True:
@@ -357,7 +359,7 @@ def forward_sbatch_output(
 
             # Check for output from tail process
             if poller.poll(100):
-                line = tail_process.stdout.readline()
+                line = tail_stdout.readline()
                 if line:
                     print(line, end="", flush=True)
 
@@ -367,7 +369,7 @@ def forward_sbatch_output(
                 time.sleep(5)
                 # Flush any remaining output
                 while poller.poll(100):
-                    line = tail_process.stdout.readline()
+                    line = tail_stdout.readline()
                     if line:
                         print(line, end="", flush=True)
                 break
