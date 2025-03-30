@@ -72,7 +72,7 @@ options to your configuration JSON (note the top-level ``sherlock`` key)::
       "runtime_image_name": "",
       # Boolean, whether to use HyperQueue executor for simulation jobs
       # (see HyperQueue section below)
-      "use_hyperqueue": true,
+      "hyperqueue": true,
       # Boolean, denotes that a workflow is being run as part of Jenkins
       # continuous integration testing. Randomizes the initial seed and
       # ensures that all STDOUT and STDERR is piped to the launching process

@@ -30,7 +30,7 @@
     "sherlock": {
         "runtime_image_name": "runtime-image",
         "build_runtime_image": true,
-        "use_hyperqueue": true,
+        "hyperqueue": true,
         "jenkins": true
     },
     "parca_options": {
