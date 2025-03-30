@@ -629,7 +629,7 @@ hq server start &
 until hq job list &>/dev/null ; do sleep 1 ; done
 
 # Enable HyperQueue automatic allocation
-hq alloc add slurm --time-limit 8h --resource "mem=sum(4000)" -- --partition=mcovert,owners,normal --mem=4GB
+hq alloc add slurm --time-limit 8h -- --partition=mcovert,owners,normal --mem=4GB
 """
             hyperqueue_exit = "hq job wait all; hq worker stop all; hq server stop"
         nf_slurm_output = os.path.join(outdir, f"{experiment_id}_slurm.out")
