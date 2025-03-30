@@ -336,7 +336,7 @@ options under the ``analysis_options`` key:
   to the ``outdir`` argument for analysis script ``plot`` functions
   (see :ref:`analysis_template`). A copy of the configuration options
   used to run :py:mod:`runscripts.analysis` is saved as ``outdir/metadata.json``.
-- ``n_cpus``: Number of CPU cores to let DuckDB use
+- ``cpus``: Number of CPU cores to let DuckDB use (default: 1)
 - ``analysis_types``: List of analysis types to run. By default (if this option
   is not used), all analyses provided under all the analysis type keys are run
   on all possible subsets of the data after applying the data filters given using
@@ -452,7 +452,7 @@ Configuration
 All the previously covered configuration options also apply to the configuration
 JSON supplied to :py:mod:`runscripts.workflow`. Those options govern the behavior
 of the corresponding step in the workflow. For example, running
-:py:mod:`runscripts.workflow` with ``n_cpus`` under ``parca_options``
+:py:mod:`runscripts.workflow` with ``cpus`` under ``parca_options``
 set to 4 will start the workflow by running the ParCa with 4 CPUs.
 
 After creating some number of variant simulation data objects with
@@ -566,10 +566,11 @@ be absolute because Nextflow does not resolve environment variables like
 ``$SCRATCH`` in paths.
 
 .. warning::
-    Running the workflow on Sherlock sets a 1 hour limit on each job in the
-    workflow, including analyses. Analysis scripts that take more than
-    1 hour to run should be excluded from workflow configurations and manually
-    run using :py:mod:`runscripts.analysis` afterwards.
+    Running the workflow on Sherlock sets a 4 hour limit on each job in the
+    workflow, including analyses. This is to allow for slow-dividing cells.
+    Analysis scripts that take more than 4 hours to run (or would benefit
+    from more CPU cores/memory) should be excluded from workflow configurations
+    and manually run using :py:mod:`runscripts.analysis` afterwards.
 
 .. _sherlock-interactive:
 
