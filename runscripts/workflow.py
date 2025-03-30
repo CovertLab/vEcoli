@@ -629,7 +629,7 @@ hq server start &
 until hq job list &>/dev/null ; do sleep 1 ; done
 
 # Enable HyperQueue automatic allocation
-hq alloc add slurm --time-limit 8h --cpus=4 --resource mem=16000 -- --partition=mcovert,owners,normal
+hq alloc add slurm --time-limit 8h --cpus=4 --resource "memory=sum(16000)" -- --partition=mcovert,owners,normal
 """
             hyperqueue_exit = """
 # Wait for all jobs to finish, then shut down the workers and server
