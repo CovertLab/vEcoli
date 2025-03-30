@@ -131,9 +131,12 @@ profiles {
     }
     sherlock_hq {
         process {
+            // Run ParCa in separate SLURM job to allow >1 CPU
             withLabel: parca {
                 cpus = params.parca_cpus
                 memory = params.parca_cpus * 2.GB
+                executor = 'slurm'
+                queue = 'mcovert,owners,normal'
             }
             container = params.container_image
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
