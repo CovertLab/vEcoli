@@ -625,7 +625,7 @@ export HQ_SERVER_DIR={os.path.join(outdir, ".hq-server")}
 mkdir -p ${{HQ_SERVER_DIR}}
 
 # Start the server in the background (&) and wait until it has started
-hq server start &
+hq server start --journal {os.path.join(outdir, ".hq-server/journal")} &
 until hq job list &>/dev/null ; do sleep 1 ; done
 
 # Enable HyperQueue automatic allocation
