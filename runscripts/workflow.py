@@ -3,12 +3,10 @@ import json
 import os
 import pathlib
 import random
-import select
 import shutil
 import subprocess
 import sys
 import time
-from typing import cast, IO
 import warnings
 from datetime import datetime
 from urllib import parse
@@ -329,79 +327,60 @@ def forward_sbatch_output(
 
     print(f"Submitted SLURM job {job_id}, log file: {output_log}")
 
-    # Start monitoring with tail -f in a way that exits when the job completes
-    try:
-        # Create the log file if it doesn't exist yet
-        open(output_log, "a").close()
+    # Track last position read in output log file
+    last_position = 0
 
-        # First tail process to monitor the log
-        tail_process = subprocess.Popen(
-            ["tail", "-f", output_log],
+    while True:
+        # Read any new content from the log file
+        if log_path.exists():
+            with open(output_log, "r") as f:
+                # Move to where we left off
+                f.seek(last_position)
+
+                # Read and print new content
+                new_content = f.read()
+                if new_content:
+                    print(new_content, end="", flush=True)
+
+                # Remember where we are now
+                last_position = f.tell()
+
+        # Check if job is still running
+        job_status = subprocess.run(
+            ["squeue", "-j", job_id, "-h", "-o", "%t"],
+            text=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            universal_newlines=True,
-            bufsize=1,
+        ).stdout.strip()
+
+        # If job no longer exists in queue
+        if not job_status:
+            # Catch up with final output
+            time.sleep(5)
+            with open(output_log, "r") as f:
+                f.seek(last_position)
+                new_content = f.read()
+                if new_content:
+                    print(new_content, end="", flush=True)
+            break
+
+        # Wait a bit before checking job status again
+        time.sleep(30)
+
+    # Final check of job success
+    job_state = (
+        subprocess.run(
+            ["sacct", "-j", job_id, "-o", "State", "-n", "--parsable2"],
+            text=True,
+            stdout=subprocess.PIPE,
         )
-        tail_stdout: IO[str] = cast(IO[str], tail_process.stdout)
+        .stdout.strip()
+        .split("\n")[0]
+    )
 
-        # Poll object for monitoring the tail process stdout
-        poller = select.poll()
-        poller.register(tail_stdout, select.POLLIN)
-
-        # Second process to check if job is still running
-        while True:
-            # Check if job is still running
-            job_status = subprocess.run(
-                ["squeue", "-j", job_id, "-h", "-o", "%t"],
-                text=True,
-                stdout=subprocess.PIPE,
-            ).stdout.strip()
-
-            # Check for output from tail process
-            while poller.poll(100):
-                line = tail_stdout.readline()
-                if line:
-                    print(line, end="", flush=True)
-
-            # If job no longer exists in queue
-            if not job_status:
-                # Give tail a moment to catch up with final output
-                time.sleep(5)
-                # Flush any remaining output
-                while poller.poll(100):
-                    line = tail_stdout.readline()
-                    if line:
-                        print(line, end="", flush=True)
-                break
-
-            # Wait a bit before checking job status again
-            time.sleep(30)
-
-        # Kill the tail process
-        tail_process.terminate()
-        tail_process.wait()
-
-        # Final check of job success
-        job_state = (
-            subprocess.run(
-                ["sacct", "-j", job_id, "-o", "State", "-n", "--parsable2"],
-                text=True,
-                stdout=subprocess.PIPE,
-            )
-            .stdout.strip()
-            .split("\n")[0]
-        )
-
-        if job_state != "COMPLETED":
-            print(f"Job {job_id} failed with state {job_state}")
-            sys.exit(1)
-
-    except KeyboardInterrupt:
-        # Allow user to cancel without killing the SLURM job
-        print(f"\nStopped monitoring job {job_id}, but job is still running.")
-        print(f"Use 'scancel {job_id}' to cancel the job if needed.")
-        print(f"Continue monitoring with: tail -f {output_log}")
-        sys.exit(0)
+    # Stop process if submitted job did not complete successfully
+    if job_state != "COMPLETED":
+        print(f"Job {job_id} failed with state {job_state}")
+        sys.exit(1)
 
 
 def main():
