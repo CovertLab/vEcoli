@@ -26,8 +26,7 @@ process simGen0 {
     touch daughter_state_0.json
     touch daughter_state_1.json
     touch division_time.sh
-    uv --project ${params.projectRoot} run --env-file ${params.projectRoot}/.env \\
-        ${params.projectRoot}/ecoli/experiments/ecoli_master_sim.py \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/ecoli/experiments/ecoli_master_sim.py \\
         --config $config \\
         --sim_data_path $sim_data \\
         --daughter_outdir "\$(pwd)" \\
@@ -76,8 +75,7 @@ process sim {
     touch daughter_state_0.json
     touch daughter_state_1.json
     touch division_time.sh
-    uv --project ${params.projectRoot} run --env-file ${params.projectRoot}/.env \\
-        ${params.projectRoot}/ecoli/experiments/ecoli_master_sim.py \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/ecoli/experiments/ecoli_master_sim.py \\
         --config $config \\
         --sim_data_path $sim_data \\
         --initial_state_file ${initial_state.getBaseName()} \\
