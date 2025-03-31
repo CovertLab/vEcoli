@@ -264,10 +264,13 @@ inserting::
   
   import ipdb; ipdb.set_trace()
 
-Navigate to the working directory (see :ref:`troubleshooting`) of the failing
-task at ``/mnt/disks/{bucket}/...``. Evoke ``bash .command.sh`` to run the
-task. Execution should pause at your set breakpoints, allowing you to inspect
-variables and step through the code.
+Note the working directory (see :ref:`troubleshooting`) of the failing task
+(should be of the form ``/mnt/disks/{bucket}/...``). Inside the container, run::
+  
+  # Symlink files, including the script for the task (.command.sh)
+  bash {working directory}/.command.run nxf_stage
+  # Run the task
+  bash .command.sh
 
 .. warning::
   Any changes that you make to the code in ``/vEcoli`` inside the container are not
