@@ -12,8 +12,7 @@ process runParca {
 
     script:
     """
-    uv --project ${params.projectRoot} run --env-file ${params.projectRoot}/.env \\
-        ${params.projectRoot}/runscripts/parca.py --config "$config" -o "\$(pwd)"
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/parca.py --config "$config" -o "\$(pwd)"
     """
 
     stub:
@@ -40,11 +39,10 @@ process analysisParca {
 
     script:
     """
-    uv --project ${params.projectRoot} run --env-file ${params.projectRoot}/.env \\
-        ${params.projectRoot}/runscripts/analysis.py --config $config \\
-        --sim_data_path="$kb/simData.cPickle" \\
-        --validation_data_path="$kb/validationData.cPickle" \\
-        -o "\$(pwd)/plots" \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config "$config" \
+        --sim_data_path="$kb/simData.cPickle" \
+        --validation_data_path="$kb/validationData.cPickle" \
+        -o "\$(pwd)/plots" \
         -t parca
     """
 
@@ -71,8 +69,7 @@ process createVariants {
 
     script:
     """
-    uv --project ${params.projectRoot} run --env-file ${params.projectRoot}/.env \\
-        ${params.projectRoot}/runscripts/create_variants.py \\
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/create_variants.py \
         --config "$config" --kb "$kb" -o "\$(pwd)"
     """
 
