@@ -9,9 +9,7 @@ process colony {
 
     script:
     """
-    uv --project ${params.projectRoot} run --env-file ${params.projectRoot}/.env \\
-        ${params.projectRoot}/ecoli/experiments/ecoli_engine_process.py \\
-        --config $config --sim_data_path $sim_data --initial_state_file $initial_state
+    python /vEcoli/ecoli/experiments/ecoli_engine_process.py --config $config --sim_data_path $sim_data --initial_state_file $initial_state
     STATUS=$?
     """
 
