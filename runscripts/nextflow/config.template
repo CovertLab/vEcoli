@@ -80,7 +80,7 @@ profiles {
             }
             container = params.container_image
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
-            queue = 'mcovert,owners,normal'
+            queue = 'owners,normal'
             executor = 'slurm'
             // Single core sims are slightly slower but can have shorter
             // queue times and is less damaging to future job priority
@@ -134,7 +134,7 @@ profiles {
                 cpus = params.parca_cpus
                 memory = params.parca_cpus * 2.GB
                 executor = 'slurm'
-                queue = 'mcovert,owners,normal'
+                queue = 'owners,normal'
                 clusterOptions = ''
             }
             container = params.container_image

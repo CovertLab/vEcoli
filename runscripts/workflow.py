@@ -531,7 +531,7 @@ def main():
 #SBATCH --time=01:00:00
 #SBATCH --cpus-per-task 2
 #SBATCH --mem=8GB
-#SBATCH --partition=mcovert,owners,normal
+#SBATCH --partition=owners,normal
 #SBATCH --output={os.path.join(local_outdir, "container.out")}
 {runtime_image_cmd}
 apptainer exec -B {repo_dir}:{repo_dir} \
@@ -610,7 +610,7 @@ hq server start --journal {os.path.join(outdir, ".hq-server/journal")} &
 until hq job list &>/dev/null ; do sleep 1 ; done
 
 # Enable HyperQueue automatic allocation
-hq alloc add slurm --time-limit 8h -- --partition=mcovert,owners,normal --mem=4GB
+hq alloc add slurm --time-limit 8h -- --partition=owners,normal --mem=4GB
 """
             hyperqueue_exit = "hq job wait all; hq worker stop all; hq server stop"
         nf_slurm_output = os.path.join(outdir, f"{experiment_id}_slurm.out")
