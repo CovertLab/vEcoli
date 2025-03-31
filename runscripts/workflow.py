@@ -528,7 +528,7 @@ def main():
             with open(container_build_script, "w") as f:
                 f.write(f"""#!/bin/bash
 #SBATCH --job-name="build-container-{experiment_id}"
-#SBATCH --time=01:00:00
+#SBATCH --time=30:00
 #SBATCH --cpus-per-task 2
 #SBATCH --mem=8GB
 #SBATCH --partition=owners,normal
