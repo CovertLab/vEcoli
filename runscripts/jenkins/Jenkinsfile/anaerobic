@@ -44,7 +44,7 @@ pipeline {
                     slackSend(
                         color: 'good',
                         channel: '#jenkins',
-                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} back to normal after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} back to normal after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
                     )
                 } else {
                     echo "Job was successful just like last run, not sending Slack notification."
@@ -58,13 +58,13 @@ pipeline {
                     slackSend(
                         color: 'danger',
                         channel: '#jenkins',
-                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} failed after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} failed after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
                     )
                 } else {
                     slackSend(
                         color: 'danger',
                         channel: '#jenkins',
-                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} is still failing after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} is still failing after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
                     )
                 }
             }
@@ -76,13 +76,13 @@ pipeline {
                     slackSend(
                         color: '#808080',
                         channel: '#jenkins',
-                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} aborted after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} aborted after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
                     )
                 } else {
                     slackSend(
                         color: '#808080',
                         channel: '#jenkins',
-                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} aborted again after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} aborted again after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
                     )
                 }
             }
@@ -94,13 +94,13 @@ pipeline {
                     slackSend(
                         color: 'warning',
                         channel: '#jenkins',
-                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} unstable after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} unstable after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
                     )
                 } else {
                     slackSend(
                         color: 'warning',
                         channel: '#jenkins',
-                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} is still unstable after ${currentBuild.durationString} (<${env.BUILD_URL}|link>)"
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} is still unstable after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
                     )
                 }
             }
