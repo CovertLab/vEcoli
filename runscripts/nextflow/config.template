@@ -77,6 +77,13 @@ profiles {
             withLabel: parca {
                 cpus = params.parca_cpus
                 memory = params.parca_cpus * 2.GB
+                time = {
+                    if ( task.exitStatus == 140 ) {
+                        1.h * task.attempt
+                    } else {
+                        1.h
+                    }
+                }
             }
             container = params.container_image
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
@@ -136,6 +143,13 @@ profiles {
                 executor = 'slurm'
                 queue = 'owners,normal'
                 clusterOptions = ''
+                time = {
+                    if ( task.exitStatus == 140 ) {
+                        1.h * task.attempt
+                    } else {
+                        1.h
+                    }
+                }
             }
             container = params.container_image
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
