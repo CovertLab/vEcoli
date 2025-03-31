@@ -4,7 +4,6 @@ From: ghcr.io/astral-sh/uv@sha256:21051ff1d154bb559756e842d8b49f6e1f12cbbf75895b
 %environment
     export OPENBLAS_NUM_THREADS=1
     export PATH="/vEcoli/.venv/bin:$PATH"
-    export UV_PROJECT_ENVIRONMENT="/vEcoli/.venv"
 
 %labels
     application "Whole Cell Model Runtime Environment"
