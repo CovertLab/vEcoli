@@ -241,9 +241,9 @@ workflow to regenerate that data later than to keep it around.
 
 .. _interactive-containers:
 
-----------------------
-Interactive Containers
-----------------------
+----------------------------
+Cloud Interactive Containers
+----------------------------
 
 .. warning::
   Install
@@ -285,6 +285,11 @@ Note the working directory (see :ref:`troubleshooting`) of the failing task
   ``git remote add origin https://github.com/CovertLab/vEcoli.git``. With the
   git repository initialized, you can make changes locally, push them to a
   development branch on GitHub, and pull/merge them in your container.
+
+For non-debugging purposes, it is possible to run and develop the model on Google
+Cloud using a container spawned from a runtime image. See the second half
+of :ref:`sherlock-interactive`, replacing paths for images with the names
+of the images in Artifact Registry.
 
 ---------------
 Troubleshooting

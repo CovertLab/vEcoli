@@ -70,6 +70,12 @@ options to your configuration JSON (note the top-level ``sherlock`` key)::
       # Absolute path (including file name) of Apptainer runtime image to
       # build (or use directly, if build_runtime_image is false)
       "runtime_image_name": "",
+      # Boolean, whether to build a fresh code image. If any executed code
+      # did not change since your last build, you can set this to false
+      "build_wcm_image": true,
+      # Absolute path (including file name) of Apptainer code image to
+      # build (or use directly, if build_code_image is false)
+      "wcm_image_name": "",
       # Boolean, whether to use HyperQueue executor for simulation jobs
       # (see HyperQueue section below)
       "hyperqueue": true,
@@ -102,10 +108,6 @@ use the resume functionality (see :ref:`fault_tolerance`). Alternatively,
 consider running your workflow on Google Cloud, which has no maximum workflow
 runtime (see :doc:`gcloud`).
 
-.. danger::
-    Any changes that are made to the cloned repository while a workflow is running
-    will immediately affect workflow jobs submitted after the change. See :ref:`progress`.
-
 .. note::
     There is a 4 hour time limit on each job in the workflow, including analyses.
     
@@ -120,34 +122,43 @@ directly. This also lets you request more CPU cores and RAM for better performan
 Interactive Container
 =====================
 
+.. note::
+  The following commands should all be run from the directory where you cloned
+  the vEcoli repository.
+
+To debug a failed job in a workflow, you must locate the WCM image that was
+built for that workflow. You can refer to the ``wcm_image_name`` key in the
+config JSON saved to the workflow output directory (see :ref:`output`). Start
+an interactive container with that image name as follows::
+
+  runscripts/container/interactive.sh -w wcm_image_name -a
+
+Now, inside the container, navigate to ``/vEcoli`` and add breakpoints to
+scripts as you see fit. Finally, navigate to the working directory (see
+:ref:`troubleshooting`) for the task that you want to debug. By invoking
+``bash .command.sh``, the job will run and pause upon reaching your
+breakpoints, allowing you to inspect variables and step through the code.
+
+.. warning::
+  Changes to the code in the ``/vEcoli`` directory of interactive containers
+  started from a WCM image are not persistent. See :ref:`interactive-containers`.
+
 To run and develop the model on Sherlock outside a workflow, you must
 have previously run a containerized workflow (default on Sherlock) with
-``build_runtime_image`` set to true and the current version of
+``build_runtime_image`` set to true on the current version of
 ``uv.lock``. If you are not sure if ``uv.lock`` changed since your last
 containerized workflow (or if you have never run a containerized workflow),
 run the following to build a new runtime image, picking any ``runtime_image_path``::
   
   runscripts/container/build-runtime.sh -r runtime_image_path -a
 
-Once you have a runtime image, you can start an interactive container as follows,
-substituting in your ``runtime_image_path``::
+Once you have a runtime image, you can start an interactive container with::
 
-  runscripts/container/interactive.sh -w runtime_image_path -a
+  runscripts/container/interactive.sh -w runtime_image_path -a -r
 
-Inside this interactive container, you can use vEcoli as normal. Any code
+Now, inside the container, you can run the model as you would normally. Any
 changes that you make in the cloned repository will be immediately reflected
 in commands run inside the container.
-
-If you are trying to debug a failed job in a workflow, add breakpoints to
-any Python script in your cloned repository by inserting::
-
-  import ipdb; ipdb.set_trace()
-  
-Then, inside the interactive container, navigate to the working directory (see
-:ref:`troubleshooting`) for the task that you want to debug. By invoking
-``bash .command.sh``, the job will run and pause upon reaching your
-breakpoints, allowing you to inspect variables and step through the code.
-
 
 .. _jenkins-setup:
 
