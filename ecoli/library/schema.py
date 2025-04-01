@@ -569,7 +569,7 @@ def listener_schema(elements: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
             is metadata that will be emitted at the beginning of a simulation
             (see :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`).
             This metadata can then be retrieved later to aid in interpreting
-            listener values (see :py:func:`~ecoli.library.schema.get_field_metadata`).
+            listener values (see :py:func:`~ecoli.library.parquet_emitter.get_field_metadata`).
             As an example, this metadata might be an array of molecule names
             for a listener whose emits are arrays of counts, where the nth
             molecule name in the metadata corresponds to the nth value in the
