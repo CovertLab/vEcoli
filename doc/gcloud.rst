@@ -202,6 +202,12 @@ as normal to start your workflow::
   
   python runscripts/workflow.py --config {}
 
+.. note::
+  Unlike workflows run locally or on Sherlock, Google Cloud workflows are run using
+  containers with a snapshot of the repository at the time the workflow
+  was launched. This means that any changes made to the repository after
+  launching a workflow will not be reflected in that workflow.
+
 Once your workflow has started, you can use press "ctrl+a d" to detach from the
 virtual console then close your SSH connection to your VM. The VM must continue
 to run until the workflow is complete. You can SSH into your VM and reconnect to

@@ -81,6 +81,15 @@ options to your configuration JSON (note the top-level ``sherlock`` key)::
     }
   }
 
+In addition to these options, you **MUST** set the emitter output directory
+(see description of ``emitter_arg`` in :ref:`json_config`) to a path with
+enough space to store your workflow outputs. We recommend setting this to
+a location in your ``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``).
+
+.. warning::
+    The output path **MUST** be given in full because environment
+    variables in the path (e.g. ``$SCRATCH``) are not automatically resolved.
+
 With these options in the configuration JSON, a workflow can be started by
 running ``python runscripts/workflow.py --config {}.json`` on a login node.
 This submits a job that will run the Nextflow workflow orchestrator
@@ -93,11 +102,9 @@ use the resume functionality (see :ref:`fault_tolerance`). Alternatively,
 consider running your workflow on Google Cloud, which has no maximum workflow
 runtime (see :doc:`gcloud`).
 
-
-.. warning::
-    The emitter output directory (see description of ``emitter_arg``
-    in :ref:`json_config`) should be an absolute (NOT relative) path to a location
-    in your ``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``).
+.. danger::
+    Any changes that are made to the cloned repository while a workflow is running
+    will immediately affect workflow jobs submitted after the change. See :ref:`progress`.
 
 .. note::
     There is a 4 hour time limit on each job in the workflow, including analyses.
