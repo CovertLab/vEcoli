@@ -5,7 +5,7 @@
 set -eu  # Exit on any error or unset variable
 
 unmount() {
-  fusermount -u $HOME/bucket_mnt &>/dev/null
+  fusermount -u $HOME/bucket_mnt &>/dev/null || true
 }
 
 # Ensure bucket is unmounted on script exit
@@ -14,16 +14,18 @@ trap unmount EXIT
 # Default configuration variables
 WCM_IMAGE="${USER}-wcm-code"  # Default image name for Docker/Apptainer
 USE_APPTAINER=0              # Flag: Use Apptainer if set to 1
+IS_RUNTIME_IMAGE=0           # Flag: Is this a runtime image (vs code image)
 BIND_MOUNTS=()               # Array for bind mount paths
 BIND_CWD=""                  # Formatted bind mount string for runtime
 BUCKET=""                    # Cloud Storage bucket name
 
 # Help message string
-usage_str="Usage: interactive.sh [-w WCM_IMAGE] [-a] [-b] [-p]...\n\
+usage_str="Usage: interactive.sh [-w WCM_IMAGE] [-a] [-r] [-b] [-p]...\n\
 Options:\n\
     -w: Path of Apptainer image if -a, otherwise name of Docker \
-image inside vecoli Artifact Repository; defaults to "$USER-wcm-code".\n\
+image inside vecoli Artifact Repository; defaults to \"$USER-wcm-code\".\n\
     -a: Load Apptainer image.\n\
+    -r: Treat as runtime image (automatically run 'uv sync --frozen' before shell).\n\
     -b: Name of Cloud Storage bucket to mount inside container; first mounts
 bucket to VM at $HOME/bucket_mnt using gcsfuse (does not work with -a).\n\
     -p: Path(s) to mount inside container; can specify multiple with \
@@ -35,10 +37,11 @@ print_usage() {
 }
 
 # Parse command-line options
-while getopts 'w:ab:p:' flag; do
+while getopts 'w:arb:p:' flag; do
   case "${flag}" in
     w) WCM_IMAGE="${OPTARG}" ;;                              # Set custom image name
     a) USE_APPTAINER=1 ;;                                    # Enable Apptainer mode
+    r) IS_RUNTIME_IMAGE=1 ;;                                 # Mark as runtime image
     b) BUCKET="${OPTARG}" ;;                                 # Set the Cloud Storage bucket
     p) BIND_MOUNTS+=($(realpath "${OPTARG}")) ;;             # Convert path to absolute and add to array
     *) print_usage                                           # Print usage for unknown flags
@@ -52,9 +55,19 @@ if (( $USE_APPTAINER )); then
     if [ ${#BIND_MOUNTS[@]} -ne 0 ]; then
       BIND_CWD=$(printf " -B %s" "${BIND_MOUNTS[@]}")
     fi
+    
     echo "=== Launching Apptainer container from ${WCM_IMAGE} ==="
-    # Start Apptainer container with bind mounts
-    apptainer exec -e --writable-tmpfs ${BIND_CWD} ${WCM_IMAGE} bash -c "uv sync --frozen && bash"
+    
+    # Different handling based on image type
+    if (( $IS_RUNTIME_IMAGE )); then
+        echo "Runtime image detected. Will run 'uv sync --frozen' before launching shell."
+        # For runtime images, run uv sync before the shell
+        apptainer exec -e --writable-tmpfs ${BIND_CWD} ${WCM_IMAGE} bash -c "uv sync --frozen && exec bash"
+    else
+        echo "Code image detected. Launching shell directly."
+        # For code images, just start a shell
+        apptainer exec -e --writable-tmpfs ${BIND_CWD} ${WCM_IMAGE} bash
+    fi
 else
     # Docker-specific logic
     # Get GCP project name and region to construct image path
@@ -78,7 +91,13 @@ else
       BIND_CWD="${BIND_CWD} -v ${HOME}/bucket_mnt:/mnt/disks/${BUCKET}"
     fi
 
-    # Launch the Docker container
     echo "=== Launching Docker container from ${WCM_IMAGE} ==="
-    docker container run -it ${BIND_CWD} ${WCM_IMAGE} bash   # Start Docker container with bind mounts
+    # Different handling based on image type
+    if (( $IS_RUNTIME_IMAGE )); then
+      echo "Runtime image detected. Will run 'uv sync --frozen' before launching shell."
+      docker container run -it ${BIND_CWD} ${WCM_IMAGE} bash -c "uv sync --frozen && exec bash"
+    else
+      echo "Code image detected. Launching shell directly."
+      docker container run -it ${BIND_CWD} ${WCM_IMAGE} bash
+    fi
 fi
