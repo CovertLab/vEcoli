@@ -302,6 +302,9 @@ If not, you may run into errors when running workflows because
 Apptainer containers are read-only. You may be able to resolve this by
 adding ``--writeable-tmpfs`` to ``containerOptions`` for ``sherlock``
 and ``sherlock-hq`` in ``runscripts/nextflow/config.template``. If this fails,
+it is possible to use the Nextflow ``beforeScript`` and ``afterScript`` process
+directives to create and clean up overlay files. Then the ``containerOptions``
+directive can be modified to start containers with these overlays. However,
 the simplest solution is likely to set up vEcoli as if Apptainer was not
 available (see below). Note that if Apptainer is not configured to mount
 all filesystems, you will need to manually specify paths to mount
