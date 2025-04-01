@@ -109,8 +109,12 @@ consider running your workflow on Google Cloud, which has no maximum workflow
 runtime (see :doc:`gcloud`).
 
 .. note::
-    There is a 4 hour time limit on each job in the workflow, including analyses.
-    
+  Unlike workflows run locally, Sherlock workflows are run using
+  containers with a snapshot of the repository at the time the workflow
+  was launched. This means that any changes made to the repository after
+  launching a workflow will not be reflected in that workflow.
+
+There is a 4 hour time limit on each job in the workflow, including analyses.
 This is a generous limit designed to accomodate very slow-dividing cells.
 Generally, we recommend that users exclude analysis scripts which take more
 than a few minutes to run from their workflow configuration. Instead, create a
