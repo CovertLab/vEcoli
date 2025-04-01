@@ -11,25 +11,44 @@ trap 'rm -f source-info/git_diff.txt' EXIT
 RUNTIME_IMAGE="${USER}-wcm-runtime"
 WCM_IMAGE="${USER}-wcm-code"
 RUN_LOCAL=0
+BUILD_APPTAINER=0
 
-usage_str="Usage: build-wcm.sh [-r RUNTIME_IMAGE] \
-[-w WCM_IMAGE] [-l]\n\
-    -r: Docker tag of wcm-runtime image to build from; defaults to \
-\"$USER-wcm-runtime\" (must exist in Artifact Registry).\n\
-    -w: Docker tag of wcm-code image to build; defaults to \"$USER-wcm-code\".\n\
-    -l: Build image locally.\n"
+usage_str="Usage: build-wcm.sh [-r RUNTIME_IMAGE] [-w WCM_IMAGE] [-l] [-a]
+  -r: Docker tag of runtime image to build from; defaults to \"$USER-wcm-runtime\" 
+      (must exist in Artifact Registry).
+  -a: Build Apptainer image (cannot use with -l, -r should be path to runtime 
+      image to build from).
+  -w: Docker tag of full code image to build; defaults to \"$USER-wcm-code\".
+  -l: Build image locally."
 
 print_usage() {
-  printf "%s" "$usage_str"
+  echo "$usage_str"
 }
 
-while getopts 'r:w:l' flag; do
+while getopts 'r:w:la' flag; do
   case "${flag}" in
     r) RUNTIME_IMAGE="${OPTARG}" ;;
+    a)
+      if [ "$RUN_LOCAL" -ne 0 ]; then
+        print_usage
+        exit 1
+      else
+        BUILD_APPTAINER=1
+      fi
+      ;;
     w) WCM_IMAGE="${OPTARG}" ;;
-    l) RUN_LOCAL=1 ;;
-    *) print_usage
-       exit 1 ;;
+    l) 
+      if [ "$BUILD_APPTAINER" -ne 0 ]; then
+        print_usage
+        exit 1
+      else
+        RUN_LOCAL=1
+      fi
+      ;;
+    *) 
+      print_usage
+      exit 1 
+      ;;
   esac
 done
 
@@ -47,6 +66,93 @@ if [ "$RUN_LOCAL" -ne 0 ]; then
         --build-arg git_hash="${GIT_HASH}" \
         --build-arg git_branch="${GIT_BRANCH}" \
         --build-arg timestamp="${TIMESTAMP}" .
+elif [ "$BUILD_APPTAINER" -ne 0 ]; then
+    # Create a temporary Singularity definition file
+    TEMP_DEF=$(mktemp)
+    
+    # Create a temporary file for find exclude patterns
+    EXCLUDE_PATTERNS=$(mktemp)
+    
+    # Function to process ignore files
+    process_ignore_file() {
+        local ignore_file="$1"
+        
+        if [ -f "$ignore_file" ]; then
+            echo "Processing patterns from $ignore_file"
+            grep -v "^#" "$ignore_file" | grep -v "^$" | grep -v "^!" | while read -r pattern; do
+                # Handle patterns starting with / (root-relative)
+                if [[ "$pattern" == /* ]]; then
+                    echo ".${pattern}" >> "$EXCLUDE_PATTERNS"
+                    echo ".${pattern}/*" >> "$EXCLUDE_PATTERNS"
+                # Handle directory patterns ending with /
+                elif [[ "$pattern" == */ ]]; then
+                    echo "./${pattern}*" >> "$EXCLUDE_PATTERNS"
+                    echo "./*/${pattern}*" >> "$EXCLUDE_PATTERNS"
+                # Handle other patterns
+                else
+                    echo "./*/${pattern}" >> "$EXCLUDE_PATTERNS"
+                    echo "./${pattern}" >> "$EXCLUDE_PATTERNS"
+                    echo "./${pattern}/*" >> "$EXCLUDE_PATTERNS"
+                    echo "./*/${pattern}/*" >> "$EXCLUDE_PATTERNS"
+                fi
+            done
+        fi
+    }
+    
+    # Process both ignore files
+    for ignore_file in .gitignore .gcloudignore; do
+        process_ignore_file "$ignore_file"
+    done
+    
+    # Create a temporary file for the find command
+    FIND_CMD=$(mktemp)
+    
+    # Start building the find command
+    FIND_CMD="find . -type f"
+    
+    # Add exclusion patterns to the find command
+    while read -r pattern; do
+        FIND_CMD="$FIND_CMD ! -path \"$pattern\""
+    done < "$EXCLUDE_PATTERNS"
+    
+    # Create a temporary file for our list of files
+    TEMP_FILES=$(mktemp)
+    echo $FIND_CMD
+    # Execute the dynamically generated find command
+    eval "$FIND_CMD" > "$TEMP_FILES"
+    
+    # Debug output
+    echo "Generated $(wc -l < "$TEMP_FILES") files to include in the image"
+    
+    # Read the Singularity file line by line
+    while IFS= read -r line; do
+        if [[ "$line" == *"FILES_TO_ADD"* ]]; then
+            # For the line containing FILES_TO_ADD, replace with formatted file paths
+            while IFS= read -r file; do
+                echo "    $file /vEcoli/$file" >> "$TEMP_DEF"
+            done < "$TEMP_FILES"
+        else
+            # Otherwise just add the line as-is
+            echo "$line" >> "$TEMP_DEF"
+        fi
+    done < runscripts/container/wholecell/Singularity
+    
+    # Clean up
+    rm -f "$TEMP_FILES" "$EXCLUDE_PATTERNS"
+    
+    echo "Using temporary definition file: $TEMP_DEF"
+    echo "=== Building WCM code Apptainer Image: ${WCM_IMAGE} on ${RUNTIME_IMAGE} ==="
+    echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
+    
+    apptainer build --force \
+        --build-arg from="${RUNTIME_IMAGE}" \
+        --build-arg git_hash="${GIT_HASH}" \
+        --build-arg git_branch="${GIT_BRANCH}" \
+        --build-arg timestamp="${TIMESTAMP}" \
+        "${WCM_IMAGE}" "$TEMP_DEF"
+    
+    # Clean up the temporary file
+    rm -f "$TEMP_DEF"
 else
     echo "=== Cloud-building WCM code Docker Image ${WCM_IMAGE} on ${RUNTIME_IMAGE} ==="
     echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="

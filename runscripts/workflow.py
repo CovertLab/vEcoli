@@ -272,7 +272,7 @@ def build_runtime_image_cmd(image_name, apptainer=False) -> list[str]:
     return cmd
 
 
-def build_wcm_image(image_name, runtime_image_name):
+def build_wcm_image_cmd(image_name, runtime_image_name, apptainer=False) -> list[str]:
     build_script = os.path.join(os.path.dirname(__file__), "container", "build-wcm.sh")
     if runtime_image_name is None:
         warnings.warn(
@@ -283,7 +283,9 @@ def build_wcm_image(image_name, runtime_image_name):
             '"runtime_image_name" in your config JSON.'
         )
     cmd = [build_script, "-w", image_name, "-r", runtime_image_name]
-    subprocess.run(cmd, check=True)
+    if apptainer:
+        cmd.append("-a")
+    return cmd
 
 
 def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):
@@ -508,7 +510,8 @@ def main():
         if cloud_config.get("build_wcm_image", False):
             if runtime_image_name is None:
                 raise RuntimeError("Must supply name for runtime image.")
-            build_wcm_image(wcm_image_name, runtime_image_name)
+            wcm_image_cmd = build_wcm_image_cmd(wcm_image_name, runtime_image_name)
+            subprocess.run(wcm_image_cmd, check=True)
         nf_config = nf_config.replace("IMAGE_NAME", image_prefix + wcm_image_name)
     sherlock_config = config.get("sherlock", None)
     if sherlock_config is not None:
@@ -517,6 +520,8 @@ def main():
                 "Cannot set both Sherlock and Google Cloud options in the input JSON."
             )
         nf_profile = "sherlock"
+        runtime_image_cmd = ""
+        wcm_image_cmd = ""
         runtime_image_name = sherlock_config.get("runtime_image_name", None)
         if runtime_image_name is None:
             raise RuntimeError("Must supply name for runtime image.")
@@ -524,24 +529,32 @@ def main():
             runtime_image_cmd = " ".join(
                 build_runtime_image_cmd(runtime_image_name, True)
             )
+        wcm_image_name = sherlock_config.get("wcm_image_name", None)
+        if wcm_image_name is None:
+            raise RuntimeError("Must supply name for WCM image.")
+        if sherlock_config.get("build_wcm_image", False):
+            if runtime_image_name is None:
+                raise RuntimeError("Must supply name for runtime image.")
+            wcm_image_cmd = " ".join(
+                build_wcm_image_cmd(wcm_image_name, runtime_image_name, True)
+            )
+        if runtime_image_cmd != "" or wcm_image_cmd != "":
             container_build_script = os.path.join(local_outdir, "container.sh")
             with open(container_build_script, "w") as f:
                 f.write(f"""#!/bin/bash
 #SBATCH --job-name="build-container-{experiment_id}"
 #SBATCH --time=30:00
-#SBATCH --cpus-per-task 2
+#SBATCH --cpus-per-task 8
 #SBATCH --mem=8GB
 #SBATCH --partition=owners,normal
 #SBATCH --output={os.path.join(local_outdir, "container.out")}
 {runtime_image_cmd}
-apptainer exec -B {repo_dir}:{repo_dir} \
-    --cwd {repo_dir} --writable-tmpfs -e {runtime_image_name} \
-    uv sync --frozen --no-cache --extra dev
+{wcm_image_cmd}
 """)
             forward_sbatch_output(
                 container_build_script, os.path.join(local_outdir, "container.out")
             )
-        nf_config = nf_config.replace("IMAGE_NAME", runtime_image_name)
+        nf_config = nf_config.replace("IMAGE_NAME", wcm_image_name)
     local_config = os.path.join(local_outdir, "nextflow.config")
     with open(local_config, "w") as f:
         f.writelines(nf_config)
