@@ -39,6 +39,7 @@
     },
     "sherlock": {
         "runtime_image_name": "runtime-image",
+        "wcm_image_name": "wcm-image",
         "hyperqueue": true,
         "jenkins": true
     }
