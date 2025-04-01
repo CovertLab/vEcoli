@@ -8,13 +8,13 @@
 set -eu
 trap 'rm -f runscripts/container/runtime/pyproject.toml runscripts/container/runtime/uv.lock' EXIT
 
-RUNTIME_IMAGE="${USER}-wcm-runtime"
+RUNTIME_IMAGE="${USER}-runtime"
 RUN_LOCAL=0
 BUILD_APPTAINER=0
 
-usage_str="Usage: build-runtime.sh [-r RUNTIME_IMAGE] [-a] [-l]
+usage_str="Usage: build-runtime-image.sh [-r RUNTIME_IMAGE] [-a] [-l]
   -r: Path of built Apptainer image if -a, otherwise Docker tag
-    for the wcm-runtime image to build; defaults to ${USER}-wcm-runtime.
+    for the runtime image to build; defaults to ${RUNTIME_IMAGE}.
   -a: Build Apptainer image (cannot use with -l).
   -l: Build image locally."
 
@@ -56,13 +56,13 @@ cp pyproject.toml runscripts/container/runtime/
 cp uv.lock runscripts/container/runtime/
 
 if [ "$RUN_LOCAL" -ne 0 ]; then
-    echo "=== Locally building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
+    echo "=== Locally building runtime Docker Image: ${RUNTIME_IMAGE} ==="
     docker build -f runscripts/container/runtime/Dockerfile -t "${RUNTIME_IMAGE}" .
 elif [ "$BUILD_APPTAINER" -ne 0 ]; then
-    echo "=== Building WCM runtime Apptainer Image: ${RUNTIME_IMAGE} ==="
+    echo "=== Building runtime Apptainer Image: ${RUNTIME_IMAGE} ==="
     apptainer build --force "${RUNTIME_IMAGE}" runscripts/container/runtime/Singularity
 else
-    echo "=== Cloud-building WCM runtime Docker Image: ${RUNTIME_IMAGE} ==="
+    echo "=== Cloud-building runtime Docker Image: ${RUNTIME_IMAGE} ==="
     # For this script to work on a Compute Engine VM, you must
     # - Set default Compute Engine region and zone for your project
     # - Set access scope to "Allow full access to all Cloud APIs" when

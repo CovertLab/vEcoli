@@ -1,16 +1,8 @@
-# Container image #1: wcm-runtime.
+# Container image #1: runtime image.
 # This Dockerfile builds the runtime environment for the whole cell model.
 #
-# To build this image locally from the vEcoli/ project root directory:
-#
-#     > docker build -f cloud/docker/runtime/Dockerfile -t ${USER}-wcm-runtime .
-#
-# (To build using the Cloud Build service and store in the Container Registry,
-# run `cloud/build.sh`.)
-#
-# Add option `--build-arg from=ABC` to build from a different base image "ABC"
-# but DO NOT USE an alpine base since the simulation math comes out different!
-# See https://pythonspeed.com/articles/alpine-docker-python/ for more reasons.
+# Use runscripts/container/build-runtime-image.sh to build.
+
 ARG from=ghcr.io/astral-sh/uv:0.6.10-python3.12-bookworm-slim@sha256:21051ff1d154bb559756e842d8b49f6e1f12cbbf75895b818df6e5c4ab50a2e7
 FROM ${from}
 

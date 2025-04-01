@@ -72,10 +72,10 @@ options to your configuration JSON (note the top-level ``sherlock`` key)::
       "runtime_image_name": "",
       # Boolean, whether to build a fresh code image. If any executed code
       # did not change since your last build, you can set this to false
-      "build_wcm_image": true,
+      "build_code_image": true,
       # Absolute path (including file name) of Apptainer code image to
       # build (or use directly, if build_code_image is false)
-      "wcm_image_name": "",
+      "code_image_name": "",
       # Boolean, whether to use HyperQueue executor for simulation jobs
       # (see HyperQueue section below)
       "hyperqueue": true,
@@ -130,12 +130,12 @@ Interactive Container
   The following commands should all be run from the directory where you cloned
   the vEcoli repository.
 
-To debug a failed job in a workflow, you must locate the WCM image that was
-built for that workflow. You can refer to the ``wcm_image_name`` key in the
+To debug a failed job in a workflow, you must locate the code image that was
+built for that workflow. You can refer to the ``code_image_name`` key in the
 config JSON saved to the workflow output directory (see :ref:`output`). Start
 an interactive container with that image name as follows::
 
-  runscripts/container/interactive.sh -w wcm_image_name -a
+  runscripts/container/interactive.sh -w code_image_name -a
 
 Now, inside the container, navigate to ``/vEcoli`` and add breakpoints to
 scripts as you see fit. Finally, navigate to the working directory (see
@@ -145,7 +145,7 @@ breakpoints, allowing you to inspect variables and step through the code.
 
 .. warning::
   Changes to the code in the ``/vEcoli`` directory of interactive containers
-  started from a WCM image are not persistent. See :ref:`interactive-containers`.
+  started from a code image are not persistent. See :ref:`interactive-containers`.
 
 To run and develop the model on Sherlock outside a workflow, you must
 have previously run a containerized workflow (default on Sherlock) with

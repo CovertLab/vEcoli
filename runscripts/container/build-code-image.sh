@@ -8,17 +8,17 @@
 set -eu
 trap 'rm -f source-info/git_diff.txt' EXIT
 
-RUNTIME_IMAGE="${USER}-wcm-runtime"
-WCM_IMAGE="${USER}-wcm-code"
+RUNTIME_IMAGE="${USER}-runtime"
+CODE_IMAGE="${USER}-code"
 RUN_LOCAL=0
 BUILD_APPTAINER=0
 
-usage_str="Usage: build-wcm.sh [-r RUNTIME_IMAGE] [-w WCM_IMAGE] [-l] [-a]
-  -r: Docker tag of runtime image to build from; defaults to \"$USER-wcm-runtime\" 
+usage_str="Usage: build-code-image.sh [-r RUNTIME_IMAGE] [-w CODE_IMAGE] [-l] [-a]
+  -r: Docker tag of runtime image to build from; defaults to \"$USER-runtime\" 
       (must exist in Artifact Registry).
   -a: Build Apptainer image (cannot use with -l, -r should be path to runtime 
       image to build from).
-  -w: Docker tag of full code image to build; defaults to \"$USER-wcm-code\".
+  -w: Docker tag of full code image to build; defaults to \"$USER-code\".
   -l: Build image locally."
 
 print_usage() {
@@ -36,7 +36,7 @@ while getopts 'r:w:la' flag; do
         BUILD_APPTAINER=1
       fi
       ;;
-    w) WCM_IMAGE="${OPTARG}" ;;
+    w) CODE_IMAGE="${OPTARG}" ;;
     l) 
       if [ "$BUILD_APPTAINER" -ne 0 ]; then
         print_usage
@@ -59,9 +59,9 @@ mkdir -p source-info
 git diff HEAD > source-info/git_diff.txt
 
 if [ "$RUN_LOCAL" -ne 0 ]; then
-    echo "=== Locally building WCM code Docker Image ${WCM_IMAGE} on ${RUNTIME_IMAGE} ==="
+    echo "=== Locally building code Docker Image ${CODE_IMAGE} on ${RUNTIME_IMAGE} ==="
     echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
-    docker build -f runscripts/container/wholecell/Dockerfile -t "${WCM_IMAGE}" \
+    docker build -f runscripts/container/wholecell/Dockerfile -t "${CODE_IMAGE}" \
         --build-arg from="${RUNTIME_IMAGE}" \
         --build-arg git_hash="${GIT_HASH}" \
         --build-arg git_branch="${GIT_BRANCH}" \
@@ -141,7 +141,7 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
     rm -f "$TEMP_FILES" "$EXCLUDE_PATTERNS"
     
     echo "Using temporary definition file: $TEMP_DEF"
-    echo "=== Building WCM code Apptainer Image: ${WCM_IMAGE} on ${RUNTIME_IMAGE} ==="
+    echo "=== Building code Apptainer Image: ${CODE_IMAGE} on ${RUNTIME_IMAGE} ==="
     echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
     
     apptainer build --force \
@@ -149,12 +149,12 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
         --build-arg git_hash="${GIT_HASH}" \
         --build-arg git_branch="${GIT_BRANCH}" \
         --build-arg timestamp="${TIMESTAMP}" \
-        "${WCM_IMAGE}" "$TEMP_DEF"
+        "${CODE_IMAGE}" "$TEMP_DEF"
     
     # Clean up the temporary file
     rm -f "$TEMP_DEF"
 else
-    echo "=== Cloud-building WCM code Docker Image ${WCM_IMAGE} on ${RUNTIME_IMAGE} ==="
+    echo "=== Cloud-building code Docker Image ${CODE_IMAGE} on ${RUNTIME_IMAGE} ==="
     echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
     # For this script to work on a Compute Engine VM, you must
     # - Set default Compute Engine region and zone for your project
@@ -166,8 +166,8 @@ else
     # Dockerfile to run.
     gcloud builds submit --timeout=15m --region="$REGION" \
       --config runscripts/container/cloud_build.json \
-      --substitutions="_WCM_RUNTIME=${RUNTIME_IMAGE},\
-_WCM_CODE=${WCM_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
+      --substitutions="_RUNTIME_IMAGE=${RUNTIME_IMAGE},\
+_CODE_IMAGE=${CODE_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
 _TIMESTAMP=${TIMESTAMP}"
 fi
 

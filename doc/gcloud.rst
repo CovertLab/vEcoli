@@ -165,10 +165,10 @@ Cloud are run using Docker containers. vEcoli contains scripts in the
 current state of your repository, with the built images being automatically
 uploaded to the ``vecoli`` Artifact Registry repository of your project.
 
-- ``build-runtime.sh`` builds a base Docker image containing the Python packages
+- ``build-runtime-image.sh`` builds a base Docker image containing the Python packages
   necessary to run vEcoli as listed in ``uv.lock``
-- ``build-wcm.sh`` builds on the base image created by ``build-runtime.sh`` by copying
-  the files in the cloned vEcoli repository, honoring ``.gitignore``
+- ``build-code-image.sh`` builds on the base image created by ``build-runtime-image.sh``
+  by copying the files in the cloned vEcoli repository, honoring ``.gcloudignore``
 
 .. tip:: 
   If you want to build these Docker images for local testing, you can run
@@ -180,16 +180,16 @@ keys in your configuration JSON::
 
   {
     "gcloud": {
-      # Name of image build-runtime.sh built/will build
+      # Name of image build-runtime-image.sh built/will build
       "runtime_image_name": ""
       # Boolean, can put false if uv.lock did not change since the last
       # time a workflow was run with this set to true
       "build_runtime_image": true,
-      # Name of image build-wcm.sh built/will build
-      "wcm_image_image": ""
+      # Name of image build-code-image.sh built/will build
+      "code_image_image": ""
       # Boolean, can put false if nothing in repository changed since the
       # last time a workflow was run with this set to true
-      "build_wcm_image": true
+      "build_code_image": true
     }
   }
 
@@ -258,9 +258,9 @@ helpful to launch an interactive instance of the container for debugging.
 
 To do so, run the following command::
   
-  runscripts/container/interactive.sh -w wcm_image_name -b bucket
+  runscripts/container/interactive.sh -w code_image_name -b bucket
 
-``wcm_image_name`` should be the same ``wcm_image_name`` from the config JSON
+``code_image_name`` should be the same ``code_image_name`` from the config JSON
 used to run the workflow. A copy of the config JSON should be saved to the Cloud
 Storage bucket with the other output (see :ref:`output`). ``bucket`` should be
 the Cloud Storage bucket of the output (``out_uri`` in config JSON).
@@ -280,16 +280,13 @@ Note the working directory (see :ref:`troubleshooting`) of the failing task
 
 .. warning::
   Any changes that you make to the code in ``/vEcoli`` inside the container are not
-  persistent. For large code changes, we recommend that you navigate to ``/vEcoli``
-  inside the container and run ``git init`` then
-  ``git remote add origin https://github.com/CovertLab/vEcoli.git``. With the
-  git repository initialized, you can make changes locally, push them to a
-  development branch on GitHub, and pull/merge them in your container.
+  persistent.
 
-For non-debugging purposes, it is possible to run and develop the model on Google
-Cloud using a container spawned from a runtime image. See the second half
-of :ref:`sherlock-interactive`, replacing paths for images with the names
-of the images in Artifact Registry.
+For iterative modification and testing of code, follow the second half of
+:ref:`sherlock-interactive` to start an interactive container using the
+runtime image instead of the code image. This container will use the code
+in your cloned repository and any changes to that code will be immediately
+reflected.
 
 ---------------
 Troubleshooting
