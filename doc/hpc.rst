@@ -302,9 +302,20 @@ The following are required:
 If your cluster has Apptainer (formerly known as Singularity) installed,
 check to see if it is configured to automatically mount all filesystems (see
 `Apptainer docs <https://apptainer.org/docs/user/main/bind_paths_and_mounts.html#system-defined-bind-paths>`_).
-If not, workflows should still run but you will need to manually specify mount paths
-when debugging with interactive containers (see :ref:`sherlock-interactive`).
-This can be done using the ``-p`` argument for ``runscripts/container/interactive.sh``.
+If not, you may run into errors when running workflows because
+Apptainer containers are read-only. You may be able to resolve this by
+adding ``--writeable-tmpfs`` to ``containerOptions`` for the ``sherlock``
+and ``sherlock-hq`` profiles in ``runscripts/nextflow/config.template``.
+
+If this does not work, Nextflow allows users to define ``beforeScript`` and
+``afterScript`` directives for each process that we can potentially use to create
+and clean up Apptainer overlay files. Then, the ``containerOptions``
+directive can be modified to start containers with these overlays. However,
+the simplest solution is likely to set up vEcoli as if Apptainer was not
+available (see below). Note that if Apptainer is not configured to automount
+filesystems, you will need to manually specify paths to mount when debugging
+with interactive containers (see :ref:`sherlock-interactive`). This can be done
+using the ``-p`` argument for ``runscripts/container/interactive.sh``.
 
 If your cluster does not have Apptainer, you can try the following steps:
 
