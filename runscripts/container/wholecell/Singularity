@@ -29,5 +29,11 @@ From: {{ from }}
     umask 000 && mkdir -p /vEcoli/cache
 
 %runscript
-    # Default command when the container is run
+    # Source the .env file before starting shell.
+    if [ -f /vEcoli/.env ]; then
+        echo "Loading environment variables from /vEcoli/.env"
+        set -a
+        source /vEcoli/.env
+        set +a
+    fi
     exec /bin/bash "$@"

@@ -2,7 +2,6 @@ Bootstrap: docker
 From: ghcr.io/astral-sh/uv@sha256:21051ff1d154bb559756e842d8b49f6e1f12cbbf75895b818df6e5c4ab50a2e7
 
 %environment
-    export OPENBLAS_NUM_THREADS=1
     export PATH="/vEcoli/.venv/bin:$PATH"
     export UV_PROJECT_ENVIRONMENT="/vEcoli/.venv"
 
@@ -16,6 +15,7 @@ From: ghcr.io/astral-sh/uv@sha256:21051ff1d154bb559756e842d8b49f6e1f12cbbf75895b
 %files
     uv.lock /vEcoli/uv.lock
     pyproject.toml /vEcoli/pyproject.toml
+    .env /vEcoli/.env
 
 %post
     echo "Setting up runtime environment..."
@@ -26,8 +26,16 @@ From: ghcr.io/astral-sh/uv@sha256:21051ff1d154bb559756e842d8b49f6e1f12cbbf75895b
 
     apt-get update && apt-get install -y git gcc procps
 
+    # Variables defined in %environment are not available in %post
+    # so we set UV_COMPILE_BYTECODE here to ensure bytecode is compiled
     UV_COMPILE_BYTECODE=1 uv sync --frozen --no-install-project --no-dev --project vEcoli
 
 %runscript
-    # This defines the default behavior when the container is executed.
+    # Source the .env file before starting shell.
+    if [ -f /vEcoli/.env ]; then
+        echo "Loading environment variables from /vEcoli/.env"
+        set -a
+        source /vEcoli/.env
+        set +a
+    fi
     exec /bin/bash

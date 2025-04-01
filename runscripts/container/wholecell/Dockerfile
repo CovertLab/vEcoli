@@ -57,4 +57,16 @@ RUN uv sync --frozen
 # another user will work: Parca writes into /vEcoli/cache/.
 RUN (umask 000 && mkdir -p /vEcoli/cache)
 
+# Create an entrypoint script that sources the .env file before running the command
+RUN echo '#!/bin/bash\n\
+if [ -f /vEcoli/.env ]; then\n\
+  echo "Loading environment variables from /vEcoli/.env"\n\
+  set -a\n\
+  source /vEcoli/.env\n\
+  set +a\n\
+fi\n\
+exec "$@"' > /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
 CMD ["/bin/bash"]
