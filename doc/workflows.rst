@@ -518,7 +518,7 @@ There are three main ways to monitor a workflow's progress.
     modifying ``runscripts/analysis.py`` will affect all subsequent analysis jobs
     in the running workflow.
 
-The above only applies to files in the repository that are actively executed or
+The warning above only applies to files in the repository that are actively executed or
 used during a workflow (ParCa, variant creation, simulation, analysis). Notably,
 you can freely create, modify, and delete configuration JSON files in the cloned
 repository and use them to launch concurrent workflows.
