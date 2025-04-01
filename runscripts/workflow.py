@@ -544,7 +544,7 @@ def main():
                 f.write(f"""#!/bin/bash
 #SBATCH --job-name="build-container-{experiment_id}"
 #SBATCH --time=30:00
-#SBATCH --cpus-per-task 8
+#SBATCH --cpus-per-task 2
 #SBATCH --mem=8GB
 #SBATCH --partition=owners,normal
 #SBATCH --output={os.path.join(local_outdir, "container.out")}
