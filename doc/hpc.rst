@@ -18,11 +18,15 @@ Sherlock
 --------
 
 On Sherlock, once a workflow is started with :mod:`runscripts.workflow`,
-an Apptainer image is built with all vEcoli Python dependencies using
-``runscripts/container/build-runtime.sh``. Nextflow starts containers
+``runscripts/container/build-image.sh`` builds an Apptainer image with
+a minimal snapshot of your cloned repository. Nextflow starts containers
 using this image to run the steps of the workflow. To run or interact
-with the model without using :mod:`runscripts.workflow`, start an
+with the model outside of :mod:`runscripts.workflow`, start an
 interactive container by following the steps in :ref:`sherlock-interactive`.
+
+.. note::
+  Files that match the patterns in ``.dockerignore`` are excluded from the
+  Apptainer image.
 
 .. _sherlock-setup:
 
@@ -64,12 +68,13 @@ options to your configuration JSON (note the top-level ``sherlock`` key)::
 
   {
     "sherlock": {
-      # Boolean, whether to build a fresh Apptainer runtime image. If uv.lock
-      # did not change since your last build, you can set this to false
-      "build_runtime_image": true,
-      # Absolute path (including file name) of Apptainer runtime image to
-      # build (or use directly, if build_runtime_image is false)
-      "runtime_image_name": "",
+      # Boolean, whether to build a fresh Apptainer image. If files that are
+      # not excluded by .dockerignore did not change since your last build,
+      # you can set this to false to skip building the image.
+      "build_image": true,
+      # Absolute path (including file name) of Apptainer image to
+      # build (or use directly, if build_image is false)
+      "container_image": "",
       # Boolean, whether to use HyperQueue executor for simulation jobs
       # (see HyperQueue section below)
       "hyperqueue": true,
@@ -80,6 +85,15 @@ options to your configuration JSON (note the top-level ``sherlock`` key)::
       "jenkins": false
     }
   }
+
+In addition to these options, you **MUST** set the emitter output directory
+(see description of ``emitter_arg`` in :ref:`json_config`) to a path with
+enough space to store your workflow outputs. We recommend setting this to
+a location in your ``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``).
+
+.. warning::
+    The output path **MUST** be given in full because environment
+    variables in the path (e.g. ``$SCRATCH``) are not automatically resolved.
 
 With these options in the configuration JSON, a workflow can be started by
 running ``python runscripts/workflow.py --config {}.json`` on a login node.
@@ -93,15 +107,13 @@ use the resume functionality (see :ref:`fault_tolerance`). Alternatively,
 consider running your workflow on Google Cloud, which has no maximum workflow
 runtime (see :doc:`gcloud`).
 
-
-.. warning::
-    The emitter output directory (see description of ``emitter_arg``
-    in :ref:`json_config`) should be an absolute (NOT relative) path to a location
-    in your ``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``).
-
 .. note::
-    There is a 4 hour time limit on each job in the workflow, including analyses.
-    
+  Unlike workflows run locally, Sherlock workflows are run using
+  containers with a snapshot of the repository at the time the workflow
+  was launched. This means that any changes made to the repository after
+  launching a workflow will not be reflected in that workflow.
+
+There is a 4 hour time limit on each job in the workflow, including analyses.
 This is a generous limit designed to accomodate very slow-dividing cells.
 Generally, we recommend that users exclude analysis scripts which take more
 than a few minutes to run from their workflow configuration. Instead, create a
@@ -113,34 +125,44 @@ directly. This also lets you request more CPU cores and RAM for better performan
 Interactive Container
 =====================
 
-To run and develop the model on Sherlock outside a workflow, you must
-have previously run a containerized workflow (default on Sherlock) with
-``build_runtime_image`` set to true and the current version of
-``uv.lock``. If you are not sure if ``uv.lock`` changed since your last
-containerized workflow (or if you have never run a containerized workflow),
-run the following to build a new runtime image, picking any ``runtime_image_path``::
-  
-  runscripts/container/build-runtime.sh -r runtime_image_path -a
+.. note::
+  The following commands should all be run from the directory where you cloned
+  the vEcoli repository.
 
-Once you have a runtime image, you can start an interactive container as follows,
-substituting in your ``runtime_image_path``::
+To debug a failed job in a workflow, you must locate the container image that was
+used for that workflow. You can refer to the ``container_image`` key in the
+config JSON saved to the workflow output directory (see :ref:`output`). Start
+an interactive container with that image name as follows::
 
-  runscripts/container/interactive.sh -w runtime_image_path -a
+  runscripts/container/interactive.sh -i container_image -a
 
-Inside this interactive container, you can use vEcoli as normal. Any code
-changes that you make in the cloned repository will be immediately reflected
-in commands run inside the container.
-
-If you are trying to debug a failed job in a workflow, add breakpoints to
-any Python script in your cloned repository by inserting::
-
-  import ipdb; ipdb.set_trace()
-  
-Then, inside the interactive container, navigate to the working directory (see
+Now, inside the container, navigate to ``/vEcoli`` and add breakpoints to
+scripts as you see fit. Finally, navigate to the working directory (see
 :ref:`troubleshooting`) for the task that you want to debug. By invoking
 ``bash .command.sh``, the job will run and pause upon reaching your
 breakpoints, allowing you to inspect variables and step through the code.
 
+.. warning::
+  Any changes that you make to ``/vEcoli`` inside the container are discarded
+  when the container terminates.
+
+The files located in ``/vEcoli`` are a copy of the repository (excluding
+files ignored by ``.dockerignore``) at the time the workflow was launched.
+To start an interactive container that reflects the current state of your
+cloned repository, add the ``-d`` flag to start a "development" container.
+
+In this mode, instead of editing source files in ``/vEcoli``, you can
+directly edit the source files in your cloned repository and have those
+changes immediately reflected when running those scripts inside the
+container. Because you are just modifying your cloned repository, any
+code changes you make will persist after the container terminates and
+can be tracked using Git version control.
+
+.. note::
+  If the image you use to start a development container was built with
+  an outdated version of ``uv.lock`` or ``pyproject.toml``, there will
+  be a delay on startup while uv updates the packages. To avoid this,
+  build a new image with ``runscripts/container/build-image.sh``.
 
 .. _jenkins-setup:
 
