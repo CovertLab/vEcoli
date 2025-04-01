@@ -13,6 +13,7 @@ cleanup() {
   if [ -d "$(pwd)/bucket_mnt" ]; then
     fusermount -u $(pwd)/bucket_mnt &>/dev/null || true
     rm -rf "$(pwd)/bucket_mnt" &>/dev/null || true
+    echo "Unmounted Cloud Storage bucket"
   fi
 
   # Remove the temporary overlay directory if it exists
@@ -28,6 +29,7 @@ cleanup() {
     find ./.venv -type d -print0 | xargs -0 rmdir &>/dev/null || true
     # Final cleanup in case some directories weren't empty
     rm -rf ./.venv &>/dev/null || true
+    echo "Cleaned up copied .venv directory"
   fi
 }
 
