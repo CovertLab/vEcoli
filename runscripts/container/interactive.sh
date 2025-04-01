@@ -23,6 +23,10 @@ cleanup() {
 
   # Remove the .venv copied from the container
   if [ -d "./.venv" ]; then
+    # Use find with -delete which is faster for many files
+    find ./.venv -type f -print0 | xargs -0 rm -f &>/dev/null || true
+    find ./.venv -type d -print0 | xargs -0 rmdir &>/dev/null || true
+    # Final cleanup in case some directories weren't empty
     rm -rf ./.venv &>/dev/null || true
   fi
 }
@@ -135,7 +139,7 @@ if (($USE_APPTAINER)); then
     # Copy .venv from container to current directory
     echo "Copying .venv from container to current directory..."
     apptainer exec -B .:/host_repo ${IMAGE_NAME} \
-      bash -c "cp -r /vEcoli/.venv /host_repo/"
+      bash -c "cd /vEcoli && tar cf - .venv | tar xf - -C /host_repo/"
 
     # Now add bind mount for current directory
     BIND_CWD="${BIND_CWD} -B .:/vEcoli"
