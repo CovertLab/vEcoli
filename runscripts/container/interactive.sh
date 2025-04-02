@@ -167,6 +167,7 @@ else
     docker container run -it \
       --env UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
       --env UV_COMPILE_BYTECODE=0 \
+      -v $(pwd):$(pwd) --workdir $(pwd) \
       ${BIND_STR} ${IMAGE_NAME} \
       bash -c "uv sync --frozen && exec bash"
   else
