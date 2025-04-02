@@ -29,11 +29,11 @@ ENV UV_CACHE_DIR=/root/.cache/uv
 # Silence warning about cache and sync targets being on different filesystems
 ENV UV_LINK_MODE=copy
 
+# Copy dependency files first
+COPY pyproject.toml uv.lock ./
+
 # Install the dependencies only to leverage Docker layer caching
-RUN --mount=type=cache,target=/root/.cache/uv \
-  --mount=type=bind,source=uv.lock,target=uv.lock \
-  --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-  uv sync --frozen --no-install-project
+RUN uv sync --frozen --no-install-project
 
 # Activate the virtual environment
 ENV PATH="/vEcoli/.venv/bin:$PATH"
@@ -52,8 +52,7 @@ exec "$@"' > /entrypoint.sh && chmod +x /entrypoint.sh
 ADD . /vEcoli
 
 # Install the project
-RUN --mount=type=cache,target=/root/.cache/uv \
-  uv sync --frozen
+RUN uv sync --frozen
 
 # Record Docker Image metadata in ENV variables, viewable by `docker inspect`
 # and accessible to programs in the container.
