@@ -21,39 +21,29 @@ cleanup() {
     rm -rf "$TMP_OVERLAY_DIR" &>/dev/null || true
     echo "Cleaned up temporary overlay directory"
   fi
-
-  # Remove the .venv copied from the container
-  if [ -d "./.venv" ]; then
-    # Use find with -delete which is faster for many files
-    find ./.venv -type f -print0 | xargs -0 rm -f &>/dev/null || true
-    find ./.venv -type d -print0 | xargs -0 rmdir &>/dev/null || true
-    # Final cleanup in case some directories weren't empty
-    rm -rf ./.venv &>/dev/null || true
-    echo "Cleaned up copied .venv directory"
-  fi
 }
 
 # Ensure resources are cleaned up on exit
 trap cleanup EXIT INT TERM
 
 # Default configuration variables
-IMAGE_NAME="${USER}-code-image" # Default image name for Docker/Apptainer
-USE_APPTAINER=0                 # Flag: Use Apptainer if set to 1
-RUN_LOCAL=0                     # Flag: Use local Docker image if set to 1
-DEV_MODE=0                      # Flag: Mount current dir on host to /vEcoli in container if set to 1
-BIND_MOUNTS=()                  # Array for bind mount paths
-BIND_CWD=""                     # Formatted bind mount string for runtime
-BUCKET=""                       # Cloud Storage bucket name
-OVERLAY_SIZE=1024               # Size of sparse temporary Apptainer overlay image in MB
+IMAGE_NAME="${USER}-code-image"
+USE_APPTAINER=0
+RUN_LOCAL=0
+DEV_MODE=0
+BIND_MOUNTS=()
+BIND_STR=""
+BUCKET=""
+OVERLAY_SIZE=1024
 
 # Help message string
 usage_str="Usage: interactive.sh [-w IMAGE_NAME] [-a] [-l] [-d] [-b] [-s OVERLAY_SIZE] [-p]...\n\
 Options:\n\
     -w: Path to code image if -a or -l are passed, otherwise name of Docker \
 image inside vecoli Artifact Repository; defaults to \"$IMAGE_NAME\".\n\
-    -d: Mount current working directory to /vEcoli in container; \
-useful for making and testing code changes that persist and can be \
-checked into git history.\n\
+    -d: Create editable install of current directory in container virtual environment; \
+useful for making and testing code changes that, unlike changes to
+the code in the container at /vEcoli, are persistent and work with git.\n\
     -s: Size of sparse temporary Apptainer overlay image in MB; \
 defaults to \"$OVERLAY_SIZE\".\n
     -a: Load Apptainer image.\n\
@@ -112,7 +102,7 @@ fi
 if (($USE_APPTAINER)); then
   # If there are bind mounts, format them for Apptainer
   if [ ${#BIND_MOUNTS[@]} -ne 0 ]; then
-    BIND_CWD=$(printf " -B %s" "${BIND_MOUNTS[@]}")
+    BIND_STR=$(printf " -B %s" "${BIND_MOUNTS[@]}")
   fi
 
   echo "=== Launching Apptainer container from ${IMAGE_NAME} ==="
@@ -124,31 +114,16 @@ if (($USE_APPTAINER)); then
   dd if=/dev/zero of=${TMP_OVERLAY_DIR}/overlay.img bs=1M count=0 seek=${OVERLAY_SIZE}
   # Format the file as ext3 filesystem
   mkfs.ext3 -F ${TMP_OVERLAY_DIR}/overlay.img
-
   if (($DEV_MODE)); then
-    # Check if .venv already exists in the current directory
-    if [ -d "./.venv" ]; then
-      echo "ERROR: A .venv directory already exists in the current directory."
-      echo "This will conflict with the container's virtual environment."
-      echo "Please back up or remove your .venv directory before proceeding:"
-      echo "  mv .venv .venv.backup  # To back up"
-      echo "  rm -rf .venv           # To remove"
-      echo ""
-      echo "Then run this script again."
-      exit 1
-    fi
-
-    # Copy .venv from container to current directory
-    echo "Copying .venv from container to current directory..."
-    apptainer exec -B .:/host_repo ${IMAGE_NAME} \
-      bash -c "cd /vEcoli && tar cf - .venv | tar xf - -C /host_repo/"
-
-    # Now add bind mount for current directory
-    BIND_CWD="${BIND_CWD} -B .:/vEcoli"
+    # Create editable install of current directory
+    EXEC_CMD="bash -c 'UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
+      uv sync --frozen && exec bash'"
+  else
+    EXEC_CMD="bash"
   fi
   # Fakeroot necessary for overlay to work
   apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
-    --fakeroot ${BIND_CWD} ${IMAGE_NAME} bash
+    --fakeroot ${BIND_STR} ${IMAGE_NAME} ${EXEC_CMD}
 else
   # Docker-specific logic
   if ((!$RUN_LOCAL)); then
@@ -161,7 +136,7 @@ else
 
   # If there are bind mounts, format them for Docker
   if [ ${#BIND_MOUNTS[@]} -ne 0 ]; then
-    BIND_CWD=$(printf " -v %s:%s" "${BIND_MOUNTS[@]}" "${BIND_MOUNTS[@]}")
+    BIND_STR=$(printf " -v %s:%s" "${BIND_MOUNTS[@]}" "${BIND_MOUNTS[@]}")
   fi
 
   # Mount the cloud storage bucket using gcsfuse if provided
@@ -172,14 +147,16 @@ else
     gcsfuse -o allow_other --implicit-dirs $BUCKET $(pwd)/bucket_mnt
     # Nextflow mounts bucket to /mnt/disks so we need to copy that for
     # symlinks to work properly
-    BIND_CWD="${BIND_CWD} -v $(pwd)/bucket_mnt:/mnt/disks/${BUCKET}"
+    BIND_STR="${BIND_STR} -v $(pwd)/bucket_mnt:/mnt/disks/${BUCKET}"
   fi
 
   if (($DEV_MODE)); then
-    # Bind current directory but use anonymous volume to retain
-    # /vEcoli/.venv inside the container
-    BIND_CWD="${BIND_CWD} --rm -v .:/vEcoli -v /vEcoli/.venv"
+    # Create editable install of current directory
+    EXEC_CMD="bash -c 'UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
+      uv sync --frozen && exec bash'"
+  else
+    EXEC_CMD="bash"
   fi
 
-  docker container run -it ${BIND_CWD} ${IMAGE_NAME} bash
+  docker container run -it ${BIND_STR} ${IMAGE_NAME} ${EXEC_CMD}
 fi
