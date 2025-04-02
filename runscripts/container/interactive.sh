@@ -116,7 +116,12 @@ if (($USE_APPTAINER)); then
   mkfs.ext3 -F ${TMP_OVERLAY_DIR}/overlay.img
   if (($DEV_MODE)); then
     echo "Starting container in development mode..."
-    # Fakeroot necessary for overlay to work
+    # Fakeroot is necessary for overlay to work
+    # UV_PROJECT_ENVIRONMENT is set to the virtual environment inside
+    # the container with all dependencies installed. This way uv does
+    # not try to create a new one and waste time installing dependencies.
+    # UV_COMPILE_BYTECODE=0 skips byte code compilation to speed up startup
+    # time and because it is not needed for active development.
     apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
       --fakeroot ${BIND_STR} ${IMAGE_NAME} \
       bash -c "export UV_PROJECT_ENVIRONMENT=/vEcoli/.venv && \
@@ -154,6 +159,7 @@ else
 
   if (($DEV_MODE)); then
     echo "Starting container in development mode..."
+    # See above for description of environment variables
     docker container run -it \
       --env UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
       --env UV_COMPILE_BYTECODE=0 \
