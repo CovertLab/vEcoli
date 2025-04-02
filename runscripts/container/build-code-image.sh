@@ -6,7 +6,25 @@
 # ASSUMES: The current working dir is the vEcoli/ project root.
 
 set -eu
-trap 'rm -f source-info/git_diff.txt' EXIT
+
+# Keep track of all temporary files
+TEMP_FILES=()
+
+# Cleanup function to handle all temporary files
+cleanup() {
+    # Remove git diff file if it exists
+    [ -f source-info/git_diff.txt ] && rm -f source-info/git_diff.txt
+
+    # Clean up all temporary files
+    for temp_file in "${TEMP_FILES[@]}"; do
+        [ -f "$temp_file" ] && rm -f "$temp_file"
+    done
+    
+    echo "Cleaned up temporary files"
+}
+
+# Register cleanup on exit, interrupt, and error
+trap cleanup EXIT INT TERM
 
 RUNTIME_IMAGE="${USER}-runtime"
 CODE_IMAGE="${USER}-code"
@@ -53,7 +71,7 @@ while getopts 'r:w:la' flag; do
 done
 
 GIT_HASH=$(git rev-parse HEAD)
-GIT_BRANCH=$(git symbolic-ref --short HEAD)
+GIT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "detached")
 TIMESTAMP=$(date '+%Y%m%d.%H%M%S')
 mkdir -p source-info
 git diff HEAD > source-info/git_diff.txt
@@ -69,9 +87,11 @@ if [ "$RUN_LOCAL" -ne 0 ]; then
 elif [ "$BUILD_APPTAINER" -ne 0 ]; then
     # Create a temporary Singularity definition file
     TEMP_DEF=$(mktemp)
+    TEMP_FILES+=("$TEMP_DEF")
     
     # Create a temporary file for find exclude patterns
     EXCLUDE_PATTERNS=$(mktemp)
+    TEMP_FILES+=("$EXCLUDE_PATTERNS")
     
     # Function to process ignore files
     process_ignore_file() {
@@ -104,9 +124,6 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
         process_ignore_file "$ignore_file"
     done
     
-    # Create a temporary file for the find command
-    FIND_CMD=$(mktemp)
-    
     # Start building the find command
     FIND_CMD="find . -type f"
     
@@ -116,13 +133,15 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
     done < "$EXCLUDE_PATTERNS"
     
     # Create a temporary file for our list of files
-    TEMP_FILES=$(mktemp)
-    echo $FIND_CMD
+    TEMP_FILES_LIST=$(mktemp)
+    TEMP_FILES+=("$TEMP_FILES_LIST")
+    
+    echo "Executing: $FIND_CMD"
     # Execute the dynamically generated find command
-    eval "$FIND_CMD" > "$TEMP_FILES"
+    eval "$FIND_CMD" > "$TEMP_FILES_LIST"
     
     # Debug output
-    echo "Generated $(wc -l < "$TEMP_FILES") files to include in the image"
+    echo "Generated $(wc -l < "$TEMP_FILES_LIST") files to include in the image"
     
     # Read the Singularity file line by line
     while IFS= read -r line; do
@@ -130,15 +149,12 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
             # For the line containing FILES_TO_ADD, replace with formatted file paths
             while IFS= read -r file; do
                 echo "    $file /vEcoli/$file" >> "$TEMP_DEF"
-            done < "$TEMP_FILES"
+            done < "$TEMP_FILES_LIST"
         else
             # Otherwise just add the line as-is
             echo "$line" >> "$TEMP_DEF"
         fi
     done < runscripts/container/wholecell/Singularity
-    
-    # Clean up
-    rm -f "$TEMP_FILES" "$EXCLUDE_PATTERNS"
     
     echo "Using temporary definition file: $TEMP_DEF"
     echo "=== Building code Apptainer Image: ${CODE_IMAGE} on ${RUNTIME_IMAGE} ==="
@@ -151,8 +167,6 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
         --build-arg timestamp="${TIMESTAMP}" \
         "${CODE_IMAGE}" "$TEMP_DEF"
     
-    # Clean up the temporary file
-    rm -f "$TEMP_DEF"
 else
     echo "=== Cloud-building code Docker Image ${CODE_IMAGE} on ${RUNTIME_IMAGE} ==="
     echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
@@ -170,5 +184,3 @@ else
 _CODE_IMAGE=${CODE_IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
 _TIMESTAMP=${TIMESTAMP}"
 fi
-
-rm source-info/git_diff.txt

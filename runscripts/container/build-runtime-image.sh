@@ -6,7 +6,18 @@
 # ASSUMES: The current working dir is the vEcoli/ project root.
 
 set -eu
-trap 'rm -f runscripts/container/runtime/pyproject.toml runscripts/container/runtime/uv.lock' EXIT
+
+# Cleanup function to handle all temporary files
+cleanup() {
+    # Remove copied files if they exist
+    [ -f runscripts/container/runtime/pyproject.toml ] && rm -f runscripts/container/runtime/pyproject.toml
+    [ -f runscripts/container/runtime/uv.lock ] && rm -f runscripts/container/runtime/uv.lock
+    [ -f runscripts/container/runtime/.env ] && rm -f runscripts/container/runtime/.env
+    echo "Cleaned up temporary files"
+}
+
+# Register cleanup on exit, interrupt, and error
+trap cleanup EXIT INT TERM
 
 RUNTIME_IMAGE="${USER}-runtime"
 RUN_LOCAL=0
@@ -50,10 +61,11 @@ while getopts 'r:al' flag; do
   esac
 done
 
-# Copy required payload files so rather than using a config at
+# Copy required payload files rather than using a config at
 # the project root which would upload the entire project.
 cp pyproject.toml runscripts/container/runtime/
 cp uv.lock runscripts/container/runtime/
+cp .env runscripts/container/runtime/
 
 if [ "$RUN_LOCAL" -ne 0 ]; then
     echo "=== Locally building runtime Docker Image: ${RUNTIME_IMAGE} ==="
@@ -77,6 +89,3 @@ else
       '${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/'${RUNTIME_IMAGE} \
       runscripts/container/runtime/
 fi
-
-rm runscripts/container/runtime/pyproject.toml
-rm runscripts/container/runtime/uv.lock
