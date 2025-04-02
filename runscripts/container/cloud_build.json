@@ -4,7 +4,6 @@
             "name": "gcr.io/kaniko-project/executor:latest",
             "args": [
                 "--dockerfile", "runscripts/container/Dockerfile",
-                "--context", ".",
                 "--destination", "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${_IMAGE}:latest",
                 "--build-arg", "git_hash=${_GIT_HASH}",
                 "--build-arg", "git_branch=${_GIT_BRANCH}",
