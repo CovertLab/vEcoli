@@ -487,7 +487,7 @@ def main():
         if cloud_config.get("build_image", False):
             image_cmd = build_image_cmd(container_image)
             subprocess.run(image_cmd, check=True)
-        nf_config = nf_config.replace("IMAGE_NAME", image_prefix + image_cmd)
+        nf_config = nf_config.replace("IMAGE_NAME", image_prefix + container_image)
     sherlock_config = config.get("sherlock", None)
     if sherlock_config is not None:
         if nf_profile == "gcloud":
