@@ -160,53 +160,51 @@ Build Docker Images
 
 On Google Cloud, each job in a workflow (ParCa, sim 1, sim 2, etc.) is run
 on its own temporary VM. To ensure reproducibility, workflows run on Google
-Cloud are run using Docker containers. vEcoli contains scripts in the
-``runscripts/container`` folder to build the required Docker images from the
-current state of your repository, with the built images being automatically
-uploaded to the ``vecoli`` Artifact Registry repository of your project.
-
-- ``build-runtime.sh`` builds a base Docker image containing the Python packages
-  necessary to run vEcoli as listed in ``uv.lock``
-- ``build-wcm.sh`` builds on the base image created by ``build-runtime.sh`` by copying
-  the files in the cloned vEcoli repository, honoring ``.gitignore``
+Cloud are run using Docker containers. vEcoli uses ``runscripts/container/build-image.sh``
+and Cloud Build to build the required Docker image from the current state
+of your repository. The built images being automatically uploaded to the
+``vecoli`` Artifact Registry repository of your project.
 
 .. tip:: 
-  If you want to build these Docker images for local testing, you can run
-  these scripts locally with ``-l`` as long as you have Docker installed.
+  If you want to build Docker images for local testing, you can run
+  this script locally with ``-l`` as long as you have Docker installed.
 
-These scripts are mostly not meant to be run manually. Instead, users should let
-:py:mod:`runscripts.workflow` handle image builds by setting the following
-keys in your configuration JSON::
+.. note::
+  Files that match the patterns in ``.dockerignore`` are excluded from the
+  Docker image.
+
+The following configuration keys, in addition to the ``out_uri`` key under
+``emitter_arg``, are **REQUIRED** to run :py:mod:`runscripts.workflow` on
+Google Cloud::
 
   {
     "gcloud": {
-      # Name of image build-runtime.sh built/will build
-      "runtime_image_name": ""
-      # Boolean, can put false if uv.lock did not change since the last
-      # time a workflow was run with this set to true
-      "build_runtime_image": true,
-      # Name of image build-wcm.sh built/will build
-      "wcm_image_image": ""
-      # Boolean, can put false if nothing in repository changed since the
-      # last time a workflow was run with this set to true
-      "build_wcm_image": true
+      # Boolean, whether to build a fresh Docker image. If files that are
+      # not excluded by .dockerignore did not change since your last build,
+      # you can set this to false to skip building the image.
+      "build_image": true,
+      # Name of Docker image to build (or use directly, if build_image is false)
+      "container_image": "",
     }
   }
 
-These configuration keys, in addition to the ``out_uri`` key under ``emitter_arg``,
-are necessary and sufficient to tell :py:mod:`runscripts.workflow` that you intend to
-run the workflow on Google Cloud. After setting these options in your configuration JSON,
-you can use ``screen`` to open a virtual console that will persist even after your SSH
-connection is closed. In that virtual console, invoke :py:mod:`runscripts.workflow`
-as normal to start your workflow::
-  
+After setting these options in your configuration JSON, use ``screen`` to open
+a virtual console that will persist after your SSH connection is closed. In that
+console, invoke :py:mod:`runscripts.workflow` as normal to start a workflow::
+
   python runscripts/workflow.py --config {}
 
+.. note::
+  Unlike workflows run locally, Google Cloud workflows are run using
+  containers with a snapshot of the repository at the time the workflow
+  was launched. This means that any changes made to the repository after
+  launching a workflow will not be reflected in that workflow.
+
 Once your workflow has started, you can use press "ctrl+a d" to detach from the
-virtual console then close your SSH connection to your VM. The VM must continue
+virtual console and close your SSH connection to your VM. The VM must continue
 to run until the workflow is complete. You can SSH into your VM and reconnect to
 the virtual terminal with ``screen -r`` to monitor progress or inspect the file
-``.nextflow.log`` in the root of the cloned repository.
+``.nextflow.log`` in the root of the cloned repository. See :ref:`progress`.
 
 .. warning::
   While there is no strict time limit for workflow jobs on Google Cloud, jobs
@@ -235,9 +233,9 @@ workflow to regenerate that data later than to keep it around.
 
 .. _interactive-containers:
 
-----------------------
-Interactive Containers
-----------------------
+----------------------------
+Cloud Interactive Containers
+----------------------------
 
 .. warning::
   Install
@@ -250,35 +248,34 @@ Interactive Containers
 Since all steps of the workflow are run inside Docker containers, it can be
 helpful to launch an interactive instance of the container for debugging.
 
-To do so, run the following command::
+From inside your cloned repository, run the following command::
   
-  runscripts/container/interactive.sh -w wcm_image_name -b bucket
+  runscripts/container/interactive.sh -i container_image -b bucket
 
-``wcm_image_name`` should be the same ``wcm_image_name`` from the config JSON
+``container_image`` should be the same as in the config JSON
 used to run the workflow. A copy of the config JSON should be saved to the Cloud
-Storage bucket with the other output (see :ref:`output`). ``bucket`` should be
-the Cloud Storage bucket of the output (``out_uri`` in config JSON).
+Storage bucket with the other output for reference (see :ref:`output`).
+``bucket`` should be the output Cloud Storage bucket (``out_uri`` in config JSON).
 
-Inside the container, add breakpoints to any Python files located at ``/vEcoli`` by
-inserting::
-  
-  import ipdb; ipdb.set_trace()
+Inside the container, navigate to ``/vEcoli`` and add breakpoints as you see fit.
+Note the working directory (see :ref:`troubleshooting`) of the Nextflow task you
+want to debug (should be of the form ``/mnt/disks/{bucket}/...``). **OUTSIDE**
+the working directory, run the following commands::
 
-Note the working directory (see :ref:`troubleshooting`) of the failing task
-(should be of the form ``/mnt/disks/{bucket}/...``). Inside the container, run::
-  
   # Symlink files, including the script for the task (.command.sh)
   bash {working directory}/.command.run nxf_stage
-  # Run the task
+  # Run the task, pausing at breakpoints
   bash .command.sh
 
 .. warning::
-  Any changes that you make to the code in ``/vEcoli`` inside the container are not
-  persistent. For large code changes, we recommend that you navigate to ``/vEcoli``
-  inside the container and run ``git init`` then
-  ``git remote add origin https://github.com/CovertLab/vEcoli.git``. With the
-  git repository initialized, you can make changes locally, push them to a
-  development branch on GitHub, and pull/merge them in your container.
+  Any changes that you make to ``/vEcoli`` inside the container are discarded
+  when the container terminates.
+
+The files located in ``/vEcoli`` are a copy of your cloned repository (excluding
+files ignored by ``.dockerignore``) at the time the workflow was launched.
+To start an interactive container that reflects the current state of your
+cloned repository, add the ``-d`` flag to start a "development" container
+(see second half of :ref:`sherlock-interactive`).
 
 ---------------
 Troubleshooting

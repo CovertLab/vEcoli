@@ -12,8 +12,8 @@
         "single": {"mass_fraction_summary": {}}
     },
     "sherlock": {
-        "runtime_image_name": "runtime-image",
-        "build_runtime_image": true,
+        "container_image": "container-image",
+        "build_image": true,
         "hyperqueue": true,
         "jenkins": true
     },
