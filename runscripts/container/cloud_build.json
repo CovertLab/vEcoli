@@ -9,7 +9,7 @@
                 "--build-arg", "git_branch=${_GIT_BRANCH}",
                 "--build-arg", "timestamp=${_TIMESTAMP}",
                 "--cache=true",
-                "--cache-repo", "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/cache"
+                "--cache-copy-layers=true"
             ]
         }
     ],
