@@ -119,7 +119,8 @@ if (($USE_APPTAINER)); then
     # Fakeroot necessary for overlay to work
     apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
       --fakeroot ${BIND_STR} ${IMAGE_NAME} \
-      bash -c "export UV_PROJECT_ENVIRONMENT=/vEcoli/.venv && uv sync --frozen && exec bash"
+      bash -c "export UV_PROJECT_ENVIRONMENT=/vEcoli/.venv && \
+      export UV_COMPILE_BYTECODE=0 && uv sync --frozen && exec bash"
   else
     echo "Starting container in normal mode..."
     apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
@@ -155,6 +156,7 @@ else
     echo "Starting container in development mode..."
     docker container run -it \
       --env UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
+      --env UV_COMPILE_BYTECODE=0 \
       ${BIND_STR} ${IMAGE_NAME} \
       bash -c "uv sync --frozen && exec bash"
   else
