@@ -172,5 +172,5 @@ else
     --config runscripts/container/cloud_build.json \
     --ignore-file=.dockerignore \
     --substitutions="_IMAGE=${IMAGE},_GIT_HASH=${GIT_HASH},_GIT_BRANCH=${GIT_BRANCH},\
-_TIMESTAMP=${TIMESTAMP},_PROJECT_DIR=$(pwd)"
+_TIMESTAMP=${TIMESTAMP}"
 fi
