@@ -9,7 +9,8 @@
                 "--build-arg", "git_branch=${_GIT_BRANCH}",
                 "--build-arg", "timestamp=${_TIMESTAMP}",
                 "--cache=true",
-                "--cache-copy-layers=true"
+                "--cache-copy-layers=true",
+                "--compressed-caching=false"
             ]
         }
     ],
