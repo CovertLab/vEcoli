@@ -512,6 +512,24 @@ There are three main ways to monitor a workflow's progress.
    workflow from. This is a fairly verbose and technical log
    that may be useful for debugging purposes.
 
+.. danger::
+    Any changes that are made to the cloned repository while a workflow is running
+    will immediately affect workflow jobs submitted after the change. For example,
+    modifying ``runscripts/analysis.py`` will affect all subsequent analysis jobs
+    in a running workflow.
+
+The warning above only applies to files in the repository that are actively executed or
+used during a workflow (ParCa, variant creation, simulation, analysis). Notably,
+you can freely create, modify, and delete configuration JSON files in the cloned
+repository and use them to launch concurrent workflows.
+
+If this is not sufficient, you can create additional clones of the repository
+under different directory names, modify them, and use them to launch workflows.
+To reduce the size of each clone, use ``git clone --filter=blob:none {URL} {output path}``
+to create a blobless clone, which downloads file contents only for the latest
+commit. File contents (blobs) for other commits are downloaded on-demand upon
+checkout.
+
 .. _fault_tolerance:
 
 ---------------

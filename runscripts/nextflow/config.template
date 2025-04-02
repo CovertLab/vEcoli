@@ -116,7 +116,7 @@ profiles {
             maxRetries = 3
         }
         apptainer.enabled = true
-        params.projectRoot = "${launchDir}"
+        params.projectRoot = '/vEcoli'
         // Avoid getting queue status too frequently (can cause job status mixups)
         executor.queueStatInterval = '2 min'
         // Check for terminated jobs and submit new ones fairly frequently
@@ -178,7 +178,7 @@ profiles {
             maxRetries = 3
         }
         apptainer.enabled = true
-        params.projectRoot = "${launchDir}"
+        params.projectRoot = '/vEcoli'
         workflow.failOnIgnore = true
     }
     standard {

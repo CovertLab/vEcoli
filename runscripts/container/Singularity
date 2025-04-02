@@ -1,0 +1,37 @@
+Bootstrap: docker
+From: ghcr.io/astral-sh/uv@sha256:21051ff1d154bb559756e842d8b49f6e1f12cbbf75895b818df6e5c4ab50a2e7
+
+# Refer to Dockerfile for comments about build process. Apptainer does not
+# support layer caching which results in a much less interesting build file.
+
+%environment
+    export PATH="/vEcoli/.venv/bin:$PATH"
+    export IMAGE_GIT_HASH="{{ git_hash }}"
+    export IMAGE_GIT_BRANCH="{{ git_branch }}"
+    export IMAGE_TIMESTAMP="{{ timestamp }}"
+
+%labels
+    application "Whole Cell Model Runtime Environment"
+    email "wholecellteam@lists.stanford.edu"
+    license "https://github.com/CovertLab/vEcoli/blob/master/LICENSE"
+    organization "Covert Lab at Stanford"
+    website "https://www.covert.stanford.edu/"
+
+%files
+    # runscripts/container/build-image.sh has some custom logic to replace this
+    # with a set of files that honors .dockerignore
+    FILES_TO_ADD
+
+%post
+    apt-get update && apt-get install -y git gcc procps
+    cd /vEcoli
+    UV_COMPILE_BYTECODE=1 uv sync --frozen
+
+%runscript
+    if [ -f /vEcoli/.env ]; then
+        echo "Loading environment variables from /vEcoli/.env"
+        set -a
+        source /vEcoli/.env
+        set +a
+    fi
+    exec /bin/bash "$@"

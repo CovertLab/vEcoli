@@ -604,7 +604,7 @@ def _inverse_update(
         final_state: Final values (potentially nested) in store that we desire
         store: Store (potentially nested) that we are trying to mutate
         updater_registry_reverse: A mapping from updater functions to the string
-            names they are registered as in :py:attr:`~vivarium.core.registry.updater_registry`
+            names they are registered as in :py:data:`~vivarium.core.registry.updater_registry`
 
     Returns:
         Update dictionary that when used to update ``store`` by calling its (or its sub-stores)
