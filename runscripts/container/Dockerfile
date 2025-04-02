@@ -29,11 +29,12 @@ ENV UV_CACHE_DIR=/root/.cache/uv
 # Silence warning about cache and sync targets being on different filesystems
 ENV UV_LINK_MODE=copy
 
-# Copy dependency files first
+# Copy dependency files because Kaniko does not support bind mounts
 COPY pyproject.toml uv.lock ./
 
 # Install the dependencies only to leverage Docker layer caching
-RUN uv sync --frozen --no-install-project
+RUN --mount=type=cache,target=/root/.cache/uv \
+  uv sync --frozen --no-install-project
 
 # Activate the virtual environment
 ENV PATH="/vEcoli/.venv/bin:$PATH"
@@ -52,7 +53,8 @@ exec "$@"' > /entrypoint.sh && chmod +x /entrypoint.sh
 ADD . /vEcoli
 
 # Install the project
-RUN uv sync --frozen
+RUN --mount=type=cache,target=/root/.cache/uv \
+  uv sync --frozen
 
 # Record Docker Image metadata in ENV variables, viewable by `docker inspect`
 # and accessible to programs in the container.
