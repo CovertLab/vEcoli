@@ -40,7 +40,7 @@ OVERLAY_SIZE=1024
 usage_str="Usage: interactive.sh [-i IMAGE_NAME] [-d] [-a] [-s OVERLAY_SIZE] [-l] [-b BUCKET] [-p PATH]\n\
 Options:\n\
     -i: Path to image to run if -a or -l are passed, otherwise name of Docker \
-image inside vecoli Artifact Repository; defaults to \"$IMAGE_NAME\".\n\
+image inside vecoli Artifact Registry; defaults to \"$IMAGE_NAME\".\n\
     -d: Create editable install of current directory in container virtual environment; \
 useful for making and testing code changes that, unlike changes to
 the code in the container at /vEcoli, are persistent and work with git.\n\
@@ -141,7 +141,7 @@ else
     # Non-local Docker images are pulled from Artifact Registry
     PROJECT=$(gcloud config get project)
     REGION=$(gcloud config get compute/region)
-    IMAGE_NAME="${REGION}-docker.pkg.dev/${PROJECT}/vecoli/${IMAGE_NAME}"
+    IMAGE_NAME="--pull=always ${REGION}-docker.pkg.dev/${PROJECT}/vecoli/${IMAGE_NAME}"
   fi
   echo "=== Launching Docker container from ${IMAGE_NAME} ==="
 
@@ -167,6 +167,7 @@ else
     docker container run -it \
       --env UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
       --env UV_COMPILE_BYTECODE=0 \
+      -v $(pwd):$(pwd) --workdir $(pwd) \
       ${BIND_STR} ${IMAGE_NAME} \
       bash -c "uv sync --frozen && exec bash"
   else
