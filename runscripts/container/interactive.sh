@@ -115,15 +115,16 @@ if (($USE_APPTAINER)); then
   # Format the file as ext3 filesystem
   mkfs.ext3 -F ${TMP_OVERLAY_DIR}/overlay.img
   if (($DEV_MODE)); then
-    # Create editable install of current directory
-    EXEC_CMD="bash -c 'UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
-      uv sync --frozen && exec bash'"
+    echo "Starting container in development mode..."
+    # Fakeroot necessary for overlay to work
+    apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
+      --fakeroot ${BIND_STR} ${IMAGE_NAME} \
+      bash -c "export UV_PROJECT_ENVIRONMENT=/vEcoli/.venv && uv sync --frozen && exec bash"
   else
-    EXEC_CMD="bash"
+    echo "Starting container in normal mode..."
+    apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
+      --fakeroot ${BIND_STR} ${IMAGE_NAME} bash
   fi
-  # Fakeroot necessary for overlay to work
-  apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
-    --fakeroot ${BIND_STR} ${IMAGE_NAME} eval ${EXEC_CMD}
 else
   # Docker-specific logic
   if ((!$RUN_LOCAL)); then
@@ -151,12 +152,13 @@ else
   fi
 
   if (($DEV_MODE)); then
-    # Create editable install of current directory
-    EXEC_CMD="bash -c 'UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
-      uv sync --frozen && exec bash'"
+    echo "Starting container in development mode..."
+    docker container run -it \
+      --env UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
+      ${BIND_STR} ${IMAGE_NAME} \
+      bash -c "uv sync --frozen && exec bash"
   else
-    EXEC_CMD="bash"
+    echo "Starting container in normal mode..."
+    docker container run -it ${BIND_STR} ${IMAGE_NAME} bash
   fi
-
-  docker container run -it ${BIND_STR} ${IMAGE_NAME} eval ${EXEC_CMD}
 fi
