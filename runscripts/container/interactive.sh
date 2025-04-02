@@ -116,8 +116,8 @@ if (($USE_APPTAINER)); then
   mkfs.ext3 -F ${TMP_OVERLAY_DIR}/overlay.img
   if (($DEV_MODE)); then
     # Create editable install of current directory
-    EXEC_CMD="bash -c 'UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \\
-      uv sync --frozen && exec bash'"
+    EXEC_CMD="bash -c \"UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \\
+      uv sync --frozen && exec bash\""
   else
     EXEC_CMD="bash"
   fi
@@ -152,8 +152,8 @@ else
 
   if (($DEV_MODE)); then
     # Create editable install of current directory
-    EXEC_CMD="bash -c 'UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \\
-      uv sync --frozen && exec bash'"
+    EXEC_CMD="bash -c \"UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \\
+      uv sync --frozen && exec bash\""
   else
     EXEC_CMD="bash"
   fi
