@@ -1,6 +1,6 @@
 #!/bin/bash
 # Start an interactive Docker or Apptainer container from an image
-# built with runscripts/container/build-code-image.sh.
+# built with runscripts/container/build-image.sh.
 # Supports optional bind mounts and Cloud Storage bucket mounting
 
 set -eu # Exit on any error or unset variable
@@ -27,7 +27,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Default configuration variables
-IMAGE_NAME="${USER}-code-image"
+IMAGE_NAME="${USER}-image"
 USE_APPTAINER=0
 RUN_LOCAL=0
 DEV_MODE=0
@@ -37,17 +37,17 @@ BUCKET=""
 OVERLAY_SIZE=1024
 
 # Help message string
-usage_str="Usage: interactive.sh [-w IMAGE_NAME] [-a] [-l] [-d] [-b] [-s OVERLAY_SIZE] [-p]...\n\
+usage_str="Usage: interactive.sh [-i IMAGE_NAME] [-d] [-a] [-s OVERLAY_SIZE] [-l] [-b BUCKET] [-p PATH]\n\
 Options:\n\
-    -w: Path to code image if -a or -l are passed, otherwise name of Docker \
+    -i: Path to image to run if -a or -l are passed, otherwise name of Docker \
 image inside vecoli Artifact Repository; defaults to \"$IMAGE_NAME\".\n\
     -d: Create editable install of current directory in container virtual environment; \
 useful for making and testing code changes that, unlike changes to
 the code in the container at /vEcoli, are persistent and work with git.\n\
+    -a: Load Apptainer image (cannot use with -l).\n\
     -s: Size of sparse temporary Apptainer overlay image in MB; \
-defaults to \"$OVERLAY_SIZE\".\n
-    -a: Load Apptainer image.\n\
-    -l: Load local Docker image.\n\
+defaults to \"$OVERLAY_SIZE\" (only used if -a is passed).\n
+    -l: Load local Docker image (cannot use with -a).\n\
     -b: Name of Cloud Storage bucket to mount inside container; first mounts
 bucket at $(pwd)/bucket_mnt using gcsfuse (does not work with -a).\n\
     -p: Path(s) to mount inside container; can specify multiple with \
@@ -59,9 +59,10 @@ print_usage() {
 }
 
 # Parse command-line options
-while getopts 'w:adls:b:p:' flag; do
+while getopts 'i:das:lb:p:' flag; do
   case "${flag}" in
-  w) IMAGE_NAME="${OPTARG}" ;; # Set custom image name
+  i) IMAGE_NAME="${OPTARG}" ;; # Set custom image name
+  d) DEV_MODE=1 ;;             # Enable development mode
   a)
     # Make sure -a and -l are not both specified
     if [ "$RUN_LOCAL" -eq 1 ]; then
@@ -70,8 +71,8 @@ while getopts 'w:adls:b:p:' flag; do
       exit 1
     fi
     USE_APPTAINER=1
-    ;;             # Enable Apptainer mode
-  d) DEV_MODE=1 ;; # Enable development mode
+    ;;                           # Enable Apptainer mode
+  s) OVERLAY_SIZE="${OPTARG}" ;; # Set the size of the sparse overlay
   l)
     # Make sure -l and -a are not both specified
     if [ "$USE_APPTAINER" -eq 1 ]; then
@@ -81,9 +82,8 @@ while getopts 'w:adls:b:p:' flag; do
     fi
     RUN_LOCAL=1
     ;;                                         # Enable local Docker mode
-  s) OVERLAY_SIZE="${OPTARG}" ;;               # Set the size of the sparse overlay
-  b) BUCKET="${OPTARG}" ;;                     # Set the Cloud Storage bucket
-  p) BIND_MOUNTS+=($(realpath "${OPTARG}")) ;; # Convert path to absolute and add to array
+  b) BUCKET="${OPTARG}" ;;                     # Set Cloud Storage bucket to mount
+  p) BIND_MOUNTS+=($(realpath "${OPTARG}")) ;; # Collect absolute mount path(s)
   *)
     print_usage # Print usage for unknown flags
     exit 1
@@ -117,11 +117,15 @@ if (($USE_APPTAINER)); then
   if (($DEV_MODE)); then
     echo "Starting container in development mode..."
     # Fakeroot is necessary for overlay to work
+    #
     # UV_PROJECT_ENVIRONMENT is set to the virtual environment inside
     # the container with all dependencies installed. This way uv does
     # not try to create a new one and waste time installing dependencies.
-    # UV_COMPILE_BYTECODE=0 skips byte code compilation to speed up startup
-    # time and because it is not needed for active development.
+    #
+    # UV_COMPILE_BYTECODE=0 skips byte code compilation which would
+    # otherwise add dozens of seconds to the start time for development
+    # mode. This is because we are doing an editable install of the
+    # repository on the host machine to the container .venv.
     apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
       --fakeroot ${BIND_STR} ${IMAGE_NAME} \
       bash -c "export UV_PROJECT_ENVIRONMENT=/vEcoli/.venv && \
@@ -134,7 +138,7 @@ if (($USE_APPTAINER)); then
 else
   # Docker-specific logic
   if ((!$RUN_LOCAL)); then
-    # We're using an image from Artifact Registry, so build the full path
+    # Non-local Docker images are pulled from Artifact Registry
     PROJECT=$(gcloud config get project)
     REGION=$(gcloud config get compute/region)
     IMAGE_NAME="${REGION}-docker.pkg.dev/${PROJECT}/vecoli/${IMAGE_NAME}"
@@ -148,7 +152,7 @@ else
 
   # Mount the cloud storage bucket using gcsfuse if provided
   if [ -n "$BUCKET" ]; then
-    echo "Mounting Cloud Storage bucket ${BUCKET} at $(pwd)/bucket_mnt"
+    echo "Mounting bucket ${BUCKET} inside container at /mnt/disks/${BUCKET}"
     # Create mount point and mount bucket with gcsfuse
     mkdir -p $(pwd)/bucket_mnt
     gcsfuse -o allow_other --implicit-dirs $BUCKET $(pwd)/bucket_mnt

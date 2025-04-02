@@ -1,0 +1,66 @@
+# Large files #
+###############
+notebooks
+data
+reconstruction/sim_data
+reconstruction/ecoli/scripts
+doc
+
+# Git #
+#######
+.git
+.github
+
+# Dist files #
+##############
+/build
+/dist
+/vEcoli.egg-info
+/Build_sequences.egg-info
+/Fast_polymerize_sums.egg-info
+/Monte_carlo_complexation.egg-info
+
+*.out
+out/
+/out
+.idea/
+*.iml
+
+# User files #
+##############
+user/*
+!user/user.txt
+*.cprof
+.ipynb_checkpoints
+cache/
+
+# Compiled source #
+###################
+*.pyc
+__pycache__
+*.so
+/wholecell/utils/*.c
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.python-version
+.pytest_cache
+.mypy_cache/
+.ruff_cache/
+
+# VS Code files #
+#################
+/.vscode
+
+# Nextflow files #
+##################
+.nextflow*
+nextflow_temp
+trace-*
+
+# uv venv #
+###########
+.venv/

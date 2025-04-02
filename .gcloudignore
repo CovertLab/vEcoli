@@ -1,8 +1,0 @@
-#!include:.gitignore
-notebooks
-data
-reconstruction/sim_data
-reconstruction/ecoli/scripts
-.git
-.github
-doc

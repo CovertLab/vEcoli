@@ -18,8 +18,8 @@ Sherlock
 --------
 
 On Sherlock, once a workflow is started with :mod:`runscripts.workflow`,
-an Apptainer image is built with all vEcoli Python dependencies using
-``runscripts/container/build-runtime.sh``. Nextflow starts containers
+an Apptainer image is built with the current state of the repository using
+``runscripts/container/build-image.sh``. Nextflow starts containers
 using this image to run the steps of the workflow. To run or interact
 with the model without using :mod:`runscripts.workflow`, start an
 interactive container by following the steps in :ref:`sherlock-interactive`.
@@ -64,18 +64,12 @@ options to your configuration JSON (note the top-level ``sherlock`` key)::
 
   {
     "sherlock": {
-      # Boolean, whether to build a fresh Apptainer runtime image. If uv.lock
-      # did not change since your last build, you can set this to false
-      "build_runtime_image": true,
-      # Absolute path (including file name) of Apptainer runtime image to
-      # build (or use directly, if build_runtime_image is false)
-      "runtime_image_name": "",
-      # Boolean, whether to build a fresh code image. If any executed code
-      # did not change since your last build, you can set this to false
-      "build_code_image": true,
-      # Absolute path (including file name) of Apptainer code image to
-      # build (or use directly, if build_code_image is false)
-      "code_image_name": "",
+      # Boolean, whether to build a fresh Apptainer image. If the core
+      # core did not change since your last build, you can set this to false
+      "build_image": true,
+      # Absolute path (including file name) of Apptainer image to
+      # build (or use directly, if build_image is false)
+      "container_image": "",
       # Boolean, whether to use HyperQueue executor for simulation jobs
       # (see HyperQueue section below)
       "hyperqueue": true,
@@ -130,12 +124,12 @@ Interactive Container
   The following commands should all be run from the directory where you cloned
   the vEcoli repository.
 
-To debug a failed job in a workflow, you must locate the code image that was
-built for that workflow. You can refer to the ``code_image_name`` key in the
+To debug a failed job in a workflow, you must locate the container image that was
+used for that workflow. You can refer to the ``container_image`` key in the
 config JSON saved to the workflow output directory (see :ref:`output`). Start
 an interactive container with that image name as follows::
 
-  runscripts/container/interactive.sh -w code_image_name -a
+  runscripts/container/interactive.sh -i code_image_name -a
 
 Now, inside the container, navigate to ``/vEcoli`` and add breakpoints to
 scripts as you see fit. Finally, navigate to the working directory (see
@@ -144,25 +138,22 @@ scripts as you see fit. Finally, navigate to the working directory (see
 breakpoints, allowing you to inspect variables and step through the code.
 
 .. warning::
-  Changes to the code in the ``/vEcoli`` directory of interactive containers
-  started from a code image are not persistent. See :ref:`interactive-containers`.
+  Any changes that you make to ``/vEcoli`` inside the container are discarded
+  when the container terminates.
 
-To run and develop the model on Sherlock outside a workflow, you must
-have previously run a containerized workflow (default on Sherlock) with
-``build_runtime_image`` set to true on the current version of
-``uv.lock``. If you are not sure if ``uv.lock`` changed since your last
-containerized workflow (or if you have never run a containerized workflow),
-run the following to build a new runtime image, picking any ``runtime_image_path``::
-  
-  runscripts/container/build-runtime.sh -r runtime_image_path -a
+If you would like to start an interactive container to run files in the
+current state of your cloned repository, add the ``-d`` flag to start
+a "development" container. In this mode, instead of editing source files
+in ``/vEcoli``, you can directly edit the source files in your cloned
+repository and run them in the container. These code changes persist after
+the container terminates and allow you to use git for version control
+(the snapshot at ``/vEcoli`` is very barebones and not a proper git repo).
 
-Once you have a runtime image, you can start an interactive container with::
-
-  runscripts/container/interactive.sh -w runtime_image_path -a -r
-
-Now, inside the container, you can run the model as you would normally. Any
-changes that you make in the cloned repository will be immediately reflected
-in commands run inside the container.
+.. note::
+  If the image you use to start a development container was built with
+  an outdated version of ``uv.lock`` or ``pyproject.toml``, it will always
+  spend some time updating packages at startup. To avoid this,
+  build a new image with ``runscripts/container/build-image.sh``.
 
 .. _jenkins-setup:
 
