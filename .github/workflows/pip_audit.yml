@@ -18,6 +18,6 @@ jobs:
           enable-cache: true
           version: "0.6.10"
       - name: Audit dependencies
-        run:
-          uv export --all-extras --format requirements-txt --no-emit-project > requirements.txt && \
-          uv tool run pip-audit -r requirements.txt --disable-pip --fix
+        run: |
+          uv export --all-extras --format requirements-txt --no-emit-project > requirements.txt
+          uvx pip-audit -r requirements.txt --disable-pip --fix
