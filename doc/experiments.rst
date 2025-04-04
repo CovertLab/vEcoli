@@ -386,6 +386,9 @@ Output
 If ``emitter`` was set to ``parquet``, then folders containing the simulation output are
 created as described in :ref:`parquet_emitter`.
 
+.. warning::
+    See :ref:`special_float_values` for an important caveat involving NaN/infinity.
+
 If ``division`` is set to True, :py:mod:`~ecoli.experiments.ecoli_master_sim` will
 save the initial states of the two daughter cells resulting from cell division
 in ``daughter_outdir`` as JSON files. These files can be moved to the ``data``
