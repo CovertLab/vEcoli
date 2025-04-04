@@ -372,6 +372,7 @@ def check_job_state(job_id, timeout_seconds=3600, sleep_interval=30):
 def forward_sbatch_output(
     batch_script: str,
     output_log: str,
+    timeout_seconds: int = 3600,
 ):
     """
     Submit a SLURM job that is configured to pipe its output to a log file.
@@ -434,7 +435,7 @@ def forward_sbatch_output(
         time.sleep(30)
 
     # Final check of job success
-    if not check_job_state(job_id):
+    if not check_job_state(job_id, timeout_seconds):
         sys.exit(1)
 
 
@@ -677,7 +678,7 @@ nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
         )
         # Make stdout of workflow viewable in Jenkins
         if sherlock_config.get("jenkins", False):
-            forward_sbatch_output(batch_script, nf_slurm_output)
+            forward_sbatch_output(batch_script, nf_slurm_output, 3600 * 24)
         else:
             subprocess.run(["sbatch", batch_script], check=True)
     shutil.rmtree(local_outdir)
