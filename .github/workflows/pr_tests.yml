@@ -78,3 +78,7 @@ jobs:
     - name: Two generations
       run: |
         uv run --env-file .env runscripts/workflow.py --config ecoli/composites/ecoli_configs/two_generations.json
+    - name: Show stderr for failed Nextflow tasks
+      if: ${{ failure() }}
+      run: |
+        nextflow log -q | tail -n 1 | awk '{print $1}' | xargs -I {} nextflow log {} -f name,stderr -F "status == 'FAILED'"
