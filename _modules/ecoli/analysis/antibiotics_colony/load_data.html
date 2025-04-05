@@ -1,0 +1,259 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.antibiotics_colony.load_data &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../antibiotics_colony.html">ecoli.analysis.antibiotics_colony</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.antibiotics_colony.load_data</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.antibiotics_colony.load_data</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessPoolExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vivarium.core.serialize</span><span class="w"> </span><span class="kn">import</span> <span class="n">deserialize_value</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vivarium.library.dict_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_value_from_path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vivarium.library.units</span><span class="w"> </span><span class="kn">import</span> <span class="n">remove_units</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.analysis.antibiotics_colony</span><span class="w"> </span><span class="kn">import</span> <span class="n">EXPERIMENT_ID_MAPPING</span><span class="p">,</span> <span class="n">PATHS_TO_LOAD</span>
+
+
+<div class="viewcode-block" id="deserialize_and_remove_units">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.load_data.html#ecoli.analysis.antibiotics_colony.load_data.deserialize_and_remove_units">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">deserialize_and_remove_units</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">remove_units</span><span class="p">(</span><span class="n">deserialize_value</span><span class="p">(</span><span class="n">d</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="agent_data_table">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.load_data.html#ecoli.analysis.antibiotics_colony.load_data.agent_data_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">agent_data_table</span><span class="p">(</span><span class="n">raw_data</span><span class="p">,</span> <span class="n">paths_dict</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">seed</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Combine data from all agents into DataFrames for each timestep.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        raw_data: Tuple of (time, dictionary at time for one replicate).</span>
+<span class="sd">        paths_dict: Dictionary mapping paths within each agent to names</span>
+<span class="sd">            that will be used the keys in the returned dictionary.</span>
+<span class="sd">        condition: String identifier for experimental condition</span>
+<span class="sd">        seed: Initial seed for this replicate</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dataframe where each column is a path and each row is an agent.&quot;&quot;&quot;</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">raw_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">raw_data</span> <span class="o">=</span> <span class="n">raw_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">collected_data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Agent ID&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+    <span class="n">agents_at_time</span> <span class="o">=</span> <span class="n">raw_data</span><span class="p">[</span><span class="s2">&quot;agents&quot;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">agent_id</span><span class="p">,</span> <span class="n">agent_at_time</span> <span class="ow">in</span> <span class="n">agents_at_time</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">collected_data</span><span class="p">[</span><span class="s2">&quot;Agent ID&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">value_in_agent</span> <span class="o">=</span> <span class="n">get_value_from_path</span><span class="p">(</span><span class="n">agent_at_time</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="c1"># Replace missing values with 0</span>
+            <span class="k">if</span> <span class="n">value_in_agent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">value_in_agent</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">path_data</span> <span class="o">=</span> <span class="n">collected_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="n">path_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value_in_agent</span><span class="p">)</span>
+    <span class="n">collected_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">collected_data</span><span class="p">)</span>
+    <span class="n">collected_data</span><span class="p">[</span><span class="s2">&quot;Time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">time</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">collected_data</span><span class="p">)</span>
+    <span class="n">collected_data</span><span class="p">[</span><span class="s2">&quot;Seed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">seed</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">collected_data</span><span class="p">)</span>
+    <span class="n">collected_data</span><span class="p">[</span><span class="s2">&quot;Condition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">condition</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">collected_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">collected_data</span></div>
+
+
+
+<div class="viewcode-block" id="load_data">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.load_data.html#ecoli.analysis.antibiotics_colony.load_data.load_data">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_data</span><span class="p">(</span>
+    <span class="n">experiment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cpus</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s2">&quot;10.138.0.75&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">27017</span>
+<span class="p">):</span>
+    <span class="c1"># Get data for the specified experiment_id</span>
+    <span class="c1"># monomers = [path[-1] for path in PATHS_TO_LOAD.values() if path[0] == &quot;monomer&quot;]</span>
+    <span class="c1"># mrnas = [path[-1] for path in PATHS_TO_LOAD.values() if path[0] == &quot;mrna&quot;]</span>
+    <span class="c1"># inner_paths = [</span>
+    <span class="c1">#     path</span>
+    <span class="c1">#     for path in PATHS_TO_LOAD.values()</span>
+    <span class="c1">#     if path[-1] not in mrnas</span>
+    <span class="c1">#     and path[-1] not in monomers</span>
+    <span class="c1">#     and path != (&quot;total_mrna&quot;,)</span>
+    <span class="c1"># ]</span>
+    <span class="c1"># outer_paths = [(&quot;data&quot;, &quot;dimensions&quot;), (&quot;data&quot;, &quot;fields&quot;)]</span>
+    <span class="k">for</span> <span class="n">condition</span><span class="p">,</span> <span class="n">seeds</span> <span class="ow">in</span> <span class="n">EXPERIMENT_ID_MAPPING</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">seed</span><span class="p">,</span> <span class="n">curr_experiment_id</span> <span class="ow">in</span> <span class="n">seeds</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">curr_experiment_id</span> <span class="o">!=</span> <span class="n">experiment_id</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span><span class="n">condition</span><span class="p">:</span> <span class="p">{</span><span class="n">seed</span><span class="p">:</span> <span class="p">{}}}</span>
+            <span class="n">rep_data</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">cpus</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Deserializing data and removing units...&quot;</span><span class="p">)</span>
+                <span class="n">deserialized_data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                    <span class="n">tqdm</span><span class="p">(</span>
+                        <span class="n">executor</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">deserialize_and_remove_units</span><span class="p">,</span> <span class="n">rep_data</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                        <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">rep_data</span><span class="p">),</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">rep_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">rep_data</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">deserialized_data</span><span class="p">))</span>
+            <span class="c1"># Get spatial environment data for snapshot plots</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Extracting spatial environment data...&quot;</span><span class="p">)</span>
+            <span class="n">metadata</span><span class="p">[</span><span class="n">condition</span><span class="p">][</span><span class="n">seed</span><span class="p">][</span><span class="s2">&quot;bounds&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rep_data</span><span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">rep_data</span><span class="p">)][</span><span class="s2">&quot;dimensions&quot;</span><span class="p">][</span>
+                <span class="s2">&quot;bounds&quot;</span>
+            <span class="p">]</span>
+            <span class="n">metadata</span><span class="p">[</span><span class="n">condition</span><span class="p">][</span><span class="n">seed</span><span class="p">][</span><span class="s2">&quot;fields&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">time</span><span class="p">:</span> <span class="n">data_at_time</span><span class="p">[</span><span class="s2">&quot;fields&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">time</span><span class="p">,</span> <span class="n">data_at_time</span> <span class="ow">in</span> <span class="n">rep_data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+            <span class="n">agent_df_paths</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+                <span class="n">agent_data_table</span><span class="p">,</span>
+                <span class="n">paths_dict</span><span class="o">=</span><span class="n">PATHS_TO_LOAD</span><span class="p">,</span>
+                <span class="n">condition</span><span class="o">=</span><span class="n">condition</span><span class="p">,</span>
+                <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">cpus</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Converting data to DataFrame...&quot;</span><span class="p">)</span>
+                <span class="n">rep_dfs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                    <span class="n">tqdm</span><span class="p">(</span>
+                        <span class="n">executor</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">agent_df_paths</span><span class="p">,</span> <span class="n">rep_data</span><span class="o">.</span><span class="n">items</span><span class="p">()),</span>
+                        <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">rep_data</span><span class="p">),</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="c1"># Save data for each experiment as local csv</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">rep_dfs</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data/colony_data/sim_dfs/</span><span class="si">{</span><span class="n">experiment_id</span><span class="si">}</span><span class="s2">.csv&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;data/colony_data/sim_dfs</span><span class="si">{</span><span class="n">experiment_id</span><span class="si">}</span><span class="s2">_metadata.json&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span>
+            <span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.antibiotics_colony.load_data.html#ecoli.analysis.antibiotics_colony.load_data.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--experiment_id&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-e&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Experiment ID to load data for&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--cpus&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-c&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;# of CPUs to use for deserializing&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s2">&quot;data/colony_data/sim_dfs/&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># TODO: Convert to use DuckDB</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Still need to convert to use DuckDB!&quot;</span><span class="p">)</span>
+    <span class="n">load_data</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">experiment_id</span><span class="p">,</span> <span class="n">cpus</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cpus</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
