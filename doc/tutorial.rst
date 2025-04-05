@@ -316,6 +316,9 @@ annotated example of an analysis script:
         )
         chart.save(os.path.join(outdir, "mass_fraction_summary.html"))
 
+.. warning::
+    In order to be run as part of a workflow with :py:mod:`runscripts.workflow`,
+    analysis scripts must write at least one file to ``outdir``.
 
 To add a new analysis script:
 

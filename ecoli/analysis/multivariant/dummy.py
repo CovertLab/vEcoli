@@ -312,3 +312,6 @@ def plot(
         )
 
         raise RuntimeError("\n".join(error_msg))
+    with open(f"{outdir}/dummy_analysis.txt", "w") as f:
+        f.write("Dummy analysis completed successfully.\n")
+        f.write("No issues detected with output column names.\n")
