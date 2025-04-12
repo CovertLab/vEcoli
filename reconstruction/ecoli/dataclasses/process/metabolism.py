@@ -2568,12 +2568,12 @@ class Metabolism(object):
             if k != enzyme_str and (v in reactant_tags or v in product_tags)
         }
 
-        # TODO (Albert): replace this
+        # TODO (Albert): replace this, and use sim_data.molecule_ids.ppgpp_id
         if constraint['reactionID'] == 'PRPPAMIDOTRANS-RXN':
             variables_with_tags.update({
                 'A': 'AMP[c]',
                 'G': 'GMP[c]',
-                'PPGPP': 'GUANOSINE-5DP-3DP'
+                'PPGPP': 'GUANOSINE-5DP-3DP[c]'
             })
 
         # Substitute values into custom equations
@@ -3319,23 +3319,18 @@ class ConcentrationUpdates(object):
 
     def _add_molecule_amounts(self, equilibriumReactions, concDict):
         moleculeSetAmounts = {}
-
-        # Temporarily disabled because fitLigandConcentrations in parca is temporarily disabled with new
-        # tf modeling, not sure if will bring back in some form later.
-        # for reaction in equilibriumReactions:
-        #     # We only want to do this for species with standard Michaelis-Menten kinetics initially
-        #     if len(reaction["stoichiometry"]) != 3:
-        #         continue
-            # TODO: restore in some form maybe? Taking it out now because we're not fitting ligand
-            # concentrations when fitting TFs in the parca as of now.
-            # moleculeName = [
-            #     mol_id
-            #     for mol_id in reaction["stoichiometry"].keys()
-            #     if mol_id in self._all_metabolite_ids
-            # ][0]
-            # amountToSet = 1e-4
-            # moleculeSetAmounts[moleculeName + "[p]"] = amountToSet * self.units
-            # moleculeSetAmounts[moleculeName + "[c]"] = amountToSet * self.units
+        for reaction in equilibriumReactions:
+            # We only want to do this for species with standard Michaelis-Menten kinetics initially
+            if len(reaction["stoichiometry"]) != 3:
+                continue
+            moleculeName = [
+                mol_id
+                for mol_id in reaction["stoichiometry"].keys()
+                if mol_id in self._all_metabolite_ids
+            ][0]
+            amountToSet = 1e-4
+            moleculeSetAmounts[moleculeName + "[p]"] = amountToSet * self.units
+            moleculeSetAmounts[moleculeName + "[c]"] = amountToSet * self.units
 
         for moleculeName, scaleFactor in self.molecule_scale_factors.items():
             moleculeSetAmounts[moleculeName] = (

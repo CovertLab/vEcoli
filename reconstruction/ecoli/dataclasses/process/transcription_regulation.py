@@ -67,6 +67,20 @@ class TranscriptionRegulation(object):
             x["active TF"]: x["TF"] for x in raw_data.condition.tf_condition
         }
 
+        # Create list to store which TFs are modeled with old-tf-modeling
+        # Should only be used internally, to set sizes of binding matrices, etc.,
+        # all listener outputs should use the total tf_ids.
+        self.old_tf_modeling_tf_ids = list(sorted([x for x in self.tf_ids
+                                       if self.tf_to_tf_type[x] in ["0CS", "1CS", "2CS"]]))
+        self.new_tf_modeling_tf_ids = list(sorted([x for x in self.tf_ids
+                                    if x not in self.old_tf_modeling_tf_ids]))
+        self.old_to_all_tf_idx = {
+            i: self.tf_ids.index(x) for i, x in enumerate(self.old_tf_modeling_tf_ids)
+        }
+        self.new_to_all_tf_idx = {
+            i: self.tf_ids.index(x) for i, x in enumerate(self.new_tf_modeling_tf_ids)
+        }
+
         # Initialize different categories of transcriptional regulation from raw_data.
         # Will be further modified to add simulation parameters during parca.
         self._initialize_one_peak_genes(raw_data)
@@ -115,6 +129,34 @@ class TranscriptionRegulation(object):
 
         return binding_rates, unbinding_rates
 
+    def get_delta_aff_matrix(
+            self, dense=False
+    ) -> Union[sparse.csr_matrix, np.ndarray]:
+        """
+        Returns the delta affinity matrix mapping the promoter binding effect
+        of each old-TF=modeling TF to each gene.
+
+        Args:
+                dense: If True, returns a dense matrix, otherwise csr sparse
+
+        Returns:
+                delta_aff: matrix of affinities changes expected with a TF
+                        binding to a promoter for each gene (n genes, m TFs)
+        """
+
+        delta_aff = sparse.csr_matrix(
+            (
+                self.delta_aff["deltaV"],
+                (self.delta_aff["deltaI"], self.delta_aff["deltaJ"]),
+            ),
+            shape=self.delta_aff["shape"],
+        )
+
+        if dense:
+            delta_aff = delta_aff.toarray()
+
+        return delta_aff
+
     def _build_tf_binding_unbinding_rates(self, raw_data):
         """
         Builds and saves arrays encoding csr matrices of binding and unbinding rates of TFs
@@ -124,12 +166,12 @@ class TranscriptionRegulation(object):
         self._binding_rates_i = []
         self._binding_rates_j = []
         self._binding_rates_v = []
-        self._binding_rates_shape = (len(self.tf_binding_site_ids), len(self.tf_ids))
+        self._binding_rates_shape = (len(self.tf_binding_site_ids), len(self.new_tf_modeling_tf_ids))
 
         self._unbinding_rates_i = []
         self._unbinding_rates_j = []
         self._unbinding_rates_v = []
-        self._unbinding_rates_shape = (len(self.tf_binding_site_ids), len(self.tf_ids))
+        self._unbinding_rates_shape = (len(self.tf_binding_site_ids), len(self.new_tf_modeling_tf_ids))
 
         binding_site_ids = []
         for row in raw_data.tf_binding_site_rates:
@@ -143,7 +185,7 @@ class TranscriptionRegulation(object):
             unbinding_rate = row["unbinding_rate"]
 
             binding_site_idx = self.tf_binding_site_ids.index(binding_site_id)
-            tf_idx = self.tf_ids.index(tf_id)
+            tf_idx = self.new_tf_modeling_tf_ids.index(tf_id)
 
             self._binding_rates_i.append(binding_site_idx)
             self._binding_rates_j.append(tf_idx)

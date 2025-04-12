@@ -3,10 +3,12 @@
 # TFs in a condition that are the same as basal (inactive/active) should not be included here
 # Basal should not have any active or inactive TFs specified
 # TODO: growth rate for with_aa_nucl, comes from Li et. al. (2014), but that's with full EZ rich defined medium (including vitamins, etc.)
+# TODO: maybe should change media for with_aa_biotin to something that's been experimentally tested
 "condition"	"nutrients"	"genotype perturbations"	"doubling time (units.min)"	"active TFs"	"inactive TFs"
 "basal"	"minimal"	{}	44.0	[]	[]
 "with_aa"	"minimal_plus_amino_acids"	{}	25.0	["CPLX-125", "MONOMER0-162", "CPLX0-228", "MONOMER0-155", "CPLX0-7796"]	["CPLX0-7669", "PUTA-CPLX", "EG12123-MONOMER"]
 "no_oxygen"	"minimal_minus_oxygen"	{}	100.0	["FNR-4FE-4S-CPLX", "PHOSPHO-ARCA", "CPLX0-226"]	[]
 "acetate"	"minimal_acetate"	{}	136.0	["CPLX0-226"]	[]
 "succinate"	"minimal_succinate"	{}	82.0	["CPLX0-226", "PHOSPHO-DCUR"]	[]
-"with_aa_nucl"	"minimal_plus_aas_nucls"	{}	25.0	[]	[]
+"with_aa_nucl"	"minimal_plus_aas_nucls"	{}	25.0	["CPLX-125", "MONOMER0-162", "CPLX0-228", "MONOMER0-155", "CPLX0-7796"]	["CPLX0-7669", "PUTA-CPLX", "EG12123-MONOMER"]
+"with_biotin"	"minimal_plus_biotin"	{}	44.0	[]	[]

@@ -1697,20 +1697,28 @@ class Transcription(object):
         # (we include TF effects for basal condition here since, during basal
         # condition, expression with attenuation should match the expected
         # expression which already includes TF effects)
-        # NOTE: should be run after adjusting ppGpp for TF effects in the
-        # parca, since we obtain unbound affinities using synth_aff_from_ppgpp here
+        # NOTE: should be run after finalizing basal_aff in parca since we use it here
+        # as the basal probability without any TF's bound
         condition = "basal"
-        basal_dt = sim_data.condition_to_doubling_time[condition]
-        basal_ppgpp = sim_data.growth_rate_parameters.get_ppGpp_conc(
-            basal_dt
-        )
-        basal_aff = self.synth_aff_from_ppgpp(basal_ppgpp)
+        basal_aff = sim_data.process.transcription_regulation.basal_aff
 
+        # Include two-peak TFs
         two_peak_TU_data = sim_data.process.transcription_regulation.two_peak_TU_data
         for i, TU_idx in enumerate(two_peak_TU_data['TU_idx']):
             condition_data = two_peak_TU_data['condition'][i]
             if condition in condition_data['bound']:
                 basal_aff[TU_idx] = two_peak_TU_data['bound_affinity'][i]
+
+        # Include old-tf-modeling TFs
+        delta_aff = sim_data.process.transcription_regulation.get_delta_aff_matrix()
+        p_promoter_bound = np.array(
+            [
+                sim_data.pPromoterBound[condition][tf]
+                for tf in sim_data.process.transcription_regulation.old_tf_modeling_tf_ids
+            ]
+        )
+        delta = delta_aff @ p_promoter_bound
+        basal_aff += delta
 
         basal_stop_prob = self.get_attenuation_stop_probabilities(
             get_trna_conc(condition)
@@ -2210,80 +2218,10 @@ class Transcription(object):
         self.aff_ppgpp[self.aff_ppgpp < 0] = 0
 
     def adjust_ppgpp_expression_for_tfs(self, sim_data):
-        # Get one-peak and two-peak data (without TFs bound, one-peak TUs should have
-        # their set affinity, and two-peak TUs should be set at their unbound affinity
-        one_peak_affs = sim_data.process.transcription_regulation.one_peak_TU_data["affinity"]
-        one_peak_TUs = sim_data.process.transcription_regulation.one_peak_TU_data["TU_idx"]
-        two_peak_unbound_affs = sim_data.process.transcription_regulation.two_peak_TU_data["unbound_affinity"]
-        two_peak_TUs = sim_data.process.transcription_regulation.two_peak_TU_data["TU_idx"]
-
-        # Combine into single arrays
-        target_affs = np.concatenate((one_peak_affs, two_peak_unbound_affs), axis=0)
-        target_TUs = np.concatenate((one_peak_TUs, two_peak_TUs), axis=0)
-
-        # Let basal condition ppGpp-derived affinity for one-peak and two-peak genes match the targets
         basal_ppgpp = sim_data.growth_rate_parameters.get_ppGpp_conc(
             sim_data.condition_to_doubling_time["basal"]
         )
-        self.match_ppgpp_expression_to_target(target_affs, basal_ppgpp, target_idxs=target_TUs)
-
-    # def adjust_ppgpp_expression_for_tfs(self, sim_data):
-    #     """
-    #     Adjusts ppGpp regulated expression to get expression with and without
-    #     ppGpp regulation to match in basal condition and taking into account
-    #     the effect transcription factors will have.
-    #
-    #     TODO:
-    #             Should this not adjust polymerizing genes (adjusted_mask in
-    #                     adjust_polymerizing_ppgpp_expression) since they have already
-    #                     been adjusted for transcription factor effects?
-    #     """
-    #
-    #     condition = "basal"
-    #
-    #     # Current (unnormalized) probabilities from ppGpp regulation
-    #     ppgpp_conc = sim_data.growth_rate_parameters.get_ppGpp_conc(
-    #         sim_data.condition_to_doubling_time[condition]
-    #     )
-    #     old_aff, factor = self.synth_aff_from_ppgpp(
-    #         ppgpp_conc, sim_data.process.replication.get_average_copy_number
-    #     )
-    #
-    #     # Calculate the average expected effect of TFs in basal condition
-    #     p_promoter_bound = np.array(
-    #         [
-    #             sim_data.pPromoterBound[condition][tf]
-    #             for tf in sim_data.process.transcription_regulation.tf_ids
-    #         ]
-    #     )
-    #     delta_aff_no_ppgpp = (
-    #         sim_data.process.transcription_regulation.get_delta_aff_matrix(ppgpp=False)
-    #     )
-    #     delta_aff_with_ppgpp = (
-    #         sim_data.process.transcription_regulation.get_delta_aff_matrix(ppgpp=True)
-    #     )
-    #     delta_no_ppgpp = delta_aff_no_ppgpp @ p_promoter_bound
-    #     delta_with_ppgpp = delta_aff_with_ppgpp @ p_promoter_bound
-    #
-    #     # Calculate the required affinity to match expression without ppGpp
-    #     new_aff = copy.deepcopy(sim_data.process.transcription_regulation.basal_aff)
-    #         #(sim_data.process.transcription_regulation.basal_aff
-    #          #       + delta_no_ppgpp) / (1 + delta_with_ppgpp)
-    #
-    #     new_aff[new_aff < 0] = old_aff[new_aff < 0]
-    #
-    #     # Determine adjustments to the current ppGpp expression to scale
-    #     # to the expected expression
-    #     with np.errstate(invalid="ignore", divide="ignore"):
-    #         adjustment = new_aff / old_aff
-    #     adjustment[~np.isfinite(adjustment)] = 1
-    #
-    #     # TODO: probably change this part when changing to using affinities instead?
-    #     # Scale free and bound expression and renormalize ppGpp regulated expression
-    #     self.exp_free *= adjustment
-    #     self.exp_ppgpp *= adjustment
-    #     self._normalize_ppgpp_expression()
-    #     # TODO: what to do if exp_free has a gene already at 0, but it's not at 0 in basal_aff?
+        self.match_ppgpp_expression_to_target(sim_data.process.transcription_regulation.basal_aff, basal_ppgpp)
 
     def _normalize_ppgpp_expression(self):
         """
