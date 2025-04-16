@@ -1132,17 +1132,10 @@ def initialize_transcription(
             basal_aff[TU_tf_bound_idxs] = two_peak_data["bound_affinity"][i]
             basal_aff[TU_tf_not_bound_idxs] = two_peak_data["unbound_affinity"][i]
 
-    def _apply_old_TF_effects(init_aff):
-        # An approximation, just applies p_promoter_bound instead of getting the actual promoter-bound-TFs
+    def _apply_old_TF_effects(init_aff, promoter_TU_index, promoter_bound_TF):
         transcription_regulation = sim_data.process.transcription_regulation
         delta_aff = transcription_regulation.get_delta_aff_matrix()
-        p_promoter_bound = np.array(
-            [
-                self.pPromoterBound[condition][tf]
-                for tf in transcription_regulation.old_tf_modeling_tf_ids
-            ]
-        )
-        delta = delta_aff @ p_promoter_bound
+        delta = np.multiply(delta_aff[promoter_TU_index, :], promoter_bound_TF).sum(axis=1)
 
         # Adjust so delta is proportional to the current affinity from ppGpp, to avoid negative
         # affinities
@@ -1190,7 +1183,7 @@ def initialize_transcription(
     # Account for new and old TF modeling TFs
     _apply_new_TF_effects(promoter_init_affs, tf_binding_site_index, tf_binding_site_domain_index,
                       tf_binding_site_bound_TF, promoter_TU_index, promoter_domain_index)
-    _apply_old_TF_effects(promoter_init_affs)
+    _apply_old_TF_effects(promoter_init_affs, promoter_TU_index, promoter_bound_TF)
 
     # Determine changes from genetic perturbations
     genetic_perturbations = {}

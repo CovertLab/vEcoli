@@ -155,6 +155,7 @@ class TranscriptInitiation(PartitionedProcess):
         ),
         "active_rnap_foorprint_size": 1,
         "basal_aff": np.array([]),
+        "get_delta_aff_matrix": None,
         "perturbations": {},
         "rna_data": {},
         "active_rnap_footprint_size": 24 * units.nt,
@@ -217,6 +218,9 @@ class TranscriptInitiation(PartitionedProcess):
 
         # Get two peak TU data
         self.two_peak_data = self.parameters["two_peak_TU_data"]
+
+        # Get delta aff matrix
+        self.delta_aff_matrix = self.parameters["get_delta_aff_matrix"](dense=True)
 
         # Determine changes from genetic perturbations
         self.genetic_perturbations = {}
@@ -333,13 +337,13 @@ class TranscriptInitiation(PartitionedProcess):
         # Read current environment
         current_media_id = states["environment"]["media_id"]
 
-        def _apply_TF_effects(basal_aff, tf_binding_site_index, tf_binding_site_domain_index,
+
+        def _apply_new_TF_effects(basal_aff, tf_binding_site_index, tf_binding_site_domain_index,
                              bound_TF, promoter_TU_index, promoter_domain_index):
             '''
             Changes basal_aff for each two-peak gene, according to whether the right TF is bound to the
             corresponding TF-binding site for each TU.
             '''
-            final_aff = copy.deepcopy(basal_aff)
             for i, TU_idx in enumerate(self.two_peak_data['TU_idx']):
                 # Get indices of this TU
                 is_reg = (promoter_TU_index == TU_idx)
@@ -380,10 +384,27 @@ class TranscriptInitiation(PartitionedProcess):
                 TF_is_bound = np.array(TF_is_bound, dtype=bool)
                 TU_tf_bound_idxs = reg_idxs[TF_is_bound]
                 TU_tf_not_bound_idxs = reg_idxs[~TF_is_bound]
-                final_aff[TU_tf_bound_idxs] = self.two_peak_data["bound_affinity"][i]
-                final_aff[TU_tf_not_bound_idxs] = self.two_peak_data["unbound_affinity"][i]
+                basal_aff[TU_tf_bound_idxs] = self.two_peak_data["bound_affinity"][i]
+                basal_aff[TU_tf_not_bound_idxs] = self.two_peak_data["unbound_affinity"][i]
 
-            return final_aff
+        def _apply_old_TF_effects(init_aff, promoter_TU_index, promoter_bound_TF):
+            '''
+            Changes basal_aff for each TF for old-tf-modeling, based on whether promoter TFs are bound
+            '''
+            # Calculate delta
+            delta = np.multiply(self.delta_aff_matrix[promoter_TU_index, :], promoter_bound_TF).sum(axis=1)
+
+            # Adjust so delta is proportional to the current affinity from ppGpp, to avoid negative
+            # affinities
+            with np.errstate(invalid="ignore", divide="ignore"):
+                adjustment = init_aff / self.basal_aff
+
+            # For cases with no basal ppGpp expression, assume the delta prob is the
+            # same as without ppGpp control
+            adjustment[~np.isfinite(adjustment)] = 1
+            init_aff += delta * adjustment
+            init_aff[init_aff < 0] = 0
+
 
         if states["full_chromosomes"]["_entryState"].sum() > 0:
             # Get attributes of tf-binding sites and promoters
@@ -391,8 +412,8 @@ class TranscriptInitiation(PartitionedProcess):
                 states["tf_binding_sites"],
                 ["tf_binding_site_index", "domain_index", "bound_TF"])
 
-            promoter_TU_index, promoter_domain_index = attrs(
-                states["promoters"], ["TU_index", "domain_index"]
+            promoter_TU_index, promoter_domain_index, promoter_bound_TF = attrs(
+                states["promoters"], ["TU_index", "domain_index", "bound_TF"]
             )
 
             if self.ppgpp_regulation:
@@ -410,24 +431,17 @@ class TranscriptInitiation(PartitionedProcess):
                 self.fracActiveRnap = self.get_rnap_active_fraction_from_ppGpp(
                     ppgpp_conc
                 )
-                # # Get ppGpp scale, which is the current affinity over the "standard" affinity.
-                # # If current affinity OR standard affinity is 0,
-                # ppgpp_scale_num = basal_aff[TU_index]
-                # # Use original delta aff if no ppGpp basal
-                # ppgpp_scale_num[ppgpp_scale_num == 0] = 1
-                # ppgpp_scale_denom = self.basal_aff[TU_index]
-                # ppgpp_scale_denom[ppgpp_scale_denom == 0] = 1
-                # ppgpp_scale = ppgpp_scale_num / ppgpp_scale_denom
             else:
                 # TODO: make this basal_aff be defined somewhere in parca as all the unbound
                 # affinities.
                 basal_aff = self.basal_aff
                 self.fracActiveRnap = self.fracActiveRnapDict[current_media_id]
-                #ppgpp_scale = 1
 
             promoter_basal_affs = basal_aff[promoter_TU_index]
-            self.promoter_init_affs = _apply_TF_effects(promoter_basal_affs, tf_binding_site_index, tf_binding_site_domain_index,
+            _apply_new_TF_effects(promoter_basal_affs, tf_binding_site_index, tf_binding_site_domain_index,
                               tf_binding_site_bound_TF, promoter_TU_index, promoter_domain_index)
+            _apply_old_TF_effects(promoter_basal_affs, promoter_TU_index, promoter_bound_TF)
+            self.promoter_init_affs = promoter_basal_affs
 
             # TODO: is this right? might need changing?
             if len(self.genetic_perturbations) > 0:
@@ -459,8 +473,8 @@ class TranscriptInitiation(PartitionedProcess):
                     group_fixed_probs=[synthProbFractions["tRna"], synthProbFractions["rRna"]]
                 )
 
-                # TODO: what to do about this assert?
-                #assert self.promoter_init_affs[is_fixed_prob].sum() < original_aff_sum
+                is_fixed_prob = np.concatenate((idx_rprotein, idx_rnap, idx_tRNA, idx_rRNA))
+                assert self.promoter_init_affs[is_fixed_prob].sum() < self.promoter_init_affs.sum()
 
             # Normalize affinities to get synthesis probabilities
             self.promoter_init_probs = (self.promoter_init_affs
@@ -993,6 +1007,7 @@ def test_transcript_initiation(return_data=False):
         },
     )
 
+    # TODO: fix this test_config delta_aff to get_delta_aff_matrix csr sparse
     test_config = {
         "fracActiveRnapDict": {"minimal": 0.2},
         "rnaLengths": np.array([x[2] for x in rna_data.fullArray()]),

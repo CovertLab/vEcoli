@@ -560,7 +560,8 @@ class LoadSimData:
 
     def get_config_by_name(self, name, time_step=1):
         name_config_mapping = {
-            "ecoli-tf-binding": self.get_tf_binding_config,
+            "ecoli-new-tf-binding": self.get_new-tf_binding_config,
+            "ecoli-old-tf-binding": self.get_old-tf_binding_config,
             "ecoli-transcript-initiation": self.get_transcript_initiation_config,
             "ecoli-transcript-elongation": self.get_transcript_elongation_config,
             "ecoli-rna-degradation": self.get_rna_degradation_config,
@@ -678,7 +679,7 @@ class LoadSimData:
             "bulk_mass_data": self.sim_data.internal_state.bulk_molecules.bulk_data[
                 "mass"
             ],
-            "seed": self._seedFromName("TfBinding"),
+            "seed": self._seedFromName("NewTfBinding"),
             "submass_indices": self.submass_indices,
             "emit_unique": self.emit_unique,
         }
@@ -703,7 +704,7 @@ class LoadSimData:
             "bulk_mass_data": self.sim_data.internal_state.bulk_molecules.bulk_data[
                 "mass"
             ],
-            "seed": self._seedFromName("TfBinding"),
+            "seed": self._seedFromName("OldTfBinding"),
             "submass_indices": self.submass_indices,
             "emit_unique": self.emit_unique,
         }
@@ -720,6 +721,7 @@ class LoadSimData:
             "make_elongation_rates": self.sim_data.process.transcription.make_elongation_rates,
             "active_rnap_footprint_size": self.sim_data.process.transcription.active_rnap_footprint_size,
             "basal_aff": self.sim_data.process.transcription_regulation.basal_aff,
+            "get_delta_aff_matrix": self.sim_data.process.transcription_regulation.get_delta_aff_matrix,
             "two_peak_TU_data": self.sim_data.process.transcription_regulation.two_peak_TU_data,
             "perturbations": getattr(self.sim_data, "genetic_perturbations", {}),
             "rna_data": self.sim_data.process.transcription.rna_data,
