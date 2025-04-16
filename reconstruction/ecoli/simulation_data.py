@@ -238,9 +238,12 @@ class SimulationDataEcoli(object):
         self.tf_to_active_inactive_conditions = {}
         for row in raw_data.condition.tf_condition:
             tf = row["active TF"]
+            type = row["TF type"]
 
+            # Skip TF if it doesn't have fold-change values and is modeled with old-tf-modeling
             if tf not in self.tf_to_fold_change:
-                continue
+                if type in ['0CS', '1CS', '2CS']:
+                    continue
 
             activeGenotype = row["active genotype perturbations"]
             activeNutrients = row["active nutrients"]
@@ -264,6 +267,7 @@ class SimulationDataEcoli(object):
             self.tf_to_active_inactive_conditions[tf]["inactive nutrients"] = (
                 inactiveNutrients
             )
+            self.tf_to_active_inactive_conditions[tf]["TF type"] = type
 
         # Populate combined conditions data from condition_defs
         self.conditions = {}
@@ -299,25 +303,27 @@ class SimulationDataEcoli(object):
                 self.condition_to_doubling_time[condition]
             )
 
-        # TODO: Decide whether to keep or discard this TF__active and TF_inactive conditions
-        # # Populate conditions and conditionToDboulingTime for active and inactive TF conditions
-        # basal_dt = self.condition_to_doubling_time["basal"]
-        # for tf in sorted(self.tf_to_active_inactive_conditions):
-        #     for status in ["active", "inactive"]:
-        #         condition = "{}__{}".format(tf, status)
-        #         nutrients = self.tf_to_active_inactive_conditions[tf][
-        #             "{} nutrients".format(status)
-        #         ]
-        #         self.conditions[condition] = {}
-        #         self.conditions[condition]["nutrients"] = nutrients
-        #         self.conditions[condition]["perturbations"] = (
-        #             self.tf_to_active_inactive_conditions[
-        #                 tf
-        #             ]["{} genotype perturbations".format(status)]
-        #         )
-        #         self.condition_to_doubling_time[condition] = (
-        #             self.nutrient_to_doubling_time.get(nutrients, basal_dt)
-        #         )
+        # Populate conditions and conditionToDoublingTime for active and inactive TF conditions
+        basal_dt = self.condition_to_doubling_time["basal"]
+        for tf in sorted(self.tf_to_active_inactive_conditions):
+            if self.tf_to_active_inactive_conditions[tf]["TF type"] not in ['0CS', '1CS', '2CS']:
+                continue
+
+            for status in ["active", "inactive"]:
+                condition = "{}__{}".format(tf, status)
+                nutrients = self.tf_to_active_inactive_conditions[tf][
+                    "{} nutrients".format(status)
+                ]
+                self.conditions[condition] = {}
+                self.conditions[condition]["nutrients"] = nutrients
+                self.conditions[condition]["perturbations"] = (
+                    self.tf_to_active_inactive_conditions[
+                        tf
+                    ]["{} genotype perturbations".format(status)]
+                )
+                self.condition_to_doubling_time[condition] = (
+                    self.nutrient_to_doubling_time.get(nutrients, basal_dt)
+                )
 
     def calculate_ppgpp_expression(self, condition: str):
         """
@@ -333,10 +339,12 @@ class SimulationDataEcoli(object):
                         expression for (eg. 'basal', 'with_aa', etc)
         """
 
+        # Get affinities with no TFs bound
         tau = self.condition_to_doubling_time[condition]
         ppgpp = self.growth_rate_parameters.get_ppGpp_conc(tau)
-
         aff = self.process.transcription.synth_aff_from_ppgpp(ppgpp)
+
+        # Account for two-peak transcription factors
         two_peak_data = self.process.transcription_regulation.two_peak_TU_data
         for i, TU_idx in enumerate(two_peak_data["TU_idx"]):
             condition_info = two_peak_data["condition"][i]
@@ -347,6 +355,26 @@ class SimulationDataEcoli(object):
             else:
                 raise ValueError("Condition not in two_peak_TU_data for TU idx {}".format(
                     str(TU_idx)))
+
+        # Account for old TF modeling transcription factors
+        delta_aff = self.process.transcription_regulation.get_delta_aff_matrix()
+        p_promoter_bound = np.array(
+            [
+                self.pPromoterBound[condition][tf]
+                for tf in self.process.transcription_regulation.old_tf_modeling_tf_ids
+            ]
+        )
+        delta = delta_aff @ p_promoter_bound
+        # Adjust so delta is proportional to the current affinity from ppGpp, to avoid negative
+        # affinities
+        with np.errstate(invalid="ignore", divide="ignore"):
+            adjustment = aff / self.process.transcription_regulation.basal_aff
+
+        # For cases with no basal ppGpp expression, assume the delta prob is the
+        # same as without ppGpp control
+        adjustment[~np.isfinite(adjustment)] = 1
+        aff += delta * adjustment
+        aff[aff < 0] = 0
 
         # Calculate RNA expression by accounting for copy number and loss rates
         growth = (np.log(2) / tau).asNumber(1 / units.s)
