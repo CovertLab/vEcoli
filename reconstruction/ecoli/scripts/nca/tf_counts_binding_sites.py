@@ -245,21 +245,30 @@ def make_plot():
         else:
             plot_tf_colors.append('k')
             excluded_tfs.append(tf)
+    plot_tf_colors = np.array(plot_tf_colors)
 
     direction_color_dict = {0: 'b', 1: 'r', 2: 'y'}
     tf_direction = get_tf_direction()
     plot_tf_dir_colors = [direction_color_dict[tf_direction[tf]] for tf in plot_tf_names]
 
-
-    fig, axs = plt.subplots(5, figsize=(15, 75))
-    axs[0].scatter(np.log2(plot_tf_site_counts), np.log2(plot_glucose_counts),
-                   s=5, c=plot_tf_colors)
+    c_to_label = {'b': 'no autoreg.',
+                   'r': 'positive autoreg.',
+                   'g': 'negative autoreg.',
+                   'y': 'pos. and neg. autoreg.'}
+    fig, axs = plt.subplots(5, figsize=(5, 25))
+    for c in np.unique(plot_tf_colors):
+        is_c = (plot_tf_colors == c)
+        axs[0].scatter(np.log2(plot_tf_site_counts[is_c]), np.log2(plot_glucose_counts[is_c]),
+                       s=5, c=c, label=c_to_label[c])
+    axs[0].legend()
     for i, txt in enumerate(plot_tf_names):
-        axs[0].annotate(txt, (np.log2(plot_tf_site_counts[i]),
-        np.log2(plot_glucose_counts[i])), size=10)
+        if txt == 'purr':
+            axs[0].annotate('PurR',
+                            (np.log2(plot_tf_site_counts[i]), np.log2(plot_glucose_counts[i])),
+                            size=10, c='g')
 
     axs[0].plot([0, 12], [0, 12])
-    axs[0].set_title("Counts vs binding sites. Blue: no autoreg, Red: pos autoreg, Green: neg autoreg, Yellow: pos and neg autoreg")
+    axs[0].set_title("TF counts vs genomic binding sites")
     axs[0].set_xlabel("log2(binding site counts), gene dosage adjusted")
     axs[0].set_ylabel("Counts in minimal media (1hr doubling time)")
 

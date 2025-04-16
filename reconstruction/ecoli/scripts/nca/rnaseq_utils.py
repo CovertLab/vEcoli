@@ -1232,11 +1232,12 @@ class PlotComponents(object):
 
 
     def plot_freq_components_grid(self, plot_file):
-        fig, axs = plt.subplots(2, figsize=(50, 150))
-        axs[0].pcolor(self.samples)
-        axs[0].set_xticks(np.arange(len(self.components))+0.5)
-        axs[0].set_xticklabels([sorted(list(x))[0] for x in self.components])
-
+        fig, axs = plt.subplots(2, figsize=(15, 30))
+        axs[0].pcolor(self.samples.T)
+        axs[0].set_yticks(np.arange(len(self.components))+0.5)
+        axs[0].set_yticklabels([sorted(list(x))[0] for x in self.components])
+        axs[0].set_ylabel("Components")
+        axs[0].set_xlabel("Samples (e.g. MOPS)")
         plt.tight_layout()
         plt.savefig(plot_file)
         plt.close('all')
@@ -1562,6 +1563,11 @@ class PlotComponents(object):
                 axs[3, 2 * j + 1].set_title("Has " + str(control_comp) + " not "
                                                       + str(exp_comp) + " " + str(
                     gene_names[j]))
+
+        for i in range(4):
+            for j in range(2 * len(expression)):
+                axs[i, j].set_xlabel("Log2(gene expression fraction), arbitrary units")
+                axs[i, j].set_ylabel("Frequency of samples")
 
         plt.tight_layout()
         plt.savefig(os.path.join(self.components_dir, plot_name))
