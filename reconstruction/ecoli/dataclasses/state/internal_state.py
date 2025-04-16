@@ -288,7 +288,7 @@ class InternalState(object):
             "TU_index": "i8",
             "coordinates": "i8",
             "domain_index": "i4",
-            "bound_TF": ("?", n_tf),
+            "bound_TF": ("?", n_old_tf),
         }
 
         self.unique_molecule.add_to_unique_state(
