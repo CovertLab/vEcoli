@@ -278,12 +278,17 @@ class InternalState(object):
         # - domain_index (32-bit int): Domain index of the chromosome domain
         # that the promoter belongs to. This value is used to split the
         # promoters at cell division and DNA replication.
+        # - bound_TF (boolean array of length n_old_tf): A boolean array that
+        # shows which TFs the promoter is bound to. Note that one promoter can
+        # bind to multiple TFs.
+        n_old_tf = len(sim_data.process.transcription_regulation.old_tf_modeling_tf_ids)
 
         promoter_mass = (units.g / units.mol) * np.zeros_like(RNAP_mass)
         promoter_attributes = {
             "TU_index": "i8",
             "coordinates": "i8",
             "domain_index": "i4",
+            "bound_TF": ("?", n_tf),
         }
 
         self.unique_molecule.add_to_unique_state(
