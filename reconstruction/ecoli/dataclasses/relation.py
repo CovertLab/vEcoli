@@ -160,7 +160,7 @@ class Relation(object):
         """
         tf_bind_site_to_tfs = sim_data.process.transcription_regulation.tf_bind_site_to_tfs
         tf_binding_site_ids = sim_data.process.transcription_regulation.tf_binding_site_ids
-        tf_ids = sim_data.process.transcription_regulation.tf_ids
+        tf_ids = sim_data.process.transcription_regulation.new_tf_modeling_tf_ids
 
         self._tf_binding_site_to_tfs_i = []
         self._tf_binding_site_to_tfs_j = []

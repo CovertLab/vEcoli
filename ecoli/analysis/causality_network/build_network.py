@@ -1051,8 +1051,10 @@ class BuildNetwork(object):
         Add regulation nodes with to the node list, and add edges connected to
         the regulation nodes to the edge list.
         """
+        # TODO: add new-tf-modeling to this TFs
+
         # Get list of transcription factor IDs and transcription unit IDs
-        tf_ids = self.sim_data.process.transcription_regulation.tf_ids
+        tf_ids = self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids
         rna_ids = self.sim_data.process.transcription.rna_data["id"]
         cistron_ids = self.sim_data.process.transcription.cistron_data["id"]
 

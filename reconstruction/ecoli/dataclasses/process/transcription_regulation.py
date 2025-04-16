@@ -27,7 +27,28 @@ class TranscriptionRegulation(object):
         self._build_oric_terc_coordinates(raw_data, sim_data)
 
         # Store list of transcription factor IDs
-        self.tf_ids = list(sorted(sim_data.tf_to_active_inactive_conditions.keys()))
+        tf_ids = list(sorted(sim_data.tf_to_active_inactive_conditions.keys()))
+
+        # Build dictionaries mapping transcription factors to their bound form,
+        # and to their regulating type
+        self.active_to_bound = {
+            x["active TF"]: x["metabolite bound form"]
+            for x in raw_data.tf_one_component_bound
+        }
+        self.tf_to_tf_type = {
+            x["active TF"]: x["TF type"] for x in raw_data.condition.tf_condition
+        }
+        self.tf_to_gene_id = {
+            x["active TF"]: x["TF"] for x in raw_data.condition.tf_condition
+        }
+
+        # Create list to store which TFs are modeled with old-tf-modeling
+        # Should only be used internally, to set sizes of binding matrices, etc.,
+        # all listener outputs should use the total tf_ids.
+        self.old_tf_modeling_tf_ids = list(sorted([x for x in tf_ids
+                                       if self.tf_to_tf_type[x] in ["0CS", "1CS", "2CS"]]))
+        self.new_tf_modeling_tf_ids = list(sorted([x for x in tf_ids
+                                    if x not in self.old_tf_modeling_tf_ids]))
 
         # Store index of tf_binding_site unique object specifying no TF is bound
         self.unbound_tf_binding_site_idx = UNBOUND_TF_BINDING_SITE_IDX
@@ -53,33 +74,6 @@ class TranscriptionRegulation(object):
 
             for targetToRemove in targetsToRemove:
                 sim_data.tf_to_fold_change[tf].pop(targetToRemove)
-
-        # Build dictionaries mapping transcription factors to their bound form,
-        # and to their regulating type
-        self.active_to_bound = {
-            x["active TF"]: x["metabolite bound form"]
-            for x in raw_data.tf_one_component_bound
-        }
-        self.tf_to_tf_type = {
-            x["active TF"]: x["TF type"] for x in raw_data.condition.tf_condition
-        }
-        self.tf_to_gene_id = {
-            x["active TF"]: x["TF"] for x in raw_data.condition.tf_condition
-        }
-
-        # Create list to store which TFs are modeled with old-tf-modeling
-        # Should only be used internally, to set sizes of binding matrices, etc.,
-        # all listener outputs should use the total tf_ids.
-        self.old_tf_modeling_tf_ids = list(sorted([x for x in self.tf_ids
-                                       if self.tf_to_tf_type[x] in ["0CS", "1CS", "2CS"]]))
-        self.new_tf_modeling_tf_ids = list(sorted([x for x in self.tf_ids
-                                    if x not in self.old_tf_modeling_tf_ids]))
-        self.old_to_all_tf_idx = {
-            i: self.tf_ids.index(x) for i, x in enumerate(self.old_tf_modeling_tf_ids)
-        }
-        self.new_to_all_tf_idx = {
-            i: self.tf_ids.index(x) for i, x in enumerate(self.new_tf_modeling_tf_ids)
-        }
 
         # Initialize different categories of transcriptional regulation from raw_data.
         # Will be further modified to add simulation parameters during parca.
@@ -334,7 +328,7 @@ class TranscriptionRegulation(object):
         valid_conditions = [x["condition"] for x in raw_data.condition.condition_defs]
         for row in raw_data.tf_regulations_two_peaks:
             two_peak_gene_ids.append(gene_symbol_to_id[row["regulated_gene"]])
-            two_peak_tf_idxs.append(self.tf_ids.index(self.abbr_to_active_id[row["TF"]][0]))
+            two_peak_tf_idxs.append(self.new_tf_modeling_tf_ids.index(self.abbr_to_active_id[row["TF"]][0]))
 
             # TODO: should these checks be here or later on? should there be errors or just ignore
             # if it's not valid?

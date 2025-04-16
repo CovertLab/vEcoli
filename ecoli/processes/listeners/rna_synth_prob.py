@@ -40,10 +40,12 @@ class RnaSynthProb(Step):
         super().__init__(parameters)
         self.rna_ids = self.parameters["rna_ids"]
         self.gene_ids = self.parameters["gene_ids"]
-        self.tf_ids = self.parameters["tf_ids"]
+        self.old_tf_ids = self.parameters["old_tf_ids"]
+        self.new_tf_ids = self.parameters["new_tf_ids"]
         self.cistron_ids = self.parameters["cistron_ids"]
         self.n_TU = len(self.rna_ids)
-        self.n_TF = len(self.tf_ids)
+        self.n_old_TF = len(self.old_tf_ids)
+        self.n_new_TF = len(self.new_tf_ids)
         self.n_cistron = len(self.cistron_ids)
         self.cistron_tu_mapping_matrix = self.parameters["cistron_tu_mapping_matrix"]
 
@@ -70,8 +72,14 @@ class RnaSynthProb(Step):
                         [0.0] * self.n_cistron,
                         self.cistron_ids,
                     ),
-                    "n_bound_TF_per_TU": ([[0] * self.n_TF] * self.n_TU, self.rna_ids),
-                    "n_bound_TF_per_cistron": ([], self.cistron_ids),
+                    "old_tf_binding": {
+                        "n_bound_TF_per_TU": ([[0] * self.n_old_TF] * self.n_TU, self.rna_ids),
+                        "n_bound_TF_per_cistron": ([], self.cistron_ids),
+                    },
+                    "new_tf_binding": {
+                        "n_bound_TF_per_TU": ([[0] * self.n_new_TF] * self.n_TU, self.rna_ids),
+                        "n_bound_TF_per_cistron": ([], self.cistron_ids),
+                    },
                     "total_rna_init": 0,
                 }
             ),
@@ -129,10 +137,19 @@ class RnaSynthProb(Step):
                 "expected_rna_init_per_cistron": expected_rna_init_per_cistron,
                 "actual_rna_synth_prob_per_cistron": actual_rna_synth_prob_per_cistron,
                 "target_rna_synth_prob_per_cistron": target_rna_synth_prob_per_cistron,
-                "n_bound_TF_per_cistron": self.cistron_tu_mapping_matrix.dot(
-                    states["rna_synth_prob"]["n_bound_TF_per_TU"]
-                )
-                .astype(np.int16)
-                .T,
+                "old_tf_binding": {
+                    "n_bound_TF_per_cistron": self.cistron_tu_mapping_matrix.dot(
+                        states["rna_synth_prob"]["old_tf_binding"]["n_bound_TF_per_TU"]
+                    )
+                        .astype(np.int16)
+                        .T,
+                },
+                "new_tf_binding": {
+                    "n_bound_TF_per_cistron": self.cistron_tu_mapping_matrix.dot(
+                        states["rna_synth_prob"]["new_tf_binding"]["n_bound_TF_per_TU"]
+                    )
+                        .astype(np.int16)
+                        .T,
+                }
             }
         }

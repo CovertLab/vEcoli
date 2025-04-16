@@ -221,7 +221,7 @@ class LoadSimData:
             # Assume marA (PD00365) controls the entire tetracycline
             # gene expression program and marR (CPLX0-7710) is inactivated
             # by complexation with tetracycline
-            treg_alias.tf_ids += ["PD00365", "CPLX0-7710"]
+            treg_alias.old_tf_modeling_tf_ids += ["PD00365", "CPLX0-7710"]
             treg_alias.delta_aff["shape"] = (
                 treg_alias.delta_aff["shape"][0],
                 treg_alias.delta_aff["shape"][1] + 2,
@@ -1576,7 +1576,8 @@ class LoadSimData:
             "rna_sequences": transcription.transcription_sequences,
             "protein_sequences": self.sim_data.process.translation.translation_sequences,
             "n_TUs": len(transcription.rna_data),
-            "n_TFs": len(self.sim_data.process.transcription_regulation.tf_ids),
+            "n_old_TFs": len(self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids),
+            "n_new_TFs": len(self.sim_data.process.transcription_regulation.new_tf_modeling_tf_ids),
             "rna_ids": transcription.rna_data["id"],
             "n_amino_acids": len(self.sim_data.molecule_groups.amino_acids),
             "n_fragment_bases": len(self.sim_data.molecule_groups.polymerized_ntps),
@@ -1599,8 +1600,11 @@ class LoadSimData:
             "inactive_RNAPs": self.sim_data.molecule_ids.full_RNAP,
             "fragmentBases": self.sim_data.molecule_groups.polymerized_ntps,
             "ppi": self.sim_data.molecule_ids.ppi,
-            "active_tfs": [
-                x + "[c]" for x in self.sim_data.process.transcription_regulation.tf_ids
+            "active_old_tfs": [
+                x + "[c]" for x in self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids
+            ],
+            "active_new_tfs": [
+                x + "[c]" for x in self.sim_data.process.transcription_regulation.new_tf_modeling_tf_ids
             ],
             "unbound_tf_binding_site_idx": self.sim_data.process.transcription_regulation.unbound_tf_binding_site_idx,
             "ribosome_30S_subunit": self.sim_data.molecule_ids.s30_full_complex,
@@ -1711,7 +1715,7 @@ class LoadSimData:
     def get_tf_unbinding_config(self, time_step=1):
         config = {
             "time_step": time_step,
-            "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
+            "tf_ids": self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids,
             "submass_indices": self.submass_indices,
             "emit_unique": self.emit_unique,
         }
@@ -1731,7 +1735,8 @@ class LoadSimData:
             "time_step": time_step,
             "gene_ids": self.sim_data.process.transcription.cistron_data["gene_id"],
             "rna_ids": self.sim_data.process.transcription.rna_data["id"],
-            "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
+            "old_tf_ids": self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids,
+            "new_tf_ids": self.sim_data.process.transcription_regulation.new_tf_modeling_tf_ids,
             "cistron_ids": self.sim_data.process.transcription.cistron_data["gene_id"],
             "cistron_tu_mapping_matrix": self.sim_data.process.transcription.cistron_tu_mapping_matrix,
             "emit_unique": self.emit_unique,

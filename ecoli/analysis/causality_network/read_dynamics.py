@@ -92,8 +92,8 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
         ("listeners", "rna_synth_prob", "actual_rna_synth_prob_per_cistron"),
         ("listeners", "rna_synth_prob", "promoter_copy_number"),
         ("listeners", "rna_synth_prob", "gene_copy_number"),
-        ("listeners", "rna_synth_prob", "n_bound_TF_per_TU"),
-        ("listeners", "rna_synth_prob", "n_bound_TF_per_cistron"),
+        ("listeners", "rna_synth_prob", "old_tf_binding", "n_bound_TF_per_TU"),
+        ("listeners", "rna_synth_prob", "old_tf_binding", "n_bound_TF_per_cistron"),
         ("listeners", "rna_counts", "mRNA_counts"),
         ("listeners", "rna_maturation_listener", "unprocessed_rnas_consumed"),
         ("listeners", "rnap_data", "rna_init_event"),
@@ -114,13 +114,14 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
     # Reshape arrays for number of bound transcription factors
     n_TU = len(sim_data.process.transcription.rna_data["id"])
     n_cistron = len(sim_data.process.transcription.cistron_data["id"])
-    n_TF = len(sim_data.process.transcription_regulation.tf_ids)
+    n_TF = len(sim_data.process.transcription_regulation.old_tf_modeling_tf_ids)
 
-    timeseries["listeners"]["rna_synth_prob"]["n_bound_TF_per_cistron"] = np.array(
-        timeseries["listeners"]["rna_synth_prob"]["n_bound_TF_per_cistron"]
+    # TODO: add new-tf-modeling TFs to this
+    timeseries["listeners"]["rna_synth_prob"]["old_tf_binding"]["n_bound_TF_per_cistron"] = np.array(
+        timeseries["listeners"]["rna_synth_prob"]["old_tf_binding"]["n_bound_TF_per_cistron"]
     ).reshape(-1, n_cistron, n_TF)
-    timeseries["listeners"]["rna_synth_prob"]["n_bound_TF_per_TU"] = np.array(
-        timeseries["listeners"]["rna_synth_prob"]["n_bound_TF_per_TU"]
+    timeseries["listeners"]["rna_synth_prob"]["old_tf_binding"]["n_bound_TF_per_TU"] = np.array(
+        timeseries["listeners"]["rna_synth_prob"]["old_tf_binding"]["n_bound_TF_per_TU"]
     ).reshape(-1, n_TU, n_TF)
 
     conversion_coeffs = (
@@ -178,7 +179,7 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
     ]["_properties"]["metadata"]
     indexes["UnprocessedRnas"] = build_index_dict(unprocessed_rna_ids)
 
-    tf_ids = sim_data.process.transcription_regulation.tf_ids
+    tf_ids = sim_data.process.transcription_regulation.old_tf_modeling_tf_ids
     indexes["TranscriptionFactors"] = build_index_dict(tf_ids)
 
     trna_ids = sim_data.process.transcription.uncharged_trna_names

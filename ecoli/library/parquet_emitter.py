@@ -33,8 +33,10 @@ containing schema unified over all cells in this simulation.
 """
 
 USE_UINT16 = {
-    "listeners__rna_synth_prob__n_bound_TF_per_TU",
-    "listeners__rna_synth_prob__n_bound_TF_per_cistron",
+    "listeners__rna_synth_prob__new_tf_binding__n_bound_TF_per_TU",
+    "listeners__rna_synth_prob__new_tf_binding__n_bound_TF_per_cistron",
+    "listeners__rna_synth_prob__old_tf_binding__n_bound_TF_per_TU",
+    "listeners__rna_synth_prob__old_tf_binding__n_bound_TF_per_cistron",
     "listeners__rnap_data__rna_init_event_per_cistron",
     "listeners__rna_synth_prob__gene_copy_number",
     "listeners__rna_synth_prob__expected_rna_init_per_cistron",

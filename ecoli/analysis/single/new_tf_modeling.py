@@ -119,7 +119,7 @@ def plot(
     tf_binding_dict = {
         tf: i
         for i, tf in enumerate(
-            get_field_metadata(conn, config_sql, "listeners__rna_synth_prob__n_binding_events")
+            get_field_metadata(conn, config_sql, "listeners__rna_synth_prob__new_tf_binding__n_binding_events")
         )
     }
     purR_tf_idx = cast(int, tf_binding_dict[purR_bound_id])
@@ -147,19 +147,19 @@ def plot(
         "listeners__enzyme_kinetics__metabolite_counts_final", [hypoxanthine_name], [hypoxanthine_metab_idx]
     )
     purR_tf_binding = named_idx(
-        "listeners__rna_synth_prob__n_binding_events", [purR_tf_binding_name], [purR_tf_idx]
+        "listeners__rna_synth_prob__new_tf_binding__n_binding_events", [purR_tf_binding_name], [purR_tf_idx]
     )
     purR_tf_unbinding = named_idx(
-        "listeners__rna_synth_prob__n_unbinding_events", [purR_tf_unbinding_name], [purR_tf_idx]
+        "listeners__rna_synth_prob__new_tf_binding__n_unbinding_events", [purR_tf_unbinding_name], [purR_tf_idx]
     )
     purR_tf_bound_binding_sites = named_idx(
-        "listeners__rna_synth_prob__n_bound_binding_sites", [purR_tf_bound_binding_sites_name], [purR_tf_idx]
+        "listeners__rna_synth_prob__new_tf_binding__n_bound_binding_sites", [purR_tf_bound_binding_sites_name], [purR_tf_idx]
     )
     purR_tf_available_binding_sites = named_idx(
-        "listeners__rna_synth_prob__n_available_binding_sites", [purR_tf_avail_binding_sites_name], [purR_tf_idx]
+        "listeners__rna_synth_prob__new_tf_binding__n_available_binding_sites", [purR_tf_avail_binding_sites_name], [purR_tf_idx]
     )
     purR_bound_to_purC = ndidx_to_duckdb_expr(
-        "listeners__rna_synth_prob__n_bound_TF_per_TU", [purC_tu_idx, purR_tf_idx]
+        "listeners__rna_synth_prob__new_tf_binding__n_bound_TF_per_TU", [purC_tu_idx, purR_tf_idx]
     )
 
     # Extract data
@@ -172,10 +172,10 @@ def plot(
          "listeners__rna_synth_prob__rna_synth_aff",
          "bulk",
          "listenners__enzyme_kinetics__metabolite_counts_final",
-         "listeners__rna_synth_prob__n_binding_events",
-         "listeners__rna_synth_prob__n_unbinding_events",
-         "listeners__rna_synth_prob__n_bound_binding_sites",
-         "listeners__rna_synth_prob__n_available_binding_sites"],
+         "listeners__rna_synth_prob__new_tf_binding__n_binding_events",
+         "listeners__rna_synth_prob__new_tf_binding__n_unbinding_events",
+         "listeners__rna_synth_prob__new_tf_binding__n_bound_binding_sites",
+         "listeners__rna_synth_prob__new_tf_binding__n_available_binding_sites"],
         [purC_mRNA, purC_purR_monomers, purC_gene, purC_rna_synth_prob, purC_rna_synth_aff,
          purR_bulk, hypoxanthine_metab_counts, purR_tf_binding, purR_tf_unbinding,
          purR_tf_bound_binding_sites, purR_tf_available_binding_sites],
