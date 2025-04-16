@@ -1,0 +1,61 @@
+{
+    "sim_data_path": "test_purine_metab_find_kcat/test_purine_metab_find_kcat/parca/kb/simData.cPickle",
+    "emitter" : "parquet",
+    "emitter_arg": {"out_dir": "test_purine_metab_find_kcat"},
+
+    "total_time": 2000.0,
+
+    "daughter_outdir": "test_purine_metab_find_kcat",
+
+    "parca_options": {
+        "outdir": "test_purine_metab_find_kcat"
+    },
+    "initial_state_file": "daughter_state_0",
+
+    "analysis_options": {
+        "single": {"purine_metab_analysis": {}},
+        "outdir": "test_purine_metab_find_kcat",
+        "experiment_id": ["9c058504-0164-11f0-9519-9ec9eb9437a8"],
+        "variant_data_dir": ["test_purine_metab_find_kcat/test_purine_metab_find_kcat/variant_sim_data"],
+        "validation_data_path": ["test_purine_metab_find_kcat/parca/kb/validationData.cPickle"]
+    },
+    "variants": {
+        "condition": {
+            "condition": {
+                "value": ["basal"]
+            }
+        }
+    },
+    "outdir": "test_purine_metab_find_kcat/test_purine_metab_find_kcat/variant_sim_data",
+    "kb": "test_purine_metab_find_kcat/test_purine_metab_find_kcat/parca/kb",
+
+    "add_processes": ["ecoli-tf-ligand-binding"],
+    "exclude_processes" : ["ecoli-tf-unbinding", "exchange_data"],
+    "swap_processes" : {
+        "ecoli-metabolism" : "ecoli-metabolism-redux"
+    },
+    "process_configs": {
+        "ecoli-metabolism-redux": {
+            "mechanistic_aa_transport": false
+        },
+        "ecoli-polypeptide-elongation": {
+            "mechanistic_aa_transport": false,
+            "mechanistic_translation_supply": false,
+            "aa_supply_in_charging": false,
+            "translation_supply": false
+        }
+    },
+    "flow": {
+        "ecoli-metabolism-redux": [["ecoli-chromosome-structure"]],
+        "ecoli-mass-listener": [["ecoli-metabolism-redux"]],
+        "RNA_counts_listener": [["ecoli-metabolism-redux"]],
+        "rna_synth_prob_listener": [["ecoli-metabolism-redux"]],
+        "monomer_counts_listener": [["ecoli-metabolism-redux"]],
+        "dna_supercoiling_listener": [["ecoli-metabolism-redux"]],
+        "replication_data_listener": [["ecoli-metabolism-redux"]],
+        "rnap_data_listener": [["ecoli-metabolism-redux"]],
+        "unique_molecule_counts": [["ecoli-metabolism-redux"]],
+        "ribosome_data_listener": [["ecoli-metabolism-redux"]],
+        "ecoli-tf-ligand-binding": [["ecoli-tf-unbinding"]]
+    }
+}
