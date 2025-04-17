@@ -85,7 +85,7 @@
         "ecoli-two-component-system",
         "ecoli-rna-maturation",
 
-        "ecoli-tf-binding",
+        "ecoli-old-tf-binding",
 
         "ecoli-transcript-initiation",
         "ecoli-polypeptide-initiation",
@@ -137,14 +137,14 @@
         "ecoli-two-component-system": [["ecoli-tf-unbinding"]],
         "ecoli-rna-maturation": [["ecoli-tf-unbinding"]],
 
-        "ecoli-tf-binding": [["ecoli-equilibrium"]],
+        "ecoli-old-tf-binding": [["ecoli-equilibrium"]],
 
-        "ecoli-transcript-initiation": [["ecoli-tf-binding"]],
-        "ecoli-polypeptide-initiation": [["ecoli-tf-binding"]],
-        "ecoli-chromosome-replication": [["ecoli-tf-binding"]],
-        "ecoli-protein-degradation": [["ecoli-tf-binding"]],
-        "ecoli-rna-degradation": [["ecoli-tf-binding"]],
-        "ecoli-complexation": [["ecoli-tf-binding"]],
+        "ecoli-transcript-initiation": [["ecoli-old-tf-binding"]],
+        "ecoli-polypeptide-initiation": [["ecoli-old-tf-binding"]],
+        "ecoli-chromosome-replication": [["ecoli-old-tf-binding"]],
+        "ecoli-protein-degradation": [["ecoli-old-tf-binding"]],
+        "ecoli-rna-degradation": [["ecoli-old-tf-binding"]],
+        "ecoli-complexation": [["ecoli-old-tf-binding"]],
 
         "ecoli-transcript-elongation": [["ecoli-complexation"]],
         "ecoli-polypeptide-elongation": [["ecoli-complexation"]],

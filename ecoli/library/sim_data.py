@@ -560,8 +560,8 @@ class LoadSimData:
 
     def get_config_by_name(self, name, time_step=1):
         name_config_mapping = {
-            "ecoli-new-tf-binding": self.get_new-tf_binding_config,
-            "ecoli-old-tf-binding": self.get_old-tf_binding_config,
+            "ecoli-new-tf-binding": self.get_new_tf_binding_config,
+            "ecoli-old-tf-binding": self.get_old_tf_binding_config,
             "ecoli-transcript-initiation": self.get_transcript_initiation_config,
             "ecoli-transcript-elongation": self.get_transcript_elongation_config,
             "ecoli-rna-degradation": self.get_rna_degradation_config,
@@ -672,7 +672,7 @@ class LoadSimData:
             "n_avogadro": self.sim_data.constants.n_avogadro,
             "cell_density": self.sim_data.constants.cell_density,
             # TODO: not sure if will need this later
-            #"tf_to_tf_type": self.sim_data.process.transcription_regulation.tf_to_tf_type,
+            # "tf_to_tf_type": self.sim_data.process.transcription_regulation.tf_to_tf_type,
             "bulk_molecule_ids": self.sim_data.internal_state.bulk_molecules.bulk_data[
                 "id"
             ],
@@ -691,20 +691,21 @@ class LoadSimData:
             "time_step": time_step,
             "tf_ids": self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids,
             "rna_ids": self.sim_data.process.transcription.rna_data["id"],
-            "get_binding_unbinding_matrices": self.sim_data.process.transcription_regulation.get_tf_binding_unbinding_matrices,
-            "tf_binding_site_unbound_idx": self.sim_data.process.transcription_regulation.unbound_tf_binding_site_idx,
-            "get_tf_binding_site_to_TU_matrix": self.sim_data.relation.tf_binding_site_to_tus_mapping,
+            "delta_aff": self.sim_data.process.transcription_regulation.delta_aff,
             "n_avogadro": self.sim_data.constants.n_avogadro,
             "cell_density": self.sim_data.constants.cell_density,
-            # TODO: not sure if will need this later
-            #"tf_to_tf_type": self.sim_data.process.transcription_regulation.tf_to_tf_type,
+            "p_promoter_bound_tf": self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
+            "tf_to_tf_type": self.sim_data.process.transcription_regulation.tf_to_tf_type,
+            "active_to_bound": self.sim_data.process.transcription_regulation.active_to_bound,
+            "get_unbound": self.sim_data.process.equilibrium.get_unbound,
+            "active_to_inactive_tf": self.sim_data.process.two_component_system.active_to_inactive_tf,
             "bulk_molecule_ids": self.sim_data.internal_state.bulk_molecules.bulk_data[
                 "id"
             ],
             "bulk_mass_data": self.sim_data.internal_state.bulk_molecules.bulk_data[
                 "mass"
             ],
-            "seed": self._seedFromName("OldTfBinding"),
+            "seed": self._seedFromName("TfBinding"),
             "submass_indices": self.submass_indices,
             "emit_unique": self.emit_unique,
         }
@@ -1578,8 +1579,12 @@ class LoadSimData:
             "rna_sequences": transcription.transcription_sequences,
             "protein_sequences": self.sim_data.process.translation.translation_sequences,
             "n_TUs": len(transcription.rna_data),
-            "n_old_TFs": len(self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids),
-            "n_new_TFs": len(self.sim_data.process.transcription_regulation.new_tf_modeling_tf_ids),
+            "n_old_TFs": len(
+                self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids
+            ),
+            "n_new_TFs": len(
+                self.sim_data.process.transcription_regulation.new_tf_modeling_tf_ids
+            ),
             "rna_ids": transcription.rna_data["id"],
             "n_amino_acids": len(self.sim_data.molecule_groups.amino_acids),
             "n_fragment_bases": len(self.sim_data.molecule_groups.polymerized_ntps),
@@ -1603,10 +1608,12 @@ class LoadSimData:
             "fragmentBases": self.sim_data.molecule_groups.polymerized_ntps,
             "ppi": self.sim_data.molecule_ids.ppi,
             "active_old_tfs": [
-                x + "[c]" for x in self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids
+                x + "[c]"
+                for x in self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids
             ],
             "active_new_tfs": [
-                x + "[c]" for x in self.sim_data.process.transcription_regulation.new_tf_modeling_tf_ids
+                x + "[c]"
+                for x in self.sim_data.process.transcription_regulation.new_tf_modeling_tf_ids
             ],
             "unbound_tf_binding_site_idx": self.sim_data.process.transcription_regulation.unbound_tf_binding_site_idx,
             "ribosome_30S_subunit": self.sim_data.molecule_ids.s30_full_complex,
