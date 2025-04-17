@@ -111,6 +111,16 @@ BAD_RXNS.extend(
     ]
 )
 
+# Block unrealistic/unconfirmed export for purine metabolism modeling
+BAD_RXNS.extend(
+    [
+        "TRANS-RXN0-530",  # Urate export, protein thought to be an importer
+        "TRANS-RXN0-579",  # Hypoxanthine export, no enzyme identified
+        "RXN-5076",  # Xanthine proton symport, maybe mostly import?
+        "TRANS-RXN0-561",  # Xanthine export, no protein identified
+    ]
+)
+
 FREE_RXNS = [
     "TRANS-RXN-145",
     "TRANS-RXN0-545",
