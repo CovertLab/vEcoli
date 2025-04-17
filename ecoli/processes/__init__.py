@@ -60,6 +60,7 @@ from ecoli.processes.global_clock import GlobalClock
 from ecoli.processes.antibiotics.murein_division import MureinDivision
 from ecoli.processes.bulk_timeline import BulkTimelineProcess
 
+from ecoli.processes.vkecoli.kecoli_cell import KecoliCell
 
 # add to registry
 process_registry.register(TfUnbinding.name, TfUnbinding)
@@ -94,6 +95,8 @@ process_registry.register(Allocator.name, Allocator)
 process_registry.register(Shape.name, Shape)
 process_registry.register(ConcentrationsDeriver.name, ConcentrationsDeriver)
 process_registry.register(Aggregator.name, Aggregator)
+
+process_registry.register(KecoliCell)
 
 # environment processes
 process_registry.register(Lysis.name, Lysis)
