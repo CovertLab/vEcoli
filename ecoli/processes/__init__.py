@@ -96,6 +96,7 @@ process_registry.register(Shape.name, Shape)
 process_registry.register(ConcentrationsDeriver.name, ConcentrationsDeriver)
 process_registry.register(Aggregator.name, Aggregator)
 
+# kecoli processes
 process_registry.register(KecoliCell)
 
 # environment processes

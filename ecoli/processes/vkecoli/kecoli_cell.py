@@ -10,6 +10,16 @@ import matplotlib.pyplot as plt
 from utils.updater import bulk_numpy_updater, get_bulk_counts, divide_bulk
 import os
 
+
+from ecoli.processes.registries import topology_registry
+
+# Register default topology for this process, associating it with process name
+NAME = "ecoli-complexation"
+TOPOLOGY = {"bulk": ("bulk",), "listeners": ("listeners",), "timestep": ("timestep",)}
+topology_registry.register(NAME, TOPOLOGY)
+
+
+
 DEFAULT_MODEL_FILE = os.path.join('models','k-ecoli74.xml')
 
 
