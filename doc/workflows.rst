@@ -514,9 +514,12 @@ There are three main ways to monitor a workflow's progress.
 
 .. danger::
     Any changes that are made to the cloned repository while a workflow is running
-    will immediately affect workflow jobs submitted after the change. For example,
-    modifying ``runscripts/analysis.py`` will affect all subsequent analysis jobs
-    in a running workflow.
+    **on a local computer** will immediately affect workflow jobs submitted after
+    the change. For example, modifying ``runscripts/analysis.py`` will affect all
+    subsequent analysis jobs in a running workflow. This does not apply to workflows
+    run on :doc:`Google Cloud <../gcloud>` or :doc:`Sherlock <../hpc>`, where
+    a snapshot of the repository is packaged into the container image used to
+    run the workflow.
 
 The warning above only applies to files in the repository that are actively executed or
 used during a workflow (ParCa, variant creation, simulation, analysis). Notably,
