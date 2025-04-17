@@ -1,9 +1,12 @@
 import argparse
 import json
 import os
+import pathlib
+import random
 import shutil
 import subprocess
-import warnings
+import sys
+import time
 from datetime import datetime
 from urllib import parse
 
@@ -201,7 +204,9 @@ def generate_lineage(
     if analysis_config.get("multidaughter", False) and not single_daughters:
         # Channel that groups sim tasks by variant sim_data, initial seed, and generation
         # When simulating both daughters, will have >1 cell for generation >1
-        gen_size = "[" + ", ".join([f"{g+1}: {2**g}" for g in range(generations)]) + "]"
+        gen_size = (
+            "[" + ", ".join([f"{g + 1}: {2**g}" for g in range(generations)]) + "]"
+        )
         sim_workflow.append(MULTIDAUGHTER_CHANNEL.format(gen_size=gen_size))
         sim_workflow.append(
             "\tanalysisMultiDaughter(params.config, kb, multiDaughterCh, "
@@ -256,28 +261,14 @@ def generate_code(config):
     return "\n".join(run_parca), "\n".join(sim_imports), "\n".join(sim_workflow)
 
 
-def build_runtime_image(image_name, apptainer=False):
+def build_image_cmd(image_name, apptainer=False) -> list[str]:
     build_script = os.path.join(
-        os.path.dirname(__file__), "container", "build-runtime.sh"
+        os.path.dirname(__file__), "container", "build-image.sh"
     )
-    cmd = [build_script, "-r", image_name]
+    cmd = [build_script, "-i", image_name]
     if apptainer:
         cmd.append("-a")
-    subprocess.run(cmd, check=True)
-
-
-def build_wcm_image(image_name, runtime_image_name):
-    build_script = os.path.join(os.path.dirname(__file__), "container", "build-wcm.sh")
-    if runtime_image_name is None:
-        warnings.warn(
-            "No runtime image name supplied. By default, "
-            "we build the model image from the runtime "
-            "image with name " + os.environ["USER"] + '-wcm-code." '
-            'If this is correct, add this under "gcloud" > '
-            '"runtime_image_name" in your config JSON.'
-        )
-    cmd = [build_script, "-w", image_name, "-r", runtime_image_name]
-    subprocess.run(cmd, check=True)
+    return cmd
 
 
 def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):
@@ -294,6 +285,158 @@ def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):
     with filesystem.open_output_stream(dest) as stream:
         with open(source, "rb") as f:
             stream.write(f.read())
+
+
+def check_job_state(job_id, timeout_seconds=3600, sleep_interval=30):
+    """
+    Check the state of a SLURM job until it completes or fails.
+
+    Args:
+        job_id: The SLURM job ID to check
+        timeout_seconds: Maximum time to wait in seconds (default: 1 hour)
+        sleep_interval: Time to sleep between checks in seconds (default: 30 seconds)
+
+    Returns:
+        True if job completed successfully, False otherwise
+    """
+    print(f"Checking final status of job {job_id}...")
+    start_time = time.time()
+
+    while time.time() - start_time < timeout_seconds:
+        # Get the current job state using sacct
+        try:
+            result = subprocess.run(
+                ["sacct", "-j", job_id, "-o", "State", "-n", "--parsable2"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
+            )
+            state_output = result.stdout.strip()
+
+            # Handle empty output
+            if not state_output:
+                print(
+                    f"No state information found for job {job_id}, checking if it's in the queue..."
+                )
+                # Check if job is in the queue at all
+                queue_result = subprocess.run(
+                    ["squeue", "-j", job_id, "-h"],
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                if queue_result.returncode != 0 or not queue_result.stdout.strip():
+                    print(
+                        f"Job {job_id} is not in the queue and has no records in sacct."
+                    )
+                    # Wait a bit in case sacct is delayed in updating
+                    time.sleep(sleep_interval)
+                    continue
+
+            # Split by newline and take the first line (main job state)
+            job_state = state_output.split("\n")[0]
+
+            # Check terminal states
+            if job_state == "COMPLETED":
+                print(f"Job {job_id} completed successfully.")
+                return True
+            elif job_state in (
+                "FAILED",
+                "TIMEOUT",
+                "CANCELLED",
+                "NODE_FAIL",
+                "PREEMPTED",
+            ):
+                print(f"Job {job_id} failed with state {job_state}")
+                return False
+            elif job_state in ("RUNNING", "PENDING", "CONFIGURING", "COMPLETING"):
+                print(f"Job {job_id} is in state {job_state}, waiting...")
+            else:
+                print(f"Job {job_id} is in state {job_state}, continuing to monitor...")
+
+        except subprocess.CalledProcessError as e:
+            print(f"Error checking job state: {e}")
+            print(f"stderr: {e.stderr}")
+
+        # Sleep before checking again
+        time.sleep(sleep_interval)
+
+    # If we get here, we've timed out
+    print(
+        f"Timed out waiting for job {job_id} to complete after {timeout_seconds} seconds"
+    )
+    return False
+
+
+def forward_sbatch_output(
+    batch_script: str,
+    output_log: str,
+    timeout_seconds: int = 3600,
+):
+    """
+    Submit a SLURM job that is configured to pipe its output to a log file.
+    Then, monitor the log file with `tail -f` and print the output to stdout.
+    This function will exit when the job completes.
+    """
+    # Delete any pre-existing log file
+    log_path = pathlib.Path(output_log)
+    if log_path.exists():
+        log_path.unlink()
+
+    # Submit the job and get the job ID
+    result = subprocess.run(
+        ["sbatch", "--parsable", batch_script],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+    )
+    job_id = result.stdout.strip().split(";")[0]
+
+    print(f"Submitted SLURM job {job_id}, log file: {output_log}")
+
+    # Track last position read in output log file
+    last_position = 0
+
+    while True:
+        # Read any new content from the log file
+        if log_path.exists():
+            with open(output_log, "r") as f:
+                # Move to where we left off
+                f.seek(last_position)
+
+                # Read and print new content
+                new_content = f.read()
+                if new_content:
+                    print(new_content, end="", flush=True)
+
+                # Remember where we are now
+                last_position = f.tell()
+
+        # Check if job is still running
+        job_status = subprocess.run(
+            ["squeue", "-j", job_id, "-h", "-o", "%t"],
+            text=True,
+            stdout=subprocess.PIPE,
+        ).stdout.strip()
+
+        # If job no longer exists in queue
+        if not job_status:
+            # Catch up with final output
+            time.sleep(5)
+            with open(output_log, "r") as f:
+                f.seek(last_position)
+                new_content = f.read()
+                if new_content:
+                    print(new_content, end="", flush=True)
+            break
+
+        # Wait a bit before checking job status again
+        time.sleep(30)
+
+    # Final check of job success
+    if not check_job_state(job_id, timeout_seconds):
+        sys.exit(1)
 
 
 def main():
@@ -363,6 +506,9 @@ def main():
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
         config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
+    # Use random seed for Jenkins CI runs
+    if config.get("sherlock", {}).get("jenkins", False):
+        config["lineage_seed"] = random.randint(0, 2**31 - 1)
     filesystem, outdir = fs.FileSystem.from_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
     out_uri = os.path.join(out_uri, experiment_id, "nextflow")
@@ -406,54 +552,40 @@ def main():
             text=True,
         ).stdout.strip()
         image_prefix = f"{region}-docker.pkg.dev/{project_id}/vecoli/"
-        runtime_image_name = cloud_config.get("runtime_image_name", None)
-        if cloud_config.get("build_runtime_image", False):
-            if runtime_image_name is None:
-                raise RuntimeError("Must supply name for runtime image.")
-            build_runtime_image(runtime_image_name)
-        wcm_image_name = cloud_config.get("wcm_image_name", None)
-        if wcm_image_name is None:
-            raise RuntimeError("Must supply name for WCM image.")
-        if cloud_config.get("build_wcm_image", False):
-            if runtime_image_name is None:
-                raise RuntimeError("Must supply name for runtime image.")
-            build_wcm_image(wcm_image_name, runtime_image_name)
-        nf_config = nf_config.replace("IMAGE_NAME", image_prefix + wcm_image_name)
+        container_image = cloud_config.get("container_image", None)
+        if container_image is None:
+            raise RuntimeError("Must supply name for container image.")
+        if cloud_config.get("build_image", False):
+            image_cmd = build_image_cmd(container_image)
+            subprocess.run(image_cmd, check=True)
+        nf_config = nf_config.replace("IMAGE_NAME", image_prefix + container_image)
     sherlock_config = config.get("sherlock", None)
     if sherlock_config is not None:
         if nf_profile == "gcloud":
             raise RuntimeError(
-                "Cannot set both Sherlock and Google Cloud "
-                "options in the input JSON."
+                "Cannot set both Sherlock and Google Cloud options in the input JSON."
             )
-        runtime_image_name = sherlock_config.get("runtime_image_name", None)
-        if runtime_image_name is None:
-            raise RuntimeError("Must supply name for runtime image.")
-        if sherlock_config.get("build_runtime_image", False):
-            build_runtime_image(runtime_image_name, True)
-        nf_config = nf_config.replace("IMAGE_NAME", runtime_image_name)
-        subprocess.run(
-            [
-                "apptainer",
-                "exec",
-                "-B",
-                f"{repo_dir}:{repo_dir}",
-                "--cwd",
-                repo_dir,
-                "--writable-tmpfs",
-                "-e",
-                runtime_image_name,
-                "uv",
-                "sync",
-                "--frozen",
-                "--no-cache",
-            ]
-        )
-        if sherlock_config.get("jenkins", False):
-            nf_profile = "jenkins"
-        else:
-            nf_profile = "sherlock"
-
+        nf_profile = "sherlock"
+        container_image = sherlock_config.get("container_image", None)
+        if container_image is None:
+            raise RuntimeError("Must supply name for container image.")
+        if sherlock_config.get("build_image", False):
+            image_cmd = " ".join(build_image_cmd(container_image, True))
+            image_build_script = os.path.join(local_outdir, "container.sh")
+            with open(image_build_script, "w") as f:
+                f.write(f"""#!/bin/bash
+#SBATCH --job-name="build-image-{experiment_id}"
+#SBATCH --time=30:00
+#SBATCH --cpus-per-task 2
+#SBATCH --mem=8GB
+#SBATCH --partition=owners,normal
+#SBATCH --output={os.path.join(local_outdir, "build-image.out")}
+{image_cmd}
+""")
+            forward_sbatch_output(
+                image_build_script, os.path.join(local_outdir, "build-image.out")
+            )
+        nf_config = nf_config.replace("IMAGE_NAME", container_image)
     local_config = os.path.join(local_outdir, "nextflow.config")
     with open(local_config, "w") as f:
         f.writelines(nf_config)
@@ -508,6 +640,24 @@ def main():
         )
     elif nf_profile == "sherlock":
         batch_script = os.path.join(local_outdir, "nextflow_job.sh")
+        hyperqueue_init = ""
+        hyperqueue_exit = ""
+        if sherlock_config.get("hyperqueue", False):
+            nf_profile = "sherlock_hq"
+            hyperqueue_init = f"""
+# Set the directory which HyperQueue will use 
+export HQ_SERVER_DIR={os.path.join(outdir, ".hq-server")}
+mkdir -p ${{HQ_SERVER_DIR}}
+
+# Start the server in the background (&) and wait until it has started
+hq server start --journal {os.path.join(outdir, ".hq-server/journal")} &
+until hq job list &>/dev/null ; do sleep 1 ; done
+
+# Enable HyperQueue automatic allocation
+hq alloc add slurm --time-limit 8h -- --partition=owners,normal --mem=4GB
+"""
+            hyperqueue_exit = "hq job wait all; hq worker stop all; hq server stop"
+        nf_slurm_output = os.path.join(outdir, f"{experiment_id}_slurm.out")
         with open(batch_script, "w") as f:
             f.write(f"""#!/bin/bash
 #SBATCH --job-name="nextflow-{experiment_id}"
@@ -515,30 +665,22 @@ def main():
 #SBATCH --cpus-per-task 1
 #SBATCH --mem=4GB
 #SBATCH --partition=mcovert
+#SBATCH --output={nf_slurm_output}
+set -e
+# Ensure HyperQueue shutdown on failure or interruption
+trap 'exitcode=$?; {hyperqueue_exit}' EXIT
+{hyperqueue_init}
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
     -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume is not None else ""}
 """)
         copy_to_filesystem(
             batch_script, os.path.join(outdir, "nextflow_job.sh"), filesystem
         )
-        subprocess.run(["sbatch", batch_script], check=True)
-    elif nf_profile == "jenkins":
-        subprocess.run(
-            [
-                "nextflow",
-                "-C",
-                config_path,
-                "run",
-                workflow_path,
-                "-profile",
-                "sherlock",
-                "-with-report",
-                report_path,
-                "-work-dir",
-                workdir,
-            ],
-            check=True,
-        )
+        # Make stdout of workflow viewable in Jenkins
+        if sherlock_config.get("jenkins", False):
+            forward_sbatch_output(batch_script, nf_slurm_output, 3600 * 24)
+        else:
+            subprocess.run(["sbatch", batch_script], check=True)
     shutil.rmtree(local_outdir)
 
 

@@ -26,15 +26,16 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
+    success_sql: str,
     sim_data_paths: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    assert (
-        num_cells(conn, config_sql) == 1
-    ), "Mass fraction summary plot requires single-cell data."
+    assert num_cells(conn, config_sql) == 1, (
+        "Mass fraction summary plot requires single-cell data."
+    )
 
     mass_columns = {
         "Protein": "listeners__mass__protein_mass",

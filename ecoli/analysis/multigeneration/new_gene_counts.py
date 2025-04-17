@@ -19,6 +19,7 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
+    success_sql: str,
     sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
@@ -85,7 +86,6 @@ def plot(
     )
     new_gene_data = read_stacked_columns(
         history_sql,
-        ["listeners__monomer_counts", "listeners__rna_counts__mRNA_counts"],
         [new_monomers, new_mRNAs],
         conn=conn,
     )

@@ -82,7 +82,7 @@ def parse_variant_data_dir(
     return variant_metadata, sim_data_dict, variant_names
 
 
-def create_duckdb_conn(out_uri, gcs_bucket, n_cpus=None):
+def create_duckdb_conn(out_uri, gcs_bucket, cpus=None):
     conn = duckdb.connect()
     out_path = out_uri
     if gcs_bucket:
@@ -94,8 +94,8 @@ def create_duckdb_conn(out_uri, gcs_bucket, n_cpus=None):
     # Cache Parquet metadata so only needs to be scanned once
     conn.execute("SET enable_object_cache = true")
     # Set number of threads for DuckDB
-    if n_cpus is not None:
-        conn.execute(f"SET threads = {n_cpus}")
+    if cpus is not None:
+        conn.execute(f"SET threads = {cpus}")
     return conn
 
 
@@ -142,7 +142,11 @@ def main():
         "--outdir", "-o", help="Directory that all analysis output is saved to."
     )
     parser.add_argument(
-        "--n_cpus", "-n", type=int, help="Number of CPUs to use for DuckDB and PyArrow."
+        "--cpus",
+        "-n",
+        type=int,
+        default=1,
+        help="Number of CPUs to use for DuckDB and PyArrow.",
     )
     parser.add_argument(
         "--variant_metadata_path",
@@ -199,8 +203,8 @@ def main():
             config[k] = v
 
     # Set number of threads for PyArrow
-    if "n_cpus" in config:
-        pa.set_cpu_count(config["n_cpus"])
+    if "cpus" in config:
+        pa.set_cpu_count(config["cpus"])
 
     # Set up DuckDB filters for data
     duckdb_filter = []
@@ -252,19 +256,19 @@ def main():
 
     # Load variant metadata
     if len(config["experiment_id"]) > 1:
-        assert (
-            "variant_data_dir" in config
-        ), "Must provide --variant_data_dir for each experiment ID."
-        assert len(config["variant_data_dir"]) == len(
-            config["experiment_id"]
-        ), "Must provide --variant_data_dir for each experiment ID."
+        assert "variant_data_dir" in config, (
+            "Must provide --variant_data_dir for each experiment ID."
+        )
+        assert len(config["variant_data_dir"]) == len(config["experiment_id"]), (
+            "Must provide --variant_data_dir for each experiment ID."
+        )
     if "variant_data_dir" in config:
         if "variant_metadata_path" in config:
             warnings.warn(
-                "Ignoring --variant_metadata_path in favor of" " --variant_data_dir"
+                "Ignoring --variant_metadata_path in favor of --variant_data_dir"
             )
         if "sim_data_path" in config:
-            warnings.warn("Ignoring --sim_data_path in favor of" " --variant_data_dir")
+            warnings.warn("Ignoring --sim_data_path in favor of --variant_data_dir")
         variant_metadata, sim_data_dict, variant_names = parse_variant_data_dir(
             config["experiment_id"], config["variant_data_dir"]
         )
@@ -285,8 +289,10 @@ def main():
         variant_names = {config["experiment_id"][0]: variant_name}
 
     # Establish DuckDB connection
-    conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("n_cpus"))
-    history_sql, config_sql = get_dataset_sql(out_uri)
+    conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("cpus"))
+    history_sql, config_sql, success_sql = get_dataset_sql(
+        out_uri, config["experiment_id"]
+    )
     # If no explicit analysis type given, run all types in config JSON
     if "analysis_types" not in config:
         config["analysis_types"] = [
@@ -323,24 +329,27 @@ def main():
                 query_strings[data_filters] = (
                     f"SELECT * FROM ({history_sql}) WHERE {data_filters}",
                     f"SELECT * FROM ({config_sql}) WHERE {data_filters}",
+                    f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
                 )
         else:
             query_strings[data_filters] = (
                 f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
+                f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
             )
         os.makedirs(curr_outdir, exist_ok=True)
         for analysis_name in config[analysis_type]:
             analysis_mod = importlib.import_module(
                 f"ecoli.analysis.{analysis_type}.{analysis_name}"
             )
-            for data_filters, (history_q, config_q) in query_strings.items():
+            for data_filters, (history_q, config_q, success_q) in query_strings.items():
                 print(f"Running {analysis_type} {analysis_name} with {data_filters}.")
                 analysis_mod.plot(
                     config[analysis_type][analysis_name],
                     conn,
                     history_q,
                     config_q,
+                    success_q,
                     sim_data_dict,
                     config["validation_data_path"],
                     curr_outdir,

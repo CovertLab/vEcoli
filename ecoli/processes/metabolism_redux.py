@@ -1007,9 +1007,9 @@ def test_network_flow_model():
         upper_flux_bound=100,
     )
 
-    assert np.isclose(
-        solution.velocities, np.array([1, 1, 0])
-    ).all(), "Network flow toy model did not converge to correct solution."
+    assert np.isclose(solution.velocities, np.array([1, 1, 0])).all(), (
+        "Network flow toy model did not converge to correct solution."
+    )
 
 
 # TODO (Cyrus) Add test for entire process

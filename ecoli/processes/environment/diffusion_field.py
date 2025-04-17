@@ -336,7 +336,7 @@ def run_diffusion_field(config=None, total_time=100, filename="snapshots"):
     )
 
 
-# uv run ecoli/processes/environment/diffusion_field.py
+# uv run --env-file .env ecoli/processes/environment/diffusion_field.py
 if __name__ == "__main__":
     # test_all()
 

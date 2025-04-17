@@ -56,24 +56,25 @@ Jenkins
 -------
 
 Longer running CI tests that are not compatible with the free tier of GitHub
-Actions are run using Jenkins on Sherlock. The configuration JSON files for
-the workflows that are run during these tests are contained within
-``runscripts/jenkins/configs``. Modifying the existing JSON files will modify
-the behavior of the tests. However, adding a new JSON file will not add a new
-test. That requires additional configuration on the Jenkins side of things
-by a member of the Covert Lab with access to Sherlock.
+Actions are run using Jenkins on Sherlock. For information about this setup
+(e.g. for troubleshooting or to replicate it on another cluster), please
+refer to :ref:`jenkins-setup`.
 
-The Jenkins tests are designed to run about once every day (no predictable time)
-on the latest commit of ``master``. The tests are:
+Each test has an associated Jenkinsfile in ``runscripts/jenkins/Jenkinsfile``
+that, in essence, runs one or more workflows using the JSON configuration
+files located in ``runscripts/jenkins/configs``. These tests are designed to
+run daily (cron) on the latest commit of the ``master`` branch.
 
-- ``vEcoli - Anaerobic``: workflow run using ``ecoli-anaerobic.json``
-- ``vEcoli - Glucose minimal``: workflow run using ``ecoli-glucose-minimal.json``
-- ``vEcoli - Optional features``: workflows run using the remaining JSON files
-  except for ``ecoli-with-aa.json`` in succession
+The logs for **failed** tests are publicly viewable on the repository website by
+clicking on the relevant commit status badges. Upon doing so, you
+will be brought to a page with logs and a link to ``View more details on Jenkins vEcoli``.
+This link requires access to the Covert Lab's Sherlock partition.
 
-Unfortunately, the logs for these tests are not publicly viewable and require
-access to Sherlock. If you are part of the Covert Lab Sherlock group, you can
-view the logs in two steps. First, SSH into Sherlock and run the following command::
+
+Connecting to Jenkins
+=====================
+
+First, connect to Sherlock and run the following command::
 
   squeue -p mcovert -o '%.10i %.9P %.50j %.8u %.2t %.10M %.3C %.6D %.20R %k'
 
@@ -87,23 +88,23 @@ and run the following command, replacing as appropriate::
 
   ssh {username}@{login node}.sherlock.stanford.edu -L 8080:localhost:8080
 
-With that SSH connection open, you should be able to open the logs by clicking
-on the commit badges on GitHub.
+With that SSH connection open, the ``View more details on Jenkins vEcoli`` link
+will pull up the details of the failing job in the Jenkins interface.
 
-Administration
-==============
+Additionally, you can open the Jenkins web interface by going to
+``http://localhost:8080`` in your web browser. From here, you can
+see the status of all jobs, start and stop jobs, add new jobs
+(see :ref:`new-jenkins-jobs`), and do other administrative tasks.
 
 .. note::
-  This section is intended for members of the Covert Lab responsible for managing
-  the Jenkins job on Sherlock.
+  Jenkins is set-up as a persistent job on Sherlock that automatically resubmits
+  itself every ~5 days. If this fails, it can be restarted by running ``sbatch
+  $GROUP_HOME/jenkins_vecoli/jenkins_vecoli.sh``.
 
-Jenkins is installed at ``$GROUP_HOME/jenkins_new``. The command to queue up
-a 7-day Jenkins instance is ``sbatch $GROUP_HOME/jenkins_new/jenkins_new.sh``.
-The submission script is set up to only allow one instance of the job to run at
-a time. Therefore, it is safe and strongly recommended that you queue many
-Jenkins instances using the command above to minimize downtime.
+Modifying Tests
+===============
 
-To open the Jenkins administration portal, follow the steps in the section above
-to open an SSH connection to the correct login node, then open ``localhost:8080``
-in your web browser. You will need to log in with an account that was granted
-administrator privileges by someone else with those privileges.
+Any modifications to the existing Jenkinsfiles in ``runscripts/jenkins/Jenkinsfile``
+will modify the behavior of the corresponding tests. To add a new test, you will
+need to create a new Jenkinsfile and (with administrator Jenkins privileges)
+add a new multibranch pipeline job (see :ref:`new-jenkins-jobs`).

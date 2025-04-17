@@ -1,0 +1,31 @@
+name: pip-audit
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: '00 00 * * *'
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.6.10"
+      - name: Audit dependencies
+        run: |
+          uv export --all-extras --format requirements-txt --no-emit-project > requirements.txt
+          uvx pip-audit -r requirements.txt --disable-pip --fix -v

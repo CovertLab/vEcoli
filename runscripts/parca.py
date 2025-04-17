@@ -52,6 +52,7 @@ def run_parca(config):
         variable_elongation_translation=config["variable_elongation_translation"],
         disable_ribosome_capacity_fitting=(not config["ribosome_fitting"]),
         disable_rnapoly_capacity_fitting=(not config["rnapoly_fitting"]),
+        cache_dir=config["cache_dir"],
     )
     print(f"{time.ctime()}: Saving sim_data")
     with open(sim_data_file, "wb") as f:
@@ -114,19 +115,19 @@ def main():
     )
     parser.add_argument(
         "--remove-rrna-operons",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="Remove the seven rRNA operons. Does not have any effect if"
         " --no-operons specified.",
     )
     parser.add_argument(
         "--remove-rrff",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="Remove the rrfF gene. If operons are enabled,"
         " removes the rrfF gene from the rrnD operon.",
     )
     parser.add_argument(
         "--debug-parca",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="Make Parca calculate only one arbitrarily-chosen transcription"
         " factor condition when adjusting gene expression levels, leaving"
         " the other TFs at their input levels for faster Parca debugging."
@@ -141,7 +142,7 @@ def main():
     )
     parser.add_argument(
         "--save-intermediates",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="If set, saves sim_data and cell_specs at intermediate"
         " function calls in the parca.",
     )
@@ -181,6 +182,9 @@ def main():
     cli_options.pop("config")
     parca_options = config.pop("parca_options")
     SimConfig.merge_config_dicts(parca_options, cli_options)
+    # Set cache directory for ParCa to outdir/cache
+    parca_options["cache_dir"] = os.path.join(parca_options["outdir"], "cache")
+    os.makedirs(parca_options["cache_dir"], exist_ok=True)
     # If config defines a sim_data_path, skip ParCa
     if config["sim_data_path"] is not None:
         out_kb = os.path.join(parca_options["outdir"], "kb")

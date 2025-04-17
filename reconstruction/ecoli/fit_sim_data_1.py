@@ -23,7 +23,7 @@ import scipy.sparse
 from ecoli.library.initial_conditions import create_bulk_container
 from ecoli.library.schema import bulk_name_to_idx, counts
 from reconstruction.ecoli.simulation_data import SimulationDataEcoli
-from wholecell.utils import filepath, parallelization, units
+from wholecell.utils import parallelization, units
 from wholecell.utils.fitting import normalize, masses_and_counts_for_homeostatic_target
 
 
@@ -82,6 +82,9 @@ def fitSimData_1(raw_data, **kwargs):
                     is not fit to protein synthesis demands
             disable_rnapoly_capacity_fitting (bool) - if True, RNA polymerase
                     expression is not fit to protein synthesis demands
+            cache_dir (str) - path to the directory to save cached data for
+                    affinities of RNAs binding to endoRNases
+
     """
 
     sim_data = SimulationDataEcoli()
@@ -104,9 +107,9 @@ def fitSimData_1(raw_data, **kwargs):
 
     if sim_data is None:
         raise ValueError(
-            'sim_data is not specified.  Check that the'
-            f' load_intermediate function ({kwargs.get("load_intermediate")})'
-            ' is correct and matches a function to be run.'
+            "sim_data is not specified.  Check that the"
+            f" load_intermediate function ({kwargs.get('load_intermediate')})"
+            " is correct and matches a function to be run."
         )
 
     return sim_data
@@ -245,7 +248,7 @@ def basal_specs(
     # Modify other properties
     # Compute Km's
     Km = setKmCooperativeEndoRNonLinearRNAdecay(
-        sim_data, cell_specs["basal"]["bulkContainer"]
+        sim_data, cell_specs["basal"]["bulkContainer"], kwargs.get("cache_dir")
     )
     n_transcribed_rnas = len(sim_data.process.transcription.rna_data)
     sim_data.process.transcription.rna_data["Km_endoRNase"] = Km[:n_transcribed_rnas]
@@ -1409,9 +1412,9 @@ def rescaleMassForSolubleMetabolites(sim_data, bulkMolCntr, concDict, doubling_t
         [concDict[key].asNumber(molar_units) for key in targetMoleculeIds]
     )  # Have to strip and replace units to obtain the proper array data type
 
-    assert np.all(
-        targetMoleculeConcentrations.asNumber(molar_units) > 0
-    ), "Homeostatic dFBA objective requires non-zero (positive) concentrations"
+    assert np.all(targetMoleculeConcentrations.asNumber(molar_units) > 0), (
+        "Homeostatic dFBA objective requires non-zero (positive) concentrations"
+    )
 
     molecular_weights = sim_data.getter.get_masses(targetMoleculeIds)
 
@@ -4093,7 +4096,7 @@ def crc32(*arrays: np.ndarray, initial: int = 0) -> int:
     return functools.reduce(crc_next, arrays, initial)
 
 
-def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer):
+def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer, cache_dir):
     """
     Fits the affinities (Michaelis-Menten constants) for RNAs binding to
     endoRNAses.
@@ -4289,7 +4292,6 @@ def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer):
     # such as different Parca options or Parca code in different git branches.
     # `make clean` will delete the cache files.
     needToUpdate = ""
-    cache_dir = filepath.makedirs(filepath.ROOT_PATH, "cache")
     checksum = crc32(Km_counts, isEndoRnase, np.array(alpha))
     km_filepath = os.path.join(cache_dir, f"parca-km-{checksum}.cPickle")
 

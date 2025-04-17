@@ -502,9 +502,9 @@ def plot_snapshots(
         bounds = tuple(bound.to(units.um).magnitude for bound in bounds)
     # time steps that will be used
     if agents and fields:
-        assert set(list(agents.keys())) == set(
-            list(fields.keys())
-        ), "agent and field times are different"
+        assert set(list(agents.keys())) == set(list(fields.keys())), (
+            "agent and field times are different"
+        )
         time_vec = list(agents.keys())
     elif agents:
         time_vec = list(agents.keys())
@@ -1291,6 +1291,7 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
+    success_sql: str,
     sim_data_paths: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,

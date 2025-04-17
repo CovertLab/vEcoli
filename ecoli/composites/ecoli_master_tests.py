@@ -110,9 +110,9 @@ def test_division(agent_id="0", total_time=4):
             # Chromosome domain 0 is lost after division because
             # it has been fully split into child domains 1 and 2
             n_daughter += 1
-        assert np.isclose(
-            n_mother, n_daughter, rtol=0.01
-        ), f"{name}: mother has {n_mother}, daughters have {n_daughter}"
+        assert np.isclose(n_mother, n_daughter, rtol=0.01), (
+            f"{name}: mother has {n_mother}, daughters have {n_daughter}"
+        )
         # Assert that no unique mol is in both daughters
         unique_idx_col = np.where(np.array(mol_keys) == "unique_index")[0][0]
         assert not (set(d1_state[unique_idx_col]) & set(d2_state[unique_idx_col]))
@@ -226,7 +226,7 @@ def test_lattice_lysis(plot=False):
     """
     Run plots:
     '''
-    > uv run ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
+    > uv run --env-file .env ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
     '''
 
     ANTIBIOTIC_KEY = 'nitrocefin'
@@ -324,6 +324,6 @@ test_library = {
 }
 
 # run experiments in test_library from the command line with:
-# uv run ecoli/composites/ecoli_master_tests.py -n [experiment id]
+# uv run --env-file .env ecoli/composites/ecoli_master_tests.py -n [experiment id]
 if __name__ == "__main__":
     run_library_cli(test_library)

@@ -10,9 +10,11 @@
     "mechanistic_translation_supply": false,
     "mechanistic_aa_transport": false,
     "aa_supply_in_charging": false,
-    "d_period_division": false,
+    "d_period": false,
+    "division_threshold": "mass_distribution",
+    "division_variable": ["listeners", "mass", "dry_mass"],
     "mechanistic_replisome": true,
-    "mass_distribution": false,
+    "initial_state_gaussian": false,
     "sim_data_path": null,
     "skip_baseline": true,
     "emitter": "parquet",
@@ -26,8 +28,9 @@
         "condition": {"condition": {"value": ["no_oxygen"]}}
     },
     "sherlock": {
-        "runtime_image_name": "runtime-image",
-        "build_runtime_image": true,
+        "container_image": "container-image",
+        "build_image": true,
+        "hyperqueue": true,
         "jenkins": true
     },
     "parca_options": {

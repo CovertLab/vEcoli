@@ -18,7 +18,7 @@ process analysisSingle {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \\
+    python ${params.projectRoot}/runscripts/analysis.py --config $config \\
         --sim_data_path "$sim_data" \\
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -68,7 +68,7 @@ process analysisMultiDaughter {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \\
+    python ${params.projectRoot}/runscripts/analysis.py --config $config \\
         --sim_data_path "$sim_data" \\
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -116,7 +116,7 @@ process analysisMultiGeneration {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \\
+    python ${params.projectRoot}/runscripts/analysis.py --config $config \\
         --sim_data_path "$sim_data" \\
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -162,7 +162,7 @@ process analysisMultiSeed {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \\
+    python ${params.projectRoot}/runscripts/analysis.py --config $config \\
         --sim_data_path "$sim_data" \\
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -204,7 +204,7 @@ process analysisMultiVariant {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \\
+    python ${params.projectRoot}/runscripts/analysis.py --config $config \\
         --sim_data_path "${sim_data.join("\" \"")}" \\
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\

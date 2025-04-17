@@ -29,13 +29,14 @@ model parameters (e.g. transcription probabilities). These parameters are used t
 > **Note:** The following instructions assume a local Linux or MacOS system. Windows users can
 > attempt to follow the same steps after setting up 
 > [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install). Refer to the following pages for non-local setups:
-> [Sherlock](https://covertlab.github.io/vEcoli/workflows.html#sherlock),
-> [other HPC cluster](https://covertlab.github.io/vEcoli/workflows.html#other-hpc-clusters),
+> [Sherlock](https://covertlab.github.io/vEcoli/hpc.html#sherlock),
+> [other HPC cluster](https://covertlab.github.io/vEcoli/hpc.html#other-clusters),
 > [Google Cloud](https://covertlab.github.io/vEcoli/gcloud.html).
 
 ### Prerequisites
 
-Your system must have git, curl (or wget), and a C compiler.
+If your system has git, curl (or wget), and a C compiler
+(e.g. clang, gcc), proceed to the next section.
 
 On Ubuntu/Debian, apt can be used to install all three prerequisites:
 
@@ -51,8 +52,13 @@ Clone the repository:
 
     git clone https://github.com/CovertLab/vEcoli.git
 
+> **Tip:** You can specify a directory to clone into after the
+> URL of the repository. Otherwise, the above command will clone into
+> a new directory called `vEcoli` in your current directory.
+
 [Follow these instructions](https://docs.astral.sh/uv/getting-started/installation/)
-to install `uv`, our Python package and project manager of choice.
+to install `uv`, our Python package and project manager of choice. Once finished,
+close and reopen your terminal before continuing.
 
 Navigate into the cloned repository and use `uv` to install the model:
 
@@ -60,9 +66,10 @@ Navigate into the cloned repository and use `uv` to install the model:
     uv sync --frozen
 
 Finally, install `nextflow` [following these instructions](https://www.nextflow.io/docs/latest/install.html).
-If you choose to install Java with SDKMAN!, after the Java installation
-finishes, close and reopen your terminal before continuing with the
-`nextflow` installation steps.
+If your system has `wget` but not `curl`, replace `curl` in the commands
+with `wget -qO-`. If you choose to install Java with SDKMAN!, after
+the Java installation finishes, close and reopen your terminal before
+continuing with the `nextflow` installation steps.
 
 > **Tip:** If any step in the `nextflow` installation fails,
 > try rerunning a few times to see if that fixes the issue.
@@ -84,12 +91,12 @@ perform static type checking.
 
 To test your installation, from the top-level of the cloned repository, invoke:
 
-    uv run runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
+    uv run --env-file .env runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
 
-> **Note:** Start all of your commands to run scripts with `uv run`. Alternatively,
-> you can source the Python virtual environment that `uv` created with
-> `source .venv/bin/activate` and use `python` as normal, though we recommend
-> sticking to `uv run` where possible.
+> **Warning:** Always use `uv run --env-file .env` to run scripts. We recommend adding
+> the following to your `~/.bashrc` or `~/.zshrc` to create an alias for this:
+> `alias uvenv='uv run --env-file .env'`. `uvenv` should work after restarting
+> your terminal.
 
 This will run the following basic simulation workflow:
 
@@ -101,5 +108,9 @@ This will run the following basic simulation workflow:
 
 
 ## Next Steps
-Check out the [user guide](https://covertlab.github.io/vEcoli/) for a high-level
-tutorial of model development, details on key model components, and low-level API documentation.
+Review the online [user guide](https://covertlab.github.io/vEcoli/) to learn how
+to configure and run your own simulation workflows.
+
+If you encounter a problem that you cannot solve after searching the user guide
+(also linked in the repository sidebar), feel free to create a GitHub issue, and we will
+get back to you as soon as we can.

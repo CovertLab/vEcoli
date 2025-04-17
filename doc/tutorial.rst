@@ -249,6 +249,7 @@ annotated example of an analysis script:
         conn: "DuckDBPyConnection",
         history_sql: str,
         config_sql: str,
+        success_sql: str,
         sim_data_paths: dict[str, dict[int, str]],
         validation_data_paths: list[str],
         outdir: str,
@@ -315,6 +316,9 @@ annotated example of an analysis script:
         )
         chart.save(os.path.join(outdir, "mass_fraction_summary.html"))
 
+.. warning::
+    In order to be run as part of a workflow with :py:mod:`runscripts.workflow`,
+    analysis scripts must write at least one file to ``outdir``.
 
 To add a new analysis script:
 

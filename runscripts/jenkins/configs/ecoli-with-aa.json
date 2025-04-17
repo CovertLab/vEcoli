@@ -17,8 +17,9 @@
         "condition": {"condition": {"value": ["with_aa"]}}
     },
     "sherlock": {
-        "runtime_image_name": "runtime-image",
-        "build_runtime_image": true,
+        "container_image": "container-image",
+        "build_image": true,
+        "hyperqueue": true,
         "jenkins": true
     },
     "parca_options": {

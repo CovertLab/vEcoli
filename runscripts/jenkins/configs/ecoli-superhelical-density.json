@@ -13,7 +13,8 @@
         "single": {"mass_fraction_summary": {}}
     },
     "sherlock": {
-        "runtime_image_name": "runtime-image",
+        "container_image": "container-image",
+        "hyperqueue": true,
         "jenkins": true
     },
     "parca_options": {

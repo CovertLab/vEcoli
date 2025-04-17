@@ -98,5 +98,6 @@ def get_state_from_file(
     deserialized_states = deserialize_value(serialized_state)
     states = numpy_molecules(deserialized_states)
     # TODO: Add timeline process to set up media ID
-    states.setdefault("environment", {})["media_id"] = "minimal"
+    environment_subdict = states.setdefault("environment", {})
+    environment_subdict.setdefault("media_id", "minimal")
     return states
