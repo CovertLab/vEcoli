@@ -840,11 +840,11 @@ def initialize_old_transcription_factors(
     p_promoter_bound_TF = sim_data.process.transcription_regulation.p_promoter_bound_tf
 
     # Build dict that maps TFs to transcription units they regulate
-    delta_prob = sim_data.process.transcription_regulation.delta_prob
+    delta_aff = sim_data.process.transcription_regulation.delta_aff
     TF_to_TU_idx = {}
 
     for i, tf in enumerate(tf_ids):
-        TF_to_TU_idx[tf] = delta_prob["deltaI"][delta_prob["deltaJ"] == i]
+        TF_to_TU_idx[tf] = delta_aff["deltaI"][delta_aff["deltaJ"] == i]
 
     # Get views into bulk molecule representations of transcription factors
     active_tf_view = {}
