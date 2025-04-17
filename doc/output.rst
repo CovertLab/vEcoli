@@ -53,7 +53,9 @@ In-Memory Emitter
 
 When ``timeseries`` is specified using the ``emitter`` option in a configuration JSON,
 simulation output is stored transiently in-memory in a dictionary keyed by time that
-looks like the following::
+looks like the following:
+
+.. code-block::
 
     {
         # Data for time = 0
@@ -105,14 +107,18 @@ directory structure called Hive partitioning.
 Hive Partitioning
 =================
 
-In Hive partitioning, certain keys in data are used to partition the data into folders::
+In Hive partitioning, certain keys in data are used to partition the data into folders:
+
+.. code-block::
 
     key_1=value_1/key_2=value_2/...
 
 In the vEcoli Parquet emitter, the keys used for this purpose are the experiment ID,
 variant index, lineage seed (initial seed for cell lineage), generation, and agent ID.
 These keys uniquely identify a single cell simulation, meaning each simulation process
-will write data to its own folder in the final output with a path like::
+will write data to its own folder in the final output with a path like:
+
+.. code-block::
 
     experiment_id={}/variant={}/lineage_seed={}/generation={}/agent_id={}
 
@@ -130,7 +136,9 @@ The Parquet emitter (:py:class:`~ecoli.library.parquet_emitter.ParquetEmitter`)
 first calls :py:func:`~ecoli.library.parquet_emitter.flatten_dict` in order to
 flatten the nested store hierarchy into unnested key-value pairs where keys
 are paths to leaf values concatenated with double underscores and values are
-leaf values. For example, take the following nested dictionary::
+leaf values. For example, take the following nested dictionary:
+
+.. code-block::
 
     {
         "a": {
@@ -144,7 +152,9 @@ leaf values. For example, take the following nested dictionary::
         "g": 5
     }
 
-This is flattened to::
+This is flattened to:
+
+.. code-block::
 
     {
         "a__b": 1,
@@ -192,7 +202,9 @@ JSON used to run the simulation and can be read back in analysis scripts (see
 :py:func:`~ecoli.library.parquet_emitter.get_config_value`.
 
 Additionally, this file can contain metadata for each store to emit. This metadata
-can be specified under the ``_properties`` key in a port schema as follows::
+can be specified under the ``_properties`` key in a port schema as follows:
+
+.. code-block::
 
     {
         "_properties": {
@@ -329,7 +341,9 @@ not included in the JSON specification, ``orjson`` converts them to null. As suc
 If you anticipate that these values may appear when something has gone wrong, note
 that DuckDB, the library used to read Parquet data, ignores null values by default in
 aggregation functions like ``sum`` and ``avg``. To make these aggregations return null if
-any input values are null, use the following syntax (example for ``sum``)::
+any input values are null, use the following syntax (example for ``sum``):
+
+.. code-block:: sql
 
   SELECT
     CASE

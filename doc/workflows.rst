@@ -165,7 +165,9 @@ Configuration
 
 When running :py:mod:`runscripts.create_variants`, users must specify the
 variant function to use under the ``variants`` key in the configuration JSON
-following the general template::
+following the general template:
+
+.. code-block::
 
     {
         "variants": {
@@ -296,7 +298,9 @@ options under the ``analysis_options`` key:
 
 - ``single``, ``multidaughter``, ``multigeneration``, ``multiseed``, ``multivariant``
   ``multiexperiment``: Can pick one or more analysis types to run. Under each analysis
-  type is a sub-dictionary of the following format::
+  type is a sub-dictionary of the following format:
+
+    .. code-block::
 
         {
             "{analysis name}": {optional dictionary of analysis parameters},
@@ -681,7 +685,9 @@ For a description of some fields (non-exhaustive) that can be specified with
 of the official documentation.
 
 As an example, to see the name, stderr, and workdir for all failed jobs
-in a workflow called ``agitated_mendel``::
+in a workflow called ``agitated_mendel``:
+
+.. code-block:: bash
 
   nextflow log agitated_mendel -f name,stderr,workdir -F "status == 'FAILED'"
 
@@ -698,7 +704,9 @@ on where you are debugging.
 - Sherlock: See :ref:`instructions here <sherlock-interactive>`
 - Local machine: Continue below
 
-Add breakpoints to any Python file with the following line::
+Add breakpoints to any Python file with the following line:
+
+.. code-block:: python
 
   import ipdb; ipdb.set_trace()
 
