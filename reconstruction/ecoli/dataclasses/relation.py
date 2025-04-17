@@ -14,6 +14,8 @@ class Relation(object):
         self._build_monomer_to_tu_mapping(raw_data, sim_data)
         self._build_RNA_to_tf_mapping(raw_data, sim_data)
         self._build_tf_to_RNA_mapping(raw_data, sim_data)
+        self._build_tf_binding_site_to_tfs_mapping(raw_data, sim_data)
+        self._build_tf_binding_site_to_tus_mapping(raw_data, sim_data)
 
     def _build_cistron_to_monomer_mapping(self, raw_data, sim_data):
         """
@@ -143,3 +145,89 @@ class Relation(object):
         for rna_id, tf_list in self.rna_id_to_regulating_tfs.items():
             for tf_id in tf_list:
                 self.tf_id_to_target_RNAs.setdefault(tf_id, []).append(rna_id)
+
+    def _build_tf_binding_site_to_tfs_mapping(self, raw_data, sim_data):
+        """
+        Builds a sparse matrix that can map vectors that describe a property
+        for tf-binding sites into a vector that describes the same property for
+        the corresponding tfs that bind it if multiplied to the right of the
+        original vector. The transformed property must be additive (i.e. if two
+        tf-binding sites map to the same tf, the values given for the two proteins
+        are added to yield a value for the tf).
+
+        The full matrix can be returned by calling
+        tf_binding_site_to_tfs_mapping().
+        """
+        tf_bind_site_to_tfs = sim_data.process.transcription_regulation.tf_bind_site_to_tfs
+        tf_binding_site_ids = sim_data.process.transcription_regulation.tf_binding_site_ids
+        tf_ids = sim_data.process.transcription_regulation.new_tf_modeling_tf_ids
+
+        self._tf_binding_site_to_tfs_i = []
+        self._tf_binding_site_to_tfs_j = []
+        self._tf_binding_site_to_tfs_v = []
+        self._tf_binding_site_to_tfs_shape = (len(tf_binding_site_ids), len(tf_ids))
+        for i, binding_site in enumerate(tf_binding_site_ids):
+            for tf in tf_bind_site_to_tfs[binding_site]:
+                if tf in tf_ids:
+                    self._tf_binding_site_to_tfs_i.append(i)
+                    self._tf_binding_site_to_tfs_j.append(tf_ids.index(tf))
+                    self._tf_binding_site_to_tfs_v.append(1)
+
+    def tf_binding_site_to_tfs_mapping(self):
+        """
+        Returns the full version of the sparse matrix built by
+        _build_tf_binding_site_to_tfs_mapping().
+
+        e.g.
+        tfs_property = sim_data.relation.tf_binding_site_to_tfs_mapping().T.dot(
+                tf_binding_sites_property)
+        """
+        out = np.zeros(self._tf_binding_site_to_tfs_shape, dtype=np.float64)
+        out[
+            self._tf_binding_site_to_tfs_i,
+            self._tf_binding_site_to_tfs_j,
+        ] = self._tf_binding_site_to_tfs_v
+        return out
+
+    def _build_tf_binding_site_to_tus_mapping(self, raw_data, sim_data):
+        """
+        Builds a sparse matrix that can map vectors that describe a property
+        for tf-binding sites into a vector that describes the same property for
+        the corresponding tus that it regulates if multiplied to the right of the
+        original vector. The transformed property must be additive (i.e. if two
+        tf-binding sites regulate the same tu, the values given for the two proteins
+        are added to yield a value for the tu).
+
+        The full matrix can be returned by calling
+        tf_binding_site_to_tus_mapping().
+        """
+        tf_bind_site_to_tus = sim_data.process.transcription_regulation.tf_bind_site_to_tus
+        tf_binding_site_ids = sim_data.process.transcription_regulation.tf_binding_site_ids
+        tu_ids = [x[:-3] for x in sim_data.process.transcription.rna_data["id"]]
+
+        self._tf_binding_site_to_tus_i = []
+        self._tf_binding_site_to_tus_j = []
+        self._tf_binding_site_to_tus_v = []
+        self._tf_binding_site_to_tus_shape = (len(tf_binding_site_ids), len(tu_ids))
+        for i, binding_site in enumerate(tf_binding_site_ids):
+            for tu in tf_bind_site_to_tus[binding_site]:
+                if tu in tu_ids:
+                    self._tf_binding_site_to_tus_i.append(i)
+                    self._tf_binding_site_to_tus_j.append(tu_ids.index(tu))
+                    self._tf_binding_site_to_tus_v.append(1)
+
+    def tf_binding_site_to_tus_mapping(self):
+        """
+        Returns the full version of the sparse matrix built by
+        _build_tf_binding_site_to_tus_mapping().
+
+        e.g.
+        tus_property = sim_data.relation.tf_binding_site_to_tus_mapping().T.dot(
+                tf_binding_sites_property)
+        """
+        out = np.zeros(self._tf_binding_site_to_tus_shape, dtype=np.float64)
+        out[
+            self._tf_binding_site_to_tus_i,
+            self._tf_binding_site_to_tus_j,
+        ] = self._tf_binding_site_to_tus_v
+        return out

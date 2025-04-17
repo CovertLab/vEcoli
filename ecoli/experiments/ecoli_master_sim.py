@@ -769,7 +769,7 @@ class EcoliSim:
                 ):
                     raise RuntimeError(
                         "Must provide out_dir or out_uri"
-                        " as emitter argument for parquet emitter."
+                        " as emitter argument fo r parquet emitter."
                     )
         else:
             raise RuntimeError(

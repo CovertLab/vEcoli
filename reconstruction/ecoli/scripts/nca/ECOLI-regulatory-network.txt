@@ -1,0 +1,656 @@
+# Organism: Escherichia coli K-12 substr. MG1655
+# Database: EcoCyc
+# Version: 27.1
+# Date and time generated: September 5, 2023, 6:01:17
+#
+# This file depicts the full regulatory network in this Pathway/Genome Database.
+# Types of regulation included are transcriptional (including sigma factors) and translational 
+# regulation (including by small RNAs). Regulators are marked with "*".  A new level of indentation 
+# is introduced to list the direct regulatees of the gene at the previous indention level. The polarity 
+# of regulation of a gene by its regulator is printed as "+", "-", or "+/-", for example, accA 
+# negatively regulates accD.
+#
+# The network contains 3020 total genes (regulators plus regulatees) and 321 regulatory genes.
+#
+aaeR*
+  +aaeA  +aaeB  +aaeX
+accA*
+  -accA*  -accD*
+accB*
+  -accB*  -accC
+accD*
+  -accA*  -accD*
+acnB*
+  +acnB*
+acrR*
+  -acrA  -acrB  -acrR*  -flhC*  -flhD*  -marA*  -marB  -marR*  -mdtI  -mdtJ  -mdtU  -micF*  -puuA  -soxR*  -soxS*
+ada*
+  +/-ada*  +aidB*  +alkA  +/-alkB
+adiY*
+  +adiA  +gadA  +gadB  +gadC  +gadX*  +gltB  +gltD  +gltF
+agaR*
+  -agaB  -agaC  -agaD  -agaI  -agaR*  -agaS  -agaV  -agaW  -kbaY  -kbaZ
+agrB*
+  -dinQ
+aidB*
+  -aidB*
+alaS*
+  -alaS*
+allR*
+  -allA  -allB  -allS*  -allW  -gcl  -glxK  -glxR  -hyi  -ybbY
+allS*
+  +allC  +allD  +allE
+alpA*
+  +intA  -phoB*  -phoR
+alsR*
+  -alsA  -alsB  -alsC  -alsE  -alsR*  -rpiB
+ameF*
+  +mazE*  +mazF*
+appY*
+  +appA  +appB  +appC  +appX  +hyaA  +hyaB  +hyaC  +hyaD  +hyaE  +hyaF
+araC*
+  +/-araA  +/-araB  +/-araC*  +/-araD  +araE  +araF  +araG  +araH  +araJ  -xylA  -xylB  -ydeM  -ydeN  +ygeA  -yjfF  -ytfQ  -ytfR  -ytfT
+arcA*
+  -aceA  -aceB  -aceE  -aceF  -aceK  +ackA  -acnA  -acnB*  +acpP  -aldA  +appA  +appB  +appC  +appX  +appY*  +arcA*  -arcZ*  +argR*  -argT  -betA  -betB  -betI*  -betT  -cadA  -cadB  +caiA  +caiB  +caiC  +caiD  +caiE  +caiT  +carA  -citC  -citD  -citE  -citF  -citG  -citX  -cycA  +cydA  +cydB  +cydC  +cydD  -cyoA  -cyoB  -cyoC  -cyoD  -cyoE  -dctA  +dcuA  +dcuB  +dcuC  +dpiA*  +dpiB  +dppA  +dsbB  -fadA  -fadB  -fadD  -fadE  -fadH  -fadI  -fadJ  -fadL  -feoA  -fnr*  +/-focA  -folE  -fumA  +fumB  -fumC  +gadA  +gadE*  +gadF  +gadX*  -gatA  -gatB  -gatC  -gatD  -gatY  -gatZ  +gcvB*  -glaH  -glcA  -glcB  -glcC*  -glcD  -glcE  -glcF  -glcG  -glpA  -glpB  -glpC  -glpD  -glpE  -gltA  +grcA  +hemA  +hyaA  +hyaB  +hyaC  +hyaD  +hyaE  +hyaF  -hybA  -hybB  -hybC  -hybD  -hybE  -hybF  -hybG  -hybO  -icd  +igaA  +iraM  -kdpA  -kgtP  -lldD  -lldP  -lldR*  -lpd  +manA  -mdh  +micF*  +moeA  +moeB  -mqo  -msrB  -ndh  -ndk  -nudE  -nuoA  -nuoB  -nuoC  -nuoE  -nuoF  -nuoG  -nuoH  -nuoI  -nuoJ  -nuoK  -nuoL  -nuoM  -nuoN  +nupC  -ompW  +/-oppA  -oppB  -oppC  -oppD  -oppF  -osmY  -pepN  +pflB  -phoH  +pldA  +pncB  +pntA  -potF  -pqqU  +prfA  +prmC  -ptsG  -putA*  -putP  -puuA  -puuB  -puuC  -puuD  -puuE  -puuP  -puuR*  +pyrS  -rhaT  +rho*  -rmf  -rplB  -rplC  -rplD*  -rplP  -rplV  -rplW  -rpmC  -rpoS*  -rpsC  -rpsJ  -rpsQ  -rpsS  -rsd  +rstA*  +rutA  +rutB  +rutC  +rutD  +rutE  +rutF  +rutG  +/-sdhA  +/-sdhB  +/-sdhC  +/-sdhD  +/-sdhX*  -sodA  -ssb  +sstT  -sthA  +/-sucA  +/-sucB  +/-sucC  +/-sucD  -thiC  -thrA  -tpx  +treB  +treC  -ubiA  -ubiC  -uvrA  -xthA  +xylR*  +ybdN  +ybfA  -ybiU  -ydeA  -ydgC  -yeiQ  -yejG  +yfiF  +yhgE  -yhjE  -yieE  -yigI  -yjiR  -ymjE  -ynaJ  -yncE
+arcZ*
+  -eptB  -flhC*  -flhD*  -mutS  +rpoS*
+argP*
+  +argO  -argP*  +asd  +dapB  +dapD  +dnaA*  +dnaN  +gdhA  +lysA  +lysC  +lysP  +nrdA  +nrdB  +recF  +yfaE
+argR*
+  -argA  -argB  -argC  -argD  -argE  -argF  -argG  -argH  -argI  -argR*  -aroK  +aroP  -artI  -artJ  -artM  -artP  -artQ  +astA  +astB  +astC  +astD  +astE  -carA  -carB  -cvpA  -dacC  -dps  +eutS  -ftsZ  -gltB  -gltD  -gltF  +gltP  -hchA  -hisJ  -hisL  -hisM  -hisP  -hisQ  -infB  -lrp*  -lysO  -mcaS*  -metY  -mukE  -nusA  -pfkB  -pnp*  -potF  +puuB  -pyrL  -rbfA  -rimP  -rpsO*  -stpA*  -truB  -waaA  +yaaU  -ydgI  -yfcC  +yffB  -yhcC  +ykgA  +yraQ
+arrS*
+  +cfa  +gadE*  +gadF
+arsR*
+  -arsB  -arsC  -arsR*
+ascG*
+  -ascB  -ascF  -htpG  -prpR*  -ybiT
+asflhD*
+  -flhD*
+asnC*
+  +asnA  -asnC*  -mioC  -mnmG
+atoC*
+  +atoA  +atoB  +atoD  +atoE
+azuR*
+  -cadA  -galE
+baeR*
+  +acrD  +baeR*  +baeS  +mdtA  +mdtB  +mdtC  +mdtD  +spy  +ycaC
+basR*
+  +arnA  +arnB  +arnC  +arnD  +arnE  +arnF  +arnT  +csgD*  +csgE  +csgF  +csgG  +cspI  +dgkA  +emrD  +eptA  +fimB  +glpA  +glpB  +glpC  +hha  -putA*  +qseB*  +qseC  +tomB  +waaH  -yrbL
+betI*
+  -betA  -betB  -betI*  -betT
+bglG*
+  +bglB  +bglF  +bglG*
+bglJ*
+  +bglB  +bglF  +bglG*  +leuO*  +sfsB  +yecT  +yehF  +ygiZ  +yidL  +ynbA  +ynbB  +ynbC  +ynbD  +ynjI  +yqhG
+birA*
+  -bioA  -bioB  -bioC  -bioD  -bioF
+bluR*
+  -ariR  -ycgZ  -ymgA  -ymgC
+bolA*
+  +/-ampC  +csgA  +csgD*  +csgE  +csgF  +csgG  +/-dacC  +fimH  -mreB  -mreC  -mreD
+btsR*
+  -aceE  -aceF  +btsT  -csgA  -csgB  -csgC  -csgD*  -csgE  -csgF  -csgG  -cspC  -lpd  -mdh  -pdhR*  -yobF
+C0293*
+  -fadR*  -hcaR*
+cadC*
+  +cadA  +cadB  +cadC*
+caiF*
+  +caiA  +caiB  +caiC  +caiD  +caiE  +caiT  +fixA  +fixB  +fixC  +fixX
+cbl*
+  +ssuA  +ssuB  +ssuC  +ssuD  +ssuE  +tauA  +tauB  +tauC  +tauD
+cdaR*
+  +cdaR*  +garD  +garK  +garL  +garP  +garR  +gudD  +gudP  +gudX  +rnpB
+cecR*
+  -cecR*  +rhlE  -ybhF  -ybhG  -ybhR  -ybhS
+chbR*
+  +/-chbA  +/-chbB  +/-chbC  +/-chbF  +/-chbG  +/-chbR*
+chiX*
+  -chbC  -chiP  -chiQ  -chiZ  -dpiA*  -dpiB
+citR*
+  -citR*  -ybdM  -ybdN
+comR*
+  -bhsA
+cpxQ*
+  -cfa  -cpxP  -skp
+cpxR*
+  +acrD  -acs  +ampH  -appC  +aroG  -ascF  -astC  +atpB  +atpI  +bacA  +baeR*  +baeS  -bamE  -btsT  +carA  +carB  +casA  -cbl*  +chaA  -chaB  -cheA  -cheW  +cpxA  +cpxP  +cpxQ*  +cpxR*  -csgA  -csgB  -csgC  -csgD*  -csgE  -csgF  -csgG  +cspA*  -cyaR*  +degP  +dgcZ  +dgt  +dsbA  +dsbC  +dsbG  -eamA  +edd  +epmB  +ettA  +exbB  +fabZ  -fadE  -fadI  +fdnG  -feaR*  -fimB  +focA  +frc  -frmB  +ftnB  -galP  -glsA  -gmhA  +gpmM  +gstA  +hcp  +hha  +inaA  +kbp  +ldtC  +ldtD  +lpxA  +lpxD  +marA*  +marB  +marR*  -matA*  +mdtA  +mdtB  +mdtC  +mdtD  +metC  -motA  -motB  -motR  -mscM  +mtn  +mzrA  -nuoA  +ompC  -ompF  -pdeB  +pflB  -plsB  +ppiA  +ppiD  -psd  -qmcA  -rpoE*  +rpoH*  +rprA*  -rseA  -rseB  -rseC  -rseD  +sbmA  -sdhC  -shoB  +skp  +slt  +spy  +srkA  +tomB  -tsr  -ung  -xylE  +yacH  +yaiW  +yccA  +yddG  -ydeE  +yebE  +ygjR  -yhdJ  +yibN  +yidQ  +yjfN  +yncE  +yqaE  +yqjA
+cra*
+  +aceA  +aceB  -aceE  -aceF  +aceK  +acnA  -acnB*  -adhE  +aroP  +betA  +betB  +betI*  +betT  +crp*  +/-crr  +csgD*  +csgE  +csgF  +csgG  +cydA  +cydB  -cyoA  -cyoB  -cyoC  -cyoD  -cyoE  -cysG  -eda  -edd  -eno  -envC  -epd  -fbaA  -fbaB  -fruA  -fruB  -fruK  -gapA  -glcC*  -glk  -gpmM  -hypF  +icd  -lpd  -manX  -manY  -manZ  -marA*  -marB  -marR*  -mpl  -mtlA  -mtlD  -mtlR  -nirB  -nirC  -nirD  +pck  -pdeL*  -pdhR*  -pfkA  -pgk  +poxB  -ppc  +ppsA  -prpB  -prpC  -prpD  -prpE  +/-ptsH  +/-ptsI  -pykF  -setA  -sgrS*  -sgrT  -tpiA  -yeaD  -yibQ  -zwf
+creB*
+  +ackA  +cbrA  +cbrB  +cpdA  +creD  -malE  -malF  -malG  -malH*  +nudF  +parE  +pta  +recG  +talA  +yqiA  +yqiB
+crp*
+  +aaeA  +aaeB  -aaeR*  +aaeX  +abgR  -aceA  -aceB  +aceE  +aceF  -aceK  +acnA  +acnB*  +acs  +actP  -aegA  +aer  +agaV  +agaW  +agp  +aldA  +aldB  -ampD  -ampE  +ansB  +araA  +araB  +araC*  +araD  +araE  +araF  +araG  +araH  +/-araJ  -arfB  +argG  -aroA  +ascB  +ascF  +aspA  -azuC  -azuR*  +bglB  +bglF  +bglG*  -bhsA  +bidA  +btsT  +caiA  +caiB  +caiC  +caiD  +caiE  +caiF*  +caiT  -cas1  -cas2  +cas3  -casA  -casB  -casC  -casD  -casE  +/-cdd  +chbA  +chbB  +chbC  +chbF  +chbG  +chbR*  +chiP  +chiQ  +chiZ  +cirA  -citC  -citD  -citE  -citF  -citG  -citX  -comR*  +cpdB  +/-crp*  +/-crr  +csgD*  +csgE  +csgF  +csgG  +csiE  +cspD  +cspE  +/-csqR*  -csrC  +cstA  -cyaA  +cyaR*  +cycA  +cyoA  +cyoB  +cyoC  +cyoD  +cyoE  -cysG  +/-cytR*  +/-dadA  +/-dadX  +dctA  +dcuA  +dcuB  +dcuR*  +/-deoA  +/-deoB  +/-deoC  +/-deoD  +dgoA  +dgoD  +dgoK  +dgoR*  +dgoT  +dksA*  -dpiA*  -dpiB  +dsdA  +dsdX  +/-dusB  +ebgA  +ebgC  +entA  +entB  +entC  +entD  +entE  -entF  +entH  +/-envZ  +epd  -exuR*  +exuT  +fadD  +fadH  +fadL  +fbaA  +feaB  +feaR*  +fecA  +fecB  +fecC  +fecD  +fecE  +fepA  +/-fis*  +fiu  +fixA  +fixB  +fixC  +fixX  +flhC*  +flhD*  +focA  +focB  +frlA  +frlB  +frlC  +frlD  +frlR*  +fucA  +fucI  +fucK  +fucO  +fucP  +fucR*  +fucU  +fumA  +fumB  +/-fumC  +/-fumC  +fur*  +gabD  +gabP  +gabT  -gadA  -gadB  -gadC  -gadE*  -gadF  -gadX*  +/-galE  +/-galK  +/-galM  +galP  +galS*  +/-galT  +gapA  +gatA  +gatB  +gatC  +gatD  +gatY  +gatZ  -gcd  +gcvH  +gcvP  +gcvT  -gdhA  +glaH  +glcC*  +glgA  +glgC  +glgP  +glgS  +/-glnA  +/-glnG*  +/-glnL  +/-glnZ*  +glpA  +glpB  +glpC  +glpD  +glpE  +glpF  +glpG  +glpK  +glpQ  +glpR*  +glpT  +glpX  +gltA  -gltB  -gltD  -gltF  +gntK  +gntP  +gntT  +gntU  +gpsA  +grcA  +grpE  +guaA  +guaB  +gutM*  +gutQ  +gyrA  -hflC  -hflK  -hflX  -hfq*  +hicA  +hicB*  +hlyE  +hofB  +hofC  +hofM  +hofN  +hofO  +hofP  +hpt  -htpG  +hupA*  +hupB*  +hyfA  +hyfB  +hyfC  +hyfD  +hyfE  +hyfF  +hyfG  +hyfH  +hyfI  +hyfJ  +hyfR*  +idnD  +idnK  +idnO  +idnR*  +idnT  +ilvB  +ilvN  -infB  +ivbL  +kbaZ  +/-lacA  +lacI*  +/-lacY  +/-lacZ  +lamB  +/-ldtB  +lgoD  +lgoR  +lhgD  +/-lpd  +lsrA  +lsrB  +lsrC  +lsrD  +lsrF  +lsrG  +lsrK  +lsrR*  +/-lyxK  +/-lyxK  +malE  +malF  +malG  +malH*  +/-malI*  +malK  +malM  +malS  +malT*  +malX  +malY  +/-manA  +manX  +manY  +manZ  +marA*  +marB  +marR*  +mazE*  +mazF*  +mcaS*  +mdh  -mdtE  -mdtF  +melA  +melB  +melR*  -metK  -metY  +mglA  +mglB  +mglC  +mhpA  +mhpB  +mhpC  +mhpD  +mhpE  +mhpF  +mhpR*  +/-mlc*  +modA  +modB  +modC  +mokB  +mpl  +mtlA  +mtlD  +mtlR  +murP  +murQ  +nadC  +/-nagA  +/-nagB  +/-nagC*  +/-nagE  +nanA  +nanC  +nanE  +nanK  +nanM  +nanQ  +nanS  +nanT  -narQ  +nfuA  -nirB  -nirC  -nirD  -nlpE  +nrdA  +nrdB  +nupC  +/-nupG  -nusA  +ompA  +ompF  +/-ompR*  -ompW  -ortT  -osmY  +oxyR*  +paaA  +paaB  +paaC  +paaD  +paaE  +paaF  +paaG  +paaH  +paaI  +paaJ  +paaK  +paaZ  +patZ  +/-pck  +pdhR*  +pflB  +pgk  -plaR*  -pncB  -pnp*  +ppdD  +/-ppiA  +preA  +preT  +priB  +/-proP  +prpB  +prpC  +prpD  +prpE  +prpR*  -psiE  +psuG  +psuK  +ptsG  +/-ptsH  +/-ptsI  -purH  -putP  -puuB  -puuC  -puuD  -puuE  -puuR*  +raiA  +raiZ  -rbfA  +rbsA  +rbsB  +rbsC  +rbsD  +rbsK  +rbsR*  +relA  +rhaA  +rhaB  +rhaD  +rhaR*  +rhaS*  +rhaT  +rihA  -rimP  +rmf  -rof  +rplI  -rplM*  +rpoE*  +/-rpoH*  -rpoS*  +rpsF*  -rpsI  -rpsO*  +rpsR*  +rseA  +rseB  +rseC  +rseD  +rspA  +rspB  +sbmC  +sdhA  +sdhB  +sdhC  +sdhD  +sdhX*  +secB  +serA  -serC  +sfsA  +/-sgbE  +/-sgbE  +/-sgbH  +/-sgbH  +/-sgbU  +/-sgbU  +sgcA  +sgcB  +sgcC  +sgcE  +sgcQ  +sgcR  +sgcX  +sodA  -sodB  -sohB  -speC  -spf*  +srlA  +srlB  +srlD  +srlE  +srlR*  +sucA  +sucB  +sucC  +sucD  +sxy*  +tam  +tdcA*  +tdcB  +tdcC  +tdcD  +tdcE  +tdcF  +tdcG  +tnaA  +tnaB  +tnaC  +treB  +treC  +trg  -truB  -trxA  +/-tsx  +ubiG  +/-udp  +ugpA  +ugpB  +ugpC  +ugpE  +ugpQ  +uhpT  +uidA  +uidB  +uidC  +ulaA  +ulaB  +ulaC  +ulaD  +ulaE  +ulaF  +/-umpH  +uxaA  +uxaB  +uxaC  +uxuA  +uxuB  +uxuR*  -xseA  +xylA  +xylB  +xylE  +xylF  +xylG  +xylH  +xylR*  -yaeP  -yaeQ  +yahN  +/-ybiT  +/-ycdZ  +ychH  +yeiP  +yeiW  +yfaE  +ygcW  +ygeA  +ygeW  +/-yhfA  +yhgH  +/-yiaK  +/-yiaK  +/-yiaL  +/-yiaL  +/-yiaM  +/-yiaM  +/-yiaN  +/-yiaN  +/-yiaO  +/-yiaO  +yjcH  +yjhG  +yjhH  +yjhI  +ykgR  +yqeF  +ytfK  +zraR*  +zraS
+csgD*
+  +csgA  +csgB  +csgC  +csgD*  +csgE  +csgF  +csgG  +csgI  +dgcC  -flgM  -flgN  -fliA*  -fliE  -fliF  -fliG  -fliH  -fliI  -fliJ  -fliK  -fliZ*  +iraP  +nlpA  -pepD  -tcyJ  -ubiT  +wrbA  +yccJ  -yhbS
+cspA*
+  +gyrA  +hns*
+csqR*
+  -csqR*  -yihS  -yihT  -yihU  -yihV
+csrA*
+  -dgcI  -dgcT  -dgcZ  -glgA  -glgC  -glgP  -glgS  -idlP  -iraD  +moaA  +moaB  +moaC  +moaD  +moaE  -nhaR*  -pdeI  -pgaA  -pgaB  -pgaC  -pgaD  -rpoE*  -sdiA*  +ymdA
+cueR*
+  +copA  +cueO  -moaA  -moaB  -moaC  -moaD  -moaE  -rmf  -rsd
+cusR*
+  +cusA  +cusB  +cusC  +cusF  +cusR*  +cusS  +cyoA  +cyoB  +cyoC  +cyoD  +cyoE  +hiuH  +msrP  +msrQ
+cyaR*
+  -hdeD  -luxS  -nadE  -ompX  -rpoS*  -yacL  -yobF  -yqaE
+cynR*
+  -cynR*  +cynS  +cynT  +cynX
+cysB*
+  +ariR  +cbl*  +cysA  -cysB*  +cysC  +cysD  +cysH  +cysI  +cysJ  +cysK  +cysM  +cysN  +cysP  +cysU  +cysW  +dgcZ  -hslJ  -ssuA  -ssuB  -ssuC  -ssuD  -ssuE  +tauA  +tauB  +tauC  +tauD  +tcyJ  +tcyP  +ybdN  +yciW  +yfbR  +ygeH  +yoaC
+cytR*
+  -cdd  -cytR*  -deoA  -deoB  -deoC  -deoD  -nupC  -nupG  -ppiA  -rpoH*  -tsx  -udp  -ycdZ
+dcuR*
+  +aspA  +dctA  +dcuA  +dcuB  +dpiA*  +dpiB  +frdA  +frdB  +frdC  +frdD  +fumB  +pck
+deaD*
+  +ldtD  +mntR*  +sdiA*  +uvrY*
+decR*
+  +cyuA  +cyuP
+deoR*
+  -deoA  -deoB  -deoC  -deoD  -nupG  -tsx
+dgoR*
+  -dgoA  -dgoD  -dgoK  -dgoR*  -dgoT
+dhaR*
+  +dhaK  +dhaL  +dhaM  -dhaR*
+dicA*
+  +dicA*  -dicB  -dicC  -insD7  -intQ  -ydfD  -ydfW  -ydfX
+dicF*
+  -ftsZ  -manX  -pykA  -xylR*
+dinJ*
+  -cspE  -dinJ*  -yafQ*
+dksA*
+  -alaT  -alaU  -alaV  +argI  +/-argX  +csrA*  +csrB  +csrC  -dksA*  -dnaG  +dsrA*  -dusB  -fabD  -fabG  -fabH  -fadR*  +fimB  -fis*  +flu  -folK  -fusA  -gltT  -gltU  -gltV  -gltW  -gluQ  +hisA  +hisB  +hisC  +hisD  +hisF  +hisG  +hisH  +hisI  +hisL  +/-hisR  +hlyE  +hmp  -idlP  -ihfA*  -ihfB*  -ileT  -ileU  -ileV  -infC  -iraD  +iraP  +isrC  +/-leuT  +livJ  -mutM  -obgE  -pcnB  -pheM  -pheS  -pheT  +/-proM  -recG  -rimM  -rplA*  -rplB  -rplC  -rplD*  -rplE  -rplF  -rplJ  -rplK  -rplL  -rplM*  -rplN  -rplO  -rplP  -rplQ  -rplR  -rplS  -rplT*  -rplU  -rplV  -rplW  -rplX  -rplY*  -rpmA  -rpmB  -rpmC  -rpmD  -rpmG  -rpmI  -rpmJ  -rpoA  -rpoB  -rpoC  -rpoD*  +rpoE*  +rpoS*  -rpoZ  -rpsA*  -rpsC  -rpsD*  -rpsE  -rpsG*  -rpsH*  -rpsI  -rpsJ  -rpsK  -rpsL  -rpsM  -rpsN  -rpsP  -rpsQ  -rpsS  -rpsT  -rpsU  -rrfA  -rrfB  -rrfC  -rrfD  -rrfE  -rrfF  -rrfG  -rrfH  -rrlA  -rrlB  -rrlC  -rrlD  -rrlE  -rrlG  -rrlH  -rrsA  -rrsB  -rrsC  -rrsD  -rrsE  -rrsG  -rrsH  +rseA  +rseB  +rseC  +rybB*  -secY  +setA  +sgrR*  +sgrS*  +sgrT  -spoT  +sroA  +talA  +thiB  +thiP  +thiQ  +thrA  +thrB  +thrC  +thrL  -thrS*  -thrV  +tktB  -trmD  -trmH  -tufA  -yhbE  -ytiC  -ytiD
+dnaA*
+  -aldA  +/-dnaA*  +/-dnaN  -guaA  -guaB  -idlP  -iraD  +/-nrdA  +/-nrdB  +polA  +/-recF  -recN  -rpoH*  -uvrB  +/-yfaE  -yjeV  -ytiC  -ytiD
+dpiA*
+  -appY*  +citC  +citD  +citE  +citF  +citG  +citX  +dpiA*  +dpiB  +exuT  +mdh
+dsdC*
+  +dsdA  -dsdC*  +dsdX
+dsrA*
+  -hns*  -lrp*  -rbsA  -rbsB  -rbsC  -rbsD  -rbsK  -rbsR*  +rpoS*
+ebgR*
+  -ebgA  -ebgC
+envR*
+  -acrA  -acrB
+envY*
+  +ompC  +ompF
+evgA*
+  +acrD  +emrK  +emrY  +evgA*  +evgS  +frc  +gadE*  +gadF  +mdtE  +mdtF  +oxc  +safA  +ydeO*  +ydeP  +yegR  +yfdE  +yfdV  +yfdX
+exuR*
+  -exuR*  -exuT  -lgoD  -lgoR  -uxaA  -uxaB  -uxaC  -uxuA  -uxuB  -uxuR*
+fabR*
+  -fabA  -fabB
+fadR*
+  +accA*  +accB*  +accC  +accD*  +fabA  +fabB  +fabD  +fabG  +fabH  +fabI  -fadA  -fadB  -fadD  -fadE  -fadH  -fadI  -fadJ  -fadL  -fadM  +fadR*  +iclR*  -uspA
+feaR*
+  +feaB  +tynA
+fecI*
+  +fecA  +fecB  +fecC  +fecD  +fecE
+fhlA*
+  +fdhF  +fhlA*  +focB  +hycA  +hycB  +hycC  +hycD  +hycE  +hycF  +hycG  +hycH  +hycI  +hydN  +hyfA  +hyfB  +hyfC  +hyfD  +hyfE  +hyfF  +hyfG  +hyfH  +hyfI  +hyfJ  +hyfR*  +hypA  +hypB  +hypC  +hypD  +hypE  +hypF
+fimR2*
+  -fliG  -fliI  -fliJ  -fliR  +hofQ
+fimZ*
+  +puuB  +puuC  +puuD  +sfmA  +sfmC
+fis*
+  -acnB*  -acs  -actP  +adhE  +alaT  +alaU  +alaV  +alaW  +alaX  -aldB  -ansB  +apaG  +apaH  +argU  +argW  +argX  +aspV  -bglB  -bglF  -bglG*  +carA  +carB  -cbpA  -cbpM  -crp*  +cspA*  -cspI  +cyoA  +cyoB  +cyoC  +cyoD  +cyoE  -cysG  +deoA  +deoB  +deoC  +deoD  -dmsA  -dmsB  -dmsC  -dnaA*  -dnaN  -dps  -dusB  +fadA  +fadB  +/-fau  +fimA  +fimC  +fimD  +fimF  +fimG  +fimH  +fimI  +fimR2*  -fis*  +flxA  -fumB  -gadA  -gadB  -gadC  -gadX*  -glcC*  +glnA  +glnG*  +glnL  -glnQ  +glnU  +glnV  +glnW  +glnX  +glnZ*  +glpA  +glpB  +glpC  +glpQ  +glpT  +gltT  +gltU  +gltV  +gltW  -gltX  +glyT  +glyU  +grcA  -guaA  -guaB  -gyrA  -gyrB  +hisR  -hlyE  +hns*  +hupA*  -hupB*  -hyaA  -hyaB  -hyaC  -hyaD  -hyaE  -hyaF  +ileT  +ileU  +ileV  +infB  -katE  +leuP  +leuQ  +leuT  +leuV  +leuW  +leuX  +lpd  +lysT  +lysV  +lysW  +malE  +malF  +malG  +malH*  +marA*  +marB  +marR*  +mazE*  +mazF*  +mazG  +metT  +metU  +metY  -mglA  -mglC  -msrA  -mtlA  -mtlD  -mtlR  -nanA  -nanE  -nanK  -nanQ  -nanT  -narG  -narH  -narI  -narJ  -narK  -narS  +/-ndh  -nirB  -nirC  -nirD  +nrdA  +nrdB  -nrfA  -nrfB  -nrfC  -nrfD  -nrfE  -nrfF  -nrfG  +nuoA  +nuoB  +nuoC  +nuoE  +nuoF  +nuoG  +nuoH  +nuoI  +nuoJ  +nuoK  +nuoL  +nuoM  +nuoN  +nusA  -ogt  -osmE  -osmY  patA  +pdxA  -pflB  +pheU  +pheV  +pnp*  +proK  +proL  +proM  +proP  +/-ptsG  -pyrD  +queA  +rbfA  -recF  +rimP  +/-rnpB  -rplM*  -rpsI  +rpsO*  +rrfA  +rrfB  +rrfC  +rrfD  +rrfE  +rrfF  +rrfG  +rrfH  +rrlA  +rrlB  +rrlC  +rrlD  +rrlE  +rrlG  +rrlH  +rrsA  +rrsB  +rrsC  +rrsD  +rrsE  +rrsG  +rrsH  +rsmA  +serT  +serX  +sra  +/-ssrS  +thrT  +thrU  +thrV  +thrW  -tolB  +/-topA  +tpr  +trg  +trmA  +truB  +tufB  +tyrT  +tyrU  +tyrV  +valT  +valU  +valX  +valY  -xylF  -xylG  -xylH  -xylR*  -yeaR  +yfaE  -yjcH  -yoaG  +yodD
+flhC*
+  +aceB  +adhE  +ccmA  +ccmB  +ccmC  +ccmD  +ccmE  +ccmF  +ccmG  +ccmH  +clsC  +csgC  +epd  +flgA  +flgB  +flgC  +flgD  +flgE  +flgF  +flgG  +flgH  +flgI  +flgJ  +flgM  +flgN  +flhA  +flhB  +flhE  +fliA*  +fliD  +fliE  +fliF  +fliG  +fliH  +fliI  +fliJ  +fliK  +fliL  +fliM  +fliN  +fliO  +fliP  +fliQ  +fliR  +fliS  +fliT  +fliZ*  +fruB  +glpA  +glpB  +glpC  +gltI  +gltJ  +gltK  +gltL  +hydN  +hypF  +iclR*  -mdh  -mglA  -mglB  -mglC  +napA  +napB  +napC  +napD  +napF  +napG  +napH  +nfrB  +nrfA  +nrfB  +nrfC  +nrfD  +nrfE  +nrfF  +nrfG  +pdeH  +pfkA  +ppdA  +ppdB  +ppdC  +ptsH  +recC  +setB  +sroC  +tcyJ  +ycgR  +yecR  +ygbK  +ygdB  +ymdA  +ymdB
+flhD*
+  +aceB  +adhE  +ccmA  +ccmB  +ccmC  +ccmD  +ccmE  +ccmF  +ccmG  +ccmH  +clsC  +csgC  +epd  +flgA  +flgB  +flgC  +flgD  +flgE  +flgF  +flgG  +flgH  +flgI  +flgJ  +flgM  +flgN  +flhA  +flhB  +flhE  +fliA*  +fliD  +fliE  +fliF  +fliG  +fliH  +fliI  +fliJ  +fliK  +fliL  +fliM  +fliN  +fliO  +fliP  +fliQ  +fliR  +fliS  +fliT  +fliZ*  +fruB  +glpA  +glpB  +glpC  +gltI  +gltJ  +gltK  +gltL  +hydN  +hypF  +iclR*  -mdh  -mglA  -mglB  -mglC  +napA  +napB  +napC  +napD  +napF  +napG  +napH  +nfrB  +nrfA  +nrfB  +nrfC  +nrfD  +nrfE  +nrfF  +nrfG  +pdeH  +pfkA  +ppdA  +ppdB  +ppdC  +ptsH  +recC  +setB  +sroC  +tcyJ  +ycgR  +yecR  +ygbK  +ygdB  +ymdA  +ymdB
+fliA*
+  +aer  +cheA  +cheB  +cheR  +cheW  +cheY  +cheZ  +flgK  +flgL  +flgM  +flgN  +flgO  +fliA*  +fliC  +fliD  +fliE  +fliF  +fliG  +fliH  +fliI  +fliJ  +fliK  +fliL  +fliM  +fliN  +fliO  +fliP  +fliQ  +fliR  +fliS  +fliT  +fliX  +fliZ*  +flxA  +hemL  +ispE  +lolB  +modA  +modB  +modC  +motA  +motB  +motR  +oppA  +oppB  +oppC  +oppD  +oppF  +pdeH  +ppdA  +ppdB  +ppdC  +prs  +rdcA  +rdcB  +recC  +tap  +tar  +tcyJ  +trg  +tsr  +ves  +yafW  +yafX  +ycgR  +yecF  +ygbK  +ygdB  +yjcS  +ykfB  +ykfF  +ykfG  +ykfH  +ykfI  +ynjH
+fliZ*
+  -csgA  -csgB  -csgC  -csgD*  -csgE  -csgF  -csgG  -flhC*  -flhD*  -gadB  -gadC  -gadE*  -gadF  -hdeA  -hdeB  -mdtE  -mdtF  -mlrA*  -osmY  -pdeR  -yhiD  -yjbJ
+fnr*
+  +/-aceE  +/-aceF  +ackA  -acnA  +acrE  +acrF  +adhE  +aer  -aldA  +/-amtB  +ansB  +/-arcA*  +argK  +aroP  +aspA  +/-aspC  +bcsB  +bcsZ  +bidA  +cadC*  +caiA  +caiB  +caiC  +caiD  +caiE  +caiF*  +caiT  +ccmA  +ccmB  +ccmC  +ccmD  +ccmE  +ccmF  +ccmG  +ccmH  +ccp  +cheB  +cheR  +cheY  +cheZ  -citC  -citD  -citE  -citF  -citG  -citX  +/-cydA  +/-cydB  +cydC  +cydD  -cyoA  -cyoB  -cyoC  -cyoD  -cyoE  +cysG  +dcuA  +dcuB  +dcuC  +dcuR*  +dcuS  +dmsA  +dmsB  +dmsC  +dmsD  -dpiA*  -dpiB  -dppA  -dppB  -dppC  -dppD  -dppF  +emrK  +emrY  +entF  +fdhF  +/-fdnG  +/-fdnH  +/-fdnI  +feoA  +feoB  +feoC  +fepE  +fes  +fhlA*  +fixA  +fixB  +fixC  +fixX  +/-fnr*  +fnrS*  +focA  -focB  +frdA  +frdB  +frdC  +frdD  -fumA  +fumB  -fumC  -gadA  -gadW*  -gadX*  +garD  +garK  +garL  +garP  +garR  +gcvH  +gcvP  +gcvT  +gdhA  +/-glnD  +/-glnK  +glpA  +glpB  +glpC  +glpQ  +glpT  -gltB  -gltD  -gltF  -gnd  +/-grcA  +hcp  +hcr  -hemA  +hlyE  -hmp  -hyfA  -hyfB  -hyfC  -hyfD  -hyfE  -hyfF  -hyfG  -hyfH  -hyfI  -hyfJ  -hyfR*  +hypB  +hypC  +hypD  +hypE  +idlP  +iraD  +iraM  +katG  +/-lpd  +malP  +malQ  +metV  +mltA  +moaA  +moaB  +moaC  +moaD  +moaE  -moeA  -moeB  -msrB  -nac*  +napA  +napB  +napC  +napD  +napF  +napG  +napH  +narG  +narH  +narI  +narJ  +narK  -narL*  +narS  -narX  -ndh  +nfeR*  +nikA  +nikB  +nikC  +nikD  +nikE  +nikR*  +nirB  +nirC  +nirD  -norV  -norW  +nrdD  +nrdG  +nrfA  +nrfB  +nrfC  +nrfD  +nrfE  +nrfF  +nrfG  -nuoA  -nuoB  -nuoC  -nuoE  -nuoF  -nuoG  -nuoH  -nuoI  -nuoJ  -nuoK  -nuoL  -nuoM  -nuoN  +/-ompW  -ompX  +ortT  +pdeF  +/-pdhR*  +pepT  +pflB  -pheM  +phoU  +pitA  +poxB  -prfA  -prmC  +pstA  +pstB  +pstC  +pstS  -purM  -purN  -puuA  -puuP  +pykA  +ravA  -rimM  +rnpB  +rplB  +rplC  +rplD*  -rplM*  +rplP  -rplS  -rplT*  +rplV  +rplW  +rpmC  +rpsC  -rpsI  +rpsJ  -rpsP  +rpsQ  +rpsS  +scpA  +scpB  +scpC  -sdhA  -sdhB  -sdhC  -sdhD  -sdhX*  -sodA  -soxR*  -soxS*  +ssuA  +ssuB  +ssuC  +ssuD  +ssuE  -sucA  -sucB  -sucC  -sucD  +tap  +tar  +tdcA*  +tdcB  +tdcC  +tdcD  +tdcE  +tdcF  +tdcG  +thrA  -tpx  -trmD  -ubiA  -ubiC  +ung  +upp  +uraA  +uxaA  +uxaC  +viaA  +xdhA  +xdhB  +xdhC  +ybdN  +ybdZ  -ycaC  -ychO  +ydeJ  +ydfO  +ydfZ  +ydhT  +ydhU  +ydhV  +ydhW  +ydhX  +ydhY  +yecR  -yeiL*  +yfcZ  +yffS  -ygbA  +yibN  -ymjE  +ynfE  +ynfF  +ynfG  +ynfH  -ysgA  -ytfE  -zwf
+fnrS*
+  -azuC  -azuR*  -cydC  -cydD  -folE  -folX  -glpD  -gpmA  -iscR*  -maeA  -marA*  -metE  -sodA  -sodB  -yebY  -yebZ  -yeiB  -yfcH  -yobA
+frlR*
+  -frlA  -frlB  -frlC  -frlD  -frlR*
+frmR*
+  -frmA  -frmB  -frmR*
+fucR*
+  +fucA  +fucI  +fucK  +fucO  +fucP  +fucR*  +fucU
+fur*
+  +/-amtB  -aspC  -cirA  -cyoA  -cyoB  -cyoC  -cyoD  -cyoE  -entA  -entB  -entC  -entD  -entE  -entF  -entH  +/-entS  +esrE  -exbB  -exbD  -fecA  -fecB  -fecC  -fecD  -fecE  -fecI*  -fecR  -feoA  -feoB  -feoC  -fepA  -fepB  -fepC  -fepD  -fepE  -fepG  -fes  -fhuA  -fhuB  -fhuC  -fhuD  -fhuE  -fhuF  -fiu  -flhC*  -flhD*  -fnr*  +ftnA  +fumB  -fumC  -fur*  -garK  -garL  -garP  -garR  +/-gdhA  -glnD  +/-glnK  -gltB  -gltD  -gltF  -gnd  -gpmA  -grcA  -gspC  -gspD  -gspE  -gspF  -gspG  -gspH  -gspI  -gspJ  -gspK  -gspL  -gspM  -gspO  -hmp  +katE  +katG  +/-lpd  -metH  -metJ*  -mntH  +mntP  -nac*  -ndh  -nfeF  -nohA  -nrdE  -nrdF  -nrdH  -nrdI  +ompF  +ompW  -oppA  -oppB  -oppC  -oppD  -oppF  -purR*  -pyrC  -rcnA  -rcnB  +rmf  -rnpB  -rpoS*  -rsd  -ryhB*  +sdhA  +sdhB  +sdhC  +sdhD  +sdhX*  -sodA  -soxR*  -soxS*  -stfQ  +sucA  +sucB  +sucC  +sucD  -sufA  -sufB  -sufC  -sufD  -sufE  -sufS  -tfaQ  +/-tonB  -ybdZ  -ygaC  -yhhY  -yjjZ  +zinT  -zwf
+gadE*
+  +adiC  +aslB  +cadA  +cadB  +cyoA  +cyoB  +cyoC  +cyoD  +cyoE  +dctR  +fabZ  +fliC  +fliX  +gadA  +gadB  +gadC  +gadE*  +gadF  +gadW*  +gadX*  +gltB  +gltD  +gltF  +gnd  +hdeA  +hdeB  +hdeD  +lpxA  +lpxD  +lrp*  +mdtE  +mdtF  +purA  +rcsA*  +skp  +slp  +yhiD  +yhiM  +yjbQ  +yjbR
+gadW*
+  -dctR  +/-gadA  +/-gadB  +/-gadC  +gadE*  +gadF  -gadW*  +/-gadX*  -gadY*  +/-hdeA  +/-hdeB  +mdtE  +mdtF  -slp  +/-yhiD
+gadX*
+  +amtB  +asnB  -btuB  +cadA  +cadB  +dctR  -dtpA  +gadA  +gadB  +gadC  +gadE*  +gadF  +/-gadW*  +gadX*  +gadY*  +glnK  +glsA  +/-hdeA  +/-hdeB  +hdeD  +hns*  +lon  +mdtE  +mdtF  -murI  +rpoS*  +slp  -speG  +uspE  +ybaT  -ydeM  -ydeN  +/-yhiD  -ynfB
+gadY*
+  +gadW*  +gadX*
+galR*
+  +/-galE  +/-galK  +/-galM  -galP  -galR*  -galS*  +/-galT  -mglA  -mglB  -mglC
+galS*
+  +/-galE  +/-galK  +/-galM  -galP  -galR*  -galS*  +/-galT  -mglA  -mglB  -mglC
+gatR*
+  -gatA  -gatB  -gatC  -gatD  -gatY  -gatZ
+gcvA*
+  -gcvA*  +gcvB*  +/-gcvH  +/-gcvP  +/-gcvT
+gcvB*
+  -acs  -aroC  -aroP  -asd  -asnA  -asnB  -csgD*  -csgE  -csgF  -csgG  -cstA  -cycA  -dppA  -dppB  -dppC  -dppD  -dppF  -gdhA  -gltP  -hisQ  -icd  -ilvB  -ilvD  -ilvL  -ilvM  -inaA  -ivbL  -kgtP  -lrp*  -map  -mltC  -nlpA  -oppA  -oppB  -oppC  -oppD  -oppF  +oxyR*  -panD  -phoP*  -phoQ  -purU  +rbn  -rbsK  -rbsR*  -sstT  -tcyJ  -trpA  -trpB  -trpC  -trpD  -trpE  -ydeE  -ysgA
+glaR*
+  +alaE  -apt  -aroB  -aroP  -baeS  +bdcA  -bdcR  +bssS  +cadC*  -casA  -chaA  -chaB  -chaC  -csgI  +cysN  -cysS  +dctR  -dgcN  -dinQ  -elfC  -fhuE  -gabD  -gabP  -gabT  -gadW*  +gadX*  -gcvA*  -gdhA  -glaH  +gltF  +hinT  +htrE  -hxpA  +idnD  -idnK  -inaA  -kdgT  +kdsA  -ldcC  -lhgD  +lsrG  -mglA  -mrdA  +murD  -nlpA  +orn  -oxc  -pdeG  +pdhR*  -pdxA  -phoH  +pliG  +ppiB  -ppx  +priC  -prmC  +rfbB  -rhsD  +rpiB  +rpsF*  -rsgA  -rssB  +safA  -sgcC  +smg  -tam  -tar  -tehA  -ttdA  -ttdR*  +yadN  -ybaN  -ycbU  -ycbV  -yccU  -ycgJ  -ycgV  +ycgY  +ychQ  -yciU  -ycjP  -ydcK  +ydeO*  -ydfI  +ydfK  -ydhS  -yeaE  +yehD  -yehE  +yehS  +yfbN  +yfbO  +yfbU  -yfcO  +yfcV  -yfdC  +yfdV  -yfiL  -yfiR  -yfjD  -ygiV*  +ygiW  +ygjI  -yhcD  +yidB  +yigG  +yihD  -yihM  -yjdP  -yjfY  +yjjP  -yjjQ*  -ynaE  -ynjH  -yobD  +yodB  +ypdC  -ypjA  -yqhC*  -zraR*
+glcC*
+  +glcA  +glcB  -glcC*  +glcD  +glcE  +glcF  +glcG
+glmZ*
+  +glmS
+glnG*
+  +amtB  +argT  +astA  +astB  +astC  +astD  +astE  +cbl*  +ddpA  +ddpB  +ddpC  +ddpD  +ddpF  +ddpX  +/-glnA  +/-glnG*  +/-glnH  +glnK  +/-glnL  +/-glnP  +/-glnQ  +/-glnZ*  +hisJ  +hisM  +hisP  +hisQ  +nac*  +patA  +potF  +potG  +potH  +potI  +relA  +rpoE*  +rseA  +rseB  +rseC  +rseD  +rutA  +rutB  +rutC  +rutD  +rutE  +rutF  +rutG  +yeaG  +yeaH  +yhdX  +yhdY  +yhdZ
+glnZ*
+  -glnP  -sucA
+glpR*
+  -glpA  -glpB  -glpC  -glpD  -glpF  -glpK  -glpQ  -glpT  -glpX
+glrR*
+  +glmY  +rpoE*  +rseA  +rseB  +rseC  +rseD
+gntR*
+  -eda  -edd  -gntK  -gntT  -gntU  -idnD  -idnK  -idnO  -idnR*  -idnT  -nfuA  -yhgH
+gutM*
+  +gutM*  +gutQ  +srlA  +srlB  +srlD  +srlE  +srlR*
+hcaR*
+  +hcaB  +hcaC  +hcaD  +hcaE  +hcaF  -hcaR*
+hdfR*
+  -flhC*  -flhD*  +gltB  +gltD  +gltF  +maoP
+hfq*
+  -cirA  -manX  -mutS  -oppA
+hicB*
+  -hicA  -hicB*
+higA*
+  -higA*  -higB*
+higB*
+  -higA*  -higB*
+hipA*
+  -hipA*  -hipB*  -mazE*  -mazF*  -relA
+hipB*
+  -eutA  -eutH  -fadH  -hipA*  -hipB*  -mazE*  -mazF*  -relA
+hns*
+  -acrE  -acrF  -adeD  -adiA  -adiC  -adiY*  +/-alaU  +/-alaU  +/-alaV  +/-alaV  -appY*  -ascF  -ascG*  -asr  -bglB  -bglF  -bglG*  -bglJ*  -bluF  -bolA*  -cadA  -cadB  -cadC*  -caiA  -caiB  -caiC  -caiD  -caiE  -caiF*  -caiT  -cas1  -cas2  -casA  -casB  -casC  -casD  -casE  -cbpA  -cdgI  -chiA  +cmoM  -csgD*  -csgE  -csgF  -csgG  +csiE  -cspA*  +cspD  +cycA  -cydA  -cydB  -cysA  -cysG  -cysM  -cysP  -cysU  -cysW  -dctR  -ddlA  -degP  -dgcJ  -dgcT  -dgcZ  -dosC  -dps  +entF  -evgA*  -evgS  -fau  +fepE  +fes  +fimA  -fimB  +fimC  +fimD  -fimE  +fimF  +fimG  +fimH  +fimI  +fimR2*  +flhC*  +flhD*  +fliA*  +fliC  +fliX  +fliZ*  -ftnA  -fucA  +gabD  +gabP  +gabT  -gadA  -gadB  -gadC  -gadE*  -gadF  -gadW*  -gadX*  -galE  -galK  -galM  -galT  -garK  -garL  -garP  -garR  +glaH  -gltT  +/-gltU  +/-gltU  +/-gltW  +/-gltW  -glvC  -gspA  -gspB  -gspC  -gspD  -gspE  -gspF  -gspG  -gspH  -gspI  -gspJ  -gspK  -gspL  -gspM  -gspO  +gutM*  +gutQ  -hchA  -hdeA  -hdeB  -hdeD  -hdfR*  +hisJ  +hisM  +hisP  +hisQ  +/-hlyE  -hns*  -hprR*  +/-ileU  +/-ileU  +/-ileV  +/-ileV  -ilvH  -ilvI  -iraP  -lacA  -lacY  -lacZ  -leuO*  +lhgD  -lrp*  +malE  +malF  +malG  +malH*  +mazE*  +mazF*  -mdtE  -mdtF  -mdtI  -mdtJ  -mdtU  -micF*  +mukB  +mukE  +mukF  -nhaA  -nhaR*  -nirB  -nirC  -nirD  -nrdA  -nrdB  -nrdD  -nrdG  -osmC  -oxc  -pagP  -pdeC  -pdeF  -pdeG  -pdeI  -pdeL*  -proV  -proW  -proX  -rcsA*  -rcsB*  -rcsD  +relA  -rflP  -rnpB  -rrfB  +/-rrfC  +/-rrfC  +/-rrfD  +/-rrfD  +/-rrfF  +/-rrfF  +/-rrfG  +/-rrfG  +/-rrfH  +/-rrfH  -rrlB  +/-rrlC  +/-rrlC  +/-rrlD  +/-rrlD  +/-rrlG  +/-rrlG  +/-rrlH  +/-rrlH  -rrsB  +/-rrsC  +/-rrsC  +/-rrsD  +/-rrsD  +/-rrsG  +/-rrsG  +/-rrsH  +/-rrsH  -slp  +srlA  +srlB  +srlD  +srlE  +srlR*  -ssrS  -stpA*  +tcyJ  +/-thrV  +/-thrV  -ttdR*  +ybdZ  -yciE  -yciF  -yciG  -ydcC  -ydeO*  -ydeP  -yfaE  -yhiD  -yhiM  -yjjP  -yjjQ*
+hprR*
+  +cusA  +cusB  +cusC  +cusF  +cusR*  +cusS  -cyoA  -cyoB  -cyoC  -cyoD  -cyoE  +hiuH  +msrP  +msrQ
+hupA*
+  -galE  -galK  -galM  -galT  +micF*  -mtr  -pgm  -seqA  -tyrP
+hupB*
+  -galE  -galK  -galM  -galT  +micF*  -mtr  -pgm  -seqA  -tyrP
+hyfR*
+  +focB  +hyfA  +hyfB  +hyfC  +hyfD  +hyfE  +hyfF  +hyfG  +hyfH  +hyfI  +hyfJ  +hyfR*
+hypT*
+  +cydA  +cydB  +cysH  -fecA  -fecB  -fecC  -fecD  -fecE  +metB  +metI  +metL  +metN  +metQ
+ibpA*
+  -ibpA*  -ibpB
+iclR*
+  -aceA  -aceB  -aceK  -iclR*
+idnR*
+  -gntK  -gntU  +idnD  +idnK  +idnO  +idnR*  +idnT
+ihfA*
+  +aceA  +aceB  +aceK  -acs  -actP  +adiA  -amiA  +atoA  +atoB  +atoD  +atoE  +/-carA  +/-carB  +csgD*  +csgE  +csgF  +csgG  +csrB  +cycA  +/-cysG  +cysH  +cysI  +cysJ  +dcuD  -dmsA  -dmsB  -dmsC  +dppA  +dppB  +dppC  +dppD  +dppF  +dps  +dusB  -envZ  +fhlA*  +fimA  +fimB  +fimC  +fimD  +fimF  +fimG  +fimH  +fimI  +fimR2*  +fis*  -flhC*  -flhD*  -fliA*  -fliZ*  +fnr*  +focA  +folA  +gcd  +glcA  +glcB  +glcD  +glcE  +glcF  +glcG  +glmY  +glnH  +glnP  +glnQ  -glpQ  -glpT  +gltA  +gltB  +gltD  +gltF  +hemA  -hemF  +hipA*  +hipB*  -hpt  +htrE  +hycA  +hycB  +hycC  +hycD  +hycE  +hycF  +hycG  +hycH  +hycI  +hypA  +hypB  +hypC  +hypD  +hypE  +ibpB  -icd  -ihfA*  -ihfB*  +/-ilvA  +/-ilvD  +/-ilvE  +/-ilvL  +/-ilvM  +/-ilvX  +lyxK  -micF*  -mtr  +narG  +narH  +narI  +narJ  +narK  +narS  -ndh  +/-nirB  +/-nirC  +/-nirD  +/-norV  +/-norW  +/-nrfA  +/-nrfB  +/-nrfC  +/-nrfD  +/-nrfE  +/-nrfF  +/-nrfG  -nuoA  -nuoB  -nuoC  -nuoE  -nuoF  -nuoG  -nuoH  -nuoI  -nuoJ  -nuoK  -nuoL  -nuoM  -nuoN  -ompC  +/-ompF  -ompR*  -osmE  -osmY  +paaA  +paaB  +paaC  +paaD  +paaE  +paaF  +paaG  +paaH  +paaI  +paaJ  +paaK  +paaZ  patA  +pflB  +phoU  -plaR*  +prfA  +prmC  +proV  +proW  +proX  +pspA  +pspB  +pspC  +pspD  +pspE  +pspG  +pspH  +pstA  +pstB  +pstC  +pstS  -rpoE*  +rpoH*  -rseA  -rseB  -rseC  -rseD  +rtcA  +rtcB  -sdhX*  +sgbE  +sgbH  +sgbU  -sodA  -sodB  +sra  +/-ssuA  +/-ssuB  +/-ssuC  +/-ssuD  +/-ssuE  -sucA  -sucB  -sucC  -sucD  +sufA  +sufB  +sufC  +sufD  +sufE  +sufS  -tcyJ  +tdcA*  +tdcB  +tdcC  +tdcD  +tdcE  +tdcF  +tdcG  -tyrP  -ubiA  -ubiC  -ulaA  -ulaB  -ulaC  -ulaD  -ulaE  -ulaF  -ulaG  +uspA  -uspB  +yadV  +yeiL*  +yiaK  +yiaL  +yiaM  +yiaN  +yiaO  +yjbE  +yjbF  +yjbG  +yjbH  -yjcH
+ihfB*
+  +aceA  +aceB  +aceK  -acs  -actP  +adiA  -amiA  +atoA  +atoB  +atoD  +atoE  +/-carA  +/-carB  +csgD*  +csgE  +csgF  +csgG  +csrB  +cycA  +/-cysG  +cysH  +cysI  +cysJ  +dcuD  -dmsA  -dmsB  -dmsC  +dppA  +dppB  +dppC  +dppD  +dppF  +dps  +dusB  -envZ  +fhlA*  +fimA  +fimB  +fimC  +fimD  +fimF  +fimG  +fimH  +fimI  +fimR2*  +fis*  -flhC*  -flhD*  -fliA*  -fliZ*  +fnr*  +focA  +folA  +gcd  +glcA  +glcB  +glcD  +glcE  +glcF  +glcG  +glmY  +glnH  +glnP  +glnQ  -glpQ  -glpT  +gltA  +gltB  +gltD  +gltF  +hemA  -hemF  +hipA*  +hipB*  -hpt  +htrE  +hycA  +hycB  +hycC  +hycD  +hycE  +hycF  +hycG  +hycH  +hycI  +hypA  +hypB  +hypC  +hypD  +hypE  +ibpB  -icd  -ihfA*  -ihfB*  +/-ilvA  +/-ilvD  +/-ilvE  +/-ilvL  +/-ilvM  +/-ilvX  +lyxK  -micF*  -mtr  +narG  +narH  +narI  +narJ  +narK  +narS  -ndh  +/-nirB  +/-nirC  +/-nirD  +/-norV  +/-norW  +/-nrfA  +/-nrfB  +/-nrfC  +/-nrfD  +/-nrfE  +/-nrfF  +/-nrfG  -nuoA  -nuoB  -nuoC  -nuoE  -nuoF  -nuoG  -nuoH  -nuoI  -nuoJ  -nuoK  -nuoL  -nuoM  -nuoN  -ompC  +/-ompF  -ompR*  -osmE  -osmY  +paaA  +paaB  +paaC  +paaD  +paaE  +paaF  +paaG  +paaH  +paaI  +paaJ  +paaK  +paaZ  patA  +pflB  +phoU  -plaR*  +prfA  +prmC  +proV  +proW  +proX  +pspA  +pspB  +pspC  +pspD  +pspE  +pspG  +pspH  +pstA  +pstB  +pstC  +pstS  -rpoE*  +rpoH*  -rseA  -rseB  -rseC  -rseD  +rtcA  +rtcB  -sdhX*  +sgbE  +sgbH  +sgbU  -sodA  -sodB  +sra  +/-ssuA  +/-ssuB  +/-ssuC  +/-ssuD  +/-ssuE  -sucA  -sucB  -sucC  -sucD  +sufA  +sufB  +sufC  +sufD  +sufE  +sufS  -tcyJ  +tdcA*  +tdcB  +tdcC  +tdcD  +tdcE  +tdcF  +tdcG  -tyrP  -ubiA  -ubiC  -ulaA  -ulaB  -ulaC  -ulaD  -ulaE  -ulaF  -ulaG  +uspA  -uspB  +yadV  +yeiL*  +yiaK  +yiaL  +yiaM  +yiaN  +yiaO  +yjbE  +yjbF  +yjbG  +yjbH  -yjcH
+ilvY*
+  +ilvC  -ilvY*
+iscR*
+  -erpA  -hyaA  -hyaB  -hyaC  -hyaD  -hyaE  -hyaF  -iscA  -iscR*  -iscS  -iscU  -napA  -napB  -napC  -napD  -napF  -napG  -napH  -nfuA  +nrdE  +nrdF  +nrdH  +nrdI  -rnlA  -rnlB  +selO  +sufA  +sufB  +sufC  +sufD  +sufE  +sufS  -torT
+istR*
+  -tisB
+kdgR*
+  -eda  -edd
+kdpE*
+  +kdpA  +kdpB  +kdpC  +kdpF  -rmf  -rsd
+lacI*
+  -lacA  -lacY  -lacZ
+leuO*
+  +bglB  +bglF  +bglG*  +bglJ*  -cadC*  +cas1  +cas2  +casA  +casB  +casC  +casD  +casE  -dsrA*  -gltF  +leuA  +leuB  +leuC  +leuD  +leuL  +/-leuO*  -ybeQ  -yghR  -yghS  +yjjQ*
+lexA*
+  -cho  -ddlB  -dinB  -dinD  -dinF  -dinG  -dinI  -dinJ*  -dinQ  -dnaG  -ftsA  -ftsI  -ftsK  -ftsL  -ftsQ  -ftsW  -ftsZ  -hokE  -insK  -lexA*  -lpxC  -mraY  -murC  -murD  -murE  -murF  -murG  -phr  -polB  -ptrA  -recA  -recB  -recD  -recN  -recQ  -recX  -rpoD*  -rpsU  -ruvA  -ruvB  -sbmC  -ssb  -sulA  -symE  -tisB  -umuC  -umuD  -uvrA  -uvrB  -uvrC  -uvrD  -uvrY*  -yafN  -yafO  -yafP  -yafQ*  -ybfE  -ybiB  -ydjM  -yebG  -yehF  -yoaA
+lldR*
+  +/-lldD  +/-lldP  +/-lldR*
+lrhA*
+  +fimE  -flhC*  -flhD*  +leuO*  +lrhA*
+lrp*
+  +aceB  +/-acrZ  +/-adhE  -aer  -aidB*  +/-alaA  +/-alaE  -alaS*  -alaT  +/-alaU  +/-alaU  +/-alaV  +/-alaV  -amiC  +/-ansB  -aphA  -arcB  -argA  +argO  +/-argR*  -argS  +argT  +/-aroA  +/-aroG  +/-artI  +/-artP  +asnA  +asnB  +/-aspA  +aspC  -aspS  +/-astC  -atpA  -atpH  +/-avtA  +borD  -brnQ  +bssS  -btuE  +cadA  +cadB  +can  +cbl*  +chbG  +clpP  +clpS  -cpoB  -creA  +/-csiE  -cycA  -cydC  -cysB*  +/-dadA  -dadX  -deaD*  -dedA  -deoB  -dgcJ  +/-dgcM  -dgcQ  +dgcZ  -dhaK  +/-dppA  -dtpA  -dtpB  -eco  -emrD  +eno  +eptB  +exbB  +/-fadI  +fadL  -fau  +fimA  +fimC  +fimD  +fimE  +fimF  +fimG  +fimH  +fimI  +fimR2*  +/-fliA*  -frdA  -frdB  -ftsQ  +fumA  +/-fxsA  +gabD  +gabP  +gabT  -gadB  +/-gadW*  +gadY*  +gcvH  +gcvP  +/-gcvT  -gdhA  +glaH  +/-glcA  -glgC  +glnA  +glnH  +glnK  +glnL  +glnQ  +gltB  +gltD  +gltF  -gltP  -gltT  -gltU  +/-gltV  +/-gltV  +/-gltW  +/-gltW  -gpt  +/-groL  -groS  -hdeA  -hdeB  -hlyE  -hpf  +hspQ  +htrE  +ibpA*  +ibpB  -ileT  +/-ileU  +/-ileU  +/-ileV  +/-ileV  -ilvA  -ilvD  -ilvE  +/-ilvH  +/-ilvI  +/-ilvL  -ilvM  -ilvX  +insC5  +insH3  -intZ  -iraD  +iraP  +/-katE  +/-kbl  +ldhA  +/-leuA  -leuE  +leuL  +/-leuO*  +lhgD  +lipA  -livF  -livG  -livH  +/-livJ  +/-livK  -livM  -lolA  +lolC  -lpxL  +lrhA*  -lrp*  +/-lysP  -lysU  +malT*  -manA  +menA  -metH  -metK  -metT  -micF*  -mnmA  +modA  -mqo  -msbA  -mscK  -mscS  -mtr  -mutY  +nac*  -napF  -nuoA  -nusB  -ompC  +ompT  -oppA  -oppB  -oppC  -oppD  -oppF  +/-osmC  -osmY  -pabB  -pal  +/-panZ  +/-patA  -pepD  -pgl  +phoA  +phoH  -pncB  +pntA  -polA  +/-potF  -ppk  -ppsA  +/-ppx  +prlF  +proP  +pspG  -ptsN  +/-purM  +purT  +pyrI  -qseB*  -radD  +rdcA  +relA  +rhtB  -ribE  +/-ridA  +rlmE  +/-rnr  -rpiA  +rpiB  -rplF  +/-rplR  -rpoN*  -rpsH*  -rrfA  -rrfB  -rrfC  +/-rrfD  +/-rrfD  +/-rrfE  +/-rrfE  +/-rrfF  +/-rrfF  +/-rrfG  +/-rrfG  +/-rrfH  +/-rrfH  -rrlA  -rrlB  -rrlC  +/-rrlD  +/-rrlD  +/-rrlE  +/-rrlE  +/-rrlG  +/-rrlG  +/-rrlH  +/-rrlH  -rrsA  -rrsB  -rrsC  +/-rrsD  +/-rrsD  +/-rrsE  +/-rrsE  +/-rrsG  +/-rrsG  +/-rrsH  +/-rrsH  +rsd  +rseA  +sad  -sdaA  -sdaC  +/-serA  +serB  +/-serC  -serS  +/-slyA*  +slyX  +soxS*  -sroH  -ssrS  -sstT  -sthA  +stpA*  +sulA  +tdh  -thiC  -thrL  +/-thrV  +/-thrV  -topA  -treA  -trhO  -trxB  +/-tsuA  +/-tyrP  +/-tyrR*  +ubiA  -upp  -uspE  -wecB  +yaaX  +yabQ  +yacL  +yaeQ  +yagU  +yaiY  +ybdF  -ybdG  -ybdL  -ybeX  -ybgA  +/-ybgS  +/-ybhQ  +ybiI  -ybiJ  -ybiO  -ybiT  -ybjN  -ybjS  +ybjX  -ycaM  -yceB  +ycfJ  +/-ycgB  -ychE  -yciN  +yciT*  +yciZ  +ydcK  +ydcL  -ydeE  +ydeN  +ydgH  +ydhQ  -yeaE  +yeaG  -yebF  -yehL  +yeiL*  +yfaP  -yfcC  -yfcZ  -yfiB  +/-ygiV*  +/-ygiW  -yhbY  -yhcN  +yhdN  +yhdV  +yhhA  +/-yhhW  -yhiD  -yhiM  +yhjE  +yhjJ  +yhjR  -yiaG  +yibL  +yibT  +yicH  -yiiM  -yjbJ  -yjbQ  +yjbR  +yjeH  -yjeM  +yjfP  -yjiC  +/-yjiL  +ykgE  +ynjH  +yoaH  -yodC  +yojI  +yqeF  -yqeG  +/-ytfB  +/-ytfJ  -ytfK  +ytjB  +yzgL  +zipA  +zitB  +zntR*
+lsrR*
+  -lsrA  -lsrB  -lsrC  -lsrD  -lsrF  -lsrG  -lsrK  -lsrR*  -tam
+lysR*
+  +lysA  -lysR*
+malH*
+  -ompC
+malI*
+  -malI*  -malX  -malY
+malT*
+  +lamB  +malE  +malF  +malG  +malH*  +malK  +malM  +malP  +malQ  +malS  +malZ
+marA*
+  +acnA  +acrA  +acrB  +acrZ  +aldA  +ariR  +dapD  -dctR  +decR*  +fpr  +fumC  +glnD  -hdeA  -hdeB  +inaA  -lacA  -lacY  -lacZ  +map  +marA*  +marB  +marR*  +mdaB  +micF*  +mlaB  +mlaC  +mlaD  +mlaE  +mlaF  +nfo  +nfsA  +nfsB  +poxB  +pqiA  +pqiB  +pqiC  -purA  +putA*  +rimK  -rob*  -slp  +sodA  +tolC  +waaY  +waaZ  +xseA  +ybjC  +ybjN  +ycgZ  +ygiB  +ygiC  +yhbW  -yhiD  +ymgA  +ymgC  +yncE  +zwf
+marR*
+  -marA*  -marB  -marR*
+matA*
+  +ecpA  -flhC*  -flhD*  -fliA*  -fliC  -fliX  -fliZ*  +matA*  -tcyJ
+mazE*
+  -mazE*  -mazF*  -mazG
+mazF*
+  -mazE*  -mazF*  -mazG
+mcaS*
+  -csgD*  -csgE  -csgF  -csgG  +flhC*  +flhD*
+mcbR*
+  -mcbA  +rmf  +rsd  +yciE  +yciF  +yciG
+melR*
+  +/-melA  +/-melB  +/-melR*
+metJ*
+  -ahpC  -ahpF  -folE  -metA  -metB  -metC  -metE  -metF  -metI  -metK  -metL  -metN  -metQ  -metR*  -yeiB
+metR*
+  +/-glyA  +hmp  +metE  +metH  -metR*
+mgrR*
+  -eptB  -pitA  -soxS*  -ygdQ
+mhpR*
+  +mhpA  +mhpB  +mhpC  +mhpD  +mhpE  +mhpF
+micA*
+  -cpoB  -ecnB  -fimB  -gloA  -lamB  -ldtC  -lpxT  -ompA  -ompW  -ompX  -pal  -phoP*  -phoQ  -tsx  -yfeK  -ygiM
+micC*
+  -ompC
+micF*
+  -cpxA  -cpxR*  -lrp*  -ompF  +oppA  -phoE  -tcyJ
+micL*
+  -lpp
+mlc*
+  -bidA  -crr  -malT*  -manX  -manY  -manZ  -mlc*  -ptsG  -ptsH  -ptsI
+mlrA*
+  +cadC*  +csgD*  +csgE  +csgF  +csgG  +ibaG  +obgE  +rplU  +rpmA  +yhbE
+mngR*
+  -mngA  -mngB  -mngR*
+mntR*
+  -dps  -mntH  +mntP  -mntS  -rybA
+modE*
+  +ccmA  +ccmB  +ccmC  +ccmD  +ccmE  +ccmF  +ccmG  +ccmH  -deoA  -deoB  -deoC  -deoD  -dmsA  -dmsB  -dmsC  +hycA  +hycB  +hycC  +hycD  +hycE  +hycF  +hycG  +hycH  +hycI  +moaA  +moaB  +moaC  +moaD  +moaE  -modA  -modB  -modC  +napA  +napB  +napC  +napD  +napF  +napG  +napH  +narL*  +narX  -oppA  -oppB  -oppC  -oppD  -oppF
+mprA*
+  -acrA  -acrB  -emrA  -emrB  -mprA*
+mqsA*
+  -csgD*  -csgE  -csgF  -csgG  -cspD  -mqsA*  -mqsR  -rpoS*
+mraZ*
+  -ddlB  -ftsA  -ftsI  -ftsL  -ftsQ  -ftsW  -ftsZ  -lpxC  -mioC  -mraY  -mraZ*  -murC  -murD  -murE  -murF  -murG  -rsmH
+murR*
+  -murP  -murQ  +/-murR*
+nac*
+  -abgA  -abgR  -abpA  -aceB  +ackA  -acrE  +ahpC  -alaC  +allR*  +allW  -amiB  -amn  -ampD  -ansB  -ansP  -araE  -araF  +argO  +argU  -aroD  -aroE  -aroF  -asnA  -asnC*  -asnT  -asnV  -bfd  +bfr  -bglB  -bglH  +bglX  -bidA  +bisC  -blc  -borD  +bssS  -caiF*  -cbrB  -cbrC  -ccmA  -ccmB  -ccmH  -cdaR*  -cfa  +cheA  -cho  -chpS  +cmtA  +cmtB  -cobT  -cobU  +codA  +codB  -cpdB  -csiE  -curA  +cycA  +cydA  -cynR*  -cynT  -cysJ  +cysQ  -cysS  +dadA  -dapB  -dcm  +dcp  +dcyD  -ddlA  -ddpC  -dgcT  -dhaK  +dhaR*  -dinJ*  -dkgA  -dld  -dnaA*  +dpaA  -dppA  -dsbA  +dsbG  -eamA  -ecnA  -ecnB  +elfA  -elfG  -emrK  -eptA  +eutS  -evgA*  -exuT  -fdhD  -fdoG  -feaB  +/-feaR*  -fepE  -fhuF  -fklB  -fliC  -fliD  +ftnB  -fucA  -fumD  +gabD  +gabP  +gabT  +gadE*  -gadX*  -gatA  -gcvT  -gdhA  -glaH  +glcA  -glpK  -gltA  -gltB  -gltD  +/-gltF  -gltP  -glxK  +gmk  -gor  -greB  +groS  -gspG  -gspH  +gspM  +gspO  -gudX  +hcaE  +hcaR*  -hchA  -hemB  -hemH  -hemN  -hfq*  -hofC  -holE  -hprR*  -htpG  -htpX  -htrE  +hupA*  -hxpB  +iaaA  +ibpA*  +icd  +ileY  +ilvL  -ilvN  +insK  -intD  -iraP  -ispB  -ispD  +ivy  -katG  +kbaY  -kbl  -kdgR*  -kdsA  -kduI  -lapC  +lepA  -lepB  +leuL  -leuO*  -leuU  -ligB  +livH  -livK  -livM  -lpxH  -lrp*  +lysA  -lysP  -lysR*  -lysU  -macA  -malI*  -malY  +map  +marR*  -mcbA  -mcrB  +mdtE  -mdtG  +metE  -metR*  -metY  -mglA  -mglB  +mgtS  +micC*  -mioC  -mltD  -mnmG  -mntH  -mobA  +moeA  -mreC  -mscL  +msrA  -mtfA  -nac*  -nadC  -nadD  -nanA  +nanK  -napB  -napC  -narK  -narX  -nfrB  -nlpE  -nrdG  +nrfF  +nrfG  -nudC  -nudG  +/-nupC  -nusA  -nusB  -ompA  -ompF  -ompN  -ompR*  -ompT  +oppA  -oppC  -ortT  +osmB  -osmY  -pabC  +patD  +pdeC  -pdeF  -pdeL*  -pdxK  +pfkB  +pgaA  -phoB*  -phoH  -pinQ  -pinR  +pitB  -pldA  -pntA  -polA  -ppc  +ppdC  -pphB  -ppiB  -ppnN  -prfC  -prmB  -pstC  -pstS  -ptrA  -pyrB  +pyrL  -queD  -queF  -rcsA*  -rep  +rfaH  -rfbB  +rfbC  +rflP  -rhtA  -rimP  +rlmF  +rlmM  +rluE  -rnlB  -rplU  +rpmH  -rpoZ  -rsd  -rsmF  +rutB  -sbcD  -scpB  -sdaA  +sdhC  -sdiA*  -secG  +selC  -serA  -shiA  +shoB  +sibA  -sibE  -spf*  -srlR*  -srsR*  -ssuE  -stfR  -sucA  -tauA  -tdcA*  -tdcR*  -tfaQ  -tfaR  -tff  -thiL  -thrS*  -tnaA  -tnaB  +tnaC  -tolB  +tomB  -torA  +torI  -trxB  -ubiA  -ubiT  -ubiU  -ugd  -uhpA*  -uspA  +uspC  -uspG  -uvrY*  -uxaC  -waaF  -waaG  +wcaE  +wcaF  +wecH  +wrbA  -wza  -wzb  -wzc  +wzzE  -xapR*  -xdhA  -yadC  -yadM  -yaeF  -yafC*  +yafD  -yafN  -yafO  -yafQ*  +yafV  +yagU  +yaiS  -yaiY  +yaiZ  -yajD  -yajO  -ybaL  -ybbC  +ybcK  -ybcV  +ybdK  -ybdR  +ybeQ  +ybeR  +ybeT  -ybeU  -ybfC  -ybgC  +ybgE  +ybhD  -ybhH  -ybhI  +ybhM  +ybjP  +ybjQ  -ybjX  -ycaC  -ycaD  +ycaK  +ycaN  -yccM  -ycgB  -ycgJ  +ycgV  +ycgX  -ychA  -yciZ  -ydaT  +ydaU  +ydcI*  +ydcS  +ydcT  +ydcU  +ydcV  -ydcY  -ydcZ  +ydeE  -ydeP  -ydeQ  -ydfK  -ydfR  -ydgH  -ydiB  +ydiL  -ydiM  -ydiO  -ydiP  -ydiY  -yebQ  +yecD  +yecE  -yecF  -yedL  -yeeZ  +yegH  -yegL  -yegR  -yehE  -yeiE*  +yeiH  -yejB  -yejG  -yfaE  -yfbK  +yfbL  -yfbV  -yfcO  -yfcP  -yfdE  +yfdV  +yfeK  -yfeS  +yfgG  -yfgH  -yfhL  +yfiL  -yfiR  -yfjI  -ygaC  -ygaM  -ygaP  -ygaV  -ygaZ  -ygcE  -ygcO  -ygcP  -ygcS  -ygdB  -ygdR  -ygeG  -yggP  +yghG  -yghS  -yghT  -ygiF  +ygiL  -ygiM  -ygiN  -ygiZ  +ygjH  -ygjI  +yhaB  -yhaI  +yhbX  -yhcA  +yhcC  -yhcD  -yhdV  -yhfL  -yhfZ  +yhhQ  -yhhZ  -yhiJ  -yhjD  +yhjE  -yiaD  +yicJ  +yidQ  -yieE  -yieH  -yieP*  -yifB  +yigI  +yigL  +yihD  -yihL  -yihO  -yihQ  -yiiE  -yiiF  -yijO  +yjaH  -yjbB  -yjbQ  +yjcB  +yjcF  -yjcO  -yjeH  -yjeJ  -yjeM  -yjfZ  -yjgH  +yjgM  -yjgN  -yjhI  -ykgE  -ykgH  -ykgL  -ymjA  +ynaK  +yneK  -ynfA  +ynfB  -ynfD  -ynfE  -ynfF  +ynfG  -yniB  +ynjF  -ynjH  +yobA  -yobB  +yobF  -yoeB*  -yohO  -yqeB  +yqeH  +yqeJ  +yqeK  -yraH  +yrhB  +ytfB  +ytfJ  -ytfK  -ytfP  -znuA
+nadR*
+  -nadA  -nadB  -pncB  -pnuC
+nagC*
+  -chbA  -chbB  -chbC  -chbF  -chbG  -chbR*  -chiP  -chiQ  -chiZ  -creA  -creB*  -creC  -creD  -crr  -dinI  eutD  eutM  eutP  eutQ  eutS  eutT  feoA  feoB  feoC  +fimB  -galP  +/-glmS  +/-glmU  -manX  -manY  -manZ  -nagA  -nagB  -nagC*  -nagE  -nanC  -nanM  -nanS  -ptsH  -ptsI  -umpH  -ydeM  -ydeN  -ydeP
+nanR*
+  +fimB  -nanA  -nanC  -nanE  -nanK  -nanM  -nanQ  -nanS  -nanT  -nanX  -nanY
+narL*
+  -adhE  -aspA  -caiF*  -ccmA  -ccmB  -ccmC  -ccmD  -ccmE  -ccmF  -ccmG  -ccmH  -citC  -citD  -citE  -citF  -citG  -citX  +cydC  +cydD  +cysG  -dcuA  -dcuB  -dcuR*  -dcuS  -dmsA  -dmsB  -dmsC  -dmsD  -dpiA*  -dpiB  -fdhF  +fdnG  +fdnH  +fdnI  -focA  -frdA  -frdB  -frdC  -frdD  -fumB  +hcp  +hcr  -hyaA  -hyaB  -hyaC  -hyaD  -hyaE  -hyaF  -hybA  -hybB  -hybC  -hybD  -hybE  -hybF  -hybG  -hybO  +moeA  +moeB  -napA  -napB  -napC  -napD  -napF  -napG  -napH  +narG  +narH  +narI  +narJ  +narK  +narS  -nikA  -nikB  -nikC  -nikD  -nikE  -nikR*  +nirB  +nirC  +nirD  -norV  -norW  +/-nrfA  +/-nrfB  +/-nrfC  +/-nrfD  +/-nrfE  +/-nrfF  +/-nrfG  +nuoA  +nuoB  +nuoC  +nuoE  +nuoF  +nuoG  +nuoH  +nuoI  +nuoJ  +nuoK  +nuoL  +nuoM  +nuoN  +ogt  -ompW  -pflB  +poxB  -torA  -torC  -torD  -ubiA  -ubiC  +ydeP  -ydhT  -ydhU  -ydhV  -ydhW  -ydhX  -ydhY  +yeaR  -ynfE  -ynfF  -ynfG  -ynfH  +yoaG  +ytfE
+narP*
+  +/-ccmA  +/-ccmB  +/-ccmC  +/-ccmD  +/-ccmE  +/-ccmF  +/-ccmG  +/-ccmH  +cysG  +fdhF  -fdnG  -fdnH  -fdnI  +hcp  +hcr  -hyaA  -hyaB  -hyaC  -hyaD  -hyaE  -hyaF  +/-napA  +/-napB  +/-napC  +/-napD  +/-napF  +/-napG  +/-napH  +nirB  +nirC  +nirD  -norV  -norW  +nrfA  +nrfB  +nrfC  +nrfD  +nrfE  +nrfF  +nrfG  +poxB  -ydeP  -ydhT  -ydhU  -ydhV  -ydhW  -ydhX  -ydhY  +yeaR  +yoaG  +ytfE
+nemR*
+  -gloA  -nemA  -nemR*
+nfeR*
+  -nfeF  -nfeR*
+nhaR*
+  +/-alaT  -alaU  +alaV  +gltT  -gltU  -gltV  +gltW  +/-ileT  -ileU  +ileV  +nhaA  +nhaR*  +osmC  +pgaA  +pgaB  +pgaC  +pgaD  -rmf  +/-rrfA  +rrfB  -rrfC  -rrfD  -rrfE  -rrfF  +rrfG  +rrfH  +/-rrlA  +rrlB  -rrlC  -rrlD  -rrlE  +rrlG  +rrlH  +/-rrsA  +rrsB  -rrsC  -rrsD  -rrsE  +rrsG  +rrsH  -rsd  -thrV
+nikR*
+  -nikA  -nikB  -nikC  -nikD  -nikE  -nikR*
+nimR*
+  -nimR*  -nimT
+norR*
+  -norR*  +norV  +norW
+nrdR*
+  -nrdA  -nrdB  -nrdD  -nrdE  -nrdF  -nrdG  -nrdH  -nrdI  -yfaE
+nsrR*
+  -aceE  -aceF  -bamE  -bdcA  -cdd  -dkgB  -dsdC*  -feaB  -feaR*  -fhlA*  -fliA*  -fliZ*  -grxD  -hcp  -hcr  -hmp  -hycA  -hycB  -hycC  -hycD  -hycE  -hycF  -hycG  -hycH  -hycI  -hypA  -hypB  -hypC  -hypD  -hypE  -ihfA*  -infC  -lrp*  -mepH  -mhpT  +moeA  +moeB  -ndh  -norR*  -nrfA  -nrfB  -nrfC  -nrfD  -nrfE  -nrfF  -nrfG  -pgpC  -pheM  -pheS  -pheT  -poxB  -rfe  -rffC  -rffG  -rffH  -rffM  -rplT*  -rpmI  -rybB*  -sodB  -sufA  -sufB  -sufC  -sufD  -sufE  -sufS  -tadA  -tcyJ  -tehA  -tehB  -thrS*  -tsgA  -waaH  -wecB  -wecC  -wecE  -wecF  -wzxE  -wzyE  -wzzE  -ydbD  -yeaE  -yeaR  -ygbA  -yoaG  -ytfE
+ohsC*
+  -shoB
+ompR*
+  +acrR*  -alx  -bolA*  -cadA  -cadB  -cadC*  -copA  +csgD*  +csgE  +csgF  +csgG  -csgI  +dtpA  -ecnB  -exoX  +fadE  -fadL  +feoA  +feoB  +feoC  -flhC*  -flhD*  -galP  +gmhA  -htpX  -lpp  -malE  +micF*  +narU  +narV  +narW  +narY  +narZ  -nuoN  +ompC  +/-ompF  +ompX  +omrA*  +omrB*  +pdhR*  -pgaA  -pgaB  -pgaC  -pgaD  -potE  +queE  +rhtA  +rob*  -speF  -speFL  -sra  +sstT  +tolC  +tsgA  -yobB  +znuA
+omrA*
+  -cirA  -csgD*  -csgE  -csgF  -csgG  -dgcM  -fepA  -flgM  -flhC*  -flhD*  -ompR*  -ompT
+omrB*
+  -cirA  -csgD*  -csgE  -csgF  -csgG  -dgcM  -fepA  -flgM  -flhC*  -flhD*  -ompR*  -ompT
+oxyR*
+  +ahpC  +ahpF  +ccp  +dps  +dsbG  +/-elaB  -fhuF  -flu  +fur*  -gntP  +gor  +grxA  +hcp  +hcr  +hemF  +hemH  -isrC  +katG  +metE  +metR*  +mntH  -nfsA  -oxyR*  +oxyS*  +poxB  -rimK  +sufA  +sufB  +sufC  +sufD  +sufE  +sufS  +trxC  +uof  -uxuA  -uxuB  +xthA  -ybjC  -ybjN  -ychF  +yjjZ  +zinT  +znuA  +znuB  +znuC
+oxyS*
+  -fhlA*  -flhC*  -flhD*  -nusG  -rpoS*
+paaX*
+  -paaA  -paaB  -paaC  -paaD  -paaE  -paaF  -paaG  -paaH  -paaI  -paaJ  -paaK  -paaX*  -paaY  -paaZ
+pdeL*
+  -fliF  -fliG  -fliH  -fliI  -fliJ  -fliK  +pdeL*  -rfe  +yghJ
+pdhR*
+  -aceE  -aceF  +acpP  -cyoA  -cyoB  -cyoC  -cyoD  -cyoE  -ddlB  +fadE  +fadH  +fadL  +fadM  +fecA  +fecB  +fecC  +fecD  +fecE  -ftsA  -ftsI  -ftsL  -ftsQ  -ftsW  -ftsZ  +fumD  -glcA  -glcB  -glcD  -glcE  -glcF  -glcG  +gmhA  -grcA  -hemL  -hha  -lldP  -lpd  -lpxC  -mraY  -mraZ*  -murC  -murD  -murE  -murF  -murG  -ndh  -pdhR*  +ppsA  +ppsR  -rsmH  -tomB  +ybcV  +ybcW
+pepA*
+  -carA  -carB  -pepA*
+pgrR*
+  -mpaA  -mppA  -tyrR*  -ycjF  -ycjG  -ycjX  -ycjY  -ymjC  -ymjD
+phoB*
+  +adiC  +amn  +argP*  +asr  -cra*  +cusA  +cusB  +cusC  +cusF  +cusR*  +cusS  -eda  -feaR*  +gadW*  +gadX*  +hiuH  +mipA  +msrP  +msrQ  +ompF  +phnC  +phnD  +phnF  +phnG  +phnH  +phnI  +phnJ  +phnK  +phnL  +phnM  +phnN  +phnO  +phnP  +phoA  +phoB*  +phoE  +phoH  +phoQ  +phoR  +phoU  -pitB  -prpR*  +psiE  +psiF  +pstA  +pstB  +pstC  +pstS  +rcdB  +rspR*  -sbcC  -sbcD  +tktB  +/-ugpA  +/-ugpB  +/-ugpC  +/-ugpE  +/-ugpQ  +waaH  +yegH  +ytfK
+phoP*
+  -acrA  -acrB  -argD  +borD  -clpS  +cysB*  -dcuD  +fadL  +gadE*  +gadF  +gadW*  +glgA  +glgB  +glgC  +glgP  +glgX  +hdeA  +hdeB  +hdeD  +hemL  +iraM  +malS  +metB  +metL  +mgrB  +mgrR*  +mgtA  +mgtL  +mgtS  +nagA  +ompT  +pagP  +/-phoP*  +/-phoQ  +purD  +purH  +queE  -rmf  -rsd  +rstA*  +rstB  +rutA  +rutB  +rutC  +rutD  +rutE  +rutF  +rutG  +ryjB  -safA  +/-slyB  +tolC  -treR*  +ybjG  -ydeO*  -ydeP  +ygiB  +ygiC  +yhiD  +yrbL
+plaR*
+  -eda  -glpA  -glpT  -lyxK  -plaR*  -sgbE  -sgbH  -sgbU  -ygjV  -yiaK  -yiaL  -yiaM  -yiaN  -yiaO
+pnp*
+  -pnp*
+prpR*
+  +prpB  +prpC  +prpD  +prpE  -prpR*
+pspF*
+  +pspA  +pspB  +pspC  +pspD  +pspE  -pspF*  +pspG  +pspH
+ptrR*
+  -sad
+punR*
+  +punC
+purR*
+  -carA  -carB  -codA  -codB  -cvpA  -gcvH  -gcvP  -gcvT  -glnB  -glyA  -guaA  -guaB  -hflD  -prs  -purA  -purB  -purC  -purD  -purE  -purF  -purH  -purK  -purL  -purM  -purN  -purR*  -purT  -pyrC  -pyrD  -speA  -speB  -ubiX
+putA*
+  -putA*  -putP
+puuR*
+  -puuA  -puuB  -puuC  -puuD  -puuE  -puuP  -puuR*  -ymjE
+pyrR*
+  +yhjX
+qseB*
+  -dnaA*  +/-feaR*  +fimA  +fimC  +fimD  +fimF  +fimG  +fimH  +fimI  +fimR2*  +flhC*  +flhD*  +qseB*  +qseC
+racR*
+  -ydaS  -ydaT  -ydaU  -ydaV  -ydaW
+ralA*
+  -ralR
+rbsR*
+  +add  +dcd  -purD  -purH  -rbsA  -rbsB  -rbsC  -rbsD  -rbsK  -rbsR*  +udk
+rcdA*
+  +asr  +bluF  +csgD*  +csgE  +csgF  +csgG  +rcdA*  +rmf  +rsd  -sulA  -yagK  -ybjI  -ybjJ  +ydeI
+rclR*
+  +rclA  +rclB  +rclC
+rcnR*
+  -rcnA  -rcnB  -rcnR*
+rcsA*
+  -csgD*  -csgE  -csgF  -csgG  -flhC*  -flhD*  +rcsA*  +wcaA  +wcaB  +wza  +wzb  +wzc  +yjbE  +yjbF  +yjbG  +yjbH
+rcsB*
+  +adiC  +aslB  +bdm  +bglB  +bglF  +bglG*  +cadA  +cadB  -csgD*  -csgE  -csgF  -csgG  +dctR  -flhC*  -flhD*  +ftsA  +ftsZ  +/-gadA  +gadB  +gadC  +/-gadX*  +gadY*  +hdeA  +hdeB  +hdeD  +leuO*  +lolA  +osmB  +osmC  +rarA  +rcsA*  +rpoE*  +rprA*  +rseA  +rseB  +rseC  +rseD  +safA  +sfsB  +slp  +sra  +wcaA  +wcaB  +wza  +wzb  +wzc  +ydeO*  +ydeP  +yecT  +yehF  +ygiZ  +yhiD  +yhiM  +yidL  +yjbE  +yjbF  +yjbG  +yjbH  +ynbA  +ynbB  +ynbC  +ynbD  +ynjI  +yqhG
+relB*
+  -hokD  -relB*  -relE*
+relE*
+  -hokD  -relB*  -relE*
+rhaR*
+  +rhaR*  +rhaS*
+rhaS*
+  +rhaA  +rhaB  +rhaD  +/-rhaR*  +/-rhaR*  +/-rhaS*  +/-rhaS*  +/-rhaT  +/-rhaT
+rho*
+  -rho*
+rne*
+  -rne*
+rob*
+  +acnA  +acrA  +acrB  +acrZ  -acs  -actP  +aldA  +aslB  -astC  +chaC  +dapD  -elaB  -fadA  -fadB  -fadD  -fadL  +fumC  +glgS  +glnD  +inaA  +ldtB  +map  +marA*  +marB  +marR*  +mdaB  +mdtD  +micF*  +mltF  +narG  +nfo  +nfsA  +nfsB  +rimK  -rob*  +sodA  +tolC  +yacH  +ybiT  +ybjC  +ybjN  +ydcL  +ygiB  +ygiC  -yhbO  +yhbW  -yiaG  -yjcH  +zwf
+rplA*
+  -rplA*  -rplJ  -rplK  -rplL  -rpoB  -rpoC
+rplD*
+  -rplB  -rplC  -rplD*  -rplP  -rplV  -rplW  -rpmC  -rpsC  -rpsJ  -rpsQ  -rpsS  -tnaA
+rplM*
+  -rplM*  -rpsI
+rplT*
+  -rplT*  -rpmI
+rplY*
+  -rplY*
+rpmE*
+  -rpmE*
+rpoD*
+  +3'ETS-<i>leuZ</i>  +accA*  +accB*  +accC  +accD*  +aceA  +aceB  +aceE  +aceF  +aceK  +acnA  +acnB*  +acpP  +acpS  +acrA  +acrB  +acrD  +acrE  +acrF  +acrR*  +acrZ  +acs  +actP  +ada*  +add  +adeD  +adhE  +adiA  +agaB  +agaC  +agaD  +agaI  +agaR*  +agaS  +agaV  +agaW  +ahpC  +ahpF  +aidB*  +alaC  +alaE  +alaT  +alaU  +alaV  +alaW  +alaX  +aldA  +alkA  +alkB  +allB  +allC  +allD  +allE  +allW  +alsA  +alsB  +alsC  +alsE  +alsR*  +amiA  +amiB  +ampC  +ampG  +amyA  +ansB  +appA  +appB  +appC  +appX  +appY*  +apt  +araA  +araB  +araC*  +araD  +araE  +araF  +araG  +araH  +araJ  +arcA*  +arfA  +argA  +argB  +argC  +argD  +argE  +argF  +argG  +argH  +argI  +argO  +argQ  +argR*  +argS  +argU  +argV  +argW  +argX  +argY  +argZ  +ariR  +aroA  +aroB  +aroD  +aroF  +aroG  +aroH  +aroK  +aroL  +aroM  +aroP  +arrS*  +arsB  +arsC  +arsR*  +artI  +artJ  +artM  +artP  +artQ  +ascB  +ascF  +asnA  +asnC*  +asnT  +asnU  +asnV  +aspA  +aspV  +asr  +astA  +astB  +astC  +astD  +astE  +atpA  +atpB  +atpC  +atpD  +atpE  +atpF  +atpG  +atpH  +atpI  +azoR  +azuC  +azuR*  +bamC  +bcp  +bcsB  +bcsE  +bcsF  +bcsG  +bcsZ  +bdcA  +betA  +betB  +betI*  +betT  +bglJ*  +bglX  +bhsA  +bidA  +bioA  +bioB  +bioC  +bioD  +bioF  +bluF  +bluR*  +bolA*  +bssS  +btuB  +btuD  +btuE  +btuF  +cadA  +cadB  +cadC*  +caiA  +caiB  +caiC  +caiD  +caiE  +caiF*  +caiT  +can  +carA  +carB  +cas1  +cas2  +cas3  +casA  +casB  +casC  +casD  +casE  +cbl*  +cbpA  +cbpM  +ccmA  +ccmB  +ccmC  +ccmD  +ccmE  +ccmF  +ccmG  +ccmH  +ccp  +cdd  +cecR*  +cedA  +cfa  +chiA  +chiX*  +cho  +chpB  +chpS  +cirA  +clpA  +clpB  +clpP  +clpX  +cmk  +cmoM  +coaD  +cobS  +cobT  +cobU  +codA  +codB  +copA  +corA  +cpdB  +cpxA  +cpxP  +cpxQ*  +cpxR*  +creA  +creB*  +creC  +creD  +crp*  +crr  +csgA  +csgB  +csgC  +csgD*  +csgE  +csgF  +csgG  +csiE  +cspA*  +cspB  +cspC  +cspD  +cspE  +csqR*  +csrA*  +csrB  +cstA  +cusA  +cusB  +cusC  +cusF  +cusR*  +cusS  +cutA  +cvpA  +cyaA  +cyaR*  +cydA  +cydB  +cydC  +cydD  +cynR*  +cynS  +cynT  +cynX  +cyoA  +cyoB  +cyoC  +cyoD  +cyoE  +cysA  +cysB*  +cysC  +cysD  +cysG  +cysH  +cysI  +cysJ  +cysK  +cysM  +cysN  +cysP  +cysT  +cysU  +cysW  +cytR*  +dacC  +dadA  +dadX  +dam  +damX  +dapA  +dapB  +dapD  +dapE  +dapF  +dctA  +dctR  +dcuA  +dcuB  +dcuD  +dcuR*  +dcuS  +ddlB  +deaD*  +decR*  +def  +degQ  +degS  +deoA  +deoB  +deoC  +deoD  +dgcN  +dgcT  +dgcZ  +dgoA  +dgoD  +dgoK  +dgoR*  +dgoT  +dicB  +dicC  +dinB  +dinF  +dinG  +dinI  +dinJ*  +dinQ  +dkgA  +dksA*  +dmsA  +dmsB  +dmsC  +dmsD  +dnaA*  +dnaG  +dnaN  +dppA  +dppB  +dppC  +dppD  +dppF  +dps  +dsbA  +dsbC  +dsdA  +dsdC*  +dsdX  +dsrA*  +dtpA  +dusB  +dut  +dxs  +ebgA  +ebgC  +ecpA  +eda  +edd  +efp  +emrA  +emrB  +eno  +entA  +entB  +entC  +entD  +entE  +entF  +entH  +entS  +envZ  +epd  +eptB  +era  +esrE  +evgA*  +evgS  +exbB  +exbD  +exuR*  +fabA  +fabB  +fabD  +fabF  +fabG  +fabH  +fadA  +fadB  +fadD  +fadI  +fadJ  +fadR*  +fau  +fbaA  +fdnG  +fdnH  +fdnI  +fdx  +feaB  +feaR*  +fecI*  +fecR  +feoA  +feoB  +feoC  +fepA  +fepB  +fepC  +fepD  +fepE  +fepG  +fes  +fhuA  +fhuB  +fhuC  +fhuD  +fhuF  +fimA  +fimB  +fimC  +fimD  +fimE  +fimF  +fimG  +fimH  +fimI  +fimR2*  +fis*  +fiu  +fixA  +fixB  +fixC  +fixX  +fkpB  +fldB  +flgA  +flgB  +flgC  +flgD  +flgE  +flgF  +flgG  +flgH  +flgI  +flgJ  +flgM  +flgN  +flhA  +flhB  +flhC*  +flhD*  +flhE  +fliA*  +fliD  +fliE  +fliF  +fliG  +fliH  +fliI  +fliJ  +fliK  +fliL  +fliM  +fliN  +fliO  +fliP  +fliQ  +fliR  +fliS  +fliT  +fliZ*  +flu  +fmt  +fnr*  +fnrS*  +focA  +folA  +folE  +folK  +fpr  +frc  +frdA  +frdB  +frdC  +frdD  +frlA  +frlB  +frlC  +frlD  +frlR*  +frr  +frsA  +fruA  +fruB  +fruK  +ftnA  +ftnB  +ftsA  +ftsH  +ftsI  +ftsK  +ftsL  +ftsQ  +ftsW  +ftsZ  +fucA  +fucI  +fucK  +fucO  +fucP  +fucR*  +fucU  +fumA  +fumB  +fumC  +fur*  +gabD  +gabP  +gabT  +gadA  +gadB  +gadC  +gadE*  +gadF  +gadX*  +galE  +galK  +galM  +galP  +galR*  +galS*  +galT  +gapA  +garK  +garL  +garP  +garR  +gatA  +gatB  +gatC  +gatD  +gatY  +gatZ  +gcd  +gcl  +gcvA*  +gcvB*  +gcvH  +gcvP  +gcvR  +gcvT  +gdhA  +gfcA  +glcA  +glcB  +glcC*  +glcD  +glcE  +glcF  +glcG  +glgA  +glgB  +glgC  +glgP  +glgX  +glk  +glmS  +glmU  +glmY  +glmZ*  +glnA  +glnB  +glnG*  +glnL  +glnQ  +glnS  +glnU  +glnV  +glnW  +glnX  +glnZ*  +gloA  +glpA  +glpB  +glpC  +glpD  +glpF  +glpK  +glpQ  +glpT  +glpX  +glrK  +gltA  +gltB  +gltD  +gltF  +gltI  +gltJ  +gltK  +gltL  +gltT  +gltU  +gltV  +gltW  +gltX  +gluQ  +glxK  +glxR  +glyA  +glyQ  +glyS  +glyT  +glyU  +glyV  +glyW  +glyX  +glyY  +gmk  +gnd  +gnsA  +gntK  +gntP  +gntR*  +gntT  +gntU  +gor  +gph  +gpmA  +gpsA  +gpt  +grcA  +greA  +groL  +groS  +grxB  +grxC  +grxD  +gsk  +gspA  +gspB  +gspC  +gspD  +gspE  +gspF  +gspG  +gspH  +gspI  +gspJ  +gspK  +gspL  +gspM  +gspO  +guaA  +guaB  +gutM*  +gutQ  +gyrA  +gyrB  +hchA  +hdeA  +hdeB  +hdeD  +hemA  +hemB  +hemF  +hemH  +hemN  +hflC  +hflD  +hflK  +hflX  +hfq*  +hha  +hicA  +hicB*  +higA*  +higB*  +hipA*  +hipB*  +hisA  +hisB  +hisF  +hisH  +hisI  +hisJ  +hisM  +hisP  +hisQ  +hisR  +hisS  +hiuH  +hns*  +hofB  +hofC  +hokD  +hpf  +hpt  +hscA  +hscB  +hslJ  +htrE  +hupB*  +hyaA  +hyaB  +hyaC  +hyaD  +hyaE  +hyaF  +hybA  +hybB  +hybC  +hybD  +hybE  +hybF  +hybG  +hybO  +hyi  +hypF  +ibsC  +ibsD  +icd  +idlP  +idnK  +idnR*  +ihfB*  +ileS  +ileT  +ileU  +ileV  +ileX  +ilvA  +ilvB  +ilvC  +ilvD  +ilvE  +ilvH  +ilvI  +ilvL  +ilvM  +ilvN  +ilvX  +ilvY*  +inaA  +infA  +infB  +infC  +insD7  +intQ  +intS  +iraD  +iraM  +iraP  +iscA  +iscR*  +iscS  +iscU  +iscX  +ispA  +ispH  +isrC  +istR*  +ivbL  +katG  +kbaY  +kbaZ  +kbl  +kdpA  +kdpB  +kdpC  +kdpF  +kdsA  +kdsB  +kdsC  +kdsD  +lacA  +lacI*  +lacY  +lacZ  +lamB  +lapA  +lapB  +ldtC  +leuA  +leuB  +leuC  +leuD  +leuL  +leuO*  +leuP  +leuQ  +leuT  +leuU  +leuV  +leuW  +leuX  +leuZ  +lexA*  +lgt  +lhr  +lipB  +livF  +livG  +livH  +livJ  +livK  +livM  +lldD  +lldP  +lldR*  +loiP  +lolA  +lon  +lpd  +lptA  +lptB  +lptC  +lptD  +lpxC  +lpxT  +lrp*  +lspA  +lsrK  +lsrR*  +lysA  +lysC  +lysO  +lysP  +lysR*  +lysT  +lysU  +lysV  +lysW  +lyxK  +malE  +malF  +malG  +malH*  +malI*  +malK  +malM  +malP  +malQ  +malS  +malT*  +malX  +malY  +manA  +manX  +manY  +manZ  +marA*  +marB  +marR*  +mazE*  +mazF*  +mcbA  +mdh  +mdtE  +mdtF  +mdtI  +mdtJ  +mdtU  +melA  +melB  +melR*  +menA  +mepH  +metA  +metB  +metC  +metF  +metG  +metH  +metI  +metJ*  +metK  +metL  +metN  +metQ  +metT  +metU  +metV  +metW  +metY  +metZ  +mfd  +mglA  +mglB  +mglC  +mgrR*  +mgtA  +mgtL  +mgtS  +mhpA  +mhpB  +mhpC  +mhpD  +mhpE  +mhpF  +mhpR*  +miaA  +micC*  +micF*  +mioC  +mlc*  +mlrA*  +mltF  +mngB  +mngR*  +mnmG  +mntH  +mntP  +mntS  +modA  +modB  +modC  +moeA  +moeB  +mpl  +mprA*  +mqsA*  +mqsR  +mraY  +mraZ*  +mreB  +mreC  +mreD  +mrp  +msrB  +msrP  +msrQ  +mtlA  +mtlD  +mtlR  +mtn  +mtr  +mukB  +mukE  +mukF  +murC  +murD  +murE  +murF  +murG  +murI  +murP  +murQ  +murR*  +mutL  +mzrA  +nadB  +nadE  +nagA  +nagB  +nagC*  +nagE  +nanA  +nanE  +nanK  +nanQ  +nanT  +nanY  +napA  +napB  +napC  +napD  +napF  +napG  +napH  +narG  +narH  +narI  +narJ  +narK  +narL*  +narS  +narU  +narX  +ndh  +nei  +nemA  +nemR*  +nfeF  +nfo  +nfsA  +nfsB  +nfuA  +nhaA  +nhaR*  +nirB  +nirC  +nirD  +nlpD  +nnr  +nohA  +npr  +nrdA  +nrdB  +nrdD  +nrdE  +nrdF  +nrdG  +nrdH  +nrdI  +nrdR*  +nrfA  +nrfB  +nrfC  +nrfD  +nrfE  +nrfF  +nrfG  +nudB  +nuoA  +nuoB  +nuoC  +nuoE  +nuoF  +nuoG  +nuoH  +nuoI  +nuoJ  +nuoK  +nuoL  +nuoM  +nuoN  +nupC  +nupG  +nusA  +nusB  +obgE  +ohsC*  +ompA  +ompC  +ompF  +ompN  +ompR*  +ompX  +opgG  +opgH  +osmB  +osmC  +osmE  +osmY  +oxc  +oxyR*  +oxyS*  +paaA  +paaB  +paaC  +paaD  +paaE  +paaF  +paaG  +paaH  +paaI  +paaJ  +paaK  +paaX*  +paaY  +pabA  +panB  +panC  +panD  +panF  +patZ  +pck  +pcm  +pcnB  +pdeL*  +pdhR*  +pdxJ  +pepA*  +pepD  +pepP  +pfkA  +pflA  +pflB  +pgi  +pgk  +pgpA  +pgpB  +pheA  +pheL  +pheP  +pheU  +pheV  +phnC  +phnD  +phnF  +phnG  +phnH  +phnI  +phnJ  +phnK  +phnL  +phnM  +phnN  +phnO  +phnP  +phoA  +phoB*  +phoE  +phoH  +phoR  +phoU  +pitB  +plaR*  +pldA  +plsX  +pncB  +pnp*  +pntA  +pntB  +polB  +poxB  +ppdD  +ppiA  +ppiD  +ppsA  +pqiA  +pqiB  +pqiC  +preA  +preT  +prfA  +prfC  +priB  +prlF  +prmA  +prmC  +proK  +proL  +proM  +proP  +proS  +proV  +proW  +proX  +prpR*  +prs  +psiE  +psiF  +pspF*  +pssA  +pstA  +pstB  +pstC  +pstS  +pta  +pth  +ptrA  +ptsG  +ptsH  +ptsI  +ptsN  +purA  +purB  +purC  +purD  +purE  +purF  +purH  +purK  +purL  +purM  +purN  +purR*  +purT  +purU  +putA*  +putP  +pykA  +pykF  +pyrC  +pyrD  +pyrF  +pyrH  +qseB*  +qseC  +rapA  +rapZ  +rarA  +rbfA  +rbn  +rbsA  +rbsB  +rbsC  +rbsD  +rbsK  +rbsR*  +rcnA  +rcnB  +rcnR*  +rcsA*  +rcsB*  +rcsD  +rdlD  +recA  +recB  +recC  +recD  +recF  +recG  +recJ  +recN  +recO  +recQ  +recX  +relA  +relB*  +relE*  +rep  +rfaD  +rfe  +rffC  +rffG  +rffH  +rffM  +rhaA  +rhaB  +rhaD  +rhaR*  +rhaS*  +rhaT  +ribA  +ribD  +ribE  +ribF  +rihB  +rimK  +rimM  +rimP  +rirA  +rlmE  +rluA  +rnb  +rnc  +rnd  +rne*  +rnlA  +rnlB  +rnpB  +rnt  +rpe  +rpiB  +rplB  +rplC  +rplD*  +rplI  +rplP  +rplQ  +rplS  +rplT*  +rplU  +rplV  +rplW  +rplY*  +rpmA  +rpmC  +rpmI  +rpoA  +rpoD*  +rpoE*  +rpoH*  +rpoN*  +rpoS*  +rpoZ  +rpsA*  +rpsB*  +rpsC  +rpsD*  +rpsF*  +rpsJ  +rpsK  +rpsM  +rpsO*  +rpsP  +rpsQ  +rpsR*  +rpsS  +rpsU  +rraA  +rraB  +rrfA  +rrfB  +rrfC  +rrfD  +rrfE  +rrfF  +rrfG  +rrfH  +rrlA  +rrlB  +rrlC  +rrlD  +rrlE  +rrlG  +rrlH  +rrsA  +rrsB  +rrsC  +rrsD  +rrsE  +rrsG  +rrsH  +rsd  +rseA  +rseB  +rseC  +rseD  +rsmG  +rsmH  +rutR*  +ruvC  +rybA  +rydC*  +ryeA  +ryfD  +ryhB*  +ryjB  +safA  +sbcC  +sbcD  +sdhA  +sdhB  +sdhC  +sdhD  +sdhX*  +sdiA*  +secB  +secG  +serA  +serC  +serT  +serU  +serV  +serW  +serX  +setA  +sfsA  +sgbE  +sgbH  +sgbU  +sgrR*  +sgrS*  +sgrT  +shiA  +shoB  +sibA  +sibB  +sibD  +sibE  +sixA  +slmA  +slp  +sodA  +sodB  +sohB  +sokB  +sokC  +soxR*  +soxS*  +speA  +speB  +speD  +speE  +spf*  +spoT  +spy  +sraG*  +srkA  +srlA  +srlB  +srlD  +srlE  +srlR*  +sroA  +sroC  +ssb  +ssnA  +ssrA  +ssrS  +ssuA  +ssuB  +ssuC  +ssuD  +ssuE  +stfQ  +stfZ*  +stpA*  +sucA  +sucB  +sucC  +sucD  +sufA  +sufB  +sufC  +sufD  +sufE  +sufS  +sulA  +sutR*  +sxy*  +symE  +symR*  +tatA  +tatB  +tatC  +tatD  +tcyJ  +tdh  +tfaQ  +tff  +thiB  +thiL  +thiP  +thiQ  +thrA  +thrB  +thrC  +thrL  +thrT  +thrU  +thrV  +thrW  +thyA  +tnaA  +tnaB  +tnaC  +tomB  +tonB  +topA  +torA  +torC  +torD  +torR*  +tpiA  +tpr  +tpx  +treB  +treC  +treR*  +trmD  +trmH  +trpA  +trpB  +trpC  +trpD  +trpE  +trpL  +trpR*  +trpS  +truB  +trxA  +trxC  +tsaE  +tsf  +tsr  +tsx  +ttdA  +ttdB  +ttdT  +tufA  +tufB  +tynA  +tyrA  +tyrB  +tyrP  +tyrR*  +tyrT  +tyrU  +tyrV  +ubiA  +ubiC  +ubiG  +ubiH  +ubiI  +ubiX  +udp  +ugpA  +ugpB  +ugpC  +ugpE  +ugpQ  +uhpT  +uidR*  +ulaA  +ulaB  +ulaC  +ulaD  +ulaE  +ulaF  +umpG  +umpH  +umuC  +umuD  +upp  +uraA  +uspA  +uvrA  +uvrB  +uvrC  +uvrD  +uvrY*  +uxaA  +uxaB  +uxaC  +uxuA  +uxuB  +uxuR*  +valS  +valT  +valU  +valV  +valW  +valX  +valY  +waaA  +waaB  +waaC  +waaF  +waaG  +waaH  +waaJ  +waaL  +waaO  +waaP  +waaQ  +waaS  +waaU  +waaY  +waaZ  +wcaA  +wcaB  +wecB  +wecC  +wecE  +wecF  +wza  +wzb  +wzc  +wzxE  +wzyE  +wzzE  +xapA  +xapB  +xapR*  +xerC  +xerD  +xseA  +xseB  +xtpA  +xylE  +yacC  +yadS  +yadV  +yafN  +yafO  +yafP  +yafQ*  +yagK  +yaiA  +yajG  +yajO  +ybbY  +ybdN  +ybdZ  +ybeD  +ybhF  +ybhG  +ybhL  +ybhR  +ybhS  +ybiB  +ybjC  +ybjN  +ycaR  +yccA  +ycdZ  +yceI  +yceJ  +ycgZ  +ychA  +ychF  +ychH  +ychO  +ychQ  +yciB  +yciC  +yciE  +yciH  +yciW  +yciX  +ydeI  +ydeJ  +ydeM  +ydeN  +ydeO*  +ydeP  +ydfA  +ydfB  +ydfC  +ydfD  +ydfW  +ydfX  +ydjM  +yeaE  +yeaR  +yebB  +yebC  +yebE  +yebG  +yefM*  +yegR  +yehF  +yeiB  +yfaE  +yfdE  +yfdV  +yfdX  +yffB  +yfgG  +yfiB  +yfiR  +ygeA  +ygeH  +ygfB  +yhaV  +yhbE  +yhdT  +yhfA  +yhgH  +yhhY  +yhiD  +yhjR  +yhjX  +yiaK  +yiaL  +yiaM  +yiaN  +yiaO  +yibN  +yifL  +yigA  +yigB  +yihI  +yihS  +yihT  +yihU  +yihV  +yjbE  +yjbF  +yjbG  +yjbH  +yjcH  +yjeV  +yjjQ*  +yjjZ  +ykgM  +ykgO  +ykgR  +yliM  +ymgA  +ymgC  +ymiA  +ymiC  +ynfE  +ynfF  +ynfG  +ynfH  +yoaE  +yoaG  +yobF  +yoeB*  +yojI  +ypfN  +yqhD  +yqjA  +yrbG  +yrbN  +ysgA  +ytiC  +ytiD  +zinT  +zntA  +znuB  +znuC  +zwf
+rpoE*
+  +ahpF  +apaG  +apaH  +asflhD*  +bacA  +bamA  +bamB  +bamC  +bamD  +bamE  +bepA  +bhsA  +cca  +clpX  +cyaR*  +degP  +der  +dnaE  +dolP  +dsbC  +eptB  +essD  +fabZ  +fadM  +fkpA  +ftnB  +fusA  +greA  +gspA  +gspB  +hcp  +hcr  +hokE  +hpf  +ibaG  +insK  +lgoR  +lhr  +lon  +lptA  +lptB  +lptD  +lpxA  +lpxB  +lpxD  +lpxP  +lyxK  +malQ  +matA*  +micA*  +micL*  +mscM  +mzrA  +narV  +narW  +opgG  +opgH  +pdxA  +phoQ  +plsB  +prfB  +psd  +ptsN  +rapZ  +rclA  +rclB  +rclC  +recJ  +recR  +rfaD  +rflP  +rnhB  +rnlB  +rpoD*  +rpoE*  +rpoH*  +rpoN*  +rrrD  +rseA  +rseB  +rseC  +rseP  +rsmA  +rutR*  +rybB*  +rzpD  +sbmA  +sgbE  +sgbH  +sgbU  +sixA  +skp  +stfZ*  +surA  +tufA  +uspD  +waaC  +waaF  +waaL  +wza  +wzb  +wzc  +yaiW  +ybaB  +ydhI  +ydhJ  +ydhK  +yeaY  +yfeK  +yfeS  +yfeX  +yfeY  +yfgD  +yggN  +yghF  +ygiM  +yhjJ  +yiaK  +yiaL  +yiaM  +yiaN  +yiaO  +yicI  +yicJ  +yidQ  +yieE  +yieF  +yiiS  +yoaC  +yqjA  +ytfJ
+rpoH*
+  +ackA  +adiC  +alaA  +alaT  +alaU  +alaV  +bidA  +bssS  +can  +cas1  +cas2  +casD  +casE  +clpB  +clpP  +clpX  +cnoX  +cra*  +creA  +creB*  +creC  +crr  +dnaJ  +dnaK  +dsbC  +fkpB  +ftsH  +fxsA  +gapA  +glnS  +gltT  +gltU  +gltV  +gltW  +groL  +groS  +grpE  +hemW  +hflC  +hflK  +hflX  +hfq*  +holC  +hslO  +hslR  +hslU  +hslV  +hspQ  +htpG  +htpX  +ibpA*  +ibpB  +ileS  +ileT  +ileU  +ileV  +ispH  +lapA  +lapB  +ldhA  +lipB  +lnt  +lon  +lspA  +mbiA  +metA  +mhpT  +miaA  +mlc*  +mngA  +mngB  +mpaA  +mutL  +mutM  +nanX  +nanY  +narP*  +nfuA  +nusB  +osmF  +pgpA  +pgpC  +phoP*  +phoQ  +pncC  +pphA  +ppiD  +prlC  +ptsH  +ptsI  +pyrF  +raiA  +raiZ  +rapA  +rdgB  +recJ  +rfaD  +ribE  +rlmE  +rnlA  +rpmE*  +rpoD*  +rrfA  +rrfB  +rrfC  +rrfD  +rrfE  +rrfF  +rrfG  +rrfH  +rrlA  +rrlB  +rrlC  +rrlD  +rrlE  +rrlG  +rrlH  +rrsA  +rrsB  +rrsC  +rrsD  +rrsE  +rrsG  +rrsH  +rsmJ  +sdaA  +sdsR*  +slt  +tadA  +thiL  +thrV  +topA  +trmA  +tyrR*  +valS  +waaC  +waaF  +waaL  +xerD  +yafD  +yafE  +ybeD  +ybeX  +ybeY  +ybeZ  +ybfE  +yccE  +yceI  +yceJ  +yciH  +ycjF  +ycjX  +ycjY  +ydeO*  +ydhQ  +yeaD  +yehR  +yehW  +yehX  +yehY  +yfbR  +yhdN  +yiaA  +yibA  +yjaZ  +yjhG  +yjhH  +yjhI  +yjiT  +ymjC  +ymjD  +yrdA  +yrfG  +zntR*
+rpoN*
+  +acrD  +actP  +amtB  +argT  +aslB  +astA  +astB  +astC  +astD  +astE  +atoA  +atoB  +atoD  +atoE  +chaC  -cspC  +dcuD  +ddpA  +ddpB  +ddpC  +ddpD  +ddpF  +ddpX  +emrD  -fadL  +fdhF  +fhlA*  +flhC*  +flhD*  +focB  +glmY  +glnA  +glnG*  +glnH  +glnK  +glnL  +glnP  +glnQ  +glnZ*  +glpQ  +gltI  +gltJ  +gltK  +gltL  +gnsA  +hisJ  +hisM  +hisP  +hisQ  +htpG  +hycA  +hycB  +hycC  +hycD  +hycE  +hycF  +hycG  +hycH  +hycI  +hydN  +hyfA  +hyfB  +hyfC  +hyfD  +hyfE  +hyfF  +hyfG  +hyfH  +hyfI  +hyfJ  +hyfR*  +hypA  +hypB  +hypC  +hypD  +hypE  +hypF  +ibpB  -mutM  +nac*  +nikA  +nikB  +nikC  +nikD  +nikE  +nikR*  +norV  +norW  -nth  +patA  +potF  +potG  +potH  +potI  +prpB  +prpC  +prpD  +prpE  +pspA  +pspB  +pspC  +pspD  +pspE  +pspG  +pspH  +puuP  +radD  +rcdB  +relA  +rhaD  +rpoE*  +rpoH*  +rseA  +rseB  +rseC  +rseD  +rtcA  +rtcB  +rtcR*  +rutA  +rutB  +rutC  +rutD  +rutE  +rutF  +rutG  +sroC  +ssnA  +xapB  +xdhA  +xdhB  +xdhC  +yaaU  +yahE  +yeaG  +yeaH  -yfcZ  +ygfK  +yhdX  +yhdY  +yhdZ  +ymjE  -yobF  +zraP  +zraR*  +zraS
+rpoS*
+  +aceE  +aceF  +acnA  +acs  +actP  +ada*  +adhE  +aidB*  +aldB  +alkA  +alkB  +ansP  +appA  +appB  +appC  +appX  +appY*  +araF  +araG  +araH  +ariR  +arrS*  +artI  +artM  +artP  +artQ  +asr  +astA  +astB  +astC  +astD  +astE  +baeR*  +baeS  +blc  +blr  +bolA*  +bsmA  +btsT  +btuF  +cbpA  +cbpM  +cfa  +cpxA  +cpxR*  +crr  +csgA  +csgB  +csgC  +csgD*  +csgE  +csgF  +csgG  +csiE  +csrA*  +cyaR*  +ddpA  +ddpB  +ddpC  +ddpD  +ddpF  +ddpX  +dgcC  +dhaK  +dhaL  +dhaM  +dhaR*  +dinB  +dkgA  +dkgB  +dmsD  +dnaN  +dps  +ecnB  +elaB  +eno  +envC  +epd  +evgA*  +evgS  +fadL  +fau  +fbaA  +fbaB  +fic  +folK  +frdA  +frdB  +frdC  +frdD  +ftsA  +ftsQ  +ftsZ  +fumC  +gabD  +gabP  +gabT  +gadA  +gadB  +gadC  +gadE*  +gadF  +gadW*  +gadX*  +gadY*  +galE  +galK  +galM  +galT  +gapA  +glaH  +glgA  +glgC  +glgP  +glgS  +glk  +glsA  +gltB  +gltD  +gltF  +gor  +gpmA  +gpmM  +gyrB  +hchA  +hdeA  +hdeB  +hdeD  +hdfR*  +hmp  +hofM  +hofN  +hofO  +hofP  +htrE  +hyaA  +hyaB  +hyaC  +hyaD  +hyaE  +hyaF  +ihfA*  +ihfB*  +ilvY*  +insC5  +insCD5  +insD5  +insI1  +insN  +katE  +kbp  +ldcC  +lhgD  +lpd  +lsrA  +lsrB  +lsrC  +lsrD  +lsrF  +lsrG  +luxS  +mdtA  +mdtB  +mdtC  +mdtD  +mdtE  +mdtF  +metK  +mglA  +mglB  +mglC  +micF*  +mlrA*  +mnmG  +mpl  +msyB  +mtn  +murP  +murQ  +murR*  +mutS  +narU  +nhaA  +nhaR*  +ompF  +ompN  +osmB  +osmC  +osmE  +osmF  +osmY  +otsA  +otsB  +oxyR*  +pabA  +patA  +patD  +pcnB  +pdeC  +pdeR  +pdhR*  +pfkA  +pfkB  +pgi  +pgk  +phoU  +phr  +poxB  +pphA  +ppk  +ppx  +pqiA  +pqiB  +pqiC  +proP  +proV  +proW  +proX  +pstA  +pstB  +pstC  +pstS  +puuA  +puuB  +puuC  +puuD  +puuE  +puuP  +puuR*  +pykA  +pykF  +ravA  +recF  +rhaR*  +rhaS*  +rpoE*  +rpoH*  +rraA  +rsd  +rseA  +rseB  +rseC  +rseD  +rsmG  +rssA  +rssB  +ryjA  +sdhX*  +sdsN*  +sdsR*  +setA  +sgrS*  +sgrT  +sodC  +sohB  +speB  +speC  +speG  +sra  +ssrS  +sucA  +sucB  +sucC  +sucD  +talA  +tam  +tktB  +tolC  +topA  +tpiA  +treA  +treF  +uspB  +viaA  +wrbA  +xapA  +xapB  +xthA  +yabI  +yadS  +yadV  +yafN  +yafO  +yafP  +ybaT  +ybgA  +ybiI  +ybjP  +yccJ  +ycgZ  +yciE  +yciF  +yciG  +yciT*  +yciZ  +ydbD  +ydbK  +ydcS  +ydcT  +ydcU  +ydcV  +yddG  +ydhT  +ydhU  +ydhV  +ydhW  +ydhX  +ydhY  +yehW  +yehX  +yehY  +yeiL*  +yffO  +yffP  +yggE  +ygiB  +ygiC  +yhfG  +yhiD  +yhiM  +yhjG  +yiaG  +yibQ  +yihG  +yjcH  +ymgA  +ymgC  +ymiC  +ymjE  +ynfB  +ynfE  +ynfF  +ynfG  +ynfH  +yqiH  +yqiI  +ytfK  +znuA
+rprA*
+  -csgD*  -csgE  -csgF  -csgG  -dgcM  -hdeD  -narP*  +rpoS*
+rpsA*
+  +fis*  +manY  +pnp*  -rpsA*  +rpsO*
+rpsB*
+  -rpsB*  -tff  -tsf
+rpsD*
+  -rplQ  -rpsD*  -rpsK  -rpsM
+rpsF*
+  -priB  -rplI  -rpsF*  -rpsR*
+rpsG*
+  -fusA  -rpsG*  -rpsL  -tufA
+rpsH*
+  -rplE  -rplF  -rplN  -rplO  -rplR  -rplX  -rpmD  -rpmJ  -rpsE  -rpsH*  -rpsN  -secY
+rpsO*
+  -rpsO*
+rpsR*
+  -priB  -rplI  -rpsF*  -rpsR*
+rseX*
+  -fimB  -ihfB*  -ompA  -ompC
+rspR*
+  -rspA  -rspB
+rstA*
+  +asr  -csgD*  -csgE  -csgF  -csgG  +narG  +narH  +narI  +narJ  -ompF
+rtcR*
+  +rtcA  +rtcB
+rutR*
+  +carA  +carB  -fepB  -gadW*  -gadX*  -gloA  -nemA  -nemR*  -pdeR  -rutA  -rutB  -rutC  -rutD  -rutE  -rutF  -rutG  -rutR*
+rybB*
+  -csgD*  -csgE  -csgF  -csgG  -fadL  -fiu  +maoP  -ompC  -ompF  -ompW  -rbsB  -rluD  -sdhC  -tsx
+rydC*
+  +cfa  -csgD*  -csgE  -csgF  -csgG  -pheA  +trpA  +trpB  +trpC  +trpD  +trpE
+ryhB*
+  -acnB*  -bfr  +cirA  -cysE  -erpA  -fumA  -fur*  -grxD  -hemB  -hemH  -iscA  -iscS  -iscU  -marA*  -msrB  -nirB  -nuoA  -nuoB  -nuoC  -nuoE  -nuoF  -nuoG  -nuoH  -nuoI  -nuoJ  -nuoK  -nuoL  -nuoM  -nuoN  -sdhA  -sdhB  -sdhC  -sdhD  -sdhX*  +shiA  -sodA  -sodB  -sucA  -sucB  -sucC  -sucD  -uof
+sdhX*
+  -ackA  -fdhE  -fdoG  -fdoH  -fdoI  -katG
+sdiA*
+  -ftsA  +/-ftsQ  -ftsZ  +gadW*  +gadY*  +rflP  +rmf  +rsd
+sdsN*
+  -hmp  -narP*  -nfsA
+sdsR*
+  -mutS  -tolC  -zapG
+selB*
+  -selA  -selB*
+sgrR*
+  +alaC  +setA  -sgrR*  +sgrS*  +sgrT  -sroA  -thiB  -thiP  -thiQ
+sgrS*
+  -adiY*  -asd  -folE  -manX  -manY  -manZ  -ptsG  -purR*  -yeiB  +yigL
+sibC*
+  -ibsC
+slyA*
+  +cas1  +cas2  +casA  +casB  +casC  +casD  +casE  +elfA  -fecI*  -fecR  +gspC  +gspD  +gspE  +gspF  +gspG  +gspH  +gspI  +gspJ  +gspK  +gspL  +gspM  +gspO  +hlyE  +leuO*  +mdtM  +paaA  +paaB  +paaC  +paaD  +paaE  +paaF  +paaG  +paaH  +paaI  +paaJ  +paaK  +pagP  +rmf  +rsd  -sgcA  -sgcB  -sgcC  -sgcE  -sgcQ  -sgcR  -sgcX  +slyA*  +yjiN
+soxR*
+  +aroF  +fumC  +sodA  -soxR*  +soxS*  +tyrA  +yjcB  +yrbL
+soxS*
+  +acnA  +acrA  +acrB  +acrZ  +aldA  +cadA  +dapD  +decR*  +fldA  +fldB  +fpr  +fumC  +fur*  +glnD  +inaA  +map  +marA*  +marB  +marR*  +mdaB  +micF*  +nepI  +nfo  +nfsA  +nfsB  +ompN  -ompW  +pgi  +poxB  +pqiA  +pqiB  +pqiC  +ptsG  +ribA  +rimK  -rob*  +sodA  -soxS*  +tolC  +uof  +waaY  +waaZ  +ybjC  +ybjN  +ydbK  +ygiB  +ygiC  +yhbW  +yrbL  +zinT  +zwf
+spf*
+  -araF  -ascF  -atoD  -caiA  +dppB  -ebgC  -fucI  -fucK  -fucP  -galK  -gdhA  -glpF  -gltA  +gss  -lldP  -maeA  -nanC  -nanT  -paaK  -puuE  -sdhC  -srlA  -sthA  -sucC  -xylF  -yjiA  -ytfJ
+sraG*
+  -pnp*
+srlR*
+  -gutM*  -gutQ  -srlA  -srlB  -srlD  -srlE  -srlR*
+srmB*
+  +rplM*  +rpsI
+srsR*
+  +adhE  +bluR*  +cdgI  +dhaK  +dhaL  +dhaM  +dinJ*  +fucA  +fucI  +fucK  +fucO  +fucP  +fucR*  +fucU  +hycB  +narZ  +paaA  +paaB  +paaC  +paaD  +paaE  +paaF  +paaG  +paaH  +paaI  +paaJ  +paaK  +paaZ  +pflB  +yafL  +yafQ*  +yfdK  +yfdM  +yfdN  +yfdO  +yfdP  +yfdQ
+stfZ*
+  -ftsZ
+stpA*
+  -bglB  -bglF  -bglG*  +cas1  +cas2  +casA  +casB  +casC  +casD  +casE  -fau  -leuO*  +malE  +malF  +malG  +malH*  -ssrS  -stpA*
+sutR*
+  -cysE  -fliA*  -fliZ*  -pfkB  +/-sutR*  -tcyJ  -ydcO  +ypfN
+sxy*
+  +sxy*
+symR*
+  -symE
+tdcA*
+  +tdcA*  +tdcB  +tdcC  +tdcD  +tdcE  +tdcF  +tdcG
+tdcR*
+  +tdcA*  +tdcB  +tdcC  +tdcD  +tdcE  +tdcF  +tdcG
+thrS*
+  -thrS*
+torR*
+  +adiA  +adiC  +/-gadA  +gadB  +gadC  +gadE*  +/-gadX*  +hdeA  +hdeB  +mdtE  +mdtF  +rpoS*  +slp  +tnaA  +tnaB  +tnaC  +torA  +torC  +torD  -torR*  +yhiD
+treR*
+  -treB  -treC
+trpR*
+  -aroH  -aroL  -aroM  -mtr  -trpA  -trpB  -trpC  -trpD  -trpE  -trpL  -trpR*  -yaiA
+ttdR*
+  +ttdA  +ttdB  +ttdR*  +ttdT
+tyrR*
+  -aroF  -aroG  -aroL  -aroM  -aroP  +folA  +mtr  -tyrA  -tyrB  +/-tyrP  -tyrR*  -yaiA
+uhpA*
+  +uhpT
+uidR*
+  -uidA  -uidB  -uidC  -uidR*
+ulaR*
+  -ulaA  -ulaB  -ulaC  -ulaD  -ulaE  -ulaF  -ulaG
+uvrY*
+  +csrB  +csrC  +luxS  +uhpT  +ydeP
+uxuR*
+  -exuR*  -fliC  -gntP  -lgoD  -lgoR  -uidA  -uidB  -uidC  -uxuA  -uxuB  -uxuR*
+xapR*
+  +xapA  +xapB
+xylR*
+  -araC*  +xylA  +xylB  +xylE  +xylF  +xylG  +xylH  +xylR*
+xynR*
+  -yagA  -yagB  -yagE  -yagF
+yafC*
+  +cysJ
+yafQ*
+  -cspE  -dinJ*  -yafQ*
+yciT*
+  +bsmA  -cusF  -rdcA  +ybiY
+ycjW*
+  -ompG  -ycjM  -ycjN  -ycjO  -ycjP  -ycjQ  -ycjR  -ycjS  -ycjT  -ycjU  -ycjV
+ydcI*
+  +flu  +iraP  +isrC  +smrB
+ydeO*
+  +appA  +appB  +appC  +appX  +dctR  +gadE*  +gadF  +gadW*  +hyaA  +hyaB  +hyaC  +hyaD  +hyaE  +hyaF  +mdtE  +mdtF  +nhaR*  -safA  +slp  +uspD  -ydeO*  +yiiS
+yebK*
+  -yebK*
+yefM*
+  -yefM*  -yoeB*
+yeiE*
+  -argO  -cysJ  -dcuC  -ftp  +gltF  -infA  -mdtF  -pflB  -putA*  +sodC  -ssuA  +uspF  -ydcT  -yibQ  +yoaC
+yeiL*
+  +yeiL*
+yfeC*
+  -hybE  -rpmB  -rpmH  -rpsU  +yfeC*  -ygdR
+ygbI*
+  -ygbJ  -ygbK
+ygiV*
+  -mcbR*
+yhaJ*
+  +bssS  +ybiJ  +ygiD  +yhaJ*  +yhaK  +yhaL  +yhhW  +yqjF
+yiaU*
+  +adeP  +gltD  +waaP  +yiaT  +yiaV  +yiaW
+yidZ*
+  -malE  -ppiC  -rbsD  -rof
+yieP*
+  -cusA  -dauA  +ybiX  -ykgE  -yohJ
+yjjQ*
+  -dgcN  -flhC*  -flhD*  -gfcA  -ompC  -ybhL  -yciX  -yfiB  -yfiR  -ymiA
+yoeB*
+  -yefM*  -yoeB*
+yqhC*
+  +dkgA  +yqhD
+yrdG*
+  -mscL
+zntR*
+  -rmf  -rsd  +/-zntA
+zraR*
+  +acrE  +cpxP  +cspB  +exuR*  +fliA*  +gadW*  +glnA  +glnH  +mdtL  +pnp*  +raiA  +rfaD  -rmf  +rpoH*  +sspA  +ssrA  +tnaA  +tnaB  +yhhY  +yjjY  +yrdD  +zraP  +zraR*  +zraS
+zur*
+  -pliG  -ykgM  -ykgO  -zinT  -znuA  -znuB  -znuC

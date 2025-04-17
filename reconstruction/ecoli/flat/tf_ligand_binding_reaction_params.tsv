@@ -1,0 +1,4 @@
+# Reactions manually compiled for use in the tf-ligand-binding process,
+# SEPARATE from the equilibrium process (i.e. considers different TFs)
+"id"	"Kd"	"Hill coefficient"
+"CPLX-123_RXN"	9.3E-06	1.5

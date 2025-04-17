@@ -1,0 +1,5 @@
+"binding_site_id"	"TF"	"binding_rate (1/units.min)"	"unbinding_rate (1/units.min)"
+"BS00190"	"CPLX-123"	0.2	0.1
+"BS00177"	"CPLX-123"	0.2	0.1
+"BS00177"	"CPLX-123"	0.2	0.1
+"BS00182"	"CPLX-123"	0.2	1

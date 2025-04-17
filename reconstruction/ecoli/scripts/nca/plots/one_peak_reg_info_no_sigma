@@ -1,0 +1,713 @@
+"gene"	"reg_info"	"category"
+"cdaR"	"[('cdaR', '+'), ('nac', '-')]"	2
+"cynR"	"[('cynR', '-'), ('nac', '-')]"	2
+"yaiW"	"[('cpxR', '+')]"	2
+"nrdR"	"[]"	0
+"ybaO"	"[('marA', '+'), ('soxS', '+')]"	2
+"ylbG"	"[]"	0
+"allS"	"[('allR', '-')]"	2
+"allR"	"[('nac', '+')]"	2
+"dpiA"	"[('arcA', '+'), ('', '-'), ('crp', '-'), ('dcuR', '+'), ('dpiA', '+'), ('fnr', '-'), ('narL', '-')]"	2
+"nagC"	"[('crp', '+/-'), ('nagC', '-')]"	2
+"kdpE"	"[]"	0
+"mngR"	"[('mngR', '-')]"	1
+"modE"	"[]"	0
+"deoR"	"[]"	0
+"ybjK"	"[('ybjK', '+')]"	2
+"torR"	"[('torR', '-')]"	1
+"rutR"	"[('rutR', '-')]"	1
+"fadR"	"[('', '-'), ('dksA', '-'), ('fadR', '+')]"	2
+"dhaR"	"[('dhaR', '-'), ('nac', '+')]"	2
+"pspF"	"[('pspF', '-')]"	1
+"ycjW"	"[]"	0
+"hipA"	"[('hipA', '-'), ('hipB', '-'), ('ihfA', '+'), ('ihfB', '+')]"	2
+"uidR"	"[('uidR', '-')]"	1
+"malI"	"[('crp', '+/-'), ('malI', '-'), ('nac', '-')]"	2
+"ydhB"	"[]"	0
+"chbR"	"[('chbR', '+/-'), ('crp', '+'), ('nagC', '-')]"	2
+"yeaM"	"[('yeaM', '-')]"	1
+"baeR"	"[('baeR', '+'), ('cpxR', '+')]"	2
+"yeiE"	"[('nac', '-')]"	2
+"narP"	"[('', '-'), ('', '-')]"	2
+"ypdB"	"[]"	0
+"ypdC"	"[('csiR', '+')]"	2
+"yfeR"	"[]"	0
+"eutR"	"[]"	0
+"hyfR"	"[('crp', '+'), ('fhlA', '+'), ('fnr', '-'), ('hyfR', '+')]"	2
+"yfhH"	"[]"	0
+"yfiE"	"[]"	0
+"yfjR"	"[]"	0
+"norR"	"[('norR', '-'), ('nsrR', '-')]"	2
+"ascG"	"[('hns', '-')]"	3
+"ygbI"	"[]"	0
+"gcvA"	"[('gcvA', '-'), ('csiR', '-')]"	2
+"galR"	"[('galR', '-'), ('galS', '-')]"	2
+"lysR"	"[('lysR', '-'), ('nac', '-')]"	2
+"ygfI"	"[('nac', '-')]"	2
+"yqhC"	"[('csiR', '-')]"	2
+"qseB"	"[('basR', '+'), ('lrp', '-'), ('qseB', '+')]"	2
+"ebgR"	"[]"	0
+"higA"	"[('higA', '-'), ('higB', '-')]"	2
+"yhaJ"	"[('yhaJ', '+')]"	2
+"sfsB"	"[('bglJ', '+'), ('rcsB', '+')]"	2
+"rpoN"	"[('lrp', '-')]"	3
+"nanR"	"[]"	0
+"frlR"	"[('crp', '+'), ('frlR', '-')]"	2
+"ompR"	"[('crp', '+/-'), ('ihfA', '-'), ('ihfB', '-'), ('nac', '-'), ('', '-'), ('', '-')]"	2
+"glpR"	"[('crp', '+')]"	2
+"gntR"	"[]"	0
+"yhjC"	"[('phoB', '+')]"	2
+"yiaJ"	"[('crp', '-'), ('ihfA', '-'), ('ihfB', '-'), ('yiaJ', '-')]"	2
+"yiaU"	"[]"	0
+"uhpA"	"[('nac', '-')]"	2
+"yidF"	"[]"	0
+"yidL"	"[('bglJ', '+'), ('rcsB', '+')]"	2
+"rbsR"	"[('crp', '+'), ('dsrA', '-'), ('', '-'), ('rbsR', '-')]"	2
+"metR"	"[('metJ', '-'), ('metR', '-'), ('nac', '-'), ('oxyR', '+')]"	2
+"yihL"	"[('nac', '-')]"	2
+"yihW"	"[('crp', '+/-'), ('yihW', '-')]"	2
+"cpxR"	"[('cpxR', '+'), ('', '-')]"	2
+"yijO"	"[('nac', '-')]"	2
+"oxyR"	"[('crp', '+'), ('', '+'), ('oxyR', '-')]"	2
+"basR"	"[]"	0
+"dcuR"	"[('crp', '+'), ('fnr', '+'), ('narL', '-')]"	2
+"ytfH"	"[]"	0
+"treR"	"[('phoP', '-')]"	2
+"idnR"	"[('crp', '+'), ('gntR', '-'), ('idnR', '+')]"	2
+"uxuR"	"[('crp', '+'), ('exuR', '-'), ('uxuR', '-')]"	2
+"yjiE"	"[]"	0
+"yjjJ"	"[]"	0
+"trpR"	"[('trpR', '-')]"	1
+"creB"	"[('nagC', '-')]"	2
+"dgoR"	"[('crp', '+'), ('dgoR', '-')]"	2
+"ribF"	"[]"	0
+"ispH"	"[]"	0
+"pdxA"	"[('fis', '+'), ('csiR', '-')]"	2
+"setA"	"[('cra', '-'), ('dksA', '+'), ('sgrR', '+')]"	2
+"ftsI"	"[('lexA', '-'), ('mraZ', '-'), ('pdhR', '-')]"	2
+"murF"	"[('lexA', '-'), ('mraZ', '-'), ('pdhR', '-')]"	2
+"murC"	"[('lexA', '-'), ('mraZ', '-'), ('pdhR', '-')]"	2
+"coaE"	"[]"	0
+"nadC"	"[('crp', '+'), ('nac', '-')]"	2
+"hpt"	"[('crp', '+'), ('ihfA', '-'), ('ihfB', '-')]"	2
+"mrcB"	"[]"	0
+"fhuC"	"[('fur', '-')]"	2
+"hemL"	"[('pdhR', '-'), ('phoP', '+')]"	2
+"clcA"	"[]"	0
+"btuF"	"[]"	0
+"mtn"	"[('cpxR', '+')]"	2
+"dxr"	"[]"	0
+"fabZ"	"[('cpxR', '+'), ('gadE', '+')]"	2
+"lpxB"	"[]"	0
+"gmhB"	"[]"	0
+"dkgB"	"[('nsrR', '-')]"	2
+"mhpC"	"[('crp', '+'), ('mhpR', '+')]"	2
+"mhpF"	"[('crp', '+'), ('mhpR', '+')]"	2
+"hemB"	"[('nac', '-'), ('', '-')]"	2
+"ddlA"	"[('hns', '-'), ('nac', '-')]"	2
+"proC"	"[]"	0
+"mak"	"[]"	0
+"malZ"	"[('malT', '+')]"	2
+"acpH"	"[]"	0
+"ribD"	"[]"	0
+"thiL"	"[('nac', '-')]"	2
+"pgpA"	"[]"	0
+"panE"	"[]"	0
+"ampG"	"[]"	0
+"queC"	"[]"	0
+"cof"	"[]"	0
+"acrB"	"[('acrR', '-'), ('envR', '-'), ('marA', '+'), ('mprA', '-'), ('phoP', '-'), ('rob', '+'), ('soxS', '+')]"	2
+"hemH"	"[('nac', '-'), ('oxyR', '+'), ('', '-')]"	2
+"tesA"	"[]"	0
+"lpxH"	"[('nac', '-')]"	2
+"dsbG"	"[('cpxR', '+'), ('nac', '+'), ('oxyR', '+')]"	2
+"mrdA"	"[('csiR', '-')]"	2
+"nadD"	"[('nac', '-')]"	2
+"leuS"	"[]"	0
+"hscC"	"[]"	0
+"lnt"	"[]"	0
+"ubiF"	"[]"	0
+"glnS"	"[]"	0
+"pgm"	"[('hupA', '-'), ('hupB', '-')]"	2
+"mngB"	"[('mngR', '-')]"	2
+"rhtA"	"[('nac', '-'), ('ompR', '+')]"	2
+"gsiB"	"[]"	0
+"gsiD"	"[]"	0
+"ltaE"	"[]"	0
+"aqpZ"	"[]"	0
+"cydC"	"[('arcA', '+'), ('fnr', '+'), ('', '-'), ('lrp', '-'), ('narL', '+')]"	2
+"lpxK"	"[]"	0
+"ssuB"	"[('cbl', '+'), ('cysB', '-'), ('fnr', '+'), ('ihfA', '+/-'), ('ihfB', '+/-')]"	2
+"ompA"	"[('crp', '+'), ('mutY', '-'), ('nac', '-'), ('', '-')]"	2
+"ghrA"	"[]"	0
+"lpxL"	"[('lrp', '-')]"	3
+"murJ"	"[]"	0
+"acpP"	"[('arcA', '+'), ('pdhR', '+')]"	2
+"pabC"	"[('nac', '-')]"	2
+"tmk"	"[]"	0
+"nagZ"	"[]"	0
+"nagK"	"[]"	0
+"nhaB"	"[]"	0
+"ldcA"	"[]"	0
+"puuP"	"[('arcA', '-'), ('fnr', '-'), ('puuR', '-')]"	2
+"yneH"	"[]"	0
+"sad"	"[('lrp', '+'), ('yneJ', '-')]"	2
+"ydeA"	"[('arcA', '-')]"	2
+"btuC"	"[]"	0
+"nudG"	"[('nac', '-')]"	2
+"selD"	"[]"	0
+"ydjI"	"[]"	0
+"pabB"	"[('lrp', '-')]"	3
+"lpxM"	"[]"	0
+"znuB"	"[('oxyR', '+'), ('zur', '-')]"	2
+"torZ"	"[]"	0
+"torY"	"[]"	0
+"cobS"	"[]"	0
+"dacD"	"[]"	0
+"dcd"	"[('rbsR', '+')]"	2
+"bglX"	"[('nac', '+')]"	2
+"ccmE"	"[('flhC', '+'), ('flhD', '+'), ('fnr', '+'), ('modE', '+'), ('narL', '-'), ('narP', '+/-')]"	2
+"ccmC"	"[('flhC', '+'), ('flhD', '+'), ('fnr', '+'), ('modE', '+'), ('narL', '-'), ('narP', '+/-')]"	2
+"ccmB"	"[('flhC', '+'), ('flhD', '+'), ('fnr', '+'), ('modE', '+'), ('nac', '-'), ('narL', '-'), ('narP', '+/-')]"	2
+"ubiG"	"[('crp', '+')]"	2
+"menD"	"[]"	0
+"menF"	"[]"	0
+"yfbR"	"[('cysB', '+')]"	2
+"folC"	"[]"	0
+"alaC"	"[('nac', '-'), ('sgrR', '+')]"	2
+"gltX"	"[('fis', '-')]"	3
+"xapB"	"[('xapR', '+')]"	2
+"ligA"	"[]"	0
+"pdxK"	"[('nac', '-')]"	2
+"amiA"	"[('ihfA', '-'), ('ihfB', '-')]"	3
+"hemF"	"[('ihfA', '-'), ('ihfB', '-'), ('oxyR', '+')]"	2
+"eutC"	"[]"	0
+"nudK"	"[]"	0
+"dapE"	"[]"	0
+"dapA"	"[]"	0
+"hyfB"	"[('crp', '+'), ('fhlA', '+'), ('fnr', '-'), ('hyfR', '+')]"	2
+"hyfG"	"[('crp', '+'), ('fhlA', '+'), ('fnr', '-'), ('hyfR', '+')]"	2
+"ispG"	"[]"	0
+"pepB"	"[]"	0
+"hcaE"	"[('hcaR', '+'), ('nac', '+')]"	2
+"hcaD"	"[('hcaR', '+')]"	2
+"pdxJ"	"[]"	0
+"ascF"	"[('ascG', '-'), ('cpxR', '-'), ('crp', '+'), ('hns', '-'), ('spf', '-')]"	2
+"hycG"	"[('fhlA', '+'), ('ihfA', '+'), ('ihfB', '+'), ('modE', '+'), ('nsrR', '-')]"	2
+"gudD"	"[('cdaR', '+')]"	2
+"amiC"	"[('lrp', '-')]"	3
+"thyA"	"[]"	0
+"lplT"	"[]"	0
+"aas"	"[]"	0
+"xdhB"	"[('fnr', '+')]"	2
+"xdhC"	"[('fnr', '+')]"	2
+"yqeA"	"[]"	0
+"dsbC"	"[('cpxR', '+')]"	2
+"fldB"	"[('soxS', '+')]"	2
+"bglA"	"[]"	0
+"ubiH"	"[]"	0
+"fau"	"[('fis', '+/-'), ('hns', '-'), ('lrp', '-'), ('stpA', '-')]"	2
+"rpiA"	"[('lrp', '-')]"	3
+"scpC"	"[('fnr', '+')]"	2
+"yggF"	"[]"	0
+"gshB"	"[]"	0
+"mltC"	"[('', '-')]"	2
+"speC"	"[('crp', '-')]"	2
+"plsC"	"[]"	0
+"nudF"	"[('creB', '+')]"	2
+"zupT"	"[]"	0
+"bacA"	"[('cpxR', '+')]"	2
+"folB"	"[]"	0
+"uxaA"	"[('crp', '+'), ('exuR', '-'), ('fnr', '+')]"	2
+"kbaZ"	"[('agaR', '-'), ('crp', '+')]"	2
+"glmM"	"[]"	0
+"ispB"	"[('nac', '-')]"	2
+"kdsD"	"[]"	0
+"kdsC"	"[]"	0
+"lptC"	"[]"	0
+"lptB"	"[]"	0
+"pabA"	"[]"	0
+"cysG"	"[('cra', '-'), ('crp', '-'), ('fis', '-'), ('fnr', '+'), ('hns', '-'), ('ihfA', '+/-'), ('ihfB', '+/-'), ('narL', '+'), ('narP', '+')]"	2
+"frlB"	"[('crp', '+'), ('frlR', '-')]"	2
+"frlD"	"[('crp', '+'), ('frlR', '-')]"	2
+"rpe"	"[]"	0
+"mrcA"	"[]"	0
+"glpE"	"[('arcA', '-'), ('crp', '+')]"	2
+"ugpQ"	"[('crp', '+'), ('phoB', '+/-')]"	2
+"acpT"	"[]"	0
+"gor"	"[('nac', '-'), ('oxyR', '+')]"	2
+"bisC"	"[('nac', '+')]"	2
+"xylB"	"[('araC', '-'), ('crp', '+'), ('xylR', '+')]"	2
+"sgbH"	"[('crp', '+/-'), ('ihfA', '+'), ('ihfB', '+'), ('yiaJ', '-')]"	2
+"cysE"	"[('', '-'), ('ydcN', '-')]"	2
+"gpsA"	"[('crp', '+')]"	2
+"rfaD"	"[('zraR', '+')]"	2
+"waaC"	"[]"	0
+"coaD"	"[]"	0
+"ade"	"[('purR', '-')]"	2
+"dgoK"	"[('crp', '+'), ('dgoR', '-')]"	2
+"trxA"	"[('crp', '-')]"	2
+"rffG"	"[('nsrR', '-')]"	2
+"rffC"	"[('nsrR', '-')]"	2
+"rffA"	"[('nsrR', '-')]"	2
+"wzyE"	"[('nsrR', '-')]"	2
+"rffM"	"[('nsrR', '-')]"	2
+"hemD"	"[]"	0
+"dapF"	"[]"	0
+"rhtB"	"[('lrp', '+')]"	3
+"pldB"	"[]"	0
+"fre"	"[]"	0
+"trkH"	"[]"	0
+"hemG"	"[]"	0
+"mobA"	"[('nac', '-')]"	2
+"fieF"	"[]"	0
+"menA"	"[('lrp', '+')]"	3
+"nudC"	"[('nac', '-')]"	2
+"hemE"	"[]"	0
+"plsB"	"[('cpxR', '-')]"	2
+"dgkA"	"[('basR', '+')]"	2
+"alr"	"[]"	0
+"alsB"	"[('rpiR', '-')]"	2
+"rpiB"	"[('rpiR', '-'), ('csiR', '+'), ('lrp', '+')]"	2
+"phnN"	"[('phoB', '+')]"	2
+"psd"	"[('cpxR', '-')]"	2
+"rsgA"	"[('csiR', '-')]"	2
+"ulaG"	"[('ihfA', '-'), ('ihfB', '-'), ('ulaR', '-')]"	2
+"ulaB"	"[('crp', '+'), ('ihfA', '-'), ('ihfB', '-'), ('ulaR', '-')]"	2
+"ulaD"	"[('crp', '+'), ('ihfA', '-'), ('ihfB', '-'), ('ulaR', '-')]"	2
+"ulaE"	"[('crp', '+'), ('ihfA', '-'), ('ihfB', '-'), ('ulaR', '-')]"	2
+"ulaF"	"[('crp', '+'), ('ihfA', '-'), ('ihfB', '-'), ('ulaR', '-')]"	2
+"lptG"	"[]"	0
+"lplA"	"[]"	0
+"serB"	"[('lrp', '+')]"	3
+"yjjX"	"[]"	0
+"frlC"	"[('crp', '+'), ('frlR', '-')]"	2
+"yaaA"	"[]"	0
+"yaaH"	"[]"	0
+"lspA"	"[]"	0
+"caiA"	"[('arcA', '+'), ('caiF', '+'), ('crp', '+'), ('fnr', '+'), ('hns', '-'), ('spf', '-')]"	2
+"fixA"	"[('caiF', '+'), ('crp', '+'), ('fnr', '+')]"	2
+"rsmA"	"[('fis', '+')]"	3
+"djlA"	"[]"	0
+"ftsA"	"[('lexA', '-'), ('mraZ', '-'), ('pdhR', '-'), ('rcsB', '+'), ('sdiA', '-')]"	2
+"hofC"	"[('crp', '+'), ('nac', '-')]"	2
+"ampE"	"[('crp', '-')]"	2
+"yadG"	"[]"	0
+"yadH"	"[]"	0
+"ligT"	"[]"	0
+"yadS"	"[]"	0
+"yaeI"	"[]"	0
+"yaeR"	"[]"	0
+"tilS"	"[]"	0
+"yaeQ"	"[('crp', '-'), ('lrp', '+')]"	2
+"arfB"	"[('crp', '-')]"	2
+"nlpE"	"[('crp', '-'), ('nac', '-')]"	2
+"yaeB"	"[]"	0
+"rrsH"	"[('dksA', '-'), ('fis', '+'), ('hns', '+/-'), ('lrp', '+/-'), ('nhaR', '+')]"	2
+"rnhA"	"[]"	0
+"dnaQ"	"[]"	0
+"yafJ"	"[]"	0
+"yafL"	"[('ygfI', '+')]"	2
+"lafU"	"[]"	0
+"dinB"	"[('lexA', '-')]"	2
+"frsA"	"[]"	0
+"ecpC"	"[]"	0
+"yahJ"	"[]"	0
+"yaiL"	"[]"	0
+"yaiI"	"[]"	0
+"rdgC"	"[]"	0
+"sbcC"	"N/A"	-1
+"proY"	"[]"	0
+"yajR"	"[]"	0
+"clpP"	"[('lrp', '+')]"	3
+"clpX"	"[]"	0
+"ybaV"	"[]"	0
+"mdlA"	"[]"	0
+"mdlB"	"[]"	0
+"atl"	"[]"	0
+"aes"	"[]"	0
+"ybaL"	"[('nac', '-')]"	2
+"ybaK"	"[]"	0
+"ybaP"	"[]"	0
+"ybbM"	"[]"	0
+"ybbO"	"[]"	0
+"ybbA"	"[]"	0
+"ylbE_2"	"N/A"	-1
+"ylbF"	"[]"	0
+"ppiB"	"[('csiR', '+'), ('nac', '-')]"	2
+"rrrD"	"[]"	0
+"ybcH"	"[]"	0
+"nfrA"	"[]"	0
+"rna"	"[]"	0
+"crcB"	"[]"	0
+"ybeU"	"[('nac', '-')]"	2
+"ybeY"	"[]"	0
+"nagD"	"[('crp', '+/-'), ('nagC', '-')]"	2
+"ybfN"	"[('', '-'), ('crp', '+'), ('nagC', '-')]"	2
+"ybfF"	"[]"	0
+"ybfP"	"[]"	0
+"ybgI"	"[]"	0
+"ybgK"	"[]"	0
+"ybgL"	"[]"	0
+"nei"	"[]"	0
+"ybhJ"	"[]"	0
+"ybhK"	"[]"	0
+"ybhR"	"[('ybiH', '-')]"	2
+"ybhF"	"[('ybiH', '-')]"	2
+"rlmF"	"[('nac', '+')]"	2
+"ybiR"	"[]"	0
+"ybiT"	"[('ascG', '-'), ('crp', '+/-'), ('lrp', '-'), ('rob', '+')]"	2
+"ybiU"	"[('arcA', '-')]"	2
+"ybjH"	"[]"	0
+"ybjJ"	"[('ybjK', '-')]"	2
+"ybjO"	"[]"	0
+"amiD"	"[]"	0
+"ybjT"	"[]"	0
+"ybjD"	"[]"	0
+"macA"	"[('nac', '-')]"	2
+"macB"	"[]"	0
+"aat"	"[]"	0
+"ftsK"	"[('lexA', '-')]"	2
+"lolA"	"[('lrp', '-'), ('rcsB', '+')]"	2
+"rarA"	"[('rcsB', '+')]"	2
+"ycaD"	"[('nac', '-')]"	2
+"ycaI"	"[]"	0
+"ycaR"	"[]"	0
+"mukE"	"[('argR', '-'), ('hns', '+')]"	2
+"mukB"	"[('hns', '+')]"	3
+"ycbF"	"[]"	0
+"ycbX"	"[]"	0
+"ymbA"	"[('marA', '+'), ('soxS', '+')]"	2
+"ycbZ"	"[]"	0
+"sxy"	"[('crp', '+'), ('sxy', '+')]"	2
+"helD"	"[]"	0
+"etk"	"[]"	0
+"gfcE"	"[]"	0
+"gfcD"	"[]"	0
+"pgaD"	"[('csrA', '-'), ('nhaR', '+'), ('ompR', '-')]"	2
+"ycdY"	"[]"	0
+"ymdC"	"[('flhC', '+'), ('flhD', '+')]"	2
+"yceJ"	"[]"	0
+"yceB"	"[('lrp', '-')]"	3
+"yceM"	"[]"	0
+"lpoB"	"[]"	0
+"mfd"	"[]"	0
+"lolD"	"[]"	0
+"lolE"	"[]"	0
+"ycfD"	"[]"	0
+"ycgV"	"[('csiR', '-'), ('nac', '+')]"	2
+"lolB"	"[]"	0
+"ychO"	"[('fnr', '-')]"	2
+"rssA"	"[]"	0
+"ychG_2"	"N/A"	-1
+"sohB"	"[('crp', '-')]"	2
+"yciS"	"[]"	0
+"yciM"	"[]"	0
+"sapF"	"[]"	0
+"sapB"	"[]"	0
+"sapA"	"[]"	0
+"ycjY"	"[('ycjZ', '-')]"	2
+"ynbC"	"[('bglJ', '+'), ('rcsB', '+')]"	2
+"ynbD"	"[('bglJ', '+'), ('rcsB', '+')]"	2
+"azoR"	"[]"	0
+"tehA"	"[('csiR', '-'), ('nsrR', '-')]"	2
+"ydcM"	"[]"	0
+"ydcO"	"[('ydcN', '-')]"	2
+"ydcP"	"[]"	0
+"hicB"	"[('crp', '+'), ('hicB', '-')]"	2
+"ydcY"	"[('nac', '-')]"	2
+"mnaT"	"[]"	0
+"yddE"	"[]"	0
+"marC"	"[]"	0
+"ydfI"	"[('csiR', '-')]"	2
+"ydfX"	"[('dicA', '-')]"	2
+"ydgJ"	"[]"	0
+"rsxE"	"[]"	0
+"lhr"	"[]"	0
+"ydhP"	"[]"	0
+"ydhZ"	"[('nac', '-'), ('pdhR', '+')]"	2
+"ydiQ"	"[]"	0
+"ydiU"	"[('iscR', '+')]"	2
+"infC"	"[('dksA', '-'), ('nsrR', '-')]"	2
+"chbA"	"[('chbR', '+/-'), ('crp', '+'), ('nagC', '-')]"	2
+"chbC"	"[('chbR', '+/-'), ('', '-'), ('crp', '+'), ('nagC', '-')]"	2
+"ynjB"	"[]"	0
+"topB"	"[]"	0
+"sppA"	"[]"	0
+"ydjL"	"[]"	0
+"yeaL"	"[]"	0
+"yeaN"	"[('yeaM', '-')]"	2
+"yoaF"	"[]"	0
+"rnd"	"[]"	0
+"yeaY"	"[]"	0
+"yoaH"	"[('lrp', '+')]"	3
+"nudL"	"[]"	0
+"yoaE"	"[]"	0
+"rlmA"	"[]"	0
+"yebQ"	"[('nac', '-')]"	2
+"rsmF"	"[('nac', '-')]"	2
+"exoX"	"[('ompR', '-')]"	2
+"ruvB"	"[('lexA', '-')]"	2
+"yecE"	"[('nac', '+')]"	2
+"yecM"	"[]"	0
+"uvrC"	"[('lexA', '-')]"	2
+"yedQ"	"[('lrp', '-')]"	3
+"dcm"	"[('nac', '-')]"	2
+"yedY"	"[('cusR', '+'), ('yedW', '+'), ('phoB', '+')]"	2
+"sbcB"	"[]"	0
+"asmA"	"[]"	0
+"yegD"	"[]"	0
+"mdtC"	"[('baeR', '+'), ('cpxR', '+')]"	2
+"yegT"	"[]"	0
+"yegV"	"[]"	0
+"yegX"	"[]"	0
+"yohD"	"[]"	0
+"dusC"	"[]"	0
+"yeiH"	"[('nac', '+')]"	2
+"yeiI"	"[]"	0
+"yeiQ"	"[('arcA', '-')]"	2
+"yeiR"	"[]"	0
+"rtn"	"[]"	0
+"yejA"	"[]"	0
+"yejB"	"[('nac', '-')]"	2
+"yejF"	"[]"	0
+"yejH"	"[('lrp', '-')]"	3
+"yejO"	"[]"	0
+"ccmG"	"[('flhC', '+'), ('flhD', '+'), ('fnr', '+'), ('modE', '+'), ('narL', '-'), ('narP', '+/-')]"	2
+"ccmF"	"[('flhC', '+'), ('flhD', '+'), ('fnr', '+'), ('modE', '+'), ('narL', '-'), ('narP', '+/-')]"	2
+"yojI"	"[('lrp', '+')]"	3
+"rcsC"	"[]"	0
+"yfaS_2"	"N/A"	-1
+"inaA"	"[('cpxR', '+'), ('', '-'), ('csiR', '-'), ('marA', '+'), ('rob', '+'), ('soxS', '+')]"	2
+"yfaY"	"[]"	0
+"yfaZ"	"[]"	0
+"elaA"	"[]"	0
+"ecoZ"	"[('', '+')]"	2
+"yfcF"	"[]"	0
+"yfcH"	"[('', '-')]"	2
+"flk"	"[]"	0
+"mnmC"	"[]"	0
+"yfcL"	"[]"	0
+"epmC"	"[]"	0
+"yfcP"	"[('nac', '-')]"	2
+"ypdA"	"[('arcA', '+')]"	2
+"ypdF"	"[]"	0
+"yfeA"	"[]"	0
+"yfeY"	"[]"	0
+"yfeZ"	"[]"	0
+"ypeA"	"[]"	0
+"eutL"	"[]"	0
+"eutE"	"[]"	0
+"eutQ"	"[('nagC', 'n/a')]"	2
+"narQ"	"[('crp', '-')]"	2
+"ypfH"	"[]"	0
+"ypfJ"	"[]"	0
+"yfgO"	"[]"	0
+"yfgC"	"[]"	0
+"yfgD"	"[]"	0
+"bamB"	"[]"	0
+"rodZ"	"[]"	0
+"yfhM"	"[]"	0
+"yphB"	"[]"	0
+"yfhG"	"[]"	0
+"tadA"	"[('nsrR', '-')]"	2
+"pgpC"	"[('nsrR', '-')]"	2
+"recO"	"[]"	0
+"lepB"	"[('nac', '-')]"	2
+"yfiC"	"[]"	0
+"yfiF"	"[('arcA', '+')]"	2
+"yfiM"	"[]"	0
+"rrlG"	"[('dksA', '-'), ('fis', '+'), ('hns', '+/-'), ('lrp', '+/-'), ('nhaR', '+')]"	2
+"rrsG"	"[('dksA', '-'), ('fis', '+'), ('hns', '+/-'), ('lrp', '+/-'), ('nhaR', '+')]"	2
+"yfiH"	"[]"	0
+"yfiB"	"[('lrp', '-'), ('yjjQ', '-')]"	2
+"ypjD"	"[]"	0
+"ssrA"	"[('zraR', '+')]"	2
+"yfjY"	"[]"	0
+"ygaP"	"[('nac', '-')]"	2
+"pncC"	"[]"	0
+"hypF"	"[('cra', '-'), ('fhlA', '+'), ('flhC', '+'), ('flhD', '+')]"	2
+"ygbA"	"[('fnr', '-'), ('nsrR', '-')]"	2
+"mutS"	"[('', '-'), ('hfq', '-'), ('sdsR', '-')]"	2
+"ygbM"	"[]"	0
+"ygbN"	"[]"	0
+"pcm"	"[]"	0
+"truD"	"[]"	0
+"barA"	"[]"	0
+"truC"	"[]"	0
+"yqcC"	"[]"	0
+"syd"	"[]"	0
+"ygdG"	"[]"	0
+"fucU"	"[('crp', '+'), ('fucR', '+'), ('ygfI', '+')]"	2
+"csdE"	"[]"	0
+"csdL"	"[]"	0
+"recB"	"[('lexA', '-')]"	2
+"ptrA"	"[('lexA', '-'), ('nac', '-')]"	2
+"ppdC"	"[('flhC', '+'), ('flhD', '+'), ('nac', '+')]"	2
+"ygdB"	"[('flhC', '+'), ('flhD', '+'), ('nac', '-')]"	2
+"ppdA"	"[('flhC', '+'), ('flhD', '+')]"	2
+"lgt"	"[]"	0
+"rppH"	"[]"	0
+"mutH"	"[]"	0
+"tas"	"[]"	0
+"ygeR"	"[]"	0
+"ygfS"	"[]"	0
+"recJ"	"[]"	0
+"xerD"	"[]"	0
+"ygfF"	"[]"	0
+"visC"	"[]"	0
+"ygfB"	"[]"	0
+"yqgE"	"[]"	0
+"yqgF"	"[]"	0
+"yggN"	"[]"	0
+"mutY"	"[('lrp', '-')]"	3
+"yghD"	"[]"	0
+"yghB"	"[]"	0
+"ftsP"	"[]"	0
+"parC"	"[]"	0
+"parE"	"[('creB', '+')]"	2
+"yqiB"	"[('creB', '+')]"	2
+"glnE"	"[]"	0
+"ygiF"	"[('nac', '-')]"	2
+"cca"	"[]"	0
+"ygjP"	"[]"	0
+"ygjQ"	"[]"	0
+"yqjA"	"[('cpxR', '+')]"	2
+"yqjF"	"[('yhaJ', '+')]"	2
+"yhaK"	"[('yhaJ', '+')]"	2
+"yhaL"	"[('yhaJ', '+')]"	2
+"agaA"	"[]"	0
+"agaD"	"[('agaR', '-')]"	2
+"lpoA"	"[]"	0
+"yraN"	"[]"	0
+"yraP"	"[]"	0
+"yraR"	"[]"	0
+"yhbQ"	"[]"	0
+"yhbS"	"[('csgD', '-')]"	2
+"mlaB"	"[('marA', '+')]"	2
+"mlaC"	"[('marA', '+')]"	2
+"mlaD"	"[('marA', '+')]"	2
+"ptsN"	"[('lrp', '-')]"	3
+"npr"	"[]"	0
+"mtgA"	"[]"	0
+"elbB"	"[]"	0
+"degQ"	"[]"	0
+"aaeA"	"[('aaeR', '+'), ('crp', '+')]"	2
+"tldD"	"[]"	0
+"rng"	"[]"	0
+"yhdE"	"[]"	0
+"mreC"	"[('bolA', '-'), ('nac', '-')]"	2
+"prmA"	"[]"	0
+"yrdB"	"[]"	0
+"smf_1"	"N/A"	-1
+"rpmJ"	"[('dksA', '-'), ('rpsH', '-')]"	2
+"rplE"	"[('dksA', '-'), ('rpsH', '-')]"	2
+"rplX"	"[('dksA', '-'), ('rpsH', '-')]"	2
+"rplN"	"[('dksA', '-'), ('rpsH', '-')]"	2
+"chiA"	"[('hns', '-')]"	3
+"tufA"	"[('dksA', '-'), ('rpsG', '-')]"	2
+"fusA"	"[('dksA', '-'), ('rpsG', '-')]"	2
+"tusD"	"[]"	0
+"kefG"	"[]"	0
+"yheU"	"[]"	0
+"prkB"	"[]"	0
+"yhfA"	"[('crp', '+/-')]"	2
+"yhfK"	"[]"	0
+"yhfT"	"[]"	0
+"yhfY"	"[]"	0
+"damX"	"[]"	0
+"hofQ"	"[('', '+')]"	2
+"hofO"	"[('crp', '+')]"	2
+"hofN"	"[('crp', '+')]"	2
+"envZ"	"[('crp', '+/-'), ('ihfA', '-'), ('ihfB', '-')]"	2
+"yhgA"	"[]"	0
+"yhhW"	"[('lrp', '+/-'), ('yhaJ', '+')]"	2
+"ftsE"	"[]"	0
+"rsmD"	"[]"	0
+"yhhT"	"[]"	0
+"yhhJ"	"[]"	0
+"yhiN"	"[]"	0
+"prlC"	"[]"	0
+"rlmJ"	"[]"	0
+"yhjK"	"[]"	0
+"bcsZ"	"[('fnr', '+')]"	2
+"tag"	"[]"	0
+"yiaC"	"[]"	0
+"sgbU"	"[('crp', '+/-'), ('ihfA', '+'), ('ihfB', '+'), ('yiaJ', '-')]"	2
+"selB"	"[('selB', '-')]"	1
+"yibF"	"[]"	0
+"mutM"	"[('dksA', '-')]"	2
+"yicR"	"[]"	0
+"yicC"	"[]"	0
+"yicL"	"[]"	0
+"yicN"	"[]"	0
+"uhpC"	"[]"	0
+"yidH"	"[]"	0
+"yidI"	"[]"	0
+"yidB"	"[('csiR', '+')]"	2
+"yieH"	"[('nac', '-')]"	2
+"yieK"	"[]"	0
+"yieL"	"[]"	0
+"viaA"	"[('fnr', '+')]"	2
+"yigA"	"[]"	0
+"uvrD"	"[('lexA', '-')]"	2
+"recQ"	"[('lexA', '-')]"	2
+"yigM"	"[]"	0
+"yigW_1"	"N/A"	-1
+"yigZ"	"[]"	0
+"yihA"	"[]"	0
+"yihI"	"[]"	0
+"yihR"	"[]"	0
+"yihT"	"[('yihW', '-')]"	2
+"yihV"	"[('yihW', '-')]"	2
+"dtd"	"[]"	0
+"yiiD"	"[]"	0
+"fdhD"	"[('nac', '-')]"	2
+"yiiM"	"[('lrp', '-')]"	3
+"cpxA"	"[('cpxR', '+'), ('', '-')]"	2
+"yiiR"	"[]"	0
+"priA"	"[]"	0
+"frwD"	"[]"	0
+"rplL"	"[('dksA', '-'), ('rplA', '-')]"	2
+"yjaH"	"[('nac', '+')]"	2
+"yjaB"	"[]"	0
+"yjbB"	"[('nac', '-')]"	2
+"dusA"	"[]"	0
+"yjcC"	"[('hns', '-'), ('nac', '+')]"	2
+"yjcO"	"[('nac', '-')]"	2
+"phnP"	"[('phoB', '+')]"	2
+"basS"	"[]"	0
+"dcuS"	"[('fnr', '+'), ('narL', '-')]"	2
+"cutA"	"[]"	0
+"yjeH"	"[('lrp', '+'), ('nac', '-')]"	2
+"epmB"	"[('cpxR', '+')]"	2
+"yjeP"	"[('cpxR', '-')]"	2
+"orn"	"[('csiR', '+')]"	2
+"tsaE"	"[]"	0
+"yjeT"	"[]"	0
+"rnr"	"[('lrp', '+/-')]"	3
+"yjfP"	"[('lrp', '+')]"	3
+"ytfB"	"[('lrp', '+/-'), ('nac', '+')]"	2
+"ytfF"	"[]"	0
+"ytfG"	"[]"	0
+"ytfL"	"[]"	0
+"tamA"	"[]"	0
+"yzfA"	"[]"	0
+"pmbA"	"[]"	0
+"insG"	"[]"	0
+"yjhV"	"[]"	0
+"iadA"	"[]"	0
+"yjiL"	"[('lrp', '+/-')]"	3
+"mcrD"	"[]"	0
+"hsdM"	"[]"	0
+"yjjA"	"[]"	0
+"dnaT"	"[]"	0
+"rsmC"	"[]"	0
+"yjjV"	"[]"	0
+"radA"	"[]"	0
+"yjjK"	"[('cpxR', '+')]"	2
+"creC"	"[('nagC', '-')]"	2
+"creD"	"[('creB', '+'), ('nagC', '-')]"	2
+"yjtD"	"[]"	0
+"yfjD"	"[('csiR', '-')]"	2
+"yhdP"	"[]"	0

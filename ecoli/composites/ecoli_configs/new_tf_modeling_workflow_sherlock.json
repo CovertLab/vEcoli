@@ -1,0 +1,41 @@
+{
+    "experiment_id": "new_tf_modeling_test",
+    "sherlock": true,
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 1
+    },
+    "generations": 2,
+    "n_init_sims": 2,
+    "single_daughters": true,
+    "emitter" : {
+        "type": "parquet",
+        "out_dir": "/scratch/users/ahzhang/vEcoli_out"
+    },
+    "variants": {
+        "condition": {
+            "condition": {
+                "value": ["basal", "with_aa_nucl"]
+            }
+        }
+    },
+    "analysis_options": {
+        "single": {"new_tf_modeling": {}}
+    },
+    "add_processes": ["ecoli-tf-ligand-binding"],
+    "exclude_processes" : ["ecoli-tf-unbinding"],
+    "process_configs": {
+        "ecoli-metabolism": {
+            "mechanistic_aa_transport": false
+        },
+        "ecoli-polypeptide-elongation": {
+            "mechanistic_aa_transport": false,
+            "mechanistic_translation_supply": false,
+            "aa_supply_in_charging": false,
+            "translation_supply": false
+        }
+    },
+    "flow": {
+        "ecoli-tf-ligand-binding": [["ecoli-tf-unbinding"]]
+    }
+}

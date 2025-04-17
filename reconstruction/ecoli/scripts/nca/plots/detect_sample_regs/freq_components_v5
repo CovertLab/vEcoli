@@ -1,0 +1,63 @@
+"component"	"frequency (out of 680)"
+"{'peptone-peculiar', 'inositol', 'low salt', 'MES', 'citrate', 'beef heart other', 'cystine', 'calf brain other', 'nicotinic acid', 'BHI agar'}"	0
+"{'colicin M'}"	7
+"{'bicarbonate'}"	36
+"{'furfural'}"	6
+"{'polymyxin-B'}"	6
+"{'PMX10070'}"	6
+"{'H2O2'}"	5
+"{'HighMn2+'}"	2
+"{'fumarate', 'fumarate-anaerobic'}"	2
+"{'ampicillin', 'arabinose'}"	3
+"{'CHIR-090'}"	3
+"{'DMSO'}"	3
+"{'TPEN'}"	3
+"{'casamino-peculiar'}"	8
+"{'selenium', 'glycerophosphate', 'nitrate-aerobic'}"	18
+"{'edta'}"	54
+"{'4-hydroxybenzoate', '2,3-dihydroxybenzoate', '4-aminobenzoate'}"	12
+"{'IPTG'}"	18
+"{'planktonic'}"	6
+"{'tannin-extract'}"	2
+"{'reducing conditions', 'sulfide'}"	4
+"{'pH8'}"	4
+"{'anaerobic-threonine'}"	29
+"{'pH8.7'}"	5
+"{'basic'}"	9
+"{'pH5'}"	14
+"{'HOMOPIPES'}"	50
+"{'nitrate-anaerobic'}"	4
+"{'nitrate'}"	22
+"{'molybdate-anaerobic'}"	19
+"{'succinate-aerobic', 'succinate'}"	2
+"{'pH2'}"	2
+"{'acidic'}"	16
+"{'acetate-aerobic', 'acetate'}"	2
+"{'MOPS', 'tricine'}"	88
+"{'boric acid'}"	124
+"{'molybdate'}"	142
+"{'anaerobic-no nitrate'}"	48
+"{'anaerobic'}"	52
+"{'mannitol'}"	4
+"{'gluconate'}"	4
+"{'glycerol'}"	21
+"{'lactate'}"	6
+"{'glucose'}"	236
+"{'sulfate'}"	219
+"{'trehalose', 'mannose', 'riboflavin', 'nucleosides', 'boron', 'fatty acids', 'thymine', 'folic acid', 'niacinamide', 'pyridoxine', 'tryptone-peculiar', 'yeast extract other', 'Al3+', 'choline', 'Ni2+'}"	461
+"{'cyanocobalamin', 'biotin'}"	479
+"{'pantothenate', 'cytosine', 'uracil', 'guanine'}"	473
+"{'adenine'}"	475
+"{'leucine', 'valine', 'glutamate', 'isoleucine', 'asparagine', 'glutamine', 'histidine', 'glycine', 'tyrosine', 'tryptophan', 'alanine', 'phenylalanine', 'lysine', 'threonine', 'serine', 'aspartate'}"	481
+"{'thiamine'}"	491
+"{'arginine'}"	484
+"{'methionine'}"	487
+"{'cysteine'}"	485
+"{'proline'}"	483
+"{'Ca2+'}"	589
+"{'Co2+'}"	567
+"{'Cu2+', 'Mn2+', 'Zn2+'}"	603
+"{'iron'}"	609
+"{'chloride', 'Na+'}"	674
+"{'phosphate', 'Mg2+', 'K+'}"	662
+"{'ammonium'}"	680

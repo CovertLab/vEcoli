@@ -265,10 +265,8 @@ class InternalState(object):
 
         # Add promoters
         # Promoters are sequences on the DNA where RNA polymerases bind to and
-        # initiate transcription. They can also be bound to transcription
-        # factors(TFs), if the transcription unit associated with the promoter
-        # is regulated by TFs. The promoter itself has zero mass but can hold
-        # the mass of the transcription factor that it is bound to. Its
+        # initiate transcription. They can be regulated by (usually nearby)
+        # transcription factor binding sites, see below. Its
         # attributes are given as:
         # - TU_index (64-bit int): Index of the transcription unit that
         # the promoter is associated with. This determines which TFs the
@@ -279,18 +277,18 @@ class InternalState(object):
         # after the molecule is initialized.
         # - domain_index (32-bit int): Domain index of the chromosome domain
         # that the promoter belongs to. This value is used to split the
-        # promoters at cell division.
-        # - bound_TF (boolean array of length n_tf): A boolean array that
+        # promoters at cell division and DNA replication.
+        # - bound_TF (boolean array of length n_old_tf): A boolean array that
         # shows which TFs the promoter is bound to. Note that one promoter can
         # bind to multiple TFs.
-        n_tf = len(sim_data.process.transcription_regulation.tf_ids)
+        n_old_tf = len(sim_data.process.transcription_regulation.old_tf_modeling_tf_ids)
 
         promoter_mass = (units.g / units.mol) * np.zeros_like(RNAP_mass)
         promoter_attributes = {
             "TU_index": "i8",
             "coordinates": "i8",
             "domain_index": "i4",
-            "bound_TF": ("?", n_tf),
+            "bound_TF": ("?", n_old_tf),
         }
 
         self.unique_molecule.add_to_unique_state(
@@ -300,6 +298,42 @@ class InternalState(object):
         # Promoters are divided based on their domain index
         sim_data.molecule_groups.unique_molecules_domain_index_division.append(
             "promoter"
+        )
+
+        # Add transcription factor-binding sites
+        # Transcription factor-binding sites are sequences on the DNA where transcription
+        # factors can bind to and regulate transcription from particular (usually nearby)
+        # promoters. The binding site itself has zero mass but can hold the mass of the
+        # transcription factor that it is bound to. Its attributes are given as:
+        # - binding_site_index (32-bit int): Index determining the binding site's identity, which is
+        # associated with the TUs that it regulates and the TFs that can bind it with
+        # sim_data objects (mapping matrices). These are not directly stored since they are of variable size
+        # for different binding-sites, and unique object attributes must be of constant size
+        # for memory allocation reasons.
+        # - coordinates (64-bit int): Location of the binding site on the chromosome, in base pairs
+        # from the origin. This value does not change after the molecule is initialized.
+        # - domain_index (32-bit int): Domain index of the chromosome domain that the binding site
+        # belongs to. This value is used to split the binding sites at cell division and DNA replication.
+        # - bound_TF (32-bit int): An integer that specifies the index of the TF that is bound to the binding
+        # site. -1 is the flag for no TF being bound (see sim_data.process.transcription_regulation).
+        # We assume that only one TF can bind at a time. Note that, for the vast majority of binding-sites,
+        # only one type of TF can bind, but for some cases (e.g. dual activator/repressor TFs),
+        # EcoCyc has annotated that more than one type of TF molecule can bind.
+        tf_binding_site_mass = (units.g / units.mol) * np.zeros_like(RNAP_mass)
+        tf_binding_site_attributes = {
+            "tf_binding_site_index": "i8",
+            "coordinates": "i8",
+            "domain_index": "i8",
+            "bound_TF": "i8",
+        }
+
+        self.unique_molecule.add_to_unique_state(
+            "tf_binding_site", tf_binding_site_attributes, tf_binding_site_mass
+        )
+
+        # TF-binding sites are divided based on their domain index
+        sim_data.molecule_groups.unique_molecules_domain_index_division.append(
+            "tf_binding_site"
         )
 
         # Add genes

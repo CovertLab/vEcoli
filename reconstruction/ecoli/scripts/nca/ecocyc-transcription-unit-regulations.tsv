@@ -1,0 +1,3348 @@
+# Generated from the following BioVelo query on EcoCyc, 12:28pm, November 3, 2024: html-sort-ascending(html-table-headers([(x^?name, x^?frame-id, x^regulated-by, [c: c<-x^components, c isa DNA-Binding-Sites]) : x<-ECOLI^^Transcription-Units,  !(classp x), Evidence := (evidence x), [e:e<-Evidence]], ("Name", "Frame ID", "Regulated by", "DNA Binding Sites", "Evidence")), 2)
+cyaY	TU0-14229
+mobAB	TU263
+ydfABC	TU0-13329
+yoeF	TU0-13484
+yhhM	TU0-8584
+ybhA	TU0-8564
+rph	TU0-14696
+yeaL	TU0-8712
+yceH	TU0-14349
+yegI	TU0-8724
+yhjH	TU0-1549
+yjgH	TU0-14170	Regulation of yjgH by ppGpp
+galETKM	TU0-45179		GalS DNA-binding-site 52.5 bases downstream of galEp,GalS-galactose DNA-binding-site 60.5 bases upstream of galEp,H-NS DNA-binding-site 47 bases upstream of galEp,H-NS DNA-binding-site 36 bases upstream of galEp,H-NS DNA-binding-site 18 bases upstream of galEp,H-NS DNA-binding-site 2 bases upstream of galEp,HU DNA-binding-site 6.5 bases downstream of galEp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of galEp,GalR-galactose DNA-binding-site 60.5 bases upstream of galEp,GalR DNA-binding-site 46.5 bases downstream of galEp
+trmJ	TU0-13657
+ybhB	TU0-13046
+rihA	TU0-13014	Regulation of rihA by CRP-cyclic-AMP DNA-binding transcriptional dual regulator
+rpmI-rplT	TU0-14255	Regulation of rpmI-rplT by 50S ribosomal subunit protein L20
+icd	TU00425		Cra DNA-binding-site 76.5 bases upstream of icdAp2
+tnaAB	TU0-45291	Regulation of tnaAB by DNA-binding transcriptional activator ZraR-phosphorylated
+yfdE	TU0-13608	Regulation of yfdE by DNA-binding transcriptional dual regulator Nac
+cusCFBA	TU0-1821		CusR-P<SUP>asp</SUP> DNA-binding-site 57.5 bases upstream of cusRp
+racR	TU0-13230
+eptC	TU0-14094
+yneK	TU0-13306
+gntXY	TU0-4981		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of gntXp,GntR DNA-binding-site 15 bases upstream of gntXp
+gapA	TU0-45263		Cra-fructose-1-phosphate DNA-binding-site 43.5 bases upstream of gapAp
+soxR	TU00456	Regulation of soxR by putrescine	SoxR DNA-binding-site 25.5 bases upstream of soxSp
+serA	TU00224		Nac DNA-binding-site 30 bases upstream of serAp1,Nac DNA-binding-site 19 bases upstream of serAp1,Lrp DNA-binding-site regulating serAp1
+guaBA	TU00205		DnaA-ATP DNA-binding-site 248 bases downstream of guaBp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 117.5 bases upstream of guaBp,PurR-hypoxanthine DNA-binding-site 24.5 bases upstream of guaBp
+rpoH	TU00427		DnaA-ATP DNA-binding-site 48 bases upstream of rpoHp3,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 20.5 bases upstream of rpoHp3,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 73.5 bases upstream of rpoHp3,CytR DNA-binding-site 33.5 bases upstream of rpoHp3
+asnB	TU0-4929	Regulation of asnB by small regulatory RNA GcvB
+dcuB-fumB	TU00468		NarL-P<sup>asp59</sup> DNA-binding-site 24 bases downstream of dcuBp1,NarL-P<sup>asp59</sup> DNA-binding-site 43 bases downstream of dcuBp1,NarL-P<sup>asp59</sup> DNA-binding-site 19 bases downstream of dcuBp1,NarL-P<sup>asp59</sup> DNA-binding-site 2 bases downstream of dcuBp1,NarL-P<sup>asp59</sup> DNA-binding-site 45 bases upstream of dcuBp1,NarL-P<sup>asp59</sup> DNA-binding-site 109 bases upstream of dcuBp1,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 106.5 bases upstream of dcuBp1,Fnr DNA-binding-site 45.5 bases upstream of dcuBp1
+epmA	TU0-14146
+yhbX	TU0-13882	Regulation of yhbX by DNA-binding transcriptional dual regulator Nac
+rfaDFCL	TU0-4183
+hfq-hflXKC	TU0-14568
+ybhD	TU0-8565	Regulation of ybhD by DNA-binding transcriptional dual regulator Nac
+galETK	TU0-42583
+uxaB	TU0-36422
+ghoST	TU0-42545
+yafNOP	TU0-12854
+aslA	TU0-8769
+yegW	TU0-13510
+rseABC	TU00526
+yghJ	TU0-13815	Regulation of yghJ by DNA-binding transcriptional dual regulator/c-di-GMP phosphodiesterase PdeL
+yfGM	TU0-14648
+gpmM-envC-yibQ	TU0-13998
+yeaM	TU0-8713
+tehAB	TU00364		NsrR DNA-binding-site 1 bases upstream of tehAp
+perR	TU0-12861
+clcB	TU0-13337
+nudC-hemE-nfi	TU0-14103
+yadV-htrE	TU00263
+pdhR-aceEF-lpdA	TU0-45222		PdhR DNA-binding-site 19 bases downstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 50.5 bases upstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 62.5 bases upstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 110.5 bases upstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 377.5 bases upstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 82.5 bases upstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 70.5 bases upstream of pdhRp2,Fnr DNA-binding-site 50.5 bases upstream of pdhRp2
+nlpD-rpoS	TU00440
+appY	TU0-45143
+tyrP	TU00088		TyrR DNA-binding-site 64.5 bases upstream of tyrPp1,TyrR-tyr DNA-binding-site 41.5 bases upstream of tyrPp1,IHF DNA-binding-site regulating tyrPp1
+cbrC	TU0-14027
+yfcG	TU0-13588
+yfeR	TU0-8737
+mngAB	TU0-4482
+umuDC	TU00180		LexA DNA-binding-site 0.5 bases upstream of umuDp,LexA DNA-binding-site 20.5 bases upstream of umuDp
+cbrBC	TU0-36404
+ldrD	TU0-8846
+mutS	TU723	Regulation of mutS by RNA-binding protein Hfq,Regulation of mutS by small regulatory RNA ArcZ,Regulation of mutS by small regulatory RNA SdsR
+ybeX-lnt	TU0-13016
+yifL-dapF-yigA-xerC-yigB	TU0-14042
+leuL	TU0-42508
+rybA-mntS	TU0-42460
+pgk	TU0-8083
+ygaM	TU0-13711
+rhaBAD	TU00219		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 122.5 bases upstream of rhaBp,RhaS-rhamnose DNA-binding-site 40 bases upstream of rhaBp,RhaS-rhamnose DNA-binding-site 73 bases upstream of rhaBp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 92.5 bases upstream of rhaBp
+insA2B2AB2-afuBC	TU0-12865
+panE-yajL	TU0-12924
+fldA-uof-fur	TU0-1282		SoxS DNA-binding-site 61.5 bases upstream of fldAp
+oppA	TU0-198697
+aroF-tyrA	TU00008		TyrR-tyr DNA-binding-site 104.5 bases upstream of aroFp,TyrR-tyr DNA-binding-site 52.5 bases upstream of aroFp,TyrR-tyr DNA-binding-site 29.5 bases upstream of aroFp
+kefGB-yheV	TU0-13918
+sdsR-pphA	TU0-45144
+yddH	TU0-8703
+mutY-yggX-mltC	TU0-5782
+yihF	TU0-14058
+ydeM	TU0-13291
+lpxT	TU0-44219
+rph-pyrE	TU00334
+yjaB	TU0-5062
+pphB	TU0-13720	Regulation of pphB by DNA-binding transcriptional dual regulator Nac
+xapB	TU0-44210
+yihXY-dtd-fabY	TU0-14070
+mreB	TU0-14389
+tomB-hha	TU0-12943		CpxR-phosphorylated DNA-binding-site 50 bases upstream of tomBp
+yeiQ	TU0-13548
+ryfD	TU0-14423
+yjjQ-bglJ	TU0-14571
+holC	TU0-14322
+rplKAJL-rpoBC	TU0-6512	Regulation of rplKAJL-rpoBC by 50S ribosomal subunit protein L1
+rhtC	TU0-14048
+mtlADR	TU00193	Regulation of mtlADR by Cra-&beta;-D-fructofuranose 1-phosphate	Fis DNA-binding-site 137 bases downstream of mtlAp,Cra DNA-binding-site 22.5 bases upstream of mtlAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 58.5 bases upstream of mtlAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 261.5 bases upstream of mtlAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 219.5 bases upstream of mtlAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 175.5 bases upstream of mtlAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 102.5 bases upstream of mtlAp
+yihR	TU0-14067
+ysgA	TU0-8661	Regulation of ysgA by small regulatory RNA GcvB,Regulation of ysgA by ppGpp	Fnr DNA-binding-site regulating ysgAp
+manXYZ-yobD	TU0-198707	Regulation of manXYZ-yobD by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+agp	TU0-7401	Regulation of agp by ppGpp	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 232.5 bases upstream of agpp
+dnaN-recF	TU0-45187
+pinE	TU0-13153
+rhoL-rho	TU0-6941
+yghSR	TU0-13817	Regulation of yghSR by DNA-binding transcriptional dual regulator LeuO
+yfgM	TU0-14647
+bglG	TU0-42515
+fumD	TU0-13365	Regulation of fumD by DNA-binding transcriptional dual regulator Nac
+mreB	TU0-14390
+ygeW	TU0-13773	Regulation of ygeW by CRP-cyclic-AMP DNA-binding transcriptional dual regulator
+pstCAB-phoU	TU0-45204
+rhsC-ybfB	TU0-13026
+yiiX	TU0-14088
+yehE	TU0-13517	Regulation of yehE by DNA-binding transcriptional repressor GlaR,Regulation of yehE by DNA-binding transcriptional dual regulator Nac,Regulation of yehE by ppGpp
+acs-yjcHG	TU0-3721		IHF DNA-binding-site 225 bases upstream of acsp,Fis DNA-binding-site 265 bases upstream of acsp
+ypjA	TU0-13700	Regulation of ypjA by DNA-binding transcriptional repressor GlaR
+fliLMNOPQR	TU0-1441
+fhuF	TU0-7701		DNA-binding transcriptional dual regulator Fur DNA-binding-site 3 bases downstream of yjjZp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 27 bases upstream of yjjZp
+yibN	TU0-13997
+ycdT	TU0-8682	Regulation of ycdT by carbon storage regulator CsrA,Regulation of ycdT by carbon storage regulator CsrA
+rzoD	TU0-12978
+ssrS-ygfA	TU0-14689
+pykF	TU0-45244
+yfbN	TU0-8732
+metY-yhbC-nusA-infB	TU00517		Fis DNA-binding-site 75 bases upstream of metYp1
+yeaVW	TU0-13411
+nagK-cobB	TU0-13142
+yibL	TU0-13993
+malEFGH	TU00038		MalT-maltotriose-ATP DNA-binding-site 64.5 bases upstream of malKp,MalT-maltotriose-ATP DNA-binding-site 74.5 bases upstream of malKp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 100.5 bases upstream of malKp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 132.5 bases upstream of malKp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 166.5 bases upstream of malKp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 195.5 bases upstream of malKp,MalT-maltotriose-ATP DNA-binding-site 40.5 bases upstream of malKp,MalT-maltotriose-ATP DNA-binding-site 220.5 bases upstream of malKp,MalT-maltotriose-ATP DNA-binding-site 230.5 bases upstream of malKp
+yidI	TU0-8595
+rrsH-ileV-alaV-rrlH-rrfH	TU0-1189		Fis DNA-binding-site 181 bases upstream of rrsHp,Fis DNA-binding-site 134 bases upstream of rrsHp,Fis DNA-binding-site 91 bases upstream of rrsHp,Fis DNA-binding-site 71 bases upstream of rrsHp
+rhoL	TU0-42518
+yghU	TU0-8753
+ycgY	TU0-13177
+yebO	TU0-13423
+gnsB	TU0-13319
+ychN	TU0-8690
+plsC	TU0-13829
+tsgA	TU0-13922
+ylaC	TU0-12941
+fur	TU00121		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 77.5 bases upstream of furpa,DNA-binding transcriptional dual regulator Fur DNA-binding-site 7 bases upstream of furpa
+yggG	TU0-14235
+ydjM	TU0-8261		LexA DNA-binding-site 17.5 bases downstream of ydjMp
+serA	TU0-2342		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 80 bases upstream of serAp2,Lrp-leu DNA-binding-site regulating serAp2
+kdsC-lptCAB	TU0-36432
+glyQS	TU00281
+topA	TU0-2504		Fis DNA-binding-site 94 bases upstream of topAp4,Fis DNA-binding-site 68 bases upstream of topAp4,Fis DNA-binding-site 37 bases upstream of topAp4,Fis DNA-binding-site 16 bases upstream of topAp4,Fis DNA-binding-site 6 bases downstream of topAp4
+alaA-yfbR	TU0-36413
+yiaB	TU0-13983
+nhaR	TU0-14299	Regulation of nhaR by DNA-binding transcriptional dual regulator YdeO
+pepE	TU0-8488
+bluF	TU0-42501
+pgk-fbaA	TU0-14816
+degQS	TU0-13898
+pgrR	TU0-13217
+lfhA	TU0-14247
+dpiBA	TU0-13000	Regulation of dpiBA by small regulatory RNA ChiX
+rrlH-rrfH	TU0-14524
+yidL	TU0-8596
+sokX	TU0-44223
+chaA	TU0-8777	Regulation of chaA by DNA-binding transcriptional repressor GlaR
+glpEGR	TU401		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 58.5 bases upstream of glpEp
+deoCABD	TU00017		DeoR DNA-binding-site 8 bases upstream of deoCp1,DeoR DNA-binding-site 269 bases downstream of deoCp1,DeoR DNA-binding-site 608 bases upstream of deoCp1
+ynfM	TU0-13341
+ompA	TU00048	Regulation of ompA by small regulatory RNA RseX,Regulation of ompA by small regulatory RNA MicA	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 39.5 bases upstream of ompAp1
+ymdB	TU0-42666
+elbB-mtgA	TU0-13890
+yjbS	TU0-198721
+hokA	TU0-8810
+hspQ	TU0-13102
+yhhW	TU0-13936	Regulation of yhhW by DNA-binding transcriptional activator YhaJ
+yeiW	TU0-14238
+pepD	TU0-8874		CsgD DNA-binding-site 2 bases downstream of pepDp3
+stpA	TU00394
+ribA	TU0-1742
+leuO	TU0-12807
+yaaI	TU0-8538
+yfjH	TU0-8744
+rnc-era	TU00332
+yebQ	TU0-8715	Regulation of yebQ by DNA-binding transcriptional dual regulator Nac
+decR	TU0-12936
+rnd	TU0-14354
+alaA	TU0-13579
+ycaD	TU0-13081	Regulation of ycaD by DNA-binding transcriptional dual regulator Nac
+insI2	TU0-13246
+yciI	TU0-13188
+groSL	TU0-5003
+trhP	TU0-13505
+tatABC	TU0-42519
+ade	TU0-8765
+acs-yjcHG	TU0-45241		IHF DNA-binding-site 180 bases upstream of acsp,IHF DNA-binding-site 153 bases upstream of acsp,Fis DNA-binding-site 98 bases upstream of acsp,Fis DNA-binding-site 59 bases upstream of acsp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 122.5 bases upstream of acsp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 69.5 bases upstream of acsp
+lacYA	TU0-14521
+glyVXY	TU00505
+grcA	TU0-1143		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 40.5 bases upstream of grcAp1,PdhR DNA-binding-site 17 bases downstream of grcAp1,ArcA-P<sup>asp54</sup> DNA-binding-site 99 bases upstream of grcAp1,ArcA-P<sup>asp54</sup> DNA-binding-site 82 bases upstream of grcAp1,Fnr DNA-binding-site 93.5 bases upstream of grcAp1,Fnr DNA-binding-site 40.5 bases upstream of grcAp1
+yjbE	TU0-14111
+yicH	TU0-14006
+yidZ	TU0-14023
+cstA	TU0-6821
+ybeD-lipB	TU0-14470
+yqfE	TU0-13796
+ycgN	TU0-13171
+ydhQ	TU0-8709
+nrdDG	TU0-4783		Fnr DNA-binding-site 33.5 bases upstream of nrdDp,Fnr DNA-binding-site 64.5 bases upstream of nrdDp
+ynaI	TU0-8636
+sdiA	TU0-42465
+yibD	TU0-42498	Regulation of yibD by DNA-binding transcriptional dual regulator BasR-phosphorylated
+nmpC	TU356	Regulation of nmpC by small regulatory RNA RybB	OmpR-P DNA-binding-site 45.5 bases upstream of nmpCp,IHF DNA-binding-site 144 bases upstream of nmpCp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 31.5 bases upstream of nmpCp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 73.5 bases upstream of nmpCp
+htpG	TU0-14784
+ldtB	TU0-8334
+yqeA	TU0-13777
+rfaDFCL	TU0-4182
+glrK	TU0-4405
+ybaY	TU0-8552
+sdiA	TU0-41901
+insA-7	TU0-8829
+pinR	TU0-13237	Regulation of pinR by DNA-binding transcriptional dual regulator Nac
+fabI	TU0-13204
+nanXY	TU0-14183
+gspCDEFGHIJKLMO	TU0-14373		H-NS DNA-binding-site regulating gspCp2
+ugpBAECQ	TU0-5981		PhoB-P<sup>asp53</sup> DNA-binding-site 30 bases upstream of ugpBp1
+ivbL-ilvBN	TU00032		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 64 bases upstream of ivbLp
+yafDE	TU0-12840
+gapA	TU0-4905		Cra-fructose-1-phosphate DNA-binding-site 43.5 bases upstream of gapAp
+ynbG	TU0-198729
+ydhF	TU0-13357
+pspABCDE	TU00326		PspF DNA-binding-site 27 bases downstream of pspFp1,PspF DNA-binding-site 7 bases downstream of pspFp1,IHF DNA-binding-site 42.5 bases upstream of pspAp
+ybgS	TU0-13039	Regulation of ybgS by ppGpp
+ygbI	TU0-8746
+ychQA-kdsA	TU305
+ypjB	TU0-13702
+artPIQM	TU0-14676
+yggM	TU0-13808
+ybbY-glxK	TU0-14616
+lldPRD	TU164		LldR DNA-binding-site 30 bases downstream of lldPp,ArcA-P<sup>asp54</sup> DNA-binding-site 18 bases upstream of lldPp
+yfbL	TU0-13575	Regulation of yfbL by DNA-binding transcriptional dual regulator Nac
+yajI	TU0-12920
+glpFKX	TU00173		GlpR DNA-binding-site 17.5 bases upstream of glpFp,GlpR DNA-binding-site 37.5 bases upstream of glpFp,GlpR DNA-binding-site 58.5 bases upstream of glpFp,GlpR DNA-binding-site 79.5 bases upstream of glpFp,GlpR DNA-binding-site 1001.5 bases downstream of glpFp,GlpR DNA-binding-site 1043.5 bases downstream of glpFp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of glpFp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 37.5 bases upstream of glpFp
+mgrB	TU0-2447		PhoP-P<sup>asp51</sup> DNA-binding-site 33 bases upstream of mgrBp
+fadR	TU0-14737
+luxS	TU0-36414
+insH3	TU0-13015
+ptsG	TU0-1142	Regulation of ptsG by small regulatory RNA SgrS	Fis DNA-binding-site 5 bases upstream of ptsGp2,Fis DNA-binding-site 22 bases downstream of ptsGp2,Fis DNA-binding-site 61 bases downstream of ptsGp2,Fis DNA-binding-site 122 bases downstream of ptsGp2,Fis DNA-binding-site 143 bases downstream of ptsGp2,Mlc DNA-binding-site 35 bases upstream of ptsGp2
+gntRKU	TU0-4881
+relA	TU0-42589
+galF	TU0-14346
+yeiR-lpxT	TU0-13549
+ompR-envZ	TU162		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 75 bases upstream of ompRp2
+ycaP	TU0-13085	Regulation of ycaP by ppGpp
+paaJ	TU0-44206
+cdd	TU841		CytR DNA-binding-site 64 bases upstream of cddp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 94.5 bases upstream of cddp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 92.5 bases upstream of cddp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 42.5 bases upstream of cddp
+ynjI	TU0-13390
+yfiR-dgcN-yfiB	TU0-13679
+treR	TU00397
+tyrTV-tpr	TU00511		Fis DNA-binding-site 129 bases upstream of tyrTp,Fis DNA-binding-site 98 bases upstream of tyrTp,Fis DNA-binding-site 78 bases upstream of tyrTp
+metJ	TU0-2707		DNA-binding transcriptional dual regulator Fur DNA-binding-site 1 bases upstream of metJp2
+csrC	TU0-4822	Regulation of csrC by DksA-ppGpp,Regulation of csrC by RNA polymerase-binding transcription factor DksA,Regulation of csrC by ppGpp
+rpoD	TU00437
+ybdL	TU0-8559
+safA-ydeO	TU0-14545
+cra	TU0-12808
+cmtBA-yggPF-fumE-yggC	TU0-13801
+yqeC	TU0-13779
+allB	TU0-44198
+rimK-ybjN	TU0-2121
+yqcE-ygcE	TU0-13733
+ygaY	TU0-13712
+rsmH-ftsLIO-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC	TU0-14439
+cysZ	TU0-13622
+kdgR	TU0-8841	Regulation of kdgR by DNA-binding transcriptional dual regulator Nac
+yghT	TU0-8752	Regulation of yghT by DNA-binding transcriptional dual regulator Nac
+alx	TU0-13859	Regulation of alx by Mn<SUP>2+</SUP>,Regulation of alx by H<SUP>+</SUP>
+yedD	TU0-8719
+rfaZ-waaU	TU0-14525
+glf-rfc	TU0-14315
+ybhL	TU0-13047
+nanY	TU0-44208
+murR	TU0-45167
+ybiT	TU0-8503	Regulation of ybiT by DNA-binding transcriptional dual regulator Rob
+smf	TU0-7282
+yehDCBA	TU0-13516
+ynfL	TU0-13340
+yghX	TU0-13821
+yeaK	TU0-13403
+yfcE	TU0-13586
+seqA-pgm	TU0-4444
+topA	TU0-2501		Fis DNA-binding-site 20 bases downstream of topAp1,Fis DNA-binding-site 10 bases upstream of topAp1,Fis DNA-binding-site 30 bases upstream of topAp1,Fis DNA-binding-site 94 bases upstream of topAp4,Fis DNA-binding-site 68 bases upstream of topAp4,Fis DNA-binding-site 37 bases upstream of topAp4,Fis DNA-binding-site 16 bases upstream of topAp4,Fis DNA-binding-site 6 bases downstream of topAp4,Fis DNA-binding-site 129 bases upstream of topAp1,Fis DNA-binding-site 94 bases upstream of topAp1,Fis DNA-binding-site 62 bases upstream of topAp1
+dmlR	TU0-13409
+argF-xynR	TU0-198702	Regulation of argF-xynR by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+cyaR	TU0-45184
+mscK	TU0-12944
+nusA-infB	TU0-44226
+nanY	TU0-44209
+degP	TU584		CpxR-phosphorylated DNA-binding-site 63 bases upstream of degPp,CpxR-phosphorylated DNA-binding-site 223 bases upstream of degPp,CpxR-phosphorylated DNA-binding-site 71.5 bases upstream of degPp
+creABC	TU0-14475
+metZWV	TU00496
+yfaE	TU0-14305
+ecnAB	TU0-14145
+yaiS	TU0-4401	Regulation of yaiS by DNA-binding transcriptional dual regulator Nac
+trmB-yggL	TU0-13809
+ydcC	TU0-13279
+xdhABC	TU0-3145		Fnr DNA-binding-site regulating xdhAp1
+dicA	TU0-13328	Regulation of dicA by DNA-binding transcriptional dual regulator DicA
+emrRAB	TU00459		MprA DNA-binding-site 10 bases upstream of mprAp
+ybgQPO	TU0-13032
+uxuR	TU0-5041		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site regulating uxuRp,ExuR DNA-binding-site 46.5 bases upstream of uxuRp,UxuR DNA-binding-site 46.5 bases upstream of uxuRp
+avtA	TU0-13984
+gyrB	TU0-45206		Fis DNA-binding-site 109 bases upstream of gyrBp2,Fis DNA-binding-site 62 bases upstream of gyrBp2
+ygcRQ	TU0-13729
+hyuA	TU0-13776
+dtpB	TU0-13956	Regulation of dtpB by ppGpp
+ynfN	TU0-13320
+rdlA	TU0-8496
+yfeN	TU0-8736
+serW	TU00508
+rpsMKD-rpoA-rplQ	TU00349
+gss	TU0-13819
+trpLEDCBA	TU00067	Regulation of trpLEDCBA by small regulatory RNA RydC,Regulation of trpLEDCBA by small regulatory RNA GcvB	TrpR-trp DNA-binding-site 11.5 bases upstream of trpLp,TrpR-trp DNA-binding-site 3.5 bases upstream of trpLp,TrpR-trp DNA-binding-site 19.5 bases upstream of trpLp
+ydgH	TU0-13344	Regulation of ydgH by DNA-binding transcriptional dual regulator Nac
+pheMST-ihfA	TU0-6626
+ryeA	TU0-8508
+mnaT-ydcZ	TU0-13271
+maeA	TU0-13287	Regulation of maeA by small regulatory RNA FnrS
+ybhM	TU0-13048	Regulation of ybhM by DNA-binding transcriptional dual regulator Nac
+mdtG	TU0-13125	Regulation of mdtG by DNA-binding transcriptional dual regulator Nac
+mliC	TU0-13354
+patD	TU0-13268
+tpke70	TU0-13611
+gatYZABCD	TU00169		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 40.5 bases upstream of gatYp,ArcA-P<sup>asp54</sup> DNA-binding-site regulating gatYp,GatR DNA-binding-site regulating gatYp
+yaeI	TU0-12826
+kch	TU0-4403
+csgDEFG	TU0-45257	Regulation of csgDEFG by small regulatory RNA RybB,Regulation of csgDEFG by small regulatory RNA RprA,Regulation of csgDEFG by small regulatory RNA RprA,Regulation of csgDEFG by small regulatory RNA RydC,Regulation of csgDEFG by small regulatory RNA OmrB,Regulation of csgDEFG by small regulatory RNA McaS,Regulation of csgDEFG by small regulatory RNA GcvB,Regulation of csgDEFG by small regulatory RNA OmrA	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 170.5 bases upstream of csgDp3,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 42.5 bases upstream of csgDp3,CpxR-phosphorylated DNA-binding-site 100 bases upstream of csgDp3,CpxR-phosphorylated DNA-binding-site 52 bases upstream of csgDp3,CpxR-phosphorylated DNA-binding-site 48 bases upstream of csgDp3,CpxR-phosphorylated DNA-binding-site 21.5 bases upstream of csgDp3,CpxR-phosphorylated DNA-binding-site 3 bases downstream of csgDp3,CsgD DNA-binding-site 118.5 bases upstream of csgDp3,OmpR-P DNA-binding-site 49.5 bases upstream of csgDp3
+ybcQ	TU0-12976
+maeB	TU0-13637
+wzbc	TU0-14452
+ybbAP	TU0-12959
+pstSCA	TU0-14693
+putP	TU121
+rluD-pgeF	TU0-13675
+rlmN	TU0-13650
+ydfH	TU0-13311
+ycfJ	TU0-13137
+yqjCDEK	TU0-13863
+nuoABCEFGHIJKLMN	TU0-198746	Regulation of nuoABCEFGHIJKLMN by DNA-binding transcriptional dual regulator Cra
+eno	TU0-14653
+serS	TU0-13080
+yrdD-rimN-aroE-yrdB	TU0-7281
+glpFK	TU0-198704	Regulation of glpFK by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+yabR	TU0-44222
+yajG	TU0-12927
+ydaSTUVW-rzpR	TU0-13231	Regulation of ydaSTUVW-rzpR by Rac prophage; DNA-binding transcriptional repressor RacR,Regulation of ydaSTUVW-rzpR by Rac prophage; DNA-binding transcriptional repressor RacR,Regulation of ydaSTUVW-rzpR by Rac prophage; DNA-binding transcriptional repressor RacR,Regulation of ydaSTUVW-rzpR by Rac prophage; DNA-binding transcriptional repressor RacR
+yjjX	TU0-8629
+fepA-entD	TU0-198711	Regulation of fepA-entD by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+exbD	TU0-2562		DNA-binding transcriptional dual regulator Fur DNA-binding-site 46 bases upstream of exbDp
+sdaA	TU00223		Lrp DNA-binding-site regulating sdaAp
+pdeR	TU0-4021
+glnB	TU00473		PurR-hypoxanthine DNA-binding-site 42.5 bases upstream of glnBp1
+hokD	TU0-13324
+nlpA	TU0-8817	Regulation of nlpA by small regulatory RNA GcvB
+ymgA-ariR	TU0-13161
+yneP	TU0-198731
+ybhJ	TU0-13044
+yehK	TU0-13522
+leuQPV	TU00521		Fis DNA-binding-site 73 bases upstream of leuQp
+accA	TU00230	Regulation of accA by acetyl-CoA carboxyltransferase
+acrAB	TU00233	Regulation of acrAB by DNA-binding transcriptional regulator PtrR-L-glutamine	AcrR DNA-binding-site 22.5 bases downstream of acrRp,Rob DNA-binding-site regulating acrAp,PhoP-P<sup>asp51</sup> DNA-binding-site 32 bases downstream of acrAp,SoxS DNA-binding-site 72.5 bases upstream of acrAp,MarA DNA-binding-site 72.5 bases upstream of acrAp
+ypdI	TU0-8650
+xynR	TU0-12869
+ygbA	TU-8443		Fnr DNA-binding-site regulating ygbAp,NsrR DNA-binding-site 7 bases upstream of ygbAp
+leuLABCD	TU00179
+kduD	TU0-13755
+paaJ	TU0-44205
+yeeRST-cbeA-cbtA-yeeW	TU0-13483
+rhaSR	TU00063		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 111.5 bases upstream of rhaSp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 92.5 bases upstream of rhaSp2,RhaR-rhamnose DNA-binding-site 40 bases upstream of rhaSp2,RhaR-rhamnose DNA-binding-site 74 bases upstream of rhaSp2
+yfdRST	TU0-13605
+rcsB	TU0-36403
+aaeXAB	TU0-13901
+ldtF	TU0-12848	Regulation of ldtF by DNA-binding transcriptional dual regulator Nac
+gnsA	TU0-44201
+ada-alkB	TU00072		Ada DNA-binding-site 58.5 bases upstream of adap2,Ada DNA-binding-site 38.5 bases upstream of adap2
+eptA	TU0-14345	Regulation of eptA by DNA-binding transcriptional dual regulator Nac,Regulation of eptA by DNA-binding transcriptional dual regulator BasR-phosphorylated
+ydiY	TU0-41842	Regulation of ydiY by DNA-binding transcriptional dual regulator Nac
+ygeLK	TU0-13766
+igaA	TU0-13928
+yjcB	TU0-8608
+ravA-viaA	TU0-14031
+yneE	TU0-13301
+mdtEF	TU0-14698
+smtA-mukFEB	TU261		H-NS DNA-binding-site regulating cmoMp
+rrsD-ileU-alaU-rrlD-rrfD-thrV-rrfF	TU0-1192
+hepA	TU0-45240
+pfkA	TU0-45236		Cra DNA-binding-site 35.5 bases upstream of pfkAp
+yajR	TU0-12925
+groL	TU0-14673
+ptsA-fsaB-gldA	TU0-14091
+cbpA-cbpM	TU0-42533
+yafT	TU0-12844
+rrsG-gltW-rrlG-rrfG	TU0-45198		Fis DNA-binding-site 112 bases upstream of rrsGp,Fis DNA-binding-site 91 bases upstream of rrsGp,Fis DNA-binding-site 71 bases upstream of rrsGp
+rrsC-gltU-rrlC-rrfC	TU0-1183		Lrp-leu DNA-binding-site regulating rrsCp,Fis DNA-binding-site 121 bases upstream of rrsCp,Fis DNA-binding-site 101 bases upstream of rrsCp,Fis DNA-binding-site 70 bases upstream of rrsCp
+yagN	TU0-12873
+greA	TU-8397
+trpCBA	TU3
+yqfB	TU0-13790
+citT	TU0-12998
+ygeG	TU0-13762	Regulation of ygeG by DNA-binding transcriptional dual regulator Nac
+cbpA-cbpM	TU0-45195
+yfeO	TU0-13615
+ptsHI-crr	TU00481
+thiI	TU0-8529	Regulation of thiI by <i>S</i>-adenosyl-L-methionine
+arpB	TU0-13379
+sfmA	TU0-12966
+yhjD	TU0-13967	Regulation of yhjD by DNA-binding transcriptional dual regulator Nac
+yqeK	TU0-8652	Regulation of yqeK by DNA-binding transcriptional dual regulator Nac
+proVWX	TU0-45207		H-NS DNA-binding-site regulating proVp
+zraSR	TU783		ZraR-P<sup>asp56</sup> DNA-binding-site 86 bases upstream of zraSp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 223.5 bases upstream of zraSp
+asflhD	TU0-198686
+frdABCD	TU00023		NarL-P<sup>asp59</sup> DNA-binding-site 26 bases upstream of frdAp2,NarL-P<sup>asp59</sup> DNA-binding-site 12 bases upstream of frdAp2,NarL-P<sup>asp59</sup> DNA-binding-site 14 bases downstream of frdAp2,DcuR-P DNA-binding-site 104 bases upstream of frdAp2,Fnr DNA-binding-site 45.5 bases upstream of frdAp2,NarL-P<sup>asp59</sup> DNA-binding-site 6 bases downstream of frdAp2,NarL-P<sup>asp59</sup> DNA-binding-site 4 bases upstream of frdAp2
+yliM-ompX	TU0-14688	Regulation of yliM-ompX by small regulatory RNA MicA,Regulation of yliM-ompX by small regulatory RNA CyaR
+yhhA	TU0-8582	Regulation of yhhA by ppGpp
+mntR-ybiR	TU0-13059
+yfaY	TU0-13567
+dnaN-recF	TU0-45196
+ppdAB-ygdB-ppdC-recC	TU0-13745
+yigE	TU0-8605
+crr	TU0-4782
+ygcW	TU0-13732	Regulation of ygcW by CRP-cyclic-AMP DNA-binding transcriptional dual regulator
+fliDST	TU00274		FlhDC DNA-binding-site 55 bases upstream of fliDp2
+ilvLXG_1G_2MEDA	TU524		IHF DNA-binding-site 210 bases downstream of ilvLp1,IHF DNA-binding-site 17 bases upstream of ilvLp1
+hemF	TU0-45289
+rrsE-gltV-rrlE-rrfE	TU0-1186		Fis DNA-binding-site 170 bases upstream of rrsEp3,Fis DNA-binding-site 143 bases upstream of rrsEp3,Fis DNA-binding-site 117 bases upstream of rrsEp3,Fis DNA-binding-site 101 bases upstream of rrsEp3,Fis DNA-binding-site 72 bases upstream of rrsEp3
+nlpI	TU0-13881
+yfdF	TU0-13598
+csrA	TU0-45221	Regulation of csrA by ppGpp
+ldrA	TU0-8843
+yjfP	TU0-8612
+mutH	TU0-13747
+mdtEF	TU0-13964
+rnc-era-recO-pdxJ-acpS	TU483
+gnd-gndA	TU0-5101	Regulation of gnd-gndA by NIL
+yafZ	TU0-14610
+yfjD	TU0-13682	Regulation of yfjD by DNA-binding transcriptional repressor GlaR
+yjbD	TU0-14108
+dauA	TU0-13179
+mazE	TU0-198693
+eno	TU0-14413
+sra	TU0-3901
+dolP	TU0-6361
+bhsA	TU0-8685
+nhaAR	TU00200		NhaR-Na<SUP>+</SUP> DNA-binding-site 44 bases upstream of nhaAp1
+yhhN	TU0-13943
+clpB	TU0-45212
+yiiM	TU0-14077
+rlmJ	TU0-13958
+rimO	TU0-8632
+marRAB	TU00190		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 52.5 bases upstream of marRp,Rob DNA-binding-site 61.5 bases upstream of marRp,Fis DNA-binding-site 81 bases upstream of marRp,SoxS DNA-binding-site 61.5 bases upstream of marRp,MarR DNA-binding-site 17 bases downstream of marRp,MarA DNA-binding-site 61.5 bases upstream of marRp,MarR DNA-binding-site 18 bases upstream of marRp
+osmC	TU0-1762		Lrp DNA-binding-site 62 bases upstream of osmCp2
+znuA	TU0-4642
+rplT	TU0-6657
+ygjI	TU0-13851	Regulation of ygjI by DNA-binding transcriptional repressor GlaR,Regulation of ygjI by DNA-binding transcriptional dual regulator Nac
+ymgGD	TU0-13167
+mdaB	TU0-13835	Regulation of mdaB by DNA-binding transcriptional dual regulator SoxS,Regulation of mdaB by DNA-binding transcriptional dual regulator Rob,Regulation of mdaB by DNA-binding transcriptional dual regulator MarA
+trg	TU0-14627
+ygiD	TU0-8755	Regulation of ygiD by DNA-binding transcriptional activator YhaJ
+rpiA	TU0-7341
+yedN	TU0-13458
+yncI	TU0-13277
+msrPQ	TU0-13469
+ddlA	TU0-8784	Regulation of ddlA by DNA-binding transcriptional dual regulator Nac
+sibE	TU0-14716
+yeaC	TU0-13395
+micF	TU0-45164		Rob DNA-binding-site 40 bases upstream of micFp2,IHF DNA-binding-site 72 bases upstream of micFp2,Lrp DNA-binding-site 87.5 bases downstream of micFp2,SoxS DNA-binding-site 38.5 bases upstream of micFp2,SoxS DNA-binding-site 119.5 bases upstream of micFp2,Lrp-leu DNA-binding-site 122 bases downstream of micFp2,Lrp DNA-binding-site 58.5 bases downstream of micFp2,Lrp DNA-binding-site 27.5 bases downstream of micFp2,MarA DNA-binding-site 40 bases upstream of micFp2
+agrA	TU0-42529
+yobA-yebZY	TU0-13432	Regulation of yobA-yebZY by small regulatory RNA FnrS
+ibaG-murA	TU0-42495
+tktA	TU0-13802
+ysaA	TU0-13985
+bglA	TU-8439
+sbmC	TU0-14637
+yigI	TU0-14045
+dnaN-recF	TU0-1194
+yadN	TU0-14301	Regulation of yadN by DNA-binding transcriptional repressor GlaR
+sixA	TU0-3481
+ybjX	TU0-8513
+yhdH	TU0-8578
+glcDEFGBA	TU0-1962		ArcA-P<sup>asp54</sup> DNA-binding-site 104 bases upstream of glcDp,ArcA-P<sup>asp54</sup> DNA-binding-site 111 bases upstream of glcDp,IHF DNA-binding-site 107 bases upstream of glcDp,GlcC-glycolate DNA-binding-site 176 bases upstream of glcDp
+queD	TU0-13727	Regulation of queD by DNA-binding transcriptional dual regulator Nac
+yhjC	TU0-13966
+aroH	TU0-14254
+yicC	TU0-14001
+yghQ	TU0-13816
+ydeO	TU0-7743
+livJ	TU00183		Lrp-leu DNA-binding-site 127 bases upstream of livJp
+ibpB	TU0-5001	Regulation of ibpB by small heat shock protein IbpA	IHF DNA-binding-site 31 bases upstream of ibpBp
+djlA	TU0-12801
+aas-lplT	TU0-13751
+yfbS	TU0-13581
+cspE	TU0-13001
+hofQ	TU0-13926	Regulation of hofQ by small regulatory RNA FimR2
+rpmE	TU0-45156
+pdeA	TU0-13618
+dsrB	TU0-8789
+selD-topB	TU0-14527
+mnmG-rsmG	TU0-14029
+yqhG	TU0-13825
+nsrR-rnr-rlmB-yjfI	TU0-8502
+hemB	TU0-12908	Regulation of hemB by small regulatory RNA RyhB
+insC4D4CD4-ygeON	TU0-13767
+accA	TU0-42602
+spy	TU-8381		CpxR-phosphorylated DNA-binding-site 50 bases upstream of spyp,BaeR-P<SUP>asp61</SUP> DNA-binding-site 86.5 bases upstream of spyp
+fadR	TU0-8794
+fadBA	TU00215		ArcA-P<sup>asp54</sup> DNA-binding-site 29 bases upstream of fadBp,FadR DNA-binding-site 9 bases downstream of fadBp
+feaR	TU0-42547
+grxD	TU0-8805	Regulation of grxD by small regulatory RNA RyhB
+rrsH-ileV-alaV-rrlH-rrfH	TU0-1190
+argH	TU0-42684	Regulation of argH by ppGpp
+acpP-fabF	TU441
+nadK	TU0-13683
+deoR	TU0-13067
+uspE	TU0-13221
+yjiR	TU0-8626
+aceK	TU0-14503
+glnAZ	TU0-5903		NtrC-P<sup>asp</sup> DNA-binding-site 108 bases upstream of glnAp2,NtrC-P<sup>asp</sup> DNA-binding-site 89 bases upstream of glnAp2,NtrC-P<sup>asp</sup> DNA-binding-site 45 bases upstream of glnAp2,NtrC-P<sup>asp</sup> DNA-binding-site 68 bases upstream of glnAp2,NtrC-P<sup>asp</sup> DNA-binding-site 140 bases upstream of glnAp2
+yccFS	TU0-13099
+fhuE	TU0-2581		DNA-binding transcriptional dual regulator Fur DNA-binding-site 10 bases upstream of fhuEp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 15 bases downstream of fhuEp
+yaiX	TU0-12905
+ssb	TU0-6564		ArcA-P<sup>asp54</sup> DNA-binding-site 153.5 bases upstream of ssbp1,ArcA-P<sup>asp54</sup> DNA-binding-site 90.5 bases upstream of ssbp1,ArcA-P<sup>asp54</sup> DNA-binding-site 50.5 bases upstream of ssbp1,ArcA-P<sup>asp54</sup> DNA-binding-site 7.5 bases upstream of ssbp1
+yaiO	TU0-12903
+rpoD	TU00436
+hisBHAFI	TU0-6650
+ykfJ-prfH	TU0-12855
+mpaA	TU0-41739	Regulation of mpaA by DNA-binding transcriptional repressor PgrR
+ydhB	TU0-8331
+yadV-htrE	TU00404
+ygjR	TU0-13858
+ynfP	TU0-13332
+yihUTS	TU0-42686
+cytR	TU0-5961		CytR DNA-binding-site 43 bases upstream of cytRp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 64.5 bases upstream of cytRp
+yaaU	TU0-12799
+yjeI	TU0-14141
+ppnN	TU0-13739	Regulation of ppnN by DNA-binding transcriptional dual regulator Nac
+yhhQ	TU0-13944	Regulation of yhhQ by preQ<sub>1</sub>,Regulation of yhhQ by DNA-binding transcriptional dual regulator Nac
+yeeED	TU0-13489
+glgS	TU00279	Regulation of glgS by ppGpp,Regulation of glgS by carbon storage regulator CsrA	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 40.5 bases upstream of glgSp1
+uspF	TU0-13239
+yicN	TU0-14011
+ygiV	TU0-13833	Regulation of ygiV by DNA-binding transcriptional repressor GlaR
+yhiS	TU0-13960
+pliG	TU0-8688	Regulation of pliG by Zur-Zn<sup>2+</sup> DNA-binding transcriptional repressor
+yghO	TU0-14233
+osmE	TU0-45283		Fis DNA-binding-site 31 bases upstream of osmEp2,Fis DNA-binding-site 26 bases downstream of osmEp2,Fis DNA-binding-site 86 bases upstream of osmEp2,IHF DNA-binding-site 4.5 bases downstream of osmEp2
+mdtQ	TU0-13532
+csgA	TU0-42695
+ssuEADCB	TU0-6629	Regulation of ssuEADCB by DNA-binding transcriptional dual regulator Cra	IHF DNA-binding-site 33 bases downstream of ssuEp,IHF DNA-binding-site 134 bases upstream of ssuEp,IHF DNA-binding-site 177 bases upstream of ssuEp,DNA-binding transcriptional dual regulator CysB DNA-binding-site 18 bases upstream of ssuEp,Cbl DNA-binding-site 54.5 bases upstream of ssuEp,Fnr DNA-binding-site regulating ssuEp
+csrA	TU0-13716	Regulation of csrA by ppGpp,Regulation of csrA by RNA polymerase-binding transcription factor DksA
+ycaC	TU-8382	Regulation of ycaC by DNA-binding transcriptional dual regulator Nac,Regulation of ycaC by DNA-binding transcriptional dual regulator FNR,Regulation of ycaC by DNA-binding transcriptional activator BaeR-phosphorylated
+yhdN-zntR	TU0-13911
+ldtE	TU0-13366	Regulation of ldtE by ppGpp
+iscRSUA	TU0-1881	Regulation of iscRSUA by small regulatory RNA RyhB	DNA-binding transcriptional dual regulator IscR DNA-binding-site 53 bases upstream of iscRp,DNA-binding transcriptional dual regulator IscR DNA-binding-site 28 bases upstream of iscRp
+dppBCDF	TU0-198714	Regulation of dppBCDF by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+ilvL	TU0-42517
+can	TU0-8774
+abrB	TU0-13031
+yjhD	TU0-8622
+xylFGHR	TU00374		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 180.5 bases upstream of xylFp,Fis DNA-binding-site 22 bases downstream of xylFp,XylR-xylose DNA-binding-site 61.5 bases upstream of xylFp,XylR-xylose DNA-binding-site 40.5 bases upstream of xylFp
+dapB	TU0-14399
+nanS	TU0-14196
+nanCM	TU0-6843		NagC DNA-binding-site 462 bases upstream of fimBp2,NagC DNA-binding-site 674 bases upstream of fimBp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 61.5 bases upstream of nanCp,NanR DNA-binding-site 744.5 bases upstream of fimBp2,NanR DNA-binding-site 727.5 bases upstream of fimBp2,NanR DNA-binding-site 736.5 bases upstream of fimBp2
+ttdR	TU0-8757
+pdxB-usg-truA-dedA	TU0-5182
+cho	TU0-8267
+mqsRA	TU0-13832
+bcsBZ	TU0-8354		Fnr DNA-binding-site regulating bcsBp
+adiA	TU00235		IHF DNA-binding-site regulating adiAp,AdiY DNA-binding-site regulating adiAp
+sdsR-pphA	TU0-3463
+lptFG	TU0-14176
+yahO	TU0-8549	Regulation of yahO by ppGpp
+arsRBC	TU00239		ArsR DNA-binding-site 41.5 bases upstream of arsRp
+yraR	TU0-13876
+clpA	TU00445
+mdtK	TU0-8825
+rhsA-yibA	TU0-13989
+yciCB	TU0-13190
+yfcV	TU0-13595
+pcnB-folK	TU0-45245
+purU	TU0-13182	Regulation of purU by small regulatory RNA GcvB
+tldD	TU0-13902
+ptsHI-crr	TU00480		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 63.5 bases upstream of ptsHp
+ycjXF	TU0-13214
+evgLAS	TU0-7561		EvgA-P<sup>asp</sup> DNA-binding-site 73.5 bases upstream of emrKp
+qseBC	TU-8387		QseB-P<sup>asp51</sup> DNA-binding-site 462 bases upstream of qseBp2,QseB-P<sup>asp51</sup> DNA-binding-site 6 bases downstream of qseBp2
+xylR	TU68		ArcA-P<sup>asp54</sup> DNA-binding-site regulating xylRp
+ybhI	TU0-13043	Regulation of ybhI by DNA-binding transcriptional dual regulator Nac
+yhhX	TU0-13937
+slyX	TU0-8512
+xerD-dsbC-recJ	TU0-14489
+yahIJ	TU0-12894
+yceF	TU0-8683
+aspS	TU0-8084
+talA-tktB	TU0-8143
+allS	TU0-7602		AllR-allantoin DNA-binding-site 37 bases upstream of allSp
+aceBAK	TU00001		DNA-binding transcriptional repressor IclR DNA-binding-site 141 bases upstream of aceBp,DNA-binding transcriptional repressor IclR DNA-binding-site 131 bases upstream of aceBp,DNA-binding transcriptional repressor IclR DNA-binding-site 122 bases upstream of aceBp,DNA-binding transcriptional repressor IclR DNA-binding-site 104 bases upstream of aceBp,DNA-binding transcriptional repressor IclR DNA-binding-site 53 bases upstream of aceBp,DNA-binding transcriptional repressor IclR DNA-binding-site 38 bases upstream of aceBp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 30.5 bases upstream of aceBp,IHF DNA-binding-site 72 bases upstream of aceBp,IHF DNA-binding-site 159 bases upstream of aceBp,DNA-binding transcriptional repressor IclR DNA-binding-site 26 bases upstream of aceBp,Cra DNA-binding-site 166.5 bases upstream of aceBp
+yegS	TU0-8328
+glnLG	TU00028		NtrC phosphorylated dimer DNA-binding-site 3 bases downstream of glnLp
+yihD	TU0-14057
+ycaL	TU0-13086
+yicG	TU0-14003
+tktB	TU0-7342
+flxA	TU0-1501
+hemA-prfA-prmC	TU0-4201		Fnr DNA-binding-site 24.5 bases upstream of hemAp1
+kbp	TU0-13708	Regulation of kbp by ppGpp
+yebA	TU0-14369
+ychJ	TU0-13183
+priC-ybaM	TU0-12945
+glk	TU0-45170		Cra DNA-binding-site 91.5 bases upstream of glkp2
+hcp-hcr	TU0-14451
+pyrLBI	TU00484
+dnaN-recF	TU0-45267
+rne	TU0-14272	Regulation of rne by ribonuclease E
+hisLGDCBHAFI	TU00285
+fimZ	TU0-8799
+roxA	TU0-13144
+dicC-ydfXW	TU0-13327
+rlmI	TU0-13103
+kup	TU0-14662
+yidE	TU0-14017
+queG	TU0-8611
+lolB-ispE-prs	TU0-8323
+tauABCD	TU302		Cbl DNA-binding-site 91 bases upstream of tauAp,DNA-binding transcriptional dual regulator CysB DNA-binding-site 38 bases upstream of tauAp,DNA-binding transcriptional dual regulator CysB DNA-binding-site 93 bases upstream of tauAp,DNA-binding transcriptional dual regulator CysB DNA-binding-site 202 bases upstream of tauAp
+csdAE	TU0-13741
+yjtD	TU0-12786
+emtA	TU0-8791
+adrA	TU0-8872		CsgD DNA-binding-site 65.5 bases upstream of adrAp,CsgD DNA-binding-site 47 bases upstream of adrAp
+yicR-rpmBG-mutM	TU0-5522
+glnAZLG	TU00029		NtrC-P<sup>asp</sup> DNA-binding-site 108 bases upstream of glnAp2,Fis DNA-binding-site 55 bases upstream of glnAp2,NtrC-P<sup>asp</sup> DNA-binding-site 45 bases upstream of glnAp2,NtrC-P<sup>asp</sup> DNA-binding-site 140 bases upstream of glnAp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 57.5 bases upstream of glnAp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 55.5 bases upstream of glnAp2,NtrC-P<sup>asp</sup> DNA-binding-site 89 bases upstream of glnAp2
+ygeR	TU0-13771
+rpnE-ypaA	TU0-13564
+feaB	TU0-42551
+sfmCD	TU0-12967
+ydbK	TU0-8699
+tesA-ybbO	TU0-6623
+asnC-mioC	TU0-14262
+yhcG	TU0-13894
+paaABCDEFGHIJK	TU5	Regulation of paaABCDEFGHIJK by [2Fe-2S] cluster DNA-binding transcriptional dual regulator,Regulation of paaABCDEFGHIJK by DNA-binding transcriptional activator YgfI	PaaX DNA-binding-site 30 bases downstream of paaAp,IHF DNA-binding-site 80 bases upstream of paaZp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 136.5 bases upstream of paaZp
+ymiD	TU0-198728
+kduI	TU0-13756	Regulation of kduI by DNA-binding transcriptional dual regulator Nac
+gntR	TU0-4523
+yjhIHG	TU0-14192
+pspG	TU0-5741		IHF DNA-binding-site 38.5 bases upstream of pspGp,PspF DNA-binding-site 87 bases upstream of pspGp
+mobAB	TU262
+ssnA	TU0-42558
+shoB	TU0-14422	Regulation of shoB by small regulatory RNA OhsC
+yaaX	TU0-12787
+ldtC	TU0-13138	Regulation of ldtC by small regulatory RNA MicA	CpxR-phosphorylated DNA-binding-site 53.5 bases upstream of ldtCp
+lhr	TU-8430
+idnDOTR	TU0-4682		GntR DNA-binding-site 108.5 bases upstream of idnDp,GntR DNA-binding-site 58.5 bases upstream of idnDp,GntR DNA-binding-site 78.5 bases upstream of idnDp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 91.5 bases upstream of idnDp,IdnR-5-ketogluconate DNA-binding-site 78.5 bases upstream of idnDp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of idnDp
+yrbG-kdsD	TU0-14290
+ppiA	TU00465		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 12.5 bases downstream of ppiAp4,CytR DNA-binding-site 10.5 bases upstream of ppiAp4,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of ppiAp3
+aaeR	TU0-8759
+csgDEFG	TU0-45201
+gpt	TU0-14680
+yejK	TU0-8727
+umpG-pcm	TU00363
+sad-glsB-yneG	TU0-198700	Regulation of sad-glsB-yneG by DNA-binding transcriptional regulator PtrR-L-glutamine
+ytjC	TU0-8665
+ilvIH	TU0-6861
+rsgA	TU0-14150	Regulation of rsgA by DNA-binding transcriptional repressor GlaR
+yfgJ	TU0-13649
+dam-rpe-gph-trpS	TU875
+tpke11	TU0-14330
+yaaA	TU0-12788
+yagAB-insX	TU0-12866	Regulation of yagAB-insX by XynR-D-xylonate
+ydgC	TU0-8707
+bfd-bfr	TU0-13914
+glmUS	TU00488	Regulation of glmUS by small regulatory RNA GlmZ	NagC DNA-binding-site 58 bases downstream of glmUp2,NagC DNA-binding-site 96 bases upstream of glmUp2
+holC-valS	TU0-14474
+ruvAB	TU00353		LexA DNA-binding-site 63.5 bases upstream of ruvAp1,LexA DNA-binding-site 12.5 bases upstream of ruvAp1
+ybbB	TU0-14295
+epd-pgk-fbaA	TU0-8082
+ymdAB	TU0-42668
+pykA	TU0-45175
+proK	TU00519		Fis DNA-binding-site 76 bases upstream of proKp
+yraIJK	TU0-13874
+sucABCD-sdhX	TU00103		Fnr DNA-binding-site regulating sucAp,ArcA-P<sup>asp54</sup> DNA-binding-site regulating sucAp,IHF DNA-binding-site regulating sucAp
+yhjB	TU0-8588
+pcnB-folK	TU0-8362
+yafY-ykfBF-yafX-ykfGH-yafW-ykfI	TU0-12859
+rcsA	TU00486		RcsAB DNA-binding-site 172 bases upstream of rcsAp,GadE DNA-binding-site regulating rcsAp,RcsAB DNA-binding-site 125 bases upstream of rcsAp,H-NS DNA-binding-site regulating rcsAp
+rnb	TU583
+alpA	TU0-13689
+barA	TU0-8337
+bipA	TU0-14061
+rraB	TU0-14772
+dksA-yadB	TU0-14494
+tusE	TU0-13104
+pepT	TU0-8490		Fnr DNA-binding-site regulating pepTp
+yfdC	TU0-13599	Regulation of yfdC by DNA-binding transcriptional repressor GlaR
+metG	TU0-42595
+bluR	TU0-13158
+rimL	TU0-6423
+yjgR	TU0-14177
+hsdRMS	TU0-14319
+rhsB	TU0-13948
+hprRS	TU0-13467
+ybeZY	TU0-13017
+cbpAM	TU0-36443
+bdcR	TU0-14172	Regulation of bdcR by DNA-binding transcriptional repressor GlaR
+malY	TU0-44194
+rdlB	TU0-8497
+asr	TU0-1701		PhoB-P<sup>asp53</sup> DNA-binding-site 30 bases upstream of asrp2
+glsB-yneG	TU0-13303
+otsBA	TU00312	Regulation of otsBA by ppGpp
+dsbB	TU0-13172	Regulation of dsbB by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+accBC	TU0-42603
+dcp	TU0-8783	Regulation of dcp by DNA-binding transcriptional dual regulator Nac
+ulaR	TU0-14157
+cysK	TU00079		CysB DNA-binding-site 53 bases upstream of cysKp1
+pyrH	TU0-1021
+clpA	TU00447
+fliCX	TU0-1521		GadE DNA-binding-site regulating fliCp
+ypjD	TU0-13681
+alkA	TU0-45243		Ada DNA-binding-site 41.5 bases upstream of alkAp2
+ftsLIO-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC	TU0-14443
+yqeG	TU0-13758
+yjeFE-amiB-mutL-miaA-hfq-hflXKC	TU00236
+ygfB-pepP-ubiHI	TU0-13792
+ddpXABCDF	TU0-42462
+ydcJ	TU0-13258
+idnR	TU0-4924
+yphFED	TU0-13663
+yhiD	TU0-13962
+gpmM-envC-yibQ	TU0-42455
+glxK	TU0-14506
+ygjH	TU0-8572	Regulation of ygjH by DNA-binding transcriptional dual regulator Nac
+yncD	TU0-8637
+galETKM	TU0-4545
+alsK	TU0-14293
+srkA-dsbA	TU0-1061		CpxR-phosphorylated DNA-binding-site 49 bases upstream of srkAp
+yfiE	TU0-8741
+rfaYZ	TU0-14744
+rpoH	TU0-45218
+ybaK	TU0-8556
+ynfA	TU0-13334	Regulation of ynfA by DNA-binding transcriptional dual regulator Nac
+poxB	TU0-45205	Regulation of poxB by ppGpp	SoxS DNA-binding-site 60.5 bases upstream of poxBp2,MarA DNA-binding-site 60.5 bases upstream of poxBp2
+kup	TU0-14663
+folC-dedD	TU0-13591
+xthA	TU542
+yqiJK	TU0-13844
+fdhD	TU0-14073	Regulation of fdhD by DNA-binding transcriptional dual regulator Nac
+clpPX	TU0-14490
+pykF	TU0-14630
+rseD-rpoE-rseABC	TU0-45282
+insE5EF5F5	TU0-13507
+yhgN	TU0-8580
+yojI	TU0-13560	Regulation of yojI by ppGpp
+mak	TU0-8828
+poxB	TU541	Regulation of poxB by ppGpp	SoxS DNA-binding-site 60.5 bases upstream of poxBp2,MarA DNA-binding-site 60.5 bases upstream of poxBp2
+yfgA	TU0-14347
+qorB	TU0-14161
+pflA	TU0-13083
+rpoD	TU0-14460
+acrB	TU0-14615
+ydfZ	TU0-13312	Regulation of ydfZ by DNA-binding transcriptional dual regulator FNR
+mcbR	TU0-13273	Regulation of mcbR by DNA-binding transcriptional repressor YgiV
+recAX	TU0-4525		LexA DNA-binding-site 20 bases upstream of recAp
+mhpR-lacI	TU0-2405
+serU	TU00513
+wzzB	TU0-13494
+ilvIH	TU00081		Lrp DNA-binding-site 192 bases upstream of ilvIp2,Lrp DNA-binding-site 161 bases upstream of ilvIp2,Lrp DNA-binding-site 80 bases upstream of ilvIp2,Lrp DNA-binding-site 45 bases upstream of ilvIp2,Lrp DNA-binding-site 16 bases upstream of ilvIp2,Lrp DNA-binding-site 5 bases downstream of ilvIp2,H-NS DNA-binding-site regulating ilvIHp1
+astCADBE	TU0-1002
+sdiA	TU0-42622
+rcnR	TU0-13513
+bioP	TU0-14050
+lacZYA	TU00036		H-NS DNA-binding-site 67 bases upstream of lacZp1,H-NS DNA-binding-site 54 bases upstream of lacZp1,H-NS DNA-binding-site 31 bases upstream of lacZp1,H-NS DNA-binding-site 5 bases upstream of lacZp1,H-NS DNA-binding-site 6 bases downstream of lacZp1,H-NS DNA-binding-site 24 bases downstream of lacZp1,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 39.5 bases upstream of lacZp2,LacI DNA-binding-site 412 bases downstream of lacZp1,LacI DNA-binding-site 82 bases upstream of lacZp1,LacI DNA-binding-site 11 bases downstream of lacZp1
+ytfL	TU0-14164
+efp	TU0-1222
+yhhS	TU0-8585
+gloA	TU0-8182
+yjjZ	TU0-8630
+sbcB	TU0-6513
+idnK	TU0-4681		GntR DNA-binding-site 78.5 bases upstream of idnDp,GntR DNA-binding-site 58.5 bases upstream of idnDp,GntR DNA-binding-site 108.5 bases upstream of idnDp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of idnDp,IdnR-5-ketogluconate DNA-binding-site 78.5 bases upstream of idnDp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 91.5 bases upstream of idnDp
+ampG	TU0-12926
+rnlB	TU0-14812
+rfbACX	TU0-14523
+pppA	TU0-13814
+yciW	TU0-13203
+ldtD	TU0-13090
+pdxA-rsmA-apaGH	TU0-5201
+insH-1	TU0-8831
+ypfH	TU0-13643
+yebE	TU0-13436		CpxR-phosphorylated DNA-binding-site 44 bases upstream of yebEp
+yfdGHI	TU0-13601
+aceEF	TU0-45254		ArcA-P<sup>asp54</sup> DNA-binding-site regulating aceEp2
+secMA-mutT	TU0-4343
+opgB	TU0-14212
+ygeV	TU0-8748
+intZ	TU0-13628
+hupB	TU489		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 83.5 bases upstream of hupBp3,Fis DNA-binding-site 145 bases upstream of hupBp3,Fis DNA-binding-site 122 bases upstream of hupBp3,Fis DNA-binding-site 89.5 bases upstream of hupBp3,Fis DNA-binding-site 141 bases downstream of hupBp3
+yafV	TU0-8545
+mnmA	TU0-14364
+hldE	TU0-13846
+alaS	TU0-6441		AlaS-L-alanine DNA-binding transcriptional repressor DNA-binding-site 6.5 bases upstream of alaSp
+slp-dctR	TU00096		MarA DNA-binding-site 39 bases downstream of slpp
+frwD	TU0-14311
+lpp	TU0-8380
+mog	TU0-12790
+lapAB	TU0-45261
+fumA	TU00104	Regulation of fumA by small regulatory RNA RyhB	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 402.5 bases upstream of fumAp,ArcA-P<sup>asp54</sup> DNA-binding-site regulating fumAp
+ubiT-yhbS	TU0-14656
+ybcH	TU0-14365
+yphA	TU0-13661
+ytfK	TU0-8146
+tmaR	TU0-13485
+rclR	TU0-12886
+ykgH	TU0-12888
+selD-topB	TU0-14798
+yhfG-fic-pabA	TU0-6885
+mngB	TU0-44204
+yjdC	TU0-14671
+ytfF	TU0-14160
+rplL	TU0-8464
+yqgD	TU0-8654
+pgk	TU0-14814
+yjeFE-amiB-mutL-miaA-hfq-hflXKC	TU802
+ybjO-rlmC	TU0-13072
+rarD	TU0-14044
+pyrSR-ypdC	TU0-13613
+yccM	TU0-13111	Regulation of yccM by DNA-binding transcriptional dual regulator Nac
+qorA	TU0-14227
+yihUTS	TU0-42688
+cybC	TU0-14168
+trkG	TU0-13233
+yecF	TU0-8716
+metH	TU0-42471
+bamD	TU0-4221
+leuO	TU0-42475
+lolCDE	TU0-13141
+pqiABC	TU562
+ybiV	TU0-13061
+ybaB-recR	TU0-3422
+gapA-yeaD	TU0-4904
+imp-surA-pdxA	TU0-4287
+speE	TU0-44217
+efeU	TU0-13115		CpxR-phosphorylated DNA-binding-site 54.5 bases upstream of efeUp
+yghB	TU0-13822
+guaC	TU0-8807
+rrlE-rrfE	TU0-14530
+clpB	TU00421
+ynjH	TU0-8642
+adhP	TU0-13286	Regulation of adhP by ppGpp
+dinI	TU0-13128
+yeaGH	TU0-14632
+puuCBE	TU0-13211	Regulation of puuCBE by DNA-binding transcriptional regulator PtrR-L-glutamine
+bsmA	TU0-14156
+rpsJ-rplCDWB-rpsS-rplV-rpsC-rplP-rpmC-rpsQ	TU00347	Regulation of rpsJ-rplCDWB-rpsS-rplV-rpsC-rplP-rpmC-rpsQ by small RNA FliX,Regulation of rpsJ-rplCDWB-rpsS-rplV-rpsC-rplP-rpmC-rpsQ by small RNA FliX,Regulation of rpsJ-rplCDWB-rpsS-rplV-rpsC-rplP-rpmC-rpsQ by small RNA FliX,Regulation of rpsJ-rplCDWB-rpsS-rplV-rpsC-rplP-rpmC-rpsQ by small RNA MotR	ArcA-P<sup>asp54</sup> DNA-binding-site regulating rpsJp
+glgCAP	TU00470	Regulation of glgCAP by carbon storage regulator CsrA,Regulation of glgCAP by carbon storage regulator CsrA
+csrA	TU0-42458
+gltS	TU0-8804
+deoCABD	TU00018		ModE-MoO<sub>4</sub><sup>2-</sup> DNA-binding-site 35 bases upstream of deoCp2,Fis DNA-binding-site 102 bases upstream of deoCp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 93.5 bases upstream of deoCp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 40.5 bases upstream of deoCp2,CytR DNA-binding-site 61 bases upstream of deoCp2,DeoR DNA-binding-site 8 bases upstream of deoCp2,DeoR DNA-binding-site 308 bases upstream of deoCp2,DeoR DNA-binding-site 887 bases upstream of deoCp2,CytR DNA-binding-site 70.5 bases upstream of deoCp2
+ycgZ	TU0-13160
+dgcF	TU0-13302
+yaaJ	TU0-12789
+rpmH-rnpA	TU743
+rlmE-ftsH	TU00414
+artPIQM	TU0-14678
+casABCDE12	TU0-13725
+dcuSR	TU0-8347		NarL-P<sup>asp59</sup> DNA-binding-site 40 bases upstream of dcuSp,NarL-P<sup>asp59</sup> DNA-binding-site 31 bases upstream of dcuSp,Fnr DNA-binding-site regulating dcuSp
+hypABCDE-fhlA	TU0-8344
+yffMN	TU0-13630
+csrD	TU0-13904
+galE	TU0-42578
+icdC	TU0-13155
+cfa	TU0-45251	Regulation of cfa by small regulatory RNA CpxQ,Regulation of cfa by small regulatory RNA RydC,Regulation of cfa by small regulatory RNA ArrS
+tilS	TU0-12833
+rrsD-ileU-alaU-rrlD-rrfD-thrV-rrfF	TU0-1191		Fis DNA-binding-site 174 bases upstream of rrsDp,Fis DNA-binding-site 144 bases upstream of rrsDp,Fis DNA-binding-site 126 bases upstream of rrsDp,Fis DNA-binding-site 91 bases upstream of rrsDp,Fis DNA-binding-site 71 bases upstream of rrsDp
+nadC	TU0-12812
+fetAB	TU0-12957
+ecnB	TU0-14682	Regulation of ecnB by ppGpp,Regulation of ecnB by small regulatory RNA MicA
+yhdJ	TU0-13905
+recN	TU0-2		LexA DNA-binding-site 22.5 bases upstream of recNp,LexA DNA-binding-site 0.5 bases upstream of recNp
+rbn	TU0-13573
+ssb	TU0-6563		ArcA-P<sup>asp54</sup> DNA-binding-site 153.5 bases upstream of ssbp1,ArcA-P<sup>asp54</sup> DNA-binding-site 90.5 bases upstream of ssbp1,ArcA-P<sup>asp54</sup> DNA-binding-site 7.5 bases upstream of ssbp1,ArcA-P<sup>asp54</sup> DNA-binding-site 50.5 bases upstream of ssbp1
+dgt	TU0-14393
+ytfK	TU0-93010
+ycaK	TU0-8673
+ptsG	TU0-1141	Regulation of ptsG by small regulatory RNA SgrS	ArcA-P<sup>asp54</sup> DNA-binding-site 85 bases upstream of ptsGp1,ArcA-P<sup>asp54</sup> DNA-binding-site 48 bases upstream of ptsGp1,ArcA-P<sup>asp54</sup> DNA-binding-site 2 bases downstream of ptsGp1,Fis DNA-binding-site 5 bases upstream of ptsGp2,Fis DNA-binding-site 22 bases downstream of ptsGp2,Fis DNA-binding-site 61 bases downstream of ptsGp2,Fis DNA-binding-site 122 bases downstream of ptsGp2,Fis DNA-binding-site 143 bases downstream of ptsGp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 94.5 bases upstream of ptsGp1,Mlc DNA-binding-site 6 bases upstream of ptsGp1,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 40.5 bases upstream of ptsGp1
+yfaZ	TU0-13568
+ydiP	TU0-8710
+ydcK	TU0-8701	Regulation of ydcK by DNA-binding transcriptional repressor GlaR,Regulation of ydcK by ppGpp
+yhfXW-php-yhfUTS	TU0-13924	Regulation of yhfXW-php-yhfUTS by DNA-binding transcriptional dual regulator Cra
+ybaL	TU0-12952
+ydiK	TU0-13369
+bisC	TU0-8773
+yciVOQ	TU0-13194
+yebB	TU0-8244
+pepN	TU0-8489
+prlC-yhiQ	TU0-13957
+sraA	TU0-8514
+infA	TU-8389
+ychE	TU0-13185
+polA	TU661		DnaA-ATP DNA-binding-site 101 bases upstream of polAp
+ygfM-xdhD	TU0-13782
+ihfB	TU0-45280		IHF DNA-binding-site 320 bases upstream of ihfBp2,IHF DNA-binding-site 304 bases upstream of ihfBp2,IHF DNA-binding-site 207 bases upstream of ihfBp2,IHF DNA-binding-site 157 bases upstream of ihfBp2,IHF DNA-binding-site 77 bases upstream of ihfBp2,IHF DNA-binding-site 2 bases upstream of ihfBp2
+asmA	TU0-13500
+mltB	TU0-13719
+yecT	TU0-13445
+rrsA-ileT-alaT-rrlA-rrfA	TU0-45165		Lrp-leu DNA-binding-site 53 bases upstream of rrsAp,Fis DNA-binding-site 133 bases upstream of rrsAp,Fis DNA-binding-site 111 bases upstream of rrsAp,Fis DNA-binding-site 91 bases upstream of rrsAp,Fis DNA-binding-site 71 bases upstream of rrsAp
+rlmE-ftsH	TU00277
+ppA	TU0-8492
+metJ	TU0-2708
+ychJ-purU	TU0-55017
+ysdE	TU0-198739
+yciA	TU0-13189
+citCDEFXG	TU0-14750
+ftsP	TU0-13828
+mnmG-rsmG	TU0-45168
+ydiE	TU0-13376
+rseX	TU0-14332
+gcvR	TU0-6503
+rrsB-gltT-rrlB-rrfB	TU0-1182		Lrp-leu DNA-binding-site 53 bases upstream of rrsBp,H-NS DNA-binding-site 26 bases upstream of rrsBp,H-NS DNA-binding-site 50 bases upstream of rrsBp,H-NS DNA-binding-site 83 bases upstream of rrsBp,Fis DNA-binding-site 143 bases upstream of rrsBp,Fis DNA-binding-site 102 bases upstream of rrsBp,Fis DNA-binding-site 71 bases upstream of rrsBp
+yedEF	TU0-13455
+glgAP	TU0-36417
+focA-pflB	TU00378		ArcA-P<sup>asp54</sup> DNA-binding-site 5 bases downstream of focAp2
+glpGR	TU402
+hslO	TU0-13930
+fur	TU0-1283		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 77.5 bases upstream of furpa,DNA-binding transcriptional dual regulator Fur DNA-binding-site 7 bases upstream of furpa
+ygiH	TU0-8756
+hflD-purB	TU00054		PurR-hypoxanthine DNA-binding-site 892.5 bases downstream of hflDp
+yeeY	TU0-13491
+hokE	TU0-8266
+yrdA	TU0-8660
+sdhE-ygfX	TU0-13788
+aer	TU0-1546		Fnr DNA-binding-site 49.5 bases upstream of aerp
+yjfIJ	TU0-14153
+yjeV	TU0-14738
+infA-serW	TU0-42662	Regulation of infA-serW by ppGpp
+alr	TU0-14120
+flhBAE	TU-8405		FlhDC DNA-binding-site 53.5 bases upstream of flhBp
+tolC-ygiBC	TU0-14702
+yihUTS	TU0-42690
+syd	TU0-13737
+rpoS	TU0-14649
+ribA	TU0-1741		SoxS DNA-binding-site 69 bases upstream of ribAp1
+trpR	TU00220		TrpR-trp DNA-binding-site 0.5 bases upstream of trpRp
+mglBAC	TU0-45256		GalR DNA-binding-site 59.5 bases upstream of mglBp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of mglBp2,GalS DNA-binding-site 59.5 bases upstream of mglBp2
+selC	TU0-14007
+eno	TU0-45189
+dcuD	TU0-1902		PhoP-P<sup>asp51</sup> DNA-binding-site 56.5 bases downstream of dcuDp1
+uppS-cdsA	TU0-14609
+fryBC-ypdFE-fryA	TU0-13614
+yggX-mltC	TU0-5581
+acpP	TU0-42537
+yebF	TU0-13437	Regulation of yebF by ppGpp
+glnB	TU00089		PurR-hypoxanthine DNA-binding-site 42.5 bases upstream of glnBp1
+uvrD	TU0-7043
+psuT	TU0-13545
+rpsA-ihfB	TU564
+sad	TU0-13304
+yneJ	TU0-13305
+infC-rpmI-rplT	TU0-3305
+pflB	TU00382
+ybfOC	TU0-13027
+pyrLBI	TU00485
+emrE	TU0-14417
+phoQ	TU0-41681
+uspA	TU00431		FadR DNA-binding-site 97 bases downstream of uspAp1,FadR DNA-binding-site 5 bases downstream of uspAp1
+ohsC	TU0-14421
+mnt-btuF-yadS	TU0-45264
+tsx	TU00450	Regulation of tsx by small regulatory RNA RybB,Regulation of tsx by small regulatory RNA MicA	CytR DNA-binding-site 57.5 bases upstream of tsxp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 73.5 bases upstream of tsxp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 40.5 bases upstream of tsxp2,CytR DNA-binding-site 31.5 bases upstream of tsxp2
+ygdI	TU0-8747
+dgkA	TU0-14115
+dnaN-recF	TU0-1196
+gapC_1C_2	TU0-8359	Regulation of gapC_1C_2 by DNA-binding transcriptional dual regulator FNR
+ykgA	TU0-12883
+yidA	TU0-14019
+rlmM	TU0-14306	Regulation of rlmM by DNA-binding transcriptional dual regulator Nac
+yagML	TU0-12872
+cmk-rpsA	TU361
+ytfA	TU0-8662
+hypF	TU0-14406		Cra DNA-binding-site 7.5 bases downstream of hypFp3
+paaXY	TU7
+dacB	TU0-8781
+hypF	TU0-14405
+cdh	TU0-6485
+gmk	TU0-14004
+ydfUT	TU0-13322
+ydeN	TU0-13292
+yehF	TU0-9		LexA DNA-binding-site 11.5 bases downstream of yehFp
+topA	TU0-2502
+pgk	TU0-14817
+ybiYW	TU0-13062
+dnaKJ	TU00417
+glnS	TU0-14467
+insE3EF3F3	TU0-12971
+trpL	TU0-42510
+gabDTP	TU0-45238	Regulation of gabDTP by ppGpp	Nac DNA-binding-site 44 bases upstream of gabDp
+rpsP-rimM-trmD-rplS	TU00351
+yntF-ydfK	TU0-13315
+ileX	TU00502
+rfaDFCL	TU00329
+iprA	TU0-12912
+lysP	TU0-6404
+nanR	TU0-13895
+yagGH	TU0-12868
+yahC	TU0-12891
+yaeR	TU0-12832
+yeiH	TU0-13542	Regulation of yeiH by DNA-binding transcriptional dual regulator Nac
+ygbF	TU0-14469
+ybfA	TU0-13025
+yccR	TU0-8679
+asnU	TU00498
+wrbA-yccJ	TU0-13114	Regulation of wrbA-yccJ by ppGpp
+fliE	TU0-8340
+yddE	TU0-13281
+aldB	TU00138		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of aldBp,Fis DNA-binding-site 29 bases upstream of aldBp,Fis DNA-binding-site 48 bases upstream of aldBp,Fis DNA-binding-site 113 bases upstream of aldBp,Fis DNA-binding-site 135 bases upstream of aldBp,Fis DNA-binding-site 158 bases upstream of aldBp
+yncL	TU0-14241
+yfbV	TU0-13583	Regulation of yfbV by DNA-binding transcriptional dual regulator Nac
+ffs	TU0-12938
+ymfJ	TU0-13149
+mazEF	TU0-198694	Regulation of mazEF by small antisense RNA aMEF
+yefM-yoeB	TU0-13493
+ybdG	TU0-12985
+yifN	TU0-14035
+yajC-secDF	TU869
+ppk-ppx	TU00323
+pinQ	TU0-13316	Regulation of pinQ by DNA-binding transcriptional dual regulator Nac
+yncJ	TU0-14242
+kdgK	TU0-7301
+cbpA-cbpM	TU0-42532
+yqaE-kbp	TU0-42608
+narQ	TU0-13641
+serB-radA	TU0-6514
+yjbLM	TU0-14117
+ybiB	TU0-14368
+istR-2	TU0-7181
+yciN	TU0-8692
+glmUS	TU00280	Regulation of glmUS by small regulatory RNA GlmZ	NagC DNA-binding-site 58 bases downstream of glmUp2,NagC DNA-binding-site 96 bases upstream of glmUp2
+lapAB	TU0-13200
+yraM	TU0-14341
+accD	TU00232	Regulation of accD by acetyl-CoA carboxyltransferase
+insH-11	TU0-8833
+yfdONMLK	TU0-13603	Regulation of yfdONMLK by DNA-binding transcriptional activator YgfI,Regulation of yfdONMLK by DNA-binding transcriptional activator YgfI,Regulation of yfdONMLK by DNA-binding transcriptional activator YgfI,Regulation of yfdONMLK by DNA-binding transcriptional activator YgfI
+potFGHI	TU00322
+lipA	TU0-13004
+flu	TU0-14635
+yeeL	TU0-13473
+yliI	TU0-13066
+murQP	TU0-14715
+yodB	TU0-13470	Regulation of yodB by DNA-binding transcriptional repressor GlaR
+lepAB	TU0-6942
+yebW	TU0-13430
+yffB-dapE-ypfN	TU0-13642
+rpmF-plsX-fabHDG	TU0-1
+leuLABCD	TU0-42478
+dusB-fis	TU00021		Fis DNA-binding-site 221 bases upstream of dusBp,Fis DNA-binding-site 143 bases upstream of dusBp,Fis DNA-binding-site 101 bases upstream of dusBp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 167.5 bases upstream of dusBp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 252.5 bases upstream of dusBp,IHF DNA-binding-site 114 bases upstream of dusBp,Fis DNA-binding-site 26 bases downstream of dusBp,Fis DNA-binding-site 83 bases upstream of dusBp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 63 bases upstream of dusBp,Fis DNA-binding-site 42 bases upstream of dusBp
+tolB-pal-ybgF	TU21	Regulation of tolB-pal-ybgF by small regulatory RNA MicA
+alr	TU0-14670
+sfsA-dksA	TU00358
+ybgA-phr	TU362	Regulation of ybgA-phr by ppGpp
+fhuACDB	TU0-198712	Regulation of fhuACDB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator,Regulation of fhuACDB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+cvrA	TU0-13174
+ybjM	TU0-8672
+srmB	TU0-8521
+yaeP-rof	TU0-12834
+secB-gpsA	TU0-13995
+mtr	TU00093		TrpR-trp DNA-binding-site 11.5 bases upstream of mtrp2,TrpR-trp DNA-binding-site 19.5 bases upstream of mtrp2,TyrR-tyr DNA-binding-site 106.5 bases upstream of mtrp2,TyrR-tyr DNA-binding-site 76.5 bases upstream of mtrp2
+insA1B1AB1	TU0-12796
+clpS	TU0-14357
+ilvA	TU0-6651
+ssrA	TU0-42503
+hemN	TU0-6505
+ygeX	TU0-13774
+sraB	TU0-14333
+pstS	TU0-14692
+yagK	TU0-12871
+rspA-rspB	TU0-13333
+ybjS	TU0-13074
+serC	TU0-5964		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 86 bases upstream of serCp1,Lrp DNA-binding-site 134 bases upstream of serCp1
+ygcNOP	TU0-13728
+ssrS	TU0-45172
+uxaCA	TU0-5021		Fnr DNA-binding-site regulating uxaCp2
+def-fmt	TU00258
+yceK	TU0-13124
+sdaCB	TU00454
+glnLG	TU0-198713	Regulation of glnLG by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+fliE	TU-8408		FlhDC DNA-binding-site 55 bases upstream of fliFp1
+ppiA	TU00466		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 12.5 bases downstream of ppiAp4,CytR DNA-binding-site 10.5 bases upstream of ppiAp4
+mazEFG	TU522		Fis DNA-binding-site 53.5 bases upstream of mazEp2
+yoaB	TU0-13415
+pgaABCD	TU0-8471	Regulation of pgaABCD by carbon storage regulator CsrA,Regulation of pgaABCD by carbon storage regulator CsrA	NhaR-Na<SUP>+</SUP> DNA-binding-site 63 bases upstream of pgaAp,NhaR-Na<SUP>+</SUP> DNA-binding-site 41 bases upstream of pgaAp
+ymcE-gnsA	TU0-13110
+rplNXE-rpsNH-rplFR-rpsE-rpmD-rplO-secY-rpmJ	TU00337	Regulation of rplNXE-rpsNH-rplFR-rpsE-rpmD-rplO-secY-rpmJ by 30S ribosomal subunit protein S8
+yjbEFGH	TU0-36435
+mokB	TU0-13256	Regulation of mokB by CRP-cyclic-AMP DNA-binding transcriptional dual regulator
+ppiC	TU0-14034
+sfmAC	TU0-198696	Regulation of sfmAC by LuxR family transcriptional regulator FimZ
+ycgZ-ymgA-ariR-ymgC	TU0-45166
+ynjE	TU0-13389
+amiC	TU0-8767
+wcaKLM	TU0-13498
+proVWX	TU702		H-NS DNA-binding-site 33 bases upstream of proVp3,H-NS DNA-binding-site 7 bases downstream of proVp3,H-NS DNA-binding-site 26 bases downstream of proVp3,H-NS DNA-binding-site 45 bases downstream of proVp3,H-NS DNA-binding-site 72 bases downstream of proVp3,H-NS DNA-binding-site 84 bases downstream of proVp3,H-NS DNA-binding-site 100 bases downstream of proVp3,H-NS DNA-binding-site 130 bases downstream of proVp3,H-NS DNA-binding-site 156 bases downstream of proVp3,H-NS DNA-binding-site 170 bases downstream of proVp3
+gntR	TU0-4522
+dosCP	TU0-8478
+chiZPQ	TU0-13021	Regulation of chiZPQ by small regulatory RNA ChiX
+ybcK	TU0-12973	Regulation of ybcK by DNA-binding transcriptional dual regulator Nac
+yfbU-hxpA	TU0-13582
+ssrS	TU0-36423
+nuoABCEFGHIJKLMN	TU00448	Regulation of nuoABCEFGHIJKLMN by small regulatory RNA RyhB	Fis DNA-binding-site 235.5 bases upstream of nuoAp1,Fis DNA-binding-site 198.5 bases upstream of nuoAp1,Fis DNA-binding-site 138.5 bases upstream of nuoAp1
+nanCMS	TU0-42544
+hxpB	TU0-13383
+ybaE	TU0-12934
+C0293	TU0-45287
+adiY	TU821	Regulation of adiY by small regulatory RNA SgrS
+pdxH-tyrS-pdxY	TU0-8864
+frvABXR	TU0-14075
+dolP	TU-8396
+ymgE	TU0-13176
+ssrS-ygfA	TU0-13794
+fbaB	TU0-8469	Regulation of fbaB by ppGpp
+yihPO	TU0-14065
+rpoH	TU00426
+bcsEFG	TU0-13972
+ldrC	TU0-8845
+glnAZLG	TU00027		NtrC-P<sup>asp</sup> DNA-binding-site 140 bases upstream of glnAp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 71.5 bases upstream of glnAp1,NtrC-P<sup>asp</sup> DNA-binding-site 108 bases upstream of glnAp2
+cysDNC	TU00146		DNA-binding transcriptional dual regulator CysB DNA-binding-site 85 bases upstream of cysDp
+ycaN	TU0-8674
+yihN	TU0-14063
+sppA	TU0-13391
+yhbP	TU0-8575
+accBC	TU00231		AccB DNA-binding-site regulating accBp1
+lysT-valT-lysW	TU00492		Fis DNA-binding-site 74 bases upstream of lysTp
+yfiK	TU0-8743
+nfsB	TU0-4624		MarA DNA-binding-site 43.5 bases upstream of nfsBp
+rihC	TU0-12797
+ygeH	TU0-13763
+yciY	TU0-14244
+essQ-ydfR-rrrQ-rzpQ-rzoQ	TU0-13321
+gcl-hyi-glxR-ybbVW-allB-ybbY-glxK	TU0-7603		AllR-allantoin DNA-binding-site 20 bases upstream of gclp
+rpmE	TU0-8506	Regulation of rpmE by 50S ribosomal subunit protein L31
+sibB	TU0-13503
+yceI	TU0-41656
+ppiB-lpxH	TU0-12963
+gadAX	TU586		H-NS DNA-binding-site regulating gadAp2,Fnr DNA-binding-site 11.5 bases downstream of gadAp2,ArcA-P<sup>asp54</sup> DNA-binding-site regulating gadAp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 62.5 bases upstream of gadAp2,TorR-P<SUP>asp</SUP> DNA-binding-site 73.5 bases downstream of gadAp2,GadRcs DNA-binding-site 62.5 bases upstream of gadAp2,GadW DNA-binding-site 121.5 bases upstream of gadAp2,GadX DNA-binding-site 100.5 bases upstream of gadAp2,GadX DNA-binding-site 78 bases upstream of gadAp2,GadX DNA-binding-site 57.5 bases upstream of gadAp2,GadX DNA-binding-site 10.5 bases upstream of gadAp2
+wecH	TU0-8590	Regulation of wecH by DNA-binding transcriptional dual regulator Nac
+mfd	TU0-2081
+nuoMN	TU0-14531
+ygaVP	TU0-13710
+fiu	TU0-2521	Regulation of fiu by small regulatory RNA RybB	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 158.5 bases upstream of fiup,DNA-binding transcriptional dual regulator Fur DNA-binding-site 12 bases downstream of fiup,DNA-binding transcriptional dual regulator Fur DNA-binding-site 6 bases upstream of fiup,DNA-binding transcriptional dual regulator Fur DNA-binding-site 3 bases downstream of fiup,DNA-binding transcriptional dual regulator Fur DNA-binding-site 7 bases downstream of fiup
+dadAX	TU00255		Lrp DNA-binding-site 79 bases downstream of dadAp2,Lrp DNA-binding-site 57 bases downstream of dadAp2,Lrp DNA-binding-site 10 bases downstream of dadAp2,Lrp DNA-binding-site 23 bases upstream of dadAp2,Lrp DNA-binding-site 68 bases upstream of dadAp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 59.5 bases upstream of dadAp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 7 bases downstream of dadAp2
+ompC	TU00049	Regulation of ompC by small regulatory RNA RseX,Regulation of ompC by small regulatory RNA RybB,Regulation of ompC by small regulatory RNA MicC	CpxR-phosphorylated DNA-binding-site 351 bases upstream of ompCp1,CpxR-phosphorylated DNA-binding-site 134 bases upstream of ompCp1,CpxR-phosphorylated DNA-binding-site 95 bases upstream of ompCp1,Lrp DNA-binding-site 319 bases upstream of ompCp3,Lrp DNA-binding-site 87.5 bases downstream of micFp2,Lrp DNA-binding-site 58.5 bases downstream of micFp2,Lrp DNA-binding-site 27.5 bases downstream of micFp2,Lrp DNA-binding-site 59 bases downstream of ompCp3,Lrp-leu DNA-binding-site 64.5 bases downstream of ompCp1,Lrp DNA-binding-site 143 bases downstream of ompCp3,OmpR-P DNA-binding-site 165.5 bases upstream of micFp2,OmpR-P DNA-binding-site 186.5 bases upstream of micFp2,OmpR-P DNA-binding-site 206.5 bases upstream of micFp2,EnvY DNA-binding-site regulating ompCp1,Lrp DNA-binding-site 5.5 bases downstream of ompCp2,IHF DNA-binding-site 72 bases upstream of micFp2
+ackA-pta	TU0-8301	Regulation of ackA-pta by DNA-binding transcriptional regulator CreB-phosphorylated
+rutR	TU-8423
+yahN	TU0-8548	Regulation of yahN by CRP-cyclic-AMP DNA-binding transcriptional dual regulator
+ppnP	TU0-12915
+folB	TU0-13848
+kup	TU0-14032
+ppk-ppx	TU0-42452
+cmr	TU423
+tonB	TU00167		DNA-binding transcriptional dual regulator Fur DNA-binding-site 25 bases upstream of tonBp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 19 bases upstream of tonBp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 26 bases downstream of tonBp
+yohC	TU0-13530	Regulation of yohC by ppGpp
+ilvL	TU0-42516
+folX-yfcH	TU0-13589	Regulation of folX-yfcH by small regulatory RNA FnrS
+mlrA	TU0-13527
+puuAP	TU0-13209
+asnS	TU0-13093
+pdeL	TU0-12889		Cra DNA-binding-site 159.5 bases upstream of pdeLp1
+fruBKA	TU00161		Cra-fructose-1-phosphate DNA-binding-site 7.5 bases downstream of fruBp
+rsd	TU784
+ypfJ-tmcA	TU0-13644
+yhaH	TU0-13866
+yjjW	TU0-14220
+tyrP	TU0-6631
+yedI	TU0-13462
+dsbC-recJ-prfB	TU-8392
+yhhH	TU0-13949
+rrsA-ileT-alaT-rrlA-rrfA	TU0-1181		Lrp-leu DNA-binding-site 53 bases upstream of rrsAp,Fis DNA-binding-site 133 bases upstream of rrsAp,Fis DNA-binding-site 111 bases upstream of rrsAp,Fis DNA-binding-site 91 bases upstream of rrsAp,Fis DNA-binding-site 71 bases upstream of rrsAp
+yhjA	TU0-13965		OxyR DNA-binding-site 86 bases upstream of yhjAp,Fnr DNA-binding-site 41.5 bases upstream of yhjAp
+yhjX	TU0-42492
+fadE	TU0-8793		ArcA-P<sup>asp54</sup> DNA-binding-site 15 bases downstream of fadEp,FadR DNA-binding-site 74 bases downstream of fadEp
+ygeQ	TU0-13769
+ycgI	TU0-13168
+ydhYVW	TU0-13364
+clsA-yciU	TU863
+ypjC	TU0-13703
+aroL-yaiA-aroM	TU0-42568
+ycgZ-ymgA-ariR-ymgC	TU0-14762
+yeeP	TU0-13482
+ygfI	TU0-13798	Regulation of ygfI by DNA-binding transcriptional dual regulator Nac
+nrdHIEF	TU0-1022	Regulation of nrdHIEF by [2Fe-2S] cluster DNA-binding transcriptional dual regulator,Regulation of nrdHIEF by DNA-binding transcriptional dual regulator Cra	DNA-binding transcriptional dual regulator Fur DNA-binding-site 61 bases upstream of nrdHp
+speAB	TU00204		PurR-hypoxanthine DNA-binding-site 11.5 bases downstream of speAp
+ygjQ	TU0-13857
+yeiE	TU0-13541	Regulation of yeiE by DNA-binding transcriptional dual regulator Nac
+casDE-ygbTF	TU0-14558
+mcrBC	TU0-5661
+stfZ	TU0-198690
+rfe-wzzE-wecBC-rffGHC-wecE-wzxE-wecF-wzyE-rffM	TU0-14039
+speF-potE	TU00360	Regulation of speF-potE by DNA-binding transcriptional dual regulator OmpR
+yjbJ	TU0-14116	Regulation of yjbJ by ppGpp,Regulation of yjbJ by DNA-binding transcriptional regulator FliZ
+allB	TU0-44196
+yihLM	TU0-14062
+murR	TU0-13624
+ycjY-ymjDC-mpaA	TU0-42524
+glcC	TU0-1963		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 18.5 bases upstream of glcCp,GlcC-glycolate DNA-binding-site 176 bases upstream of glcDp
+yccT	TU0-13101	Regulation of yccT by ppGpp
+add	TU0-13350
+rprA	TU0-13370
+yadI	TU0-12816
+rdgC	TU0-8495
+pdeB	TU0-12940
+edd-eda	TU00227		Cra DNA-binding-site 4.5 bases downstream of eddp,GntR DNA-binding-site 128.5 bases downstream of eddp,GntR DNA-binding-site 93.5 bases upstream of eddp
+fusA-tufA	TU0-5121
+yacH	TU0-8539	Regulation of yacH by DNA-binding transcriptional dual regulator Rob
+bglG	TU0-42564
+glmZ	TU0-8518
+rplT-pheM	TU0-8855
+hemL	TU0-7806		PhoP-P<sup>asp51</sup> DNA-binding-site 31 bases upstream of hemLp
+ydgD	TU0-13342
+cspD	TU0-6486		H-NS DNA-binding-site regulating cspDp
+yfhG	TU0-14320
+mntP	TU0-13420	Regulation of mntP by Mn<SUP>2+</SUP>
+ydiNB-aroD	TU0-13373
+ytfQRT-yjfF	TU0-14166	Regulation of ytfQRT-yjfF by DNA-binding transcriptional dual regulator AraC
+glnB	TU00474
+glsA-ybaT	TU0-3123		GadX DNA-binding-site 11.5 bases downstream of glsAp
+rbsDACBZKR	TU00206	Regulation of rbsDACBZKR by small regulatory RNA GcvB,Regulation of rbsDACBZKR by small regulatory RNA DsrA	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 62.5 bases upstream of rbsDp,RbsR DNA-binding-site 8.5 bases downstream of rbsDp
+uspA	TU00432
+bcsABZC	TU0-8365
+yjiHG-iadA	TU0-14199
+gltX	TU0-6550
+dgoRKADT	TU0-14018
+insA3B3AB3	TU0-12870
+macAB	TU0-14298
+chiX	TU0-8522
+artPIQM	TU0-14677
+rsuA	TU0-13555
+yfeH	TU0-8735
+yjbI	TU0-14114
+gcvR	TU0-42559
+yjbFGH	TU0-14112
+glk	TU0-7421		Cra DNA-binding-site 91.5 bases upstream of glkp2
+ycjY	TU0-13216
+yjiC	TU0-8624
+gstA	TU0-13353
+ybgIJKL-nei	TU0-8454
+nanA	TU0-42543
+folD-ybcJ	TU0-12965
+glk	TU0-14640
+sapABCDF	TU0-13206
+yqjG	TU0-13865
+yiaWV	TU0-13986	Regulation of yiaWV by DNA-binding transcriptional activator YiaU
+rutABCDEFG	TU0-3645		ArcA-P<sup>asp54</sup> DNA-binding-site 97 bases upstream of rutAp,PhoP-P<sup>asp51</sup> DNA-binding-site 106 bases upstream of rutAp,NtrC phosphorylated dimer DNA-binding-site 145 bases upstream of rutAp
+ydiFO	TU0-13374
+yjjJ	TU0-14222
+gltA	TU00106		IHF DNA-binding-site 70 bases upstream of gltAp1,ArcA-P<sup>asp54</sup> DNA-binding-site 47 bases upstream of gltAp1,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 107.5 bases upstream of gltAp1
+rnk	TU0-12996
+yjcH-actP	TU0-198701	Regulation of yjcH-actP by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+intD	TU0-8837
+srlAEBD-gutM-srlR-gutQ	TU00133		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 342 bases upstream of srlAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of srlAp,GutM DNA-binding-site regulating srlAp,SrlR DNA-binding-site regulating srlAp
+hypF	TU0-14407
+yffO-yffP	TU0-42449
+pcnB-folK	TU00315
+tig	TU0-14614
+fadM	TU0-12932
+ung	TU0-6515		CpxR-phosphorylated DNA-binding-site 81 bases upstream of ungp
+chiA	TU0-3141		H-NS DNA-binding-site regulating chiAp
+satP	TU0-12791
+rrsG-gltW-rrlG-rrfG	TU0-1187		Fis DNA-binding-site 112 bases upstream of rrsGp,Fis DNA-binding-site 91 bases upstream of rrsGp,Fis DNA-binding-site 71 bases upstream of rrsGp
+ybjK	TU0-8671	Regulation of ybjK by DNA binding transcriptional dual regulator RcdA,Regulation of ybjK by DNA binding transcriptional dual regulator RcdA
+alaE	TU0-8745
+xapB	TU0-44211
+rsmC	TU0-14215
+ytjA	TU0-14218
+rtcR	TU0-8341
+modEF	TU0-13040
+ygeF	TU0-13761
+sseA	TU0-8526
+fnrS	TU0-14795
+serB	TU0-14224
+ybaZ	TU0-8553
+emrKY	TU0-3101		Fnr DNA-binding-site regulating emrKp,EvgA-P<sup>asp</sup> DNA-binding-site 73.5 bases upstream of emrKp
+tisB	TU0-6241	Regulation of tisB by small regulatory RNA IstR-1	LexA DNA-binding-site 28 bases upstream of tisBp
+ybaN	TU0-12946	Regulation of ybaN by DNA-binding transcriptional repressor GlaR
+ybcW	TU0-12980
+relA	TU0-42590
+pspF	TU0-1805
+eptB	TU0-13975	Regulation of eptB by small regulatory RNA ArcZ,Regulation of eptB by small regulatory RNA MgrR
+yfcZ	TU0-13597	Regulation of yfcZ by ppGpp
+yhhZ-yrhA-insA6AB6B6	TU0-13940
+insZ	TU0-13184
+rpsT	TU0-7842
+blr	TU0-13351
+fabHDG	TU00266
+paaZ	TU4		PaaX DNA-binding-site 6.5 bases upstream of paaZp,IHF DNA-binding-site 80 bases upstream of paaZp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 136.5 bases upstream of paaZp
+yafF	TU0-8542
+ada-alkB	TU0-45248		Ada DNA-binding-site 58.5 bases upstream of adap2,Ada DNA-binding-site 38.5 bases upstream of adap2
+mreBCD	TU00304
+yegH	TU0-8723
+pheU	TU00520		Fis DNA-binding-site 74 bases upstream of pheUp
+yiaY	TU0-13987
+msrA	TU241
+ymfED	TU0-13147
+yhaBC	TU0-13871
+mscS	TU0-13800
+yggX	TU0-5569
+ppiD	TU0-6621
+sdiA	TU0-42626
+appY	TU0-42454
+oxyS	TU0-8485
+cpxRA	TU0-45281	Regulation of cpxRA by small regulatory RNA MicF	CpxR-phosphorylated DNA-binding-site 67 bases upstream of cpxRp2,CpxR-phosphorylated DNA-binding-site 47 bases upstream of cpxRp2
+yffS	TU0-13633
+rluC	TU0-13134	Regulation of rluC by ppGpp
+trxC	TU0-3104		OxyR DNA-binding-site 57 bases upstream of trxCp
+atpBEFHAGDC	TU0-6635
+araFGH	TU00098		AraC-arabinose DNA-binding-site 166 bases upstream of araFp3,AraC-arabinose DNA-binding-site 91 bases upstream of araFp3,AraC-arabinose DNA-binding-site 70 bases upstream of araFp3,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 42.5 bases upstream of araFp3,AraC-arabinose DNA-binding-site 145 bases upstream of araFp3
+ykfA-yafZ	TU0-12860
+ybdJ	TU0-12988
+marC	TU0-8827
+mrp	TU0-13518
+iraM	TU0-36425
+cmr	TU0-14699
+pitB	TU0-13818
+ydaM	TU0-8697	Regulation of ydaM by small regulatory RNA OmrB,Regulation of ydaM by small regulatory RNA OmrA,Regulation of ydaM by small regulatory RNA RprA
+malZ	TU0-5402		MalT-maltotriose-ATP DNA-binding-site 73.5 bases upstream of malZp,MalT-maltotriose-ATP DNA-binding-site 60.5 bases upstream of malZp,MalT-maltotriose-ATP DNA-binding-site 37.5 bases upstream of malZp
+yhfA	TU00478		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases downstream of crpp1,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 59.5 bases upstream of crpp1
+metK	TU0-1783		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of metKp2,MetJ-SAM DNA-binding-site 2.5 bases upstream of metKp2,MetJ-SAM DNA-binding-site 14.5 bases upstream of metKp2
+pheLA	TU0-6653
+xtpA	TU0-198695
+truD	TU0-14314
+lacZYA	TU0-4703
+mdlAB	TU0-12937
+yiiF	TU0-14072
+yhfK	TU0-14308
+tynA	TU0-42552
+feaR	TU501
+cvpA-purF-ubiX	TU00444
+aspT	TU0-14370
+ycjG	TU0-8693
+yadGH	TU0-12815
+cobUST	TU0-8368
+fhuF	TU0-36402
+kilR-ydaE	TU0-13228
+eaeH-insE1EF1F1	TU0-12882
+yqhD-dkgA	TU0-13823	Regulation of yqhD-dkgA by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+mltD	TU0-12841	Regulation of mltD by DNA-binding transcriptional dual regulator Nac
+citCDEFXG	TU0-12999
+ptrB	TU0-13435
+nikABCDER	TU0-198745	Regulation of nikABCDER by DNA-binding transcriptional dual regulator Cra
+pgk-fbaA	TU0-14818
+gdhA	TU0-1201		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 32.5 bases upstream of gdhAp,Nac DNA-binding-site 45 bases downstream of gdhAp,Nac DNA-binding-site 81 bases upstream of gdhAp,Nac DNA-binding-site 25 bases upstream of gdhAp,Nac DNA-binding-site 25 bases downstream of gdhAp
+mviM	TU0-14350
+yeaP	TU0-8714
+parC	TU0-13830
+uxuAB	TU101	Regulation of uxuAB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator	ExuR DNA-binding-site 159.5 bases upstream of uxuAp,UxuR DNA-binding-site 24.5 bases upstream of gntPp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of gntPp,ExuR DNA-binding-site 53.5 bases upstream of uxuAp,UxuR DNA-binding-site 130.5 bases upstream of gntPp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 126.5 bases upstream of gntPp
+deoABD	TU0-14537
+insE2F2EF2	TU0-12910
+dctA	TU0-1461		DcuR-P DNA-binding-site 106 bases upstream of dctAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 81.5 bases upstream of dctAp
+glcBA	TU0-14536
+araE-ygeA	TU0-42571
+pgk-fbaA	TU0-8081
+abgABT-ogt	TU0-13222
+pta	TU0-8302
+yncE	TU0-8638
+puuP	TU0-4404
+yahK	TU0-12895
+gnsA	TU0-44202
+focA-pflB	TU00377		NarL-P<sup>asp59</sup> DNA-binding-site 87 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 27 bases upstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 25 bases upstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 36 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 52 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 96 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 170 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 302 bases downstream of focAp3,ArcA-P<sup>asp54</sup> DNA-binding-site 114 bases upstream of focAp1,ArcA-P<sup>asp54</sup> DNA-binding-site 5 bases downstream of focAp2,ArcA-P<sup>asp54</sup> DNA-binding-site 251 bases upstream of focAp1,Fnr DNA-binding-site 40.5 bases upstream of focAp1,IHF DNA-binding-site 112.5 bases upstream of focAp1,NarL-P<sup>asp59</sup> DNA-binding-site 221 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 285 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 69 bases downstream of focAp3,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 40.5 bases upstream of focAp1
+purA	TU00094		PurR-hypoxanthine DNA-binding-site 90.5 bases upstream of purAp,PurR-hypoxanthine DNA-binding-site 9.5 bases downstream of purAp,MarA DNA-binding-site 43 bases upstream of purAp
+btuD	TU0-44193
+yeiL	TU0-14303
+ytfH	TU0-8664
+dcuD	TU0-8761		IHF DNA-binding-site 44 bases upstream of dcuDp2
+insH4	TU0-13219
+yicJI	TU-8434
+norR	TU0-14258		NorR DNA-binding-site 1 bases downstream of norRp,NorR DNA-binding-site 45 bases upstream of norRp,NorR DNA-binding-site 21 bases upstream of norRp
+yceA	TU0-921
+yhiI-rbbA-yhhJ	TU0-13952
+kptA	TU0-8842
+yhiL	TU0-13955
+yraH	TU0-13873	Regulation of yraH by DNA-binding transcriptional dual regulator Nac
+argO	TU0-13799
+tsx	TU00449	Regulation of tsx by small regulatory RNA RybB,Regulation of tsx by small regulatory RNA MicA	DeoR DNA-binding-site 7.5 bases upstream of tsxp1
+yqaE	TU0-13709	Regulation of yqaE by ppGpp,Regulation of yqaE by small regulatory RNA CyaR
+rnlB	TU-8431
+yqeB	TU0-13778
+rssAB	TU0-8367
+cydAB	TU00100		ArcA-P<sup>asp54</sup> DNA-binding-site 84 bases upstream of cydAp1,ArcA-P<sup>asp54</sup> DNA-binding-site 304 bases upstream of cydAp1,ArcA-P<sup>asp54</sup> DNA-binding-site 293 bases upstream of cydAp1,ArcA-P<sup>asp54</sup> DNA-binding-site 135 bases downstream of cydAp1,ArcA-P<sup>asp54</sup> DNA-binding-site 315 bases upstream of cydAp1,H-NS DNA-binding-site regulating cydAp1,Fnr DNA-binding-site 96.5 bases upstream of cydAp4,Fnr DNA-binding-site 44.5 bases upstream of cydAp4
+ycaO	TU0-13084
+ryhB	TU0-3401		DNA-binding transcriptional dual regulator Fur DNA-binding-site 18 bases upstream of yhhXp5,DNA-binding transcriptional dual regulator Fur DNA-binding-site 12 bases upstream of yhhXp5
+fkpA	TU0-1063
+rmf	TU0-42483	Regulation of rmf by putrescine
+yneO	TU0-13297
+caiTABCDE	TU00247		Fnr DNA-binding-site 90.5 bases upstream of caiTp,Fnr DNA-binding-site 41.5 bases upstream of caiTp,ArcA-P<sup>asp54</sup> DNA-binding-site 50 bases downstream of caiTp,ArcA-P<sup>asp54</sup> DNA-binding-site 28 bases downstream of caiTp,ArcA-P<sup>asp54</sup> DNA-binding-site 101 bases upstream of caiTp,ArcA-P<sup>asp54</sup> DNA-binding-site 91 bases upstream of caiTp,CaiF-L-carnitine DNA-binding-site 60.5 bases upstream of fixAp,CaiF-L-carnitine DNA-binding-site 117.5 bases upstream of fixAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of caiTp
+yfjW	TU0-13698
+hisL	TU0-42511
+copA	TU0-3122		CueR DNA-binding-site 25 bases upstream of copAp
+sibD	TU0-13845
+ybeT	TU0-8562	Regulation of ybeT by DNA-binding transcriptional dual regulator Nac
+caiF	TU141		Fnr DNA-binding-site 55.5 bases upstream of caiFp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of caiFp
+ybaV	TU0-12931
+trmL	TU0-13994
+yebB	TU0-8245
+ynfK	TU0-13338
+priA	TU0-14087
+ygeP	TU0-13768
+fucO	TU0-42697
+yaeH	TU0-12825
+insN-2	TU0-14185
+fimAICDFGH	TU182		Lrp DNA-binding-site 173 bases downstream of fimAp,Lrp DNA-binding-site 235 bases downstream of fimAp,Lrp DNA-binding-site 204 bases downstream of fimAp,IHF DNA-binding-site 77 bases downstream of fimAp,H-NS DNA-binding-site regulating fimAp,IHF DNA-binding-site 52 bases upstream of fimAp
+rrlB-rrfB	TU0-14528
+miaB	TU0-13018
+speB	TU0-6625
+yjeJ	TU0-14142	Regulation of yjeJ by DNA-binding transcriptional dual regulator Nac
+cbrA	TU0-42468	Regulation of cbrA by DNA-binding transcriptional regulator CreB-phosphorylated
+arcB	TU0-5621
+malT	TU00091		Mlc DNA-binding-site 12 bases downstream of malTp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 70.5 bases upstream of malTp
+csgBAC	TU0-45224		CpxR-phosphorylated DNA-binding-site 8 bases downstream of csgBp2,CsgD DNA-binding-site 38 bases upstream of csgBp2
+ryjB	TU0-14424
+insH-9	TU0-8836
+matP	TU0-8677
+mrr	TU0-8821
+plaR	TU368		IHF DNA-binding-site 4 bases upstream of plaRp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 50.5 bases downstream of plaRp
+ytfE	TU-8441		NsrR DNA-binding-site 12 bases upstream of ytfEp
+ileY	TU0-13704
+ydjO	TU0-13385
+rpmBG-mutM	TU0-5543
+aspA-dcuA	TU0-6021		NarL-P<sup>asp59</sup> DNA-binding-site 112 bases upstream of aspAp,NarL-P<sup>asp59</sup> DNA-binding-site 76 bases upstream of aspAp,NarL-P<sup>asp59</sup> DNA-binding-site 67 bases upstream of aspAp
+rne	TU0-14273	Regulation of rne by ribonuclease E
+yecA	TU0-13450
+ybeU-djlC	TU0-13012
+uppS-cdsA	TU0-14339
+nlpC	TU0-13378
+yijO	TU0-14093	Regulation of yijO by DNA-binding transcriptional dual regulator Nac
+mepS	TU0-13550
+dsbA	TU0-1062
+yeiG	TU0-8726
+folP-glmM	TU0-13883
+gadY	TU0-5761
+insA4AB4B4	TU0-13109
+rpsT	TU0-7844
+insC2D2CD2	TU0-13245
+tus	TU0-13346
+yiiU	TU0-8607
+ligA-ypeB	TU0-13620
+lptAB	TU0-36433
+yeaD	TU0-13398
+tyrB	TU00087		TyrR-tyr DNA-binding-site 19.5 bases downstream of tyrBp,TyrR-tyr DNA-binding-site 42.5 bases downstream of tyrBp
+argP	TU0-1341		PhoB-P<sup>asp53</sup> DNA-binding-site 27 bases upstream of argPp
+qseBC	TU-8394
+rutR	TU0-14540
+msrC	TU0-13426
+uhpTU	TU00130		UhpA-P<sup>asp</sup> DNA-binding-site 64.5 bases upstream of uhpTp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 103.5 bases upstream of uhpTp,UhpA-P<sup>asp</sup> DNA-binding-site 41.5 bases upstream of uhpTp
+ygfF	TU0-13791
+rlmD	TU0-13735
+yiaT	TU0-8591
+yhiM	TU0-8586
+yhjR	TU0-14316
+intA	TU0-13688	Regulation of intA by CP4-57 prophage; DNA-binding transcriptional activator AlpA
+letAB	TU0-13427
+comR	TU0-8684
+feaR	TU0-42548
+yihI	TU0-14060
+pptA	TU0-13280
+dpiBA	TU0-14751
+plaP	TU0-13490
+ompX	TU0-8812	Regulation of ompX by small regulatory RNA MicA,Regulation of ompX by small regulatory RNA CyaR	Fnr DNA-binding-site regulating ompXp2
+yhbW	TU0-13879	Regulation of yhbW by DNA-binding transcriptional dual regulator SoxS,Regulation of yhbW by DNA-binding transcriptional dual regulator Rob,Regulation of yhbW by DNA-binding transcriptional dual regulator MarA
+rcnB	TU0-13515
+ypeA-yfeZ	TU0-13626
+rcsF-trmO	TU0-12837
+bolA	TU0-45284		OmpR-P DNA-binding-site 47.5 bases upstream of bolAp
+serX	TU00510		Fis DNA-binding-site 75 bases upstream of serXp
+tam	TU0-13300	Regulation of tam by ppGpp
+yqhJ	TU0-198738
+mreB	TU0-14388
+emrD	TU0-14013
+pepD	TU0-6556
+alsBACE	TU0-14547
+ybfHG	TU0-8375
+pdxK	TU0-8487
+yheSTU	TU0-13919
+ynbABCD	TU0-13250
+ygiS	TU0-13831
+yfiL	TU0-13678
+yihUTS	TU0-14068
+exuT	TU00150		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 105.5 bases upstream of uxaCp2,ExuR DNA-binding-site 127.5 bases upstream of uxaCp2
+dadAX	TU461		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 9.5 bases upstream of dadAp3,Lrp DNA-binding-site 79 bases downstream of dadAp2,Lrp DNA-binding-site 57 bases downstream of dadAp2,Lrp DNA-binding-site 10 bases downstream of dadAp2,Lrp DNA-binding-site 23 bases upstream of dadAp2,Lrp DNA-binding-site 68 bases upstream of dadAp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 59.5 bases upstream of dadAp2
+hscC	TU0-13013
+mdoC	TU0-8826
+yggSTU-rdgB-hemW	TU0-13807
+epd-pgk	TU00443		Cra DNA-binding-site 3.5 bases downstream of epdp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 70.5 bases upstream of epdp2
+rhaM	TU0-14296
+yniB	TU0-8640
+manA	TU0-6425
+ydgI-folM	TU0-13345
+dsdA	TU00375		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site regulating dsdAp
+rpoS	TU0-14650
+sutR	TU0-13264
+artPIQM	TU00240		ArgR DNA-binding-site 29.5 bases upstream of artPp
+mglBAC	TU00168		GalR DNA-binding-site 59.5 bases upstream of mglBp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of mglBp2,GalS DNA-binding-site 59.5 bases upstream of mglBp2
+lpdA	TU00523		Fnr DNA-binding-site regulating lpdAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 18.5 bases upstream of lpdAp,ArcA-P<sup>asp54</sup> DNA-binding-site 18 bases upstream of lpdAp,Fis DNA-binding-site 29 bases upstream of lpdAp
+yciZT	TU0-8475
+ryjA	TU0-8519
+mocA	TU0-13780
+tusA	TU0-8510
+ynaJ	TU0-13220	Regulation of ynaJ by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+ygaQ	TU0-13705
+mcaS	TU0-8839
+yfaVU	TU0-13565
+yciSM-pyrF-yciH	TU0-14472
+arpA	TU0-14106
+yehLMPQ	TU0-13523
+slyD	TU0-13917
+rpmH-rnpA	TU682
+acnA	TU795
+tfaD	TU0-12982
+ycaR-kdsB	TU0-13088
+sokB	TU0-13257
+mfd	TU0-2082
+ymgF	TU0-13164
+lysO	TU0-13076
+iraP	TU0-14613
+ftsZ	TU0-1425
+bax	TU0-14231
+envR	TU0-8792
+can	TU0-45255
+ycgX	TU0-13157	Regulation of ycgX by DNA-binding transcriptional dual regulator Nac
+queC	TU0-12933
+ampH	TU0-14612
+mrcA	TU0-8822
+livKHMGF	TU00184		Lrp DNA-binding-site regulating livKp1
+gmhB	TU0-12838
+tcyP	TU0-13384
+yedK	TU0-13456
+malQ	TU-8414
+menA-rraA	TU0-965
+yoeA	TU0-8326
+ygbJK	TU0-13721	Regulation of ygbJK by DNA-binding transcriptional repressor YgbI
+rrsC-gltU-rrlC-rrfC	TU0-45209		Lrp-leu DNA-binding-site regulating rrsCp,Fis DNA-binding-site 121 bases upstream of rrsCp,Fis DNA-binding-site 101 bases upstream of rrsCp,Fis DNA-binding-site 70 bases upstream of rrsCp
+sdhCDAB	TU0-198705	Regulation of sdhCDAB by DNA-binding transcriptional dual regulator Fur,Regulation of sdhCDAB by DNA-binding transcriptional dual regulator Fur
+yafL	TU0-12850
+ymdE-ycdU	TU0-13118
+lgoT	TU0-14210
+eno	TU0-14412		Cra DNA-binding-site 33.5 bases upstream of enop3
+ubiF	TU0-8533
+ycdZ	TU0-13121
+rpoH	TU00084		DnaA-ATP DNA-binding-site 31 bases upstream of rpoHp4,DnaA-ATP DNA-binding-site 48 bases upstream of rpoHp3,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 20.5 bases upstream of rpoHp3,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 73.5 bases upstream of rpoHp3,CytR DNA-binding-site 33.5 bases upstream of rpoHp3
+pntAB	TU00320
+ytfJ	TU0-6362
+mutY-yggX-mltC-nupG	TU0-5561
+dadAX	TU462		Lrp DNA-binding-site 79 bases downstream of dadAp2,Lrp DNA-binding-site 57 bases downstream of dadAp2,Lrp DNA-binding-site 10 bases downstream of dadAp2,Lrp DNA-binding-site 23 bases upstream of dadAp2,Lrp DNA-binding-site 68 bases upstream of dadAp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 59.5 bases upstream of dadAp2
+osmE	TU00398		Fis DNA-binding-site 31 bases upstream of osmEp2,Fis DNA-binding-site 26 bases downstream of osmEp2,Fis DNA-binding-site 86 bases upstream of osmEp2,IHF DNA-binding-site 4.5 bases downstream of osmEp2
+yfhR	TU0-13659
+gspCDEFGHIJKLMO	TU0-13913		H-NS DNA-binding-site regulating gspCp3
+lafU	TU0-12852
+yfaH	TU0-8728
+ycgJ	TU0-8687	Regulation of ycgJ by DNA-binding transcriptional dual regulator Nac
+hrpA	TU0-13251
+katE	TU0-6507	Regulation of katE by ppGpp
+ompW	TU0-8813	Regulation of ompW by small regulatory RNA MicA,Regulation of ompW by small regulatory RNA RybB	Fnr DNA-binding-site 81.5 bases upstream of ompWp
+eutNEJG	TU0-13635
+fabF	TU0-42538
+yehHI	TU0-13521
+yobH	TU0-8647
+yqaBA	TU0-13715
+ybgIJKL-nei	TU0-8455
+leuO	TU0-42477
+appY	TU0-8479		H-NS DNA-binding-site regulating appYp1
+osmF-yehYXW	TU0-5341	Regulation of osmF-yehYXW by ppGpp
+cedA	TU781
+yjhP	TU0-14194
+mmuPM	TU0-12864
+ycaM	TU0-13082
+uvrB	TU0-14730
+ilvIH	TU0-6882
+yhgE	TU0-8579	Regulation of yhgE by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+fumB	TU00159		Fnr DNA-binding-site 114.5 bases upstream of fumBp,Fnr DNA-binding-site 57.5 bases upstream of fumBp,Fnr DNA-binding-site 61.5 bases upstream of fumBp
+frlABCDR	TU0-8346
+sdsN	TU0-42630
+gor	TU0-45208
+fadH	TU0-13853
+ycbC	TU0-8676
+argW	TU00500		Fis DNA-binding-site 74 bases upstream of argWp
+leuO	TU0-42656
+focA-pflB	TU00379		NarL-P<sup>asp59</sup> DNA-binding-site 302 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 285 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 221 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 170 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 96 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 87 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 69 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 52 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 36 bases downstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 27 bases upstream of focAp3,NarL-P<sup>asp59</sup> DNA-binding-site 25 bases upstream of focAp3,Fnr DNA-binding-site 58.5 bases upstream of focAp3
+relA-mazEF	TU0-14269		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of relAp2
+ansA-pncA	TU00238
+gapA	TU0-4906		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of gapAp3
+metBL	TU0-3741		PhoP-P<sup>asp51</sup> DNA-binding-site 20 bases upstream of metBp,MetJ-SAM DNA-binding-site 30.5 bases upstream of metBp,MetJ-SAM DNA-binding-site 40.5 bases upstream of metBp,MetJ-SAM DNA-binding-site 38.5 bases upstream of metBp,MetJ-SAM DNA-binding-site 48.5 bases upstream of metBp,MetJ-SAM DNA-binding-site 46.5 bases upstream of metBp,MetJ-SAM DNA-binding-site 56.5 bases upstream of metBp
+dmlA	TU0-13410
+yafJ	TU0-12847
+yjiML	TU0-14202
+eda	TU26
+yeeN	TU0-13476
+elaB	TU0-13571	Regulation of elaB by ppGpp
+tpx	TU544		ArcA-P<sup>asp54</sup> DNA-binding-site 22 bases upstream of tpxp,Fnr DNA-binding-site 18.5 bases upstream of tpxp
+dnaB	TU0-14119
+ribF-ileS-lspA-fkpB-ispH	TU00291
+yaeF	TU0-12836	Regulation of yaeF by DNA-binding transcriptional dual regulator Nac
+ybdD	TU0-12991
+lysQ	TU0-13036
+ubiUV	TU0-13878
+asnA	TU00112	Regulation of asnA by small regulatory RNA GcvB	AsnC DNA-binding-site 12.5 bases downstream of asnCp
+grxB	TU0-13130
+yfjJ	TU0-13691
+ybhK	TU0-6363
+speD	TU0-44215
+fumC	TU0-42482
+mreBCD	TU0-14387
+frlR	TU0-44200
+rapA-rluA	TU0-3841
+smrB	TU0-8733	Regulation of smrB by DNA-binding transcriptional dual regulator YdcI
+sixA	TU0-45192
+nfeR	TU0-8658		Fnr DNA-binding-site regulating nfeRp
+yegL-pphC	TU0-13501
+rnb	TU582
+sieB	TU0-8509
+yidX	TU0-8600
+rcsDB	TU0-14359
+ecpR	TU0-12880
+yohO	TU0-13528	Regulation of yohO by DNA-binding transcriptional dual regulator Nac
+argG	TU0-5501		ArgR-arg DNA-binding-site 125.5 bases upstream of argGp,ArgR-arg DNA-binding-site 6.5 bases upstream of argGp,ArgR-arg DNA-binding-site 15.5 bases downstream of argGp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 167.5 bases upstream of argGp
+recET-ralR-rcbA-xisR-intR	TU0-13226
+xapR	TU792
+valS	TU0-6405
+insH6	TU0-13479
+crr	TU0-4786
+mlc-ynfK	TU790		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 70.5 bases upstream of mlcp,Mlc DNA-binding-site 4 bases downstream of mlcp
+abgR	TU0-8760	Regulation of abgR by CRP-cyclic-AMP DNA-binding transcriptional dual regulator,Regulation of abgR by DNA-binding transcriptional dual regulator Nac
+mazEFG	TU523		Fis DNA-binding-site 53.5 bases upstream of mazEp2
+nanATEK-yhcH	TU0-1601		NanR DNA-binding-site 6.5 bases downstream of nanAp,NanR DNA-binding-site 2.5 bases upstream of nanAp,NanR DNA-binding-site 11.5 bases upstream of nanAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of nanAp
+ydjF	TU0-13393
+lysZ	TU0-13035
+yaeQ-arfB-nlpE	TU0-12835
+nikABCDER	TU00308		NikR DNA-binding-site 12.5 bases upstream of nikAp1,Fnr DNA-binding-site 40.5 bases upstream of nikAp1
+lon	TU0-45285
+btuB-murI	TU0-6281	Regulation of btuB-murI by adenosylcobalamin
+upp-uraA	TU00439		Fnr DNA-binding-site 61.5 bases upstream of uppp
+yqhA	TU0-8656
+glgBXCAP	TU0-14302
+ppdD-hofBC	TU0-12811
+yjgD	TU0-8617
+gatZABCD	TU0-14638
+gfcE-etp-etk	TU0-13106
+ygiQ	TU0-13827
+sraG	TU0-8516
+dld	TU0-8787	Regulation of dld by DNA-binding transcriptional dual regulator Nac
+pyrF-yciH	TU0-6407
+ymiB	TU0-198727
+yghF	TU0-4242
+flu	TU0-14636
+cysE	TU0-6501	Regulation of cysE by small regulatory RNA RyhB
+yegE	TU0-8722
+xseB-ispA-dxs-yajO	TU00373
+yraN	TU0-14342
+helD	TU0-8809
+yghED	TU0-13811
+ydcSTUV-patD	TU0-42535
+hmp	TU681	Regulation of hmp by RNA polymerase-binding transcription factor DksA,Regulation of hmp by small regulatory RNA SdsN	NsrR DNA-binding-site 2 bases downstream of hmpp,Fnr DNA-binding-site 5.5 bases downstream of hmpp
+yciK-btuR	TU0-13196
+galETK	TU0-42584
+soxS	TU00211	Regulation of soxS by small regulatory RNA MgrR	SoxS DNA-binding-site 3 bases downstream of soxSp,SoxR DNA-binding-site 25.5 bases upstream of soxSp
+ydbK-ompN	TU0-42540
+yidR	TU0-8598
+ybgA-phr	TU0-14679
+yoaC	TU0-13416	Regulation of yoaC by ppGpp
+pyrG-eno	TU0-6428
+fieF	TU0-14078
+gntT	TU00229		GntR DNA-binding-site 55.5 bases upstream of gntTp2,GntR DNA-binding-site 86.5 bases downstream of gntTp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 112.5 bases upstream of gntTp2
+lexA-dinF	TU00037		LexA DNA-binding-site 9 bases upstream of lexAp,LexA DNA-binding-site 13 bases downstream of lexAp
+yqeF	TU0-13757	Regulation of yqeF by CRP-cyclic-AMP DNA-binding transcriptional dual regulator
+yaiT	TU0-8550
+ymfTLMNR-beeE-jayE-ymfQ-ycfK-tfaP	TU0-13151
+ymdG	TU0-198726
+yfjM	TU0-13693
+yccE	TU0-13113
+pldA	TU0-14046
+ygjJK	TU0-13852
+ysaB	TU0-13981
+ribC	TU0-8504
+yzgL	TU0-13934
+hcxB	TU0-13051
+apt	TU0-12947
+proV	TU0-198742
+ygiF-glnE	TU0-13847
+sbmC	TU0-13487
+cspA	TU0-1581	Regulation of cspA by NIL
+insQ	TU0-14243
+rluE-nudJ	TU0-13145
+exbBD	TU00265		DNA-binding transcriptional dual regulator Fur DNA-binding-site 46 bases upstream of exbBp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 40 bases upstream of exbBp
+hypT	TU0-14198
+talB	TU0-8121
+mdtEF	TU0-14697
+yqgA	TU0-13810
+yiaF	TU0-8589
+pepA	TU0-14740
+kbaZ-agaVWA	TU0-6581		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of kbaZp,AgaR DNA-binding-site 75.5 bases upstream of kbaZp,AgaR DNA-binding-site 31.5 bases upstream of kbaZp,AgaR DNA-binding-site 3.5 bases downstream of kbaZp
+valZ-lysY	TU0-13034
+ilvIH	TU0-6881
+yjdP	TU0-14130
+dnaN-recF	TU0-1195
+glpQ	TU0-42700
+yegD	TU0-8721
+gapA	TU0-42480
+greA	TU0-14794
+fdrA-ylbEF-ybcF	TU0-12962
+cyuPA	TU0-13869	Regulation of cyuPA by DNA-binding transcriptional activator DecR
+murQP	TU0-45211
+hdfR	TU0-8808
+alsRBACE	TU0-4502		AlsR DNA-binding-site regulating alsRp2
+gadW	TU0-14719
+yajQ	TU0-8555
+dcrB	TU0-13945
+ptsHI-crr	TU0-45232		Mlc DNA-binding-site 13 bases downstream of ptsHp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 63.5 bases upstream of ptsHp
+cysG	TU0-0
+patA	TU0-45258	Regulation of patA by ppGpp	IHF DNA-binding-site 256 bases upstream of patAp2,Fis DNA-binding-site 121 bases upstream of patAp2,NtrC-P<sup>asp</sup> DNA-binding-site 193 bases upstream of patAp2,NtrC-P<sup>asp</sup> DNA-binding-site 171 bases upstream of patAp2
+yijE	TU0-14089
+bglGFB	TU0-4802		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of bglGp2,Fis DNA-binding-site 52 bases upstream of bglGp1,Fis DNA-binding-site 27 bases upstream of bglGp1,H-NS DNA-binding-site 680 bases downstream of bglGp1
+gltX	TU0-6551
+talA-tktB	TU0-6921	Regulation of talA-tktB by RNA polymerase-binding transcription factor DksA,Regulation of talA-tktB by ppGpp
+uvrB	TU0-7044
+corA	TU00455
+rplY	TU0-13557	Regulation of rplY by 50S ribosomal subunit protein L25
+aroKB-damX-dam-rpe-gph-trpS	TU872
+xylE	TU0-14113
+melR	TU00040		MelR-melibiose DNA-binding-site 42.5 bases upstream of melAp,MelR-melibiose DNA-binding-site 100.5 bases upstream of melAp,MelR-melibiose DNA-binding-site 120.5 bases upstream of melAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 81.5 bases upstream of melAp,MelR-melibiose DNA-binding-site 62.5 bases upstream of melAp,MelR DNA-binding-site 238.5 bases upstream of melAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 195.5 bases upstream of melAp
+cbpAM	TU00387	Regulation of cbpAM by ppGpp
+aphA	TU0-14121
+psuKG	TU0-13546	Regulation of psuKG by CRP-cyclic-AMP DNA-binding transcriptional dual regulator
+yfjPQ	TU0-13694
+cybB	TU0-13253
+yiiE	TU0-14071
+rpnD	TU0-14204
+sdhDAB	TU0-6702		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 13 bases upstream of sdhDp
+uacT	TU0-13785
+glpR	TU404
+eutSPQTDM	TU0-13636	Regulation of eutSPQTDM by DNA-binding transcriptional dual regulator NagC
+ompA	TU0-4742	Regulation of ompA by small regulatory RNA RseX,Regulation of ompA by small regulatory RNA MicA
+yejG	TU0-13553
+entH	TU0-14617
+tolC-ygiBC	TU0-14701
+gadXW	TU0-14433	Regulation of gadXW by small regulatory RNA GadY
+ygcU	TU0-13731
+ybdM	TU0-12992
+ybaP	TU0-8523
+yniA	TU0-13382	Regulation of yniA by ppGpp
+prpBCDE	TU0-3602		PrpR-2-methylcitrate DNA-binding-site 147.5 bases upstream of prpBp,PrpR-2-methylcitrate DNA-binding-site 113.5 bases upstream of prpBp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 106.5 bases upstream of prpBp
+cpxRA	TU0-3	Regulation of cpxRA by small regulatory RNA MicF	CpxR-phosphorylated DNA-binding-site 67 bases upstream of cpxRp2,CpxR-phosphorylated DNA-binding-site 47 bases upstream of cpxRp2
+dgcQ	TU0-13460
+rpsMKD-rpoA-rplQ	TU0-14658
+phoPQ	TU0-14468
+uspG	TU0-8536
+ugd	TU0-13495	Regulation of ugd by DNA-binding transcriptional dual regulator Nac
+gloB	TU0-12842
+sufABCDSE	TU0-2621	Regulation of sufABCDSE by ppGpp	DNA-binding transcriptional dual regulator Fur DNA-binding-site 20 bases upstream of sufAp,IscR DNA-binding-site 42.5 bases upstream of sufAp,IHF DNA-binding-site 145 bases upstream of sufAp,OxyR DNA-binding-site 210 bases upstream of sufAp
+insK	TU0-8262		LexA DNA-binding-site regulating insKp
+pdxJ-acpS	TU484
+nudI	TU0-8730
+crcB	TU0-8778
+ybhC	TU0-13045
+cutA	TU359
+yfgG	TU0-13647
+gadBC	TU0-45231	Regulation of gadBC by ppGpp	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 63.5 bases upstream of gadBp2,GadE DNA-binding-site 62.5 bases upstream of gadBp2,GadX DNA-binding-site 98.5 bases upstream of gadBp2,GadX DNA-binding-site 17.5 bases upstream of gadBp2
+ybjC-nfsA-rimK-ybjN	TU0-2101		SoxS DNA-binding-site 56.5 bases upstream of ybjCp
+hyfABCDEFGHIJR-focB	TU686		Fnr DNA-binding-site 105.5 bases upstream of hyfAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 160.5 bases upstream of hyfAp,FhlA-formate DNA-binding-site 130 bases upstream of hyfAp,HyfR DNA-binding-site 129.5 bases upstream of hyfAp
+rmuC	TU0-14051
+groSL	TU0-45180
+yciSM-pyrF-yciH	TU0-45262
+allA	TU0-7601		AllR-allantoin DNA-binding-site 37 bases upstream of allSp
+yjaA	TU0-14105
+sokE	TU0-198719
+ybaQ	TU0-8524
+uxaB	TU00372
+aegA	TU0-13640	Regulation of aegA by CRP-cyclic-AMP DNA-binding transcriptional dual regulator
+epd-pgk-fbaA	TU0-45273
+sdiA	TU0-13452	Regulation of sdiA by DNA-binding transcriptional dual regulator Nac
+acpH	TU0-8764
+tyrR	TU00068		TyrR DNA-binding-site 95.5 bases upstream of tyrRp,TyrR DNA-binding-site 51.5 bases upstream of tyrRp
+ybeD	TU0-13007
+btsT	TU0-42491
+rhtB	TU0-8501
+lptAB	TU0-14292
+ppc	TU0-6510
+zapC	TU0-13096
+deaD	TU0-13880
+ydcO	TU0-8702	Regulation of ydcO by DNA-binding transcriptional dual regulator SutR
+groL	TU0-14674
+ydhL	TU0-13358
+pspBCDE	TU0-14550
+yedP	TU0-8720	Regulation of yedP by ppGpp
+ydcH	TU0-13260
+poxB-ltaE-ybjT	TU0-13075
+murA	TU0-13887
+ylbG	TU0-12961
+lacZYA	TU0-4702		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 39.5 bases upstream of lacZp2
+metA	TU00041		MetJ-SAM DNA-binding-site 4.5 bases downstream of metAp1,MetJ-SAM DNA-binding-site 20.5 bases downstream of metAp1
+omrB	TU0-8762		OmpR-P DNA-binding-site 71.5 bases upstream of omrBp
+fabR-yijD	TU0-14097
+slt	TU0-14226
+rtcBA	TU61		IHF DNA-binding-site 62 bases upstream of rtcBp,IHF DNA-binding-site 52 bases upstream of rtcBp
+ynaA-lomR	TU0-13235
+fucU	TU0-42698
+tamAB-ytfP	TU0-14165
+ymdB-clsC	TU0-13123
+mlaFEDCB	TU0-13889
+glgS	TU00420	Regulation of glgS by carbon storage regulator CsrA
+rplM-rpsI	TU00336	Regulation of rplM-rpsI by ATP-dependent RNA helicase SrmB,Regulation of rplM-rpsI by 50S ribosomal subunit protein L13	Fnr DNA-binding-site regulating rplMp
+yffQR	TU0-13632
+cspE	TU0-14576
+tar-tap-cheRBYZ	TU0-1547		Fnr DNA-binding-site regulating tarp
+ygiN	TU0-13836	Regulation of ygiN by DNA-binding transcriptional dual regulator Nac
+wcaCDEF-gmd-fcl-gmm-wcaI-cpsBG-wcaJ-wzxC	TU0-13499
+exoD	TU0-12969
+pqqL	TU0-13289
+ydcR	TU0-13267
+rsmB	TU0-14355
+ygaZH	TU0-13713
+lsp-fkpB-ispH	TU0-14253
+ygeI	TU0-13764
+yafC	TU0-8541	Regulation of yafC by DNA-binding transcriptional dual regulator Nac
+cobUST	TU00252
+entCEBA-ybdB	TU00166		DNA-binding transcriptional dual regulator Fur DNA-binding-site 25 bases downstream of entCp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 19 bases downstream of entCp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 13 bases downstream of entCp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 29.5 bases upstream of entCp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 267.5 bases upstream of entCp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 100 bases upstream of entCp
+yfgO	TU0-8739
+rnt-lhr	TU00333
+metJ	TU0-2706
+csgDEFG	TU0-14429
+apaGH	TU0-5202
+yjjB-dnaTC-yjjA	TU0-8867
+yoaF	TU0-8644
+hemH	TU0-12951	Regulation of hemH by small regulatory RNA RyhB	OxyR DNA-binding-site 33 bases upstream of hemHp
+aceEF	TU0-6634		ArcA-P<sup>asp54</sup> DNA-binding-site regulating aceEp2
+yehR	TU0-13524
+ycbJ	TU0-13089
+zitB	TU0-13038
+yfiM	TU0-13673
+zapE	TU0-13896
+mglAC	TU0-7901
+glpR	TU403
+pflB	TU00381
+yfdV	TU0-13609	Regulation of yfdV by DNA-binding transcriptional dual regulator Nac
+ypdJ	TU0-13606
+secG-leuU	TU0-14574
+clcA	TU0-12821
+acnA	TU0-14625
+ibaG	TU0-13888
+ydbH-ynbE-ydbL	TU0-13242
+yqjF	TU0-13864	Regulation of yqjF by ppGpp,Regulation of yqjF by DNA-binding transcriptional activator YhaJ
+trxA	TU0-3102		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 23.5 bases upstream of trxAp1
+yhcN	TU0-13899
+kdsC-lptCAB	TU0-36431
+coaA	TU0-14228
+ralA	TU0-42572
+hemF	TU0-45288
+ddpXABCDF	TU0-42463
+och5	TU0-198718
+metA	TU0-5061
+ymgC	TU0-13162
+lsrRK	TU0-13299
+ydhP	TU0-8332
+proS	TU0-6562
+dgt	TU0-12823
+yejLM	TU0-13558
+yjjUV	TU0-14219
+yjhR	TU0-8623
+tauABC	TU0-198708	Regulation of tauABC by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+aspX	TU0-52570
+yddM	TU0-13285
+clsC	TU0-14619
+purT	TU0-8494
+ycdXY	TU0-13120
+csgBAC	TU00390		CpxR-phosphorylated DNA-binding-site 8 bases downstream of csgBp2,CsgD DNA-binding-site 38 bases upstream of csgBp2
+rhlB	TU0-14037
+adiC	TU0-14134
+eno	TU0-45270
+yajG-ampG	TU0-42605
+scpA-argK-scpBC	TU0-8343	Regulation of scpA-argK-scpBC by DNA-binding transcriptional dual regulator FNR
+aat	TU0-13077
+yjgL	TU0-14174
+yaiP	TU0-12906
+ydeJ	TU0-8706
+yaiI	TU0-12914
+endA	TU00452
+yceD-rpmF	TU601
+aroL-yaiA-aroM	TU00011		TrpR-trp DNA-binding-site 48.5 bases downstream of aroLp1,TyrR-tyr DNA-binding-site 45 bases upstream of aroLp1,TyrR-tyr DNA-binding-site 12 bases downstream of aroLp1,TyrR-tyr DNA-binding-site 31 bases downstream of aroLp1,TrpR-trp DNA-binding-site 56.5 bases downstream of aroLp1
+csgDEFG	TU00392	Regulation of csgDEFG by small regulatory RNA RybB,Regulation of csgDEFG by small regulatory RNA RydC,Regulation of csgDEFG by small regulatory RNA RprA,Regulation of csgDEFG by small regulatory RNA GcvB,Regulation of csgDEFG by small regulatory RNA RprA,Regulation of csgDEFG by small regulatory RNA McaS,Regulation of csgDEFG by small regulatory RNA OmrB,Regulation of csgDEFG by small regulatory RNA OmrA	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 170.5 bases upstream of csgDp3,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 42.5 bases upstream of csgDp3,CpxR-phosphorylated DNA-binding-site 100 bases upstream of csgDp3,CpxR-phosphorylated DNA-binding-site 52 bases upstream of csgDp3,CpxR-phosphorylated DNA-binding-site 48 bases upstream of csgDp3,CpxR-phosphorylated DNA-binding-site 21.5 bases upstream of csgDp3,CpxR-phosphorylated DNA-binding-site 3 bases downstream of csgDp3,CsgD DNA-binding-site 118.5 bases upstream of csgDp3,OmpR-P DNA-binding-site 49.5 bases upstream of csgDp3
+bssR	TU0-13065
+rsmD-yhhL	TU0-13942
+sodA	TU00064	Regulation of sodA by small regulatory RNA RyhB,Regulation of sodA by small regulatory RNA FnrS	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 99.5 bases upstream of sodAp,ArcA-P<sup>asp54</sup> DNA-binding-site 38 bases upstream of sodAp,ArcA-P<sup>asp54</sup> DNA-binding-site 21 bases upstream of sodAp,Fnr DNA-binding-site 37.5 bases upstream of sodAp,ArcA-P<sup>asp54</sup> DNA-binding-site 10 bases upstream of sodAp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 42 bases upstream of sodAp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 36 bases upstream of sodAp,IHF DNA-binding-site 68 bases upstream of sodAp,MarA DNA-binding-site 40.5 bases upstream of sodAp,Rob DNA-binding-site 40.5 bases upstream of sodAp,SoxS DNA-binding-site 44 bases upstream of sodAp,IHF DNA-binding-site 48 bases upstream of sodAp,IHF DNA-binding-site 24 bases upstream of sodAp,IHF DNA-binding-site 1 bases upstream of sodAp
+rrsG-gltW-rrlG-rrfG	TU0-1188
+tnaC	TU0-42514
+ydjA-selD-topB	TU00356
+dksA-gluQ	TU0-42497
+ytfI	TU0-14163
+rpe-gph-trpS	TU877
+mlc-ynfK	TU0-45193		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 70.5 bases upstream of mlcp,Mlc DNA-binding-site 4 bases downstream of mlcp
+ompR-envZ	TU00177		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 75 bases upstream of ompRp2
+treR	TU0-2441
+pmrD	TU0-13570
+gntR	TU0-4521
+yibD	TU0-13999
+ybcLM	TU0-12974
+panZ	TU0-8583
+htpX	TU00400
+sroG-ribB	TU0-13839
+phoPQ	TU00319	Regulation of phoPQ by small regulatory RNA GcvB,Regulation of phoPQ by small regulatory RNA MicA	PhoP-P<sup>asp51</sup> DNA-binding-site 33.0 bases upstream of phoPp1
+mgtS	TU0-13307
+prkB	TU0-13920
+pykF	TU0-14822
+gadBC	TU369	Regulation of gadBC by ppGpp	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 63.5 bases upstream of gadBp2,GadE DNA-binding-site 62.5 bases upstream of gadBp2,GadX DNA-binding-site 98.5 bases upstream of gadBp2,GadX DNA-binding-site 17.5 bases upstream of gadBp2
+dinG-ybiB	TU0-6301		LexA DNA-binding-site 27.5 bases upstream of dinGp
+cbl	TU0-1342		DNA-binding transcriptional dual regulator CysB DNA-binding-site regulating cblp
+nohA-stfQ-tfaQ	TU0-7681		DNA-binding transcriptional dual regulator Fur DNA-binding-site 4 bases downstream of nohAp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 2 bases downstream of nohAp
+ydiM	TU0-13372
+nrdAB-yfaE	TU00047		Fis DNA-binding-site 323 bases upstream of nrdAp,Fis DNA-binding-site 269 bases upstream of nrdAp,Fis DNA-binding-site 199 bases upstream of nrdAp,Fis DNA-binding-site 128 bases upstream of nrdAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 136.5 bases upstream of nrdAp,ArgP DNA-binding-site 218.5 bases upstream of nrdAp,ArgP DNA-binding-site 190.5 bases upstream of nrdAp,ArgP DNA-binding-site 163.5 bases upstream of nrdAp,Fis DNA-binding-site 156 bases upstream of nrdAp,DnaA-ATP DNA-binding-site 48 bases upstream of nrdAp,DnaA-ATP DNA-binding-site 36.5 bases upstream of nrdAp
+mntH	TU0-7321		MntR DNA-binding-site 5.5 bases downstream of mntHp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 31.5 bases upstream of mntHp
+yjfN	TU0-14155	Regulation of yjfN by DNA-binding transcriptional dual regulator CpxR-phosphorylated
+ybgTE	TU0-14366
+rna	TU0-12997
+luxS	TU0-8849	Regulation of luxS by small regulatory RNA CyaR
+xanQ-guaD-ghxQ	TU0-13783
+yhcADE	TU0-13892
+htpG	TU00402
+ydhS	TU0-13362	Regulation of ydhS by DNA-binding transcriptional repressor GlaR
+torR	TU793		TorR-P<SUP>asp</SUP> DNA-binding-site 68.5 bases upstream of torCp,TorR-P<SUP>asp</SUP> DNA-binding-site 78.5 bases upstream of torCp
+tsr	TU0-7		CpxR-phosphorylated DNA-binding-site 9 bases upstream of tsrp1
+galETK	TU0-45176
+tyrS-pdxY	TU0-14629
+fsaA	TU0-8800
+cysK	TU0-14642
+dhaR	TU0-7962
+ascB	TU0-42599
+ggt	TU0-8802	Regulation of ggt by ppGpp
+cysS	TU0-8477
+yhaJ	TU0-8573	Regulation of yhaJ by DNA-binding transcriptional activator YhaJ
+sbmA-yaiW	TU0-3426
+yfeCD	TU0-42504
+intG	TU0-8838
+yrhC	TU0-13950
+yceB	TU0-13129
+yeaX	TU0-13412
+htrL	TU0-14000
+grpE	TU00411		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 243.5 bases upstream of grpEp
+gadC	TU0-41793	Regulation of gadC by ppGpp
+hdhA	TU0-13349
+ybhQ	TU0-8566
+infC	TU0-3304
+yaiZ	TU0-8554
+rpsO	TU0-8474	Regulation of rpsO by 30S ribosomal subunit protein S1,Regulation of rpsO by 30S ribosomal subunit protein S15
+mtfA	TU0-13471	Regulation of mtfA by DNA-binding transcriptional dual regulator Nac
+ymdF	TU0-14245
+rnlAB	TU0-14327
+pstSCAB-phoU	TU0-45216		Fnr DNA-binding-site regulating pstSp2,IHF DNA-binding-site 16.5 bases downstream of pstSp2,PhoB-P<sup>asp53</sup> DNA-binding-site 32 bases upstream of pstSp2,PhoB-P<sup>asp53</sup> DNA-binding-site 54 bases upstream of pstSp2
+mltA	TU0-13743
+argU	TU00491		Fis DNA-binding-site 65 bases upstream of argUp
+ffh	TU0-13680
+ruvAB	TU0-6661		LexA DNA-binding-site 72.5 bases upstream of ruvAp2,LexA DNA-binding-site 19.5 bases upstream of ruvAp2
+ltaE-ybjT	TU0-14618
+yjbQR	TU0-14122
+putP	TU123
+rseD-rpoE-rseABC	TU0-42640
+elaD	TU0-13574
+mdoGH	TU00297
+argX-hisR-leuT-proM	TU00503		Fis DNA-binding-site 75 bases upstream of argXp
+bssS	TU0-14621
+lpxM	TU0-13441
+tig	TU0-12928
+wbbIJK	TU0-14317
+pyrG-eno	TU0-14654
+aroH	TU00010		TrpR-trp DNA-binding-site 29.5 bases upstream of aroHp1,TrpR-trp DNA-binding-site 37.5 bases upstream of aroHp1
+ygjP	TU0-13856
+yohD	TU0-8649
+torS	TU0-13112
+pfkA	TU0-14813
+yacG	TU0-14495
+serC	TU0-42569
+ihfB	TU00175		IHF DNA-binding-site 320 bases upstream of ihfBp2,IHF DNA-binding-site 304 bases upstream of ihfBp2,IHF DNA-binding-site 207 bases upstream of ihfBp2,IHF DNA-binding-site 157 bases upstream of ihfBp2,IHF DNA-binding-site 77 bases upstream of ihfBp2,IHF DNA-binding-site 2 bases upstream of ihfBp2
+lgt	TU0-42614
+symR	TU0-14420
+pfkB	TU0-6408
+dcuA	TU621
+gmhA	TU0-12846
+ptsHI-crr	TU00483		Cra DNA-binding-site 55.5 bases upstream of ptsHp1,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 42.5 bases upstream of ptsHp1
+yebV	TU0-13429	Regulation of yebV by ppGpp
+blc	TU0-6484	Regulation of blc by ppGpp
+allB	TU0-44197
+pykF	TU0-14631
+yhdU	TU0-13906
+bamA-hlpA-lpxD-fabZ-lpxAB-rnhB-dnaE	TU0-8373
+ypfG	TU0-13638
+yfbR	TU0-13580	Regulation of yfbR by CysB-<i>O</i>-acetyl-L-serine DNA-binding transcriptional dual regulator
+sohA-yhaV	TU0-13872
+rcnAB	TU0-13514
+yfcJ	TU0-13592
+nagE	TU0-4421		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 27.5 bases upstream of nagEp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 61.5 bases upstream of nagEp,NagC DNA-binding-site 125 bases upstream of nagEp,NagC DNA-binding-site 31 bases upstream of nagEp
+amyA	TU0-7461
+mlaFEDCB	TU0-42672
+ymfI	TU0-8635
+amn	TU0-6422
+hslR-hslO	TU0-14479
+ampH	TU0-8768
+iraM	TU0-13156
+yahL	TU0-12896
+yjhU	TU0-14190
+insH-7	TU0-14362
+rep	TU0-6511
+dapA-nlpB	TU00256
+rclABC	TU0-12885
+yfcUSRQPO	TU0-13594
+azoR	TU0-42461
+hda	TU0-13646
+puuDRCBE	TU0-13210
+yjjP	TU0-14213
+ftp	TU0-13561
+yejABEF	TU0-13552
+pspF	TU0-1803
+fkpA	TU0-1064
+ycgV	TU0-13178	Regulation of ycgV by DNA-binding transcriptional repressor GlaR,Regulation of ycgV by DNA-binding transcriptional dual regulator Nac
+secG-leuU	TU0-14573
+prmB-aroC-mepA-yfcA-epmC-yfcL	TU0-13593
+yajO	TU0-14500	Regulation of yajO by ppGpp
+rsmF	TU0-13428	Regulation of rsmF by DNA-binding transcriptional dual regulator Nac
+gltBDF	TU00182		ArgR-arg DNA-binding-site 331.5 bases upstream of gltBp2,ArgR-arg DNA-binding-site 352 bases upstream of gltBp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 65.5 bases upstream of gltBp2,IHF DNA-binding-site 85 bases upstream of gltBp2,IHF DNA-binding-site 89 bases upstream of gltBp2,Fnr DNA-binding-site 26.5 bases upstream of gltBp2,GadE DNA-binding-site 284 bases upstream of gltBp2,Lrp DNA-binding-site 152 bases upstream of gltBp2,Lrp DNA-binding-site 215 bases upstream of gltBp2,Lrp DNA-binding-site 246 bases upstream of gltBp2
+rrsH-ileV-alaV-rrlH-rrfH	TU0-45269		Fis DNA-binding-site 181 bases upstream of rrsHp,Fis DNA-binding-site 134 bases upstream of rrsHp,Fis DNA-binding-site 91 bases upstream of rrsHp,Fis DNA-binding-site 71 bases upstream of rrsHp
+pykA	TU0-13440
+appCBA-yccB	TU00097		AppY DNA-binding-site regulating appCp2
+dksA-yadB	TU0-14681
+aspS	TU0-14634
+yphG	TU0-13664
+ykfC	TU0-12863
+aroP	TU641		TyrR-tyr DNA-binding-site 63.5 bases downstream of aroPp1,TyrR-tyr DNA-binding-site 40.5 bases downstream of aroPp1
+leuU	TU00518
+gabDTP	TU0-4823
+gadW	TU0-14718
+lacZYA	TU0-4701		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 39.5 bases upstream of lacZp2
+hydN-hypF	TU424		FhlA-formate DNA-binding-site regulating hydNp
+yeaE	TU0-13399
+racC	TU0-13227
+ydcL	TU0-13261	Regulation of ydcL by DNA-binding transcriptional dual regulator Rob,Regulation of ydcL by ppGpp
+garPLRK-rnpB	TU482		Fnr DNA-binding-site regulating garPp
+mipA	TU0-13400
+yqfI	TU0-198737
+bglX	TU0-7501
+cfa	TU502	Regulation of cfa by small regulatory RNA CpxQ,Regulation of cfa by small regulatory RNA ArrS,Regulation of cfa by small regulatory RNA RydC
+ydbK-ompN	TU0-41760
+valVW	TU00493
+rimP-nusA-infB	TU00311
+dcyD-tcyLN	TU0-13453
+aspV	TU00489		Fis DNA-binding-site 76 bases upstream of aspVp
+yeaR-yoaG	TU0-13407
+pdhR-aceEF-lpdA	TU00522		PdhR DNA-binding-site 19 bases downstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 50.5 bases upstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 62.5 bases upstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 110.5 bases upstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 377.5 bases upstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 82.5 bases upstream of pdhRp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 70.5 bases upstream of pdhRp2,Fnr DNA-binding-site 50.5 bases upstream of pdhRp2
+lfgABCDE	TU0-13699	Regulation of lfgABCDE by antitoxin of the MqsRA TA system / DNA-binding transcriptional repressor MqsA
+insH-10	TU0-8832
+hokB	TU0-13255
+sbp	TU0-14080
+codBA	TU00197		Nac DNA-binding-site 58 bases upstream of codBp,PurR-hypoxanthine DNA-binding-site 36.5 bases upstream of codBp
+pfkA	TU0-45239
+ydhYVWXUT	TU0-14675
+ykgR	TU0-14769
+yjdN	TU0-14131
+cirA	TU00014	Regulation of cirA by small regulatory RNA OmrB,Regulation of cirA by small regulatory RNA OmrA	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 118.5 bases downstream of cirAp1,DNA-binding transcriptional dual regulator Fur DNA-binding-site 17 bases upstream of cirAp1,DNA-binding transcriptional dual regulator Fur DNA-binding-site 35 bases upstream of cirAp1,DNA-binding transcriptional dual regulator Fur DNA-binding-site 29 bases upstream of cirAp1
+ftsLIO-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC	TU0-14445
+mltF	TU0-8335		Rob DNA-binding-site regulating mltFp
+ydcI	TU0-8700
+yfhL	TU0-13669
+htgA	TU00406
+yadC	TU0-12818
+ansB	TU0-6569
+astCADBE	TU0-1003		ArgR-arg DNA-binding-site 121.5 bases upstream of astCp2,ArgR-arg DNA-binding-site 99.5 bases upstream of astCp2,ArgR-arg DNA-binding-site 78.5 bases upstream of astCp2,ArgR-arg DNA-binding-site 47.5 bases upstream of astCp2,NtrC-P<sup>asp</sup> DNA-binding-site 275 bases upstream of astCp2,NtrC-P<sup>asp</sup> DNA-binding-site 253 bases upstream of astCp2,NtrC-P<sup>asp</sup> DNA-binding-site 233 bases upstream of astCp2
+yjdM	TU0-14132
+narP	TU0-8819
+elfDCG-ycbUVF	TU0-13095
+yjeM	TU0-14147
+yjhA	TU0-14323
+yihQ	TU0-14066
+insH-8	TU0-8835
+yaiL	TU0-12901
+btuE	TU0-44213
+leuE	TU0-42526
+yjgB	TU0-8616
+elaA	TU0-13572
+rem	TU0-13323
+rrsE-gltV-rrlE-rrfE	TU0-45277		Fis DNA-binding-site 170 bases upstream of rrsEp3,Fis DNA-binding-site 143 bases upstream of rrsEp3,Fis DNA-binding-site 117 bases upstream of rrsEp3,Fis DNA-binding-site 101 bases upstream of rrsEp3,Fis DNA-binding-site 72 bases upstream of rrsEp3
+yoaE	TU0-8643
+yeeZ	TU0-13492	Regulation of yeeZ by DNA-binding transcriptional dual regulator Nac
+osmF-yehYXW	TU0-14559
+yecN-cmoAB	TU0-13443
+hfq-hflXKC	TU0-14548
+yebK	TU0-13439	Regulation of yebK by DNA-binding transcriptional repressor YebK
+rrsD-ileU-alaU-rrlD-rrfD-thrV-rrfF	TU0-45227		Fis DNA-binding-site 174 bases upstream of rrsDp,Fis DNA-binding-site 144 bases upstream of rrsDp,Fis DNA-binding-site 126 bases upstream of rrsDp,Fis DNA-binding-site 91 bases upstream of rrsDp,Fis DNA-binding-site 71 bases upstream of rrsDp
+nadE	TU0-13386	Regulation of nadE by small regulatory RNA CyaR
+ycjW	TU0-8695
+aqpZ	TU0-1106
+cusRS	TU0-1822		CusR-P<SUP>asp</SUP> DNA-binding-site 57.5 bases upstream of cusRp
+ybgD	TU0-13033
+yhaI	TU0-13867	Regulation of yhaI by DNA-binding transcriptional dual regulator Nac
+ycjXF-tyrR	TU0-14473
+lit	TU0-8848
+ydhR	TU0-13361
+sdsR	TU0-13431
+yjgA	TU0-8615
+lgt-thyA	TU00295
+arrS	TU0-36438
+galK	TU0-42588
+xdhABC	TU0-14792
+ahpCF	TU00074		MetJ-SAM DNA-binding-site 27.5 bases downstream of ahpCp1,MetJ-SAM DNA-binding-site 17.5 bases downstream of ahpCp1,OxyR DNA-binding-site 77 bases upstream of dsbGp
+fucR	TU0-14502
+preTA	TU0-13538
+cbrB	TU0-14026	Regulation of cbrB by DNA-binding transcriptional regulator CreB-phosphorylated
+mioC	TU0-14030
+tpiA	TU0-45203
+otsBA	TU0-7722
+oxc	TU0-13610
+osmB	TU00388	Regulation of osmB by ppGpp	P<SUP>asp56</SUP> RcsB DNA-binding-site 41.5 bases upstream of osmBp1
+flhDC	TU00136	Regulation of flhDC by small regulatory RNA OmrB,Regulation of flhDC by small regulatory RNA OmrA,Regulation of flhDC by small regulatory RNA ArcZ,Regulation of flhDC by small regulatory RNA OxyS,Regulation of flhDC by small regulatory RNA McaS,Regulation of flhDC by small regulatory RNA McaS	IHF DNA-binding-site 92 bases upstream of flhDp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 115 bases downstream of flhDp,RcsAB DNA-binding-site 11 bases downstream of flhDp,HdfR DNA-binding-site regulating flhDp,LrhA DNA-binding-site 112 bases upstream of flhDp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 71.5 bases upstream of flhDp,H-NS DNA-binding-site regulating flhDp,OmpR-P DNA-binding-site 145.5 bases upstream of flhDp,OmpR-P DNA-binding-site 18.5 bases downstream of flhDp
+ftnA	TU0-13449
+ymdAB-clsC	TU0-42664	Regulation of ymdAB-clsC by FlhDC DNA-binding transcriptional dual regulator
+yrbN-deaD	TU0-14763
+yagEF	TU0-12867	Regulation of yagEF by XynR-D-xylonate
+cspH	TU0-8780
+adk	TU0-6481
+brnQ-proY	TU0-12918
+rsd	TU787
+mtr	TU0-14288
+rdlC	TU0-8498
+agaR	TU0-6582		AgaR DNA-binding-site 19.5 bases upstream of agaRp,AgaR DNA-binding-site 8.5 bases downstream of agaRp
+asr	TU0-45276		PhoB-P<sup>asp53</sup> DNA-binding-site 30 bases upstream of asrp2
+yrbL	TU0-7781		PhoP-P<sup>asp51</sup> DNA-binding-site 28 bases upstream of yrbLp
+ydhXUT	TU0-13363
+galE	TU0-42580
+ymjC-mpaA	TU0-13215
+ilvEDA	TU526
+rpnA	TU0-13933
+lptB-rpoN-hpf-ptsN-yhbJ	TU-8398
+plsB	TU0-36440
+ilvLXG_1G_2MEDA	TU525		IHF DNA-binding-site 210 bases downstream of ilvLp1,IHF DNA-binding-site 17 bases upstream of ilvLp1,Lrp-leu DNA-binding-site 167.5 bases downstream of ilvLp2,Lrp DNA-binding-site 200 bases downstream of ilvLp2,Lrp DNA-binding-site 232 bases downstream of ilvLp2
+ydfG	TU0-13310
+ydeE	TU0-8705	Regulation of ydeE by small regulatory RNA GcvB,Regulation of ydeE by DNA-binding transcriptional dual regulator Nac
+pepA	TU0-14175
+ybfF	TU0-13023
+yddLKJ	TU0-13283
+yecJ	TU0-13447
+eutBCLKR	TU0-13627
+nhaAR	TU0-3862
+yjaZ	TU00399
+infA	TU-8390
+insJ	TU0-14385
+eptB	TU0-45247	Regulation of eptB by small regulatory RNA MgrR,Regulation of eptB by small regulatory RNA ArcZ
+dinD	TU0-14002
+yhjE	TU0-13968	Regulation of yhjE by DNA-binding transcriptional dual regulator ArcA-phosphorylated,Regulation of yhjE by DNA-binding transcriptional dual regulator Nac
+recQ	TU0-14047
+tdcBCDEFG	TU0-14551
+adhE	TU0-45181		NarL-P<sup>asp59</sup> DNA-binding-site 90 bases downstream of adhEp,Fis DNA-binding-site 148 bases upstream of adhEp,Fis DNA-binding-site 68 bases upstream of adhEp,Fis DNA-binding-site 42 bases upstream of adhEp,NarL-P<sup>asp59</sup> DNA-binding-site 81 bases downstream of adhEp,Cra DNA-binding-site 36.5 bases downstream of adhEp
+ykgJ	TU0-12877
+dinJ-yafQ	TU0-12849	Regulation of dinJ-yafQ by DNA-binding transcriptional activator YgfI
+fklB	TU0-14158	Regulation of fklB by DNA-binding transcriptional dual regulator Nac
+rraA	TU0-14264
+yicL	TU0-14009
+bamB-der	TU-8385
+ndk	TU0-13651	Regulation of ndk by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+rsfS-rlmH-mrdAB-rlpA	TU0-13009
+mlrA	TU0-45249
+mraZW-ftsLIO-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC	TU0-941
+ubiK	TU0-13841
+ybiU	TU0-13060
+ftsB	TU0-14312
+ynfU	TU0-198733
+ybjQ-amiD	TU0-13073
+hicAB	TU0-13266
+dut-slmA	TU0-8321
+mepS	TU0-42566
+rpnB	TU0-13590
+yibN-grxC-secB-gpsA	TU0-42596
+lipB	TU0-13006
+yceD-rpmF	TU602
+leuS-lptE-holA-nadD-cobC	TU0-13010
+pyrG-eno	TU0-6557
+yqhC	TU0-8657	Regulation of yqhC by DNA-binding transcriptional repressor GlaR
+mreCD	TU0-14532
+raiAZ	TU0-13677
+dxr-uppS-cdsA	TU0-12831
+tcdA	TU0-13742
+aspU	TU0-14372
+ycgB	TU0-8686	Regulation of ycgB by ppGpp
+ileS-lspA-fkpB-ispH	TU0-14394
+pgi	TU0-6444
+hyaABCDEF	TU0-45171		IscR DNA-binding-site 42 bases upstream of hyaAp2,NarP-P<sup>asp59</sup> DNA-binding-site 7 bases downstream of hyaAp2,NarP-P<sup>asp59</sup> DNA-binding-site 10 bases upstream of hyaAp2,NarL-P<sup>asp59</sup> DNA-binding-site 7 bases downstream of hyaAp2,NarL-P<sup>asp59</sup> DNA-binding-site 10 bases upstream of hyaAp2,AppY DNA-binding-site regulating hyaAp2,ArcA-P<sup>asp54</sup> DNA-binding-site 67 bases upstream of hyaAp2
+yfeYX	TU0-3484
+fimE	TU183		LrhA DNA-binding-site regulating fimEp,H-NS DNA-binding-site regulating fimEp
+secE-nusG	TU00354
+bolA	TU00386		OmpR-P DNA-binding-site 47.5 bases upstream of bolAp
+ompN	TU0-13240
+gadX	TU0-2261	Regulation of gadX by ppGpp	Fnr DNA-binding-site 159.5 bases upstream of gadXp,H-NS DNA-binding-site regulating gadXp,GadE DNA-binding-site regulating gadXp
+ybdR	TU0-14246	Regulation of ybdR by DNA-binding transcriptional dual regulator Nac
+pdeD	TU0-13418
+dsbG	TU0-12995
+prfC	TU0-14217	Regulation of prfC by DNA-binding transcriptional dual regulator Nac,Regulation of prfC by ppGpp
+ydaL	TU0-8696
+osmB	TU00389
+clpPX	TU00419
+dfp	TU0-14356
+radD	TU0-13556
+yfaATSQP	TU0-13563
+uvrB	TU00070
+sibA	TU0-13502
+eda	TU25		KdgR DNA-binding-site 5 bases downstream of edap1
+ispG-sroE	TU0-14336
+folA	TU0-6401
+fsr	TU0-12953
+ais	TU0-8766
+yibT	TU0-8593
+ribE-nusB-thiL-pgpA	TU0-14466
+nohD	TU0-12981
+alaC	TU0-13612		SgrR DNA-binding-site 167.5 bases upstream of alaCp
+iraD	TU0-45219	Regulation of iraD by carbon storage regulator	Fnr DNA-binding-site regulating idlPp
+panD	TU0-42600
+yieH	TU0-14025	Regulation of yieH by DNA-binding transcriptional dual regulator Nac
+insA5B5AB5	TU0-13446
+yieEF	TU-8419
+bcsQ	TU0-8366
+dusA	TU0-14118
+ykgL	TU0-8631	Regulation of ykgL by DNA-binding transcriptional dual regulator Nac
+htrG-cca	TU-8393
+yagJ	TU0-8546
+ivbL	TU0-42513
+yobF-cspC	TU0-13422
+ybiO	TU0-13057
+yhhI	TU0-13951
+glnD	TU0-36398
+yfjV	TU0-13697
+plsX-fabHDG	TU0-5
+essD-ybcS-rzpD	TU-8422
+yhaKL	TU0-13868	Regulation of yhaKL by DNA-binding transcriptional activator YhaJ
+rhtA	TU0-13058	Regulation of rhtA by DNA-binding transcriptional dual regulator Nac
+yqhH	TU0-13826
+ycjD	TU0-13205
+yjfKLMC	TU0-14154
+ycgL	TU0-13169
+acnB	TU0-14608
+yohP	TU0-198735
+tatD	TU0-14053
+rdcAB	TU0-14133
+smpB	TU0-13686
+nuoABCEFGHIJKLMN	TU00310	Regulation of nuoABCEFGHIJKLMN by small regulatory RNA RyhB	IHF DNA-binding-site 66 bases upstream of nuoAp2,IHF DNA-binding-site 74 bases upstream of nuoAp2,ArcA-P<sup>asp54</sup> DNA-binding-site 108 bases upstream of nuoAp2,NarL-P<sup>asp59</sup> DNA-binding-site 122 bases upstream of nuoAp2,Fnr DNA-binding-site 40.5 bases upstream of nuoAp2,IHF DNA-binding-site 83 bases upstream of nuoAp2
+pbpG	TU0-13529
+metG	TU0-13519
+hemL	TU0-14806
+ychO	TU0-8691		Fnr DNA-binding-site regulating ychOp
+yjgX	TU0-14182
+yraQ	TU0-13875
+yqcC-truC-yqcA	TU0-13736
+metK	TU0-45188		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of metKp2,MetJ-SAM DNA-binding-site 2.5 bases upstream of metKp2,MetJ-SAM DNA-binding-site 14.5 bases upstream of metKp2
+asphoP	TU0-198717
+curA	TU0-13272	Regulation of curA by DNA-binding transcriptional dual regulator Nac,Regulation of curA by ppGpp
+rpoS	TU00442	Regulation of rpoS by small regulatory RNA CyaR,Regulation of rpoS by small regulatory RNA ArcZ,Regulation of rpoS by small regulatory RNA OxyS,Regulation of rpoS by small regulatory RNA ArcZ,Regulation of rpoS by small regulatory RNA RprA,Regulation of rpoS by small regulatory RNA DsrA	ArcA-P<sup>asp54</sup> DNA-binding-site 24 bases downstream of rpoSp,ArcA-P<sup>asp54</sup> DNA-binding-site 64 bases upstream of rpoSp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 62.5 bases upstream of rpoSp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 56.5 bases downstream of rpoSp
+ynaK-ydaY	TU0-13234
+ybfD	TU0-13030
+yiaKLMNO-lyx-sgbHUE	TU0-14454
+yggR	TU0-8750
+pstCAB-phoU	TU0-36418
+nhoA	TU0-8818
+hisGDCBHAFI	TU0-198747	Regulation of hisGDCBHAFI by Cra-&beta;-D-fructofuranose 1-phosphate,Regulation of hisGDCBHAFI by DNA-binding transcriptional dual regulator Cra
+higBA	TU0-13854
+mreBCD	TU0-14386
+ygcS	TU0-13730	Regulation of ygcS by DNA-binding transcriptional dual regulator Nac
+trxA	TU0-44224
+secG	TU0-14328
+yeeO	TU0-13477
+ubiD	TU0-14054
+stfZ	TU0-198689
+yeiP	TU0-13547
+hupB	TU490
+bepA-yfgD	TU-8384
+topA	TU0-45223
+thrS-infC	TU00366
+ubiT-yhbS	TU0-13877
+yrbG-kdsDC-lptCAB	TU0-36430
+xanP	TU0-14005
+usg-truA-dedA	TU0-5183
+cspA	TU0-1582
+yfjR-ypjK-yfjS-yfjT	TU0-13695
+mscL	TU0-13909
+yhjJ	TU-8417
+map-glnD-dapD	TU0-12827	Regulation of map-glnD-dapD by DNA-binding transcriptional dual regulator SoxS,Regulation of map-glnD-dapD by DNA-binding transcriptional dual regulator Rob,Regulation of map-glnD-dapD by DNA-binding transcriptional dual regulator MarA
+paaJ	TU0-44207
+glrR-glnB	TU0-36399
+galET	TU0-45177
+tpiA	TU0-14668
+kdpFABC	TU00035		KdpE-P<sup>asp</sup> DNA-binding-site 63 bases upstream of kdpFp
+idi	TU0-13786
+dsbD-yjdC	TU0-14140
+bhsA	TU0-41673
+ispB	TU0-13885	Regulation of ispB by DNA-binding transcriptional dual regulator Nac
+nfeF	TU0-8327
+mlaA	TU0-8537
+rhsD-ybbC-ylbH-ybbD	TU0-12960
+cydDC	TU00254	Regulation of cydDC by small regulatory RNA FnrS	ArcA-P<sup>asp54</sup> DNA-binding-site 44 bases upstream of cydDp,Fnr DNA-binding-site 90.5 bases upstream of cydDp,NarL-P<sup>asp59</sup> DNA-binding-site 80 bases upstream of cydDp,NarL-P<sup>asp59</sup> DNA-binding-site 126 bases upstream of cydDp
+rpoH	TU221		IHF DNA-binding-site 326 bases upstream of rpoHp6
+cas3	TU0-13726
+sdiA	TU0-42467
+holE	TU0-13433
+insC3D3CD3	TU0-13480
+yddG	TU0-13284
+ompR-envZ	TU163		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 75 bases upstream of ompRp2
+sdhCDAB-sucABCD-sdhX	TU00524	Regulation of sdhCDAB-sucABCD-sdhX by small regulatory RNA RyhB,Regulation of sdhCDAB-sucABCD-sdhX by small regulatory RNA RyhB	DNA-binding transcriptional dual regulator Fur DNA-binding-site 34 bases upstream of sdhCp,ArcA-P<sup>asp54</sup> DNA-binding-site 32 bases upstream of sdhCp,ArcA-P<sup>asp54</sup> DNA-binding-site 257 bases downstream of sdhCp,ArcA-P<sup>asp54</sup> DNA-binding-site 137 bases upstream of sdhCp,ArcA-P<sup>asp54</sup> DNA-binding-site 211 bases upstream of sdhCp,ArcA-P<sup>asp54</sup> DNA-binding-site 27 bases upstream of sdhCp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 107.5 bases upstream of gltAp1,Fnr DNA-binding-site regulating sdhCp
+glnAZ	TU0-5901		NtrC-P<sup>asp</sup> DNA-binding-site 45 bases upstream of glnAp2,NtrC-P<sup>asp</sup> DNA-binding-site 68 bases upstream of glnAp2,NtrC-P<sup>asp</sup> DNA-binding-site 89 bases upstream of glnAp2
+tapT-patZ	TU0-13671
+pgsA	TU0-13451
+frdABCD	TU0-45225		NarL-P<sup>asp59</sup> DNA-binding-site 26 bases upstream of frdAp2,NarL-P<sup>asp59</sup> DNA-binding-site 12 bases upstream of frdAp2,NarL-P<sup>asp59</sup> DNA-binding-site 14 bases downstream of frdAp2,DcuR-P DNA-binding-site 104 bases upstream of frdAp2,Fnr DNA-binding-site 45.5 bases upstream of frdAp2,NarL-P<sup>asp59</sup> DNA-binding-site 6 bases downstream of frdAp2,NarL-P<sup>asp59</sup> DNA-binding-site 4 bases upstream of frdAp2
+sgcXBCQAER	TU0-14193	Regulation of sgcXBCQAER by CRP-cyclic-AMP DNA-binding transcriptional dual regulator,Regulation of sgcXBCQAER by DNA-binding transcriptional dual regulator SlyA,Regulation of sgcXBCQAER by DNA-binding transcriptional dual regulator SlyA
+argS	TU0-13444
+ucpA	TU0-13623
+ydhC	TU0-13360
+ybgC-tolQRA	TU00367
+yhfZY	TU0-13925
+iap	TU0-8811
+oppABCDF	TU00222	Regulation of oppABCDF by spermidine,Regulation of oppABCDF by small regulatory RNA GcvB	ArcA-P<sup>asp54</sup> DNA-binding-site regulating oppAp,Lrp DNA-binding-site 1818 bases upstream of oppAp
+valS	TU0-6687
+nudG	TU0-8814	Regulation of nudG by DNA-binding transcriptional dual regulator Nac
+yrbN-deaD	TU0-45160
+ymdA	TU0-13122
+mhpT	TU0-12900
+asnC-mioC-mnmG	TU0-14263
+rpoS	TU0-14651
+shiA	TU0-42474	Regulation of shiA by small regulatory RNA RyhB
+infB	TU0-44225
+ydeNM	TU0-41795
+fadL	TU00080	Regulation of fadL by small regulatory RNA RybB	ArcA-P<sup>asp54</sup> DNA-binding-site 38 bases upstream of fadLp,PhoP-P<sup>asp51</sup> DNA-binding-site 191.5 bases upstream of fadLp,FadR DNA-binding-site 17 bases upstream of fadLp,FadR DNA-binding-site 9 bases downstream of fadLp,OmpR-P DNA-binding-site 149.5 bases upstream of fadLp,OmpR-P DNA-binding-site 60.5 bases upstream of fadLp,OmpR-P DNA-binding-site 69.5 bases downstream of fadLp,OmpR-P DNA-binding-site 119.5 bases downstream of fadLp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 157.5 bases upstream of fadLp
+dcuB-fumB	TU0-4562		DcuR-P DNA-binding-site 41 bases upstream of dcuBp2
+hlyE	TU581		H-NS DNA-binding-site 6 bases upstream of hlyEp,SlyA DNA-binding-site 55.5 bases upstream of hlyEp,Fnr DNA-binding-site 61.5 bases upstream of hlyEp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 61.5 bases upstream of hlyEp,H-NS DNA-binding-site 56.5 bases upstream of hlyEp,SlyA DNA-binding-site 44.5 bases upstream of hlyEp
+acrEF	TU00234		Fnr DNA-binding-site regulating acrEp
+pitA	TU0-8491	Regulation of pitA by small regulatory RNA MgrR	Fnr DNA-binding-site regulating pitAp
+lolA-rarA	TU0-13079
+yadD	TU0-8540
+yiiS-uspD	TU0-3465
+intF	TU0-12874
+artJ	TU0-8161		ArgR-arg DNA-binding-site 27.5 bases upstream of artJp
+tatABC	TU0-14052
+frmRAB	TU0-12902	Regulation of frmRAB by DNA-binding transcriptional repressor FrmR
+pykF	TU00527		Cra DNA-binding-site 18.5 bases downstream of pykFp
+yifB	TU0-8602
+yjiS	TU0-14205
+paoABCD	TU0-12876
+trkA	TU0-13908
+yhbY	TU0-8577
+yagU	TU0-8547	Regulation of yagU by DNA-binding transcriptional dual regulator Nac
+lpxC	TU0-14606
+ldcC	TU0-1161
+frlR	TU0-44199
+ypfM	TU0-14237
+yjcC	TU0-8609
+ydiZ	TU0-13381
+lysC	TU0-6553	Regulation of lysC by D-lysine
+rseD-rpoE-rseABC	TU0-42638
+yffL	TU0-13629
+yfjI	TU0-13690	Regulation of yfjI by DNA-binding transcriptional dual regulator Nac
+fliAZY	TU00471
+dtpD	TU0-8563
+ompL	TU0-14064
+yheO-tusDCB	TU0-14661
+gadAX	TU0-45268		H-NS DNA-binding-site regulating gadAp2,Fnr DNA-binding-site 11.5 bases downstream of gadAp2,ArcA-P<sup>asp54</sup> DNA-binding-site regulating gadAp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 62.5 bases upstream of gadAp2,TorR-P<SUP>asp</SUP> DNA-binding-site 73.5 bases downstream of gadAp2,GadRcs DNA-binding-site 62.5 bases upstream of gadAp2,GadW DNA-binding-site 121.5 bases upstream of gadAp2,GadX DNA-binding-site 100.5 bases upstream of gadAp2,GadX DNA-binding-site 78 bases upstream of gadAp2,GadX DNA-binding-site 57.5 bases upstream of gadAp2,GadX DNA-binding-site 10.5 bases upstream of gadAp2
+rydC	TU0-14392
+ydbA	TU0-13244
+yqgEF	TU0-13806
+nepI	TU0-14010
+ybdH	TU0-8558
+allR	TU0-8873
+yedA	TU0-8718
+fimB	TU00412
+ansP	TU0-8147
+otsA	TU00391
+yahH	TU0-12893
+dppABCDF	TU00262	Regulation of dppABCDF by small regulatory RNA GcvB	Fnr DNA-binding-site 162.5 bases upstream of dppAp,IHF DNA-binding-site 1848 bases downstream of dppAp
+folE-yeiB	TU0-13539	Regulation of folE-yeiB by small regulatory RNA SgrS,Regulation of folE-yeiB by small regulatory RNA FnrS
+ykgEFG	TU0-12887
+hdeAB-yhiD	TU00282	Regulation of hdeAB-yhiD by ppGpp	GadX DNA-binding-site 94.5 bases upstream of hdeDp2,MarA DNA-binding-site 39 bases upstream of hdeAp2,H-NS DNA-binding-site 118 bases upstream of hdeAp2,TorR-P<SUP>asp</SUP> DNA-binding-site 27.5 bases upstream of hdeAp2
+sibC	TU0-14717
+adeQ	TU0-14012
+nagBACD	TU00043		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 27.5 bases upstream of nagEp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 61.5 bases upstream of nagEp,NagC DNA-binding-site 31 bases upstream of nagEp,NagC DNA-binding-site 125 bases upstream of nagEp
+sodC	TU0-13356	Regulation of sodC by ppGpp
+yjeH	TU0-8610	Regulation of yjeH by DNA-binding transcriptional dual regulator Nac
+yfgM	TU0-14646
+pqiABC	TU561		MarA DNA-binding-site 42.5 bases upstream of pqiAp3,SoxS DNA-binding-site 40 bases upstream of pqiAp3
+yobB-exoX	TU0-13434	Regulation of yobB-exoX by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+pstB-phoU	TU0-45237
+trxB	TU0-13078
+rlmL-uup	TU0-2001
+insL2	TU0-12990
+nudF-yqiB-cpdA-yqiA-parE	TU0-13837	Regulation of nudF-yqiB-cpdA-yqiA-parE by DNA-binding transcriptional regulator CreB-phosphorylated
+yfhM-pbpC	TU0-13652
+nimT	TU0-13404
+mgrR	TU0-14797
+thyA	TU0-42616
+ratA-yfjF	TU0-13685
+ycaI-msbA-lpxK-ycaQ	TU0-13087
+ebgR	TU0-13850
+yjiXA	TU0-14208
+treR	TU0-2442		PhoP-P<sup>asp51</sup> DNA-binding-site 19 bases downstream of treRp4
+pepA	TU0-14741
+ygfK-ssnA	TU0-13781
+feaR	TU0-42549
+mdoGH	TU0-45174
+ubiEJB	TU0-5881
+yghA	TU0-14232	Regulation of yghA by ppGpp
+fabI	TU0-42604
+fecABCDE	TU00151		DNA-binding transcriptional dual regulator Fur DNA-binding-site 29 bases upstream of fecAp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 26 bases upstream of fecAp,PdhR DNA-binding-site 21 bases upstream of fecAp
+hupB	TU488		Fis DNA-binding-site 145 bases upstream of hupBp3,Fis DNA-binding-site 122 bases upstream of hupBp3,Fis DNA-binding-site 89.5 bases upstream of hupBp3,Fis DNA-binding-site 141 bases downstream of hupBp3
+sgrST-setA	TU0-12806		SgrR DNA-binding-site 53.5 bases upstream of sgrSp2
+atoSC	TU0-13562
+treF	TU0-8360	Regulation of treF by ppGpp
+ftsQAZ	TU00210		SdiA DNA-binding-site 161.5 bases upstream of ftsQp,SdiA DNA-binding-site 15.5 bases upstream of ftsQp,SdiA DNA-binding-site 163.5 bases upstream of ftsQp
+ybeZYX-lnt	TU0-14471
+thrLABC	TU00178	Regulation of thrLABC by ppGpp
+ibsC	TU0-45157	Regulation of ibsC by small regulatory RNA antitoxin SibC
+lsrACDBFG-tam	TU0-7861		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 131.5 bases upstream of lsrRp,LsrR DNA-binding-site 11.5 bases downstream of lsrAp
+metT-leuW-glnUW-metU-glnVX	TU00507		Fis DNA-binding-site 67 bases upstream of metTp
+yjgM	TU0-8619	Regulation of yjgM by DNA-binding transcriptional dual regulator Nac
+gltX	TU0-6409
+leuX	TU00506		Fis DNA-binding-site 75 bases upstream of leuXp
+gltBDF	TU0-45182		ArgR-arg DNA-binding-site 331.5 bases upstream of gltBp2,ArgR-arg DNA-binding-site 352 bases upstream of gltBp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 65.5 bases upstream of gltBp2,IHF DNA-binding-site 85 bases upstream of gltBp2,IHF DNA-binding-site 89 bases upstream of gltBp2,Fnr DNA-binding-site 26.5 bases upstream of gltBp2,GadE DNA-binding-site 284 bases upstream of gltBp2,Lrp DNA-binding-site 152 bases upstream of gltBp2,Lrp DNA-binding-site 215 bases upstream of gltBp2,Lrp DNA-binding-site 246 bases upstream of gltBp2
+galE	TU0-45178
+gspAB	TU0-14377		H-NS DNA-binding-site regulating gspAp2
+yiaD	TU0-13979
+rrsB-gltT-rrlB-rrfB	TU0-45275		Lrp-leu DNA-binding-site 53 bases upstream of rrsBp,H-NS DNA-binding-site 26 bases upstream of rrsBp,H-NS DNA-binding-site 50 bases upstream of rrsBp,H-NS DNA-binding-site 83 bases upstream of rrsBp,Fis DNA-binding-site 143 bases upstream of rrsBp,Fis DNA-binding-site 102 bases upstream of rrsBp,Fis DNA-binding-site 71 bases upstream of rrsBp
+yibJ	TU0-13990
+tag-yiaC	TU0-13978
+miaA-hfq-hflXKC	TU0-14563
+yodC	TU0-13461
+esrE	TU0-42484
+iraP	TU0-12913
+micA	TU0-8515
+rhsE-ydcD	TU0-13276
+hemA	TU0-4202
+hypBCDE	TU00424		Fnr DNA-binding-site 149.5 bases upstream of hypBp,Fnr DNA-binding-site 43.5 bases upstream of hypBp
+yeaQ	TU0-13406	Regulation of yeaQ by ppGpp
+yfbO	TU0-13577
+groL	TU0-14672
+panD	TU0-8486
+cdaR	TU0-4501
+mutY-yggX	TU0-5781
+znuCB	TU0-4604		DNA-binding transcriptional repressor Zur DNA-binding-site 38 bases downstream of znuAp
+relA-mazEF	TU521
+grcA	TU0-42577
+hipBA	TU00284		HipAB DNA-binding-site 85.5 bases upstream of hipBp,HipAB DNA-binding-site 57.5 bases upstream of hipBp,HipAB DNA-binding-site 18.5 bases upstream of hipBp,HipAB DNA-binding-site 10.5 bases downstream of hipBp,IHF DNA-binding-site 117 bases upstream of hipBp
+ynfO-ydfO	TU0-13318
+yfjU	TU0-13696
+ahpCF	TU0-14761
+cecR-ybhGFSR	TU0-13050
+csiD-ygaF-gabDTP	TU0-4001		GlaR DNA-binding-site 13 bases upstream of csiDp,H-NS DNA-binding-site regulating csiDp,Lrp-leu DNA-binding-site regulating csiDp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 68.5 bases upstream of csiDp
+ygeY	TU0-13775
+yphH	TU0-8651
+pstB-phoU	TU0-36419
+ygiW	TU0-13834
+nhaB	TU0-13173
+hchA	TU0-14416		H-NS DNA-binding-site regulating hchAp2
+dsrA	TU0-8788
+proW	TU0-198743
+nemA	TU0-14352
+hemL	TU0-14805
+thrW	TU00490		Fis DNA-binding-site 66 bases upstream of thrWp
+yegTUV	TU0-13509	Regulation of yegTUV by DNA-binding transcriptional regulator GgaR
+frsA	TU0-12857
+tcyJ	TU0-14515	Regulation of tcyJ by small regulatory RNA GcvB
+cvpA-purF-ubiX	TU00475		PurR-hypoxanthine DNA-binding-site 28.5 bases upstream of cvpAp1
+ftsZ	TU0-1424
+pgpB	TU0-13199
+appCBA-yccB	TU0-45265		AppY DNA-binding-site regulating appCp2
+mutY-yggX-mltC-nupG	TU0-5562
+ldcA	TU0-13175
+ligT	TU0-14344
+yfcC	TU0-13584
+bepA-yfgD	TU0-14645
+yahB	TU0-12890
+cfa	TU503
+yjiT	TU0-14206
+pabB-nudL	TU0-13417
+osmC	TU0-1761	Regulation of osmC by ppGpp	P<SUP>asp56</SUP> RcsB DNA-binding-site 41.5 bases upstream of osmCp1,Lrp DNA-binding-site 62 bases upstream of osmCp2,NhaR-Na<SUP>+</SUP> DNA-binding-site 42 bases upstream of osmCp1
+nudB-yebC-ruvC	TU0-8243
+eamA	TU0-8704	Regulation of eamA by DNA-binding transcriptional dual regulator Nac
+tfaS	TU0-13602
+norVW	TU0-4441		NorR DNA-binding-site 1 bases downstream of norRp,NorR DNA-binding-site 45 bases upstream of norRp,NorR DNA-binding-site 21 bases upstream of norRp,NarP-P<sup>asp59</sup> DNA-binding-site 69 bases upstream of norVp,NarL-P<sup>asp59</sup> DNA-binding-site 69 bases upstream of norVp,IHF DNA-binding-site 17 bases downstream of norVp,IHF DNA-binding-site 48 bases upstream of norVp,NarP-P<sup>asp59</sup> DNA-binding-site 78 bases upstream of norVp,NarL-P<sup>asp59</sup> DNA-binding-site 78 bases upstream of norVp,Fnr DNA-binding-site 140.5 bases upstream of norVp
+serW	TU0-42660
+dmsC	TU0-42696
+cadBA	TU00467		H-NS DNA-binding-site 129 bases upstream of cadBp,H-NS DNA-binding-site 175 bases upstream of cadBp,H-NS DNA-binding-site 260 bases upstream of cadBp,H-NS DNA-binding-site 317 bases upstream of cadBp,H-NS DNA-binding-site 32 bases upstream of cadBp,GadRcs DNA-binding-site regulating cadBp,ArcA-P<sup>asp54</sup> DNA-binding-site 179 bases upstream of cadBp,CadC DNA-binding-site 139 bases upstream of cadBp
+pspF	TU0-1802		PspF DNA-binding-site 27 bases downstream of pspFp1,PspF DNA-binding-site 7 bases downstream of pspFp1
+yihW	TU0-42682
+ydeQ	TU0-13293
+setC	TU0-14008
+galET	TU0-42582
+eda	TU27		PhoB-P<sup>asp53</sup> DNA-binding-site 53 bases upstream of edap3
+yagP	TU0-12875
+insNI1	TU0-12862
+fimB	TU00409	Regulation of fimB by small regulatory RNA MicA	H-NS DNA-binding-site regulating fimBp1
+pykF	TU0-45163
+recG	TU0-42470	Regulation of recG by DNA-binding transcriptional regulator CreB-phosphorylated
+yeeJ	TU0-13472
+relBE-hokD	TU0-14381
+ecpBCDE	TU0-14611
+ybcV	TU0-12979
+yhdT-panF-prmA	TU00314
+yccA	TU0-13105		CpxR-phosphorylated DNA-binding-site 53 bases upstream of yccAp
+topA	TU0-2503
+damX-dam-rpe-gph-trpS	TU874
+yidB	TU0-14020	Regulation of yidB by DNA-binding transcriptional repressor GlaR
+bdm-sra	TU0-7141		P<SUP>asp56</SUP> RcsB DNA-binding-site 41.5 bases upstream of bdmp
+selAB	TU00355	Regulation of selAB by SelB-L-selenocysteinyl-tRNA<sup>sec</sup>
+yecV	TU0-198720
+galET	TU0-42581
+murQP-yfeW	TU0-13625
+asnC	TU00113		Nac DNA-binding-site 16 bases downstream of asnCp,Nac DNA-binding-site 64 bases upstream of asnCp,Nac DNA-binding-site 7 bases upstream of asnCp
+yghZ	TU0-8754
+cysQ	TU0-14162	Regulation of cysQ by DNA-binding transcriptional dual regulator Nac,Regulation of cysQ by ppGpp
+rydB	TU0-13367
+proQ-prc	TU0-13425
+insL1	TU0-12793
+yeeA	TU0-13486
+hiuH-msrPQ	TU0-13468
+rsmA-apaGH	TU0-5186
+ptsHI-crr	TU00482		Cra DNA-binding-site 55.5 bases upstream of ptsHp1,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 42.5 bases upstream of ptsHp1
+yeiI	TU0-14304
+ybeF	TU0-13005
+gpp	TU0-14036
+ynfD	TU0-13336	Regulation of ynfD by ppGpp
+yafS	TU0-8543
+yjiJ	TU0-14200
+mdoGH	TU0-4143
+rhaSR	TU0-45202		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 111.5 bases upstream of rhaSp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 92.5 bases upstream of rhaSp2,RhaR-rhamnose DNA-binding-site 40 bases upstream of rhaSp2,RhaR-rhamnose DNA-binding-site 74 bases upstream of rhaSp2
+amiA-hemF	TU0-2741		IHF DNA-binding-site 20.5 bases downstream of amiAp
+ansB	TU00075		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 91.5 bases upstream of ansBp2,Fnr DNA-binding-site 41.5 bases upstream of ansBp2
+ptsHI-crr	TU00479		Mlc DNA-binding-site 13 bases downstream of ptsHp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 63.5 bases upstream of ptsHp
+dapE-ypfN	TU0-14404
+yceQ	TU0-13133
+hslJ	TU0-13241		DNA-binding transcriptional dual regulator CysB DNA-binding-site 16 bases upstream of hslJp
+yodD	TU0-8648
+pflB	TU00380
+yjiK	TU0-14201
+trpt	TU0-14371
+yhbQ	TU0-8576
+ileS-lspA-fkpB-ispH	TU0-14465
+yebC-ruvC	TU0-8241
+yeaO	TU0-13405
+aroM	TU0-44218
+ubiX	TU0-14520
+lon	TU0-4931
+pepB	TU0-13656
+cstA	TU0-6823		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 89.5 bases upstream of cstAp1
+proC	TU0-8493
+sokC	TU0-12795
+ybhP-clsB-ybhN	TU0-13049	Regulation of ybhP-clsB-ybhN by ppGpp
+dnaTC	TU0-8868
+glyU	TU0-13770
+fabG-acpP	TU443
+ydiL	TU0-13371
+kdsC-lptCAB	TU0-14291
+gntK	TU0-42512
+nrdR-ribDE-nusB-thiL-pgpA	TU0-12921
+yjhE	TU0-14184
+nudE	TU0-8815
+ymbA	TU0-14325
+yhjY	TU0-13977
+patZ	TU0-42472
+metY-yhbC-nusA-infB-rbfA-truB-rpsO-pnp	TU0-6223		Fis DNA-binding-site 75 bases upstream of metYp1
+suhB	TU0-13658
+insG	TU0-8830
+miaA-hfq-hflXKC	TU0-14565
+gyrB	TU0-2603		Fis DNA-binding-site 109 bases upstream of gyrBp2,Fis DNA-binding-site 62 bases upstream of gyrBp2
+yfdY	TU0-8734
+rdlD	TU0-13973
+ortT	TU0-13269	Regulation of ortT by CRP-cyclic-AMP DNA-binding transcriptional dual regulator
+yobD	TU0-13419
+rpsU-dnaG-rpoD	TU00435		LexA DNA-binding-site 4.5 bases downstream of rpsUp3
+pdxI	TU0-13248
+gntP	TU0-4961		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 20.5 bases upstream of gntPp,UxuR DNA-binding-site 130.5 bases upstream of gntPp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 126.5 bases upstream of gntPp,UxuR DNA-binding-site 24.5 bases upstream of gntPp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of gntPp
+ycgM	TU0-13170
+asnW	TU0-3561
+spf-spfP	TU797		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 84.5 bases upstream of spfp
+ydjXYZ-ynjABCD	TU0-13388
+cyaR	TU0-45185
+pdeL	TU0-45142
+insMI3	TU0-14186
+yjbEFGH	TU0-14287		IHF DNA-binding-site 133 bases upstream of yjbEp1,RcsAB DNA-binding-site 209 bases upstream of yjbEp1
+uspC	TU0-8535	Regulation of uspC by DNA-binding transcriptional dual regulator Nac,Regulation of uspC by ppGpp
+yoaA	TU0-13414
+insC5CD5D5-yqiHIG	TU0-13843
+insE4F4EF4	TU0-13117
+xerD-dsbC-recJ	TU0-45199
+alkB	TU00073
+hycABCDEFGHI	TU00153		ModE-MoO<sub>4</sub><sup>2-</sup> DNA-binding-site 192 bases upstream of hycAp,FhlA-formate DNA-binding-site 98 bases upstream of hycAp,IHF DNA-binding-site 127.5 bases upstream of hypAp
+dnaN-recF	TU0-1193
+creABCD	TU00253
+isrC	TU0-14334
+yidP	TU0-8597
+dkgB	TU0-12839
+feoABC	TU00269		DNA-binding transcriptional dual regulator Fur DNA-binding-site 17 bases upstream of feoAp,Fnr DNA-binding-site 90.5 bases upstream of feoAp
+rfaDFCL	TU0-4181
+ygfZ	TU0-8749
+endA	TU00453
+yoaH	TU0-8645
+fliLMNOPQR	TU00276		FlhDC DNA-binding-site 51 bases upstream of fliLp1
+gabDTP	TU0-1921	Regulation of gabDTP by ppGpp	Nac DNA-binding-site 44 bases upstream of gabDp
+tolC-ygiBC	TU0-13838
+yibF	TU0-13988
+ygjV	TU0-13861
+torI	TU0-13607	Regulation of torI by DNA-binding transcriptional dual regulator Nac
+dinB-yafNOP	TU0-45217
+gshA	TU0-13714	Regulation of gshA by putrescine
+yddAB	TU0-13290	Regulation of yddAB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+htgA	TU00405
+rfaH	TU0-8499	Regulation of rfaH by DNA-binding transcriptional dual regulator Nac
+dacA	TU0-13008
+hinT-ycfL-lpoB-thiK-nagZ-ycfP	TU0-13136
+aspA	TU00160		NarL-P<sup>asp59</sup> DNA-binding-site 67 bases upstream of aspAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 90.5 bases upstream of aspAp,Fnr DNA-binding-site 40.5 bases upstream of aspAp
+ybiJ	TU0-13052	Regulation of ybiJ by DNA-binding transcriptional activator YhaJ
+mcbA	TU0-13056
+yccU	TU0-8680	Regulation of yccU by DNA-binding transcriptional repressor GlaR,Regulation of yccU by ppGpp
+yjhV	TU0-14188
+insL3	TU0-13617
+yfiRN	TU0-14765
+ruvC	TU0-8242
+tabA	TU0-14173
+hchA	TU0-13466	Regulation of hchA by ppGpp	H-NS DNA-binding-site regulating hchAp1
+ppiD	TU0-6622		CpxR-phosphorylated DNA-binding-site 165 bases upstream of ppiDp2,CpxR-phosphorylated DNA-binding-site 117 bases upstream of ppiDp2,CpxR-phosphorylated DNA-binding-site 96.5 bases upstream of ppiDp2
+adhE	TU00198		NarL-P<sup>asp59</sup> DNA-binding-site 90 bases downstream of adhEp,Fis DNA-binding-site 148 bases upstream of adhEp,Fis DNA-binding-site 68 bases upstream of adhEp,Fis DNA-binding-site 42 bases upstream of adhEp,NarL-P<sup>asp59</sup> DNA-binding-site 81 bases downstream of adhEp,Cra DNA-binding-site 36.5 bases downstream of adhEp
+pdeL	TU0-14408
+ybiA	TU0-8567
+yidHGF	TU0-14014
+pheV	TU00501		Fis DNA-binding-site 75 bases upstream of pheVp
+yjjY	TU0-12785
+rpsO-pnp	TU0-6660
+murJ	TU0-13132
+rpoE-rseABC	TU0-42636
+mqo	TU0-13559	Regulation of mqo by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+metY	TU0-8476
+ushA	TU0-8534
+lpp	TU0-6509
+dnaQ	TU0-12843
+frr	TU0-42525
+asnT	TU00497
+sdsN	TU0-42620
+insC1CD1D1	TU0-12904
+stfE-tfaE	TU0-13152
+ansP	TU0-8148
+yjdIJ	TU0-14137
+yqgC	TU0-8653
+yhgF	TU0-13932
+ydcF	TU0-13252
+mdh	TU00108		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of mdhp1,ArcA-P<sup>asp54</sup> DNA-binding-site 27 bases downstream of mdhp1
+nikABCDER	TU0-14783
+mdtUJI	TU0-13343	Regulation of mdtUJI by AcrR-3,6-diaminoacridine,Regulation of mdtUJI by AcrR-3,6-diaminoacridine
+pdeG	TU0-13163	Regulation of pdeG by DNA-binding transcriptional repressor GlaR
+yjfY	TU0-8613	Regulation of yjfY by DNA-binding transcriptional repressor GlaR,Regulation of yjfY by ppGpp
+zur	TU0-8667
+glgCAP	TU00469	Regulation of glgCAP by carbon storage regulator CsrA,Regulation of glgCAP by carbon storage regulator CsrA
+ugpBAECQ	TU0-5982		PhoB-P<sup>asp53</sup> DNA-binding-site 52 bases upstream of ugpBp1,PhoB-P<sup>asp53</sup> DNA-binding-site 26 bases upstream of ugpBp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 26.5 bases upstream of ugpBp2
+eco	TU0-8790
+tsaB-yeaY	TU0-13413
+nei	TU0-44220
+yhhY	TU0-7662		DNA-binding transcriptional dual regulator Fur DNA-binding-site 18 bases upstream of yhhXp5
+yejG	TU0-42565
+thrL	TU0-42486
+peaD	TU0-12970
+azuCR	TU0-14767	Regulation of azuCR by small regulatory RNA FnrS
+gspAB	TU0-14375
+rlhA	TU0-13265
+tas	TU0-13750
+ryfA-timP	TU0-13654
+tldE	TU0-14167
+orn	TU0-14151	Regulation of orn by DNA-binding transcriptional repressor GlaR
+citR-ybdNM	TU0-194010	Regulation of citR-ybdNM by DNA-binding transcriptional repressor CitR
+uspA	TU00433
+ypeC	TU0-13616
+yecH	TU0-8717
+radA-nadR	TU0-14225
+yiiR	TU0-14082
+bioH	TU0-8772
+hdeAB-yhiD	TU0-45242	Regulation of hdeAB-yhiD by ppGpp	GadX DNA-binding-site 94.5 bases upstream of hdeDp2,MarA DNA-binding-site 39 bases upstream of hdeAp2,H-NS DNA-binding-site 118 bases upstream of hdeAp2,TorR-P<SUP>asp</SUP> DNA-binding-site 27.5 bases upstream of hdeAp2
+ynfEFGH-dmsD	TU0-45246		Fnr DNA-binding-site 40.5 bases upstream of ynfEp2
+trxA	TU0-3103
+rdgB-yggW	TU0-14491
+tesB	TU0-8528
+flk	TU0-5184
+ygdQ	TU0-13748	Regulation of ygdQ by small regulatory RNA MgrR
+eno	TU0-14821
+tatE	TU0-13003
+yedS	TU0-13464
+fxsA	TU0-1721
+yjcE	TU0-14124
+narUZYWV	TU0-194009	Regulation of narUZYWV by DNA-binding transcriptional dual regulator OmpR-phosphorylated
+yafU	TU0-8544
+sfmHF	TU0-12968
+hcp-hcr-poxB	TU0-42650
+melAB	TU00131		MelR DNA-binding-site 238.5 bases upstream of melAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 195.5 bases upstream of melAp,MelR-melibiose DNA-binding-site 120.5 bases upstream of melAp,MelR-melibiose DNA-binding-site 100.5 bases upstream of melAp,MelR-melibiose DNA-binding-site 62.5 bases upstream of melAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 81.5 bases upstream of melAp,MelR-melibiose DNA-binding-site 42.5 bases upstream of melAp
+yedRJ	TU0-13463
+ydjLKJIHG	TU0-13394
+setB	TU0-14239
+yigGF	TU0-14043
+acnA	TU0-45169
+sucAB	TU0-42509
+creD	TU0-14683
+cueR	TU0-12955
+glvCBG-ysdC	TU0-14016
+mutY-yggX-mltC	TU0-5568
+yghW	TU0-13820
+narU	TU0-2649	Regulation of narU by ppGpp
+hlpA-lpxD-fabZ-lpxA	TU0-4146		CpxR-phosphorylated DNA-binding-site 101 bases upstream of hlpAp
+exuR	TU0-42612
+putP	TU103
+rclBC	TU0-12884
+rrlA-rrfA	TU0-14533
+glnK-amtB	TU587		NtrC phosphorylated dimer DNA-binding-site 87 bases upstream of glnKp
+ygfTS	TU0-13784
+trmA	TU00430		Fis DNA-binding-site 47 bases upstream of trmAp
+hfq-hflXKC	TU0-14567
+ivy	TU0-8840	Regulation of ivy by DNA-binding transcriptional dual regulator Nac
+ygdG	TU0-13740
+qmcA-ybbJ	TU0-12956
+yjcF	TU0-14125	Regulation of yjcF by DNA-binding transcriptional dual regulator Nac
+ssrS	TU0-36424
+yiiQ	TU0-14081
+yfhH	TU0-13668
+rplJL-rpoBC	TU00335
+dam-rpe-gph-trpS	TU876
+ygeA	TU0-13754
+holD-rimI-yjjG	TU0-14216
+rpoE-rseABC	TU00342
+gsk	TU0-8806
+cyaR	TU0-13506
+dusC	TU0-13534
+fixABCX	TU142		Fnr DNA-binding-site 90.5 bases upstream of caiTp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 126.5 bases upstream of fixAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 69.5 bases upstream of fixAp
+yrfG-hslR	TU0-13929
+rnhA	TU0-6685
+thrS-infC-rpmI-rplT-pheMST-ihfA	TU0-14257
+ybiN	TU0-8568	Regulation of ybiN by DNA-binding transcriptional dual regulator Nac
+gcd	TU0-7001
+hicAB	TU0-45145
+ychF	TU0-1782
+tig	TU0-14252
+ydhIJK	TU-8428
+yrhB	TU0-13941	Regulation of yrhB by DNA-binding transcriptional dual regulator Nac
+yjaG	TU0-14104
+sgrST-setA	TU0-45190		SgrR DNA-binding-site 53.5 bases upstream of sgrSp2
+ybiI	TU0-13053
+gcvP	TU0-14509
+ecpBCDE	TU0-12878
+mcrA	TU0-13154
+yjjN	TU0-8628	Regulation of yjjN by CRP-cyclic-AMP DNA-binding transcriptional dual regulator,Regulation of yjjN by ExuR-&alpha;-D-galacturonate, &alpha;-D-glucuronate-DNA-binding transcriptional repressor,Regulation of yjjN by DNA-binding transcriptional repressor UxuR
+arcZ	TU0-8517
+uhpB	TU0-44221
+aldA	TU102		Fnr DNA-binding-site 10.5 bases upstream of aldAp,ArcA-P<sup>asp54</sup> DNA-binding-site 137 bases upstream of aldAp,ArcA-P<sup>asp54</sup> DNA-binding-site 13 bases downstream of aldAp,ArcA-P<sup>asp54</sup> DNA-binding-site 2 bases downstream of aldAp,DnaA-ATP DNA-binding-site 7.5 bases upstream of aldAp,ArcA-P<sup>asp54</sup> DNA-binding-site 5 bases upstream of aldAp,ArcA-P<sup>asp54</sup> DNA-binding-site 157 bases upstream of aldAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 59.5 bases upstream of aldAp
+torYZ	TU684
+nudK	TU0-13639
+ygbN	TU0-13723
+ydcY	TU0-13270
+anmK	TU0-13355
+degQ	TU0-42560
+zapA	TU0-13793
+yoaI	TU0-8646
+gspCDEFGHIJKLMO	TU0-14374
+tyrS-pdxY	TU0-8865
+kefFC	TU0-12800
+glmY	TU0-14775
+rnpB	TU543		Fis DNA-binding-site 11 bases downstream of rnpBp,Fis DNA-binding-site 50 bases upstream of rnpBp,Fis DNA-binding-site 118 bases upstream of rnpBp,Fis DNA-binding-site 156 bases upstream of rnpBp
+lpxC	TU0-12809
+psd-mscM	TU0-3424		CpxR-phosphorylated DNA-binding-site 151 bases downstream of psdp
+hofMNOP	TU0-13927
+ispDF	TU0-14313
+hypABCDE	TU00154		FhlA-formate DNA-binding-site 751.5 bases upstream of hypAp,IHF DNA-binding-site 127.5 bases upstream of hypAp
+treA	TU00396	Regulation of treA by ppGpp
+rluB	TU0-13195
+ytjB-lplA	TU0-6630
+carAB	TU00110		PepA DNA-binding-site 79 bases upstream of carAp1,PurR-hypoxanthine DNA-binding-site 128.5 bases upstream of carAp1,PepA DNA-binding-site 173 bases upstream of carAp1,IHF DNA-binding-site 305 bases upstream of carAp1
+yieG	TU0-8601
+metNIQ	TU0-2302		MetJ-SAM DNA-binding-site 25.5 bases upstream of metNp,MetJ-SAM DNA-binding-site 17.5 bases upstream of metNp
+hrpB	TU0-12819
+kgtP	TU0-13674	Regulation of kgtP by small regulatory RNA GcvB,Regulation of kgtP by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+oppBCDF	TU0-45147
+ompC	TU00477	Regulation of ompC by small regulatory RNA RseX,Regulation of ompC by small regulatory RNA RybB,Regulation of ompC by small regulatory RNA MicC	Lrp DNA-binding-site 319 bases upstream of ompCp3,Lrp DNA-binding-site 87.5 bases downstream of micFp2,Lrp DNA-binding-site 58.5 bases downstream of micFp2,Lrp DNA-binding-site 27.5 bases downstream of micFp2,Lrp DNA-binding-site 151 bases upstream of ompCp3,Lrp DNA-binding-site 28 bases downstream of ompCp3,Lrp DNA-binding-site 59 bases downstream of ompCp3,Lrp DNA-binding-site 121.5 bases downstream of ompCp3,Lrp DNA-binding-site 143 bases downstream of ompCp3,IHF DNA-binding-site 72 bases upstream of micFp2
+relBE	TU0-13325
+yjfZ	TU0-8614
+grxC	TU0-13996
+acrZ	TU0-13041
+ybjD	TU0-8670
+pgl	TU0-8101
+yohF	TU0-13531
+ycgH	TU0-13165
+yegJ	TU0-8725
+carAB	TU00109	Regulation of carAB by DNA-binding transcriptional dual regulator CpxR-phosphorylated	ArgR-arg DNA-binding-site 8.5 bases upstream of carAp2,ArgR-arg DNA-binding-site 13.5 bases downstream of carAp2
+ydfV	TU0-13326
+micL	TU0-42576
+recA	TU00062		LexA DNA-binding-site 20 bases upstream of recAp
+topAI-yjhQ	TU0-14195
+araFGH	TU0-42451
+cirA	TU00015	Regulation of cirA by small regulatory RNA OmrB,Regulation of cirA by small regulatory RNA OmrA	DNA-binding transcriptional dual regulator Fur DNA-binding-site 17 bases upstream of cirAp1,DNA-binding transcriptional dual regulator Fur DNA-binding-site 35 bases upstream of cirAp1,DNA-binding transcriptional dual regulator Fur DNA-binding-site 29 bases upstream of cirAp1
+ynfEFGH-dmsD	TU0-5481		Fnr DNA-binding-site 40.5 bases upstream of ynfEp2
+gntT	TU0-4928		GntR DNA-binding-site 86.5 bases downstream of gntTp2,GntR DNA-binding-site 55.5 bases upstream of gntTp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 112.5 bases upstream of gntTp2
+yjjK	TU0-8627
+rne	TU-8407	Regulation of rne by ribonuclease E
+livKHMGF	TU00457
+degS	TU0-42561
+yfiC	TU0-8740
+iaaA-gsiABCD	TU0-13063
+nrdG	TU0-14501
+gcd	TU0-2042		IHF DNA-binding-site 73 bases upstream of gcdp1,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 31.5 bases upstream of gcdp1
+garR	TU0-42699
+sstT	TU0-13860	Regulation of sstT by small regulatory RNA GcvB
+proX	TU0-198744
+ydjE	TU0-13392
+asnV	TU00499
+yhbO	TU0-8574	Regulation of yhbO by DNA-binding transcriptional dual regulator Rob,Regulation of yhbO by ppGpp
+rhlE	TU0-8500	Regulation of rhlE by DNA-binding transcriptional dual regulator CecR
+yhiN	TU0-8587
+yfcD	TU0-13585
+yahDEFG	TU0-12892
+yciGFE	TU0-13193		H-NS DNA-binding-site 88.5 bases upstream of yciGp
+yjiV	TU0-14207
+yfeKS	TU-8383
+zntB	TU0-13223
+gapA	TU0-42481
+xapB	TU0-44212
+ybaA	TU0-12939	Regulation of ybaA by ppGpp
+yceJI	TU0-13126
+ulaG	TU0-5163		IHF DNA-binding-site regulating ulaGp,UlaR DNA-binding-site 0.5 bases upstream of ulaGp,UlaR DNA-binding-site 25.5 bases downstream of ulaGp
+yibIH	TU0-13992
+glgCAP	TU00122	Regulation of glgCAP by carbon storage regulator CsrA,Regulation of glgCAP by carbon storage regulator CsrA	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site regulating glgCp1
+sbcDC	TU0-12917
+astCADBE	TU0-1004
+yncH	TU0-13275
+ridA	TU0-14169
+yfbP	TU0-13578
+bamC	TU0-4161
+bglH-yieLK	TU0-14028
+ybdN	TU0-12993
+ygcG	TU0-8338
+uof-fur	TU0-1281	Regulation of uof-fur by small regulatory RNA RyhB	SoxS DNA-binding-site 61.5 bases upstream of uofp,OxyR DNA-binding-site 62 bases upstream of uofp
+pnp	TU0-6654	Regulation of pnp by 30S ribosomal subunit protein S1,Regulation of pnp by polynucleotide phosphorylase
+rsmG	TU0-42479
+rttR	TU0-13181
+iraD	TU0-14766	Regulation of iraD by carbon storage regulator,Regulation of iraD by carbon storage regulator
+hemF	TU0-2742		IHF DNA-binding-site 8 bases downstream of hemFp1
+zipA	TU0-13621
+lpxL	TU0-901
+hcaT	TU0-13660
+yggX-mltC-nupG	TU0-5564
+ybdF	TU0-12987
+dtpC	TU0-14139
+ligB	TU0-8847	Regulation of ligB by DNA-binding transcriptional dual regulator Nac
+surA-pdxA-rsmA-apaGH	TU00362
+yqgB	TU0-14326
+fbp	TU0-8336
+yhjV	TU0-13974
+yheO-tusDCB	TU0-13915
+narU	TU0-2661
+yciE	TU0-36411
+lysC	TU0-6552	Regulation of lysC by D-lysine
+ttdABT	TU00368
+ygiZ	TU0-8758
+thiMD	TU0-13512	Regulation of thiMD by thiamine diphosphate
+ybeR-djlB	TU0-13011
+chaC	TU0-14458
+ybdK	TU0-12989	Regulation of ybdK by DNA-binding transcriptional dual regulator Nac,Regulation of ybdK by ppGpp
+yzcX	TU0-14041
+tufA	TU0-36426
+yggI	TU0-13804
+greB	TU0-13931	Regulation of greB by DNA-binding transcriptional dual regulator Nac
+agrB	TU0-42530
+ygdR	TU0-13749	Regulation of ygdR by DNA-binding transcriptional dual regulator Nac
+micF	TU0-2644		Rob DNA-binding-site 40 bases upstream of micFp2,IHF DNA-binding-site 72 bases upstream of micFp2,Lrp DNA-binding-site 87.5 bases downstream of micFp2,SoxS DNA-binding-site 38.5 bases upstream of micFp2,SoxS DNA-binding-site 119.5 bases upstream of micFp2,Lrp-leu DNA-binding-site 122 bases downstream of micFp2,Lrp DNA-binding-site 58.5 bases downstream of micFp2,Lrp DNA-binding-site 27.5 bases downstream of micFp2,MarA DNA-binding-site 40 bases upstream of micFp2
+ychS	TU0-13180
+yadV-htrE	TU00403
+ydiJ-menI-ydiH	TU0-13368
+yfiS	TU0-198732
+yjjB-dnaTC	TU0-8869
+diaA	TU0-14343
+ompG	TU0-13213
+yneL	TU0-13295
+eutHA	TU0-13634	Regulation of eutHA by antitoxin/DNA-binding transcriptional repressor HipB,Regulation of eutHA by antitoxin/DNA-binding transcriptional repressor HipB
+deoBD	TU0-6646
+yacC-speED	TU00359
+mdtNOP	TU0-14128
+xerD	TU0-13787
+dgcJ	TU0-13402
+gspAB	TU0-14376		H-NS DNA-binding-site regulating gspAp1
+potFGHI	TU0-14459
+pykA	TU0-45220
+sdiA	TU0-42466
+ddpXABCDF	TU0-3623		NtrC-P<sup>asp</sup> DNA-binding-site 109 bases upstream of ddpXp1
+yhcF	TU0-13893
+ydaGF	TU0-13229
+mppA	TU0-13218	Regulation of mppA by DNA-binding transcriptional repressor PgrR
+fabDG-acpP	TU442
+rcsB	TU00327
+xapAB	TU301		DNA-binding transcriptional activator XapR DNA-binding-site 119 bases upstream of xapAp2,DNA-binding transcriptional activator XapR DNA-binding-site 39 bases upstream of xapAp2
+ldtA	TU0-13478
+rrsC-gltU-rrlC-rrfC	TU0-1184
+bdcA	TU0-14171
+pqiABC	TU0-45186
+ucpA	TU0-14643
+rseD-rpoE-rseABC	TU281		CpxR-phosphorylated DNA-binding-site 67 bases downstream of rseDp4
+nemRA	TU0-14687
+yfaXWVU	TU0-14691
+murB-birA	TU0-14099
+yqjA-mzrA	TU0-14286		CpxR-phosphorylated DNA-binding-site 47 bases upstream of yqjAp1
+rpoS	TU0-14652
+fumAC	TU0-42499
+opgD	TU0-13259
+pdxA-rsmA	TU0-5221
+yccX	TU0-8681
+yfgF	TU0-8738
+pncC	TU0-13718
+glpABC	TU00030		Fnr DNA-binding-site 131.5 bases upstream of glpTQp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 131.5 bases upstream of glpTQp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of glpTQp,Fnr DNA-binding-site 91.5 bases upstream of glpTQp,GlpR DNA-binding-site 41.5 bases upstream of glpTQp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 91.5 bases upstream of glpTQp,GlpR DNA-binding-site 81.5 bases upstream of glpTQp,GlpR DNA-binding-site 113.5 bases upstream of glpTQp,GlpR DNA-binding-site 132.5 bases upstream of glpTQp,GlpR DNA-binding-site 172.5 bases upstream of glpTQp
+digH	TU0-13288
+gadEF-mdtEF	TU0-5682	Regulation of gadEF-mdtEF by ppGpp	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 19.5 bases upstream of gadEp2,YdeO DNA-binding-site regulating gadEp2,EvgA-P<sup>asp</sup> DNA-binding-site regulating gadEp2,GadE DNA-binding-site 198.5 bases upstream of gadEp2,GadE DNA-binding-site 63.5 bases upstream of gadEp2,GadE DNA-binding-site 30.5 bases upstream of gadEp2
+yadMLKC	TU0-14300
+aspC	TU0-6482
+mqsRA	TU0-14791
+pcnB-folK	TU0-8361
+metY	TU343
+cysG	TU0-6
+ppiA	TU00464		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 12.5 bases downstream of ppiAp4,CytR DNA-binding-site 10.5 bases upstream of ppiAp4,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of ppiAp3
+glmY	TU0-13666
+ybeM	TU0-13002
+arfA	TU0-13910
+yiaKLMNO-lyx-sgbHUE	TU592		PlaR DNA-binding-site 55 bases upstream of plaRp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 62.5 bases downstream of yiaKp1,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 50.5 bases downstream of plaRp,IHF DNA-binding-site 49.5 bases upstream of yiaKp1
+garD	TU0-4461
+gstB	TU0-8633
+ydcA	TU0-13254
+ybfL	TU0-13029
+rpiB	TU0-4483		AlsR DNA-binding-site regulating rpiBp
+bolA	TU0-14251
+rpsA-ihfB	TU565
+mdtL	TU0-14022
+ybeD-lipB	TU0-45272
+ileS-lspA-fkpB-ispH	TU0-14395
+ibpAB	TU00407	Regulation of ibpAB by small heat shock protein IbpA
+agaSYBCDI	TU0-6583		AgaR DNA-binding-site 274.5 bases upstream of agaSp,AgaR DNA-binding-site 211.5 bases upstream of agaSp,AgaR DNA-binding-site 94.5 bases upstream of agaSp,AgaR DNA-binding-site 52.5 bases upstream of agaSp,AgaR DNA-binding-site 21.5 bases upstream of agaSp,AgaR DNA-binding-site 22.5 bases downstream of agaSp
+arrS	TU0-45194
+pdxY	TU0-14496
+insC6CD6D6	TU0-14179
+yhhT	TU0-13946
+gltF	TU0-45146	Regulation of gltF by DNA-binding transcriptional dual regulator LeuO
+ynfC	TU0-8639
+nac	TU65		NtrC-P<sup>asp</sup> DNA-binding-site 152 bases upstream of nacp,Nac DNA-binding-site 75 bases upstream of nacp
+stfR-tfaR	TU0-13236
+ydgJ	TU0-8708
+micC	TU0-8824
+csrB	TU0-4761	Regulation of csrB by DksA-ppGpp,Regulation of csrB by ppGpp,Regulation of csrB by RNA polymerase-binding transcription factor DksA
+pgi	TU0-45260
+ulaABCDEF	TU0-5162		IHF DNA-binding-site regulating ulaAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of ulaAp,UlaR DNA-binding-site 44.5 bases upstream of ulaAp,UlaR DNA-binding-site 19.5 bases upstream of ulaAp
+asd	TU0-13935	Regulation of asd by small regulatory RNA GcvB,Regulation of asd by small regulatory RNA SgrS,Regulation of asd by small regulatory RNA SgrS,Regulation of asd by DNA-binding transcriptional dual regulator ArgP
+xapAB	TU0-45226		DNA-binding transcriptional activator XapR DNA-binding-site 119 bases upstream of xapAp2,DNA-binding transcriptional activator XapR DNA-binding-site 39 bases upstream of xapAp2
+malXY	TU00132		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 17.5 bases downstream of malIp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of malXp,MalI DNA-binding-site 16.5 bases upstream of malXp
+araE	TU00076		AraC-arabinose DNA-binding-site 65 bases upstream of araEp,AraC-arabinose DNA-binding-site 44 bases upstream of araEp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 94.5 bases upstream of araEp
+ydgK-rsxABCDGE-nth	TU0-8456
+ydiV	TU0-13377
+ydbD	TU0-13249
+rpmH-rnpA	TU00340	Regulation of rpmH-rnpA by ppGpp
+yadE	TU0-12817
+tufA	TU0-14519
+yecM-cutC	TU00451
+rpsI	TU0-42202
+lsrK	TU0-13298
+mutY-yggX	TU0-5567
+patA	TU0-3341	Regulation of patA by ppGpp	IHF DNA-binding-site 256 bases upstream of patAp2,Fis DNA-binding-site 121 bases upstream of patAp2,NtrC-P<sup>asp</sup> DNA-binding-site 193 bases upstream of patAp2,NtrC-P<sup>asp</sup> DNA-binding-site 171 bases upstream of patAp2
+htpG	TU00401
+yidKJ	TU0-14015
+hcp-hcr	TU0-7021		NsrR DNA-binding-site 6 bases downstream of hcpp1,NarP-P<sup>asp59</sup> DNA-binding-site 100 bases upstream of hcpp1,NarL-P<sup>asp59</sup> DNA-binding-site 100 bases upstream of hcpp1,NarP-P<sup>asp59</sup> DNA-binding-site 109 bases upstream of hcpp1,NarL-P<sup>asp59</sup> DNA-binding-site 109 bases upstream of hcpp1,Fnr DNA-binding-site 72.5 bases upstream of hcpp1
+yhiJ	TU0-13953	Regulation of yhiJ by DNA-binding transcriptional dual regulator Nac
+mlc	TU789		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 70.5 bases upstream of mlcp,Mlc DNA-binding-site 4 bases downstream of mlcp
+sgrR-sroA-thiBPQ	TU0-12805
+queF	TU0-13738
+bcr	TU0-13554
+insH-5	TU0-8834
+yedL	TU0-13457	Regulation of yedL by DNA-binding transcriptional dual regulator Nac
+rssB	TU0-8364	Regulation of rssB by ppGpp
+yihUTS	TU0-42689
+yfaL	TU0-8729
+rpoBC	TU0-7002
+ybfQ	TU0-13028
+rluF	TU0-8505
+ogrK	TU0-14353
+dgcZ	TU0-13308	Regulation of dgcZ by carbon storage regulator CsrA,Regulation of dgcZ by carbon storage regulator CsrA	CpxR-phosphorylated DNA-binding-site 41 bases upstream of dgcZp
+eno	TU0-14820
+intB	TU0-14178
+fecIR	TU00460		DNA-binding transcriptional dual regulator Fur DNA-binding-site 7 bases upstream of fecIp,DNA-binding transcriptional dual regulator Fur DNA-binding-site 14 bases upstream of fecIp
+ybcN-ninE-ybcO-rusA-ylcG	TU0-12975
+ybjL	TU0-13071
+mepH	TU0-13359
+ydbJ	TU0-8698
+dacD	TU0-13488
+gudPXD	TU0-4462
+yfcF	TU0-13587
+yjgN	TU0-8620	Regulation of yjgN by DNA-binding transcriptional dual regulator Nac
+yaiY	TU0-8551	Regulation of yaiY by DNA-binding transcriptional dual regulator Nac
+ydfABC-dicFB-ydfD	TU0-198710
+galU	TU0-7441
+pfkA	TU788		Cra DNA-binding-site 35.5 bases upstream of pfkAp
+dinQ	TU0-8263	Regulation of dinQ by small regulatory RNA AgrB	LexA DNA-binding-site 7.5 bases upstream of dinQp
+ymiA-yciX	TU0-13198
+yjhF	TU0-14191
+ycbX	TU0-8678
+rpsU-dnaG-rpoD	TU00352
+uidR	TU0-5082
+yncO	TU0-198730
+yhcO	TU0-13900	Regulation of yhcO by ppGpp
+pepD	TU0-6442
+pgpC-tadA	TU0-13667
+rayT	TU0-12851
+mepK-gloC	TU0-13091
+tdcR	TU0-13870	Regulation of tdcR by DNA-binding transcriptional dual regulator Nac
+mhpABCDFE	TU0-2402		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 95.5 bases upstream of mhpAp,MhpR-3HPP DNA-binding-site 58 bases upstream of mhpAp
+lgoR	TU0-14211
+mngB	TU0-44203
+bamD	TU-8391
+yjbB	TU0-14107
+yehS	TU0-13525
+dicB-ydfDE-insD-intQ	TU0-13331		DicA DNA-binding-site regulating dicBp
+rpoH	TU00083		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 48.5 bases upstream of rpoHp5,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 20.5 bases upstream of rpoHp3,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 73.5 bases upstream of rpoHp3,CytR DNA-binding-site 33.5 bases upstream of rpoHp3
+sroH	TU0-14101
+cpxPQ	TU0-1041		CpxR-phosphorylated DNA-binding-site 47 bases upstream of cpxRp2,CpxR-phosphorylated DNA-binding-site 5 bases upstream of cpxPp
+pabC-mltG-tmk-holB-ycfH	TU0-13135
+gfcBCD	TU0-13107
+treR	TU0-2443		PhoP-P<sup>asp51</sup> DNA-binding-site 19 bases downstream of treRp4
+nlpD-rpoS	TU00309
+cynTS	TU0-14378		CynR-cyanate DNA-binding-site 69 bases upstream of cynTp,CynR DNA-binding-site 33 bases upstream of cynRp
+ygbE	TU0-13724
+caiCDE	TU0-14529
+ompR-envZ	TU161		IHF DNA-binding-site 8 bases downstream of ompRp1,IHF DNA-binding-site 37 bases upstream of ompRp1,IHF DNA-binding-site 102 bases upstream of ompRp1,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 75 bases upstream of ompRp2
+cspF	TU0-8779
+pflB	TU00384
+cdgI	TU0-13401
+yifE	TU0-8603	Regulation of yifE by DNA-binding transcriptional dual regulator HdfR,Regulation of yifE by small regulatory RNA RybB
+pykA	TU0-14633
+frwCB	TU0-14092
+yqjA-mzrA	TU0-4205
+coaE-zapD-yacG	TU0-12810
+dapD	TU0-6443
+gspAB	TU-8433
+yncG	TU0-13274
+cnu	TU0-13352
+pldB-yigL	TU0-14049
+ylcI	TU0-198725
+yqfH	TU0-198736
+gfcA	TU0-13108
+rpoN-hpf-ptsN-yhbJ-npr	TU00487
+ymfA-ycfZ	TU0-13143
+argT-hisJQMP	TU0-3581		NtrC phosphorylated dimer DNA-binding-site 190 bases upstream of argTp
+yhcC	TU0-13891	Regulation of yhcC by DNA-binding transcriptional dual regulator Nac,Regulation of yhcC by ArgR-L-arginine DNA-binding transcriptional dual regulator
+dnaX	TU0-12948
+yjbT	TU0-198722
+yegRZ	TU0-7744
+aes	TU0-5421
+malI	TU00187		MalI DNA-binding-site 10.5 bases downstream of malIp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of malXp
+pfkB	TU0-8181
+yicR-rpmBG	TU0-5601
+ydeI	TU0-41801
+rpsU	TU00472
+yihA	TU0-8606
+ybfP	TU0-13024
+cbrA	TU0-8599
+rhaT	TU00208		RhaS-rhamnose DNA-binding-site 74 bases upstream of rhaTp,ArcA-P<sup>asp54</sup> DNA-binding-site 156 bases upstream of rhaTp,ArcA-P<sup>asp54</sup> DNA-binding-site 184 bases upstream of rhaTp,ArcA-P<sup>asp54</sup> DNA-binding-site 173 bases upstream of rhaTp,RhaS-rhamnose DNA-binding-site 41.0 bases upstream of rhaTp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 99.5 bases upstream of sodAp
+symE	TU0-8264	Regulation of symE by small regulatory RNA antitoxin SymR
+serC-aroA	TU00357		Lrp DNA-binding-site 134 bases upstream of serCp1
+yghG	TU0-13813	Regulation of yghG by DNA-binding transcriptional dual regulator Nac
+xapR	TU791
+yajD	TU0-12919	Regulation of yajD by DNA-binding transcriptional dual regulator Nac
+ynfB-speG	TU0-13335
+yjcO	TU0-14127	Regulation of yjcO by DNA-binding transcriptional dual regulator Nac
+rne	TU0-14622
+ybcY	TU0-8557
+chiQ	TU0-13022
+feaB	TU0-8795		FeaR DNA-binding-site 64 bases upstream of feaBp1
+elfA	TU0-13094	Regulation of elfA by DNA-binding transcriptional dual regulator Nac,Regulation of elfA by DNA-binding transcriptional dual regulator SlyA
+rppH-ptsP	TU0-13746
+pqiABC	TU0-45259		MarA DNA-binding-site 42.5 bases upstream of pqiAp3,SoxS DNA-binding-site 40 bases upstream of pqiAp3
+yicS	TU0-8594
+sseB	TU0-13655
+evgLAS	TU0-7541		EvgA-P<sup>asp</sup> DNA-binding-site 73.5 bases upstream of emrKp
+ybeQ	TU0-8561	Regulation of ybeQ by DNA-binding transcriptional dual regulator LeuO,Regulation of ybeQ by DNA-binding transcriptional dual regulator Nac
+yoaM	TU0-198734
+ldrB	TU0-8844
+isrC-flu	TU0-2701		OxyR DNA-binding-site 24 bases downstream of flup
+solA-yceO	TU0-13127
+rybB	TU0-13070
+glyW-cysT-leuZ	TU00512
+pstSCA	TU0-45214
+csrA	TU0-42456	Regulation of csrA by ppGpp
+cynTSX	TU00142		CynR DNA-binding-site 33 bases upstream of cynRp
+glnS	TU0-6504
+phoH	TU864		PhoB-P<sup>asp53</sup> DNA-binding-site 31 bases upstream of phoHp1
+pcnB-folk	TU0-36412
+ydeTSR	TU0-13294
+ssrS-ygfA	TU0-45173
+ftsQAZ	TU0-45271		SdiA DNA-binding-site 161.5 bases upstream of ftsQp,SdiA DNA-binding-site 15.5 bases upstream of ftsQp,SdiA DNA-binding-site 163.5 bases upstream of ftsQp
+ygbLM	TU0-13722
+ghrB	TU0-13980
+fre	TU0-14055
+epd-pgk	TU0-45274		Cra DNA-binding-site 3.5 bases downstream of epdp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 70.5 bases upstream of epdp2
+dmsABC	TU0-198703	Regulation of dmsABC by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+gcvB	TU0-6184		GcvA DNA-binding-site 43 bases upstream of gcvBp
+ygiL	TU0-13842
+psiF	TU0-44195
+yraL	TU0-8659
+ymjA	TU0-13207	Regulation of ymjA by DNA-binding transcriptional dual regulator Nac
+gltA	TU00416
+yhcB	TU0-13897	Regulation of yhcB by small regulatory RNA SdsR
+argE	TU0-6886
+ynjH	TU0-14800
+insB7	TU0-14189
+hyaABCDEF	TU00288		IscR DNA-binding-site 42 bases upstream of hyaAp2,NarP-P<sup>asp59</sup> DNA-binding-site 7 bases downstream of hyaAp2,NarP-P<sup>asp59</sup> DNA-binding-site 10 bases upstream of hyaAp2,NarL-P<sup>asp59</sup> DNA-binding-site 7 bases downstream of hyaAp2,NarL-P<sup>asp59</sup> DNA-binding-site 10 bases upstream of hyaAp2,AppY DNA-binding-site regulating hyaAp2,ArcA-P<sup>asp54</sup> DNA-binding-site 67 bases upstream of hyaAp2
+mlaFEDCB	TU0-42674
+omrA	TU0-8763		OmpR-P DNA-binding-site 70.5 bases upstream of omrAp
+rsmE-gshB	TU0-13805
+yqeH	TU0-13759
+yhjG	TU0-13969
+yiiG	TU0-14074
+tolC-ygiBC	TU0-14704
+istR-1	TU0-7182
+fimB	TU00410	Regulation of fimB by small regulatory RNA MicA	H-NS DNA-binding-site regulating fimBp2
+ykgMO	TU0-12881
+yebG	TU0-13438
+ptrA-recBD	TU0-13744
+nupX	TU0-13543
+hscBA-fdx-iscX	TU00423
+clpX-lon	TU0-14455
+yfdPQ	TU0-13604	Regulation of yfdPQ by DNA-binding transcriptional activator YgfI,Regulation of yfdPQ by DNA-binding transcriptional activator YgfI,Regulation of yfdPQ by DNA-binding transcriptional activator YgfI,Regulation of yfdPQ by DNA-binding transcriptional activator YgfI
+tqsA	TU0-8532
+yifK	TU0-14040
+sfsB	TU0-13886
+panBC	TU00313
+phoH	TU866
+pbl	TU0-13765
+rpoE-rseABC	TU0-45278
+gntKU	TU00228		IdnR-5-ketogluconate DNA-binding-site 15.5 bases downstream of gntKp,IdnR-5-ketogluconate DNA-binding-site 2.5 bases downstream of gntKp,GntR DNA-binding-site 15.5 bases downstream of gntKp,GntR DNA-binding-site 2.5 bases downstream of gntKp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 68.5 bases upstream of gntKp
+rapA	TU0-14488
+galETKM	TU00026		GalS DNA-binding-site 52.5 bases downstream of galEp,GalS-galactose DNA-binding-site 60.5 bases upstream of galEp,HU DNA-binding-site 6.5 bases downstream of galEp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of galEp,GalR-galactose DNA-binding-site 60.5 bases upstream of galEp,GalR DNA-binding-site 46.5 bases downstream of galEp
+ybcI	TU0-12964
+ynaE	TU0-13238	Regulation of ynaE by DNA-binding transcriptional repressor GlaR
+yfiF	TU0-8742	Regulation of yfiF by DNA-binding transcriptional dual regulator ArcA-phosphorylated
+ydhM	TU0-14351
+rpoE-rseABC	TU0-42642
+ompC	TU00476	Regulation of ompC by small regulatory RNA RseX,Regulation of ompC by small regulatory RNA RybB,Regulation of ompC by small regulatory RNA MicC	Lrp DNA-binding-site 319 bases upstream of ompCp3,Lrp DNA-binding-site 87.5 bases downstream of micFp2,Lrp DNA-binding-site 58.5 bases downstream of micFp2,Lrp DNA-binding-site 27.5 bases downstream of micFp2,Lrp DNA-binding-site 151 bases upstream of ompCp3,Lrp DNA-binding-site 5.5 bases downstream of ompCp2,Lrp DNA-binding-site 59 bases downstream of ompCp3,Lrp DNA-binding-site 121.5 bases downstream of ompCp3,Lrp DNA-binding-site 143 bases downstream of ompCp3
+ykiA	TU0-12916
+abpAB	TU0-13692
+ydfI	TU0-13313	Regulation of ydfI by DNA-binding transcriptional repressor GlaR
+ychH	TU0-8689	Regulation of ychH by ppGpp
+ycbZ	TU0-13098
+ybhH	TU0-13042	Regulation of ybhH by DNA-binding transcriptional dual regulator Nac
+epmB	TU0-14143
+treBC	TU00213	Regulation of treBC by DNA-binding transcriptional dual regulator Cra	ArcA-P<sup>asp54</sup> DNA-binding-site 237 bases upstream of treBp,TreR DNA-binding-site 81 bases upstream of treBp,TreR DNA-binding-site 48 bases upstream of treBp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 60.5 bases upstream of treBp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 12 bases downstream of treBp
+malS	TU00137		PhoP-P<sup>asp51</sup> DNA-binding-site 161 bases upstream of malSp,MalT-maltotriose-ATP DNA-binding-site 74.5 bases upstream of malSp,MalT-maltotriose-ATP DNA-binding-site 61.5 bases upstream of malSp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 231.5 bases upstream of malSp,MalT-maltotriose-ATP DNA-binding-site 37.5 bases upstream of malSp
+aroG	TU00009		CpxR-phosphorylated DNA-binding-site 38 bases upstream of aroGp,TyrR-phe DNA-binding-site 38 bases upstream of aroGp
+btsSR	TU0-13526
+cycA	TU0-14159	Regulation of cycA by small regulatory RNA GcvB
+dkgA	TU0-13824	Regulation of dkgA by ppGpp
+ykiC	TU0-198724
+rpoD	TU00438
+yncK	TU0-13263
+lapAB	TU0-42573
+sroA	TU0-14425
+yjeT	TU0-14152
+btuE	TU0-44214
+pinH	TU0-13701
+pdeN	TU0-13551
+yecDE	TU0-13442
+rplU-rpmA-yhbE-obgE	TU0-42628
+menA-rraA	TU0-14669
+mug	TU0-8820
+zupT	TU0-8666
+ytfB	TU0-8663
+alaWX	TU00514		Fis DNA-binding-site 76 bases upstream of alaWp
+norR	TU0-8816
+gntU	TU0-42252
+ghrA	TU0-13119
+yfhA	TU0-14321
+rob	TU0-7804		MarA DNA-binding-site 20 bases upstream of robp
+metY-yhbC-nusA-infB-rbfA-truB-rpsO-pnp	TU341		ArgR-arg DNA-binding-site 15.5 bases downstream of argGp,ArgR-arg DNA-binding-site 6.5 bases upstream of argGp,ArgR-arg DNA-binding-site 125.5 bases upstream of argGp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 167.5 bases upstream of argGp
+stfZ	TU0-198687
+yihV-csqR	TU0-14069
+mgsA	TU0-13100
+pdeI-dgcI	TU0-13064	Regulation of pdeI-dgcI by carbon storage regulator CsrA
+pssLA	TU0-13672
+ycjMNOPQRSTUV-ymjB-ompG	TU0-13212	Regulation of ycjMNOPQRSTUV-ymjB-ompG by DNA-binding transcriptional repressor YcjW
+serV-argVYZQ	TU00515
+mrcB	TU0-12820
+pheM	TU0-8856
+ydfJ	TU0-13314
+mdtABCD-baeSR	TU0-7881		CpxR-phosphorylated DNA-binding-site 128.5 bases upstream of mdtAp,BaeR-P<SUP>asp61</SUP> DNA-binding-site 27.5 bases upstream of mdtAp
+yfdX	TU0-7746
+fucAO	TU00135	Regulation of fucAO by DNA-binding transcriptional activator YgfI	CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site regulating fucAp
+yjeFE-amiB-mutL-miaA-hfq-hflXKC	TU801
+efeOB	TU0-13116	Regulation of efeOB by [2Fe-2S] cluster DNA-binding transcriptional dual regulator
+hupB	TU487
+clpPX	TU00251
+serT	TU00509		Fis DNA-binding-site 60 bases upstream of serTp
+tnaCAB	TU00085		TorR-P<SUP>asp</SUP> DNA-binding-site 55.5 bases upstream of tnaCp,TorR-P<SUP>asp</SUP> DNA-binding-site 102.5 bases upstream of tnaCp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 59.5 bases upstream of tnaCp
+cof	TU0-12935
+yciG	TU0-36408
+tfaX	TU0-12983
+topA	TU0-2505
+yjgZ	TU0-8621
+glk	TU0-45250
+yfaX-rhmD	TU0-13566
+cdsA	TU0-14340
+ybdO	TU0-12994
+valUXY-lysV	TU00495
+yijF	TU0-14090
+yjeNO	TU0-14148
+fabB	TU0-1482		FadR DNA-binding-site 39 bases upstream of fabBp,FabR DNA-binding-site 20.5 bases upstream of fabBp
+ecpA	TU0-12879
+rnlA	TU0-14484
+clpA	TU00446
+dacC	TU0-8782	Regulation of dacC by ppGpp
+murQP	TU0-14714
+hypBCDE-fhlA	TU0-8345
+dnaKJ	TU00260
+atpIBEFHAGDC	TU00243
+yibG	TU0-13991
+dnaTC-yjjA	TU00261
+atpBEFHAGDC	TU0-6636
+yfbK	TU0-8731	Regulation of yfbK by DNA-binding transcriptional dual regulator Nac
+yciT	TU0-42448
+hslVU	TU00287
+ameF	TU0-198692
+yphCB	TU0-13662
+alsRBACE	TU0-4504		AlsR DNA-binding-site regulating alsRp1
+pflB	TU00383
+intS	TU0-13600
+pth-ychF	TU0-1781	Regulation of pth-ychF by ppGpp
+fliAZY	TU00415		FlhDC DNA-binding-site 52.5 bases upstream of fliAp1
+ydgA	TU0-13348
+araFGH	TU0-45183		AraC-arabinose DNA-binding-site 166 bases upstream of araFp3,AraC-arabinose DNA-binding-site 91 bases upstream of araFp3,AraC-arabinose DNA-binding-site 70 bases upstream of araFp3,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 42.5 bases upstream of araFp3,AraC-arabinose DNA-binding-site 145 bases upstream of araFp3
+gapA	TU0-4907
+ampC	TU243
+hisJQMP	TU0-14415		ArgR-arg DNA-binding-site 62.5 bases upstream of hisJp
+pstS	TU0-45215
+ghxP	TU0-14123
+ppiA	TU00463		CpxR-phosphorylated DNA-binding-site 47 bases upstream of ppiAp1
+hybOABCDEFG	TU00289		NarL-P<sup>asp59</sup> DNA-binding-site 21 bases downstream of hybOp1,NarL-P<sup>asp59</sup> DNA-binding-site 76 bases upstream of hybOp1,NarL-P<sup>asp59</sup> DNA-binding-site 51 bases upstream of hybOp1,ArcA-P<sup>asp54</sup> DNA-binding-site 57 bases upstream of hybOp1
+gntT	TU0-4927		GntR DNA-binding-site 86.5 bases downstream of gntTp2,GntR DNA-binding-site 55.5 bases upstream of gntTp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 112.5 bases upstream of gntTp2
+mnt-btuF-yadS	TU0-12822
+hcaEFCBD	TU0-7202		HcaR-HCA DNA-binding-site 42 bases upstream of hcaEp
+yfgHI	TU0-13648
+acs-yjcHG	TU0-3723		IHF DNA-binding-site 180 bases upstream of acsp,IHF DNA-binding-site 153 bases upstream of acsp,Fis DNA-binding-site 98 bases upstream of acsp,Fis DNA-binding-site 59 bases upstream of acsp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 122.5 bases upstream of acsp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 69.5 bases upstream of acsp
+yjjI	TU0-14221
+yqeIJ	TU0-13760
+ycfT	TU0-13140
+gor	TU0-14
+yniD	TU0-13380
+hupA	TU486		Fis DNA-binding-site 255 bases upstream of hupAp,Fis DNA-binding-site 219.5 bases upstream of hupAp,Fis DNA-binding-site 167.5 bases upstream of hupAp,Fis DNA-binding-site 93.5 bases upstream of hupAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 63.5 bases upstream of hupAp
+ybiX	TU0-13054
+yhfL	TU0-13923	Regulation of yhfL by DNA-binding transcriptional dual regulator Nac
+kdsA	TU306
+pdeK	TU0-13971
+stpA	TU00393		Lrp-leu DNA-binding-site 9 bases upstream of alaEp,Lrp-leu DNA-binding-site 58 bases upstream of alaEp,H-NS DNA-binding-site regulating stpAp1,Lrp DNA-binding-site 107 bases upstream of stpAp1
+sanA-yeiS	TU0-13537
+thrU-tyrU-glyT-thrT-tufB	TU00504		Fis DNA-binding-site 123 bases upstream of thrUp,Fis DNA-binding-site 91 bases upstream of thrUp,Fis DNA-binding-site 71 bases upstream of thrUp
+ftsZ	TU0-1423
+talA	TU0-14644
+aroP	TU00012		TyrR-tyr DNA-binding-site 63.5 bases downstream of aroPp1,TyrR-tyr DNA-binding-site 40.5 bases downstream of aroPp1
+yhdP	TU0-13903
+zinT	TU0-8330
+yiaA	TU0-13982
+allDC-ylbA	TU0-7622		DNA-binding transcriptional activator AllS DNA-binding-site 94 bases upstream of allDp
+acnB	TU796	Regulation of acnB by small regulatory RNA RyhB,Regulation of acnB by bifunctional aconitate hydratase B/2-methylisocitrate dehydratase	Cra DNA-binding-site regulating acnBp1,Fis DNA-binding-site 171.5 bases upstream of acnBp1,Fis DNA-binding-site 73.5 bases upstream of acnBp1,Fis DNA-binding-site 29.5 bases upstream of acnBp1,ArcA-P<sup>asp54</sup> DNA-binding-site 170 bases upstream of acnBp1,ArcA-P<sup>asp54</sup> DNA-binding-site 143 bases upstream of acnBp1,ArcA-P<sup>asp54</sup> DNA-binding-site 139 bases upstream of acnBp1,ArcA-P<sup>asp54</sup> DNA-binding-site 113 bases upstream of acnBp1,ArcA-P<sup>asp54</sup> DNA-binding-site 119 bases upstream of acnBp1,ArcA-P<sup>asp54</sup> DNA-binding-site 57 bases upstream of acnBp1,ArcA-P<sup>asp54</sup> DNA-binding-site 48 bases upstream of acnBp1,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 37.5 bases upstream of acnBp1
+proL	TU00494		Fis DNA-binding-site 66 bases upstream of proLp
+yqfA	TU0-13789
+yieP-hsrA	TU0-14033
+tsaD	TU0-8571
+yabI	TU0-12804
+glnS	TU0-45210
+pepQ-yigZ-trkH-hemG	TU0-14056
+ybiP	TU0-8569
+dapB	TU0-6403
+acnA	TU794	Regulation of acnA by ppGpp	Cra DNA-binding-site regulating acnAp2,Fnr DNA-binding-site 40.5 bases upstream of acnAp2,ArcA-P<sup>asp54</sup> DNA-binding-site 34 bases upstream of acnAp2,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 40.5 bases upstream of acnAp2
+yiaU	TU0-8592
+rihB	TU862
+proVWX	TU701		H-NS DNA-binding-site regulating proVp
+pheP	TU0-8149
+yfbM	TU0-13576
+tdcABCDEFG	TU00125		Fnr DNA-binding-site 148.5 bases upstream of tdcAp,Fnr DNA-binding-site 105.5 bases upstream of tdcAp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 43.5 bases upstream of tdcAp,IHF DNA-binding-site 103 bases upstream of tdcAp,TdcA DNA-binding-site 177 bases upstream of tdcAp,TdcR DNA-binding-site 195 bases upstream of tdcAp
+dinB-yafNOP	TU0-12853
+yjdF	TU0-14136
+rlmA	TU0-13421
+fadD-sroD	TU0-4187		ArcA-P<sup>asp54</sup> DNA-binding-site 7 bases upstream of fadDp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 59.5 bases upstream of fadDp,FadR DNA-binding-site 106 bases upstream of fadDp,FadR DNA-binding-site 20 bases upstream of fadDp
+pstSCAB-phoU	TU00202		Fnr DNA-binding-site regulating pstSp2,IHF DNA-binding-site 16.5 bases downstream of pstSp2,PhoB-P<sup>asp53</sup> DNA-binding-site 32 bases upstream of pstSp2,PhoB-P<sup>asp53</sup> DNA-binding-site 54 bases upstream of pstSp2
+slyA	TU0-8511	Regulation of slyA by DNA-binding transcriptional dual regulator SlyA,Regulation of slyA by DNA-binding transcriptional dual regulator SlyA
+dnaKJ	TU00418
+yegX	TU0-13511
+mutM	TU0-8355
+yceJI	TU0-45228
+putP	TU122		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 106 bases upstream of putPp4,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 76.5 bases upstream of putPp4,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 44.5 bases upstream of putPp4
+argA	TU0-8472		ArgR-arg DNA-binding-site 46.5 bases downstream of argAp
+ykgS	TU0-198723
+mdtH	TU0-13131
+yabPQ	TU0-12802
+rlmG	TU0-13855
+ymfK	TU0-13150
+yacL	TU0-12813	Regulation of yacL by small regulatory RNA CyaR
+eno	TU0-14414
+ttcA	TU0-13225
+galETKM	TU00025		GalS DNA-binding-site 52.5 bases downstream of galEp,GalS-galactose DNA-binding-site 60.5 bases upstream of galEp,H-NS DNA-binding-site 47 bases upstream of galEp,H-NS DNA-binding-site 36 bases upstream of galEp,H-NS DNA-binding-site 18 bases upstream of galEp,H-NS DNA-binding-site 2 bases upstream of galEp,HU DNA-binding-site 6.5 bases downstream of galEp,CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 41.5 bases upstream of galEp,GalR-galactose DNA-binding-site 60.5 bases upstream of galEp,GalR DNA-binding-site 46.5 bases downstream of galEp
+tgt-yajC	TU870	Regulation of tgt-yajC by ppGpp
+ybeL	TU0-8560	Regulation of ybeL by ppGpp
+rpsU-dnaG-rpoD	TU00434
+ftsQ	TU0-3941		SdiA DNA-binding-site 161.5 bases upstream of ftsQp
+yegP	TU0-13504	Regulation of yegP by ppGpp
+plsB	TU-8421
+osmB	TU0-45230
+insH-2	TU0-14363
+csrA	TU0-42459
+rzoR	TU0-13232
+mutM	TU0-5523
+mokC-hokC	TU0-12794
+kdgT	TU0-14076	Regulation of kdgT by DNA-binding transcriptional repressor GlaR
+dhaKLM	TU0-7981	Regulation of dhaKLM by DNA-binding transcriptional activator YgfI
+maa	TU0-12942
+dicF	TU0-13330
+ymfH-xisE-intE	TU0-13148
+ybjJI	TU0-13069	Regulation of ybjJI by DNA binding transcriptional dual regulator RcdA,Regulation of ybjJI by DNA binding transcriptional dual regulator RcdA
+uxaCA	TU0-14746	Regulation of uxaCA by DNA-binding transcriptional dual regulator KdpE-phosphorylated
+mnmE	TU0-14021
+ynjF	TU0-8641
+sspAB	TU00361
+yohJK	TU0-13535
+arnBCADTEF	TU0-13569	Regulation of arnBCADTEF by DNA-binding transcriptional dual regulator BasR-phosphorylated
+ybfE	TU0-8265
+cstA	TU0-6822
+aroKB-damX-dam-rpe-gph-trpS	TU873
+yahM	TU0-12897
+yjcS	TU0-14129
+acpT	TU0-13947
+nadA-pnuC	TU0-13037
+ygdD	TU0-14307
+fre	TU0-14665
+gltP	TU0-14126	Regulation of gltP by small regulatory RNA GcvB,Regulation of gltP by DNA-binding transcriptional dual regulator Nac
+tdk	TU0-8527
+ftsYEX	TU00278
+yhdV	TU0-13907	Regulation of yhdV by DNA-binding transcriptional dual regulator Nac
+mdtM-yjiN	TU0-14203	Regulation of mdtM-yjiN by DNA-binding transcriptional dual regulator SlyA
+msrB	TU0-41857	Regulation of msrB by small regulatory RNA RyhB,Regulation of msrB by small regulatory RNA RyhB
+ivbL-ilvBN-uhpABC	TU0-14764
+rdcAB	TU0-14801
+nemRA-gloA	TU0-42534
+ahpF	TU-8435
+alkA	TU00002		Ada DNA-binding-site 41.5 bases upstream of alkAp2
+trmC	TU0-8823
+ppsR	TU0-13375
+yaaW	TU0-12792
+xylAB	TU67		CRP-cyclic-AMP DNA-binding transcriptional dual regulator DNA-binding-site 180.5 bases upstream of xylFp,XylR-xylose DNA-binding-site 62.5 bases upstream of xylAp,XylR-xylose DNA-binding-site 41.5 bases upstream of xylAp
+stpA	TU00395

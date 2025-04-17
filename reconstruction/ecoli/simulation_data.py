@@ -30,6 +30,7 @@ from reconstruction.ecoli.dataclasses.growth_rate_dependent_parameters import (
 from reconstruction.ecoli.dataclasses.relation import Relation
 from reconstruction.ecoli.dataclasses.adjustments import Adjustments
 from wholecell.utils.fitting import normalize
+from wholecell.utils import units
 
 
 VERBOSE = False
@@ -82,12 +83,14 @@ class SimulationDataEcoli(object):
         self.external_state = ExternalState(raw_data, self)
         self.process = Process(raw_data, self)
         self.internal_state = InternalState(raw_data, self)
+        self.process.transcription.set_ppgpp_parameters(raw_data, self)
 
         # Relations between data classes (can depend on data classes)
         # Relations cannot depend on each other
         self.relation = Relation(raw_data, self)
 
         self.translation_supply_rate = {}
+        # TODO: make this into an array
         self.pPromoterBound = {}
 
     def _add_molecular_weight_keys(self, raw_data):
@@ -235,9 +238,12 @@ class SimulationDataEcoli(object):
         self.tf_to_active_inactive_conditions = {}
         for row in raw_data.condition.tf_condition:
             tf = row["active TF"]
+            type = row["TF type"]
 
+            # Skip TF if it doesn't have fold-change values and is modeled with old-tf-modeling
             if tf not in self.tf_to_fold_change:
-                continue
+                if type in ["0CS", "1CS", "2CS"]:
+                    continue
 
             activeGenotype = row["active genotype perturbations"]
             activeNutrients = row["active nutrients"]
@@ -261,6 +267,7 @@ class SimulationDataEcoli(object):
             self.tf_to_active_inactive_conditions[tf]["inactive nutrients"] = (
                 inactiveNutrients
             )
+            self.tf_to_active_inactive_conditions[tf]["TF type"] = type
 
         # Populate combined conditions data from condition_defs
         self.conditions = {}
@@ -296,9 +303,16 @@ class SimulationDataEcoli(object):
                 self.condition_to_doubling_time[condition]
             )
 
-        # Populate conditions and conditionToDboulingTime for active and inactive TF conditions
+        # Populate conditions and conditionToDoublingTime for active and inactive TF conditions
         basal_dt = self.condition_to_doubling_time["basal"]
         for tf in sorted(self.tf_to_active_inactive_conditions):
+            if self.tf_to_active_inactive_conditions[tf]["TF type"] not in [
+                "0CS",
+                "1CS",
+                "2CS",
+            ]:
+                continue
+
             for status in ["active", "inactive"]:
                 condition = "{}__{}".format(tf, status)
                 nutrients = self.tf_to_active_inactive_conditions[tf][
@@ -329,29 +343,58 @@ class SimulationDataEcoli(object):
                         expression for (eg. 'basal', 'with_aa', etc)
         """
 
-        ppgpp = self.growth_rate_parameters.get_ppGpp_conc(
-            self.condition_to_doubling_time[condition]
-        )
-        delta_prob = self.process.transcription_regulation.get_delta_prob_matrix(
-            ppgpp=True
-        )
+        # Get affinities with no TFs bound
+        tau = self.condition_to_doubling_time[condition]
+        ppgpp = self.growth_rate_parameters.get_ppGpp_conc(tau)
+        aff = self.process.transcription.synth_aff_from_ppgpp(ppgpp)
+
+        # Account for two-peak transcription factors
+        two_peak_data = self.process.transcription_regulation.two_peak_TU_data
+        for i, TU_idx in enumerate(two_peak_data["TU_idx"]):
+            condition_info = two_peak_data["condition"][i]
+            if condition in condition_info["bound"]:
+                aff[TU_idx] = two_peak_data["bound_affinity"][i]
+            elif condition in condition_info["unbound"]:
+                aff[TU_idx] = two_peak_data["unbound_affinity"][i]
+            else:
+                raise ValueError(
+                    "Condition not in two_peak_TU_data for TU idx {}".format(
+                        str(TU_idx)
+                    )
+                )
+
+        # Account for old TF modeling transcription factors
+        delta_aff = self.process.transcription_regulation.get_delta_aff_matrix()
         p_promoter_bound = np.array(
             [
                 self.pPromoterBound[condition][tf]
-                for tf in self.process.transcription_regulation.tf_ids
+                for tf in self.process.transcription_regulation.old_tf_modeling_tf_ids
             ]
         )
-        delta = delta_prob @ p_promoter_bound
-        prob, factor = self.process.transcription.synth_prob_from_ppgpp(
-            ppgpp, self.process.replication.get_average_copy_number
-        )
-        rna_expression = prob * (1 + delta) / factor
+        delta = delta_aff @ p_promoter_bound
+        # Adjust so delta is proportional to the current affinity from ppGpp, to avoid negative
+        # affinities
+        with np.errstate(invalid="ignore", divide="ignore"):
+            adjustment = aff / self.process.transcription_regulation.basal_aff
 
         # For cases with no basal ppGpp expression, assume the delta prob is the
         # same as without ppGpp control
-        mask = prob == 0
-        rna_expression[mask] = delta[mask] / factor[mask]
+        adjustment[~np.isfinite(adjustment)] = 1
+        aff += delta * adjustment
+        aff[aff < 0] = 0
 
+        # Calculate RNA expression by accounting for copy number and loss rates
+        growth = (np.log(2) / tau).asNumber(1 / units.s)
+        loss = growth + self.process.transcription.rna_data["deg_rate"].asNumber(
+            1 / units.s
+        )
+        n_avg_copy = self.process.replication.get_average_copy_number(
+            tau.asNumber(units.min),
+            self.process.transcription.rna_data["replication_coordinate"],
+        )
+        rna_expression = aff * (n_avg_copy / loss)
+
+        # Remove negative values of RNA expression, and normalize
         rna_expression[rna_expression < 0] = 0
         return normalize(rna_expression)
 
@@ -361,19 +404,21 @@ class SimulationDataEcoli(object):
 
         for gene_index, factor in zip(gene_indices, factors):
             recruitment_mask = np.array(
-                [i == gene_index for i in transcription_regulation.delta_prob["deltaI"]]
+                [i == gene_index for i in transcription_regulation.delta_aff["deltaI"]]
             )
+            for synth_aff in transcription.rna_synth_aff.values():
+                synth_aff[gene_index] *= factor
             for synth_prob in transcription.rna_synth_prob.values():
                 synth_prob[gene_index] *= factor
             for exp in transcription.rna_expression.values():
                 exp[gene_index] *= factor
             transcription.exp_free[gene_index] *= factor
             transcription.exp_ppgpp[gene_index] *= factor
-            transcription.attenuation_basal_prob_adjustments[
+            transcription.attenuation_basal_aff_adjustments[
                 transcription.attenuated_rna_indices == gene_index
             ] *= factor
-            transcription_regulation.basal_prob[gene_index] *= factor
-            transcription_regulation.delta_prob["deltaV"][recruitment_mask] *= factor
+            transcription_regulation.basal_aff[gene_index] *= factor
+            transcription_regulation.delta_aff["deltaV"][recruitment_mask] *= factor
 
         # Renormalize parameters
         for synth_prob in transcription.rna_synth_prob.values():
@@ -411,14 +456,19 @@ class SimulationDataEcoli(object):
         new_gene_exp_ppgpp_baseline = transcription.new_gene_expression_baselines[
             "new_gene_exp_ppgpp_baseline"
         ]
-        new_gene_reg_basal_prob_baseline = transcription.new_gene_expression_baselines[
-            "new_gene_reg_basal_prob_baseline"
+        new_gene_reg_basal_aff_baseline = transcription.new_gene_expression_baselines[
+            "new_gene_reg_basal_aff_baseline"
+        ]
+        new_gene_synth_aff_baseline = transcription.new_gene_expression_baselines[
+            "new_gene_reg_synth_aff_baseline"
         ]
 
         for gene_index, factor in zip(gene_indices, factors):
             recruitment_mask = np.array(
-                [i == gene_index for i in transcription_regulation.delta_prob["deltaI"]]
+                [i == gene_index for i in transcription_regulation.delta_aff["deltaI"]]
             )
+            for synth_aff in transcription.rna_synth_aff.values():
+                synth_aff[gene_index] = new_gene_synth_aff_baseline * factor
             for synth_prob in transcription.rna_synth_prob.values():
                 synth_prob[gene_index] = new_gene_rna_synth_prob_baseline * factor
 
@@ -427,8 +477,8 @@ class SimulationDataEcoli(object):
 
             transcription.exp_free[gene_index] = new_gene_exp_free_baseline * factor
             transcription.exp_ppgpp[gene_index] = new_gene_exp_ppgpp_baseline * factor
-            transcription_regulation.basal_prob[gene_index] = (
-                new_gene_reg_basal_prob_baseline * factor
+            transcription_regulation.basal_aff[gene_index] = (
+                new_gene_reg_basal_aff_baseline * factor
             )
 
             # For the forseeable future, these will not be needed in the new
@@ -436,7 +486,7 @@ class SimulationDataEcoli(object):
             # will be empty numpy arrays.
             assert (
                 (
-                    transcription.attenuation_basal_prob_adjustments[
+                    transcription.attenuation_basal_aff_adjustments[
                         transcription.attenuated_rna_indices == gene_index
                     ]
                 ).size
@@ -446,7 +496,7 @@ class SimulationDataEcoli(object):
                 " not currently implemented in the model."
             )
             assert (
-                (transcription_regulation.delta_prob["deltaV"][recruitment_mask]).size
+                (transcription_regulation.delta_aff["deltaV"][recruitment_mask]).size
                 == 0
             ), (
                 "Transcriptional regulation of new genes is not currently"

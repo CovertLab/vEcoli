@@ -187,9 +187,13 @@ def main():
         config_file = args.config
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
-    if "out_uri" not in config["emitter_arg"]:
-        out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
-        gcs_bucket = False
+    if "out_uri" not in config["emitter"]:
+        # TODO (Albert): push these two lines of changes to master branch
+        if "out_dir" in config["emitter"]:
+            out_uri = os.path.abspath(config["emitter"]["out_dir"])
+        else:
+            out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
+        gcs_bucket = True
     else:
         out_uri = config["emitter_arg"]["out_uri"]
         assert (

@@ -1,0 +1,39 @@
+{
+    "sim_data_path": "NewTFModelingTestParca/kb/simData.cPickle",
+    "emitter" : "parquet",
+    "emitter_arg": {"out_dir": "NewTFModelingTestSim"},
+
+    "total_time": 1200.0,
+
+    "daughter_outdir": "NewTFModelingTestSim",
+
+    "parca_options": {
+        "outdir": "NewTFModelingTestParca"
+    },
+
+    "analysis_options": {
+        "single": {"new_tf_modeling": {}},
+        "outdir": "NewTFModelingTestSim/plots",
+        "experiment_id": ["2a0739ec-49fa-11ef-91ae-acde48001122"],
+        "variant_data_dir": ["NewTFModelingTestVariants"],
+        "validation_data_path": ["NewTFModelingTestParca/kb/validationData.cPickle"]
+    },
+
+    "variants": {
+    },
+    "outdir": "NewTFModelingTestVariants",
+    "kb": "NewTFModelingTestParca/kb",
+
+    "exclude_processes" : ["ecoli-tf-unbinding"],
+    "process_configs": {
+        "ecoli-metabolism": {
+            "mechanistic_aa_transport": false
+        },
+        "ecoli-polypeptide-elongation": {
+            "mechanistic_aa_transport": false,
+            "mechanistic_translation_supply": false,
+            "aa_supply_in_charging": false,
+            "translation_supply": false
+        }
+    }
+}

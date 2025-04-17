@@ -261,7 +261,7 @@ def generate_code(config):
     return "\n".join(run_parca), "\n".join(sim_imports), "\n".join(sim_workflow)
 
 
-def build_image_cmd(image_name, apptainer=False) -> list[str]:
+def build_runtime_image(image_name, apptainer=False):
     build_script = os.path.join(
         os.path.dirname(__file__), "container", "build-image.sh"
     )
@@ -556,7 +556,7 @@ def main():
         if container_image is None:
             raise RuntimeError("Must supply name for container image.")
         if cloud_config.get("build_image", False):
-            image_cmd = build_image_cmd(container_image)
+            image_cmd = build_runtime_image(container_image)
             subprocess.run(image_cmd, check=True)
         nf_config = nf_config.replace("IMAGE_NAME", image_prefix + container_image)
     sherlock_config = config.get("sherlock", None)
@@ -570,7 +570,7 @@ def main():
         if container_image is None:
             raise RuntimeError("Must supply name for container image.")
         if sherlock_config.get("build_image", False):
-            image_cmd = " ".join(build_image_cmd(container_image, True))
+            image_cmd = " ".join(build_runtime_image(container_image, True))
             image_build_script = os.path.join(local_outdir, "container.sh")
             with open(image_build_script, "w") as f:
                 f.write(f"""#!/bin/bash

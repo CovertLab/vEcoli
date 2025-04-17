@@ -1,4 +1,6 @@
 # Manually added concentration fold changes expected in media conditions
 # relative to basal. Added in addition to the loaded flat file "relative_metabolite_concentrations.tsv"
+# NOTE: for minimal_plus_aas_nucls, the source was carbon source glycerol media with amino acids and adenine and uracil, not minimal_plus_aas_nucls
 "media"	"metabolite"	"fold_change"	"_source"	"_comments"
 "minimal_minus_oxygen"	"CAMP[c]"	3.7	"reconstruction/ecoli/dataclasses/process/metabolism.py"	"Unden, Duchenne. DOI: 10.1007/BF00415284 (Table 1, 2)"
+"minimal_plus_aas_nucls"	"HYPOXANTHINE[c]"	48.3	"reconstruction/ecoli/dataclasses/process/metabolism.py"	"Rados, Dusica. DOI: 10.1016/j.isci.2022.104503 (Table S2)"

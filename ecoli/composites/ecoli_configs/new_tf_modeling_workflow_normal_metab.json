@@ -1,0 +1,32 @@
+{
+    "experiment_id": "seed_15_normal_metab",
+    "lineage_seed": 15,
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 4
+    },
+    "generations": 4,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter" : "parquet",
+    "emitter_arg": {"out_dir": "test_metab_stable1"},
+    "variants": {},
+    "analysis_options": {
+        "single": {"purine_metab_analysis": {}}
+    },
+    "add_processes": ["ecoli-tf-ligand-binding"],
+    "exclude_processes" : ["ecoli-tf-unbinding"],
+    "process_configs": {
+        "ecoli-metabolism": {
+            "mechanistic_aa_transport": false
+        },
+        "ecoli-polypeptide-elongation": {
+            "mechanistic_aa_transport": false,
+            "mechanistic_translation_supply": false,
+            "aa_supply_in_charging": false
+        }
+    },
+    "flow": {
+        "ecoli-tf-ligand-binding": [["ecoli-tf-unbinding"]]
+    }
+}

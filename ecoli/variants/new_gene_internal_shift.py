@@ -73,8 +73,8 @@ def modify_new_gene_exp_trl(
         sim_data.process.transcription.exp_free
         sim_data.process.transcription.exp_ppgpp
         sim_data.process.transcription.attenuation_basal_prob_adjustments
-        sim_data.process.transcription_regulation.basal_prob
-        sim_data.process.transcription_regulation.delta_prob
+        sim_data.process.transcription_regulation.basal_aff
+        sim_data.process.transcription_regulation.delta_aff
         sim_data.process.translation.translation_efficiencies_by_monomer
 
     Args:

@@ -15,6 +15,7 @@ NAME = "rna_synth_prob_listener"
 TOPOLOGY = {
     "rna_synth_prob": ("listeners", "rna_synth_prob"),
     "promoters": ("unique", "promoter"),
+    #"tf_binding_sites": ("unique", "tf_binding_site"),
     "genes": ("unique", "gene"),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
@@ -39,10 +40,12 @@ class RnaSynthProb(Step):
         super().__init__(parameters)
         self.rna_ids = self.parameters["rna_ids"]
         self.gene_ids = self.parameters["gene_ids"]
-        self.tf_ids = self.parameters["tf_ids"]
+        self.old_tf_ids = self.parameters["old_tf_ids"]
+        self.new_tf_ids = self.parameters["new_tf_ids"]
         self.cistron_ids = self.parameters["cistron_ids"]
         self.n_TU = len(self.rna_ids)
-        self.n_TF = len(self.tf_ids)
+        self.n_old_TF = len(self.old_tf_ids)
+        self.n_new_TF = len(self.new_tf_ids)
         self.n_cistron = len(self.cistron_ids)
         self.cistron_tu_mapping_matrix = self.parameters["cistron_tu_mapping_matrix"]
 
@@ -52,9 +55,9 @@ class RnaSynthProb(Step):
                 {
                     "promoter_copy_number": ([0] * self.n_TU, self.rna_ids),
                     "gene_copy_number": ([0] * self.n_TU, self.gene_ids),
-                    "bound_TF_indexes": ([], self.tf_ids),
-                    "bound_TF_coordinates": [],
-                    "bound_TF_domains": [],
+                    #"bound_TF_indexes": ([], self.tf_ids),
+                    #"bound_TF_coordinates": [],
+                    #"bound_TF_domains": [],
                     "target_rna_synth_prob": ([0.0] * self.n_TU, self.rna_ids),
                     "actual_rna_synth_prob": ([0.0] * self.n_TU, self.rna_ids),
                     "actual_rna_synth_prob_per_cistron": (
@@ -69,8 +72,14 @@ class RnaSynthProb(Step):
                         [0.0] * self.n_cistron,
                         self.cistron_ids,
                     ),
-                    "n_bound_TF_per_TU": ([[0] * self.n_TF] * self.n_TU, self.rna_ids),
-                    "n_bound_TF_per_cistron": ([], self.cistron_ids),
+                    "old_tf_binding": {
+                        "n_bound_TF_per_TU": ([[0] * self.n_old_TF] * self.n_TU, self.rna_ids),
+                        "n_bound_TF_per_cistron": ([], self.cistron_ids),
+                    },
+                    "new_tf_binding": {
+                        "n_bound_TF_per_TU": ([[0] * self.n_new_TF] * self.n_TU, self.rna_ids),
+                        "n_bound_TF_per_cistron": ([], self.cistron_ids),
+                    },
                     "total_rna_init": 0,
                 }
             ),
@@ -84,10 +93,11 @@ class RnaSynthProb(Step):
         return (states["global_time"] % states["timestep"]) == 0
 
     def next_update(self, timestep, states):
-        TU_indexes, all_coordinates, all_domains, bound_TFs = attrs(
-            states["promoters"], ["TU_index", "coordinates", "domain_index", "bound_TF"]
+        # TODO: make this listener not use bound_TFs from promoters but rather from tf_binding_sites
+        TU_indexes, all_coordinates, all_domains = attrs(
+            states["promoters"], ["TU_index", "coordinates", "domain_index"]
         )
-        bound_promoter_indexes, TF_indexes = np.where(bound_TFs)
+        #bound_promoter_indexes, TF_indexes = np.where(bound_TFs)
         (cistron_indexes,) = attrs(states["genes"], ["cistron_index"])
 
         actual_rna_synth_prob_per_cistron = self.cistron_tu_mapping_matrix.dot(
@@ -121,16 +131,25 @@ class RnaSynthProb(Step):
                 "gene_copy_number": np.bincount(
                     cistron_indexes, minlength=self.n_cistron
                 ),
-                "bound_TF_indexes": TF_indexes,
-                "bound_TF_coordinates": all_coordinates[bound_promoter_indexes],
-                "bound_TF_domains": all_domains[bound_promoter_indexes],
+                #"bound_TF_indexes": TF_indexes,
+                #"bound_TF_coordinates": all_coordinates[bound_promoter_indexes],
+                #"bound_TF_domains": all_domains[bound_promoter_indexes],
                 "expected_rna_init_per_cistron": expected_rna_init_per_cistron,
                 "actual_rna_synth_prob_per_cistron": actual_rna_synth_prob_per_cistron,
                 "target_rna_synth_prob_per_cistron": target_rna_synth_prob_per_cistron,
-                "n_bound_TF_per_cistron": self.cistron_tu_mapping_matrix.dot(
-                    states["rna_synth_prob"]["n_bound_TF_per_TU"]
-                )
-                .astype(np.int16)
-                .T,
+                "old_tf_binding": {
+                    "n_bound_TF_per_cistron": self.cistron_tu_mapping_matrix.dot(
+                        states["rna_synth_prob"]["old_tf_binding"]["n_bound_TF_per_TU"]
+                    )
+                        .astype(np.int16)
+                        .T,
+                },
+                "new_tf_binding": {
+                    "n_bound_TF_per_cistron": self.cistron_tu_mapping_matrix.dot(
+                        states["rna_synth_prob"]["new_tf_binding"]["n_bound_TF_per_TU"]
+                    )
+                        .astype(np.int16)
+                        .T,
+                }
             }
         }

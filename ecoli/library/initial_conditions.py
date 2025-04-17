@@ -7,6 +7,7 @@ import numpy.typing as npt
 from numpy.lib import recfunctions as rfn
 from typing import Any
 from unum import Unum
+import copy
 
 from ecoli.library.schema import (
     attrs,
@@ -37,7 +38,7 @@ from wholecell.utils.random import stochasticRound
 
 RAND_MAX = 2**31
 
-
+# TODO: initialize equilibrium?
 def create_bulk_container(
     sim_data,
     n_seeds=1,
@@ -182,7 +183,10 @@ def initialize_unique_molecules(
     )
 
     # Initialize bound transcription factors
-    initialize_transcription_factors(
+    initialize_old_transcription_factors(
+        bulk_state, unique_molecules, sim_data, random_state
+    )
+    initialize_new_transcription_factors(
         bulk_state, unique_molecules, sim_data, random_state
     )
 
@@ -632,7 +636,7 @@ def initialize_replication(
             "active_replisome", n_replisome, sim_data, unique_id_rng
         )
 
-    # Get coordinates of all genes, promoters and DnaA boxes
+    # Get coordinates of all genes, promoters, DnaA boxes, and tf-binding sites
     all_gene_coordinates = sim_data.process.transcription.cistron_data[
         "replication_coordinate"
     ]
@@ -642,6 +646,7 @@ def initialize_replication(
     all_DnaA_box_coordinates = sim_data.process.replication.motif_coordinates[
         "DnaA_box"
     ]
+    all_tf_binding_site_coordinates = sim_data.process.transcription_regulation.tf_binding_site_coords
 
     # Define function that initializes attributes of sequence motifs given the
     # initial state of the chromosome
@@ -744,7 +749,7 @@ def initialize_replication(
 
         return motif_index, motif_coordinates, motif_domain_index
 
-    # Use function to get attributes for promoters and DnaA boxes
+    # Use function to get attributes for promoters, DnaA boxes, and tf-binding sites
     TU_index, promoter_coordinates, promoter_domain_index = get_motif_attributes(
         all_promoter_coordinates
     )
@@ -754,12 +759,13 @@ def initialize_replication(
     _, DnaA_box_coordinates, DnaA_box_domain_index = get_motif_attributes(
         all_DnaA_box_coordinates
     )
+    tf_binding_site_index, tf_binding_site_coordinates, tf_binding_site_domain_index = get_motif_attributes(
+        all_tf_binding_site_coordinates
+    )
 
     # Add promoters as unique molecules and set attributes
-    # Note: the bound_TF attribute is properly initialized in the function
-    # initialize_transcription_factors
     n_promoter = len(TU_index)
-    n_tf = len(sim_data.process.transcription_regulation.tf_ids)
+    n_old_tf = len(sim_data.process.transcription_regulation.old_tf_modeling_tf_ids)
 
     unique_molecules["promoter"] = create_new_unique_molecules(
         "promoter",
@@ -769,7 +775,22 @@ def initialize_replication(
         domain_index=promoter_domain_index,
         coordinates=promoter_coordinates,
         TU_index=TU_index,
-        bound_TF=np.zeros((n_promoter, n_tf), dtype=bool),
+        bound_TF=np.zeros((n_promoter, n_old_tf), dtype=bool),
+    )
+
+    # Add TF-binding sites as unique molecules and set attributes
+    # Note: the TF_bound attribute is properly initialized in the function
+    # initialize_transcription factors.
+    n_tf_binding_sites = len(tf_binding_site_index)
+    unique_molecules["tf_binding_site"] = create_new_unique_molecules(
+        "tf_binding_site",
+        n_tf_binding_sites,
+        sim_data,
+        unique_id_rng,
+        domain_index=tf_binding_site_domain_index,
+        coordinates=tf_binding_site_coordinates,
+        tf_binding_site_index=tf_binding_site_index,
+        bound_TF=sim_data.process.transcription_regulation.unbound_tf_binding_site_idx
     )
 
     # Add genes as unique molecules and set attributes
@@ -798,12 +819,11 @@ def initialize_replication(
         DnaA_bound=np.zeros(n_DnaA_box, dtype=bool),
     )
 
-
-def initialize_transcription_factors(
+def initialize_old_transcription_factors(
     bulk_state, unique_molecules, sim_data, random_state
 ):
     """
-    Initialize transcription factors that are bound to the chromosome. For each
+    Initialize transcription factors that are bound to the chromosome promoters. For each
     type of transcription factor, this function calculates the total number of
     transcription factors that should be bound to the chromosome using the
     binding probabilities of each transcription factor and the number of
@@ -812,7 +832,7 @@ def initialize_transcription_factors(
     submasses are updated correspondingly.
     """
     # Get transcription factor properties from sim_data
-    tf_ids = sim_data.process.transcription_regulation.tf_ids
+    tf_ids = sim_data.process.transcription_regulation.old_tf_modeling_tf_ids
     tf_to_tf_type = sim_data.process.transcription_regulation.tf_to_tf_type
     p_promoter_bound_TF = sim_data.process.transcription_regulation.p_promoter_bound_tf
 
@@ -840,20 +860,21 @@ def initialize_transcription_factors(
                     sim_data.process.equilibrium.get_unbound(tf + "[c]"),
                     bulk_state["id"],
                 )
-                inactive_tf_view[tf] = bulk_state["count"][inactive_tf_idx]
             else:
                 inactive_tf_idx = bulk_name_to_idx(
                     sim_data.process.transcription_regulation.active_to_bound[tf]
                     + "[c]",
                     bulk_state["id"],
                 )
-                inactive_tf_view[tf] = bulk_state["count"][inactive_tf_idx]
         elif tf_to_tf_type[tf] == "2CS":
             inactive_tf_idx = bulk_name_to_idx(
                 sim_data.process.two_component_system.active_to_inactive_tf[tf + "[c]"],
                 bulk_state["id"],
             )
-            inactive_tf_view[tf] = bulk_state["count"][inactive_tf_idx]
+        elif tf_to_tf_type[tf] != "0CS":
+            raise ValueError("TF {} is listed with old-tf-modeling but is not 0, 1, or 2CS".format(
+                tf))
+        inactive_tf_view[tf] = bulk_state["count"][inactive_tf_idx]
         inactive_tf_view_idx[tf] = inactive_tf_idx
 
     # Get masses of active transcription factors
@@ -926,6 +947,100 @@ def initialize_transcription_factors(
     for submass, i in sim_data.submass_name_to_index.items():
         unique_molecules["promoter"][f"massDiff_{submass}"] = mass_diffs[:, i]
 
+def initialize_new_transcription_factors(
+    bulk_state, unique_molecules, sim_data, random_state
+):
+    """
+    Initialize transcription factors that are bound to the chromosome. For each
+    type of transcription factor, this function where and how many
+    transcription factors should be bound to the chromosome using the binding
+    rates of each transcription factor and the number of available tf-binding sites.
+    The tf-binding sites' bound_TF attributes and submasses are updated correspondingly.
+    """
+    # Get transcription factor properties from sim_data
+    transcription_regulation = sim_data.process.transcription_regulation
+    tf_ids = transcription_regulation.new_tf_modeling_tf_ids
+
+    # Get views into bulk molecule representations of transcription factors
+    active_tf_view = np.zeros(len(tf_ids), dtype=int)
+    active_tf_view_idx = np.zeros(len(tf_ids), dtype=int)
+
+    for i, tf in enumerate(tf_ids):
+        tf_idx = bulk_name_to_idx(tf + "[c]", bulk_state["id"])
+        active_tf_view[i] = bulk_state["count"][tf_idx]
+        active_tf_view_idx[i] = tf_idx
+
+    # Get masses of active transcription factors
+    tf_indexes = [np.where(bulk_state["id"] == tf_id + "[c]")[0][0] for tf_id in tf_ids]
+    active_tf_masses = (
+        sim_data.internal_state.bulk_molecules.bulk_data["mass"][tf_indexes]
+        / sim_data.constants.n_avogadro
+    ).asNumber(units.fg)
+
+    # Get indices of TF-binding sites
+    tf_binding_site_index = unique_molecules["tf_binding_site"]["tf_binding_site_index"]
+
+    # Initialize bound_TF array
+    bound_TF = np.ones(len(tf_binding_site_index), dtype=int)
+    bound_TF *= transcription_regulation.unbound_tf_binding_site_idx
+
+    # TODO: get actual second-order rate constant, also what are units supposed to be?
+    # TODO: Consider concentration of binding site on DNA, etc.?
+    # Get binding and unbinding rates based on present tf-binding sites
+    raw_binding_rates_matrix, raw_unbinding_rates_matrix = transcription_regulation.get_tf_binding_unbinding_matrices(
+        dense=True)
+    binding_rates = raw_binding_rates_matrix[tf_binding_site_index, :]
+    unbinding_rates = raw_unbinding_rates_matrix[tf_binding_site_index, :]
+    rate_ratio = binding_rates / unbinding_rates
+    rate_ratio[~np.isfinite(rate_ratio)] = 0
+
+    # TODO: this will prefer to bind TFs earlier rather than later in the ordering
+    # if two types of TFs can bind to the same binding site
+    assert len(tf_ids) == np.shape(rate_ratio)[1]
+    for idx, tf_count in enumerate(active_tf_view):
+        # Let's say that at equilibrium, each binding site index i binds to this TF for f_i fraction of the time.
+        # Unbinding rate is f * rate1, binding rate is free * rate2 (free = 1 - sum(f_i)).
+        # So, for each tf-binidng site:
+        # f_i / ratio_i = 1 - sum(f_j) = free
+        # f_i + ratio_i * sum(f_j) = ratio_i
+        # so we solve a linear equation where the coefficient of i'th row is 1+ratio_i for i, and ratio_i for j.
+        # Then, each binding-site i has a certain f_i.
+        ratio = rate_ratio[:, idx]
+        # Take only nonzero rate ratios, or else linear matrix will be singular (infinite solutions)
+        nonzero_mask = (ratio != 0)
+        nonzero_ratios = ratio[nonzero_mask]
+        # Solve linear equation
+        M = np.zeros((len(nonzero_ratios), len(nonzero_ratios)))
+        for k in range(len(nonzero_ratios)):
+            M[k, :] = nonzero_ratios[k]
+            M[k, k] += 1
+        fraction_bound = np.linalg.solve(M, nonzero_ratios)
+
+        # Distribute TFs according to these probabilities. If not enough TFs are present to fulfill binding,
+        # distribute the ones that are present.
+        is_bound = random_state.binomial(len(fraction_bound), fraction_bound)
+        if np.sum(is_bound) > tf_count:
+            is_bound = np.zeros(len(fraction_bound), dtype=bool)
+            is_bound[random_state.choice(len(fraction_bound), tf_count, p=normalize(fraction_bound), replace=False)] = 1
+
+        # Update bound_TF array and TF counts
+        active_tf_view[idx] -= np.sum(is_bound)
+        bound_mask = np.zeros(len(nonzero_mask), dtype=bool)
+        bound_mask[nonzero_mask] = is_bound
+        bound_TF[bound_mask] = idx
+
+    # Update active transcription factor counts
+    bulk_state["count"][active_tf_view_idx] = active_tf_view
+
+    # Update tf-binding-site objects
+    unique_molecules["tf_binding_site"]["bound_TF"] = bound_TF
+
+    mass_diff = active_tf_masses[bound_TF, :]
+    binding_site_is_free = (bound_TF == transcription_regulation.unbound_tf_binding_site_idx)
+    mass_diff[binding_site_is_free, :] = 0.
+    for submass, i in sim_data.submass_name_to_index.items():
+        unique_molecules["tf_binding_site"][f"massDiff_{submass}"] = mass_diff[:, i]
+
 
 def initialize_transcription(
     bulk_state,
@@ -950,67 +1065,125 @@ def initialize_transcription(
     RNA polymerases placed at each gene.
     """
     # Load parameters
-    rna_lengths = sim_data.process.transcription.rna_data["length"].asNumber()
+    transcription = sim_data.process.transcription
+    rna_lengths = transcription.rna_data["length"].asNumber()
     rna_masses = (
-        sim_data.process.transcription.rna_data["mw"] / sim_data.constants.n_avogadro
+        transcription.rna_data["mw"] / sim_data.constants.n_avogadro
     ).asNumber(units.fg)
     current_media_id = sim_data.conditions[sim_data.condition]["nutrients"]
-    frac_active_rnap = sim_data.process.transcription.rnapFractionActiveDict[
-        current_media_id
-    ]
+
     inactive_rnap_idx = bulk_name_to_idx(
         sim_data.molecule_ids.full_RNAP, bulk_state["id"]
     )
     inactive_RNAP_counts = bulk_state["count"][inactive_rnap_idx]
-    rna_sequences = sim_data.process.transcription.transcription_sequences
-    nt_weights = sim_data.process.transcription.transcription_monomer_weights
-    end_weight = sim_data.process.transcription.transcription_end_weight
+    rna_sequences = transcription.transcription_sequences
+    nt_weights = transcription.transcription_monomer_weights
+    end_weight = transcription.transcription_end_weight
     replichore_lengths = sim_data.process.replication.replichore_lengths
     chromosome_length = replichore_lengths.sum()
 
-    # Number of rnaPoly to activate
-    n_RNAPs_to_activate = np.int64(frac_active_rnap * inactive_RNAP_counts)
+    def _apply_new_TF_effects(basal_aff, tf_binding_site_index, tf_binding_site_domain_index,
+                          bound_TF, promoter_TU_index, promoter_domain_index):
+        '''
+        Changes basal_aff for each two-peak gene, according to whether the right TF is bound to the
+        corresponding TF-binding site for each TU.
+        '''
+        two_peak_data = sim_data.process.transcription_regulation.two_peak_TU_data
+        for i, TU_idx in enumerate(two_peak_data['TU_idx']):
+            # Get indices of this TU
+            is_reg = (promoter_TU_index == TU_idx)
+            is_reg = np.array(is_reg)
+            # If no TUs of this type, continue to next TU
+            if np.sum(is_reg) == 0:
+                continue
+            tu_domain_idx = promoter_domain_index[is_reg]
 
-    # Get attributes of promoters
-    TU_index, bound_TF, domain_index_promoters = attrs(
-        unique_molecules["promoter"], ["TU_index", "bound_TF", "domain_index"]
+            # Get the regulating tf-binding-site index
+            tf_idx = two_peak_data['tf_idx'][i]
+            tf_binding_site = two_peak_data['tf_binding_site_idx'][i]
+            is_reg_binding_site = (tf_binding_site_index == tf_binding_site)
+            binding_site_domain_idx = tf_binding_site_domain_index[is_reg_binding_site]
+            reg_bound_TF = bound_TF[is_reg_binding_site]
+
+            # For each TU, if the correct TF is bound to the binding site with correct binding site index
+            # and the same domain index, then change the affinity accordingly
+            TF_is_bound = []
+            for domain_idx in tu_domain_idx:
+                match_domain_binding_site = np.where(binding_site_domain_idx == domain_idx)[0]
+                if len(match_domain_binding_site) == 0:
+                    TF_is_bound.append(0)
+                elif len(match_domain_binding_site) == 1:
+                    tf_bound = reg_bound_TF[match_domain_binding_site[0]]
+                    if tf_bound == tf_idx:
+                        TF_is_bound.append(1)
+                    else:
+                        TF_is_bound.append(0)
+                else:
+                    raise ValueError("TF-binding site with index {} has more than one copy on a chromosome domain".format(
+                        tf_binding_site))
+
+            # Change affinities accordingly
+            # TODO: need to think about how to interact with ppGpp regulation and attenuation if
+            # there are genes that overlap
+            reg_idxs = np.where(is_reg)[0]
+            TF_is_bound = np.array(TF_is_bound, dtype=bool)
+            TU_tf_bound_idxs = reg_idxs[TF_is_bound]
+            TU_tf_not_bound_idxs = reg_idxs[~TF_is_bound]
+            basal_aff[TU_tf_bound_idxs] = two_peak_data["bound_affinity"][i]
+            basal_aff[TU_tf_not_bound_idxs] = two_peak_data["unbound_affinity"][i]
+
+    def _apply_old_TF_effects(init_aff, promoter_TU_index, promoter_bound_TF):
+        transcription_regulation = sim_data.process.transcription_regulation
+        delta_aff = transcription_regulation.get_delta_aff_matrix()
+        delta = np.multiply(delta_aff[promoter_TU_index, :], promoter_bound_TF).sum(axis=1)
+
+        # Adjust so delta is proportional to the current affinity from ppGpp, to avoid negative
+        # affinities
+        ppgpp_basal_aff = transcription_regulation.basal_aff
+        with np.errstate(invalid="ignore", divide="ignore"):
+            adjustment = init_aff / ppgpp_basal_aff
+
+        # For cases with no basal ppGpp expression, assume the delta prob is the
+        # same as without ppGpp control
+        adjustment[~np.isfinite(adjustment)] = 1
+        init_aff += delta * adjustment
+        init_aff[init_aff < 0] = 0
+
+    # Get attributes of promoters and tf-binding sites
+    tf_binding_site_index, tf_binding_site_domain_index, tf_binding_site_bound_TF = attrs(
+        unique_molecules["tf_binding_site"],
+        ["tf_binding_site_index", "domain_index", "bound_TF"])
+
+    promoter_TU_index, promoter_domain_index, promoter_bound_TF = attrs(
+        unique_molecules["promoter"], ["TU_index", "domain_index", "bound_TF"]
     )
 
-    # Parameters for rnaSynthProb
     if ppgpp_regulation:
         doubling_time = sim_data.condition_to_doubling_time[sim_data.condition]
         ppgpp_conc = sim_data.growth_rate_parameters.get_ppGpp_conc(doubling_time)
-        basal_prob, _ = sim_data.process.transcription.synth_prob_from_ppgpp(
-            ppgpp_conc, sim_data.process.replication.get_average_copy_number
+        basal_aff = transcription.synth_aff_from_ppgpp(ppgpp_conc)
+        if trna_attenuation:
+            # TODO: might need to switch order with TF-effects if there are overlapping genes
+            # since TF-effects overrides this
+            basal_aff[transcription.attenuated_rna_indices] += (
+                transcription.attenuation_basal_aff_adjustments
+            )
+
+        frac_active_rnap = transcription.get_rnap_active_fraction_from_ppGpp(
+            ppgpp_conc
         )
-        ppgpp_scale = basal_prob[TU_index]
-        # Use original delta prob if no ppGpp basal prob
-        ppgpp_scale[ppgpp_scale == 0] = 1
     else:
-        basal_prob = sim_data.process.transcription_regulation.basal_prob.copy()
-        ppgpp_scale = 1
+        basal_aff = sim_data.process.transcription_regulation.basal_aff
+        frac_active_rnap = transcription.rnapFractionActiveDict[
+            current_media_id
+        ]
 
-    if trna_attenuation:
-        basal_prob[sim_data.process.transcription.attenuated_rna_indices] += (
-            sim_data.process.transcription.attenuation_basal_prob_adjustments
-        )
-    n_TUs = len(basal_prob)
-    delta_prob_matrix = sim_data.process.transcription_regulation.get_delta_prob_matrix(
-        dense=True, ppgpp=ppgpp_regulation
-    )
+    promoter_init_affs = basal_aff[promoter_TU_index]
 
-    # Synthesis probabilities for different categories of genes
-    rna_synth_prob_fractions = sim_data.process.transcription.rnaSynthProbFraction
-    rna_synth_prob_R_protein = sim_data.process.transcription.rnaSynthProbRProtein
-    rna_synth_prob_rna_polymerase = (
-        sim_data.process.transcription.rnaSynthProbRnaPolymerase
-    )
-
-    # Get coordinates and transcription directions of transcription units
-    replication_coordinate = sim_data.process.transcription.rna_data[
-        "replication_coordinate"
-    ]
-    transcription_direction = sim_data.process.transcription.rna_data["is_forward"]
+    # Account for new and old TF modeling TFs
+    _apply_new_TF_effects(promoter_init_affs, tf_binding_site_index, tf_binding_site_domain_index,
+                      tf_binding_site_bound_TF, promoter_TU_index, promoter_domain_index)
+    _apply_old_TF_effects(promoter_init_affs, promoter_TU_index, promoter_bound_TF)
 
     # Determine changes from genetic perturbations
     genetic_perturbations = {}
@@ -1028,70 +1201,13 @@ def initialize_transcription(
             "fixedSynthProbs": [pair[1] for pair in probability_indexes],
         }
 
-    # ID Groups
-    idx_rRNA = np.where(sim_data.process.transcription.rna_data["is_rRNA"])[0]
-    idx_mRNA = np.where(sim_data.process.transcription.rna_data["is_mRNA"])[0]
-    idx_tRNA = np.where(sim_data.process.transcription.rna_data["is_tRNA"])[0]
-    idx_rprotein = np.where(
-        sim_data.process.transcription.rna_data["includes_ribosomal_protein"]
-    )[0]
-    idx_rnap = np.where(sim_data.process.transcription.rna_data["includes_RNAP"])[0]
-
-    # Calculate probabilities of the RNAP binding to the promoters
-    promoter_init_probs = basal_prob[TU_index] + ppgpp_scale * np.multiply(
-        delta_prob_matrix[TU_index, :], bound_TF
-    ).sum(axis=1)
-
     if len(genetic_perturbations) > 0:
-        rescale_initiation_probs(
-            promoter_init_probs,
-            TU_index,
-            genetic_perturbations["fixedSynthProbs"],
+        rescale_initiation_affs(
+            promoter_init_affs,
             genetic_perturbations["fixedRnaIdxs"],
+            genetic_perturbations["fixedSynthProbs"],
+            promoter_TU_index,
         )
-
-    # Adjust probabilities to not be negative
-    promoter_init_probs[promoter_init_probs < 0] = 0.0
-    promoter_init_probs /= promoter_init_probs.sum()
-    if np.any(promoter_init_probs < 0):
-        raise Exception("Have negative RNA synthesis probabilities")
-
-    # Adjust synthesis probabilities depending on environment
-    synth_prob_fractions = rna_synth_prob_fractions[current_media_id]
-
-    # Create masks for different types of RNAs
-    is_mRNA = np.isin(TU_index, idx_mRNA)
-    is_tRNA = np.isin(TU_index, idx_tRNA)
-    is_rRNA = np.isin(TU_index, idx_rRNA)
-    is_rprotein = np.isin(TU_index, idx_rprotein)
-    is_rnap = np.isin(TU_index, idx_rnap)
-    is_fixed = is_tRNA | is_rRNA | is_rprotein | is_rnap
-
-    # Rescale initiation probabilities based on type of RNA
-    promoter_init_probs[is_mRNA] *= (
-        synth_prob_fractions["mRna"] / promoter_init_probs[is_mRNA].sum()
-    )
-    promoter_init_probs[is_tRNA] *= (
-        synth_prob_fractions["tRna"] / promoter_init_probs[is_tRNA].sum()
-    )
-    promoter_init_probs[is_rRNA] *= (
-        synth_prob_fractions["rRna"] / promoter_init_probs[is_rRNA].sum()
-    )
-
-    # Set fixed synthesis probabilities for RProteins and RNAPs
-    rescale_initiation_probs(
-        promoter_init_probs,
-        TU_index,
-        np.concatenate(
-            (
-                rna_synth_prob_R_protein[current_media_id],
-                rna_synth_prob_rna_polymerase[current_media_id],
-            )
-        ),
-        np.concatenate((idx_rprotein, idx_rnap)),
-    )
-
-    assert promoter_init_probs[is_fixed].sum() < 1.0
 
     # Adjust for attenuation that will stop transcription after initiation
     if trna_attenuation:
@@ -1105,17 +1221,72 @@ def initialize_transcription(
             )
         }
         readthrough_adjustment = np.array(
-            [attenuation_readthrough.get(idx, 1) for idx in TU_index]
+            [attenuation_readthrough.get(idx, 1) for idx in promoter_TU_index]
         )
-        promoter_init_probs *= readthrough_adjustment
+        promoter_init_affs *= readthrough_adjustment
 
-    scale_the_rest_by = (
-        1.0 - promoter_init_probs[is_fixed].sum()
-    ) / promoter_init_probs[~is_fixed].sum()
-    promoter_init_probs[~is_fixed] *= scale_the_rest_by
+    # Adjust affinities to not be negative
+    promoter_init_affs[promoter_init_affs < 0] = 0.0
+
+    # TODO: fix this part
+    if not ppgpp_regulation:
+        ## Adjust affinities for RNA synthesis probability fraction data of
+        # mRNA, tRNA, rRNA, RNAP, and r-proteins
+        # Synthesis probabilities for different categories of genes
+        rna_synth_prob_fractions = sim_data.process.transcription.rnaSynthProbFraction
+        rna_synth_prob_R_protein = sim_data.process.transcription.rnaSynthProbRProtein
+        rna_synth_prob_rna_polymerase = (
+            sim_data.process.transcription.rnaSynthProbRnaPolymerase
+        )
+
+        # ID Groups
+        idx_rRNA = np.where(sim_data.process.transcription.rna_data["is_rRNA"])[0]
+        idx_tRNA = np.where(sim_data.process.transcription.rna_data["is_tRNA"])[0]
+        idx_rprotein = np.where(
+            sim_data.process.transcription.rna_data["includes_ribosomal_protein"]
+        )[0]
+        idx_rnap = np.where(sim_data.process.transcription.rna_data["includes_RNAP"])[0]
+
+        # Adjust synthesis probabilities depending on environment
+        synth_prob_fractions = rna_synth_prob_fractions[current_media_id]
+
+        # Adjust affinities to match fixed synthesis probabiltiies for RProteins and RNAPs
+        rescale_initiation_affs(
+            promoter_init_affs,
+            np.concatenate((idx_rprotein, idx_rnap)),
+            np.concatenate(
+                (
+                    rna_synth_prob_R_protein[current_media_id],
+                    rna_synth_prob_rna_polymerase[current_media_id],
+                )
+            ),
+            promoter_TU_index,
+            group_fixed_indexes=[idx_tRNA, idx_rRNA],
+            group_fixed_probs=[synth_prob_fractions["tRna"], synth_prob_fractions["rRna"]]
+        )
+
+        is_fixed_prob = np.concatenate((idx_rprotein, idx_rnap, idx_tRNA, idx_rRNA))
+        assert promoter_init_affs[is_fixed_prob].sum() < promoter_init_affs.sum()
+
+    # Normalize affinities to get synthesis probabilities
+    promoter_init_probs = normalize(promoter_init_affs)
+
+    if np.any(promoter_init_probs < 0):
+        raise Exception("Have negative RNA synthesis probabilities")
+
+    # Number of rnaPoly to activate
+    n_RNAPs_to_activate = np.int64(frac_active_rnap * inactive_RNAP_counts)
+
+
+    ## Initialize transcript initiation and elongation molecules
+    # Get coordinates and transcription directions of transcription units
+    replication_coordinate = sim_data.process.transcription.rna_data[
+        "replication_coordinate"
+    ]
+    transcription_direction = sim_data.process.transcription.rna_data["is_forward"]
 
     # normalize to length of rna
-    init_prob_length_adjusted = promoter_init_probs * rna_lengths[TU_index]
+    init_prob_length_adjusted = promoter_init_probs * rna_lengths[promoter_TU_index]
     init_prob_normalized = init_prob_length_adjusted / init_prob_length_adjusted.sum()
 
     # Sample a multinomial distribution of synthesis probabilities to determine
@@ -1124,8 +1295,8 @@ def initialize_transcription(
 
     # Build array of transcription unit indexes for partially transcribed mRNAs
     # and domain indexes for RNAPs
-    TU_index_partial_RNAs = np.repeat(TU_index, n_initiations)
-    domain_index_rnap = np.repeat(domain_index_promoters, n_initiations)
+    TU_index_partial_RNAs = np.repeat(promoter_TU_index, n_initiations)
+    domain_index_rnap = np.repeat(promoter_domain_index, n_initiations)
 
     # Build arrays of starting coordinates and transcription directions
     starting_coordinates = replication_coordinate[TU_index_partial_RNAs]
@@ -1168,6 +1339,7 @@ def initialize_transcription(
     added_RNA_mass = added_mass.copy()
     added_mRNA_mass = added_mass.copy()
 
+    idx_mRNA = np.where(sim_data.process.transcription.rna_data["is_mRNA"])[0]
     is_mRNA_partial_RNAs = np.isin(TU_index_partial_RNAs, idx_mRNA)
     added_RNA_mass[is_mRNA_partial_RNAs] = 0
     added_mRNA_mass[np.logical_not(is_mRNA_partial_RNAs)] = 0
@@ -1214,6 +1386,7 @@ def initialize_transcription(
     # Note: some mRNAs with high degradation rates have more partial mRNAs than
     # the expected total number of mRNAs - for these mRNAs we simply set the
     # initial full mRNA counts to be zero.
+    n_TUs = len(promoter_init_probs)
     partial_mRNA_counts = np.bincount(
         TU_index_partial_RNAs[is_mRNA_partial_RNAs], minlength=n_TUs
     )[idx_mRNA]
@@ -1854,17 +2027,52 @@ def determine_chromosome_state(
     return oric_state, replisome_state, domain_state
 
 
-def rescale_initiation_probs(init_probs, TU_index, fixed_synth_probs, fixed_TU_indexes):
+def rescale_initiation_affs(init_affs, fixed_indexes, fixed_synth_probs, TU_index,
+                            group_fixed_indexes=None, group_fixed_probs=None):
     """
-    Rescales the initiation probabilities of each promoter such that the total
-    synthesis probabilities of certain types of RNAs are fixed to a
-    predetermined value. For instance, if there are two copies of promoters for
-    RNA A, whose synthesis probability should be fixed to 0.1, each promoter is
-    given an initiation probability of 0.05.
+    Rescales the initiation affinities of indicated promoters such that the
+    total synthesis probabilities of certain types of RNAs are fixed to
+    a predetermined value. For instance, if there are two copies of
+    promoters for RNA A, whose synthesis probability should be fixed to
+    0.1, each promoter is given an affinity such that its total initiation
+    probability is 0.05.
+    Group fixed indexes and group fixed probs are for gene groups (like rRNAs or tRNAs)
+    whose total synthesis probability are set, and the resulting RNAs are scaled to fit that.
     """
-    for rna_idx, synth_prob in zip(fixed_TU_indexes, fixed_synth_probs):
-        fixed_rna_mask = TU_index == rna_idx
-        init_probs[fixed_rna_mask] = synth_prob / fixed_rna_mask.sum()
+
+    # Avoids setting empty lists as arguments
+    if group_fixed_indexes is None:
+        group_fixed_indexes = []
+        group_fixed_probs = []
+
+    # Solve equation: for controlled genes, aff * copy = proba * sum(aff * copy for all genes)
+    # Let aff * copy = k. See fitExpressionAffinities in the parca (fit_sim_data_1.py)
+    # for a more detailed description.
+    all_fixed_indexes = np.concatenate(tuple(group_fixed_indexes))
+    all_fixed_indexes = np.concatenate((fixed_indexes, all_fixed_indexes))
+    fixed_all_mask = np.isin(TU_index, all_fixed_indexes)
+    sum_other_affinities = init_affs[~fixed_all_mask].sum()
+
+    all_fixed_probs = np.concatenate((fixed_synth_probs, group_fixed_probs))
+    b = sum_other_affinities * all_fixed_probs
+
+    num_fixed = len(fixed_indexes) + len(group_fixed_indexes)
+    M = np.tile(-1 * all_fixed_probs, (num_fixed, 1)).T
+    for i in range(num_fixed):
+        M[i, i] += 1
+    solved_ks = np.linalg.solve(M, b)
+    fixed_ks = solved_ks[:len(fixed_indexes)]
+    group_fixed_ks = solved_ks[len(fixed_indexes):]
+
+    # Set each promoter's affinity so that the sum is equal to k, for each fixed type.
+    for idx, TU_idx in enumerate(fixed_indexes):
+        fixed_mask = TU_index == TU_idx
+        init_affs[fixed_mask] = fixed_ks[idx] / fixed_mask.sum()
+
+    # Scale group indexes's affinities to match the required sum.
+    for idx, group_idxs in enumerate(group_fixed_indexes):
+        fixed_mask = np.isin(TU_index, group_idxs)
+        init_affs[fixed_mask] *= (group_fixed_ks[idx] / init_affs[fixed_mask].sum())
 
 
 def calculate_cell_mass(bulk_state, unique_molecules, sim_data):

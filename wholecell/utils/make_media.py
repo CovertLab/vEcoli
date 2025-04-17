@@ -144,17 +144,18 @@ class Media(object):
 
         recipe = self.recipes[media_id]
         base_id = recipe["base media"]
-        added_media_id = recipe["added media"]
+        added_media_ids = recipe["added media"]
+        added_media_vols = recipe["added media volume"]
         ingredient_ids = recipe["ingredients"]
         base_media = self.stock_media[base_id]
         base_vol = recipe["base media volume"]
 
-        if added_media_id:
-            added_media = self.stock_media[added_media_id]
-            added_vol = recipe["added media volume"]
-            new_media = self.combine_media(base_media, base_vol, added_media, added_vol)
-            base_media = new_media
-            base_vol += added_vol
+        if added_media_ids:
+            for added_media_id, added_vol in zip(added_media_ids, added_media_vols):
+                added_media = self.stock_media[added_media_id]
+                new_media = self.combine_media(base_media, base_vol, added_media, added_vol)
+                base_media = new_media
+                base_vol += added_vol
 
         if ingredient_ids:
             added_weight = recipe.get("ingredients weight", [])
@@ -174,7 +175,7 @@ class Media(object):
                     ingredients[ingred_id]["volume"] = 0 * units.L
             new_media = self.add_ingredients(base_media, base_vol, ingredients)
 
-        if not added_media_id and not ingredient_ids:
+        if not added_media_ids and not ingredient_ids:
             new_media = base_media
 
         # remove concentration units, setting at CONC_UNITS

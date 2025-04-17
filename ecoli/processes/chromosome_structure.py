@@ -4,7 +4,7 @@ Chromosome Structure
 ====================
 
 - Resolve collisions between molecules and replication forks on the chromosome.
-- Remove and replicate promoters and motifs that are traversed by replisomes.
+- Remove and replicate promoters, motifs, and tf-binding-sites that are traversed by replisomes.
 - Reset the boundaries and linking numbers of chromosomal segments.
 """
 
@@ -53,6 +53,7 @@ TOPOLOGY = {
         "full_chromosome",
     ),
     "promoters": ("unique", "promoter"),
+    "tf_binding_sites": ("unique", "tf_binding_site"),
     "DnaA_boxes": ("unique", "DnaA_box"),
     "genes": ("unique", "gene"),
     "chromosomal_segments": ("unique", "chromosomal_segment"),
@@ -87,6 +88,7 @@ class ChromosomeStructure(Step):
         "fragmentBases": [],
         "ppi": "ppi",
         "active_tfs": [],
+        "unbound_tf_binding_site_idx": -1,
         "ribosome_30S_subunit": "30S",
         "ribosome_50S_subunit": "50S",
         "amino_acids": [],
@@ -108,7 +110,8 @@ class ChromosomeStructure(Step):
         self.rna_sequences = self.parameters["rna_sequences"]
         self.protein_sequences = self.parameters["protein_sequences"]
         self.n_TUs = self.parameters["n_TUs"]
-        self.n_TFs = self.parameters["n_TFs"]
+        self.n_new_TFs = self.parameters["n_new_TFs"]
+        self.n_old_TFs = self.parameters["n_old_TFs"]
         self.rna_ids = self.parameters["rna_ids"]
         self.n_amino_acids = self.parameters["n_amino_acids"]
         self.n_fragment_bases = self.parameters["n_fragment_bases"]
@@ -127,6 +130,7 @@ class ChromosomeStructure(Step):
         self.unprocessed_rna_index_mapping = self.parameters[
             "unprocessed_rna_index_mapping"
         ]
+        self.unbound_tf_binding_site_idx = self.parameters["unbound_tf_binding_site_idx"]
 
         # Load sim options
         self.calculate_superhelical_densities = self.parameters[
@@ -139,7 +143,8 @@ class ChromosomeStructure(Step):
         self.inactive_RNAPs = self.parameters["inactive_RNAPs"]
         self.fragmentBases = self.parameters["fragmentBases"]
         self.ppi = self.parameters["ppi"]
-        self.active_tfs = self.parameters["active_tfs"]
+        self.active_new_tfs = self.parameters["active_new_tfs"]
+        self.active_old_tfs = self.parameters["active_old_tfs"]
         self.ribosome_30S_subunit = self.parameters["ribosome_30S_subunit"]
         self.ribosome_50S_subunit = self.parameters["ribosome_50S_subunit"]
         self.amino_acids = self.parameters["amino_acids"]
@@ -189,6 +194,7 @@ class ChromosomeStructure(Step):
                 "full_chromosomes", emit=self.parameters["emit_unique"]
             ),
             "promoters": numpy_schema("promoters", emit=self.parameters["emit_unique"]),
+            "tf_binding_sites": numpy_schema("tf_binding_sites", emit=self.parameters["emit_unique"]),
             "DnaA_boxes": numpy_schema(
                 "DnaA_boxes", emit=self.parameters["emit_unique"]
             ),
@@ -229,8 +235,11 @@ class ChromosomeStructure(Step):
             self.fragmentBasesIdx = bulk_name_to_idx(
                 self.fragmentBases, states["bulk"]["id"]
             )
-            self.active_tfs_idx = bulk_name_to_idx(
-                self.active_tfs, states["bulk"]["id"]
+            self.active_new_tfs_idx = bulk_name_to_idx(
+                self.active_new_tfs, states["bulk"]["id"]
+            )
+            self.active_old_tfs_idx = bulk_name_to_idx(
+                self.active_old_tfs, states["bulk"]["id"]
             )
             self.ribosome_30S_subunit_idx = bulk_name_to_idx(
                 self.ribosome_30S_subunit, states["bulk"]["id"]
@@ -297,9 +306,17 @@ class ChromosomeStructure(Step):
             promoter_TU_indexes,
             promoter_domain_indexes,
             promoter_coordinates,
-            promoter_bound_TFs,
+            promoter_bound_TF,
         ) = attrs(
             states["promoters"], ["TU_index", "domain_index", "coordinates", "bound_TF"]
+        )
+        (
+            tf_binding_site_indexes,
+            tf_binding_site_domain_indexes,
+            tf_binding_site_coordinates,
+            tf_binding_site_bound_TF,
+        ) = attrs(
+            states["tf_binding_sites"], ["tf_binding_site_index", "domain_index", "coordinates", "bound_TF"]
         )
         (gene_cistron_indexes, gene_domain_indexes, gene_coordinates) = attrs(
             states["genes"], ["cistron_index", "domain_index", "coordinates"]
@@ -368,6 +385,9 @@ class ChromosomeStructure(Step):
         removed_promoters_mask = get_removed_molecules_mask(
             promoter_domain_indexes, promoter_coordinates
         )
+        removed_tf_binding_sites_mask = get_removed_molecules_mask(
+            tf_binding_site_domain_indexes, tf_binding_site_coordinates
+        )
         removed_genes_mask = get_removed_molecules_mask(
             gene_domain_indexes, gene_coordinates
         )
@@ -415,6 +435,7 @@ class ChromosomeStructure(Step):
             "promoters": {},
             "genes": {},
             "DnaA_boxes": {},
+            "tf_binding_sites": {},
         }
 
         if self.calculate_superhelical_densities:
@@ -866,7 +887,7 @@ class ChromosomeStructure(Step):
             # Add freed active tfs
             update["bulk"].append(
                 (
-                    self.active_tfs_idx,
+                    self.active_old_tfs_idx,
                     promoter_bound_TFs[removed_promoters_mask, :].sum(axis=0),
                 )
             )
@@ -890,8 +911,49 @@ class ChromosomeStructure(Step):
                         "coordinates": promoter_coordinates_new,
                         "domain_index": promoter_domain_indexes_new,
                         "bound_TF": np.zeros(
-                            (n_new_promoters, self.n_TFs), dtype=np.bool_
+                            (n_new_promoters, self.n_old_TFs), dtype=np.bool_
                         ),
+                    }
+                }
+            )
+
+        ##############################
+        # Replicate tf-binding sites #
+        ##############################
+        n_new_tf_binding_sites = 2 * np.count_nonzero(removed_tf_binding_sites_mask)
+
+        if n_new_tf_binding_sites > 0:
+            # Delete original tf_binding_sites
+            update["tf_binding_sites"].update({"delete": np.where(removed_tf_binding_sites_mask)[0]})
+
+            # TODO: decide whether to keep this or prevent replisome from removing TFs?
+            # Add freed active tfs
+            update["bulk"].append(
+                 (
+                     self.active_new_tfs_idx,
+                     [np.sum((tf_binding_site_bound_TF == i)) for i in range(self.n_new_TFs)]
+                 )
+            )
+
+            # Set up attributes for the replicated TF binding sites
+            tf_binding_site_indexes_new = np.repeat(
+                tf_binding_site_indexes[removed_tf_binding_sites_mask], 2
+            )
+            (tf_binding_site_coordinates_new, tf_binding_site_domain_indexes_new) = (
+              get_replicated_motif_attributes(
+                    tf_binding_site_coordinates[removed_tf_binding_sites_mask],
+                    tf_binding_site_domain_indexes[removed_tf_binding_sites_mask],
+                )
+            )
+
+            # Add new TF binding sites with new domain indexes
+            update["tf_binding_sites"].update(
+                {
+                    "add": {
+                        "tf_binding_site_index": tf_binding_site_indexes_new,
+                        "coordinates": tf_binding_site_coordinates_new,
+                        "domain_index": tf_binding_site_domain_indexes_new,
+                        "bound_TF": np.ones(len(tf_binding_site_indexes_new)) * self.unbound_tf_binding_site_idx,
                     }
                 }
             )
@@ -1357,7 +1419,8 @@ def test_superhelical_removal_sim():
                     {
                         "inactive_RNAPs": "APORNAP-CPLX[c]",
                         "ppi": "PPI[c]",
-                        "active_tfs": ["CPLX-125[c]"],
+                        "active_new_tfs": [],
+                        "active_old_tfs": ["CPLX-125[c]"],
                         "ribosome_30S_subunit": "CPLX0-3953[c]",
                         "ribosome_50S_subunit": "CPLX0-3962[c]",
                         "amino_acids": ["L-ALPHA-ALANINE[c]"],

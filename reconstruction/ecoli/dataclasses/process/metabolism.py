@@ -317,6 +317,7 @@ class Metabolism(object):
         # compartments according to those given in the biomass objective.  Or,
         # if there is no compartment, assign it to the cytoplasm.
 
+        # TODO (Albert): add a source here for the hypoxanthine part
         concentration_sources = [
             "Park Concentration",
             "Lempp Concentration",
@@ -893,6 +894,8 @@ class Metabolism(object):
             [[min(v), sum(v) / len(v), max(v)] for v in self._compiled_saturation(subs)]
         )
 
+        # So for purF, want to update the capacity and saturation to be regulated
+        # by ppGpp, GMP, and AMP
         return KINETIC_CONSTRAINT_CONC_UNITS * K_CAT_UNITS * capacity * saturation
 
     def exchange_constraints(
@@ -1003,9 +1006,51 @@ class Metabolism(object):
             - f_exported
         )
 
-    def aa_supply_scaling(
-        self, aa_conc: Unum, aa_present: Unum
-    ) -> npt.NDArray[np.float64]:
+        # Add aa_enzymes attribute to be used later, code copied from set_mechanistic_supply_constants
+        dependencies = {}
+        for aa in aa_ids:
+            for downstream_aa in self.aa_synthesis_pathways[aa]["downstream"]:
+                if units.isfinite(
+                        self.aa_synthesis_pathways[downstream_aa]["km, degradation"]
+                ):
+                    dependencies.setdefault(aa, set()).add(downstream_aa)
+
+        ordered_aa_ids = []
+        for _ in aa_ids:  # limit number of iterations number of amino acids in case there are cyclic links
+            for aa in sorted(set(aa_ids) - set(ordered_aa_ids)):
+                for downstream_aa in dependencies.get(aa, set()):
+                    if downstream_aa not in ordered_aa_ids:
+                        break
+                else:
+                    ordered_aa_ids.append(aa)
+
+        n_aas = len(aa_ids)
+        if len(ordered_aa_ids) != n_aas:
+            raise RuntimeError(
+                "Could not determine amino acid order to calculate dependencies first."
+                " Make sure there are no cyclical pathways for amino acids that can degrade."
+            )
+
+        aa_enzymes = []
+        for amino_acid in ordered_aa_ids:
+            data = self.aa_synthesis_pathways[amino_acid]
+            fwd_enzymes = data["enzymes"]
+            rev_enzymes = data["reverse enzymes"]
+            aa_enzymes += fwd_enzymes + rev_enzymes
+
+        self.aa_enzymes = np.unique(aa_enzymes)
+
+        # Set other names, copied from set_mechanistic_import_constants and set_mechanistic_export constants
+        self.aa_to_importers, self.aa_to_importers_matrix, self.aa_importer_names = (
+            self.get_aa_to_transporters_mapping_data(sim_data)
+        )
+
+        self.aa_to_exporters, self.aa_to_exporters_matrix, self.aa_exporter_names = (
+            self.get_aa_to_transporters_mapping_data(sim_data, export=True)
+        )
+
+
+    def aa_supply_scaling(self, aa_conc: Unum, aa_present: Unum) -> np.ndarray[float]:
         """
         Called during polypeptide_elongation process
         Determine amino acid supply rate scaling based on current amino acid
@@ -1022,7 +1067,6 @@ class Metabolism(object):
         """
 
         aa_conc = aa_conc.asNumber(METABOLITE_CONCENTRATION_UNITS)
-
         aa_supply = self.fraction_supply_rate
         aa_import = aa_present * self.fraction_import_rate
         aa_synthesis = 1 / (1 + aa_conc / self.KI_aa_synthesis)
@@ -2279,6 +2323,13 @@ class Metabolism(object):
             "OX-FLAVODOXIN2": "Oxidized-flavodoxins",
         }
 
+        # TODO (Albert): remove this when bug below is fixed
+        temp_change_rxn = {
+            "PRPPAMIDOTRANS-RXN": "PRPPAMIDOTRANS-RXN (reverse)"
+        }
+        if rxn_to_match in temp_change_rxn:
+            rxn_to_match = temp_change_rxn[rxn_to_match]
+
         # Match full reaction name from partial reaction in kinetics. Must
         # also match metabolites since there can be multiple reaction instances.
         match = False
@@ -2296,6 +2347,8 @@ class Metabolism(object):
                         and enz in stripped_enzs
                     ):
                         match_candidates.append(long_rxn)
+                # TODO (Albert): fix this: may be a bug if, rxn_to_match is a reverse reaction in metabolism_reactions.tsv,
+                # but doesn't have the reverse tag on it in metabolism_kinetics
 
         if len(match_candidates) == 0:
             if VERBOSE:
@@ -2343,6 +2396,7 @@ class Metabolism(object):
                     if VERBOSE:
                         print("No reverse reaction: {} {}".format(rxn, mets))
                     continue
+
 
             rxn_matches.append(rxn)
 
@@ -2514,6 +2568,14 @@ class Metabolism(object):
             if k != enzyme_str and (v in reactant_tags or v in product_tags)
         }
 
+        # TODO (Albert): replace this, and use sim_data.molecule_ids.ppgpp_id
+        if constraint['reactionID'] == 'PRPPAMIDOTRANS-RXN':
+            variables_with_tags.update({
+                'A': 'AMP[c]',
+                'G': 'GMP[c]',
+                'PPGPP': 'GUANOSINE-5DP-3DP[c]'
+            })
+
         # Substitute values into custom equations
         ## Replace terms with known constant values or sim molecule IDs with concentrations
         custom_subs = {k: str(v) for k, v in zip(constant_keys, constant_values)}
@@ -2532,6 +2594,7 @@ class Metabolism(object):
         parsed_variables = re.findall(r"\w*", new_equation)[
             :-1
         ]  # Remove trailing empty match
+
         ## Ensure valid input of known variables or a float term
         for v in parsed_variables:
             if not (v == "" or v in custom_subs):
@@ -3162,6 +3225,7 @@ class ConcentrationUpdates(object):
             "VAL[c]": 2.0,
         }
 
+        # TODO: do something with tf-ligand-binding reactions in addition to equilibrium reactions maybe?
         self.molecule_set_amounts = self._add_molecule_amounts(
             equilibriumReactions, self.default_concentrations_dict
         )
@@ -3201,6 +3265,9 @@ class ConcentrationUpdates(object):
                         concDict[mol_id] *= conc_change
 
             for moleculeName, setAmount in self.molecule_set_amounts.items():
+                # TODO (Albert): Might need to check conflicts with hypoxanthine or adenine, for example,
+                # if they have a relative amount set, but are also a ligand. This is only
+                # if we restore some of the molecule_set_amounts functionality as before.
                 if (
                     moleculeName in imports
                     and (
@@ -3256,7 +3323,6 @@ class ConcentrationUpdates(object):
             # We only want to do this for species with standard Michaelis-Menten kinetics initially
             if len(reaction["stoichiometry"]) != 3:
                 continue
-
             moleculeName = [
                 mol_id
                 for mol_id in reaction["stoichiometry"].keys()

@@ -62,6 +62,13 @@ UNIQUE_DIVIDERS = {
             "chromosome_domain": ("..", "chromosome_domain"),
         },
     },
+    "tf_binding_sites": {
+        "divider": "by_domain",
+        "topology": {
+            "full_chromosome": ("..", "full_chromosome"),
+            "chromosome_domain": ("..", "chromosome_domain"),
+        },
+    },
     "chromosomal_segments": {
         "divider": "by_domain",
         "topology": {

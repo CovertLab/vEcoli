@@ -37,6 +37,8 @@ class MonomerCounts(Step):
         "complexation_complex_ids": [],
         "equilibrium_molecule_ids": [],
         "equilibrium_complex_ids": [],
+        "tf_ligand_binding_molecule_ids": [],
+        "tf_ligand_binding_complex_ids": [],
         "monomer_ids": [],
         "two_component_system_molecule_ids": [],
         "two_component_system_complex_ids": [],
@@ -47,6 +49,7 @@ class MonomerCounts(Step):
         "replisome_monomer_subunits": [],
         "complexation_stoich": [],
         "equilibrium_stoich": [],
+        "tf_ligand_binding_stoich": [],
         "two_component_system_stoich": [],
         "emit_unique": False,
         "time_step": 1,
@@ -58,11 +61,13 @@ class MonomerCounts(Step):
         # Get IDs of all bulk molecules
         self.bulk_molecule_ids = self.parameters["bulk_molecule_ids"]
 
-        # Get IDs of molecules involved in complexation and equilibrium
+        # Get IDs of molecules involved in complexation, equilibrium, and tf-ligand-binding processes
         self.complexation_molecule_ids = self.parameters["complexation_molecule_ids"]
         self.complexation_complex_ids = self.parameters["complexation_complex_ids"]
         self.equilibrium_molecule_ids = self.parameters["equilibrium_molecule_ids"]
         self.equilibrium_complex_ids = self.parameters["equilibrium_complex_ids"]
+        self.tf_ligand_binding_molecule_ids = self.parameters["tf_ligand_binding_molecule_ids"]
+        self.tf_ligand_binding_complex_ids = self.parameters["tf_ligand_binding_complex_ids"]
         self.monomer_ids = self.parameters["monomer_ids"]
 
         # Get IDs of complexed molecules monomers involved in two
@@ -97,6 +102,7 @@ class MonomerCounts(Step):
         # component system and the assembly of unique molecules
         self.complexation_stoich = self.parameters["complexation_stoich"]
         self.equilibrium_stoich = self.parameters["equilibrium_stoich"]
+        self.tf_ligand_binding_stoich = self.parameters["tf_ligand_binding_stoich"]
         self.two_component_system_stoich = self.parameters[
             "two_component_system_stoich"
         ]
@@ -163,6 +169,12 @@ class MonomerCounts(Step):
             self.equilibrium_complex_idx = bulk_name_to_idx(
                 self.equilibrium_complex_ids, bulk_ids
             )
+            self.tf_ligand_binding_molecule_idx = bulk_name_to_idx(
+                self.tf_ligand_binding_molecule_ids, bulk_ids
+            )
+            self.tf_ligand_binding_complex_idx = bulk_name_to_idx(
+                self.tf_ligand_binding_complex_ids, bulk_ids
+            )
             self.two_component_system_molecule_idx = bulk_name_to_idx(
                 self.two_component_system_molecule_ids, bulk_ids
             )
@@ -184,6 +196,9 @@ class MonomerCounts(Step):
         n_active_replisome = states["unique"]["active_replisome"]["_entryState"].sum()
 
         # Account for monomers in bulk molecule complexes
+        # TODO (Albert): fix bug here, if in equilibrium it's a complex of CPLX-1 and ligand,
+        # and CPLX-1 is a dimer of MONOMER-1, MONOMER-1 won't be counted here since it is not
+        # a considered molecule in equilibrium.
         complex_monomer_counts = np.dot(
             self.complexation_stoich,
             np.negative(bulkMoleculeCounts[self.complexation_complex_idx]),
@@ -191,6 +206,10 @@ class MonomerCounts(Step):
         equilibrium_monomer_counts = np.dot(
             self.equilibrium_stoich,
             np.negative(bulkMoleculeCounts[self.equilibrium_complex_idx]),
+        )
+        tf_ligand_binding_monomer_counts = np.dot(
+            self.tf_ligand_binding_stoich,
+            np.negative(bulkMoleculeCounts[self.tf_ligand_binding_complex_idx]),
         )
         two_component_monomer_counts = np.dot(
             self.two_component_system_stoich,
@@ -202,6 +221,9 @@ class MonomerCounts(Step):
         )
         bulkMoleculeCounts[self.equilibrium_molecule_idx] += (
             equilibrium_monomer_counts.astype(np.int32)
+        )
+        bulkMoleculeCounts[self.tf_ligand_binding_molecule_idx] += (
+            tf_ligand_binding_monomer_counts.astype(np.int32)
         )
         bulkMoleculeCounts[self.two_component_system_molecule_idx] += (
             two_component_monomer_counts.astype(np.int32)

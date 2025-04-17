@@ -56,6 +56,7 @@ class LoadSimData:
         trna_attenuation: bool = True,
         variable_elongation_transcription: bool = True,
         variable_elongation_translation: bool = False,
+        # TODO: the four False's below were true, should change in config instead
         mechanistic_translation_supply: bool = True,
         mechanistic_aa_transport: bool = True,
         translation_supply: bool = True,
@@ -220,10 +221,10 @@ class LoadSimData:
             # Assume marA (PD00365) controls the entire tetracycline
             # gene expression program and marR (CPLX0-7710) is inactivated
             # by complexation with tetracycline
-            treg_alias.tf_ids += ["PD00365", "CPLX0-7710"]
-            treg_alias.delta_prob["shape"] = (
-                treg_alias.delta_prob["shape"][0],
-                treg_alias.delta_prob["shape"][1] + 2,
+            treg_alias.old_tf_modeling_tf_ids += ["PD00365", "CPLX0-7710"]
+            treg_alias.delta_aff["shape"] = (
+                treg_alias.delta_aff["shape"][0],
+                treg_alias.delta_aff["shape"][1] + 2,
             )
             treg_alias.tf_to_tf_type["PD00365"] = "0CS"
             treg_alias.tf_to_tf_type["CPLX0-7710"] = "1CS"
@@ -264,14 +265,14 @@ class LoadSimData:
                 ]
             )
 
-            treg_alias.delta_prob["deltaI"] = np.concatenate(
-                [treg_alias.delta_prob["deltaI"], new_deltaI]
+            treg_alias.delta_aff["deltaI"] = np.concatenate(
+                [treg_alias.delta_aff["deltaI"], new_deltaI]
             )
-            treg_alias.delta_prob["deltaJ"] = np.concatenate(
-                [treg_alias.delta_prob["deltaJ"], new_deltaJ]
+            treg_alias.delta_aff["deltaJ"] = np.concatenate(
+                [treg_alias.delta_aff["deltaJ"], new_deltaJ]
             )
-            treg_alias.delta_prob["deltaV"] = np.concatenate(
-                [treg_alias.delta_prob["deltaV"], new_deltaV]
+            treg_alias.delta_aff["deltaV"] = np.concatenate(
+                [treg_alias.delta_aff["deltaV"], new_deltaV]
             )
 
             # Add mass data for tetracycline, marR-tet, and 30s-tet
@@ -473,10 +474,10 @@ class LoadSimData:
                 bulk_mol_alias.bulk_data = UnitStructArray(bulk_data, bulk_units)
 
                 # Add filler transcription data for duplex RNAs to prevent errors
-                treg_alias.basal_prob = np.append(treg_alias.basal_prob, 0)
-                treg_alias.delta_prob["shape"] = (
-                    treg_alias.delta_prob["shape"][0] + 1,
-                    treg_alias.delta_prob["shape"][1],
+                treg_alias.basal_aff = np.append(treg_alias.basal_aff, 0)
+                treg_alias.delta_aff["shape"] = (
+                    treg_alias.delta_aff["shape"][0] + 1,
+                    treg_alias.delta_aff["shape"][1],
                 )
 
                 # Set flag so miscRNA duplexes are degraded together with mRNAs
@@ -559,7 +560,8 @@ class LoadSimData:
 
     def get_config_by_name(self, name, time_step=1):
         name_config_mapping = {
-            "ecoli-tf-binding": self.get_tf_config,
+            "ecoli-new-tf-binding": self.get_new-tf_binding_config,
+            "ecoli-old-tf-binding": self.get_old-tf_binding_config,
             "ecoli-transcript-initiation": self.get_transcript_initiation_config,
             "ecoli-transcript-elongation": self.get_transcript_elongation_config,
             "ecoli-rna-degradation": self.get_rna_degradation_config,
@@ -568,6 +570,7 @@ class LoadSimData:
             "ecoli-complexation": self.get_complexation_config,
             "ecoli-two-component-system": self.get_two_component_system_config,
             "ecoli-equilibrium": self.get_equilibrium_config,
+            "ecoli-tf-ligand-binding": self.get_tf_ligand_binding_config,
             "ecoli-protein-degradation": self.get_protein_degradation_config,
             "ecoli-metabolism": self.get_metabolism_config,
             "ecoli-metabolism-redux": self.get_metabolism_redux_config,
@@ -658,31 +661,55 @@ class LoadSimData:
 
         return chromosome_replication_config
 
-    def get_tf_config(self, time_step=1):
-        tf_binding_config = {
+    def get_new_tf_binding_config(self, time_step=1):
+        new_tf_binding_config = {
             "time_step": time_step,
-            "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
+            "tf_ids": self.sim_data.process.transcription_regulation.new_tf_modeling_tf_ids,
             "rna_ids": self.sim_data.process.transcription.rna_data["id"],
-            "delta_prob": self.sim_data.process.transcription_regulation.delta_prob,
+            "get_binding_unbinding_matrices": self.sim_data.process.transcription_regulation.get_tf_binding_unbinding_matrices,
+            "tf_binding_site_unbound_idx": self.sim_data.process.transcription_regulation.unbound_tf_binding_site_idx,
+            "get_tf_binding_site_to_TU_matrix": self.sim_data.relation.tf_binding_site_to_tus_mapping,
             "n_avogadro": self.sim_data.constants.n_avogadro,
             "cell_density": self.sim_data.constants.cell_density,
-            "p_promoter_bound_tf": self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
-            "tf_to_tf_type": self.sim_data.process.transcription_regulation.tf_to_tf_type,
-            "active_to_bound": self.sim_data.process.transcription_regulation.active_to_bound,
-            "get_unbound": self.sim_data.process.equilibrium.get_unbound,
-            "active_to_inactive_tf": self.sim_data.process.two_component_system.active_to_inactive_tf,
+            # TODO: not sure if will need this later
+            #"tf_to_tf_type": self.sim_data.process.transcription_regulation.tf_to_tf_type,
             "bulk_molecule_ids": self.sim_data.internal_state.bulk_molecules.bulk_data[
                 "id"
             ],
             "bulk_mass_data": self.sim_data.internal_state.bulk_molecules.bulk_data[
                 "mass"
             ],
-            "seed": self._seedFromName("TfBinding"),
+            "seed": self._seedFromName("NewTfBinding"),
             "submass_indices": self.submass_indices,
             "emit_unique": self.emit_unique,
         }
 
-        return tf_binding_config
+        return new_tf_binding_config
+
+    def get_old_tf_binding_config(self, time_step=1):
+        old_tf_binding_config = {
+            "time_step": time_step,
+            "tf_ids": self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids,
+            "rna_ids": self.sim_data.process.transcription.rna_data["id"],
+            "get_binding_unbinding_matrices": self.sim_data.process.transcription_regulation.get_tf_binding_unbinding_matrices,
+            "tf_binding_site_unbound_idx": self.sim_data.process.transcription_regulation.unbound_tf_binding_site_idx,
+            "get_tf_binding_site_to_TU_matrix": self.sim_data.relation.tf_binding_site_to_tus_mapping,
+            "n_avogadro": self.sim_data.constants.n_avogadro,
+            "cell_density": self.sim_data.constants.cell_density,
+            # TODO: not sure if will need this later
+            #"tf_to_tf_type": self.sim_data.process.transcription_regulation.tf_to_tf_type,
+            "bulk_molecule_ids": self.sim_data.internal_state.bulk_molecules.bulk_data[
+                "id"
+            ],
+            "bulk_mass_data": self.sim_data.internal_state.bulk_molecules.bulk_data[
+                "mass"
+            ],
+            "seed": self._seedFromName("OldTfBinding"),
+            "submass_indices": self.submass_indices,
+            "emit_unique": self.emit_unique,
+        }
+
+        return old_tf_binding_config
 
     def get_transcript_initiation_config(self, time_step=1):
         transcript_initiation_config = {
@@ -693,9 +720,9 @@ class LoadSimData:
             "variable_elongation": self.variable_elongation_transcription,
             "make_elongation_rates": self.sim_data.process.transcription.make_elongation_rates,
             "active_rnap_footprint_size": self.sim_data.process.transcription.active_rnap_footprint_size,
-            "basal_prob": self.sim_data.process.transcription_regulation.basal_prob,
-            "delta_prob": self.sim_data.process.transcription_regulation.delta_prob,
-            "get_delta_prob_matrix": self.sim_data.process.transcription_regulation.get_delta_prob_matrix,
+            "basal_aff": self.sim_data.process.transcription_regulation.basal_aff,
+            "get_delta_aff_matrix": self.sim_data.process.transcription_regulation.get_delta_aff_matrix,
+            "two_peak_TU_data": self.sim_data.process.transcription_regulation.two_peak_TU_data,
             "perturbations": getattr(self.sim_data, "genetic_perturbations", {}),
             "rna_data": self.sim_data.process.transcription.rna_data,
             "idx_rRNA": np.where(
@@ -728,14 +755,15 @@ class LoadSimData:
             "cell_density": self.sim_data.constants.cell_density,
             "inactive_RNAP": "APORNAP-CPLX[c]",
             "ppgpp": self.sim_data.molecule_ids.ppGpp,
-            "synth_prob": self.sim_data.process.transcription.synth_prob_from_ppgpp,
+            "synth_aff": self.sim_data.process.transcription.synth_aff_from_ppgpp,
             "copy_number": self.sim_data.process.replication.get_average_copy_number,
+            "two_peak_data": self.sim_data.process.transcription_regulation.two_peak_TU_data,
             "ppgpp_regulation": self.ppgpp_regulation,
             "get_rnap_active_fraction_from_ppGpp": self.sim_data.process.transcription.get_rnap_active_fraction_from_ppGpp,
             # attenuation
             "trna_attenuation": self.trna_attenuation,
             "attenuated_rna_indices": self.sim_data.process.transcription.attenuated_rna_indices,
-            "attenuation_adjustments": self.sim_data.process.transcription.attenuation_basal_prob_adjustments,
+            "attenuation_adjustments": self.sim_data.process.transcription.attenuation_basal_aff_adjustments,
             # random seed
             "seed": self._seedFromName("TranscriptInitiation"),
             "emit_unique": self.emit_unique,
@@ -1104,6 +1132,30 @@ class LoadSimData:
 
         return equilibrium_config
 
+    def get_tf_ligand_binding_config(self, time_step=1, parallel=False):
+        tf_ligand_binding_config = {
+            "time_step": time_step,
+            "_parallel": parallel,
+            "n_avogadro": self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
+            "cell_density": self.sim_data.constants.cell_density.asNumber(
+                units.g / units.L
+            ),
+            "stoich_matrix": self.sim_data.process.tf_ligand_binding.stoich_matrix().astype(
+                np.int64
+            ),
+            "ligand_idxs": self.sim_data.process.tf_ligand_binding.ligand_idxs,
+            "bound_tf_idxs": self.sim_data.process.tf_ligand_binding.bound_tf_idxs,
+            "unbound_tf_idxs": self.sim_data.process.tf_ligand_binding.unbound_tf_idxs,
+            "molecule_names": self.sim_data.process.tf_ligand_binding.molecule_names,
+            "ligand_bound_fraction": self.sim_data.process.tf_ligand_binding.ligand_bound_fraction,
+            "req_from_fluxes": self.sim_data.process.tf_ligand_binding.req_from_fluxes,
+            "reaction_ids": self.sim_data.process.tf_ligand_binding.reaction_ids,
+            "seed": self._seedFromName("TFLigandBinding"),
+            "emit_unique": self.emit_unique,
+        }
+
+        return tf_ligand_binding_config
+
     def get_protein_degradation_config(self, time_step=1):
         protein_degradation_config = {
             "time_step": time_step,
@@ -1456,6 +1508,8 @@ class LoadSimData:
             "complexation_complex_ids": self.sim_data.process.complexation.ids_complexes,
             "equilibrium_molecule_ids": self.sim_data.process.equilibrium.molecule_names,
             "equilibrium_complex_ids": self.sim_data.process.equilibrium.ids_complexes,
+            "tf_ligand_binding_molecule_ids": self.sim_data.process.tf_ligand_binding.molecule_names,
+            "tf_ligand_binding_complex_ids": self.sim_data.process.tf_ligand_binding.bound_tf_ids,
             "monomer_ids": self.sim_data.process.translation.monomer_data[
                 "id"
             ].tolist(),
@@ -1484,6 +1538,7 @@ class LoadSimData:
             # assembly of unique molecules
             "complexation_stoich": self.sim_data.process.complexation.stoich_matrix_monomers(),
             "equilibrium_stoich": self.sim_data.process.equilibrium.stoich_matrix_monomers(),
+            "tf_ligand_binding_stoich": self.sim_data.process.tf_ligand_binding.stoich_matrix_monomers(),
             "two_component_system_stoich": self.sim_data.process.two_component_system.stoich_matrix_monomers(),
             "emit_unique": self.emit_unique,
         }
@@ -1523,7 +1578,8 @@ class LoadSimData:
             "rna_sequences": transcription.transcription_sequences,
             "protein_sequences": self.sim_data.process.translation.translation_sequences,
             "n_TUs": len(transcription.rna_data),
-            "n_TFs": len(self.sim_data.process.transcription_regulation.tf_ids),
+            "n_old_TFs": len(self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids),
+            "n_new_TFs": len(self.sim_data.process.transcription_regulation.new_tf_modeling_tf_ids),
             "rna_ids": transcription.rna_data["id"],
             "n_amino_acids": len(self.sim_data.molecule_groups.amino_acids),
             "n_fragment_bases": len(self.sim_data.molecule_groups.polymerized_ntps),
@@ -1546,9 +1602,13 @@ class LoadSimData:
             "inactive_RNAPs": self.sim_data.molecule_ids.full_RNAP,
             "fragmentBases": self.sim_data.molecule_groups.polymerized_ntps,
             "ppi": self.sim_data.molecule_ids.ppi,
-            "active_tfs": [
-                x + "[c]" for x in self.sim_data.process.transcription_regulation.tf_ids
+            "active_old_tfs": [
+                x + "[c]" for x in self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids
             ],
+            "active_new_tfs": [
+                x + "[c]" for x in self.sim_data.process.transcription_regulation.new_tf_modeling_tf_ids
+            ],
+            "unbound_tf_binding_site_idx": self.sim_data.process.transcription_regulation.unbound_tf_binding_site_idx,
             "ribosome_30S_subunit": self.sim_data.molecule_ids.s30_full_complex,
             "ribosome_50S_subunit": self.sim_data.molecule_ids.s50_full_complex,
             "amino_acids": self.sim_data.molecule_groups.amino_acids,
@@ -1657,7 +1717,7 @@ class LoadSimData:
     def get_tf_unbinding_config(self, time_step=1):
         config = {
             "time_step": time_step,
-            "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
+            "tf_ids": self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids,
             "submass_indices": self.submass_indices,
             "emit_unique": self.emit_unique,
         }
@@ -1677,7 +1737,8 @@ class LoadSimData:
             "time_step": time_step,
             "gene_ids": self.sim_data.process.transcription.cistron_data["gene_id"],
             "rna_ids": self.sim_data.process.transcription.rna_data["id"],
-            "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
+            "old_tf_ids": self.sim_data.process.transcription_regulation.old_tf_modeling_tf_ids,
+            "new_tf_ids": self.sim_data.process.transcription_regulation.new_tf_modeling_tf_ids,
             "cistron_ids": self.sim_data.process.transcription.cistron_data["gene_id"],
             "cistron_tu_mapping_matrix": self.sim_data.process.transcription.cistron_tu_mapping_matrix,
             "emit_unique": self.emit_unique,

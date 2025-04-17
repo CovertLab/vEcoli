@@ -1,2 +1,3 @@
 "Gene"	"_comments"
 "argH"	"Interactions with ArgR regulation can lead to no Arg production with low ppGpp"
+"mutM"	"Including mutM regulation leads to singular matrix during NNLS fitting of ppGpp-free synthesis affinities in sim_data.process.transcription.set_ppgpp_affinities"

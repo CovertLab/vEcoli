@@ -341,40 +341,40 @@ class PolypeptideElongation(PartitionedProcess):
                             self.amino_acids,
                         ),
                         "aa_supply": ([0.0] * len(self.amino_acids), self.amino_acids),
-                        "aa_synthesis": (
-                            [0.0] * len(self.amino_acids),
-                            self.amino_acids,
-                        ),
-                        "aa_import": ([0.0] * len(self.amino_acids), self.amino_acids),
-                        "aa_export": ([0.0] * len(self.amino_acids), self.amino_acids),
-                        "aa_importers": (
-                            [0] * len(self.aa_importers),
-                            self.aa_importers,
-                        ),
-                        "aa_exporters": (
-                            [0] * len(self.aa_exporters),
-                            self.aa_exporters,
-                        ),
-                        "aa_supply_enzymes_fwd": (
-                            [0.0] * len(self.amino_acids),
-                            self.amino_acids,
-                        ),
-                        "aa_supply_enzymes_rev": (
-                            [0.0] * len(self.amino_acids),
-                            self.amino_acids,
-                        ),
-                        "aa_supply_aa_conc": (
-                            [0.0] * len(self.amino_acids),
-                            self.amino_acids,
-                        ),
-                        "aa_supply_fraction_fwd": (
-                            [0.0] * len(self.amino_acids),
-                            self.amino_acids,
-                        ),
-                        "aa_supply_fraction_rev": (
-                            [0.0] * len(self.amino_acids),
-                            self.amino_acids,
-                        ),
+                        # "aa_synthesis": (
+                        #     [0.0] * len(self.amino_acids),
+                        #     self.amino_acids,
+                        # ),
+                        # "aa_import": ([0.0] * len(self.amino_acids), self.amino_acids),
+                        # "aa_export": ([0.0] * len(self.amino_acids), self.amino_acids),
+                        # "aa_importers": (
+                        #     [0] * len(self.aa_importers),
+                        #     self.aa_importers,
+                        # ),
+                        # "aa_exporters": (
+                        #     [0] * len(self.aa_exporters),
+                        #     self.aa_exporters,
+                        # ),
+                        # "aa_supply_enzymes_fwd": (
+                        #     [0.0] * len(self.amino_acids),
+                        #     self.amino_acids,
+                        # ),
+                        # "aa_supply_enzymes_rev": (
+                        #     [0.0] * len(self.amino_acids),
+                        #     self.amino_acids,
+                        # ),
+                        # "aa_supply_aa_conc": (
+                        #     [0.0] * len(self.amino_acids),
+                        #     self.amino_acids,
+                        # ),
+                        # "aa_supply_fraction_fwd": (
+                        #     [0.0] * len(self.amino_acids),
+                        #     self.amino_acids,
+                        # ),
+                        # "aa_supply_fraction_rev": (
+                        #     [0.0] * len(self.amino_acids),
+                        #     self.amino_acids,
+                        # ),
                         "ppgpp_conc": 0.0,
                         "rela_conc": 0.0,
                         "spot_conc": 0.0,
@@ -428,12 +428,12 @@ class PolypeptideElongation(PartitionedProcess):
                     "_updater": "set",
                     "_divider": "zero",
                 },
-                "aa_exchange_rates": {
-                    "_default": [0.0],
-                    "_emit": True,
-                    "_updater": "set",
-                    "_divider": "zero",
-                },
+                # "aa_exchange_rates": {
+                #     "_default": [0.0],
+                #     "_emit": True,
+                #     "_updater": "set",
+                #     "_divider": "zero",
+                # },
             },
             "timestep": {"_default": self.parameters["time_step"]},
         }
@@ -978,6 +978,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         charged_trna_conc = self.counts_to_molar * charged_trna_counts
         ribosome_conc = self.counts_to_molar * ribosome_counts
 
+
         # Calculate amino acid supply
         aa_in_media = np.array(
             [
@@ -985,25 +986,29 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
                 for aa in self.process.aa_environment_names
             ]
         )
-        fwd_enzyme_counts, rev_enzyme_counts = self.get_pathway_enzyme_counts_per_aa(
-            counts(states["bulk_total"], self.process.aa_enzyme_idx)
-        )
-        importer_counts = counts(states["bulk_total"], self.process.aa_importer_idx)
-        exporter_counts = counts(states["bulk_total"], self.process.aa_exporter_idx)
-        synthesis, fwd_saturation, rev_saturation = self.amino_acid_synthesis(
-            fwd_enzyme_counts, rev_enzyme_counts, aa_conc
-        )
-        import_rates = self.amino_acid_import(
-            aa_in_media,
-            dry_mass,
-            aa_conc,
-            importer_counts,
-            self.process.mechanistic_aa_transport,
-        )
-        export_rates = self.amino_acid_export(
-            exporter_counts, aa_conc, self.process.mechanistic_aa_transport
-        )
-        exchange_rates = import_rates - export_rates
+
+        if self.process.aa_supply_in_charging:
+            fwd_enzyme_counts, rev_enzyme_counts = self.get_pathway_enzyme_counts_per_aa(
+                counts(states["bulk_total"], self.process.aa_enzyme_idx)
+            )
+            importer_counts = counts(states["bulk_total"], self.process.aa_importer_idx)
+            exporter_counts = counts(states["bulk_total"], self.process.aa_exporter_idx)
+            synthesis, fwd_saturation, rev_saturation = self.amino_acid_synthesis(
+                fwd_enzyme_counts, rev_enzyme_counts, aa_conc
+            )
+            import_rates = self.amino_acid_import(
+                aa_in_media,
+                dry_mass,
+                aa_conc,
+                importer_counts,
+                self.process.mechanistic_aa_transport,
+            )
+            export_rates = self.amino_acid_export(
+                exporter_counts, aa_conc, self.process.mechanistic_aa_transport
+            )
+            exchange_rates = import_rates - export_rates
+        else:
+            fwd_enzyme_counts, rev_enzyme_counts, dry_mass, importer_counts, exporter_counts = [], [], [], [], []
 
         supply_function = get_charging_supply_function(
             self.process.aa_supply_in_charging,
@@ -1174,25 +1179,25 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
                         "ribosome_conc": ribosome_conc.asNumber(MICROMOLAR_UNITS),
                         "fraction_aa_to_elongate": f,
                         "aa_supply": self.process.aa_supply,
-                        "aa_synthesis": synthesis * states["timestep"],
-                        "aa_import": import_rates * states["timestep"],
-                        "aa_export": export_rates * states["timestep"],
-                        "aa_supply_enzymes_fwd": fwd_enzyme_counts,
-                        "aa_supply_enzymes_rev": rev_enzyme_counts,
-                        "aa_importers": importer_counts,
-                        "aa_exporters": exporter_counts,
+                        #"aa_synthesis": synthesis * states["timestep"],
+                        #"aa_import": import_rates * states["timestep"],
+                        #"aa_export": export_rates * states["timestep"],
+                        #"aa_supply_enzymes_fwd": fwd_enzyme_counts,
+                        #"aa_supply_enzymes_rev": rev_enzyme_counts,
+                        #"aa_importers": importer_counts,
+                        #"aa_exporters": exporter_counts,
                         "aa_supply_aa_conc": aa_conc.asNumber(units.mmol / units.L),
-                        "aa_supply_fraction_fwd": fwd_saturation,
-                        "aa_supply_fraction_rev": rev_saturation,
+                        #"aa_supply_fraction_fwd": fwd_saturation,
+                        #"aa_supply_fraction_rev": rev_saturation,
                         "ppgpp_conc": ppgpp_conc.asNumber(MICROMOLAR_UNITS),
                         "rela_conc": rela_conc.asNumber(MICROMOLAR_UNITS),
                         "spot_conc": spot_conc.asNumber(MICROMOLAR_UNITS),
                     }
                 },
                 "polypeptide_elongation": {
-                    "aa_exchange_rates": self.counts_to_molar
-                    / units.s
-                    * (import_rates - export_rates)
+                    #"aa_exchange_rates": self.counts_to_molar
+                    #/ units.s
+                    #* (import_rates - export_rates)
                 },
             },
         )
