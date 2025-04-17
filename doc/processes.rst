@@ -27,10 +27,11 @@ file.
 
 Second, its topology must be registered in :py:data:`~ecoli.processes.registries.topology_registry`.
 This is usally accomplished by having the following lines at the top of the
-process file::
+process file:
+
+.. code-block:: python
 
    from ecoli.processes.registries import topology_registry
-
    topology_registry.register({process name}, {process topology})
 
 This second condition is not strictly necessary as topologies for

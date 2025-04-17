@@ -64,7 +64,9 @@ Configuration
 =============
 
 To tell vEcoli that you are running on Sherlock, you MUST add the following
-options to your configuration JSON (note the top-level ``sherlock`` key)::
+options to your configuration JSON (note the top-level ``sherlock`` key):
+
+.. code-block::
 
   {
     "sherlock": {
@@ -132,7 +134,9 @@ Interactive Container
 To debug a failed job in a workflow, you must locate the container image that was
 used for that workflow. You can refer to the ``container_image`` key in the
 config JSON saved to the workflow output directory (see :ref:`output`). Start
-an interactive container with that image name as follows::
+an interactive container with that image name as follows:
+
+.. code-block:: bash
 
   runscripts/container/interactive.sh -i container_image -a
 
@@ -163,256 +167,6 @@ can be tracked using Git version control.
   an outdated version of ``uv.lock`` or ``pyproject.toml``, there will
   be a delay on startup while uv updates the packages. To avoid this,
   build a new image with ``runscripts/container/build-image.sh``.
-
-.. _jenkins-setup:
-
-Jenkins Setup
-=============
-
-The following describes the steps taken to set up Jenkins on Sherlock to run
-long continuous integration tests on the ``master`` branch of vEcoli.
-
-Request an interactive session on Sherlock, taking note of the login node. Once
-the interactive session is started, run the following command to forward
-the port used by Jenkins to the login node::
-
-    ssh -nNT {username}@{login node} -R 8080:localhost:8080 &
-
-In this same session, download the latest WAR file from the Jenkins website,
-load the Java and fontconfig modules, then run Jenkins::
-
-    wget https://get.jenkins.io/war-stable/latest/jenkins.war
-    module load java/17.0.4 fontconfig
-    JENKINS_HOME=$GROUP_HOME/jenkins_vecoli java -jar jenkins.war --httpPort=8080
-
-In a new terminal, open a new SSH connection to the previously noted login node
-with port forwarding::
-
-    ssh {username}@{login node}.sherlock.stanford.edu -L 8080:localhost:8080
-
-On a local machine, open a web browser and navigate to ``localhost:8080``. Proceed
-with the post-installation setup wizard (see `Jenkins documentation <https://www.jenkins.io/doc/book/installing/#setup-wizard>`_).
-
-Manually select the following basic plugins to install:
-Folders, OWASP Markup Formatter, Build Timeout, Credentials Binding,
-Timestamper, Workspace Cleanup, Pipeline, GitHub Branch Source,
-Pipeline: GitHub Groovy Libraries, Pipeline Graph View, Git, GitHub,
-Matrix Authorization, Email Extension, Mailer, and Dark Theme.
-
-Create an admin user with a username and password of your choice, and keep the
-default web URL of ``localhost:8080``. After setup is complete, click on
-``Manage Jenkins`` in the left sidebar, then ``Plugins``. Click ``Available Plugins``
-in the left sidebar, then search for and install the ``GitHub Checks`` plugin.
-
-Follow the `linked instructions <https://docs.cloudbees.com/docs/cloudbees-ci/latest/cloud-admin-guide/github-app-auth>`_
-to create a GitHub App for the Covert Lab organization,
-install it on the vEcoli repository, and add it as a credential in Jenkins.
-
-Stop the Jenkins server by pressing ``Ctrl+C`` in the terminal where it is running.
-Then, move the ``jenkins.war`` file to the ``$GROUP_HOME/jenkins_vecoli`` directory.
-Create a new file called ``jenkins_vecoli.sh`` in the same directory with the following::
-
-    #!/bin/bash
-    #SBATCH --job-name=jenkins_vecoli
-    #SBATCH --dependency=singleton
-    #SBATCH --time=5-00:00:00
-    #SBATCH --mem-per-cpu=4GB
-    #SBATCH --cpus-per-task=1
-    #SBATCH --mail-type=FAIL
-    #SBATCH --signal=B:SIGUSR1@90
-    #SBATCH --partition=mcovert
-
-    # Set the port Jenkins will use
-    port=8080
-
-    # Get the login node that submitted this job
-    submit_login_node=${SLURM_SUBMIT_HOST%%\.*}
-
-    # Generate a systematic list of login nodes to try
-    # Format: sh0G-ln0X where G=4,3,2 and X=1,2,...,8
-    generate_login_nodes() {
-        local nodes=()
-
-        # Try the submit node first if it exists
-        if [ -n "$submit_login_node" ]; then
-            nodes+=("$submit_login_node")
-        fi
-
-        # Then try the systematic pattern of login nodes
-        for g in {4..2}; do
-            for x in {1..8}; do
-                node="sh0${g}-ln0${x}"
-                # Don't add the submit node twice
-                if [ "$node" != "$submit_login_node" ]; then
-                    nodes+=("$node")
-                fi
-            done
-        done
-
-        echo "${nodes[@]}"
-    }
-
-    # Get array of login nodes to try
-    login_nodes=($(generate_login_nodes))
-    echo "Will try these login nodes in order: ${login_nodes[@]}"
-
-    # Find first accessible login node
-    login_node=""
-    for node in "${login_nodes[@]}"; do
-        echo "Testing if $node is accessible..."
-        ssh -q -o BatchMode=yes -o ConnectTimeout=5 "$USER@$node" echo accessible &>/dev/null
-        if [ $? -eq 0 ]; then
-            login_node=$node
-            echo "Found accessible login node: $login_node"
-            break
-        else
-            echo "Node $node is not accessible"
-        fi
-    done
-
-    # Exit if no accessible login node was found
-    if [ -z "$login_node" ]; then
-        echo "ERROR: Could not find any accessible login node. Cannot proceed."
-        exit 1
-    fi
-
-    # Function to handle SIGUSR1 signal by resubmitting job from login node
-    _resubmit() {
-        echo "$(date): job $SLURM_JOBID received SIGUSR1 at $(date), re-submitting from $login_node"
-
-        # Get the current job's mail-user setting
-        current_mail_user=$(scontrol show job $SLURM_JOBID | grep -oP 'MailUser=\K[^ ]*')
-        echo "Current mail-user: $current_mail_user"
-
-        # Create a temporary script to execute on the login node
-        temp_script=$(mktemp)
-        cat >$temp_script <<EOF
-    #!/bin/bash
-    cd $PWD
-    echo "Resubmitting Jenkins job from login node $login_node"
-    sbatch --mail-user=$current_mail_user /tmp/jenkins_script.sh
-    EOF
-
-        # Copy scripts to login node and execute it there
-        scp $temp_script $USER@$login_node:/tmp/resubmit_jenkins.sh
-        scp $0 $USER@$login_node:/tmp/jenkins_script.sh
-        ssh $USER@$login_node "chmod +x /tmp/resubmit_jenkins.sh && /tmp/resubmit_jenkins.sh && rm /tmp/resubmit_jenkins.sh /tmp/jenkins_script.sh" &>/dev/null
-
-        # Check if the job was successfully submitted
-        if [ $? -ne 0 ]; then
-            echo "ERROR: Failed to resubmit job from login node $login_node"
-            echo "Script path: $SCRIPT_PATH"
-
-            # Clean up local temp script before exiting
-            rm -f $temp_script
-            ssh -o BatchMode=yes $USER@$login_node "rm -f /tmp/resubmit_jenkins.sh /tmp/jenkins_script.sh" &>/dev/null || true
-
-            # Exit with error status
-            exit 1
-        else
-            echo "Job successfully resubmitted from $login_node"
-        fi
-
-        # Clean up local temp script
-        rm $temp_script
-
-        # Continue running until job actually ends
-        echo "Continuing to run until job is terminated"
-    }
-
-    # Register the trap for SIGUSR1
-    trap _resubmit SIGUSR1
-
-    # Update the job comment with the login node info for SSH tunneling
-    scontrol update jobid=$SLURM_JOBID comment="Jenkins UI accessible via: ssh username@$login_node.sherlock.stanford.edu -L $port:localhost:$port"
-
-    # Set up port forwarding from compute node to login node
-    echo "Setting up SSH tunnel to $login_node..."
-    ssh -nNT "$USER@$login_node" -R $port:localhost:$port &
-    SSH_PID=$!
-
-    # Verify the SSH tunnel was established
-    if [ $? -ne 0 ]; then
-        echo "ERROR: Failed to establish SSH tunnel to $login_node"
-        kill $SSH_PID &>/dev/null
-
-        # Try other nodes if the first choice failed
-        for node in "${login_nodes[@]}"; do
-            if [ "$node" != "$login_node" ]; then
-                echo "Trying $node for forwarding..."
-                ssh -nNT "$USER@$node" -R $port:localhost:$port &
-                SSH_PID=$!
-                if [ $? -eq 0 ]; then
-                    login_node=$node
-                    scontrol update jobid=$SLURM_JOBID comment="Jenkins UI accessible via: ssh username@$login_node.sherlock.stanford.edu -L $port:localhost:$port"
-                    echo "Using $login_node for SSH tunnel"
-                    break
-                else
-                    kill $SSH_PID &>/dev/null
-                fi
-            fi
-        done
-    fi
-
-    # Set trap to clean up SSH tunnel on exit
-    cleanup() {
-        echo "Cleaning up..."
-        kill $SSH_PID &>/dev/null
-        echo "SSH tunnel terminated"
-    }
-    trap cleanup EXIT
-
-    # Start Jenkins
-    echo "Starting Jenkins on port $port, tunneled to $login_node"
-    module load java/21.0.4 fontconfig
-    JENKINS_HOME=$GROUP_HOME/jenkins_vecoli java -jar $GROUP_HOME/jenkins_vecoli/jenkins.war --httpPort=$port &
-    JENKINS_PID=$!
-
-    # Wait for Jenkins to finish
-    wait $JENKINS_PID
-
-Finally, create a directory called ``slurm_logs`` in ``$GROUP_HOME/jenkins_vecoli`` and
-``cd`` into it. From here, launch Jenkins with ``sbatch --mail-user={your email here} ../jenkins_vecoli.sh``.
-This will queue a persistent Jenkins job that should run indefinitely, resubmitting itself
-every 5 days. The stdout and stderr from these jobs will be written to the directory in which
-you ran the ``sbatch`` command. Remember to run ``sbatch`` in ``slurm_logs`` to keep all logs
-in a consistent location accessible to all members of the lab. You will get an email if any of
-these jobs fail, in which case you should review the most recent logs and resubmit with ``sbatch``.
-
-.. _new-jenkins-jobs:
-
-Adding New Jenkins Jobs
-=======================
-
-First, create a new branch and push a commit to GitHub with your new Jenkinsfile. Refer
-to the existing Jenkinsfiles in ``runscripts/jenkins/Jenkinsfile`` for examples.
-
-From the main Jenkins dashboard, click ``New Item`` in the left sidebar and
-select ``Multibranch Pipeline``.
-
-Under ``Branch Sources``:
-
-1. Select ``GitHub``.
-2. Select the GitHub App credential added in :ref:`jenkins-setup`.
-3. Enter the vEcoli repository URL.
-
-Under ``Behaviors``:
-
-1. Add the ``Filter by name (with wildcards)`` behavior and set ``Include`` to ``master``.
-   To test the pipeline, you can temporarily add the name of your new branch, then save the
-   pipeline. Jenkins should recognize the Jenkinsfile on your branch and trigger the pipeline
-   (including setting GitHub commit statuses). Make sure to remove your branch from this
-   section, and save the pipeline again when you are done testing.
-2. Add the ``Status Checks Properties`` behavior, give it an informative name, and
-   tick ``Skip GitHub Branch Source notifications``.
-
-Under ``Build Configuration``:
-
-1. Replace ``Jenkinsfile`` with the path to the Jenkinsfile for the pipeline relative
-   to the root of the repository (e.g. ``runscripts/jenkins/Jenkinsfile/anaerobic``).
-
-Click ``Save`` to create the pipeline, scan the repository for branches that match the filter
-and contain the Jenkinsfile, and trigger the pipeline as appropriate.
 
 
 .. _other-cluster:
@@ -454,7 +208,9 @@ using the ``-p`` argument for ``runscripts/container/interactive.sh``.
 If your cluster does not have Apptainer, you can try the following steps:
 
 1. Completely follow the local setup instructions in the README (install uv, etc).
-2. Delete the following lines from ``runscripts/nextflow/config.template``::
+2. Delete the following lines from ``runscripts/nextflow/config.template``:
+
+.. code-block:: bash
 
     process.container = 'IMAGE_NAME'
     ...
