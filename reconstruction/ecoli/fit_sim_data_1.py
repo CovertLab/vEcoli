@@ -500,7 +500,6 @@ def final_adjustments(sim_data, cell_specs, **kwargs):
 
     # Sets basal_aff vector for use in simulations with ppGpp option off
     # (since adjust_ppgpp_expression_for_tfs might not be able to fully match basal_aff)
-    # TODO: should this be at end of parca?
     basal_ppgpp = sim_data.growth_rate_parameters.get_ppGpp_conc(
         sim_data.condition_to_doubling_time["basal"]
     )
@@ -1240,6 +1239,7 @@ def fit_one_two_peak_affinities(sim_data, cell_specs):
         "affinity"
     ]
     one_peak_TUs = sim_data.process.transcription_regulation.one_peak_TU_data["TU_idx"]
+
     two_peak_unbound_affs = sim_data.process.transcription_regulation.two_peak_TU_data[
         "unbound_affinity"
     ]
@@ -3933,8 +3933,7 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
         else:
             lastNorm = np.linalg.norm(np.dot(H, p) - k, PROMOTER_NORM_TYPE)
 
-    # NOTE: this needs to change, to update probabilities based on affinities.
-    # Update sim_data with fit bound probabilities and RNAP initiation
+    # Update sim_data with fit bound probabilities and affinities and RNAP initiation
     # probabilities computed from these bound probabilities
     sim_data.pPromoterBound = pPromoterBound
     updateSynthProbAff(sim_data, cell_specs, kInfo, np.dot(H, p))

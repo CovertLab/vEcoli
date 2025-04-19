@@ -451,12 +451,11 @@ class TranscriptInitiation(PartitionedProcess):
                     ppgpp_conc
                 )
             else:
-                # TODO: make this basal_aff be defined somewhere in parca as all the unbound
-                # affinities.
                 basal_aff = self.basal_aff
                 self.fracActiveRnap = self.fracActiveRnapDict[current_media_id]
 
             promoter_basal_affs = basal_aff[promoter_TU_index]
+
             _apply_new_TF_effects(
                 promoter_basal_affs,
                 tf_binding_site_index,
@@ -465,9 +464,11 @@ class TranscriptInitiation(PartitionedProcess):
                 promoter_TU_index,
                 promoter_domain_index,
             )
+
             _apply_old_TF_effects(
                 promoter_basal_affs, promoter_TU_index, promoter_bound_TF
             )
+
             self.promoter_init_affs = promoter_basal_affs
 
             # TODO: is this right? might need changing?
