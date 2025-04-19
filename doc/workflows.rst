@@ -711,7 +711,12 @@ Add breakpoints to any Python file with the following line:
   import ipdb; ipdb.set_trace()
 
 Figure out the working directory (see :ref:`troubleshooting`) for a
-failing process. Invoke ``uv run --env-file {path to cloned repo}/.env bash .command.run``
+failing process. Navigate to the working directory and run:
+
+.. code-block:: bash
+
+  uvenv bash .command.run
+
 from the working directory. This should re-run the job and pause upon
 reaching the breakpoints you set. You should now be in an ipdb shell which
 you can use to examine variable values or step through the code.
