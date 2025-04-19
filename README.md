@@ -63,9 +63,12 @@ close and reopen your terminal before continuing.
 Navigate into the cloned repository and use `uv` to install the model:
 
     cd vEcoli
-    uv sync --frozen
+    # Install base and dev dependencies (see pyproject.toml)
+    uv sync --frozen --extra dev
+    # Install pre-commit hook that runs ruff linter before every commit
+    uv run pre-commit install
 
-Finally, install `nextflow` [following these instructions](https://www.nextflow.io/docs/latest/install.html).
+Install `nextflow` [following these instructions](https://www.nextflow.io/docs/latest/install.html).
 If your system has `wget` but not `curl`, replace `curl` in the commands
 with `wget -qO-`. If you choose to install Java with SDKMAN!, after
 the Java installation finishes, close and reopen your terminal before
@@ -74,29 +77,28 @@ continuing with the `nextflow` installation steps.
 > **Tip:** If any step in the `nextflow` installation fails,
 > try rerunning a few times to see if that fixes the issue.
 
-If you are installing the model for active development, we strongly
-recommend that you also install the development dependencies using:
+Add the following to your `~/.bashrc` and/or `~/.zshrc`, replacing `abspath` with
+the absolute path to your cloned repository (output of `pwd` from top level of
+cloned repo):
 
-    uv sync --frozen --extra dev
+    # Specify project and use absolute paths so that `uvenv` correctly loads
+    # the vEcoli virtual environment no matter what directory it is run in
+    alias uvenv='uv run --env-file abspath/.env --project abspath'
 
-After that, you can run ``uv run pre-commit install`` to install
-a pre-commit hook that will run the ``ruff`` linter and formatter
-before all of your commits.
+Close and reopen your terminal.
 
-The development dependencies also include ``pytest``, which lets
-you run the test suite, and ``mypy``, which can be invoked to
-perform static type checking.
+For integration with IDEs, select the newly created virtual environment
+located at `.venv` inside your cloned repository (e.g.
+[for PyCharm](https://www.jetbrains.com/help/pycharm/uv.html)).
 
 ## Test Installation
 
 To test your installation, from the top-level of the cloned repository, invoke:
 
-    uv run --env-file .env runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
+    uvenv runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
 
-> **Warning:** Always use `uv run --env-file .env` to run scripts. We recommend adding
-> the following to your `~/.bashrc` or `~/.zshrc` to create an alias for this:
-> `alias uvenv='uv run --env-file .env'`. `uvenv` should work after restarting
-> your terminal.
+> **Note:** Use `uvenv` to run scripts instead of `python`. To start
+> a Python shell, use `uvenv python` or `uvenv ipython`.
 
 This will run the following basic simulation workflow:
 
@@ -105,7 +107,6 @@ This will run the following basic simulation workflow:
     for a single generation, saving output in `out` folder.
 3. [Analyze simulation output](runscripts/analysis.py) by creating a
     [mass fraction plot](ecoli/analysis/single/mass_fraction_summary.py).
-
 
 ## Next Steps
 Review the online [user guide](https://covertlab.github.io/vEcoli/) to learn how

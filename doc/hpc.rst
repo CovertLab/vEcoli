@@ -140,6 +140,10 @@ an interactive container with that image name as follows:
 
   runscripts/container/interactive.sh -i container_image -a
 
+.. note::
+  Inside the interactive container, you can safely use ``python`` directly
+  in addition to the usual `uv` commands.
+
 Now, inside the container, navigate to ``/vEcoli`` and add breakpoints to
 scripts as you see fit. Finally, navigate to the working directory (see
 :ref:`troubleshooting`) for the task that you want to debug. By invoking

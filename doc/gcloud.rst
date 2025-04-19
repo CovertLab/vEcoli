@@ -267,6 +267,10 @@ used to run the workflow. A copy of the config JSON should be saved to the Cloud
 Storage bucket with the other output for reference (see :ref:`output`).
 ``bucket`` should be the output Cloud Storage bucket (``out_uri`` in config JSON).
 
+.. note::
+  Inside the interactive container, you can safely use ``python`` directly
+  in addition to the usual `uv` commands.
+
 Inside the container, navigate to ``/vEcoli`` and add breakpoints as you see fit.
 Note the working directory (see :ref:`troubleshooting`) of the Nextflow task you
 want to debug (should be of the form ``/mnt/disks/{bucket}/...``). **OUTSIDE**
