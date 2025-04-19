@@ -4,24 +4,18 @@ this file only works for saving data for simulations that contain at least two
 variants (one control and one experimental variant).
 """
 
-import pickle
 import os
-import csv
 
 # noinspection PyUnresolvedReferences
 from duckdb import DuckDBPyConnection
 import numpy as np
-import polars as pl
 import matplotlib.pyplot as plt
 from typing import Any, cast
 
 from ecoli.library.parquet_emitter import (
     read_stacked_columns,
-    ndlist_to_ndarray,
-    open_arbitrary_sim_data,
-    get_field_metadata
+    get_field_metadata,
 )
-from reconstruction.ecoli.fit_sim_data_1 import SimulationDataEcoli
 
 
 IGNORE_FIRST_N_GENS = 0
@@ -31,7 +25,8 @@ this number should be greater than 0 because the first few generations may not
 be representative of the true dynamics occuring in the cell).
 """
 
-COLORS = ['b', 'r', 'k', 'g']
+COLORS = ["b", "r", "k", "g"]
+
 
 def plot(
     params: dict[str, Any],
@@ -51,8 +46,8 @@ def plot(
     (default 0) and saves under ``{outdir}/saved_data/filtered_data``.
     """
 
-    with open_arbitrary_sim_data(sim_data_dict) as f:
-        sim_data: "SimulationDataEcoli" = pickle.load(f)
+    # with open_arbitrary_sim_data(sim_data_dict) as f:
+    #    sim_data: "SimulationDataEcoli" = pickle.load(f)
 
     # So what I need is: for each cell, get the average of the total mRNA in the cell,
     # the fraction which purC occupies. This makes sense for a single time-point. For the
@@ -69,28 +64,61 @@ def plot(
         list[list[int]], get_indexes(conn, config_sql, "mRNA", [[purC_rna_id]])
     )
 
-    custom_sql = get_per_cell_gene_count_fraction_sql(
+    purC_protein_id = "SAICARSYN-MONOMER[c]"
+    purC_protein_idxs = cast(
+        list[list[int]], get_indexes(conn, config_sql, "protein", [[purC_protein_id]])
+    )
+
+    mRNA_sql = get_per_cell_gene_count_fraction_sql(
         purC_mRNA_idxs, "listeners__rna_counts__mRNA_counts", "mRNA"
+    )
+    protein_sql = get_per_cell_gene_count_fraction_sql(
+        purC_protein_idxs, "listeners__monomer_counts", "protein"
     )
 
     subquery = read_stacked_columns(
         history_sql=history_sql,
-        columns=["listeners__rna_counts__mRNA_counts"],
+        columns=["listeners__rna_counts__mRNA_counts", "listeners__monomer_counts"],
         remove_first=True,
-
     )
-    data = conn.sql(custom_sql.format(subquery=subquery)).arrow().to_pylist()
+    mRNA_data = conn.sql(mRNA_sql.format(subquery=subquery)).arrow().to_pylist()
+    protein_data = conn.sql(protein_sql.format(subquery=subquery)).arrow().to_pylist()
 
-    avg_fracs = np.array([x["avg_frac"] for x in data])
-    variants = np.array([x["variant"] for x in data])
+    mRNA_avg_fracs = np.array([x["avg_frac"] for x in mRNA_data])
+    protein_avg_fracs = np.array([x["avg_frac"] for x in protein_data])
+    mRNA_variants = np.array([x["variant"] for x in mRNA_data])
+    protein_variants = np.array([x["variant"] for x in protein_data])
 
     fig, axs = plt.subplots(2)
 
-    for i, var in enumerate(np.unique(variants)):
-        var_fracs = avg_fracs[(variants==var)]
-        axs[0].hist(var_fracs, bins=20, alpha=0.5, lw=3, color=COLORS[i], label="variant "+str(i))
-    axs[0].set_title("Histogram of time-average fraction of mRNA counts that are purC mRNA, for different variants")
+    for i, var in enumerate(np.unique(mRNA_variants)):
+        mRNA_var_fracs = mRNA_avg_fracs[(mRNA_variants == var)]
+        protein_var_fracs = protein_avg_fracs[(protein_variants == var)]
+        axs[0].hist(
+            mRNA_var_fracs,
+            bins=20,
+            alpha=0.5,
+            lw=3,
+            color=COLORS[i],
+            label=str(var),
+        )
+        axs[1].hist(
+            protein_var_fracs,
+            bins=20,
+            alpha=0.5,
+            lw=3,
+            color=COLORS[i],
+            label=str(var),
+        )
+    axs[0].set_title(
+        "Histogram of time-average fraction of mRNA counts that are purC mRNA, for different variants"
+    )
     axs[0].legend()
+
+    axs[1].set_title(
+        "Histogram of time-average fraction of protein counts that are PurC, for different variants"
+    )
+    axs[1].legend()
 
     plt.tight_layout()
     plt.savefig(os.path.join(outdir, "new_tf_modeling_histogram.pdf"))
@@ -146,6 +174,7 @@ def get_per_cell_gene_count_fraction_sql(
         GROUP BY experiment_id, variant, lineage_seed,
             generation, agent_id, gene_idx
         """
+
 
 def get_indexes(
     conn: DuckDBPyConnection,
