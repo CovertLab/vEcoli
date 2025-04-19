@@ -2,4 +2,4 @@
 # TODO: maybe figure out a way to automate the creation of the low_media, high_media values?
 # TODO: make a script to automate the recording of the expression values from the ECOMAC data and ColiNet data (for TF_type)
 "TF"	"TF_type"	"regulated_gene"	"low_condition"	"high_condition"	"low_ECOMAC_expression"	"high_ECOMAC_expression"
-"purR"	"repressor"	"purC"	["basal", "no_oxygen", "with_aa", "acetate", "succinate"]	["with_aa_nucl"]	0.00025	0.00075
+"purR"	"repressor"	"purC"	["with_aa_nucl"]	["basal", "no_oxygen", "with_aa", "acetate", "succinate"]	0.00025	0.00075
