@@ -4,9 +4,9 @@
     "suffix_time": false,
     "parca_options": {
         "cpus": 8,
-        "outdir": "./parca"
+        "outdir": "parcatest"
     },
-    "sim_data_path": "./parca/kb/simData.cPickle",
+    "sim_data_path": "./parcatest/kb/simData.cPickle",
     "skip_baseline": true,
     "generations": 4,
     "n_init_sims": 2,
@@ -15,16 +15,16 @@
     "emitter_arg": {
         "out_dir": "test_diff_env"
     },
-    "outdir": "variant_sim_data",
-    "kb": "./parca/kb",
     "variants": {
         "condition": {
             "condition": {
                 "value": ["basal"]
             }
-        }},
-    "analysis_options": {
+        }
     },
+    "kb": "./parcatest/kb",
+    "outdir": "variant_sim_data",
+    "analysis_options": {},
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-redux"
     },
@@ -43,7 +43,7 @@
         "ribosome_data_listener": [["ecoli-metabolism-redux"]],
         "ecoli-tf-ligand-binding": [["ecoli-tf-unbinding"]],
         "ecoli-old-tf-binding": [["ecoli-equilibrium"]],
-        "ecoli-new-tf-binding": [["ecoli-tf-ligand-binding"]]
+        "ecoli-new-tf-binding": [["ecoli-equilibrium"]]
 
     },
     "raw_output": false,
