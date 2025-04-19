@@ -18,7 +18,7 @@
     "variants": {
         "condition": {
             "condition": {
-                "value": ["with_aa"]
+                "value": ["basal"]
             }
         }
     },
