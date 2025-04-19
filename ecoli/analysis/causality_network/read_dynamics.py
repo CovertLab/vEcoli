@@ -92,8 +92,8 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
         ("listeners", "rna_synth_prob", "actual_rna_synth_prob_per_cistron"),
         ("listeners", "rna_synth_prob", "promoter_copy_number"),
         ("listeners", "rna_synth_prob", "gene_copy_number"),
-        ("listeners", "rna_synth_prob", "old_tf_binding", "n_bound_TF_per_TU"),
-        ("listeners", "rna_synth_prob", "old_tf_binding", "n_bound_TF_per_cistron"),
+        ("listeners", "rna_synth_prob", "old_n_bound_TF_per_TU"),
+        ("listeners", "rna_synth_prob", "old_n_bound_TF_per_cistron"),
         ("listeners", "rna_counts", "mRNA_counts"),
         ("listeners", "rna_maturation_listener", "unprocessed_rnas_consumed"),
         ("listeners", "rnap_data", "rna_init_event"),
@@ -117,11 +117,11 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
     n_TF = len(sim_data.process.transcription_regulation.old_tf_modeling_tf_ids)
 
     # TODO: add new-tf-modeling TFs to this
-    timeseries["listeners"]["rna_synth_prob"]["old_tf_binding"]["n_bound_TF_per_cistron"] = np.array(
-        timeseries["listeners"]["rna_synth_prob"]["old_tf_binding"]["n_bound_TF_per_cistron"]
+    timeseries["listeners"]["rna_synth_prob"]["old_n_bound_TF_per_cistron"] = np.array(
+        timeseries["listeners"]["rna_synth_prob"]["old_n_bound_TF_per_cistron"]
     ).reshape(-1, n_cistron, n_TF)
-    timeseries["listeners"]["rna_synth_prob"]["old_tf_binding"]["n_bound_TF_per_TU"] = np.array(
-        timeseries["listeners"]["rna_synth_prob"]["old_tf_binding"]["n_bound_TF_per_TU"]
+    timeseries["listeners"]["rna_synth_prob"]["old_n_bound_TF_per_TU"] = np.array(
+        timeseries["listeners"]["rna_synth_prob"]["old_n_bound_TF_per_TU"]
     ).reshape(-1, n_TU, n_TF)
 
     conversion_coeffs = (

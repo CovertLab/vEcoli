@@ -152,16 +152,14 @@ class OldTfBinding(Step):
             "listeners": {
                 "rna_synth_prob": listener_schema(
                     {
-                        "old_tf_binding": {
-                            "p_promoter_bound": ([0.0] * self.n_TF, self.tf_ids),
-                            "n_promoter_bound": ([0] * self.n_TF, self.tf_ids),
-                            "n_actual_bound": ([0] * self.n_TF, self.tf_ids),
-                            "n_available_promoters": ([0] * self.n_TF, self.tf_ids),
-                            "n_bound_TF_per_TU": (
-                                [[0] * self.n_TF] * self.n_TU,
-                                self.rna_ids,
-                            ),
-                        }
+                        "old_p_promoter_bound": ([0.0] * self.n_TF, self.tf_ids),
+                        "old_n_promoter_bound": ([0] * self.n_TF, self.tf_ids),
+                        "old_n_actual_bound": ([0] * self.n_TF, self.tf_ids),
+                        "old_n_available_promoters": ([0] * self.n_TF, self.tf_ids),
+                        "old_n_bound_TF_per_TU": (
+                            [[0] * self.n_TF] * self.n_TU,
+                            self.rna_ids,
+                        ),
                     }
                 )
             },
@@ -326,14 +324,12 @@ class OldTfBinding(Step):
 
         update["listeners"] = {
             "rna_synth_prob": {
-                "old_tf_binding": {
-                    "p_promoter_bound": pPromotersBound,
-                    "n_promoter_bound": nPromotersBound,
-                    "n_actual_bound": nActualBound,
-                    "n_available_promoters": n_promoters,
-                    # 900 KB, very large, comment out to halve emit size
-                    "n_bound_TF_per_TU": n_bound_TF_per_TU,
-                }
+                "old_p_promoter_bound": pPromotersBound,
+                "old_n_promoter_bound": nPromotersBound,
+                "old_n_actual_bound": nActualBound,
+                "old_n_available_promoters": n_promoters,
+                # 900 KB, very large, comment out to halve emit size
+                "old_n_bound_TF_per_TU": n_bound_TF_per_TU,
             },
         }
 
