@@ -360,7 +360,7 @@ class Metabolism(Step):
                     "_divider": "zero",
                 },
                 "aa_exchange_rates": {
-                    "_default": 0.0,
+                    "_default": [0.0],
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "zero",

@@ -354,13 +354,17 @@ class MetabolismRedux(Step):
                     "_emit": True,
                     "_divider": "empty_dict",
                 },
-                "gtp_to_hydrolyze": {"_default": 0, "_emit": True, "_divider": "zero"},
-                "aa_exchange_rates": {
-                    "_default": 0,
+                "gtp_to_hydrolyze": {
+                    "_default": 0.0,
                     "_emit": True,
-                    "_updater": "set",
                     "_divider": "zero",
                 },
+                # "aa_exchange_rates": {
+                #     "_default": [0.0],
+                #     "_emit": True,
+                #     "_updater": "set",
+                #     "_divider": "zero",
+                # },
             },
             "listeners": {
                 "mass": listener_schema(

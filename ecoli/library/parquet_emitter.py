@@ -33,10 +33,10 @@ containing schema unified over all cells in this simulation.
 """
 
 USE_UINT16 = {
-    "listeners__rna_synth_prob__new_tf_binding__n_bound_TF_per_TU",
-    "listeners__rna_synth_prob__new_tf_binding__n_bound_TF_per_cistron",
-    "listeners__rna_synth_prob__old_tf_binding__n_bound_TF_per_TU",
-    "listeners__rna_synth_prob__old_tf_binding__n_bound_TF_per_cistron",
+    "listeners__rna_synth_prob__new_n_bound_TF_per_TU",
+    "listeners__rna_synth_prob__new_n_bound_TF_per_cistron",
+    "listeners__rna_synth_prob__old_n_bound_TF_per_TU",
+    "listeners__rna_synth_prob__old_n_bound_TF_per_cistron",
     "listeners__rnap_data__rna_init_event_per_cistron",
     "listeners__rna_synth_prob__gene_copy_number",
     "listeners__rna_synth_prob__expected_rna_init_per_cistron",
@@ -90,9 +90,6 @@ def json_to_parquet(
     """
     parse_options = pj.ParseOptions(explicit_schema=schema)
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
-    # import shutil
-    # shutil.copyfile(ndjson, "./debug_parquet")
-    print(outfile)
     try:
         t = pj.read_json(ndjson, read_options=read_options, parse_options=parse_options)
         pq.write_table(
