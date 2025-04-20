@@ -9,7 +9,7 @@
     "sim_data_path": "./parcatest/kb/simData.cPickle",
     "skip_baseline": true,
     "n_init_sims": 1,
-    "total_time": 10,
+    "total_time": 2,
     "single_daughters": true,
     "daughter_outdir": "daughter_out",
     "emitter" : "parquet",
@@ -31,11 +31,9 @@
     "add_processes": ["ecoli-tf-ligand-binding", "ecoli-old-tf-binding", "ecoli-new-tf-binding"],
     "exclude_processes": ["exchange_data", "ecoli-tf-binding"],
     "flow": {
-        "ecoli-metabolism-redux": [["ecoli-chromosome-structure"]],
         "ecoli-tf-ligand-binding": [["ecoli-tf-unbinding"]],
         "ecoli-old-tf-binding": [["ecoli-equilibrium"]],
         "ecoli-new-tf-binding": [["ecoli-equilibrium"]]
-
     },
     "raw_output": false,
     "operons": true,

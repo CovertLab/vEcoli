@@ -1,15 +1,15 @@
 {
-    "experiment_id": "hom_ob_diff_env",
+    "experiment_id": "testblah",
     "lineage_seed": 10,
     "suffix_time": false,
     "parca_options": {
         "cpus": 8,
-        "outdir": "parcatest"
+        "outdir": "parcatestnormal"
     },
-    "sim_data_path": "./parcatest/kb/simData.cPickle",
+    "sim_data_path": "./parcatestnormal/kb/simData.cPickle",
     "skip_baseline": true,
+    "n_generations": 4,
     "n_init_sims": 1,
-    "total_time": 1,
     "single_daughters": true,
     "daughter_outdir": "daughter_out",
     "emitter" : "parquet",
@@ -19,13 +19,19 @@
     "variants": {
         "condition": {
             "condition": {
-                "value": ["with_aa"]
+                "value": ["basal"]
             }
         }
     },
-    "kb": "./parcatest/kb",
+    "kb": "./parcatestnormal/kb",
     "outdir": "variant_sim_data",
-    "analysis_options": {},
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}},
+        "outdir": "test_diff_env",
+        "experiment_id": ["test_plus_delta_basal"],
+        "variant_data_dir": ["variant_sim_data"],
+        "validation_data_path": ["./parcatestnormal/kb/validationData.cPickle"]
+    },
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-redux"
     },
@@ -45,7 +51,6 @@
         "ecoli-tf-ligand-binding": [["ecoli-tf-unbinding"]],
         "ecoli-old-tf-binding": [["ecoli-equilibrium"]],
         "ecoli-new-tf-binding": [["ecoli-equilibrium"]]
-
     },
     "raw_output": false,
     "operons": true,

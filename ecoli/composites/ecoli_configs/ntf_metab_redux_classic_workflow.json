@@ -1,26 +1,23 @@
 {
-    "experiment_id": "basal",
+    "experiment_id": "basal_aa",
     "lineage_seed": 10,
     "suffix_time": false,
     "parca_options": {
-        "cpus": 4,
-        "outdir": "./parca"
+        "cpus": 8
     },
-    "sim_data_path": "./parcatestnormal/kb/simData.cPickle",
+    "sim_data_path": null,
     "skip_baseline": true,
     "generations": 4,
     "n_init_sims": 1,
     "single_daughters": true,
     "emitter" : "parquet",
     "emitter_arg": {
-        "out_dir": "test"
+        "out_dir": "test_metab_redux_classic"
     },
-    "kb": "./parcatestnormal/kb",
-    "outdir": "variant_sim_data",
     "variants": {
         "condition": {
             "condition": {
-                "value": ["basal"]
+                "value": ["basal", "with_aa"]
             }
         }},
     "analysis_options": {

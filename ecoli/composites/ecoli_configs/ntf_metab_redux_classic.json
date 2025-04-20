@@ -1,38 +1,43 @@
 {
-    "experiment_id": "basal",
+    "experiment_id": "with_aa_gen_1_ec_in",
     "lineage_seed": 10,
     "suffix_time": false,
     "parca_options": {
-        "cpus": 4,
+        "cpus": 8,
         "outdir": "./parca"
     },
-    "sim_data_path": "./parcatestnormal/kb/simData.cPickle",
+    "sim_data_path": "./variant_sim_data/1.cPickle",
     "skip_baseline": true,
     "generations": 4,
     "n_init_sims": 1,
     "single_daughters": true,
     "emitter" : "parquet",
     "emitter_arg": {
-        "out_dir": "test"
+        "out_dir": "test_with_old"
     },
+    "daughter_outdir": "daughter_out_aa",
     "kb": "./parcatestnormal/kb",
     "outdir": "variant_sim_data",
     "variants": {
         "condition": {
             "condition": {
-                "value": ["basal"]
+                "value": ["with_aa"]
             }
         }},
     "analysis_options": {
         "single": {
             "mass_fraction_summary": {}
-        }
+        },
+        "outdir": "test_with_old",
+        "experiment_id": ["with_aa_gen_1_ec_in"],
+        "variant_data_dir": ["variant_sim_data"],
+        "validation_data_path": ["./parcatestnormal/kb/validationData.cPickle"]
     },
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-redux-classic"
     },
     "add_processes": ["ecoli-tf-ligand-binding", "ecoli-old-tf-binding", "ecoli-new-tf-binding"],
-    "exclude_processes": ["exchange_data", "ecoli-tf-binding"],
+    "exclude_processes": ["ecoli-tf-binding"],
     "flow": {
         "ecoli-metabolism-redux-classic": [["ecoli-chromosome-structure"]],
         "ecoli-mass-listener": [["ecoli-metabolism-redux-classic"]],
