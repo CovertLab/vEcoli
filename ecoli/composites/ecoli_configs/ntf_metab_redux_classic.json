@@ -1,5 +1,5 @@
 {
-    "experiment_id": "with_aa_gen_1_ec_in",
+    "experiment_id": "with_aa_gen_4",
     "lineage_seed": 10,
     "suffix_time": false,
     "parca_options": {
@@ -13,8 +13,9 @@
     "single_daughters": true,
     "emitter" : "parquet",
     "emitter_arg": {
-        "out_dir": "test_with_old"
+        "out_dir": "test_mrc_aa"
     },
+    "initial_state_file": "test_aa_mrc_gen_3",
     "daughter_outdir": "daughter_out_aa",
     "kb": "./parcatestnormal/kb",
     "outdir": "variant_sim_data",
@@ -28,8 +29,8 @@
         "single": {
             "mass_fraction_summary": {}
         },
-        "outdir": "test_with_old",
-        "experiment_id": ["with_aa_gen_1_ec_in"],
+        "outdir": "test_mrc_aa",
+        "experiment_id": ["with_aa_gen_4"],
         "variant_data_dir": ["variant_sim_data"],
         "validation_data_path": ["./parcatestnormal/kb/validationData.cPickle"]
     },
