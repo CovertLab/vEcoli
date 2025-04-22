@@ -94,7 +94,7 @@ options to your configuration JSON (note the top-level ``sherlock`` key):
       # not excluded by .dockerignore did not change since your last build,
       # you can set this to false to skip building the image.
       "build_image": true,
-      # Absolute path (including file name) of Apptainer image to
+      # Path (relative or absolute, including file name) of Apptainer image to
       # build (or use directly, if build_image is false)
       "container_image": "",
       # Boolean, whether to use HyperQueue executor for simulation jobs
@@ -112,10 +112,6 @@ In addition to these options, you **MUST** set the emitter output directory
 (see description of ``emitter_arg`` in :ref:`json_config`) to a path with
 enough space to store your workflow outputs. We recommend setting this to
 a location in your ``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``).
-
-.. warning::
-    The output path **MUST** be given in full because environment
-    variables in the path (e.g. ``$SCRATCH``) are not automatically resolved.
 
 With these options in the configuration JSON, a workflow can be started by
 running ``python runscripts/workflow.py --config {}.json`` on a login node.

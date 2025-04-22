@@ -283,12 +283,13 @@ def main():
     print("Loading sim_data...")
     with open(os.path.join(config["kb"], "simData.cPickle"), "rb") as f:
         sim_data = pickle.load(f)
-    os.makedirs(config["outdir"], exist_ok=True)
+    config_outdir = os.path.abspath(os.path.expandvars(config["outdir"]))
+    os.makedirs(config_outdir, exist_ok=True)
     if config["skip_baseline"]:
         print("Skipping baseline sim_data...")
     else:
         print("Saving baseline sim_data...")
-        with open(os.path.join(config["outdir"], "0.cPickle"), "wb") as f:
+        with open(os.path.join(config_outdir, "0.cPickle"), "wb") as f:
             pickle.dump(sim_data, f)
     variant_config = config.get("variants", {})
     if len(variant_config) > 1:
@@ -307,11 +308,11 @@ def main():
             sim_data,
             parsed_params,
             variant_name,
-            config["outdir"],
+            config_outdir,
             config["skip_baseline"],
         )
     else:
-        with open(os.path.join(config["outdir"], "metadata.json"), "w") as f:
+        with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
             json.dump({None: {0: "baseline"}}, f)
     print("Done.")
 

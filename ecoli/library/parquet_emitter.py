@@ -430,7 +430,7 @@ def open_output_file(outfile: str) -> pa.NativeFile:
         PyArrow file object that supports reading, seeking, etc. in bytes
     """
     if not (outfile.startswith("gs://") or outfile.startswith("gcs://")):
-        outfile = os.path.abspath(outfile)
+        outfile = os.path.abspath(os.path.expandvars(outfile))
     filesystem, outfile = fs.FileSystem.from_uri(outfile)
     return filesystem.open_input_file(outfile)
 
@@ -691,7 +691,7 @@ class ParquetEmitter(Emitter):
 
         """
         if "out_uri" not in config:
-            out_uri = os.path.abspath(config["out_dir"])
+            out_uri = os.path.abspath(os.path.expandvars(config["out_dir"]))
         else:
             out_uri = config["out_uri"]
         self.filesystem, self.outdir = fs.FileSystem.from_uri(out_uri)
