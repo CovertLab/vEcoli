@@ -269,7 +269,7 @@ Storage bucket with the other output for reference (see :ref:`output`).
 
 .. note::
   Inside the interactive container, you can safely use ``python`` directly
-  in addition to the usual `uv` commands.
+  in addition to the usual ``uv`` commands.
 
 Inside the container, navigate to ``/vEcoli`` and add breakpoints as you see fit.
 Note the working directory (see :ref:`troubleshooting`) of the Nextflow task you

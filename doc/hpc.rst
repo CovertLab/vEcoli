@@ -48,6 +48,8 @@ lines to your ``~/.bash_profile``, then close and reopen your SSH connection:
     # Load virtual environment with PyArrow (only Python dependency
     # required to start a containerized workflow)
     source $GROUP_HOME/vEcoli_env/.venv/bin/activate
+    # Ensure that uv installs python to shared GROUP_HOME
+    export UV_PYTHON_INSTALL_DIR=$GROUP_HOME/vEcoli_env/bin
 
 .. note::
     To update the versions of the shared dependencies, navigate to
@@ -142,7 +144,7 @@ an interactive container with that image name as follows:
 
 .. note::
   Inside the interactive container, you can safely use ``python`` directly
-  in addition to the usual `uv` commands.
+  in addition to the usual ``uv`` commands.
 
 Now, inside the container, navigate to ``/vEcoli`` and add breakpoints to
 scripts as you see fit. Finally, navigate to the working directory (see
