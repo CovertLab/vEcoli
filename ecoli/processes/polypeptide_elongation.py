@@ -790,7 +790,9 @@ class BaseElongationModel(object):
     ):
         # Update counts of amino acids and water to reflect polymerization
         # reactions
-        net_charged = np.zeros(len(self.parameters["uncharged_trna_names"]))
+        net_charged = np.zeros(
+            len(self.parameters["uncharged_trna_names"]), dtype=np.int64
+        )
         return (
             net_charged,
             {},
