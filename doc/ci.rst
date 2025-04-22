@@ -102,8 +102,9 @@ and do other administrative tasks.
 
 .. note::
   Jenkins is set-up as a persistent job on Sherlock that automatically resubmits
-  itself every ~5 days. If this fails, it can be restarted by running ``sbatch
-  $GROUP_HOME/jenkins_vecoli/jenkins_vecoli.sh``.
+  itself every ~5 days. If this fails, it can be restarted by navigating
+  to ``$GROUP_HOME/jenkins_vecoli/slurm_logs`` and running ``sbatch
+  --mail-user={your email here} ../jenkins_vecoli.sh``.
 
 Modifying Tests
 ===============

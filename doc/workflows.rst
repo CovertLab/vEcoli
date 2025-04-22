@@ -722,8 +722,8 @@ reaching the breakpoints you set. You should now be in an ipdb shell which
 you can use to examine variable values or step through the code.
 
 .. warning::
-  Running `.command.run` will overwrite the `.command.out`, `.command.err`,
-  and `.command.log` files in the work directory. Create a copy of these
+  Running ``.command.run`` will overwrite the ``.command.out``, ``.command.err``,
+  and ``.command.log`` files in the work directory. Create a copy of these
   files if you would like to compare them with the new output.
 
 After fixing the issue, you can resume the workflow (avoid re-running
