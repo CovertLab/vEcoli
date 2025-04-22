@@ -60,6 +60,24 @@ lines to your ``~/.bash_profile``, then close and reopen your SSH connection:
     3. HyperQueue: See :ref:`hyperqueue`.
     4. PyArrow: ``uv sync --upgrade``
 
+After adding the above to your ``~/.bashrc``, run ``source ~/.bashrc`` or
+restart your terminal session.
+
+Run the following to test your setup:
+
+.. code-block:: bash
+
+  python runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_sherlock.json
+
+This will run a small workflow with all output other than the Apptainer image saved to
+``$SCRATCH/test_sherlock``:
+
+1. Build an Apptainer image with a snapshot of your cloned repository and save it
+   to ``$SCRATCH/test_image``.
+2. Run the ParCa.
+3. Run one simulation.
+4. Run mass fraction analysis plot.
+
 .. _sherlock-config:
 
 Configuration
@@ -113,25 +131,34 @@ runtime (see :doc:`gcloud`).
 
 .. note::
   Unlike workflows run locally, Sherlock workflows are run using
-  containers with a snapshot of the repository at the time the workflow
-  was launched. This means that any changes made to the repository after
-  launching a workflow will not be reflected in that workflow.
+  containers with a snapshot of the repository.
+  
+When you run ``python runscripts/workflow.py``, you will get a message
+that a SLURM job was submitted to build the image. When that job starts,
+you will get terminal output showing the build progress. Avoid making any
+changes to your cloned repository until this build process has finised.
+The workflow will be run on a snapshot of your cloned repository taken
+during this build process. Any changes made to the repository after the
+container image has been built will not affect the running workflow.
+
+You can start additional, concurrent workflows that each build a new image
+with different modifications to the cloned repository. However, if possible,
+we recommend designing your code to accept options through the config JSON
+which modify the behavior of your workflow without modifying core code. This
+allows you to save time by setting ``build_image`` to false and
+``container_image`` to the path of a previously built image.
+  
 
 There is a 4 hour time limit on each job in the workflow, including analyses.
 This is a generous limit designed to accomodate very slow-dividing cells.
 Generally, we recommend that users exclude analysis scripts which take more
 than a few minutes to run from their workflow configuration. Instead, create a
-SLURM batch script to run these analyses using :py:mod:`runscripts.analysis`
-directly. This also lets you request more CPU cores and RAM for better performance.
+SLURM batch script to run these analyses following :ref:`sherlock-noninteractive`.
 
 .. _sherlock-interactive:
 
 Interactive Container
 =====================
-
-.. note::
-  The following commands should all be run from the directory where you cloned
-  the vEcoli repository.
 
 To debug a failed job in a workflow, you must locate the container image that was
 used for that workflow. You can refer to the ``container_image`` key in the
@@ -159,7 +186,8 @@ breakpoints, allowing you to inspect variables and step through the code.
 The files located in ``/vEcoli`` are a copy of the repository (excluding
 files ignored by ``.dockerignore``) at the time the workflow was launched.
 To start an interactive container that reflects the current state of your
-cloned repository, add the ``-d`` flag to start a "development" container.
+cloned repository, navigate to your cloned repository and run the above
+command with the ``-d`` flag to start a "development" container.
 
 In this mode, instead of editing source files in ``/vEcoli``, you can
 directly edit the source files in your cloned repository and have those
@@ -174,6 +202,23 @@ can be tracked using Git version control.
   be a delay on startup while uv updates the packages. To avoid this,
   build a new image with ``runscripts/container/build-image.sh``.
 
+.. _sherlock-noninteractive:
+
+Non-Interactive Container
+=========================
+
+To run any script inside a container without starting an interactive session,
+use the same command as :ref:`sherlock-interactive` but specify a command
+using the ``-c`` flag. For example, to run the ParCa process:
+
+.. code-block:: bash
+
+  runscripts/container/interactive.sh -i container_image -c "python runscripts/parca.py --config {}"
+
+This is particularly useful for writing
+`SLURM batch scripts <https://www.sherlock.stanford.edu/docs/getting-started/submitting/#batch-scripts>`_
+to manually run analysis scripts with custom resource requests
+(e.g. more than default 4 hours, 1 CPU, 4 GB RAM in workflow).
 
 .. _other-cluster:
 
