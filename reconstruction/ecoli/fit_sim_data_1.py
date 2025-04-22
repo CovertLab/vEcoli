@@ -39,11 +39,12 @@ N_SEEDS = 10
 # Parameters used in fitPromoterBoundProbability()
 PROMOTER_PDIFF_THRESHOLD = 0.06  # Minimum difference between binding probabilities of a TF in conditions where TF is active and inactive
 PROMOTER_REG_COEFF = 1e-3  # Optimization weight on how much probability should stay close to original values
-PROMOTER_SCALING = 10  # Multiplied to all matrices for numerical stability
+PROMOTER_SCALING = 1  # Multiplied to all matrices for numerical stability
 PROMOTER_NORM_TYPE = 1  # Matrix 1-norm
 PROMOTER_MAX_ITERATIONS = 100
-PROMOTER_CONVERGENCE_THRESHOLD = 1e-9
+PROMOTER_CONVERGENCE_THRESHOLD = 1e-5
 ECOS_0_TOLERANCE = 1e-10  # Tolerance to adjust solver output to 0
+ECOS_0_TOLERANCE_AFF = 1e-6
 
 BASAL_EXPRESSION_CONDITION = "M9 Glucose minus AAs"
 
@@ -3841,7 +3842,7 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 
         # Get optimal value of R
         r = np.array(R.value).reshape(-1)
-        r[np.abs(r) < ECOS_0_TOLERANCE] = (
+        r[np.abs(r) < ECOS_0_TOLERANCE_AFF] = (
             0  # Adjust to 0 for small values from solver tolerance
         )
 
