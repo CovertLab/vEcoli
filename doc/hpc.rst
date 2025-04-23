@@ -46,6 +46,14 @@ lines to your ``~/.bash_profile``, then close and reopen your SSH connection:
     # Include shared Nextflow and HyperQueue installations on PATH
     export PATH=$PATH:$GROUP_HOME/vEcoli_env
 
+.. warning::
+  If you have any lines in your ``~/.bash_profile``, ``~/.bashrc``, or
+  ``~/.profile`` that modify the ``PATH`` variable, make sure that
+  ``which python3`` returns the Sherlock-managed Python 3 from the
+  ``py-pyarrow`` module (``/share/software/user/open/python/3.xx.x/bin/python3``).
+  If not, comment out lines that modify the ``PATH`` variable
+  (for example, ``pyenv``-related), until the right Python is found.
+
 Then, run the following to test your setup:
 
 .. code-block:: bash
@@ -306,5 +314,5 @@ access to the Covert Lab's partition on Sherlock. This is added to ``PATH``
 in the Sherlock setup instructions, and unless you have a compelling reason
 to update it, no further action is required.
 
-User who want or need to build from source should follow
+Users who want or need to build from source should follow
 `these instructions <https://it4innovations.github.io/hyperqueue/stable/installation/#compilation-from-source-code>`_.
