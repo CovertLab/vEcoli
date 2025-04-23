@@ -196,11 +196,19 @@ Non-Interactive Container
 
 To run any script inside a container without starting an interactive session,
 use the same command as :ref:`sherlock-interactive` but specify a command
-using the ``-c`` flag. For example, to run the ParCa process:
+using the ``-c`` flag. For example, to run the ParCa process, navigate to
+your cloned repository and run the following command:
 
 .. code-block:: bash
 
-  runscripts/container/interactive.sh -i container_image -c "python runscripts/parca.py --config {}"
+  runscripts/container/interactive.sh -i container_image -c "python /vEcoli/runscripts/parca.py --config {}"
+
+.. note::
+  We strongly recommend sticking to running files from the snapshot
+  of the repository included in the container image at ``/vEcoli``.
+  If you want to run a script from your cloned repository with all
+  changes reflected, add the ``-d`` flag and drop the
+  ``/vEcoli/`` prefix from the script name.
 
 This is particularly useful for writing
 `SLURM batch scripts <https://www.sherlock.stanford.edu/docs/getting-started/submitting/#batch-scripts>`_
