@@ -85,6 +85,9 @@ cloned repo):
     # the vEcoli virtual environment no matter what directory it is run in
     alias uvenv='uv run --env-file abspath/.env --project abspath'
 
+> **Tip:** Run `echo $0` to determine what shell you are using and the
+> appropriate file to add the above line to.
+
 Close and reopen your terminal.
 
 For integration with IDEs, select the newly created virtual environment
