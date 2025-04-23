@@ -165,7 +165,9 @@ Configuration
 
 When running :py:mod:`runscripts.create_variants`, users must specify the
 variant function to use under the ``variants`` key in the configuration JSON
-following the general template::
+following the general template:
+
+.. code-block::
 
     {
         "variants": {
@@ -296,7 +298,9 @@ options under the ``analysis_options`` key:
 
 - ``single``, ``multidaughter``, ``multigeneration``, ``multiseed``, ``multivariant``
   ``multiexperiment``: Can pick one or more analysis types to run. Under each analysis
-  type is a sub-dictionary of the following format::
+  type is a sub-dictionary of the following format:
+
+    .. code-block::
 
         {
             "{analysis name}": {optional dictionary of analysis parameters},
@@ -514,9 +518,12 @@ There are three main ways to monitor a workflow's progress.
 
 .. danger::
     Any changes that are made to the cloned repository while a workflow is running
-    will immediately affect workflow jobs submitted after the change. For example,
-    modifying ``runscripts/analysis.py`` will affect all subsequent analysis jobs
-    in a running workflow.
+    **on a local computer** will immediately affect workflow jobs submitted after
+    the change. For example, modifying ``runscripts/analysis.py`` will affect all
+    subsequent analysis jobs in a running workflow. This does not apply to workflows
+    run on :doc:`Google Cloud <../gcloud>` or :doc:`Sherlock <../hpc>`, where
+    a snapshot of the repository is packaged into the container image used to
+    run the workflow.
 
 The warning above only applies to files in the repository that are actively executed or
 used during a workflow (ParCa, variant creation, simulation, analysis). Notably,
@@ -678,7 +685,9 @@ For a description of some fields (non-exhaustive) that can be specified with
 of the official documentation.
 
 As an example, to see the name, stderr, and workdir for all failed jobs
-in a workflow called ``agitated_mendel``::
+in a workflow called ``agitated_mendel``:
+
+.. code-block:: bash
 
   nextflow log agitated_mendel -f name,stderr,workdir -F "status == 'FAILED'"
 
@@ -695,19 +704,26 @@ on where you are debugging.
 - Sherlock: See :ref:`instructions here <sherlock-interactive>`
 - Local machine: Continue below
 
-Add breakpoints to any Python file with the following line::
+Add breakpoints to any Python file with the following line:
+
+.. code-block:: python
 
   import ipdb; ipdb.set_trace()
 
 Figure out the working directory (see :ref:`troubleshooting`) for a
-failing process. Invoke ``uv run --env-file {path to cloned repo}/.env bash .command.run``
+failing process. Navigate to the working directory and run:
+
+.. code-block:: bash
+
+  uvenv bash .command.run
+
 from the working directory. This should re-run the job and pause upon
 reaching the breakpoints you set. You should now be in an ipdb shell which
 you can use to examine variable values or step through the code.
 
 .. warning::
-  Running `.command.run` will overwrite the `.command.out`, `.command.err`,
-  and `.command.log` files in the work directory. Create a copy of these
+  Running ``.command.run`` will overwrite the ``.command.out``, ``.command.err``,
+  and ``.command.log`` files in the work directory. Create a copy of these
   files if you would like to compare them with the new output.
 
 After fixing the issue, you can resume the workflow (avoid re-running
