@@ -11,7 +11,7 @@
     "single_daughters": true,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "$SCRATCH/test_sherlock"
+        "out_dir": "$SCRATCH"
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}}

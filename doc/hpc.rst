@@ -59,22 +59,23 @@ Then, run the following to test your setup:
 
   python3 runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_sherlock.json
 
-This will run a small workflow with all output other than the Apptainer image saved to
-``$SCRATCH/test_sherlock``:
+This will run a small workflow that:
 
-1. Build an Apptainer image with a snapshot of your cloned repository and save it
+1. Builds an Apptainer image with a snapshot of your cloned repository and saves it
    to ``$SCRATCH/test_image``.
-2. Run the ParCa.
-3. Run one simulation.
-4. Run mass fraction analysis plot.
+2. Runs the ParCa.
+3. Runs one simulation.
+4. Runs the mass fraction analysis.
+
+All output files will be saved to ``$SCRATCH/test_sherlock``.
 
 .. _sherlock-config:
 
 Configuration
 =============
 
-To tell vEcoli that you are running on Sherlock, you MUST add the following
-options to your configuration JSON (note the top-level ``sherlock`` key):
+To tell vEcoli that you are running on Sherlock, you MUST include the following
+keys in your configuration JSON (note the top-level ``sherlock`` key):
 
 .. code-block::
 
@@ -122,10 +123,10 @@ runtime (see :doc:`gcloud`).
 When you run ``python runscripts/workflow.py``, you will get a message
 that a SLURM job was submitted to build the image. When that job starts,
 you will get terminal output showing the build progress. Avoid making any
-changes to your cloned repository until this build process has finised.
-The workflow will be run on a snapshot of your cloned repository taken
-during this build process. Any changes made to the repository after the
-container image has been built will not affect the running workflow.
+changes to your cloned repository until the build has finished.
+The built image will contain a snapshot of your cloned repository.
+Any changes made to the repository after the container image has been
+built will not affect the running workflow.
 
 You can start additional, concurrent workflows that each build a new image
 with different modifications to the cloned repository. However, if possible,
@@ -138,7 +139,7 @@ allows you to save time by setting ``build_image`` to false and
 There is a 4 hour time limit on each job in the workflow, including analyses.
 This is a generous limit designed to accomodate very slow-dividing cells.
 Generally, we recommend that users exclude analysis scripts which take more
-than a few minutes to run from their workflow configuration. Instead, create a
+than a few minutes from their workflow configuration. Instead, create a
 SLURM batch script to run these analyses following :ref:`sherlock-noninteractive`.
 
 .. _sherlock-interactive:
