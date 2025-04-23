@@ -5,6 +5,10 @@
 _build_sequences.pyx
 
 Builds the matrices used for the polymerize function.
+
+.. WARNING::
+	If you modify this file, you must trigger a rebuild of the vEcoli package
+	with `uv sync --frozen --extra dev --reinstall-package vEcoli`.
 """
 
 import numpy as np

@@ -126,6 +126,6 @@ library = {
     "2": test_lysis_rxn_dff_environment,
 }
 
-# uv run --env-file .env ecoli/experiments/antibiotics_tests.py -n library_id
+# uvenv ecoli/experiments/antibiotics_tests.py -n library_id
 if __name__ == "__main__":
     run_library_cli(library)

@@ -35,9 +35,10 @@ BIND_MOUNTS=()
 BIND_STR=""
 BUCKET=""
 OVERLAY_SIZE=1024
+COMMAND="" # Default is empty, will start interactive shell if not specified
 
 # Help message string
-usage_str="Usage: interactive.sh [-i IMAGE_NAME] [-d] [-a] [-s OVERLAY_SIZE] [-l] [-b BUCKET] [-p PATH]\n\
+usage_str="Usage: interactive.sh [-i IMAGE_NAME] [-d] [-a] [-s OVERLAY_SIZE] [-l] [-b BUCKET] [-p PATH] [-c \"COMMAND\"]\n\
 Options:\n\
     -i: Path to image to run if -a or -l are passed, otherwise name of Docker \
 image inside vecoli Artifact Registry; defaults to \"$IMAGE_NAME\".\n\
@@ -51,7 +52,9 @@ defaults to \"$OVERLAY_SIZE\" (only used if -a is passed).\n
     -b: Name of Cloud Storage bucket to mount inside container; first mounts
 bucket at $(pwd)/bucket_mnt using gcsfuse (does not work with -a).\n\
     -p: Path(s) to mount inside container; can specify multiple with \
-\"-p path1 -p path2\"\n"
+\"-p path1 -p path2\"\n\
+    -c: Command to run inside container (non-interactive mode); if not provided, \
+an interactive bash shell will be started.\n"
 
 # Function to print usage instructions
 print_usage() {
@@ -59,7 +62,7 @@ print_usage() {
 }
 
 # Parse command-line options
-while getopts 'i:das:lb:p:' flag; do
+while getopts 'i:das:lb:p:c:' flag; do
   case "${flag}" in
   i) IMAGE_NAME="${OPTARG}" ;; # Set custom image name
   d) DEV_MODE=1 ;;             # Enable development mode
@@ -84,6 +87,7 @@ while getopts 'i:das:lb:p:' flag; do
     ;;                                         # Enable local Docker mode
   b) BUCKET="${OPTARG}" ;;                     # Set Cloud Storage bucket to mount
   p) BIND_MOUNTS+=($(realpath "${OPTARG}")) ;; # Collect absolute mount path(s)
+  c) COMMAND="${OPTARG}" ;;                    # Set the command to run (non-interactive mode)
   *)
     print_usage # Print usage for unknown flags
     exit 1
@@ -126,14 +130,33 @@ if (($USE_APPTAINER)); then
     # otherwise add dozens of seconds to the start time for development
     # mode. This is because we are doing an editable install of the
     # repository on the host machine to the container .venv.
-    apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
-      --fakeroot ${BIND_STR} ${IMAGE_NAME} \
-      bash -c "export UV_PROJECT_ENVIRONMENT=/vEcoli/.venv && \
-      export UV_COMPILE_BYTECODE=0 && uv sync --frozen && exec bash"
+    
+    if [ -z "$COMMAND" ]; then
+      # Interactive mode (default)
+      apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
+        --fakeroot ${BIND_STR} ${IMAGE_NAME} \
+        bash -c "export UV_PROJECT_ENVIRONMENT=/vEcoli/.venv && \
+        export UV_COMPILE_BYTECODE=0 && uv sync --frozen && exec bash"
+    else
+      # Non-interactive mode with custom command
+      echo "Running command: $COMMAND"
+      apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
+        --fakeroot ${BIND_STR} ${IMAGE_NAME} \
+        bash -c "export UV_PROJECT_ENVIRONMENT=/vEcoli/.venv && \
+        export UV_COMPILE_BYTECODE=0 && uv sync --frozen && $COMMAND"
+    fi
   else
-    echo "Starting container in normal mode..."
-    apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
-      --fakeroot ${BIND_STR} ${IMAGE_NAME} bash
+    if [ -z "$COMMAND" ]; then
+      # Interactive mode (default)
+      echo "Starting container in interactive mode..."
+      apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
+        --fakeroot ${BIND_STR} ${IMAGE_NAME} bash
+    else
+      # Non-interactive mode with custom command
+      echo "Running command: $COMMAND"
+      apptainer exec -e --overlay ${TMP_OVERLAY_DIR}/overlay.img \
+        --fakeroot ${BIND_STR} ${IMAGE_NAME} bash -c "$COMMAND"
+    fi
   fi
 else
   # Docker-specific logic
@@ -162,16 +185,34 @@ else
   fi
 
   if (($DEV_MODE)); then
-    echo "Starting container in development mode..."
-    # See above for description of environment variables
-    docker container run -it \
-      --env UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
-      --env UV_COMPILE_BYTECODE=0 \
-      -v $(pwd):$(pwd) --workdir $(pwd) \
-      ${BIND_STR} ${IMAGE_NAME} \
-      bash -c "uv sync --frozen && exec bash"
+    if [ -z "$COMMAND" ]; then
+      # Interactive mode (default)
+      echo "Starting container in development mode (interactive)..."
+      docker container run -it \
+        --env UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
+        --env UV_COMPILE_BYTECODE=0 \
+        -v $(pwd):$(pwd) --workdir $(pwd) \
+        ${BIND_STR} ${IMAGE_NAME} \
+        bash -c "uv sync --frozen && exec bash"
+    else
+      # Non-interactive mode with custom command
+      echo "Running command in development mode: $COMMAND"
+      docker container run -i \
+        --env UV_PROJECT_ENVIRONMENT=/vEcoli/.venv \
+        --env UV_COMPILE_BYTECODE=0 \
+        -v $(pwd):$(pwd) --workdir $(pwd) \
+        ${BIND_STR} ${IMAGE_NAME} \
+        bash -c "uv sync --frozen && $COMMAND"
+    fi
   else
-    echo "Starting container in normal mode..."
-    docker container run -it ${BIND_STR} ${IMAGE_NAME} bash
+    if [ -z "$COMMAND" ]; then
+      # Interactive mode (default)
+      echo "Starting container in interactive mode..."
+      docker container run -it ${BIND_STR} ${IMAGE_NAME} bash
+    else
+      # Non-interactive mode with custom command
+      echo "Running command: $COMMAND"
+      docker container run -i ${BIND_STR} ${IMAGE_NAME} bash -c "$COMMAND"
+    fi
   fi
 fi

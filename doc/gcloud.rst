@@ -90,7 +90,9 @@ project's default Compute Engine zone and region.
 
 Once done, run the following to create a Compute Engine VM to run your workflows,
 replacing ``INSTANCE_NAME`` with a unique name of your choosing and ``SERVICE_ACCT``
-as described below::
+as described below:
+
+.. code-block:: bash
 
   gcloud compute instances create INSTANCE_NAME \
     --shielded-secure-boot \
@@ -111,12 +113,16 @@ the above command without the ``--service-account`` flag.
   You can always restart the instance when you need it again and your files will
   persist across sessions.
 
-SSH into your newly created VM (if connection error, wait a moment, then retry)::
+SSH into your newly created VM (if connection error, wait a moment, then retry):
+
+.. code-block:: bash
 
   gcloud compute ssh INSTANCE_NAME
 
 Now, on the VM, initialize ``gcloud`` by running ``gcloud init`` and selecting the
-right service account and project. Next, install Git and clone the vEcoli repository::
+right service account and project. Next, install Git and clone the vEcoli repository:
+
+.. code-block:: bash
 
   sudo apt update && sudo apt install git
   git clone https://github.com/CovertLab/vEcoli.git
@@ -175,7 +181,9 @@ of your repository. The built images being automatically uploaded to the
 
 The following configuration keys, in addition to the ``out_uri`` key under
 ``emitter_arg``, are **REQUIRED** to run :py:mod:`runscripts.workflow` on
-Google Cloud::
+Google Cloud:
+
+.. code-block::
 
   {
     "gcloud": {
@@ -248,8 +256,10 @@ Cloud Interactive Containers
 Since all steps of the workflow are run inside Docker containers, it can be
 helpful to launch an interactive instance of the container for debugging.
 
-From inside your cloned repository, run the following command::
-  
+From inside your cloned repository, run the following command:
+
+.. code-block:: bash
+
   runscripts/container/interactive.sh -i container_image -b bucket
 
 ``container_image`` should be the same as in the config JSON
@@ -257,10 +267,16 @@ used to run the workflow. A copy of the config JSON should be saved to the Cloud
 Storage bucket with the other output for reference (see :ref:`output`).
 ``bucket`` should be the output Cloud Storage bucket (``out_uri`` in config JSON).
 
+.. note::
+  Inside the interactive container, you can safely use ``python`` directly
+  in addition to the usual ``uv`` commands.
+
 Inside the container, navigate to ``/vEcoli`` and add breakpoints as you see fit.
 Note the working directory (see :ref:`troubleshooting`) of the Nextflow task you
 want to debug (should be of the form ``/mnt/disks/{bucket}/...``). **OUTSIDE**
-the working directory, run the following commands::
+the working directory, run the following commands:
+
+.. code-block:: bash
 
   # Symlink files, including the script for the task (.command.sh)
   bash {working directory}/.command.run nxf_stage
@@ -286,7 +302,9 @@ Cloud Storage Permission Issue
 
 If you are trying to launch a cloud workflow or access cloud
 output (e.g. run an analysis script) from a local computer, you
-may encounter an error like the following::
+may encounter an error like the following:
+
+.. code-block:: bash
 
   HttpError: Anonymous caller does not have storage.objects.list access to the Google Cloud Storage bucket. Permission 'storage.objects.list' denied on resource (or it may not exist)., 401
 
@@ -305,7 +323,9 @@ will be applied, resulting in much lower costs.
 
 If you absolutely must interact with cloud resources from a local machine, the above
 error may be resolved by running the following command to generate credentials that
-will be automatically picked up by PyArrow::
+will be automatically picked up by PyArrow:
+
+.. code-block:: bash
 
   gcloud auth application-default login
 
