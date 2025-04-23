@@ -46,13 +46,6 @@ lines to your ``~/.bash_profile``, then close and reopen your SSH connection:
     # Include shared Nextflow and HyperQueue installations on PATH
     export PATH=$PATH:$GROUP_HOME/vEcoli_env
 
-.. note::
-    To update the versions of the shared dependencies, navigate to
-    ``$GROUP_HOME/vEcoli_env`` and run the appropriate command:
-
-    1. Nextflow: ``NXF_EDGE=1 nextflow self-update``
-    2. HyperQueue: See :ref:`hyperqueue`.
-
 Then, run the following to test your setup:
 
 .. code-block:: bash
@@ -68,6 +61,14 @@ This will run a small workflow that:
 4. Runs the mass fraction analysis.
 
 All output files will be saved to ``$SCRATCH/test_sherlock``.
+
+.. note::
+    The above should be sufficient to run workflows on Sherlock. However, if you
+    have a compelling reason to update the shared Nextflow or HyperQueue binaries,
+    navigate to ``$GROUP_HOME/vEcoli_env`` and run:
+
+    1. Nextflow: ``NXF_EDGE=1 nextflow self-update``
+    2. HyperQueue: See :ref:`hyperqueue`.
 
 .. _sherlock-config:
 
@@ -300,9 +301,10 @@ of job submission and queuing, especially for shorter jobs.
 HyperQueue is distributed as a pre-built binary on GitHub.
 Unfortunately, this binary is built with a newer version of GLIBC
 than is available on Sherlock, necessitating a rebuild from source. A binary
-built in this way is available in ``$GROUP_HOME/vEcoli_env`` (added to ``PATH``
-in :ref:`sherlock-setup`) to users with access to the Covert Lab's partition
-on Sherlock.
+built in this way is available in ``$GROUP_HOME/vEcoli_env`` to users with
+access to the Covert Lab's partition on Sherlock. This is added to ``PATH``
+in the Sherlock setup instructions, and unless you have a compelling reason
+to update it, no further action is required.
 
-To build from source (e.g. to update to a newer version), follow
+User who want or need to build from source should follow
 `these instructions <https://it4innovations.github.io/hyperqueue/stable/installation/#compilation-from-source-code>`_.
