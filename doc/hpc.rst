@@ -41,33 +41,23 @@ lines to your ``~/.bash_profile``, then close and reopen your SSH connection:
 
 .. code-block:: bash
 
-    # Load newer Git and Java for Nextflow 
-    module load system git java/21.0.4
-    # Include shared Nextflow, uv, and HyperQueue installations on PATH
+    # Load newer Git, Java (for Nextflow), and PyArrow
+    module load system git java/21.0.4 py-pyarrow
+    # Include shared Nextflow and HyperQueue installations on PATH
     export PATH=$PATH:$GROUP_HOME/vEcoli_env
-    # Load virtual environment with PyArrow (only Python dependency
-    # required to start a containerized workflow)
-    source $GROUP_HOME/vEcoli_env/.venv/bin/activate
-    # Ensure that uv installs python to shared GROUP_HOME
-    export UV_PYTHON_INSTALL_DIR=$GROUP_HOME/vEcoli_env/bin
 
 .. note::
     To update the versions of the shared dependencies, navigate to
     ``$GROUP_HOME/vEcoli_env`` and run the appropriate command:
 
     1. Nextflow: ``NXF_EDGE=1 nextflow self-update``
-    2. uv: ``uv self update``
-    3. HyperQueue: See :ref:`hyperqueue`.
-    4. PyArrow: ``uv sync --upgrade``
+    2. HyperQueue: See :ref:`hyperqueue`.
 
-After adding the above to your ``~/.bashrc``, run ``source ~/.bashrc`` or
-restart your terminal session.
-
-Run the following to test your setup:
+Then, run the following to test your setup:
 
 .. code-block:: bash
 
-  python runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_sherlock.json
+  python3 runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_sherlock.json
 
 This will run a small workflow with all output other than the Apptainer image saved to
 ``$SCRATCH/test_sherlock``:
