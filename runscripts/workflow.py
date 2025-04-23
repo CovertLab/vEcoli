@@ -498,7 +498,9 @@ def main():
     # Resolve output directory
     out_bucket = ""
     if "out_uri" not in config["emitter_arg"]:
-        out_uri = os.path.abspath(os.path.expandvars(config["emitter_arg"]["out_dir"]))
+        out_uri = os.path.abspath(
+            os.path.expandvars(os.path.expanduser(config["emitter_arg"]["out_dir"]))
+        )
         config["emitter_arg"]["out_dir"] = out_uri
     else:
         out_uri = config["emitter_arg"]["out_uri"]
@@ -506,7 +508,7 @@ def main():
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
         config["sim_data_path"] = os.path.abspath(
-            os.path.expandvars(config["sim_data_path"])
+            os.path.expandvars(os.path.expanduser(config["sim_data_path"]))
         )
     # Use random seed for Jenkins CI runs
     if config.get("sherlock", {}).get("jenkins", False):
@@ -554,7 +556,9 @@ def main():
             text=True,
         ).stdout.strip()
         image_prefix = f"{region}-docker.pkg.dev/{project_id}/vecoli/"
-        container_image = os.path.expandvars(cloud_config.get("container_image", None))
+        container_image = os.path.expandvars(
+            os.path.expanduser(cloud_config.get("container_image", None))
+        )
         if container_image is None:
             raise RuntimeError("Must supply name for container image.")
         if cloud_config.get("build_image", False):
@@ -569,7 +573,7 @@ def main():
             )
         nf_profile = "sherlock"
         container_image = os.path.expandvars(
-            sherlock_config.get("container_image", None)
+            os.path.expanduser(sherlock_config.get("container_image", None))
         )
         if container_image is None:
             raise RuntimeError("Must supply name for container image.")
