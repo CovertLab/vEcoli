@@ -27,12 +27,12 @@
             }
         }},
     "analysis_options": {
-        "single": {
-            "mass_fraction_summary": {}
-        },
         "multivariant": {
             "new_tf_modeling_histogram": {}
-        }
+        },
+        "experiment_id": ["test_hist"],
+        "variant_data_dir": "$SCRATCH/out/test_hist/variant_sim_data",
+        "outdir": "$SCRATCH/out/test_hist/analyses"
     },
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-redux-classic"
