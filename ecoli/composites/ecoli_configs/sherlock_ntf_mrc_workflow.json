@@ -1,7 +1,7 @@
 {
     "sherlock": {
         "build_image": true,
-        "container_image": "~/vEcoli/apptainer_image",
+        "container_image": "/vEcoli/apptainer_image",
         "hyperqueue": true,
         "jenkins": false
     },
