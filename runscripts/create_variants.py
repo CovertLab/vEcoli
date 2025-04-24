@@ -283,7 +283,9 @@ def main():
     print("Loading sim_data...")
     with open(os.path.join(config["kb"], "simData.cPickle"), "rb") as f:
         sim_data = pickle.load(f)
-    config_outdir = os.path.abspath(os.path.expandvars(config["outdir"]))
+    config_outdir = os.path.abspath(
+        os.path.expandvars(os.path.expanduser(config["outdir"]))
+    )
     os.makedirs(config_outdir, exist_ok=True)
     if config["skip_baseline"]:
         print("Skipping baseline sim_data...")
