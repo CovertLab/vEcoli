@@ -72,7 +72,9 @@ def parse_variant_data_dir(
                 int(k): v for k, v in v_metadata[variant_name].items()
             }
         if not (v_data_dir.startswith("gs://") or v_data_dir.startswith("gcs://")):
-            v_data_dir = os.path.abspath(v_data_dir)
+            v_data_dir = os.path.abspath(
+                os.path.expandvars(os.path.expanduser(v_data_dir))
+            )
         filesystem, data_dir = fs.FileSystem.from_uri(v_data_dir)
         sim_data_dict[e_id] = {
             int(os.path.basename(os.path.splitext(i.path)[0])): str(i.path)
@@ -187,13 +189,18 @@ def main():
         config_file = args.config
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
-    if "out_uri" not in config["emitter"]:
-        # TODO (Albert): push these two lines of changes to master branch
-        if "out_dir" in config["emitter"]:
-            out_uri = os.path.abspath(config["emitter"]["out_dir"])
-        else:
-            out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
-        gcs_bucket = True
+    #     if "out_uri" not in config["emitter"]:
+    #         # TODO (Albert): push these two lines of changes to master branch
+    #         if "out_dir" in config["emitter"]:
+    #             out_uri = os.path.abspath(config["emitter"]["out_dir"])
+    #         else:
+    #             out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
+    #         gcs_bucket = True
+    if "out_uri" not in config["emitter_arg"]:
+        out_uri = os.path.abspath(
+            os.path.expandvars(os.path.expanduser(config["emitter_arg"]["out_dir"]))
+        )
+        gcs_bucket = False
     else:
         out_uri = config["emitter_arg"]["out_uri"]
         assert (
@@ -314,7 +321,10 @@ def main():
         query_strings = {}
         # Figure out what Hive partition in main output directory
         # to store outputs for analyses run on this cell subset
-        curr_outdir = config["outdir"]
+        curr_outdir = os.path.abspath(
+            os.path.expandvars(os.path.expanduser(config["outdir"]))
+        )
+        config_outdir = curr_outdir
         if len(cols) > 0:
             joined_cols = ", ".join(cols)
             data_ids = conn.sql(
@@ -362,7 +372,7 @@ def main():
                 )
 
     # Save copy of config JSON with parameters for plots
-    with open(os.path.join(config["outdir"], "metadata.json"), "w") as f:
+    with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
         json.dump(config, f)
 
 

@@ -66,8 +66,12 @@ class MonomerCounts(Step):
         self.complexation_complex_ids = self.parameters["complexation_complex_ids"]
         self.equilibrium_molecule_ids = self.parameters["equilibrium_molecule_ids"]
         self.equilibrium_complex_ids = self.parameters["equilibrium_complex_ids"]
-        self.tf_ligand_binding_molecule_ids = self.parameters["tf_ligand_binding_molecule_ids"]
-        self.tf_ligand_binding_complex_ids = self.parameters["tf_ligand_binding_complex_ids"]
+        self.tf_ligand_binding_molecule_ids = self.parameters[
+            "tf_ligand_binding_molecule_ids"
+        ]
+        self.tf_ligand_binding_complex_ids = self.parameters[
+            "tf_ligand_binding_complex_ids"
+        ]
         self.monomer_ids = self.parameters["monomer_ids"]
 
         # Get IDs of complexed molecules monomers involved in two
@@ -261,6 +265,6 @@ def test_monomer_counts_listener():
     assert isinstance(listeners["monomer_counts"][1], list)
 
 
-# uv run --env-file .env ecoli/processes/listeners/monomer_counts.py
+# uvenv ecoli/processes/listeners/monomer_counts.py
 if __name__ == "__main__":
     test_monomer_counts_listener()
