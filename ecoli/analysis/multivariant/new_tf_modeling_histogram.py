@@ -60,11 +60,15 @@ def plot(
     # TODO: could do it for some monomer metric as well?
 
     purC_rna_id = "TU00055[c]"
+    # prmA_rna_id = "TU00314[c]"
+    # lolB_rna_id = "TU0-8323[c]"
     purC_mRNA_idxs = cast(
         list[list[int]], get_indexes(conn, config_sql, "mRNA", [[purC_rna_id]])
     )
 
     purC_protein_id = "SAICARSYN-MONOMER[c]"
+    # prmA_protein_id = "[c]"
+    # lolB_protein_id = "EG11293-MONOMER[c]"
     purC_protein_idxs = cast(
         list[list[int]], get_indexes(conn, config_sql, "protein", [[purC_protein_id]])
     )

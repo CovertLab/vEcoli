@@ -1,11 +1,11 @@
 {
     "sherlock": {
-        "build_image": true,
-        "container_image": "/vEcoli/apptainer_image",
+        "build_image": false,
+        "container_image": "$SCRATCH/test_image",
         "hyperqueue": true,
         "jenkins": false
     },
-    "experiment_id": "test_diff_env",
+    "experiment_id": "test_hist",
     "lineage_seed": 10,
     "suffix_time": false,
     "parca_options": {
