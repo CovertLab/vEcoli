@@ -34,8 +34,12 @@ tasks are:
   - ``Mypy`` checks types with ``mypy``
   - ``Lint`` checks code style and formatting with ``ruff``
 
-Logs from these tests can be viewed on the GitHub website and we strongly
-recommend that you get all of these tests passing before merging a PR.
+.. tip::
+    If you are still actively working on a pull request, add ``[skip ci]``
+    on a new line in your commit message to skip the CI tests.
+
+Logs from these tests can be viewed on the GitHub website and you are
+required to get all of these tests passing before merging a PR.
 
 When you submit a pull request (PR), a bot will comment with a table showing the current code
 coverage of the ``pytest`` suite. As of December 2024, coverage is less than 30%

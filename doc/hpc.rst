@@ -68,10 +68,12 @@ This will run a small workflow that:
 3. Runs one simulation.
 4. Runs the mass fraction analysis.
 
-All output files will be saved to ``$SCRATCH/test_sherlock``.
+All output files will be saved to ``$SCRATCH/test_sherlock``. See :ref:`sherlock-config`
+for a description of the configuration options and :ref:`sherlock-running` for
+a details about running a workflow on Sherlock.
 
 .. note::
-    The above should be sufficient to run workflows on Sherlock. However, if you
+    The above setup is sufficient to run workflows on Sherlock. However, if you
     have a compelling reason to update the shared Nextflow or HyperQueue binaries,
     navigate to ``$GROUP_HOME/vEcoli_env`` and run:
 
@@ -113,12 +115,20 @@ In addition to these options, you **MUST** set the emitter output directory
 enough space to store your workflow outputs. We recommend setting this to
 a location in your ``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``).
 
+.. _sherlock-running:
+
+Running Workflow
+================
+
 With these options in the configuration JSON, a workflow can be started by
-running ``python runscripts/workflow.py --config {}.json`` on a login node.
+running ``python3 runscripts/workflow.py --config {}.json`` on a login node.
 This submits a job that will run the Nextflow workflow orchestrator
 with a 7-day time limit on the lab's dedicated partition. The workflow orchestrator
 will automatically submit jobs for each step in the workflow: one for the ParCa,
 one to create variants, one for each cell, and one for each analysis.
+
+.. warning::
+  Remember to use ``python3`` to start the workflow instead of ``python``.
 
 If you are trying to run a workflow that takes longer than 7 days, you can
 use the resume functionality (see :ref:`fault_tolerance`). Alternatively,
@@ -129,7 +139,7 @@ runtime (see :doc:`gcloud`).
   Unlike workflows run locally, Sherlock workflows are run using
   containers with a snapshot of the repository.
   
-When you run ``python runscripts/workflow.py``, you will get a message
+When you run ``python3 runscripts/workflow.py``, you will get a message
 that a SLURM job was submitted to build the image. When that job starts,
 you will get terminal output showing the build progress. Avoid making any
 changes to your cloned repository until the build has finished.
@@ -143,7 +153,6 @@ we recommend designing your code to accept options through the config JSON
 which modify the behavior of your workflow without modifying core code. This
 allows you to save time by setting ``build_image`` to false and
 ``container_image`` to the path of a previously built image.
-  
 
 There is a 4 hour time limit on each job in the workflow, including analyses.
 This is a generous limit designed to accomodate very slow-dividing cells.
