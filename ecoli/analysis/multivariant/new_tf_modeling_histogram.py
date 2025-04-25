@@ -15,6 +15,7 @@ from typing import Any, cast
 from ecoli.library.parquet_emitter import (
     read_stacked_columns,
     get_field_metadata,
+    named_idx
 )
 
 
@@ -25,7 +26,7 @@ this number should be greater than 0 because the first few generations may not
 be representative of the true dynamics occuring in the cell).
 """
 
-COLORS = ["b", "r", "k", "g"]
+COLORS = ["b", "r", "k", "g", 'y']
 
 
 def plot(
@@ -33,6 +34,7 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
+    success_sql: str,
     sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
@@ -65,73 +67,89 @@ def plot(
     mRNA_idxs = cast(
         list[list[int]],
         get_indexes(
-            conn, config_sql, "mRNA", [[purC_rna_id, prmA_rna_id, lolB_rna_id]]
+            conn, config_sql, "mRNA", [[purC_rna_id], [prmA_rna_id], [lolB_rna_id]]
         ),
     )
 
-    purC_protein_id = "SAICARSYN-MONOMER[c]"
-    prmA_protein_id = "EG11497-MONOMER[c]"
-    lolB_protein_id = "EG11293-MONOMER[c]"
-    protein_idxs = cast(
-        list[list[int]],
-        get_indexes(
-            conn,
-            config_sql,
-            "protein",
-            [[purC_protein_id, prmA_protein_id, lolB_protein_id]],
-        ),
-    )
+    # purC_protein_id = "SAICARSYN-MONOMER[c]"
+    # prmA_protein_id = "EG11497-MONOMER[c]"
+    # lolB_protein_id = "EG11293-MONOMER[c]"
+    # protein_idxs = cast(
+    #     list[list[int]],
+    #     get_indexes(
+    #         conn,
+    #         config_sql,
+    #         "monomer",
+    #         [purC_protein_id],
+    #     ),
+    # )
 
     mRNA_sql = get_per_cell_gene_count_fraction_sql(
         mRNA_idxs, "listeners__rna_counts__mRNA_counts", "mRNA"
     )
-    protein_sql = get_per_cell_gene_count_fraction_sql(
-        protein_idxs, "listeners__monomer_counts", "protein"
+    # protein_sql = get_per_cell_gene_count_fraction_sql(
+    #     protein_idxs, "listeners__monomer_counts", "monomer"
+    # )
+    purC_mRNA = named_idx(
+        "listeners__rna_counts__mRNA_counts", ['purC', 'prmA', 'lolB'], mRNA_idxs
     )
 
     subquery = read_stacked_columns(
         history_sql=history_sql,
-        columns=["listeners__rna_counts__mRNA_counts", "listeners__monomer_counts"],
-        remove_first=True,
+        columns=["listeners__rna_counts__mRNA_counts"],#, "listeners__monomer_counts"],
+        purC_mRNA
+        #remove_first=True,
     )
+
     mRNA_data = conn.sql(mRNA_sql.format(subquery=subquery)).arrow().to_pylist()
-    protein_data = conn.sql(protein_sql.format(subquery=subquery)).arrow().to_pylist()
+    #protein_data = conn.sql(protein_sql.format(subquery=subquery)).arrow().to_pylist()
+
+    avg_fracs = {}
+    for data in mRNA_data:
+        if avg_fracs[data["gene_idx"]]:
+            avg_fracs[data["gene_idx"]].append(data["avg_frac"])
 
     mRNA_avg_fracs = np.array([x["avg_frac"] for x in mRNA_data])
-    protein_avg_fracs = np.array([x["avg_frac"] for x in protein_data])
-    mRNA_variants = np.array([x["variant"] for x in mRNA_data])
-    protein_variants = np.array([x["variant"] for x in protein_data])
+    #protein_avg_fracs = np.array([x["avg_frac"] for x in protein_data])
 
+    # Get variant names
+    mRNA_variants = np.array([x["variant"] for x in mRNA_data])
+    exp_id = mRNA_data[0]["experiment_id"]
+    mRNA_variant_names = np.array([variant_metadata[exp_id][i][variant_names[exp_id]] for i in mRNA_variants])
+    #protein_variants = np.array([x["variant"] for x in protein_data])
     fig, axs = plt.subplots(2)
 
-    for i, var in enumerate(np.unique(mRNA_variants)):
-        mRNA_var_fracs = mRNA_avg_fracs[(mRNA_variants == var)]
-        protein_var_fracs = protein_avg_fracs[(protein_variants == var)]
+    import ipdb; ipdb.set_trace()
+    for i, var in enumerate(np.unique(mRNA_variant_names)):
+        mRNA_var_fracs = mRNA_avg_fracs[(mRNA_variant_names == var)]
+        #protein_var_fracs = protein_avg_fracs[(protein_variants == var)]
         axs[0].hist(
             mRNA_var_fracs,
-            bins=20,
+            bins=np.linspace(0, 2*np.max(mRNA_avg_fracs), num=20),
             alpha=0.5,
             lw=3,
             color=COLORS[i],
-            label=str(var),
+            label=var
         )
-        axs[1].hist(
-            protein_var_fracs,
-            bins=20,
-            alpha=0.5,
-            lw=3,
-            color=COLORS[i],
-            label=str(var),
-        )
+        # axs[1].hist(
+        #     protein_var_fracs,
+        #     bins=20,
+        #     alpha=0.5,
+        #     lw=3,
+        #     color=COLORS[i],
+        #     label=str(var),
+        # )
     axs[0].set_title(
-        "Histogram of time-average fraction of mRNA counts that are purC mRNA, for different variants"
+        "purC fractional expression, for different variants"
     )
+    axs[0].set_ylabel("Number of simulations")
+    axs[0].set_xlabel("Time-average fraction of mRNA counts that are purC mRNA")
     axs[0].legend()
 
-    axs[1].set_title(
-        "Histogram of time-average fraction of protein counts that are PurC, for different variants"
-    )
-    axs[1].legend()
+    # axs[1].set_title(
+    #     "Histogram of time-average fraction of protein counts that are PurC, for different variants"
+    # )
+    # axs[1].legend()
 
     plt.tight_layout()
     plt.savefig(os.path.join(outdir, "new_tf_modeling_histogram.pdf"))
@@ -181,7 +199,7 @@ def get_per_cell_gene_count_fraction_sql(
                 experiment_id, variant, lineage_seed, generation, agent_id
             FROM list_counts
         )
-        SELECT avg(gene_fracs) AS avg_frac,
+        SELECT avg(gene_fracs) AS 'avg_frac',
             experiment_id, variant, lineage_seed, generation, agent_id, gene_idx
         FROM unnested_fracs
         GROUP BY experiment_id, variant, lineage_seed,
