@@ -1,20 +1,20 @@
 {
     "sherlock": {
         "build_image": false,
-        "container_image": "$SCRATCH/test_image",
+        "container_image": "/scratch/users/ahzhang/test_image",
         "hyperqueue": true,
         "jenkins": false
     },
     "experiment_id": "test_hist",
-    "lineage_seed": 10,
+    "lineage_seed": 20,
     "suffix_time": false,
     "parca_options": {
         "cpus": 8
     },
     "sim_data_path": null,
     "skip_baseline": true,
-    "generations": 1,
-    "n_init_sims": 1,
+    "generations": 8,
+    "n_init_sims": 2,
     "single_daughters": true,
     "emitter" : "parquet",
     "emitter_arg": {
@@ -27,12 +27,7 @@
             }
         }},
     "analysis_options": {
-        "multivariant": {
-            "new_tf_modeling_histogram": {}
-        },
-        "experiment_id": ["test_hist"],
-        "variant_data_dir": "$SCRATCH/out/test_hist/variant_sim_data",
-        "outdir": "$SCRATCH/out/test_hist/analyses"
+        "single": {"mass_fraction_summary": {}}
     },
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-redux-classic"

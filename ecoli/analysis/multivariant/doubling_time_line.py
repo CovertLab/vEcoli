@@ -32,7 +32,7 @@ def plot(
     doubling_times = conn.sql(f"""
         SELECT (max(time) - min(time)) / 3600 AS 'Doubling Time (hrs)', experiment_id, variant, lineage_seed, generation, agent_id
         FROM ({doubling_time_sql})
-        GROUP BY experiment_id, variant, Seed, Generation, agent_id
+        GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
     """).pl()
     successful_sims = conn.sql(success_sql).pl()
     doubling_times = doubling_times.join(
@@ -46,15 +46,15 @@ def plot(
         on=["experiment_id", "variant", "lineage_seed", "generation", "agent_id"],
     )
 
-    selection = alt.selection_point(fields=["Seed"], bind="legend")
+    selection = alt.selection_point(fields=["lineage_seed"], bind="legend")
     chart = (
         alt.Chart(doubling_times)
         .mark_line()
         .encode(
-            x="Generation",
-            y="Doubling Time (hr)",
+            x="generation",
+            y="Doubling Time (hrs)",
             color=alt.Color("Seed", type="nominal"),
-            tooltip=["Doubling Time (hr)", "Seed"],
+            tooltip=["Doubling Time (hrs)", "lineage_seed"],
             opacity=alt.when(selection).then(alt.value(1)).otherwise(alt.value(0.2)),
         )
         .add_params(selection)
@@ -64,21 +64,21 @@ def plot(
         alt.Chart(death_times)
         .mark_point(shape="cross")
         .encode(
-            x="Generation",
-            y="Doubling Time (hr)",
+            x="generation",
+            y="Doubling Time (hrs)",
             color=alt.Color("Seed", type="nominal"),
             opacity=alt.when(selection).then(alt.value(1)).otherwise(alt.value(0.2)),
-            tooltip=["Doubling Time (hr)", "Seed"],
+            tooltip=["Doubling Time (hrs)", "lineage_seed"],
         )
     )
     exp_avg = alt.Chart().mark_rule(strokeDash=[2, 2]).encode(y=alt.datum(1 / 0.47))
-    sim_avg_df = doubling_times.group_by("experiment_id", "variant", "Generation").agg(
-        pl.mean("Doubling Time (hr)")
+    sim_avg_df = doubling_times.group_by("experiment_id", "variant", "generation").agg(
+        pl.mean("Doubling Time (hrs)")
     )
     sim_avg = (
         alt.Chart(sim_avg_df)
         .mark_line(strokeDash=[2, 2])
-        .encode(x="Generation", y="Doubling Time (hr)", tooltip=["Doubling Time (hr)"])
+        .encode(x="generation", y="Doubling Time (hrs)", tooltip=["Doubling Time (hrs)"])
     )
     chart = chart + exp_avg + sim_avg + death_points
     chart.save(f"{outdir}/doubling_time.html")
