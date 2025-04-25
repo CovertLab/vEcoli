@@ -24,6 +24,11 @@ for the most up-to-date default configuration options.
     file, you only need to include the configuration options whose values are
     different from the defaults.
 
+.. warning::
+  ``~`` and environment variables like ``$HOME`` are not expanded in the
+  configuration JSON. Use ``echo your_path`` to get a full path that you can
+  use in the JSON. For example, ``echo ~/out`` or ``echo $HOME/test``.
+
 Below, we explore each runscript in further detail, including the
 configuration options unique to each.
 
