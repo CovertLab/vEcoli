@@ -1,0 +1,49 @@
+{
+    "sherlock": {
+        "build_image": false,
+        "container_image": "/scratch/users/ahzhang/test_image",
+        "hyperqueue": true,
+        "jenkins": false
+    },
+    "experiment_id": "metab_no_mech_aa_diff_env_hist",
+    "lineage_seed": 20,
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 8
+    },
+    "sim_data_path": null,
+    "skip_baseline": true,
+    "generations": 8,
+    "n_init_sims": 2,
+    "single_daughters": true,
+    "emitter" : "parquet",
+    "emitter_arg": {
+        "out_dir": "/scratch/users/ahzhang/out"
+    },
+    "variants": {
+        "condition": {
+            "condition": {
+                "value": ["basal", "with_aa", "with_aa_nucl", "acetate", "succinate"]
+            }
+        }},
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}}
+    },
+    "add_processes": ["ecoli-tf-ligand-binding", "ecoli-old-tf-binding", "ecoli-new-tf-binding"],
+    "exclude_processes": ["ecoli-tf-binding"],
+    "process_configs": {
+        "ecoli-metabolism": {
+            "mechanistic_aa_transport": false
+        },
+        "ecoli-polypeptide-elongation": {
+            "mechanistic_aa_transport": false,
+            "mechanistic_translation_supply": false,
+            "aa_supply_in_charging": false
+        }
+    },
+    "flow": {
+        "ecoli-tf-ligand-binding": [["ecoli-tf-unbinding"]],
+        "ecoli-old-tf-binding": [["ecoli-equilibrium"]],
+        "ecoli-new-tf-binding": [["ecoli-equilibrium"]]
+    }
+}
