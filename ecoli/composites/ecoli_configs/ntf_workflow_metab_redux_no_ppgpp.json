@@ -56,7 +56,7 @@
     "operons": true,
     "trna_charging": false,
     "ppgpp_regulation": false,
-    "mass_distribution": true,
+    "initial_state_gaussian": true,
     "trna_attenuation": false,
     "variable_elongation_transcription": true,
     "variable_elongation_translation": false,
