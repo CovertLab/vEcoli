@@ -5,16 +5,16 @@
         "hyperqueue": true,
         "jenkins": false
     },
-    "experiment_id": "test_hist",
-    "lineage_seed": 10,
+    "experiment_id": "metab_diff_env_hist",
+    "lineage_seed": 20,
     "suffix_time": false,
     "parca_options": {
         "cpus": 8
     },
     "sim_data_path": null,
     "skip_baseline": true,
-    "generations": 1,
-    "n_init_sims": 1,
+    "generations": 8,
+    "n_init_sims": 2,
     "single_daughters": true,
     "emitter" : "parquet",
     "emitter_arg": {
@@ -27,30 +27,11 @@
             }
         }},
     "analysis_options": {
-        "multivariant": {
-            "new_tf_modeling_histogram": {}
-        },
-        "experiment_id": ["diff_env_hist"],
-        "variant_data_dir": ["/scratch/users/ahzhang/out/diff_env_hist/variant_sim_data"],
-        "validation_data_path": ["/scratch/users/ahzhang/out/diff_env_hist/parca/kb/validationData.cPickle"],
-        "outdir": "/scratch/users/ahzhang/out/diff_env_hist/analyses"
-    },
-    "swap_processes" : {
-        "ecoli-metabolism" : "ecoli-metabolism-redux-classic"
+        "single": {"mass_fraction_summary": {}}
     },
     "add_processes": ["ecoli-tf-ligand-binding", "ecoli-old-tf-binding", "ecoli-new-tf-binding"],
-    "exclude_processes": ["exchange_data", "ecoli-tf-binding"],
+    "exclude_processes": ["ecoli-tf-binding"],
     "flow": {
-        "ecoli-metabolism-redux-classic": [["ecoli-chromosome-structure"]],
-        "ecoli-mass-listener": [["ecoli-metabolism-redux-classic"]],
-        "RNA_counts_listener": [["ecoli-metabolism-redux-classic"]],
-        "rna_synth_prob_listener": [["ecoli-metabolism-redux-classic"]],
-        "monomer_counts_listener": [["ecoli-metabolism-redux-classic"]],
-        "dna_supercoiling_listener": [["ecoli-metabolism-redux-classic"]],
-        "replication_data_listener": [["ecoli-metabolism-redux-classic"]],
-        "rnap_data_listener": [["ecoli-metabolism-redux-classic"]],
-        "unique_molecule_counts": [["ecoli-metabolism-redux-classic"]],
-        "ribosome_data_listener": [["ecoli-metabolism-redux-classic"]],
         "ecoli-tf-ligand-binding": [["ecoli-tf-unbinding"]],
         "ecoli-old-tf-binding": [["ecoli-equilibrium"]],
         "ecoli-new-tf-binding": [["ecoli-equilibrium"]]
@@ -59,7 +40,7 @@
     "operons": true,
     "trna_charging": false,
     "ppgpp_regulation": false,
-    "initial_state_gaussian": true,
+    "mass_distribution": true,
     "trna_attenuation": false,
     "variable_elongation_transcription": true,
     "variable_elongation_translation": false,

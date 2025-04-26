@@ -5,7 +5,7 @@
         "hyperqueue": true,
         "jenkins": false
     },
-    "experiment_id": "test_hist",
+    "experiment_id": "diff_env_hist",
     "lineage_seed": 20,
     "suffix_time": false,
     "parca_options": {
