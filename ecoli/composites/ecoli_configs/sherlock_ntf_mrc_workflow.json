@@ -1,11 +1,11 @@
 {
     "sherlock": {
         "build_image": false,
-        "container_image": "/scratch/users/ahzhang/test_image",
+        "container_image": "/scratch/users/ahzhang/ntf_test_image",
         "hyperqueue": true,
         "jenkins": false
     },
-    "experiment_id": "update_diff_env_hist",
+    "experiment_id": "ntf_mrc_minimal_rich",
     "lineage_seed": 20,
     "suffix_time": false,
     "parca_options": {
@@ -23,7 +23,7 @@
     "variants": {
         "condition": {
             "condition": {
-                "value": ["basal", "with_aa", "with_aa_nucl", "acetate", "succinate"]
+                "value": ["basal", "with_aa", "with_aa_nucl"]
             }
         }},
     "analysis_options": {
