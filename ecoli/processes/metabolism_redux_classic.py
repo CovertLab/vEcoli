@@ -112,14 +112,16 @@ BAD_RXNS.extend(
 )
 
 # Block unrealistic/unconfirmed export for purine metabolism modeling
-# BAD_RXNS.extend(
-#     [
-#         "TRANS-RXN0-530",  # Urate export, protein thought to be an importer
-#         "TRANS-RXN0-579",  # Hypoxanthine export, no enzyme identified
-#         "RXN-5076",  # Xanthine proton symport, maybe mostly import?
-#         "TRANS-RXN0-561",  # Xanthine export, no protein identified
-#     ]
-# )
+BAD_RXNS.extend(
+    [
+        "TRANS-RXN0-530",  # Urate export, protein thought to be an importer
+        "TRANS-RXN0-579",  # Hypoxanthine export, no enzyme identified
+        "RXN-5076",  # Xanthine proton symport, maybe mostly import?
+        "TRANS-RXN0-561",  # Xanthine export, no protein identified
+    ]
+)
+
+HARD_CONSTRAIN_PURF = True
 
 FREE_RXNS = [
     "TRANS-RXN-145",
@@ -663,9 +665,11 @@ class NetworkFlowModel:
         constr.append(dm[self.intermediates_idx] == 0)
 
         # For purF, constrain it to kinetics (TODO (Albert): move to raw data)
-        # purF_kinetic_idx = self.kinetic_rxns.index("PRPPAMIDOTRANS-RXN (reverse)")
-        # purF_rxn_idx = self.rxns.index("PRPPAMIDOTRANS-RXN (reverse)")
-        # constr.append(v[purF_rxn_idx] == kinetic_targets[purF_kinetic_idx, 1])
+        # TODO: make option a sim option
+        if HARD_CONSTRAIN_PURF:
+            purF_kinetic_idx = self.kinetic_rxns.index("PRPPAMIDOTRANS-RXN (reverse)")
+            purF_rxn_idx = self.rxns.index("PRPPAMIDOTRANS-RXN (reverse)")
+            constr.append(v[purF_rxn_idx] == kinetic_targets[purF_kinetic_idx, 1])
 
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == maintenance_target)
