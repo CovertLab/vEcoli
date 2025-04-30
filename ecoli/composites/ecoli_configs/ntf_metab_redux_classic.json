@@ -1,22 +1,22 @@
 {
-    "experiment_id": "with_aa_gen_3",
-    "lineage_seed": 10,
+    "experiment_id": "test_constrain_purF",
+    "lineage_seed": 20,
     "suffix_time": false,
     "parca_options": {
         "cpus": 8,
         "outdir": "./parca"
     },
-    "sim_data_path": "variant_sim_data/1.cPickle",
+    "sim_data_path": "test_constrain_purF/test_constrain_purF/parca/kb/simData.cPickle",
     "skip_baseline": true,
-    "generations": 4,
+    "generations": 1,
     "n_init_sims": 1,
     "single_daughters": true,
     "emitter" : "parquet",
     "emitter_arg": {
-        "out_dir": "updated_test"
+        "out_dir": "test_constrain_purF"
     },
-    "initial_state_file": "update_aa_mrc_gen_2",
-    "daughter_outdir": "daughter_out_aa",
+    "initial_state_file": null,
+    "daughter_outdir": null,
     "variants": {
         "condition": {
             "condition": {
@@ -25,12 +25,12 @@
         }},
     "analysis_options": {
         "single": {
-            "mass_fraction_summary": {}
+            "purine_metab_analysis_metab_redux": {}
         },
-        "outdir": "update_test",
-        "experiment_id": ["with_aa_gen_3"],
-        "variant_data_dir": ["variant_sim_data"],
-        "validation_data_path": ["./parca/kb/validationData.cPickle"]
+        "outdir": "test_constrain_purF",
+        "experiment_id": ["test_constrain_purF"],
+        "variant_data_dir": ["test_constrain_purF/test_constrain_purF/variant_sim_data"],
+        "validation_data_path": ["test_constrain_purF/test_constrain_purF/parca/kb/validationData.cPickle"]
     },
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-redux-classic"

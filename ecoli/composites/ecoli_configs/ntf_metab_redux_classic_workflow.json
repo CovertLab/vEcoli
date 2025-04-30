@@ -1,28 +1,23 @@
 {
-    "experiment_id": "basal_aa",
-    "lineage_seed": 10,
+    "experiment_id": "test_constrain_purF",
+    "lineage_seed": 20,
     "suffix_time": false,
     "parca_options": {
         "cpus": 8
     },
     "sim_data_path": null,
     "skip_baseline": true,
-    "generations": 4,
+    "generations": 1,
     "n_init_sims": 1,
     "single_daughters": true,
     "emitter" : "parquet",
     "emitter_arg": {
-        "out_dir": "test_metab_redux_classic"
+        "out_dir": "test_constrain_purF"
     },
-    "variants": {
-        "condition": {
-            "condition": {
-                "value": ["basal", "with_aa"]
-            }
-        }},
+    "variants": {},
     "analysis_options": {
         "single": {
-            "mass_fraction_summary": {}
+            "purine_metab_analysis_metab_redux": {}
         }
     },
     "swap_processes" : {
