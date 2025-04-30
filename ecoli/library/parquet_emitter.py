@@ -529,7 +529,8 @@ def read_stacked_columns(
         history_sql: DuckDB SQL string from :py:func:`~.get_dataset_sql`,
             potentially with filters appended in ``WHERE`` clause
         columns: Names of columns to read data for. Alternatively, DuckDB
-            expressions of columns (e.g. ``mean(listeners__mass__cell_mass)``).
+            expressions of columns (e.g. ``avg(listeners__mass__cell_mass) AS avg_mass``
+            or the output of :py:func:`~.named_idx` or :py:func:`~.ndidx_to_duckdb_expr`).
         remove_first: Remove data for first timestep of each cell
         func: Function to call on data for each cell, should take and
             return a PyArrow table with columns equal to ``columns``
