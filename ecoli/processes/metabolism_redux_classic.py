@@ -111,12 +111,12 @@ BAD_RXNS.extend(
     ]
 )
 
-# Block unrealistic/unconfirmed export for purine metabolism modeling
+# # Block unrealistic/unconfirmed export for purine metabolism modeling
 BAD_RXNS.extend(
     [
         "TRANS-RXN0-530",  # Urate export, protein thought to be an importer
         "TRANS-RXN0-579",  # Hypoxanthine export, no enzyme identified
-        "RXN-5076",  # Xanthine proton symport, maybe mostly import?
+        # "RXN-5076",  # Xanthine proton symport, maybe mostly import?
         "TRANS-RXN0-561",  # Xanthine export, no protein identified
     ]
 )
@@ -291,17 +291,32 @@ class MetabolismReduxClassic(Step):
                 # TODO: Not empty list default
                 "fba_results": listener_schema(
                     {
-                        "solution_fluxes": [],
-                        "solution_dmdt": [],
+                        "solution_fluxes": ([], self.network_flow_model.rxns),
+                        "solution_dmdt": ([], self.network_flow_model.mets),
                         "solution_residuals": [],
                         "time_per_step": 0.0,
-                        "estimated_fluxes": [],
-                        "estimated_homeostatic_dmdt": [],
-                        "target_homeostatic_dmdt": [],
+                        "estimated_fluxes": ([], self.network_flow_model.rxns),
+                        "estimated_homeostatic_dmdt": (
+                            [],
+                            self.network_flow_model.homeostatic_metabolites,
+                        ),
+                        "target_homeostatic_dmdt": (
+                            [],
+                            self.network_flow_model.homeostatic_metabolites,
+                        ),
                         "estimated_exchange_dmdt": {},
-                        "estimated_intermediate_dmdt": [],
-                        "target_kinetic_fluxes": [],
-                        "target_kinetic_bounds": [],
+                        "estimated_intermediate_dmdt": (
+                            [],
+                            self.network_flow_model.intermediates,
+                        ),
+                        "target_kinetic_fluxes": (
+                            [],
+                            self.network_flow_model.kinetic_rxns,
+                        ),
+                        "target_kinetic_bounds": (
+                            [],
+                            self.network_flow_model.kinetic_rxns,
+                        ),
                         "reaction_catalyst_counts": [],
                         "maintenance_target": 0,
                     }
@@ -590,21 +605,28 @@ class NetworkFlowModel:
         self.met_map = {metabolite: i for i, metabolite in enumerate(metabolites)}
         self.rxns = reactions
         self.rxn_map = {reaction: i for i, reaction in enumerate(reactions)}
+        self.kinetic_rxns = kinetic_reactions
         self.kinetic_rxn_idx = (
-            np.array([self.rxn_map[rxn] for rxn in kinetic_reactions])
+            np.array([self.rxn_map[rxn] for rxn in self.kinetic_rxns])
             if kinetic_reactions
             else None
         )
-        # self.kinetic_rxns = kinetic_reactions
 
         # steady state indices, secretion indices
         self.intermediates = list(set(self.mets) - set(homeostatic_metabolites))
         self.intermediates_idx = np.array(
             [self.met_map[met] for met in self.intermediates]
         )
+
+        # TODO (Cyrus) - use name provided
+        self.homeostatic_metabolites = homeostatic_metabolites
         self.homeostatic_idx = np.array(
             [self.met_map[met] for met in homeostatic_metabolites]
         )
+
+        if HARD_CONSTRAIN_PURF:
+            self.ATP_hom_idx = np.where(self.homeostatic_metabolites == "ATP[c]")[0][0]
+
         # TODO (Cyrus) - use name provided
         self.maintenance_idx = (
             self.rxn_map["maintenance_reaction"]
@@ -664,13 +686,6 @@ class NetworkFlowModel:
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
 
-        # For purF, constrain it to kinetics (TODO (Albert): move to raw data)
-        # TODO: make option a sim option
-        if HARD_CONSTRAIN_PURF:
-            purF_kinetic_idx = self.kinetic_rxns.index("PRPPAMIDOTRANS-RXN (reverse)")
-            purF_rxn_idx = self.rxns.index("PRPPAMIDOTRANS-RXN (reverse)")
-            constr.append(v[purF_rxn_idx] == kinetic_targets[purF_kinetic_idx, 1])
-
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == maintenance_target)
         # If enzymes not present, constrain rxn flux to 0
@@ -679,8 +694,23 @@ class NetworkFlowModel:
 
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
-        loss = 0
-        loss += cp.norm1(dm[self.homeostatic_idx] - homeostatic_targets)
+        # For purF, constrain it to kinetics (TODO (Albert): move to raw data)
+        # TODO: make option a sim option
+        if HARD_CONSTRAIN_PURF:
+            purF_kinetic_idx = self.kinetic_rxns.index("PRPPAMIDOTRANS-RXN (reverse)")
+            purF_rxn_idx = self.rxns.index("PRPPAMIDOTRANS-RXN (reverse)")
+            constr.append(v[purF_rxn_idx] == kinetic_targets[purF_kinetic_idx])
+            loss = 0
+            hom_no_ATP = np.array(
+                [
+                    i
+                    for i in range(np.shape(homeostatic_targets)[0])
+                    if i != self.ATP_hom_idx
+                ]
+            )
+            loss += cp.norm1(
+                dm[self.homeostatic_idx[hom_no_ATP]] - homeostatic_targets[hom_no_ATP]
+            )
 
         # AMP_GMP_idxs = np.array([self.met_map[x] for x in ['GMP[c]', 'AMP[c]']])
         # AMP_GMP_hom_mask = np.isin(self.homeostatic_idx, AMP_GMP_idxs)
