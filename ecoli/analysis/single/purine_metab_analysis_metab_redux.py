@@ -100,12 +100,6 @@ def plot(
     # Extract data
     metab_data = read_stacked_columns(
         history_sql,
-        [
-            "listeners__fba_results__target_kinetic_fluxes",
-            "listeners__fba_results__estimated_fluxes",
-            "bulk",
-            "listeners__rna_counts__mRNA_cistron_counts",
-        ],
         [purF_kinetic_flux, purF_actual_flux, bulk_molecules, cistrons],
         conn=conn,
     )
