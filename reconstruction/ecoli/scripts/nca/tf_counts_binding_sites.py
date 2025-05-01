@@ -1,34 +1,26 @@
-import argparse
 import csv
 import os
-import re
-import sys
-import time
-from typing import Dict, List, Optional, Set, Tuple, cast
-import math
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy
 from rnaseq_utils import *
 
 # Midpoint of oriC, from dna_sites.tsv flat file
-ORIC_SITE = (3925744+3925975)/2
+ORIC_SITE = (3925744 + 3925975) / 2
 # Length of K12 genome
 GENOME_LENGTH = 4608319
 # Replisome elongation rate, from parameters.tsv flat file
 REPL_RATE = 967
-C_PERIOD = GENOME_LENGTH / (REPL_RATE*2*60)
+C_PERIOD = GENOME_LENGTH / (REPL_RATE * 2 * 60)
 # D_period, from parameters.tsv flate file
 D_PERIOD = 20
 
 
-
 def get_promoter_coords():
-    filename = '../../../../../../devViv/vivarium-ecoli/reconstruction/ecoli/scripts/nca/All-promoters-of-E.-coli-K-12-substr.-MG1655.txt'
+    filename = "All-promoters-of-E.-coli-K-12-substr.-MG1655.txt"
     promoter_names = []
     coords = []
-    with open(os.path.join(BASE_DIR, filename), 'r') as f:
+    with open(os.path.join(BASE_DIR, filename), "r") as f:
         lines = f.readlines()
         for line in lines[1:]:
             promoter_names.append(line.split()[0])
@@ -37,25 +29,28 @@ def get_promoter_coords():
             else:
                 coords.append(0)
 
-    return {p:c for p, c in zip(promoter_names, coords)}
+    return {p: c for p, c in zip(promoter_names, coords)}
+
 
 def get_binding_sites():
     def tf_name_switch(name):
-        if name[:11] == 'dna-binding':
-            return name.split(' ')[-1]
-        elif name.split(' ')[0] == 'phosphorylated':
-            return name.split(' ')[-1]
-        elif name == 'nrdr transcriptional repressor':
-            return 'nrdr'
-        elif name == 'ntrc phosphorylated dimer':
-            return 'ntrc'
-        elif name == 'h-ns':
-            return 'hns'
-        elif '-' in name:
-            return name.split('-')[0]
+        if name[:11] == "dna-binding":
+            return name.split(" ")[-1]
+        elif name.split(" ")[0] == "phosphorylated":
+            return name.split(" ")[-1]
+        elif name == "nrdr transcriptional repressor":
+            return "nrdr"
+        elif name == "ntrc phosphorylated dimer":
+            return "ntrc"
+        elif name == "h-ns":
+            return "hns"
+        elif "-" in name:
+            return name.split("-")[0]
         return name
 
-    filename = "../../../../../../devViv/vivarium-ecoli/reconstruction/ecoli/scripts/nca/All-transcription-factor-binding-sites-of-E.-coli-K-12-substr.-MG1655.txt"
+    filename = (
+        "All-transcription-factor-binding-sites-of-E.-coli-K-12-substr.-MG1655.txt"
+    )
     names = []
     coords = []
     regs = []
@@ -63,44 +58,46 @@ def get_binding_sites():
     promoter_names = []
     promoter_coord_dict = get_promoter_coords()
 
-    with open(os.path.join(BASE_DIR, filename), 'r') as f:
+    with open(os.path.join(BASE_DIR, filename), "r") as f:
         lines = f.readlines()
         for line in lines[1:]:
-            name, coord, reg = line.split('\t')
-            if reg[-1] == '\n':
+            name, coord, reg = line.split("\t")
+            if reg[-1] == "\n":
                 reg = reg[:-1]
 
-            name_split = name.split(' DNA-binding-site')
+            name_split = name.split(" DNA-binding-site")
 
-            #name_split = name.split(' ')
+            # name_split = name.split(' ')
             tf_name = name_split[0]
-            promoter_name = name_split[-1].split(' ')[-1]
+            promoter_name = name_split[-1].split(" ")[-1]
             tf_names.append(tf_name_switch(tf_name.lower()))
             promoter_names.append(promoter_name)
             names.append(name)
-            if coord != '':
-                if coord[-2:] == 'd0':
+            if coord != "":
+                if coord[-2:] == "d0":
                     coords.append(float(coord[:-2]))
                 else:
                     coords.append(float(coord))
             else:
-                promoter = name.split(' ')[-1]
+                promoter = name.split(" ")[-1]
                 if promoter in promoter_coord_dict:
                     coords.append(promoter_coord_dict[promoter])
                 else:
-                    coords.append(0) # TODO: do something about these?
+                    coords.append(0)  # TODO: do something about these?
             regs.append(reg)
 
     def coords_to_gene_dosage(coords, doubling_time):
         coords = np.array(coords)
-        right_side = (np.abs(coords - ORIC_SITE) < GENOME_LENGTH/2)
+        right_side = np.abs(coords - ORIC_SITE) < GENOME_LENGTH / 2
         relative_coords = np.zeros_like(coords)
         relative_coords[right_side] = np.abs(coords[right_side] - ORIC_SITE)
         relative_coords[~right_side] = GENOME_LENGTH - np.abs(
-            coords[~right_side] - ORIC_SITE)
+            coords[~right_side] - ORIC_SITE
+        )
         relative_coords = relative_coords * 2 / GENOME_LENGTH
         gene_dosages = 2 ** (
-                    ((1 - relative_coords) * C_PERIOD + D_PERIOD) / doubling_time)
+            ((1 - relative_coords) * C_PERIOD + D_PERIOD) / doubling_time
+        )
 
         return gene_dosages
 
@@ -130,21 +127,25 @@ def get_binding_sites():
     # from promoter_names then try to get promoters that way?
     # Also, some promoters are in parantheses like (BS0smth).
 
+
 def get_proteome_counts():
-    proteome_file = os.path.join(BASE_DIR, '../../../../../../devViv/vivarium-ecoli/reconstruction/ecoli/scripts/nca/copied_schmidt2015_javier_table.tsv')
+    proteome_file = os.path.join(BASE_DIR, "copied_schmidt2015_javier_table.tsv")
     gene_names = []
     glucose_counts = []
-    with open(proteome_file, 'r') as f:
-        csv_reader = csv.reader(f, delimiter='\t')
+    with open(proteome_file, "r") as f:
+        csv_reader = csv.reader(f, delimiter="\t")
         next(csv_reader)
         for line in csv_reader:
             gene_names.append(line[1].lower())
             glucose_counts.append(float(line[2]))
 
     return gene_names, glucose_counts
+
+
 #     # From proteome experimental dataset, get the counts under certain conditions.
 #     #
 #
+
 
 def get_autoregulated_tfs():
     regulator_names = []
@@ -162,16 +163,16 @@ def get_autoregulated_tfs():
                 return -2
         return 0
 
-    with open(os.path.join(BASE_DIR, '../../../../../../devViv/vivarium-ecoli/reconstruction/ecoli/scripts/nca/ECOLI-regulatory-network.txt'), 'r') as f:
-        current_regulator = ''
+    with open(os.path.join(BASE_DIR, "ECOLI-regulatory-network.txt"), "r") as f:
+        current_regulator = ""
         for line in f.readlines():
-            if line.startswith('#'):
+            if line.startswith("#"):
                 continue
-            if line[0] != ' ':
+            if line[0] != " ":
                 regulator = line.split()[0]
                 if regulator[-1] == "*":
-                    if regulator == 'rspR*':
-                        regulator_names.append('ydfh')
+                    if regulator == "rspR*":
+                        regulator_names.append("ydfh")
                     else:
                         regulator_names.append(regulator[:-1].lower())
                 current_regulator = regulator
@@ -180,6 +181,7 @@ def get_autoregulated_tfs():
                 autoregulate.append(detect_autoreg(current_regulator, genes))
 
     return {r: d for r, d in zip(regulator_names, autoregulate)}
+
 
 def get_tf_direction():
     regulator_names = []
@@ -202,15 +204,15 @@ def get_tf_direction():
             return 1
         return 2
 
-    with open(os.path.join(BASE_DIR, '../../../../../../devViv/vivarium-ecoli/reconstruction/ecoli/scripts/nca/ECOLI-regulatory-network.txt'), 'r') as f:
+    with open(os.path.join(BASE_DIR, "ECOLI-regulatory-network.txt"), "r") as f:
         for line in f.readlines():
-            if line.startswith('#'):
+            if line.startswith("#"):
                 continue
-            if line[0] != ' ':
+            if line[0] != " ":
                 regulator = line.split()[0]
                 if regulator[-1] == "*":
-                    if regulator == 'rspR*':
-                        regulator_names.append('ydfh')
+                    if regulator == "rspR*":
+                        regulator_names.append("ydfh")
                     else:
                         regulator_names.append(regulator[:-1].lower())
             else:
@@ -218,6 +220,7 @@ def get_tf_direction():
                 direction.append(detect_direction(genes))
 
     return {r: d for r, d in zip(regulator_names, direction)}
+
 
 def make_plot():
     tf_names, tf_site_counts = get_binding_sites()
@@ -231,10 +234,10 @@ def make_plot():
     plot_tf_names = np.array(tf_names)[tf_in_proteome]
     plot_tf_site_counts = np.array(tf_site_counts)[tf_in_proteome]
     plot_glucose_counts = np.array([gene_to_count[x] for x in plot_tf_names])
-    for i in np.where(plot_glucose_counts==0)[0]:
-            plot_glucose_counts[i] = 0.1
+    for i in np.where(plot_glucose_counts == 0)[0]:
+        plot_glucose_counts[i] = 0.1
 
-    color_dict = {0: 'b', 1: 'r', -1: 'g', 2: 'y'}
+    color_dict = {0: "b", 1: "r", -1: "g", 2: "y"}
 
     tf_autoreg = get_autoregulated_tfs()
     plot_tf_colors = []
@@ -243,41 +246,62 @@ def make_plot():
         if tf in tf_autoreg:
             plot_tf_colors.append(color_dict[tf_autoreg[tf]])
         else:
-            plot_tf_colors.append('k')
+            plot_tf_colors.append("k")
             excluded_tfs.append(tf)
     plot_tf_colors = np.array(plot_tf_colors)
 
-    direction_color_dict = {0: 'b', 1: 'r', 2: 'y'}
+    direction_color_dict = {0: "b", 1: "r", 2: "y"}
     tf_direction = get_tf_direction()
-    plot_tf_dir_colors = [direction_color_dict[tf_direction[tf]] for tf in plot_tf_names]
+    plot_tf_dir_colors = [
+        direction_color_dict[tf_direction[tf]] for tf in plot_tf_names
+    ]
 
-    c_to_label = {'b': 'no autoreg.',
-                   'r': 'positive autoreg.',
-                   'g': 'negative autoreg.',
-                   'y': 'pos. and neg. autoreg.'}
+    c_to_label = {
+        "b": "no autoreg.",
+        "r": "positive autoreg.",
+        "g": "negative autoreg.",
+        "y": "pos. and neg. autoreg.",
+    }
     fig, axs = plt.subplots(5, figsize=(5, 25))
     for c in np.unique(plot_tf_colors):
-        is_c = (plot_tf_colors == c)
-        axs[0].scatter(np.log2(plot_tf_site_counts[is_c]), np.log2(plot_glucose_counts[is_c]),
-                       s=5, c=c, label=c_to_label[c])
-    axs[0].legend()
+        is_c = plot_tf_colors == c
+        axs[0].scatter(
+            np.log2(plot_tf_site_counts[is_c]),
+            np.log2(plot_glucose_counts[is_c]),
+            s=5,
+            c=c,
+            label=c_to_label[c],
+        )
+    axs[0].legend(fontsize=12)
     for i, txt in enumerate(plot_tf_names):
-        if txt == 'purr':
-            axs[0].annotate('PurR',
-                            (np.log2(plot_tf_site_counts[i]), np.log2(plot_glucose_counts[i])),
-                            size=10, c='g')
+        if txt == "purr":
+            axs[0].annotate(
+                "PurR",
+                (np.log2(plot_tf_site_counts[i]), np.log2(plot_glucose_counts[i])),
+                size=12,
+                c="g",
+            )
 
     axs[0].plot([0, 12], [0, 12])
-    axs[0].set_title("TF counts vs genomic binding sites")
-    axs[0].set_xlabel("log2(binding site counts), gene dosage adjusted")
-    axs[0].set_ylabel("Counts in minimal media (1hr doubling time)")
+    axs[0].set_title("TF counts vs genomic binding sites", size=14)
+    axs[0].set_xlabel("log2(binding site counts), gene dosage adjusted", size=14)
+    axs[0].set_ylabel("Counts in minimal media (1hr doubling time)", size=14)
 
-    axs[1].scatter(np.log2(plot_tf_site_counts), np.log2(plot_glucose_counts),
-                   s=5, c=plot_tf_dir_colors)
+    axs[1].scatter(
+        np.log2(plot_tf_site_counts),
+        np.log2(plot_glucose_counts),
+        s=5,
+        c=plot_tf_dir_colors,
+    )
     for i, txt in enumerate(plot_tf_names):
-        axs[1].annotate(txt, (np.log2(plot_tf_site_counts[i]),
-        np.log2(plot_glucose_counts[i])), size=10)
-    axs[1].set_title("Counts vs binding sites. Blue: repressor, Red: activator, Yellow: dual function")
+        axs[1].annotate(
+            txt,
+            (np.log2(plot_tf_site_counts[i]), np.log2(plot_glucose_counts[i])),
+            size=10,
+        )
+    axs[1].set_title(
+        "Counts vs binding sites. Blue: repressor, Red: activator, Yellow: dual function"
+    )
     axs[1].set_xlabel("log2(binding site counts), gene dosage adjusted")
     axs[1].set_ylabel("Counts in minimal media (1hr doubling time)")
     axs[1].plot([0, 12], [0, 12])
@@ -303,7 +327,7 @@ def make_plot():
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, "TF_site_count"))
-    plt.close('all')
+    plt.close("all")
 
     # TODO: whether the remaining 98 TFs are present in the proteome?
     # TODO: finish getting all coords maybe?
@@ -314,9 +338,12 @@ def make_plot():
     # multiple binding sites thing, and other things before making the actual
     # plot. And think about what'd you expect on the actual plot.
     # Maybe try plotting without accounting for gene dosage first as well?
-    import ipdb; ipdb.set_trace()
+    import ipdb
 
-if __name__ == '__main__':
+    ipdb.set_trace()
+
+
+if __name__ == "__main__":
     make_plot()
     # So from the TF binding sites file, we're trying to get for each individual
     # TF, how many binding sites does it have and at what gene dosage.

@@ -1,35 +1,27 @@
-import argparse
 import csv
 import os
-import re
-import sys
-import time
-from typing import Dict, List, Optional, Set, Tuple, cast
 import math
 
 import matplotlib.pyplot as plt
-from matplotlib import gridspec
 import numpy as np
 from scipy import stats
-from copy import deepcopy
 from rnaseq_utils import *
 from get_media_composition import MediaComps
-import copy
 from sklearn import mixture
 
-DATA_DIR = os.path.join(BASE_DIR, 'data')
+DATA_DIR = os.path.join(BASE_DIR, "data")
 
 # TODO: plot normal and other on same
 
 # Sequencing related
-WCM_FILE = os.path.join(DATA_DIR, 'wcm_fold_changes.tsv')
-COMPENDIUM_DIR = os.path.join(DATA_DIR, 'compendium')
-SAMPLES_FILE = os.path.join(COMPENDIUM_DIR, 'samples.tsv')
-GENE_NAMES_FILE = os.path.join(COMPENDIUM_DIR, 'gene_names.tsv')
-GENE_SYNONYMS_FILE = os.path.join(COMPENDIUM_DIR, 'gene_synonyms.tsv')
-SEQ_DIR = os.path.join(COMPENDIUM_DIR, 'seq')
+WCM_FILE = os.path.join(DATA_DIR, "wcm_fold_changes.tsv")
+COMPENDIUM_DIR = os.path.join(DATA_DIR, "compendium")
+SAMPLES_FILE = os.path.join(COMPENDIUM_DIR, "samples.tsv")
+GENE_NAMES_FILE = os.path.join(COMPENDIUM_DIR, "gene_names.tsv")
+GENE_SYNONYMS_FILE = os.path.join(COMPENDIUM_DIR, "gene_synonyms.tsv")
+SEQ_DIR = os.path.join(COMPENDIUM_DIR, "seq")
 SEQ_FILES = [
-    'EcoMAC.tsv',
+    "EcoMAC.tsv",
     # 'RNAseqEcoMACFormat.tsv',
     # 'GSE29076.tsv',
     # 'GSE72525.tsv',
@@ -37,9 +29,9 @@ SEQ_FILES = [
     # 'GSE50529.tsv',
     # 'GSE55365aerobic.tsv',
     # 'GSE55365anaerobic.tsv',
-    ]
-PRECISE2_SEQ_DIR = os.path.join(DATA_DIR, 'PRECISE2_data')
-PRECISE2_SEQ_FILE = os.path.join(PRECISE2_SEQ_DIR, 'PRECISE2_counts.csv')
+]
+PRECISE2_SEQ_DIR = os.path.join(DATA_DIR, "PRECISE2_data")
+PRECISE2_SEQ_FILE = os.path.join(PRECISE2_SEQ_DIR, "PRECISE2_counts.csv")
 
 
 # Output plots
@@ -51,53 +43,103 @@ CUTOFF_THRESHOLD = 1
 
 # Replacing in curating sample_data
 # Questioning the LB/M9 becoming LB. Also then the thiamine and glucose supplements shouldn't be there?
-REPlACE_MEDIA = {'M10': 'M9', 'M11': 'M9', 'M12': 'M9', 'M13' : 'M9', 'M14' : 'M9', "M15" : 'M9',
-                 "M9+MOPS": 'MOPS', "M9 MOPS": "MOPS", "M9 ": "M9",
-                 "BHIB": "BHI", "DM": "Davis MM", "LB or DMEM": "DMEM", "LB/M9": "LB", "MOPS + M9": "MOPS",}
+REPlACE_MEDIA = {
+    "M10": "M9",
+    "M11": "M9",
+    "M12": "M9",
+    "M13": "M9",
+    "M14": "M9",
+    "M15": "M9",
+    "M9+MOPS": "MOPS",
+    "M9 MOPS": "MOPS",
+    "M9 ": "M9",
+    "BHIB": "BHI",
+    "DM": "Davis MM",
+    "LB or DMEM": "DMEM",
+    "LB/M9": "LB",
+    "MOPS + M9": "MOPS",
+}
 
-REPLACE_STRAIN = {"DH5α": "DH5alpha", "BW25114": "BW25113", "BW25115": "BW25113", "BW25116": "BW25113",
-                  "EHEC": "EDL933", "O157H7": "O157:H7"}
+REPLACE_STRAIN = {
+    "DH5α": "DH5alpha",
+    "BW25114": "BW25113",
+    "BW25115": "BW25113",
+    "BW25116": "BW25113",
+    "EHEC": "EDL933",
+    "O157H7": "O157:H7",
+}
 
 
-REPLACE_GSM_STRAIN = {"GSM540105": "rpoA27", "GSM540096": "P2", "GSM540101": "rpoD3",
-                      "GSM540100": "rpoD3", "GSM540106": "rpoA27", "GSM540098": "P2",
-                      "GSM540107": "rpoA27", "GSM540104": "rpoA14", "GSM540097": "P2",
-                      "GSM540103": "rpoA14", "GSM540099": "rpoD3", "GSM540102": "rpoA14"}
+REPLACE_GSM_STRAIN = {
+    "GSM540105": "rpoA27",
+    "GSM540096": "P2",
+    "GSM540101": "rpoD3",
+    "GSM540100": "rpoD3",
+    "GSM540106": "rpoA27",
+    "GSM540098": "P2",
+    "GSM540107": "rpoA27",
+    "GSM540104": "rpoA14",
+    "GSM540097": "P2",
+    "GSM540103": "rpoA14",
+    "GSM540099": "rpoD3",
+    "GSM540102": "rpoA14",
+}
 # TODO: 10g/Lglu is glucose?
 # TODO: 0mM iptg for WT, could replace with just treatment is ''
-REPLACE_TREATMENT = {"100uMIPTG": "0.1mMiptg", "10tetracycline": "10ugtetracycline",
-                     "128tetracycline": "128ugtetracycline",  "1mMIPTG": "1mMiptg", "2.7g/L glucose ": "2.7g/L glucose",
-                  "8g/Lglu ": "8g/Lglu", "not foundgluconate ": "not foundgluconate",
-                  "not foundmannitol ": "not foundmannitol", "5g/Lglu ": "5g/Lglu",
-                     "temperature biofilm DMF": "temperature DMF biofilm", "control": '', "negative control": '',
-                     "250ngnorf": "250 ng/mlnorfloxacin", "251 ng/ml 100uMnor chelator": "250 ng/ml 100uMnor chelator",
-                     "252 ng/ml 100uMnor chelator": "250 ng/ml 100uMnor chelator",
-                     "253 ng/ml 100uMnor chelator": "250 ng/ml 100uMnor chelator"}
+REPLACE_TREATMENT = {
+    "100uMIPTG": "0.1mMiptg",
+    "10tetracycline": "10ugtetracycline",
+    "128tetracycline": "128ugtetracycline",
+    "1mMIPTG": "1mMiptg",
+    "2.7g/L glucose ": "2.7g/L glucose",
+    "8g/Lglu ": "8g/Lglu",
+    "not foundgluconate ": "not foundgluconate",
+    "not foundmannitol ": "not foundmannitol",
+    "5g/Lglu ": "5g/Lglu",
+    "temperature biofilm DMF": "temperature DMF biofilm",
+    "control": "",
+    "negative control": "",
+    "250ngnorf": "250 ng/mlnorfloxacin",
+    "251 ng/ml 100uMnor chelator": "250 ng/ml 100uMnor chelator",
+    "252 ng/ml 100uMnor chelator": "250 ng/ml 100uMnor chelator",
+    "253 ng/ml 100uMnor chelator": "250 ng/ml 100uMnor chelator",
+}
 
-REPLACE_GENE = {"wt": '', "WT": '', "WTnoIPTG": ''}
+REPLACE_GENE = {"wt": "", "WT": "", "WTnoIPTG": ""}
 # TODO: check 'gly' is indeed glyceorl for teh T. allen one
 GENE_TO_TREATMENT = {"WTIPTG": "5mMiptg"}
 
 # TODO: maybe merge exponential with mid-exponential (would have to change more,
 # but actually changing mid-exponential to exponential, and maybe more, check)
-REPLACE_TIME = {"log phase": "exponential", "mid log phase": "mid-exponential", "stat": "stationary",
-                "mid-log phase": "mid-exponential", "WT": "mid-exponential",
-                "mid-exponential phase": "mid-exponential"}
+REPLACE_TIME = {
+    "log phase": "exponential",
+    "mid log phase": "mid-exponential",
+    "stat": "stationary",
+    "mid-log phase": "mid-exponential",
+    "WT": "mid-exponential",
+    "mid-exponential phase": "mid-exponential",
+}
 
 # TODO: could try taking this out, to see if our data could predict it?
 TIME_TO_TREATMENT = {"-300": "glu"}
 
 MEDIA_COMPOSITIONS = {}
 
-def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=True, no_gene_perturb=True,
-                               no_nongrowing=True,):
+
+def load_data_exclude_rewiring(
+    no_pathogen=True,
+    no_evolved=True,
+    no_rewiring=True,
+    no_gene_perturb=True,
+    no_nongrowing=True,
+):
     # Load sequencing data related genes
-    #b_numbers = []
+    # b_numbers = []
     symbols = []
     with open(GENE_NAMES_FILE) as f:
-        reader = csv.reader(f, delimiter='\t')
+        reader = csv.reader(f, delimiter="\t")
         for line in reader:
-            #b_numbers.append(line[1])
+            # b_numbers.append(line[1])
             symbols.append(line[2])
 
     geos = []
@@ -114,16 +156,27 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
 
     included_sample = []
     with open(SAMPLES_FILE) as f:
-        reader = csv.reader(f, delimiter='\t')
+        reader = csv.reader(f, delimiter="\t")
         header = next(reader)
         geo_idx = header.index("GEO accession")
         cel_idx = header.index("CEL file name")
         author_idx = header.index("Author")
         strain_idx = header.index("Strain")
         medium_idx = header.index("Medium")
-        treatment_idxs = (header.index("Treatment (value)"), header.index("Treatment (conditions)"), header.index("Time (min)"))
-        gene_perturb_idxs = (header.index("Gene perturbated"), header.index("Type of perturbation"))
-        perturb_flags = (header.index("Environmental perturbations"), header.index("Genetic perturbations"), header.index("Arrays in WT condition"))
+        treatment_idxs = (
+            header.index("Treatment (value)"),
+            header.index("Treatment (conditions)"),
+            header.index("Time (min)"),
+        )
+        gene_perturb_idxs = (
+            header.index("Gene perturbated"),
+            header.index("Type of perturbation"),
+        )
+        perturb_flags = (
+            header.index("Environmental perturbations"),
+            header.index("Genetic perturbations"),
+            header.index("Arrays in WT condition"),
+        )
         gr_idx = header.index("Growth rate (1/h)")
 
         for i, line in enumerate(reader):
@@ -132,10 +185,18 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                     continue
 
             if no_pathogen:
-                disease_strains = ['EDL933', '86-24', 'VS94',
-                    'CFT073', 'UTI89', 'EHEC', 'KMD', 'B41',
-                    'APEC']
-                if 'O157' in line[strain_idx]:
+                disease_strains = [
+                    "EDL933",
+                    "86-24",
+                    "VS94",
+                    "CFT073",
+                    "UTI89",
+                    "EHEC",
+                    "KMD",
+                    "B41",
+                    "APEC",
+                ]
+                if "O157" in line[strain_idx]:
                     continue
                 if line[strain_idx] in disease_strains:
                     continue
@@ -152,11 +213,8 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                     # Paper says evolved stress
                     continue
 
-
             if no_gene_perturb:
-                gene_perturb_annotated_right = [
-                    "GSE21995", "GSE22829"
-                ]
+                gene_perturb_annotated_right = ["GSE21995", "GSE22829"]
                 if line[perturb_flags[1]] == "1":
                     continue
                 if line[strain_idx] == "P4XB2":
@@ -169,7 +227,7 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                     continue
                 if line[author_idx] == "J. Faith":
                     if line[cel_idx] in ["GSM157595", "GSM157596"]:
-                        continue # lucU overexpression, don't rly need these two bc lots of J. Faith normal LB samples already
+                        continue  # lucU overexpression, don't rly need these two bc lots of J. Faith normal LB samples already
                 if line[author_idx] == "S. Durand":
                     if line[cel_idx] in ["GSM490262", "GSM490264", "GSM490266"]:
                         continue
@@ -190,12 +248,23 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                     if line[gene_perturb_idxs[0]] == "IPTG":
                         continue
                 if line[author_idx] == "M. Kohanski":
-                    if line[treatment_idxs[1]] in ['ampicillin', 'kanamycin', 'norfloxacin', 'spectinomycin']:
+                    if line[treatment_idxs[1]] in [
+                        "ampicillin",
+                        "kanamycin",
+                        "norfloxacin",
+                        "spectinomycin",
+                    ]:
                         continue
                 if line[author_idx] == "D. Dwyer":
-                    if line[treatment_idxs[1]] in ['norfloxacin', 'nor chelator',
-                                                    "UV", "MMC", "ciprofloxacin", "chelator"]:
-                        continue # For chelator, also shows not rly growing bc it has ccdB toxin upregulation
+                    if line[treatment_idxs[1]] in [
+                        "norfloxacin",
+                        "nor chelator",
+                        "UV",
+                        "MMC",
+                        "ciprofloxacin",
+                        "chelator",
+                    ]:
+                        continue  # For chelator, also shows not rly growing bc it has ccdB toxin upregulation
                 if "biofilm" in line[treatment_idxs[1]]:
                     continue
                 if "stationary" in line[treatment_idxs[2]]:
@@ -223,8 +292,8 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                 if line[author_idx] == "H. Lee":
                     # TODO: can't find publication, plus most are antibiotics, so just skip
                     continue
-                    #if line[cel_idx] not in ["PR00099", "PR00100"]
-                    #if line[treatment_idxs[1]] in ["amp", "gent", "norf", "spec", "tetracycline"]:
+                    # if line[cel_idx] not in ["PR00099", "PR00100"]
+                    # if line[treatment_idxs[1]] in ["amp", "gent", "norf", "spec", "tetracycline"]:
                 if line[author_idx] == "T. Allen":
                     if line[treatment_idxs[1]] in ["ciprofloxacin", "glu, heat shock"]:
                         continue
@@ -239,8 +308,8 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                 if line[author_idx] == "A. Ito":
                     if line[treatment_idxs[2]] == "stationary":
                         continue
-                    if 'rpoS' in line[gene_perturb_idxs[0]]:
-                        continue # Not annotated as gene-perturbation
+                    if "rpoS" in line[gene_perturb_idxs[0]]:
+                        continue  # Not annotated as gene-perturbation
                 if line[author_idx] == "J. Oberto":
                     if line[treatment_idxs[1]] in ["stationary", "transition"]:
                         continue
@@ -291,16 +360,16 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                     # Used erythromycin, which stops growth
                     continue
                 if line[medium_idx] == "BHI Agar":
-                    continue # Paper said grown after overnight, might be stationary phase?? also shows high deviations.
-                #if line[author_idx] == "B. Mensa":
+                    continue  # Paper said grown after overnight, might be stationary phase?? also shows high deviations.
+                # if line[author_idx] == "B. Mensa":
                 #    if line[treatment_idxs[1]] in ["polymyxin B", "PMX10070"]:
-                        # TODO: maybe still remove B. Mensa this? could help look at stress response,
-                        # but see what it looks like in actual graphs
-                        # genes. Causes only a slight
-                        # attenuation in growth.
-                        # Maybe keep all antimicrobials which don't kill or stop
-                        # growth completely?
-                        #continue
+                # TODO: maybe still remove B. Mensa this? could help look at stress response,
+                # but see what it looks like in actual graphs
+                # genes. Causes only a slight
+                # attenuation in growth.
+                # Maybe keep all antimicrobials which don't kill or stop
+                # growth completely?
+                # continue
                 if line[geo_idx] == "GSE34275":
                     # Paper says is actually staionary or long-term stationary phase growth
                     continue
@@ -312,7 +381,7 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                     # CHIR-090 is at 10x MIC, so kills the cells.
                     # Adding the extra three DMSO samples probably doesn't do much, so we'll take those out as well.
                     # TODO: whether to keep the DMSO? it seems to cause some slight differences in e.g. purC, but
-                    # that's probably just due to condition effects bc CHIR-090 does the same thing. 
+                    # that's probably just due to condition effects bc CHIR-090 does the same thing.
                     continue
 
             if "magnetic field" in line[treatment_idxs[1]]:
@@ -330,24 +399,30 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
             if "microgravity" in line[treatment_idxs[1]]:
                 continue
             if line[medium_idx] == "K medium":
-                if line[cel_idx] in ["GSM183473", "GSM183490", "GSM183493", "GSM183496", "GSM183499"]:
+                if line[cel_idx] in [
+                    "GSM183473",
+                    "GSM183490",
+                    "GSM183493",
+                    "GSM183496",
+                    "GSM183499",
+                ]:
                     continue
 
-        # TODO: take glucose out of LB, but check where u should add it back in! Check each LB media to find what the added
-        # carbon source is, if there is one!
-        # K. Aggrawal what to do? (ok bc most r genotype so skip)
-        # TODO: J. Faith EMG2, LB has glucose concentration annotation
-        # what to do about J. Winkler tetracycline? not sure so keep out for now
-        # TODO: whether to keep antibiotic stuff like D. Dwyer?
-        # TODO: get all the 0 time and replace with nothing treatment, e.g. J. faith, etc.
-        # TODO: maybe add K. Anderson ampicillin if the cells are still growign then?
-        # TODO: K medium doesn't have K+. Maybe could use K+ then as a component? check genes
-        # TODO: Na+ not in M63 medium apparently, so maybe could use that as a component? check genes
+            # TODO: take glucose out of LB, but check where u should add it back in! Check each LB media to find what the added
+            # carbon source is, if there is one!
+            # K. Aggrawal what to do? (ok bc most r genotype so skip)
+            # TODO: J. Faith EMG2, LB has glucose concentration annotation
+            # what to do about J. Winkler tetracycline? not sure so keep out for now
+            # TODO: whether to keep antibiotic stuff like D. Dwyer?
+            # TODO: get all the 0 time and replace with nothing treatment, e.g. J. faith, etc.
+            # TODO: maybe add K. Anderson ampicillin if the cells are still growign then?
+            # TODO: K medium doesn't have K+. Maybe could use K+ then as a component? check genes
+            # TODO: Na+ not in M63 medium apparently, so maybe could use that as a component? check genes
 
             included_sample.append(i)
             geos.append(line[geo_idx])
-            if line[author_idx] == '':
-                authors.append('Not found')
+            if line[author_idx] == "":
+                authors.append("Not found")
             else:
                 authors.append(line[author_idx])
 
@@ -364,7 +439,6 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                 media.append("minimal medium salts")
             else:
                 media.append(line[medium_idx])
-
 
             if line[author_idx] == "G. Kannan":
                 if line[treatment_idxs[2]] == "0":
@@ -383,7 +457,7 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                     treatment = "5g/L 1mM" + "D-glucose thiamine"
                     component = "D-glucose thiamine"
             elif line[author_idx] == "Y. Li":
-                if line[treatment_idxs[1]] == 'glucose saline':
+                if line[treatment_idxs[1]] == "glucose saline":
                     treatment = "4g/L" + "glucose"
                     component = "glucose"
             elif line[author_idx] == "L. Nobre":
@@ -405,13 +479,23 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                 treatment = "furfural"
                 component = "furfural"
             elif line[geo_idx] == "GSE37026":
-                if line[cel_idx] in ["GSM909096", "GSM909098", "GSM909100", "GSM909102"]:
+                if line[cel_idx] in [
+                    "GSM909096",
+                    "GSM909098",
+                    "GSM909100",
+                    "GSM909102",
+                ]:
                     treatment = "colicin M"
                     component = "colicin M"
             elif line[medium_idx] == "K medium":
                 if line[cel_idx] in ["GSM175728", "GSM183488", "GSM183494"]:
                     treatment = "glucose 30C methionine"
-                elif line[cel_idx] in ["GSM175737", "GSM183470", "GSM183489", "GSM183495"]:
+                elif line[cel_idx] in [
+                    "GSM175737",
+                    "GSM183470",
+                    "GSM183489",
+                    "GSM183495",
+                ]:
                     treatment = "glucose 30C methionine highOsm"
                 elif line[cel_idx] in ["GSM183471", "GSM183491", "GSM183497"]:
                     treatment = "glucose 43C methionine"
@@ -423,31 +507,31 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                 component = line[treatment_idxs[1]]
 
             treatment = REPLACE_TREATMENT.get(treatment, treatment)
-            #if treatment in REPLACE_TREATMENT:
+            # if treatment in REPLACE_TREATMENT:
             #    treatments.append(REPLACE_TREATMENT[treatment])
-            #else:
+            # else:
             #    treatments.append(treatment)
             time = line[treatment_idxs[2]]
             time = REPLACE_TIME.get(time, time)
             treatment = TIME_TO_TREATMENT.get(time, treatment)
-            #if time in TIME_TO_TREATMENT:
+            # if time in TIME_TO_TREATMENT:
             #    treatment = TIME_TO_TREATMENT[time]
-            #if line[treatment_idxs[2]] in REPLACE_TIME:
+            # if line[treatment_idxs[2]] in REPLACE_TIME:
             #    time.append(REPLACE_TIME[line[treatment_idxs[2]]])
-            #else:
+            # else:
             #    time.append(line[treatment_idxs[2]])
             gene = line[gene_perturb_idxs[0]] + line[gene_perturb_idxs[1]]
             gene = REPLACE_GENE.get(gene, gene)
             gene_perturb.append(gene)
-            #if gene in REPLACE_GENE:
+            # if gene in REPLACE_GENE:
             #    gene_perturb.append(REPLACE_GENE[gene])
-            #else:
+            # else:
             #    gene_perturb.append(gene)
             if gene in GENE_TO_TREATMENT:
                 treatment = GENE_TO_TREATMENT[gene]
-                gene_perturb[-1] = ''
+                gene_perturb[-1] = ""
 
-            treatment_all = treatment+time
+            treatment_all = treatment + time
             treatments.append(treatment_all)
             is_env.append(int(line[perturb_flags[0]]))
             is_genetic.append(int(line[perturb_flags[1]]))
@@ -459,58 +543,71 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
     seq_data = []
     for filename in SEQ_FILES:
         path = os.path.join(SEQ_DIR, filename)
-        with open(path, 'r') as f:
-            reader = csv.reader(f, delimiter='\t')
+        with open(path, "r") as f:
+            reader = csv.reader(f, delimiter="\t")
             seq_data.append(list(reader))
 
     data = np.hstack(seq_data).astype(np.float64)
     data = data[:, included_sample]
 
     ### Make vectorized samples
-    dont_split = ["response control - water added", "response control - H2O2",
-                  "propylene glycol", "polymyxin B", "nalidixic acid",
-                  "negative control", "magnetic field - sinusoidal continuous",
-                  "magnetic field - sinusoidal intermittent", "magnetic field - powerline intermittent",
-                  "casamino acids", "heat shock", 'clinostat - microgravity', 'biofilm with R1drd19 plasmid',
-                  'acid shock', "pH 8.7", "KCl acid shift", "colicin M"]
+    dont_split = [
+        "response control - water added",
+        "response control - H2O2",
+        "propylene glycol",
+        "polymyxin B",
+        "nalidixic acid",
+        "negative control",
+        "magnetic field - sinusoidal continuous",
+        "magnetic field - sinusoidal intermittent",
+        "magnetic field - powerline intermittent",
+        "casamino acids",
+        "heat shock",
+        "clinostat - microgravity",
+        "biofilm with R1drd19 plasmid",
+        "acid shock",
+        "pH 8.7",
+        "KCl acid shift",
+        "colicin M",
+    ]
 
-    convert_comp = {"norf": "norfloxacin",
-                    "iptg": "IPTG",
-                    "arab": "arabinose",
-                    "pH 8.7": "pH8.7",
-                    "response control - H2O2": "H2O2",
-                    "nor": "norfloxacin",
-                    "D-glucose": "glucose",
-                    "+O2": None,  # TODO: check this, should we default everything to aerobic
-                    "aerobic": None,  # TODO: check this
-                    "spec": "spectinomycin",
-                    "EtOH": "ethanol",  # TODO: check this
-                    "control": None,  # TODO: check this,
-                    "amp": "ampicillin",
-                    "negative control": None,  # TODO: check this,
-                    "acid shock": "pH2",  # for 10 min? TODO: check this
-                    "pH": "pH2",  # for 10 min?
-                    "gent": "gentamicin",
-                    "-O2": "anaerobic",
-                    "glu": "glucose",
-                    "ASN": "acidified-sodium-nitrate",
-                    "AI-3": "autoinducer-3",
-                    "saline": "NaCl",
-                    "KCl acid shift": "pH5.5",
-                    "gly": "glycerol",
-                    "AI2": "autoinducer-2",
-                    "temperature": "low-temp",
-                    "response control - water added": None,
-                    "H202": "H2O2",
-                    "MMC": "mitomycin-C",
-                    "Cm": "chloramphenicol",  # TODO: check whether they used Kanamycin in the exp too? https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2655446/
-                    "polymyxin B": "polymyxin-B",
-                    "glu,": "glucose",
-                    "chelator": "iron-chelator",
-                    "HU": "hydroxyurea",
-                    "pH7": None,
-
-                    }
+    convert_comp = {
+        "norf": "norfloxacin",
+        "iptg": "IPTG",
+        "arab": "arabinose",
+        "pH 8.7": "pH8.7",
+        "response control - H2O2": "H2O2",
+        "nor": "norfloxacin",
+        "D-glucose": "glucose",
+        "+O2": None,  # TODO: check this, should we default everything to aerobic
+        "aerobic": None,  # TODO: check this
+        "spec": "spectinomycin",
+        "EtOH": "ethanol",  # TODO: check this
+        "control": None,  # TODO: check this,
+        "amp": "ampicillin",
+        "negative control": None,  # TODO: check this,
+        "acid shock": "pH2",  # for 10 min? TODO: check this
+        "pH": "pH2",  # for 10 min?
+        "gent": "gentamicin",
+        "-O2": "anaerobic",
+        "glu": "glucose",
+        "ASN": "acidified-sodium-nitrate",
+        "AI-3": "autoinducer-3",
+        "saline": "NaCl",
+        "KCl acid shift": "pH5.5",
+        "gly": "glycerol",
+        "AI2": "autoinducer-2",
+        "temperature": "low-temp",
+        "response control - water added": None,
+        "H202": "H2O2",
+        "MMC": "mitomycin-C",
+        "Cm": "chloramphenicol",  # TODO: check whether they used Kanamycin in the exp too? https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2655446/
+        "polymyxin B": "polymyxin-B",
+        "glu,": "glucose",
+        "chelator": "iron-chelator",
+        "HU": "hydroxyurea",
+        "pH7": None,
+    }
     all_split_components = []
     for sample in components:
         split_components = []
@@ -518,7 +615,7 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
         for x in dont_split:
             if x in name:
                 split_components.append(x)
-                name = name.replace(x, ' ')
+                name = name.replace(x, " ")
 
         split_components.extend(name.split())
         all_split_components.append(split_components)
@@ -527,11 +624,11 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
     for x in all_split_components:
         all_split_components_converted.append([convert_comp.get(y, y) for y in x if y])
 
-
-
     # Convert to compositions
     media_comps = MediaComps()
-    all_components_converted = media_comps.convert_to_composition(all_split_components_converted)
+    all_components_converted = media_comps.convert_to_composition(
+        all_split_components_converted
+    )
 
     # Get unique sets
     unique_components = set()
@@ -613,12 +710,12 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
                 # that would be relevant to tdc operon
                 x.append("anaerobic-threonine")
                 unique_components.add("anaerobic-threonine")
-            if 'molybdate' in x:
+            if "molybdate" in x:
                 x.append("molybdate-anaerobic")
                 unique_components.add("molybdate-anaerobic")
         if "fatty acids" in x:
             if "anaerobic" not in x:
-                x.append('fatty acids-aerobic')
+                x.append("fatty acids-aerobic")
 
     # Get all compounds
     total_compounds = set(all_media_compounds)
@@ -635,36 +732,40 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
     # TODO: LB with no glucose too for alternative carbon sources!
     # TODO: ethanol? bicarbonate?
     # TODO: do smth about the carbon source issue?
-    #carbon_sources = ['gluconate', 'sucrose', 'succinate', 'glucose', 'fumarate', 'mannitol', 'lactate',
+    # carbon_sources = ['gluconate', 'sucrose', 'succinate', 'glucose', 'fumarate', 'mannitol', 'lactate',
     #                  'propylene glycol', 'acetate', 'glycerol', 'citrate', 'arabinose', 'glycerophosphate', 'inositol',
     #                  'proline']
 
-     #no_carbon_source = []
-     #for i, x in enumerate(all_components_together):
-     #   has_c = False
-     #   for y in carbon_sources:
-     #       if y in x:
-     #           has_c = True
-     #           break
-     #   if not has_c:
-     #       no_carbon_source.append(i)
+    # no_carbon_source = []
+    # for i, x in enumerate(all_components_together):
+    #   has_c = False
+    #   for y in carbon_sources:
+    #       if y in x:
+    #           has_c = True
+    #           break
+    #   if not has_c:
+    #       no_carbon_source.append(i)
 
-    #minimal_no_carbon = [i for i in no_carbon_source if media_converted[i] == "M9" or media_converted[i] == "MOPS"]
-    #chemical_minimal_no_carbon = [chemicals[i] for i in minimal_no_carbon]
+    # minimal_no_carbon = [i for i in no_carbon_source if media_converted[i] == "M9" or media_converted[i] == "MOPS"]
+    # chemical_minimal_no_carbon = [chemicals[i] for i in minimal_no_carbon]
     # TODO: check these, also maybe redo the operations before with new chemicals maybe
     # TODO: should check if the pH 5.3 or 5.7, treating that as a pH5 acidic, whether that messes up the acidic statistics
-    #for i in minimal_no_carbon:
+    # for i in minimal_no_carbon:
     #    all_components_together[i].append('glucose')
 
     # TODO: divide compounds into aas, carbon source, N source, antibiotic, etc.
 
     # Vectorize the treatments
-    vectorized_treatments = np.zeros((len(all_components_together), len(total_compounds)))
+    vectorized_treatments = np.zeros(
+        (len(all_components_together), len(total_compounds))
+    )
     for i, treat in enumerate(all_components_together):
         vectorized_treatments[i, :] = np.isin(total_compounds, treat)
 
     # Combine molecules that are always co-present
-    reduced_vectorized_treatments, inverse = np.unique(vectorized_treatments, axis=1, return_inverse=True)
+    reduced_vectorized_treatments, inverse = np.unique(
+        vectorized_treatments, axis=1, return_inverse=True
+    )
     # Where 1 appears in inverse, is where the 1-index pattern of reduced_vectorized_treatments' components appears in total_compounds
     # So, for each number in inverse, combine the places where it is
     reduced_total_components = []
@@ -680,25 +781,31 @@ def load_data_exclude_rewiring(no_pathogen=True, no_evolved=True, no_rewiring=Tr
     #     # Also early stationary phase, but maybe could use??)
     # TODO: fix the LB, which ones have glucose, etc.
 
-    return (symbols, {
-        "geos": np.array(geos),
-        "authors": np.array(authors),
-        "strains": np.array(strains),
-        "media": np.array(media),
-        "treatments": np.array(treatments),
-        "gene_perturb": np.array(gene_perturb),
-        "is_env": np.array(is_env),
-        "is_genetic": np.array(is_genetic),
-        "is_WT": np.array(is_WT),
-        "gr": np.array(gr)}, data,
-            reduced_vectorized_treatments,
-            reduced_total_components)
+    return (
+        symbols,
+        {
+            "geos": np.array(geos),
+            "authors": np.array(authors),
+            "strains": np.array(strains),
+            "media": np.array(media),
+            "treatments": np.array(treatments),
+            "gene_perturb": np.array(gene_perturb),
+            "is_env": np.array(is_env),
+            "is_genetic": np.array(is_genetic),
+            "is_WT": np.array(is_WT),
+            "gr": np.array(gr),
+        },
+        data,
+        reduced_vectorized_treatments,
+        reduced_total_components,
+    )
+
 
 def load_PRECISE2_data():
     seq_data = []
     symbols = []
-    with open(PRECISE2_SEQ_FILE, 'r') as f:
-        reader = csv.reader(f, delimiter=',')
+    with open(PRECISE2_SEQ_FILE, "r") as f:
+        reader = csv.reader(f, delimiter=",")
         next(reader)
         for row in reader:
             seq_data.append([int(x) for x in row[1:]])
@@ -969,18 +1076,19 @@ def load_PRECISE2_data():
 #     # So generally, the property is presence or absence of some compound, and combinations of this.
 #     # We run into issues for things like
 
+
 def load_gene_synonyms():
-    #synonyms = []
-    #with open(GENE_SYNONYMS_FILE, 'r') as f:
+    # synonyms = []
+    # with open(GENE_SYNONYMS_FILE, 'r') as f:
     #    lines = f.readlines()
     #    for line in lines:
     #        synonyms.append(line.split()[1:])
 
-    #return synonyms
+    # return synonyms
     b_numbers = []
     symbols = []
     with open(GENE_NAMES_FILE) as f:
-        reader = csv.reader(f, delimiter='\t')
+        reader = csv.reader(f, delimiter="\t")
         for line in reader:
             b_numbers.append(line[1])
             symbols.append(line[2])
@@ -994,59 +1102,142 @@ def make_table(samples, sample_data):
         transform = np.array([np.where(unique == x)[0][0] for x in specific], dtype=int)
         return unique, transform
 
-    unique_authors, author_idx = extract_info(sample_data['authors'], samples['authors'])
-    unique_media, media_idx = extract_info(sample_data['media'], samples['media'])
-    unique_strains, strains_idx = extract_info(sample_data['strains'], samples['strains'])
-    unique_treatments, treatments_idx = extract_info(sample_data['treatments'], samples['treatments'])
-    gr = samples['gr']
-    unique_gene, gene_idx = extract_info(sample_data['gene_perturb'], samples['gene_perturb'])
+    unique_authors, author_idx = extract_info(
+        sample_data["authors"], samples["authors"]
+    )
+    unique_media, media_idx = extract_info(sample_data["media"], samples["media"])
+    unique_strains, strains_idx = extract_info(
+        sample_data["strains"], samples["strains"]
+    )
+    unique_treatments, treatments_idx = extract_info(
+        sample_data["treatments"], samples["treatments"]
+    )
+    gr = samples["gr"]
+    unique_gene, gene_idx = extract_info(
+        sample_data["gene_perturb"], samples["gene_perturb"]
+    )
 
-    total_data = {"authors": author_idx, "media": media_idx, "strains": strains_idx,
-                    "treatments": treatments_idx, "gr": gr, "gene": gene_idx}
-    total_info = {"authors": unique_authors, "media": unique_media, "strains": unique_strains,
-                    "treatments": unique_treatments, "gene": unique_gene}
+    total_data = {
+        "authors": author_idx,
+        "media": media_idx,
+        "strains": strains_idx,
+        "treatments": treatments_idx,
+        "gr": gr,
+        "gene": gene_idx,
+    }
+    total_info = {
+        "authors": unique_authors,
+        "media": unique_media,
+        "strains": unique_strains,
+        "treatments": unique_treatments,
+        "gene": unique_gene,
+    }
 
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()
     return total_data, total_info
+
 
 def test_bootstrap(sample_data):
     total_data, total_info = make_table(sample_data, sample_data)
 
     fig, axs = plt.subplots(10, figsize=(5, 50))
     for i in range(10):
-        scores, _ = RnaseqUtils().group_bootstrap(score=100, group_A_size=100, group_B_size=10, all_samples=total_data)
-        n_bins = int(np.ceil((np.max(scores) - np.min(scores)) / (2 * stats.iqr(scores) / len(scores)**(1/3))))
+        scores, _ = RnaseqUtils().group_bootstrap(
+            score=100, group_A_size=100, group_B_size=10, all_samples=total_data
+        )
+        n_bins = int(
+            np.ceil(
+                (np.max(scores) - np.min(scores))
+                / (2 * stats.iqr(scores) / len(scores) ** (1 / 3))
+            )
+        )
         axs[i].hist(scores, bins=n_bins)
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, "test_group_bootstrap"))
-    plt.close('all')
-    import ipdb; ipdb.set_trace()
+    plt.close("all")
+    import ipdb
+
+    ipdb.set_trace()
+
 
 def test_classify(sample_data):
     total_data, total_info = make_table(sample_data, sample_data)
 
     fig, axs = plt.subplots(10, figsize=(5, 50))
     for i in range(10):
-        scores, _ = ClassifyScore().bootstrap(1, 100, 100, total_data, features=['media', 'authors'])
-        n_bins = int(np.ceil((np.max(scores) - np.min(scores)) / (2 * stats.iqr(scores) / len(scores)**(1/3))))
+        scores, _ = ClassifyScore().bootstrap(
+            1, 100, 100, total_data, features=["media", "authors"]
+        )
+        n_bins = int(
+            np.ceil(
+                (np.max(scores) - np.min(scores))
+                / (2 * stats.iqr(scores) / len(scores) ** (1 / 3))
+            )
+        )
         axs[i].hist(scores, bins=n_bins)
         axs[i].set_xlim(0, 1)
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, "test_classify_bootstrap"))
-    plt.close('all')
+    plt.close("all")
 
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()
+
 
 # I have many samples, each sample has many gene expression data. Want to parameterize
 # some genes being controlled by transcription factors. So first look into the sample data.
 def classify_samples(sample_data, method="media"):
-    geos, media, treatment_values, treatment_conditions, treatment_time, \
-    gene_perturb_id, gene_perturb_dir, is_env, is_genetic, is_WT, gr = sample_data
-    condition = [x for x in zip(media, treatment_values, treatment_conditions, treatment_time, gene_perturb_id, gene_perturb_dir)]
-    condition_with_gr = [x for x in zip(media, treatment_values, treatment_conditions, treatment_time, gene_perturb_id, gene_perturb_dir, gr)]
-    condition_no_time = [x for x in zip(media, treatment_values, treatment_conditions, gene_perturb_id, gene_perturb_dir)]
+    (
+        geos,
+        media,
+        treatment_values,
+        treatment_conditions,
+        treatment_time,
+        gene_perturb_id,
+        gene_perturb_dir,
+        is_env,
+        is_genetic,
+        is_WT,
+        gr,
+    ) = sample_data
+    condition = [
+        x
+        for x in zip(
+            media,
+            treatment_values,
+            treatment_conditions,
+            treatment_time,
+            gene_perturb_id,
+            gene_perturb_dir,
+        )
+    ]
+    condition_with_gr = [
+        x
+        for x in zip(
+            media,
+            treatment_values,
+            treatment_conditions,
+            treatment_time,
+            gene_perturb_id,
+            gene_perturb_dir,
+            gr,
+        )
+    ]
+    condition_no_time = [
+        x
+        for x in zip(
+            media,
+            treatment_values,
+            treatment_conditions,
+            gene_perturb_id,
+            gene_perturb_dir,
+        )
+    ]
     media_types = list(set(media))
     all_conditions = list(set(condition))
     all_conditions_with_gr = list(set(condition_with_gr))
@@ -1054,8 +1245,12 @@ def classify_samples(sample_data, method="media"):
 
     sample_to_media = np.array([media_types.index(medium) for medium in media])
     sample_to_condition = np.array([all_conditions.index(x) for x in condition])
-    sample_to_condition_gr = np.array([all_conditions_with_gr.index(x) for x in condition_with_gr])
-    sample_to_condition_no_time = np.array([all_conditions_no_time.index(x) for x in condition_no_time])
+    sample_to_condition_gr = np.array(
+        [all_conditions_with_gr.index(x) for x in condition_with_gr]
+    )
+    sample_to_condition_no_time = np.array(
+        [all_conditions_no_time.index(x) for x in condition_no_time]
+    )
 
     if method == "media":
         return sample_to_media, np.array(media_types)
@@ -1074,8 +1269,9 @@ def average_exp(expression, sample_data, method="media"):
     classification, types = classify_samples(sample_data, method=method)
     averaged_exp = np.zeros((np.shape(expression)[0], len(np.unique(classification))))
     for i in np.unique(classification):
-        averaged_exp[:, i] = np.mean(expression[:, (classification==i)], axis=1)
+        averaged_exp[:, i] = np.mean(expression[:, (classification == i)], axis=1)
     return averaged_exp, types
+
 
 def get_gene_exp(symbols, seq_data, gene_idxs=None, gene_names=None):
     if gene_names is not None:
@@ -1086,6 +1282,7 @@ def get_gene_exp(symbols, seq_data, gene_idxs=None, gene_names=None):
     expression = np.array(seq_data[gene_idxs, :])
     return gene_names, expression
 
+
 def get_one_gene_exp(symbols, seq_data, gene_idx=None, gene_name=None):
     if gene_name is not None:
         gene_idx = symbols.index(gene_name)
@@ -1094,6 +1291,7 @@ def get_one_gene_exp(symbols, seq_data, gene_idx=None, gene_name=None):
 
     expression = np.array(seq_data[gene_idx, :])
     return gene_name, expression
+
 
 # If we assumed good representation of all conditions that might cause a regulated TF to turn on.
 # Then we'd see that if a TF is regulated and indeed has two states that differ
@@ -1114,6 +1312,7 @@ def get_one_gene_exp(symbols, seq_data, gene_idx=None, gene_name=None):
 # If it fits a Gaussian, that means doesn't have a big tail, so it could
 # possibly be not regulated.
 
+
 def compare_stimulon(idxs1, idxs2, sample_data):
     sample_data_1 = {}
     sample_data_2 = {}
@@ -1123,7 +1322,7 @@ def compare_stimulon(idxs1, idxs2, sample_data):
         sample_data_2[k] = v[idxs2]
 
     stimulon_1, info = make_table(sample_data_1, sample_data)
-    stimulon_2,_ = make_table(sample_data_2, sample_data)
+    stimulon_2, _ = make_table(sample_data_2, sample_data)
     sample_table, _ = make_table(sample_data, sample_data)
 
     # So we've gotten the stimulons (the table of features) from the idxs, and ran the
@@ -1148,7 +1347,9 @@ def compare_stimulon_classify(idxs1, idxs2, sample_data, features_tuple):
     results = {}
     classifiers = {}
     for features in features_tuple:
-        score, p_value, classify = ClassifyScore().run_test(stimulon_1, stimulon_2, sample_table, features)
+        score, p_value, classify = ClassifyScore().run_test(
+            stimulon_1, stimulon_2, sample_table, features
+        )
         results[tuple(features)] = (score, p_value)
 
         classify_info = {}
@@ -1160,7 +1361,14 @@ def compare_stimulon_classify(idxs1, idxs2, sample_data, features_tuple):
 
     return results, classifiers
 
-def compare_tail_stimulon_classify(gene_names, all_genes, seq_data, sample_data, features_tuple=(['authors'], ['strains'], ['media'], ['treatments'], ['gene'])):
+
+def compare_tail_stimulon_classify(
+    gene_names,
+    all_genes,
+    seq_data,
+    sample_data,
+    features_tuple=(["authors"], ["strains"], ["media"], ["treatments"], ["gene"]),
+):
     _, expression = get_gene_exp(all_genes, seq_data, gene_names=gene_names)
 
     all_results = []
@@ -1171,14 +1379,18 @@ def compare_tail_stimulon_classify(gene_names, all_genes, seq_data, sample_data,
         std = np.std(exp)
         big_idxs = np.where(exp > mean + 1.3 * std)[0]
         small_idxs = np.where(exp < mean - 1.3 * std)[0]
-        results, classifiers = compare_stimulon_classify(big_idxs, small_idxs, sample_data, features_tuple)
+        results, classifiers = compare_stimulon_classify(
+            big_idxs, small_idxs, sample_data, features_tuple
+        )
         all_results.append(results)
         all_classifiers.append(classifiers)
         sizes.append((len(big_idxs), len(small_idxs)))
 
-    import ipdb;
+    import ipdb
+
     ipdb.set_trace()
     return all_results, sizes
+
 
 # def compare_tail_stimulons(gene_names, all_genes, seq_data, sample_data):
 #     # TODO: can't use averaging here because then the indexes of exp wouldn't match
@@ -1202,24 +1414,27 @@ def compare_tail_stimulon_classify(gene_names, all_genes, seq_data, sample_data,
 #     import ipdb; ipdb.set_trace()
 #     return scores, ps, sizes
 
-def compare_tail_stimulon_enrichment(gene_name, cutoff, all_genes, seq_data, sample_data):
-    #total_compounds, vectorized_treatments = test_treatments()
-    #compare_components = CompareComponents(total_compounds, vectorized_treatments)
+
+def compare_tail_stimulon_enrichment(
+    gene_name, cutoff, all_genes, seq_data, sample_data
+):
+    # total_compounds, vectorized_treatments = test_treatments()
+    # compare_components = CompareComponents(total_compounds, vectorized_treatments)
 
     _, expression = get_gene_exp(all_genes, seq_data, gene_names=[gene_name])
 
-    media = sample_data['media']
-    treatments = sample_data['treatments']
-    authors = sample_data['authors']
-    strains = sample_data['strains']
-    #enriched = []
-    #depleted = []
+    media = sample_data["media"]
+    treatments = sample_data["treatments"]
+    authors = sample_data["authors"]
+    strains = sample_data["strains"]
+    # enriched = []
+    # depleted = []
     fractions = []
     cdfs = []
     sizes = []
     for i, exp in enumerate(expression):
-        #mean = np.mean(exp)
-        #std = np.std(exp)
+        # mean = np.mean(exp)
+        # std = np.std(exp)
         big_idxs = np.where(exp > cutoff)[0]
         small_idxs = np.where(exp <= cutoff)[0]
 
@@ -1232,10 +1447,10 @@ def compare_tail_stimulon_enrichment(gene_name, cutoff, all_genes, seq_data, sam
         small_strains = np.array(strains)[small_idxs]
         big_strains = np.array(strains)[big_idxs]
 
-        #big_enriched, big_depleted, big_fractions = compare_components.compare(vectorized_treatments[big_idxs])
-        #small_enriched, small_depleted, small_fractions = compare_components.compare(vectorized_treatments[small_idxs])
-        #enriched.append((big_enriched, small_enriched))
-        #depleted.append((big_depleted, small_depleted))
+        # big_enriched, big_depleted, big_fractions = compare_components.compare(vectorized_treatments[big_idxs])
+        # small_enriched, small_depleted, small_fractions = compare_components.compare(vectorized_treatments[small_idxs])
+        # enriched.append((big_enriched, small_enriched))
+        # depleted.append((big_depleted, small_depleted))
 
         # big_cdfs, big_fractions = compare_components.compare(vectorized_treatments[big_idxs])
         # small_cdfs, small_fractions = compare_components.compare(vectorized_treatments[small_idxs])
@@ -1243,52 +1458,65 @@ def compare_tail_stimulon_enrichment(gene_name, cutoff, all_genes, seq_data, sam
         # cdfs.append((big_cdfs, small_cdfs))
         # sizes.append((len(big_idxs), len(small_idxs)))
 
+        import ipdb
 
-        import ipdb; ipdb.set_trace()
+        ipdb.set_trace()
 
 
-
-def gene_exp_hist(gene_names, all_genes, seq_data, sample_data, title, avg_method=None):
+def gene_exp_hist(
+    gene_names,
+    all_genes,
+    seq_data,
+    sample_data,
+    title,
+    avg_method=None,
+    has_gaussian=None,
+):
     _, expression = get_gene_exp(all_genes, seq_data, gene_names=gene_names)
     avg_expression, types = average_exp(expression, sample_data, method=avg_method)
 
     n_genes = len(gene_names)
-    #is_WT = np.array(sample_data['is_WT'])
-    #WT_exp = expression[:, np.where(is_WT)[0]]
+    # is_WT = np.array(sample_data['is_WT'])
+    # WT_exp = expression[:, np.where(is_WT)[0]]
     mean = np.mean(avg_expression, axis=1)
     std = np.std(avg_expression, axis=1)
 
     n_bins = PlotUtils().n_bins
-    fig, axs = plt.subplots(n_genes, figsize=(5, 5*n_genes))
+    fig, axs = plt.subplots(n_genes, figsize=(5, 5 * n_genes))
     for i, (exp, gene) in enumerate(zip(expression, gene_names)):
-        #axs[i % 50, int(i/50)].hist(exp, bins=n_bins(exp))
+        # axs[i % 50, int(i/50)].hist(exp, bins=n_bins(exp))
         axs[i].hist(exp, bins=n_bins(exp))
         axs[i].set_xlim(0, 15)
-        axs[i].set_title(str(gene))
-        axs[i].set_xlabel("Log2(gene expression fraction), arbitrary units")
-        axs[i].set_ylabel("Counts of microarray experiments")
-        #axs[i % 50, int(i/50)].set_title(str(gene))
-        #axs[i % 50, int(i/50)].set_xlim(0, 15)
+        axs[i].set_title(str(gene), size=14)
+        axs[i].set_xlabel("Log2(gene expression fraction), arbitrary units", size=14)
+        axs[i].set_ylabel("Counts of microarray experiments", size=14)
+        # axs[i % 50, int(i/50)].set_title(str(gene))
+        # axs[i % 50, int(i/50)].set_xlim(0, 15)
         xs = np.linspace(0, 15, 100)
-        axs[i].plot(xs, stats.norm.pdf(xs, mean[i], std[i]) * len(exp) * 15/100)
+        if has_gaussian:
+            if has_gaussian[i]:
+                axs[i].plot(
+                    xs, stats.norm.pdf(xs, mean[i], std[i]) * len(exp) * 15 / 100
+                )
 
-        #axs[i, 1].hist(np.squeeze(WT_exp[i, :]), bins=10)
-        #axs[i, 1].set_title("WT"+str(gene))
+        # axs[i, 1].hist(np.squeeze(WT_exp[i, :]), bins=10)
+        # axs[i, 1].set_title("WT"+str(gene))
 
-        #axs[i, 1].set_xlim(0, 15)
+        # axs[i, 1].set_xlim(0, 15)
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, title))
-    #if avg_method:
+    # if avg_method:
     #    plt.savefig(os.path.join(OUTPUT_DIR, title+avg_method))
-    #else:
+    # else:
     #    plt.savefig(os.path.join(OUTPUT_DIR, title+"_no_avg"))
-    plt.close('all')
+    plt.close("all")
+
 
 def hist_from_exp(expression, gene_names, title):
-    '''
+    """
     Creates a histogram given the expression and gene names.
-    '''
+    """
     n_genes = len(expression)
     n_bins = PlotUtils().n_bins
     fig, axs = plt.subplots(n_genes, figsize=(5, 5 * n_genes))
@@ -1300,7 +1528,9 @@ def hist_from_exp(expression, gene_names, title):
             axs[i].set_xlabel("Log2(gene expression fraction), arbitrary units")
             axs[i].set_ylabel("Counts of microarray experiments")
             xs = np.linspace(0, 15, 100)
-            axs[i].plot(xs, stats.norm.pdf(xs, np.mean(exp), np.std(exp)) * len(exp) * 15/100)
+            axs[i].plot(
+                xs, stats.norm.pdf(xs, np.mean(exp), np.std(exp)) * len(exp) * 15 / 100
+            )
     else:
         exp = expression[0]
         gene = gene_names[0]
@@ -1310,22 +1540,25 @@ def hist_from_exp(expression, gene_names, title):
         axs.set_xlabel("Log2(gene expression fraction), arbitrary units")
         axs.set_ylabel("Counts of microarray experiments")
         xs = np.linspace(0, 15, 100)
-        axs.plot(xs, stats.norm.pdf(xs, np.mean(exp), np.std(exp)) * len(exp) * 15 / 100)
+        axs.plot(
+            xs, stats.norm.pdf(xs, np.mean(exp), np.std(exp)) * len(exp) * 15 / 100
+        )
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, title))
-    plt.close('all')
+    plt.close("all")
+
 
 def PRECISE2_hist_from_exp(expression, gene_names, title):
-    '''
+    """
     Creates a histogram given the expression and gene names.
-    '''
+    """
     n_genes = len(expression)
     n_bins = PlotUtils().n_bins
     fig, axs = plt.subplots(n_genes, figsize=(5, 5 * n_genes))
     if n_genes > 1:
         for i, (exp, gene) in enumerate(zip(expression, gene_names)):
-            axs[i].hist(np.log10(exp+1), bins=n_bins(np.log10(exp+1)))
+            axs[i].hist(np.log10(exp + 1), bins=n_bins(np.log10(exp + 1)))
             axs[i].set_title(str(gene))
             axs[i].set_xlabel("Log10(gene expression counts), arbitrary units")
             axs[i].set_ylabel("Counts of microarray experiments")
@@ -1339,12 +1572,13 @@ def PRECISE2_hist_from_exp(expression, gene_names, title):
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, title))
-    plt.close('all')
+    plt.close("all")
+
 
 def run_gmm(expression, clusters=2):
-    '''
+    """
     Runs the EM algorithm for Gaussian mixture model for the expression data of one gene
-    '''
+    """
 
     split_exp = []
     for i in range(clusters):
@@ -1358,28 +1592,38 @@ def run_gmm(expression, clusters=2):
     expression = np.array(expression)
 
     def gaussian(mu, sigma, x):
-        return np.exp(-1/2 * ((mu-x) / sigma)**2) / (np.sqrt(2 * math.pi) * sigma)
+        return np.exp(-1 / 2 * ((mu - x) / sigma) ** 2) / (np.sqrt(2 * math.pi) * sigma)
 
     def log_likelihood(mus, sigmas, phis, w_array):
         ll = 0
         for i, x in enumerate(expression):
             temp_ll = 0
             for j, case in enumerate(zip(mus, sigmas, phis)):
-                temp_ll += w_array[i, j] * np.log(gaussian(case[0], case[1], x) * case[2])
+                temp_ll += w_array[i, j] * np.log(
+                    gaussian(case[0], case[1], x) * case[2]
+                )
             ll += temp_ll
 
         return ll
 
     for i in range(MAX_ITER):
         # Expectation
-        probs = [[gaussian(mu, sigma, x) for mu, sigma in zip(mus_old, sigmas_old)] for x in expression]
+        probs = [
+            [gaussian(mu, sigma, x) for mu, sigma in zip(mus_old, sigmas_old)]
+            for x in expression
+        ]
         w_array = np.array([np.array(ws) / np.sum(ws) for ws in probs])
         # TODO: divide by zero errors?
         # Maximization
         phis_new = np.sum(w_array, axis=0) / np.sum(w_array)
         mus_new = np.divide(w_array.T @ expression, np.sum(w_array, axis=0))
-        deviation = np.array([expression - mu for mu in mus_old]).T**2
-        sigmas_new = np.sqrt(np.divide(np.array([(w_array.T @ deviation)[i, i] for i in range(len(mus_old))]), np.sum(w_array, axis=0)))
+        deviation = np.array([expression - mu for mu in mus_old]).T ** 2
+        sigmas_new = np.sqrt(
+            np.divide(
+                np.array([(w_array.T @ deviation)[i, i] for i in range(len(mus_old))]),
+                np.sum(w_array, axis=0),
+            )
+        )
 
         # Update
         ll_old = log_likelihood(mus_old, sigmas_old, phis_old, w_array)
@@ -1405,14 +1649,18 @@ def run_gmm_sklearn(expression, clusters=2):
         params = gmm.get_params()
         score = gmm.score(x)
         scores.append(score)
-        import ipdb; ipdb.set_trace()
-    gmm.fit(expression, )
+        import ipdb
+
+        ipdb.set_trace()
+    gmm.fit(
+        expression,
+    )
     # TODO: fix this
 
 
 def fit_gaussian(expression, scaled=True):
     def gaussian(x, mu, sigma):
-        return np.exp(-1/2 * ((mu-x) / sigma)**2) / (np.sqrt(2 * math.pi) * sigma)
+        return np.exp(-1 / 2 * ((mu - x) / sigma) ** 2) / (np.sqrt(2 * math.pi) * sigma)
 
     def log_likelihood(exp, mu, sigma):
         ll = 0
@@ -1429,6 +1677,7 @@ def fit_gaussian(expression, scaled=True):
         ll = log_likelihood(expression, mu, sigma)
 
     return mu, sigma, ll
+
 
 def rank_by_std_ll(seq_data, all_genes, gene_names, plot_file, write_file):
     _, expression = get_gene_exp(all_genes, seq_data, gene_names=gene_names)
@@ -1449,21 +1698,41 @@ def rank_by_std_ll(seq_data, all_genes, gene_names, plot_file, write_file):
 
         plt.tight_layout()
         plt.savefig(os.path.join(OUTPUT_DIR, plot_file))
-        plt.close('all')
+        plt.close("all")
 
     rank_stds = np.argsort(stds)
     rank_lls = np.argsort(lls)[::-1]
 
     output_file = os.path.join(OUTPUT_DIR, write_file)
-    with open(output_file, 'w') as f:
-        writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-        header = ['genes_rank_std', 'std_rank_std', 'll_rank_std', 'genes_rank_ll', 'std_rank_ll', 'll_rank_ll']
+    with open(output_file, "w") as f:
+        writer = csv.writer(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
+        header = [
+            "genes_rank_std",
+            "std_rank_std",
+            "ll_rank_std",
+            "genes_rank_ll",
+            "std_rank_ll",
+            "ll_rank_ll",
+        ]
         writer.writerow(header)
         for i in range(len(stds)):
-            writer.writerow([np.array(gene_names)[rank_stds][i], stds[rank_stds][i], lls[rank_stds][i],
-                             np.array(gene_names)[rank_lls][i], stds[rank_lls][i], lls[rank_lls][i]])
+            writer.writerow(
+                [
+                    np.array(gene_names)[rank_stds][i],
+                    stds[rank_stds][i],
+                    lls[rank_stds][i],
+                    np.array(gene_names)[rank_lls][i],
+                    stds[rank_lls][i],
+                    lls[rank_lls][i],
+                ]
+            )
 
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()
+
 
 # Given the wild-type expression, when is smth a good candidate for under a certain set of conditions, it's far away?
 # Maybe if it fits two gaussians well, where one is wild-type and other is the other?
@@ -1487,19 +1756,33 @@ def rank_by_std_ll(seq_data, all_genes, gene_names, plot_file, write_file):
 # So then we know lowest to highest media, and their standard deviations, and how quickly they drop.
 # The thing we want to look at is between diff conditions, which ones have what levels of expression, which ones deviate the most?
 
+
 def samples_plot(all_genes, gene_names, seq_data, sample_data, avg_method=None):
     _, expression = get_gene_exp(all_genes, seq_data, gene_names=gene_names)
     avg_exp, samples = average_exp(expression, sample_data, method=avg_method)
 
-    fig, axs = plt.subplots(len(avg_exp), figsize=(5, 5*len(avg_exp)))
+    fig, axs = plt.subplots(len(avg_exp), figsize=(5, 5 * len(avg_exp)))
     output_file = os.path.join(OUTPUT_DIR, "samples_plot_samples_test" + avg_method)
     if avg_method is None:
-        header = ["GEO id", "media", "treatment value", "treatment condition", "treatment time",
-                    "gene perturb id", "gene perturb dir", "environmental", "genetic", "WT", "growth rate"]
+        header = [
+            "GEO id",
+            "media",
+            "treatment value",
+            "treatment condition",
+            "treatment time",
+            "gene perturb id",
+            "gene perturb dir",
+            "environmental",
+            "genetic",
+            "WT",
+            "growth rate",
+        ]
     elif avg_method == "media":
         header = ["media"]
-    with open(output_file, 'w') as f:
-        writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(output_file, "w") as f:
+        writer = csv.writer(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         writer.writerow(header)
 
     for i, exp in enumerate(avg_exp):
@@ -1511,21 +1794,22 @@ def samples_plot(all_genes, gene_names, seq_data, sample_data, avg_method=None):
         axs[i].set_xticks(list(range(len(exp))), [str(i) for i in range(len(exp))])
         axs[i].set_title(gene_names[i])
 
-        with open(output_file, 'a') as f:
-            writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+        with open(output_file, "a") as f:
+            writer = csv.writer(
+                f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+            )
             writer.writerow([gene_names[i]])
             for row in samples_sort:
                 writer.writerow([row])
-            writer.writerow(['\n'])
+            writer.writerow(["\n"])
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, "samples_plot_test" + avg_method))
-    plt.close('all')
+    plt.close("all")
 
-    #output_file = os.path.join(OUTPUT_DIR, "samples_plot_samples_test"+avg_method)
-    #with open(output_file, 'w') as f:
+    # output_file = os.path.join(OUTPUT_DIR, "samples_plot_samples_test"+avg_method)
+    # with open(output_file, 'w') as f:
     #    writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-
 
     #    if avg_method is None:
     #        header = ["GEO id", "media", "treatment value", "treatment condition", "treatment time",
@@ -1536,8 +1820,9 @@ def samples_plot(all_genes, gene_names, seq_data, sample_data, avg_method=None):
     #    for row in samples:
     #        writer.writerow([row])
 
-    import ipdb; ipdb.set_trace()
+    import ipdb
 
+    ipdb.set_trace()
 
 
 def make_gene_rankings(seq_data, all_genes, gene_names, output_name):
@@ -1552,8 +1837,8 @@ def make_gene_rankings(seq_data, all_genes, gene_names, output_name):
         ll_two_cluster.append(ll_two)
         ll_one_cluster.append(ll_one)
 
-    #two_cluster_rank = np.array(gene_names)[np.argsort(np.array(ll_two_cluster))[::-1]]
-    #one_cluster_rank = np.array(gene_names)[np.argsort(np.array(ll_one_cluster))[::-1]]
+    # two_cluster_rank = np.array(gene_names)[np.argsort(np.array(ll_two_cluster))[::-1]]
+    # one_cluster_rank = np.array(gene_names)[np.argsort(np.array(ll_one_cluster))[::-1]]
     sort = np.argsort(np.array(difference))[::-1]
     ranked = np.array(gene_names)[sort]
     ll_two_cluster = np.array(ll_two_cluster)[sort]
@@ -1561,15 +1846,22 @@ def make_gene_rankings(seq_data, all_genes, gene_names, output_name):
     difference = np.array(difference)[sort]
 
     output_file = os.path.join(OUTPUT_DIR, output_name)
-    with open(output_file, 'w') as f:
-        writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-        header = ['ranked genes', 'll difference', 'll two-cluster', 'll one-cluster']
+    with open(output_file, "w") as f:
+        writer = csv.writer(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
+        header = ["ranked genes", "ll difference", "ll two-cluster", "ll one-cluster"]
         writer.writerow(header)
         for i in range(len(ranked)):
-            writer.writerow([ranked[i], difference[i], ll_two_cluster[i], ll_one_cluster[i]])
+            writer.writerow(
+                [ranked[i], difference[i], ll_two_cluster[i], ll_one_cluster[i]]
+            )
 
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()
     return ranked, difference, ll_two_cluster, ll_one_cluster
+
 
 def rank_by_outliers(seq_data, all_genes, gene_names):
     # TODO: work on this
@@ -1594,21 +1886,40 @@ def rank_by_outliers(seq_data, all_genes, gene_names):
         mu, sigma, _ = fit_gaussian(expression)
         max_outlier = np.max(np.abs(expression - mu) / sigma)
         outlier_z.append(max_outlier)
-        import ipdb; ipdb.set_trace()
-    #import ipdb; ipdb.set_trace()
+        import ipdb
+
+        ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
     ranked = np.array(gene_names)[np.argsort(np.array(outlier_z))[::-1]]
     outlier_z = outlier_z[np.argsort(np.array(outlier_z))[::-1]]
     return ranked, outlier_z
 
+
 def plot_rRNAs(symbols, seq_data, sample_data):
-    rrns = [gene for gene in symbols if (('rrs' in gene) | ('rrl' in gene)) | ('rrf' in gene)]
-    gene_exp_hist(rrns, symbols, seq_data, sample_data, title='rrn_exp_hist', avg_method=None)
-    import ipdb; ipdb.set_trace()
+    rrns = [
+        gene
+        for gene in symbols
+        if (("rrs" in gene) | ("rrl" in gene)) | ("rrf" in gene)
+    ]
+    gene_exp_hist(
+        rrns, symbols, seq_data, sample_data, title="rrn_exp_hist", avg_method=None
+    )
+    import ipdb
+
+    ipdb.set_trace()
 
 
 # We want to get genes that have low spread in their expression. Ways to look:
 # 1. lowest range, 2. std (95% confidence interval), 3. interquartile range, 4. range of 95% of data points
-def rank_by_spread(gene_names, symbols, seq_data, sample_data, output_name, output_plot_name, avg_method=None):
+def rank_by_spread(
+    gene_names,
+    symbols,
+    seq_data,
+    sample_data,
+    output_name,
+    output_plot_name,
+    avg_method=None,
+):
     gene_names = np.array(gene_names)
 
     _, expression = get_gene_exp(symbols, seq_data, gene_names=gene_names)
@@ -1625,7 +1936,9 @@ def rank_by_spread(gene_names, symbols, seq_data, sample_data, output_name, outp
 
     top_95 = maxs - np.quantile(expression, 0.05, axis=1)
     bottom_95 = np.quantile(expression, 0.95, axis=1) - mins
-    middle_95 = np.quantile(expression, 0.975, axis=1) - np.quantile(expression, 0.025, axis=1)
+    middle_95 = np.quantile(expression, 0.975, axis=1) - np.quantile(
+        expression, 0.025, axis=1
+    )
     best_95 = np.minimum(np.minimum(top_95, bottom_95), middle_95)
 
     fig, axs = plt.subplots(6, figsize=(5, 30))
@@ -1642,11 +1955,10 @@ def rank_by_spread(gene_names, symbols, seq_data, sample_data, output_name, outp
     axs[5].scatter(iqrs, best_95, s=0.5)
     axs[5].set_title("IQRs vs best 95")
 
-    output_plot_file = os.path.join(OUTPUT_DIR, output_plot_name+".png")
+    output_plot_file = os.path.join(OUTPUT_DIR, output_plot_name + ".png")
     plt.tight_layout()
     plt.savefig(output_plot_file)
-    plt.close('all')
-
+    plt.close("all")
 
     sort_range = np.argsort(ranges)
     sort_ci_95 = np.argsort(ci_95)
@@ -1662,17 +1974,40 @@ def rank_by_spread(gene_names, symbols, seq_data, sample_data, output_name, outp
     iqrs = iqrs[sort_iqr]
     best_95 = best_95[sort_best_95]
 
-    output_file = os.path.join(OUTPUT_DIR, output_name+".txt")
-    with open(output_file, 'w') as f:
-        writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-        header = ['rank_range', 'range', 'rank_ci_95', 'ci_95', 'rank_iqr', 'iqr', 'rank_best_95', 'best_95']
+    output_file = os.path.join(OUTPUT_DIR, output_name + ".txt")
+    with open(output_file, "w") as f:
+        writer = csv.writer(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
+        header = [
+            "rank_range",
+            "range",
+            "rank_ci_95",
+            "ci_95",
+            "rank_iqr",
+            "iqr",
+            "rank_best_95",
+            "best_95",
+        ]
         writer.writerow(header)
-        for tuple in zip(gene_rank_range, ranges, gene_rank_ci_95, ci_95, gene_rank_iqr, iqrs, gene_rank_best_95, best_95):
+        for tuple in zip(
+            gene_rank_range,
+            ranges,
+            gene_rank_ci_95,
+            ci_95,
+            gene_rank_iqr,
+            iqrs,
+            gene_rank_best_95,
+            best_95,
+        ):
             writer.writerow([x for x in tuple])
 
     # TODO: look at data, graph, think about what it means for certain genes graphically, look at rankings and get generally high-ranking, etc.?
     #
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()
+
 
 def plot_mean_std(gene_names, symbols, seq_data, output_name):
     gene_names = np.array(gene_names)
@@ -1689,8 +2024,11 @@ def plot_mean_std(gene_names, symbols, seq_data, output_name):
     output_plot_file = os.path.join(OUTPUT_DIR, output_name + ".png")
     plt.tight_layout()
     plt.savefig(output_plot_file)
-    plt.close('all')
-    import ipdb; ipdb.set_trace()
+    plt.close("all")
+    import ipdb
+
+    ipdb.set_trace()
+
 
 # So the deal is, we have an approx normal profile with std sigma, and want to know
 # whether it probably has outliers somewhere. we can see, for instance, how many it has outside
@@ -1701,8 +2039,10 @@ def get_gene_spread_data(gene_names, spread_rank_file):
     # Get the gene's data, i.e. rankings and values
     # Want to get some sort of criteria for if a gene is truly seemingly "unregulated"?
     data = {gene: {} for gene in gene_names}
-    with open(spread_rank_file, 'r') as f:
-        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(spread_rank_file, "r") as f:
+        reader = csv.reader(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         for i, row in enumerate(reader):
             for gene in gene_names:
                 if gene in row[0]:
@@ -1717,14 +2057,15 @@ def get_gene_spread_data(gene_names, spread_rank_file):
     return data
 
 
-
 def plot_gene_spread_data(spread_rank_file, plot_name):
     ranges = []
     ci_95 = []
     iqrs = []
     best_95 = []
-    with open(spread_rank_file, 'r') as f:
-        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(spread_rank_file, "r") as f:
+        reader = csv.reader(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         for row in reader:
             ranges.append(row[1])
             ci_95.append(row[3])
@@ -1749,8 +2090,10 @@ def plot_gene_spread_data(spread_rank_file, plot_name):
 
     plt.tight_layout()
     plt.savefig(output_file)
-    plt.close('all')
-    import ipdb; ipdb.set_trace()
+    plt.close("all")
+    import ipdb
+
+    ipdb.set_trace()
 
 
 def calc_with_moments(seq_data, all_genes, gene_names, plot_file, write_file):
@@ -1760,19 +2103,24 @@ def calc_with_moments(seq_data, all_genes, gene_names, plot_file, write_file):
 
     Rankings().rank_by_moments(expression, np.array(gene_names), plot_path, write_path)
 
+
 def std_and_prob_plot(seq_data, all_genes, gene_names, plot_file, write_file):
     _, expression = get_gene_exp(all_genes, seq_data, gene_names=gene_names)
     plot_path = os.path.join(OUTPUT_DIR, plot_file)
     write_path = os.path.join(OUTPUT_DIR, write_file)
-    Rankings().rank_by_std_prob_plot(expression, np.array(gene_names), plot_path, write_path)
+    Rankings().rank_by_std_prob_plot(
+        expression, np.array(gene_names), plot_path, write_path
+    )
 
 
 def get_candidate_genes(all_genes, input_file, write_file):
     # Get the gene's data, i.e. rankings and values
     # Want to get some sort of criteria for if a gene is truly seemingly "unregulated"?
     data = {gene: {} for gene in all_genes}
-    with open(input_file, 'r') as f:
-        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(input_file, "r") as f:
+        reader = csv.reader(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         for i, row in enumerate(reader):
             for gene in all_genes:
                 if gene in row[0]:
@@ -1783,14 +2131,19 @@ def get_candidate_genes(all_genes, input_file, write_file):
     high_r = set([g for g in all_genes if data[g]["prob_r"] > 0.995])
     candidates = low_std.intersection(high_r)
 
-    with open(write_file, 'w') as f:
-        writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-        header = ['gene', 'std', 'prob_plot_r']
+    with open(write_file, "w") as f:
+        writer = csv.writer(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
+        header = ["gene", "std", "prob_plot_r"]
         writer.writerow(header)
         for gene in candidates:
             writer.writerow([gene, data[gene]["std"], data[gene]["prob_r"]])
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()
     return data
+
 
 # Idea 1: so get an idea of how the max z-scores are looking. If a lot of them are e.g. < 2.5, and
 # another chunk has > 2.7, then maybe we can take some cutoff as 2 or smth?
@@ -1804,9 +2157,10 @@ def get_candidate_genes(all_genes, input_file, write_file):
 # true-positive sample is probably going to pass the cutoff? most sensitive would just be 1 point above
 # some cutoff z-score. Can bootstrap to see false-positive rate).
 
+
 def plot_max_z_score_for_candidates(all_genes, seq_data, candidates_file):
-# if you do it for all the genes, that'd be like saying, what's the max z-score for these, but I rly care about
-# applying a cutoff for these candidates, so less important? It'd still be good to see though.
+    # if you do it for all the genes, that'd be like saying, what's the max z-score for these, but I rly care about
+    # applying a cutoff for these candidates, so less important? It'd still be good to see though.
     _, expression = get_gene_exp(all_genes, seq_data, gene_names=all_genes)
     stds = np.std(expression, axis=1)
     means = np.mean(expression, axis=1)
@@ -1816,8 +2170,10 @@ def plot_max_z_score_for_candidates(all_genes, seq_data, candidates_file):
 
     candidate_genes = []
     prob_r_candidates = []
-    with open(os.path.join(OUTPUT_DIR, candidates_file), 'r') as f:
-        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(os.path.join(OUTPUT_DIR, candidates_file), "r") as f:
+        reader = csv.reader(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         next(reader, None)
         for line in reader:
             candidate_genes.append(line[0])
@@ -1827,12 +2183,14 @@ def plot_max_z_score_for_candidates(all_genes, seq_data, candidates_file):
     is_candidate = np.isin(all_genes, candidate_genes)
     candidate_largest_z = largest_z[is_candidate]
 
-    low_largest_z = (largest_z < 4.5)
+    low_largest_z = largest_z < 4.5
     final_candidate = np.logical_and(is_candidate, low_largest_z)
 
-    with open(os.path.join(OUTPUT_DIR, 'candidates_low_z.txt'), 'w') as f:
-        writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-        header = ['gene', 'mean', 'std', 'largest_z']
+    with open(os.path.join(OUTPUT_DIR, "candidates_low_z.txt"), "w") as f:
+        writer = csv.writer(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
+        header = ["gene", "mean", "std", "largest_z"]
         writer.writerow(header)
         for i in np.where(final_candidate)[0]:
             writer.writerow([all_genes[i], means[i], stds[i], largest_z[i]])
@@ -1851,14 +2209,17 @@ def plot_max_z_score_for_candidates(all_genes, seq_data, candidates_file):
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, "largest_z_candidates"))
-    plt.close('all')
+    plt.close("all")
 
     # So low largest-z, based on a few samples, seems to include many transcriptional regulators.
     # TODO: plot the number of points above a certain std cutoff to see if that might be better
     # So, how many points does it have about 3 std? expect to be around 6.
     # Well each point has a 0.3% probability of being above 3 std. So for 2000 points, that's sampling
     # a binomial.
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()
+
 
 def bootstrap_max_normal(n, iter):
     maxs = []
@@ -1873,30 +2234,36 @@ def bootstrap_max_normal(n, iter):
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, "max_z_normal_bootstrap"))
-    plt.close('all')
-    import ipdb; ipdb.set_trace()
+    plt.close("all")
+    import ipdb
+
+    ipdb.set_trace()
+
 
 def get_genes_from_file(file):
     genes = []
-    with open(os.path.join(OUTPUT_DIR, file), 'r') as f:
-        csv_reader = csv.reader(f, delimiter='\t')
+    with open(os.path.join(OUTPUT_DIR, file), "r") as f:
+        csv_reader = csv.reader(f, delimiter="\t")
         next(csv_reader)
         for line in csv_reader:
             genes.append(line[0])
 
     return genes
+
 
 def get_llr_genes():
     genes = []
-    with open(os.path.join(OUTPUT_DIR, 'gmm_llr_rankings_no_rewiring'), 'r') as f:
-        csv_reader = csv.reader(f, delimiter='\t')
+    with open(os.path.join(OUTPUT_DIR, "gmm_llr_rankings_no_rewiring"), "r") as f:
+        csv_reader = csv.reader(f, delimiter="\t")
         next(csv_reader)
         for line in csv_reader:
             genes.append(line[0])
 
     return genes
 
+
 # One hypothesis: 4000 genes in e coli, 1000 have 1 gaussian, 2000 have 2 gaussians
+
 
 def plot_gene_profiles(symbols, gene_names, seq_data, sample_data, ecocyc):
     fig, axs = plt.subplots(len(gene_names), figsize=(5, 5 * len(gene_names)))
@@ -1913,17 +2280,21 @@ def plot_gene_profiles(symbols, gene_names, seq_data, sample_data, ecocyc):
             regulators = ecocyc.gene_to_regulators[gene]
 
         axs[i].plot(xs, stats.norm.pdf(xs, mean, std) * len(exp) * 15 / 100)
-        axs[i].set_title(str(gene) + " mean: "+ str(round(mean, 2)) + " std: " + str(round(std, 2)))
+        axs[i].set_title(
+            str(gene) + " mean: " + str(round(mean, 2)) + " std: " + str(round(std, 2))
+        )
         if regulators:
-            label = ''
+            label = ""
             for reg in regulators:
-                label += str(reg) + ', '
+                label += str(reg) + ", "
             axs[i].set_xlabel(label)
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, "gene_profile_candidates"))
-    plt.close('all')
-    import ipdb; ipdb.set_trace()
+    plt.close("all")
+    import ipdb
+
+    ipdb.set_trace()
 
 
 def plot_gmm_llr(symbols, seq_data, output_name):
@@ -1955,12 +2326,14 @@ def plot_gmm_llr(symbols, seq_data, output_name):
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, output_name))
-    plt.close('all')
-    import ipdb; ipdb.set_trace()
+    plt.close("all")
+    import ipdb
+
+    ipdb.set_trace()
 
 
 def plot_exp(seq_data, idxs):
-    fig, axs = plt.subplots(len(idxs), figsize = (5, 5*len(idxs)))
+    fig, axs = plt.subplots(len(idxs), figsize=(5, 5 * len(idxs)))
     for i, idx in enumerate(idxs):
         exp = seq_data[:, idx]
         axs[i].hist(exp, bins=PlotUtils().n_bins(exp))
@@ -1969,22 +2342,27 @@ def plot_exp(seq_data, idxs):
 
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, "sample_level_expression"))
-    plt.close('all')
-    import ipdb; ipdb.set_trace()
+    plt.close("all")
+    import ipdb
+
+    ipdb.set_trace()
+
 
 def plot_histograms(symbols, seq_data, gene_names, title):
     _, expression = get_gene_exp(symbols, seq_data, gene_names=gene_names)
     heatmap = MakeHeatmaps(OUTPUT_DIR)
     heatmap.heatmap(expression, title)
 
+
 def get_candidate_two_peaks():
     file = os.path.join(OUTPUT_DIR, "peak_finder")
     file = os.path.join(file, "all_peaks_nopathogen.txt")
     plot_genes = []
     import json
-    with open(file, 'r') as f:
+
+    with open(file, "r") as f:
         for line in f.readlines()[1:]:
-            gene, num_peaks, _, _, standard_devs = line.split('\t')
+            gene, num_peaks, _, _, standard_devs = line.split("\t")
             if int(num_peaks) == 2:
                 standard_devs = json.loads(standard_devs[1:-2])
                 if float(standard_devs[0]) < 0.04:
@@ -1993,41 +2371,47 @@ def get_candidate_two_peaks():
 
     return plot_genes
 
+
 def get_samples_in_range(exp, samples, range):
     in_range = np.logical_and((exp > range[0]), (exp < range[1]))
     return {k: samples[k][in_range] for k in samples.keys()}, in_range
 
-def get_candidate_one_peak(expression, gene_names, write_file,
-                           method='twofold'):
+
+def get_candidate_one_peak(expression, gene_names, write_file, method="twofold"):
     num_samples = np.shape(expression)[1]
     candidate_genes = []
     for i, exp in enumerate(expression):
         mean = np.mean(exp)
 
-        if method == 'twofold':
-            within_twofold = (np.abs(exp - mean) < 1.)
+        if method == "twofold":
+            within_twofold = np.abs(exp - mean) < 1.0
             frac_twofold = np.sum(within_twofold) / num_samples
             if frac_twofold > 0.95:
                 candidate_genes.append(gene_names[i])
-        elif method == 'standard_dev':
+        elif method == "standard_dev":
             standard_dev = np.std(exp)
             if standard_dev < 0.6:
-                within_two = (np.abs(exp - mean) < 2 * standard_dev)
+                within_two = np.abs(exp - mean) < 2 * standard_dev
                 frac_within_two = np.sum(within_two) / num_samples
                 if frac_within_two > 0.95:
                     candidate_genes.append(gene_names[i])
 
-    with open(write_file, 'w') as f:
-        writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-        header = ['gene']
+    with open(write_file, "w") as f:
+        writer = csv.writer(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
+        header = ["gene"]
         writer.writerow(header)
         for gene in candidate_genes:
             writer.writerow([gene])
 
+
 def one_peak_num_reg_histogram(all_genes, one_peak_file, plot_file, exclude_sigma=True):
     gene_names = []
-    with open(one_peak_file, 'r') as f:
-        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(one_peak_file, "r") as f:
+        reader = csv.reader(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         for i, line in enumerate(reader):
             if i > 0:
                 gene_names.append(line[0])
@@ -2049,31 +2433,46 @@ def one_peak_num_reg_histogram(all_genes, one_peak_file, plot_file, exclude_sigm
     one_peak_num_regs = _get_num_reg(gene_names)
     all_num_regs = _get_num_reg(all_genes)
     max_num_reg = max(np.max(one_peak_num_regs), np.max(all_num_regs))
-    one_peak_hist, bins = np.histogram(one_peak_num_regs, bins=np.arange(-1, max_num_reg+1, 1))
+    one_peak_hist, bins = np.histogram(
+        one_peak_num_regs, bins=np.arange(-1, max_num_reg + 1, 1)
+    )
     one_peak_hist = one_peak_hist / np.sum(one_peak_hist)
-    all_hist, _ = np.histogram(all_num_regs, bins=np.arange(-1, max_num_reg+1, 1))
+    all_hist, _ = np.histogram(all_num_regs, bins=np.arange(-1, max_num_reg + 1, 1))
     all_hist = all_hist / np.sum(all_hist)
 
     fig, axs = plt.subplots(2, figsize=(20, 10))
-    axs[0].bar(np.arange(0, 3 * (max_num_reg+1), step=3),
-               one_peak_hist, width=1, align='edge', color='r',
-               tick_label=bins[:-1], label='One-peak')
-    axs[0].bar(np.arange(1, 3 * (max_num_reg+1) + 1, step=3),
-               all_hist, width=1, align='edge', color='b',
-               label='All')
+    axs[0].bar(
+        np.arange(0, 3 * (max_num_reg + 1), step=3),
+        one_peak_hist,
+        width=1,
+        align="edge",
+        color="r",
+        tick_label=bins[:-1],
+        label="One-peak",
+    )
+    axs[0].bar(
+        np.arange(1, 3 * (max_num_reg + 1) + 1, step=3),
+        all_hist,
+        width=1,
+        align="edge",
+        color="b",
+        label="All",
+    )
     axs[0].legend()
     axs[0].set_title("Histogram of fraction of genes with n regulators")
     axs[0].set_xlabel("Number of regulators")
 
     plt.tight_layout()
     plt.savefig(plot_file)
-    plt.close('all')
+    plt.close("all")
 
 
 def genes_reg_by_x(regulator, all_genes, one_peak_file, write_file):
     gene_names = []
-    with open(one_peak_file, 'r') as f:
-        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(one_peak_file, "r") as f:
+        reader = csv.reader(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         for i, line in enumerate(reader):
             if i > 0:
                 gene_names.append(line[0])
@@ -2090,14 +2489,19 @@ def genes_reg_by_x(regulator, all_genes, one_peak_file, write_file):
             if regulator in reg_gene_names:
                 target_genes.append(gene)
 
-    with open(write_file, 'w') as f:
-        writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-        header = ['gene', 'notes']
+    with open(write_file, "w") as f:
+        writer = csv.writer(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
+        header = ["gene", "notes"]
         writer.writerow(header)
         for gene in target_genes:
-            writer.writerow([gene, ''])
+            writer.writerow([gene, ""])
 
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()
+
 
 def crp_investigation(all_genes):
     ecocyc = EcocycReg(BASE_DIR)
@@ -2109,25 +2513,33 @@ def crp_investigation(all_genes):
     for gene in all_genes:
         reg_info = regulation[gene]
         reg_gene_names = [x[0] for x in reg_info]
-        if 'crp' in reg_gene_names:
+        if "crp" in reg_gene_names:
             reg_by_crp_genes.append(gene)
 
     def _get_regulators(genes):
-        regulators = np.array(ecocyc.ecocyc_to_ecomac_names(ecocyc.regulators, all_genes))
+        regulators = np.array(
+            ecocyc.ecocyc_to_ecomac_names(ecocyc.regulators, all_genes)
+        )
         is_regulator = np.isin(np.array(genes), regulators)
 
         return is_regulator
 
     is_reg = _get_regulators(reg_by_crp_genes)
 
-    import ipdb;
+    import ipdb
+
     ipdb.set_trace()
 
+
 # NOTE: don't use this one anymore
-def one_peak_reg_info(all_genes, one_peak_file, write_file, plot_file, exclude_sigma=True):
+def one_peak_reg_info(
+    all_genes, one_peak_file, write_file, plot_file, exclude_sigma=True
+):
     gene_names = []
-    with open(one_peak_file, 'r') as f:
-        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(one_peak_file, "r") as f:
+        reader = csv.reader(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         for i, line in enumerate(reader):
             if i > 0:
                 gene_names.append(line[0])
@@ -2135,8 +2547,7 @@ def one_peak_reg_info(all_genes, one_peak_file, write_file, plot_file, exclude_s
 
     regulation = ecocyc.find_gene_regulation(all_genes)
 
-    special_regs = ['rpoD', 'hns', 'lrp', 'ihfA', 'ihfB', 'fis',
-        'rpoE', 'rpoH', 'rpoS']
+    special_regs = ["rpoD", "hns", "lrp", "ihfA", "ihfB", "fis", "rpoE", "rpoH", "rpoS"]
 
     def _categorize(genes):
         category = []
@@ -2152,7 +2563,7 @@ def one_peak_reg_info(all_genes, one_peak_file, write_file, plot_file, exclude_s
                 reg_gene_names.extend(reg_names)
 
                 if len(reg_info) == 1:
-                    if (reg_info[0][0] == gene) & (reg_info[0][1] == '-'):
+                    if (reg_info[0][0] == gene) & (reg_info[0][1] == "-"):
                         category.append(1)
                         continue
 
@@ -2164,7 +2575,9 @@ def one_peak_reg_info(all_genes, one_peak_file, write_file, plot_file, exclude_s
         return category, np.unique(reg_gene_names, return_counts=True)
 
     def _get_regulators(genes):
-        regulators = np.array(ecocyc.ecocyc_to_ecomac_names(ecocyc.regulators, all_genes))
+        regulators = np.array(
+            ecocyc.ecocyc_to_ecomac_names(ecocyc.regulators, all_genes)
+        )
         is_regulator = np.isin(np.array(genes), regulators)
 
         return is_regulator
@@ -2190,12 +2603,12 @@ def one_peak_reg_info(all_genes, one_peak_file, write_file, plot_file, exclude_s
     reg_gene_names = reg_gene_names[reg_gene_sort]
     reg_gene_frac = reg_gene_counts / num_regulated_genes
     reg_gene_other_frac = reg_gene_counts / np.sum(reg_gene_counts)
-    reg_gene_name_to_frac = {gene: frac for gene, frac in zip(
-        reg_gene_names, reg_gene_frac
-        )}
-    reg_gene_name_to_other_frac = {gene: frac for gene, frac in zip(
-        reg_gene_names, reg_gene_other_frac
-        )}
+    reg_gene_name_to_frac = {
+        gene: frac for gene, frac in zip(reg_gene_names, reg_gene_frac)
+    }
+    reg_gene_name_to_other_frac = {
+        gene: frac for gene, frac in zip(reg_gene_names, reg_gene_other_frac)
+    }
 
     all_reg_gene_sort = np.argsort(all_reg_gene_counts)
     all_reg_gene_names = all_reg_gene_names[all_reg_gene_sort]
@@ -2204,46 +2617,72 @@ def one_peak_reg_info(all_genes, one_peak_file, write_file, plot_file, exclude_s
     all_reg_gene_other_frac = all_reg_gene_counts / np.sum(all_reg_gene_counts)
 
     fig, axs = plt.subplots(2, figsize=(100, 10))
-    axs[0].bar(np.arange(0, 3 * len(all_reg_gene_names), step=3),
-               all_reg_gene_frac, width=1, align='edge', color='r',
-               tick_label=all_reg_gene_names, label='All')
-    axs[0].bar(np.arange(1, 3 * len(all_reg_gene_names) + 1, step=3),
-               [reg_gene_name_to_frac.get(gene, 0)
-                   for gene in all_reg_gene_names],
-               width=1, align='edge', color='b', label='One-peak')
+    axs[0].bar(
+        np.arange(0, 3 * len(all_reg_gene_names), step=3),
+        all_reg_gene_frac,
+        width=1,
+        align="edge",
+        color="r",
+        tick_label=all_reg_gene_names,
+        label="All",
+    )
+    axs[0].bar(
+        np.arange(1, 3 * len(all_reg_gene_names) + 1, step=3),
+        [reg_gene_name_to_frac.get(gene, 0) for gene in all_reg_gene_names],
+        width=1,
+        align="edge",
+        color="b",
+        label="One-peak",
+    )
     axs[0].set_title("Fraction of regulated genes that are regulated by each regulator")
     axs[0].legend()
 
-    axs[1].bar(np.arange(0, 3 * len(all_reg_gene_names), step=3),
-               all_reg_gene_other_frac, width=1, align='edge', color='r',
-               tick_label=all_reg_gene_names, label='All')
-    axs[1].bar(np.arange(1, 3 * len(all_reg_gene_names) + 1, step=3),
-               [reg_gene_name_to_other_frac.get(gene, 0)
-                   for gene in all_reg_gene_names],
-               width=1, align='edge', color='b', label='One-peak')
+    axs[1].bar(
+        np.arange(0, 3 * len(all_reg_gene_names), step=3),
+        all_reg_gene_other_frac,
+        width=1,
+        align="edge",
+        color="r",
+        tick_label=all_reg_gene_names,
+        label="All",
+    )
+    axs[1].bar(
+        np.arange(1, 3 * len(all_reg_gene_names) + 1, step=3),
+        [reg_gene_name_to_other_frac.get(gene, 0) for gene in all_reg_gene_names],
+        width=1,
+        align="edge",
+        color="b",
+        label="One-peak",
+    )
     axs[1].set_title("Fraction of regulatory interactions that are each regulator")
     axs[1].legend()
 
-
     plt.tight_layout()
     plt.savefig(plot_file)
-    plt.close('all')
+    plt.close("all")
 
-    with open(write_file, 'w') as f:
-        writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-        header = ['gene', 'reg_info', 'category']
+    with open(write_file, "w") as f:
+        writer = csv.writer(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
+        header = ["gene", "reg_info", "category"]
         writer.writerow(header)
         for gene, cat in zip(gene_names, category):
             writer.writerow([gene, regulation[gene], cat])
 
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()
 
 
-
-def comp_null_standard_dev_vs_reg(all_genes, gene_file, expression, plot_file, exclude_sigma=True):
+def comp_null_standard_dev_vs_reg(
+    all_genes, gene_file, expression, plot_file, exclude_sigma=True
+):
     gene_names = []
-    with open(gene_file, 'r') as f:
-        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(gene_file, "r") as f:
+        reader = csv.reader(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         for i, line in enumerate(reader):
             if i > 0:
                 gene_names.append(line[0])
@@ -2251,8 +2690,7 @@ def comp_null_standard_dev_vs_reg(all_genes, gene_file, expression, plot_file, e
 
     regulation = ecocyc.find_gene_regulation(all_genes)
 
-    special_regs = ['rpoD', 'hns', 'lrp', 'ihfA', 'ihfB', 'fis',
-                    'rpoE', 'rpoH', 'rpoS']
+    special_regs = ["rpoD", "hns", "lrp", "ihfA", "ihfB", "fis", "rpoE", "rpoH", "rpoS"]
 
     def _find_num_regs(genes):
         num_regs = []
@@ -2279,13 +2717,18 @@ def comp_null_standard_dev_vs_reg(all_genes, gene_file, expression, plot_file, e
 
     plt.tight_layout()
     plt.savefig(plot_file)
-    plt.close('all')
-    import ipdb; ipdb.set_trace()
+    plt.close("all")
+    import ipdb
+
+    ipdb.set_trace()
+
 
 def write_one_peak_genes(all_genes, gene_file, expression, write_file):
     gene_names = []
-    with open(gene_file, 'r') as f:
-        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(gene_file, "r") as f:
+        reader = csv.reader(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         for i, line in enumerate(reader):
             if i > 0:
                 gene_names.append(line[0])
@@ -2295,18 +2738,25 @@ def write_one_peak_genes(all_genes, gene_file, expression, write_file):
     standard_devs_genes = standard_devs[is_gene]
     one_peak_genes = np.array(gene_names)[standard_devs_genes < 0.6]
 
-    with open(write_file, 'w') as f:
-        writer = csv.writer(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-        header = ['gene']
+    with open(write_file, "w") as f:
+        writer = csv.writer(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
+        header = ["gene"]
         writer.writerow(header)
         for gene in one_peak_genes:
             writer.writerow([gene])
 
+
 def plot_overlapping_one_peak_genes(one_peak_file, plot_file):
-    symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+    symbols, sample_data, seq_data, vectorized_samples, total_components = (
+        load_data_exclude_rewiring()
+    )
     one_peak_genes = []
-    with open(one_peak_file, 'r') as f:
-        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(one_peak_file, "r") as f:
+        reader = csv.reader(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         next(reader)
         for line in reader:
             one_peak_genes.append(line[0])
@@ -2318,25 +2768,46 @@ def plot_overlapping_one_peak_genes(one_peak_file, plot_file):
         exp = seq_data[idx]
         exp = exp - np.mean(exp)
         axs[0].hist(exp, bins=80, range=(-8, 8), alpha=0.1)
-    axs[0].set_title("Overlapping histograms of "+str(len(one_peak_genes))+" one-peak genes")
+    axs[0].set_title(
+        "Overlapping histograms of " + str(len(one_peak_genes)) + " one-peak genes"
+    )
     axs[0].set_xlabel("log2(expression value) minus mean of expression")
     axs[0].set_ylabel("Frequency (out of ~800)")
 
     plt.tight_layout()
     plt.savefig(plot_file)
-    plt.close('all')
+    plt.close("all")
 
 
-def two_peak_reg_analyze(all_genes, two_peak_file, plot_file, plot_file_reg, exclude_sigma=True):
-    excluded_components = ['selenate', 'formate', 'tannin-extract', 'propylene glycol',
-                           'MOPS', 'clinostat - microgravity', 'cefsulodin', 'mecillinam',
-                           'spectinomycin', 'kanamycin', 'tetracycline', 'CHIR-090',
-                           'PMX10070', 'lactate', 'polymyxin-B', 'DMSO', 'HOMOPIPES']#HOMOPIPES?
+def two_peak_reg_analyze(
+    all_genes, two_peak_file, plot_file, plot_file_reg, exclude_sigma=True
+):
+    excluded_components = [
+        "selenate",
+        "formate",
+        "tannin-extract",
+        "propylene glycol",
+        "MOPS",
+        "clinostat - microgravity",
+        "cefsulodin",
+        "mecillinam",
+        "spectinomycin",
+        "kanamycin",
+        "tetracycline",
+        "CHIR-090",
+        "PMX10070",
+        "lactate",
+        "polymyxin-B",
+        "DMSO",
+        "HOMOPIPES",
+    ]  # HOMOPIPES?
 
     genes_to_components = {}
     component_to_genes = {}
-    with open(two_peak_file, 'r') as f:
-        reader = csv.reader(f, delimiter='\t', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+    with open(two_peak_file, "r") as f:
+        reader = csv.reader(
+            f, delimiter="\t", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
+        )
         next(reader)
         for line in reader:
             if line[1] in excluded_components:
@@ -2367,25 +2838,38 @@ def two_peak_reg_analyze(all_genes, two_peak_file, plot_file, plot_file_reg, exc
     two_peak_num_regs = _get_num_reg(gene_names)
     all_num_regs = _get_num_reg(all_genes)
     max_num_reg = max(np.max(two_peak_num_regs), np.max(all_num_regs))
-    two_peak_hist, bins = np.histogram(two_peak_num_regs, bins=np.arange(-1, max_num_reg + 1, 1))
+    two_peak_hist, bins = np.histogram(
+        two_peak_num_regs, bins=np.arange(-1, max_num_reg + 1, 1)
+    )
     two_peak_hist = two_peak_hist / np.sum(two_peak_hist)
     all_hist, _ = np.histogram(all_num_regs, bins=np.arange(-1, max_num_reg + 1, 1))
     all_hist = all_hist / np.sum(all_hist)
 
     fig, axs = plt.subplots(2, figsize=(20, 10))
-    axs[0].bar(np.arange(0, 3 * (max_num_reg + 1), step=3),
-               two_peak_hist, width=1, align='edge', color='r',
-               tick_label=bins[:-1], label='Two-peak')
-    axs[0].bar(np.arange(1, 3 * (max_num_reg + 1) + 1, step=3),
-               all_hist, width=1, align='edge', color='b',
-               label='All')
+    axs[0].bar(
+        np.arange(0, 3 * (max_num_reg + 1), step=3),
+        two_peak_hist,
+        width=1,
+        align="edge",
+        color="r",
+        tick_label=bins[:-1],
+        label="Two-peak",
+    )
+    axs[0].bar(
+        np.arange(1, 3 * (max_num_reg + 1) + 1, step=3),
+        all_hist,
+        width=1,
+        align="edge",
+        color="b",
+        label="All",
+    )
     axs[0].legend()
     axs[0].set_title("Histogram of fraction of genes with n regulators")
     axs[0].set_xlabel("Number of regulators")
 
     plt.tight_layout()
     plt.savefig(plot_file)
-    plt.close('all')
+    plt.close("all")
 
     one_reg_genes = np.array(gene_names)[two_peak_num_regs == 1]
 
@@ -2402,7 +2886,9 @@ def two_peak_reg_analyze(all_genes, two_peak_file, plot_file, plot_file_reg, exc
         return np.unique(reg_gene_names, return_counts=True)
 
     def _get_regulators(genes):
-        regulators = np.array(ecocyc.ecocyc_to_ecomac_names(ecocyc.regulators, all_genes))
+        regulators = np.array(
+            ecocyc.ecocyc_to_ecomac_names(ecocyc.regulators, all_genes)
+        )
         is_regulator = np.isin(np.array(genes), regulators)
 
         return is_regulator
@@ -2419,43 +2905,67 @@ def two_peak_reg_analyze(all_genes, two_peak_file, plot_file, plot_file_reg, exc
     reg_gene_sort = np.argsort(reg_gene_counts)
     reg_gene_counts = reg_gene_counts[reg_gene_sort]
     reg_gene_names = reg_gene_names[reg_gene_sort]
-    reg_gene_name_to_count = {gene: count for gene, count in zip(reg_gene_names, reg_gene_counts)}
+    reg_gene_name_to_count = {
+        gene: count for gene, count in zip(reg_gene_names, reg_gene_counts)
+    }
 
     one_reg_gene_sort = np.argsort(one_reg_gene_counts)
     one_reg_gene_counts = one_reg_gene_counts[one_reg_gene_sort]
     one_reg_gene_names = one_reg_gene_names[one_reg_gene_sort]
-    one_reg_gene_name_to_count = {gene: count for gene, count in zip(one_reg_gene_names, one_reg_gene_counts)}
+    one_reg_gene_name_to_count = {
+        gene: count for gene, count in zip(one_reg_gene_names, one_reg_gene_counts)
+    }
 
     all_reg_gene_sort = np.argsort(all_reg_gene_counts)
     all_reg_gene_names = all_reg_gene_names[all_reg_gene_sort]
     all_reg_gene_counts = all_reg_gene_counts[all_reg_gene_sort]
 
     fig, axs = plt.subplots(2, figsize=(100, 10))
-    axs[0].bar(np.arange(0, 3 * len(all_reg_gene_names), step=3),
-               all_reg_gene_counts, width=1, align='edge', color='r',
-               tick_label=all_reg_gene_names, label='All')
-    axs[0].bar(np.arange(1, 3 * len(all_reg_gene_names) + 1, step=3),
-               [reg_gene_name_to_count.get(gene, 0)
-                   for gene in all_reg_gene_names],
-               width=1, align='edge', color='b', label='Two-peak')
+    axs[0].bar(
+        np.arange(0, 3 * len(all_reg_gene_names), step=3),
+        all_reg_gene_counts,
+        width=1,
+        align="edge",
+        color="r",
+        tick_label=all_reg_gene_names,
+        label="All",
+    )
+    axs[0].bar(
+        np.arange(1, 3 * len(all_reg_gene_names) + 1, step=3),
+        [reg_gene_name_to_count.get(gene, 0) for gene in all_reg_gene_names],
+        width=1,
+        align="edge",
+        color="b",
+        label="Two-peak",
+    )
     axs[0].set_title("Number of genes regulated by each regulator for two-peak genes")
     axs[0].legend()
 
-    axs[1].bar(np.arange(0, 3 * len(all_reg_gene_names), step=3),
-               [reg_gene_name_to_count.get(gene, 0)
-                for gene in all_reg_gene_names], width=1, align='edge', color='r',
-                label='Two-peak all')
-    axs[1].bar(np.arange(1, 3 * len(all_reg_gene_names) + 1, step=3),
-               [one_reg_gene_name_to_count.get(gene, 0)
-                for gene in all_reg_gene_names],
-               tick_label=all_reg_gene_names,
-               width=1, align='edge', color='b', label='Two-peak one reg')
-    axs[1].set_title("Number of genes regulated by each regulator for two-peak one-reg genes")
+    axs[1].bar(
+        np.arange(0, 3 * len(all_reg_gene_names), step=3),
+        [reg_gene_name_to_count.get(gene, 0) for gene in all_reg_gene_names],
+        width=1,
+        align="edge",
+        color="r",
+        label="Two-peak all",
+    )
+    axs[1].bar(
+        np.arange(1, 3 * len(all_reg_gene_names) + 1, step=3),
+        [one_reg_gene_name_to_count.get(gene, 0) for gene in all_reg_gene_names],
+        tick_label=all_reg_gene_names,
+        width=1,
+        align="edge",
+        color="b",
+        label="Two-peak one reg",
+    )
+    axs[1].set_title(
+        "Number of genes regulated by each regulator for two-peak one-reg genes"
+    )
     axs[1].legend()
 
     plt.tight_layout()
     plt.savefig(plot_file_reg)
-    plt.close('all')
+    plt.close("all")
     # For two-peak genes: some of them are annotated unregulated (opportunities for discovery), interesting what the component is.
     # some of them are annotated with having 1 regulator (that's our hypothesis), where either the component matches the regulator or not
     # some of them are annotated with having >1 that are either mostly firm (opportunities for discovery),
@@ -2464,17 +2974,20 @@ def two_peak_reg_analyze(all_genes, two_peak_file, plot_file, plot_file_reg, exc
     # in having 1 regulator for which the component that regulates it is what we expect it to be?
     # If a regulon's member is two-peak, we might expect other members of that regulon to be two-peak (tho not necessarily).
 
-    import ipdb; ipdb.set_trace()
+    import ipdb
 
-if __name__ == '__main__':
-    #neg_autoreg, pos_autoreg, both_autoreg = ecocyc.find_autoregulated_genes()
+    ipdb.set_trace()
+
+
+if __name__ == "__main__":
+    # neg_autoreg, pos_autoreg, both_autoreg = ecocyc.find_autoregulated_genes()
     # num_regulators, regulators = ecocyc.classify_regulation(neg_autoreg)
     #
     #
     # #import ipdb; ipdb.set_trace()
     # #symbols, sample_data, seq_data = load_data()
-    #colinetdata = coliNetData()
-    #simple_operon, simple_tf, one_to_one = colinetdata.get_simple_reg()
+    # colinetdata = coliNetData()
+    # simple_operon, simple_tf, one_to_one = colinetdata.get_simple_reg()
     # symbols, seq_data = load_PRECISE2_data()
     #
     # dpiAB_regulon = ['b0620', 'b0619']
@@ -2487,10 +3000,45 @@ if __name__ == '__main__':
     # plot_overlapping_one_peak_genes(
     #     os.path.join(SAMPLE_REG_DIR, "one_peak_genes_v5_3"),
     # os.path.join(SAMPLE_REG_DIR, "all_one_peak_genes_overlap_plot.png"))
+
+    ##### Honors proposal figures #####
+    ## Figure 1
+    # symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+    # gene_exp_hist(["lolB", "purC", "hdeB"], symbols, seq_data, sample_data, "Honors_thesis_three_genes",
+    #               has_gaussian=[1, 0, 0])
+
+    ## Figure 2
     # symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
     # plot_components = PlotComponents(total_components, vectorized_samples)
     # plot_components.plot_freq_components_grid(os.path.join(SAMPLE_REG_DIR, "sample_components_grid"))
-    # gene_exp_hist(["lolB", "dnaT"], symbols, seq_data, sample_data, "lolB_dnaT")
+
+    # ecocyc = EcocycReg(BASE_DIR)
+    # ecocyc.init_transcr_reg_data(os.path.join(SAMPLE_REG_DIR, "ecocyc_reg_tfs"))
+    # ecocyc.one_peak_transcr_reg_info(symbols, os.path.join(SAMPLE_REG_DIR,
+    #                                                        "one_peak_genes_v5"),
+    #                                  os.path.join(SAMPLE_REG_DIR, "ecocyc_reg_tfs_annotated"),
+    #                                               "",
+    #                                  os.path.join(SAMPLE_REG_DIR, "one_peak_genes_num_reg_v5"))
+
+    ## Figure 3
+    # def plot_gene_components(genes, comp1, comp2, title):
+    #     symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+    #     _, exp = get_gene_exp(symbols, seq_data, gene_names=genes)
+    #     plot_components = PlotComponents(total_components, vectorized_samples)
+    #     plot_components.plot_exp_control_components(exp, title, genes, comp1, comp2)
+    #
+    # def plot_gene_all_components(gene, title):
+    #     symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+    #     _, exp = get_gene_exp(symbols, seq_data, gene_names=[gene])
+    #     plot_components = PlotComponents(total_components, vectorized_samples)
+    #     plot_components.plot_all_components(exp[0], title)
+    #
+    # plot_gene_components(['purC', 'purF'],
+    # {'adenine'}, {'methionine'}, "Honors thesis purC components")
+
+    import ipdb
+
+    ipdb.set_trace()
     # gene_names = []
     # with open(os.path.join(SAMPLE_REG_DIR, "one_peak_genes_v5_3"), 'r') as f:
     #     reader = csv.reader(f, delimiter='\t')
@@ -2504,69 +3052,164 @@ if __name__ == '__main__':
     #         writer.writerow([gene])
     # import ipdb; ipdb.set_trace()
 
-    def plot_gene_components(genes, comp1, comp2, title):
-        symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
-        _, exp = get_gene_exp(symbols, seq_data, gene_names=genes)
-        plot_components = PlotComponents(total_components, vectorized_samples)
-        plot_components.plot_exp_control_components(exp, title, genes, comp1, comp2)
+    # symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+    # compare_tail_stimulon_enrichment("gmk", 11.5, symbols, seq_data, sample_data)
+    # plot_gene_all_components('adk', "adk_all_components")
+    import ipdb
 
-    def plot_gene_all_components(gene, title):
-        symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
-        _, exp = get_gene_exp(symbols, seq_data, gene_names=[gene])
-        plot_components = PlotComponents(total_components, vectorized_samples)
-        plot_components.plot_all_components(exp[0], title)
-
-    plot_gene_components(['trpA', 'trpB', 'trpC', 'trpD', 'trpE'],
-    {'aspartate', 'threonine', 'phenylalanine', 'glutamate', 'arginine',
-     'glycine', 'isoleucine', 'serine', 'tryptophan', 'histidine', 'valine',
-     'lysine', 'leucine', 'asparagine', 'glutamine', 'tyrosine', 'alanine'}
-                         , {'methionine'}, "trp_biosynthesis")
-
-    #symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
-    #compare_tail_stimulon_enrichment("gmk", 11.5, symbols, seq_data, sample_data)
-    #plot_gene_all_components('adk', "adk_all_components")
-    import ipdb; ipdb.set_trace()
-    #plot_gene_all_components('lldP', 'lldP_all_comp')
+    ipdb.set_trace()
+    # plot_gene_all_components('lldP', 'lldP_all_comp')
     # plot_gene_components(['yaiE', 'yfiH', 'deoD', 'add', 'xapA', 'gsk', 'gpt', 'hpt', 'rihC', 'apt'],
     #                     {'adenine'},
     #                     {'pantothenate', 'cytosine', 'uracil', 'guanine'},
     #                     "adenine_salvage_genes")
 
-    #import ipdb; ipdb.set_trace()
-    # ecocyc = EcocycReg(BASE_DIR)
-    # ecocyc.init_transcr_reg_data(os.path.join(SAMPLE_REG_DIR, "ecocyc_reg_tfs"))
-    # ecocyc.one_peak_transcr_reg_info(symbols, os.path.join(SAMPLE_REG_DIR,
-    #                                                        "one_peak_genes_v5"),
-    #                                  os.path.join(SAMPLE_REG_DIR, "ecocyc_reg_tfs_annotated"),
-    #                                               "",
-    #                                  os.path.join(SAMPLE_REG_DIR, "one_peak_genes_num_reg_v5"))
-    candidate_genes = ['FruR', 'acrR', 'adiA_adiY', 'alpA', 'arcA', 'arsR', 'atoC',
-       'birA_murA', 'cadC', 'cbl', 'cspA', 'cytR', 'fadR', 'flhDC',
-       'gatR_1', 'gntR', 'kdpDE', 'leuO', 'malT', 'mhpR', 'mlc', 'modE',
-       'nadR', 'narL', 'nlpD_rpoS', 'rbsR', 'rob', 'rpoH', 'rpoN', 'rtcR',
-       'treR', 'xapR', 'yjbK', 'zntR']
+    # import ipdb; ipdb.set_trace()
 
+    candidate_genes = [
+        "FruR",
+        "acrR",
+        "adiA_adiY",
+        "alpA",
+        "arcA",
+        "arsR",
+        "atoC",
+        "birA_murA",
+        "cadC",
+        "cbl",
+        "cspA",
+        "cytR",
+        "fadR",
+        "flhDC",
+        "gatR_1",
+        "gntR",
+        "kdpDE",
+        "leuO",
+        "malT",
+        "mhpR",
+        "mlc",
+        "modE",
+        "nadR",
+        "narL",
+        "nlpD_rpoS",
+        "rbsR",
+        "rob",
+        "rpoH",
+        "rpoN",
+        "rtcR",
+        "treR",
+        "xapR",
+        "yjbK",
+        "zntR",
+    ]
 
-    #load_data_exclude_rewiring()
+    # load_data_exclude_rewiring()
 
     # ArsEFG changeed to ArsRBC
     # EmrR changed to mprA
-    one_to_one_genes = ['acrA', 'acrB', 'adiA', 'arsR', 'arsB', 'arsC',
-        'cadB', 'cadA', 'mprA', 'emrA', 'emrB', 'gatY', 'gatZ', 'gatA',
-        'gatB', 'gatC', 'gatD', 'gatR_2', 'hipB', 'hipA',
-        'idnD', 'idnO', 'idnT', 'idnR', 'kdpA', 'kdpB', 'kdpC', 'leuL',
-        'leuA', 'leuB', 'leuC', 'leuD', 'mhpA', 'mhpB', 'mhpC', 'mhpD', 'mhpF',
-        'mhpE', 'moaA', 'moaB', 'moaC', 'moaD', 'moaE', 'modA', 'modB', 'modC',
-        'mtlA', 'mtlD', 'mtlR', 'rbsD', 'rbsA', 'rbsC', 'rbsB', 'rbsK',
-        'rtcA', 'rtcB', 'slp', 'treB', 'treC', 'xapA', 'xapB', 'zntA', 'znuA',
-        'znuB', 'znuC']
+    one_to_one_genes = [
+        "acrA",
+        "acrB",
+        "adiA",
+        "arsR",
+        "arsB",
+        "arsC",
+        "cadB",
+        "cadA",
+        "mprA",
+        "emrA",
+        "emrB",
+        "gatY",
+        "gatZ",
+        "gatA",
+        "gatB",
+        "gatC",
+        "gatD",
+        "gatR_2",
+        "hipB",
+        "hipA",
+        "idnD",
+        "idnO",
+        "idnT",
+        "idnR",
+        "kdpA",
+        "kdpB",
+        "kdpC",
+        "leuL",
+        "leuA",
+        "leuB",
+        "leuC",
+        "leuD",
+        "mhpA",
+        "mhpB",
+        "mhpC",
+        "mhpD",
+        "mhpF",
+        "mhpE",
+        "moaA",
+        "moaB",
+        "moaC",
+        "moaD",
+        "moaE",
+        "modA",
+        "modB",
+        "modC",
+        "mtlA",
+        "mtlD",
+        "mtlR",
+        "rbsD",
+        "rbsA",
+        "rbsC",
+        "rbsB",
+        "rbsK",
+        "rtcA",
+        "rtcB",
+        "slp",
+        "treB",
+        "treC",
+        "xapA",
+        "xapB",
+        "zntA",
+        "znuA",
+        "znuB",
+        "znuC",
+    ]
 
-    #components, samples = test_treatments()
-    curated_one_to_one_genes = ['xapR', 'xapA', 'xapB', 'zntR', 'zntA',
-        'zur', 'znuC', 'znuB', 'zinT', 'znuA', 'pliG', 'ykgM', #'ykgO',
-        'moaA', 'modA', 'modE', 'leuA', 'leuO', 'kdpD', 'kdpE', #'kdpF',
-        'kdpA', 'kdpB', 'kdpC', 'idnR', 'idnD', 'idnO', 'hipA', 'hipB',
-        'cadC', 'lysP', 'cadB', 'adiY', 'adiA']
+    # components, samples = test_treatments()
+    curated_one_to_one_genes = [
+        "xapR",
+        "xapA",
+        "xapB",
+        "zntR",
+        "zntA",
+        "zur",
+        "znuC",
+        "znuB",
+        "zinT",
+        "znuA",
+        "pliG",
+        "ykgM",  #'ykgO',
+        "moaA",
+        "modA",
+        "modE",
+        "leuA",
+        "leuO",
+        "kdpD",
+        "kdpE",  #'kdpF',
+        "kdpA",
+        "kdpB",
+        "kdpC",
+        "idnR",
+        "idnD",
+        "idnO",
+        "hipA",
+        "hipB",
+        "cadC",
+        "lysP",
+        "cadB",
+        "adiY",
+        "adiA",
+    ]
 
     # NOTE: ykgO, kdpF, not in dataset. lysP is synonym for cadR.
 
@@ -2581,11 +3224,11 @@ if __name__ == '__main__':
     # converted_names = converted_names[mask]
     # num_regulators = num_regulators[mask]
 
-    #converted_names = [x for x in converted_names if x != ""]
-    #updated_gene_names, duplicated_genes, missing_genes = ecocyc.curate_gene_names(symbols)
-    #rank, difference, ll_two_cluster, ll_one_cluster = make_gene_rankings(seq_data, symbols, symbols, "gmm_llr_rankings_no_rewiring")
+    # converted_names = [x for x in converted_names if x != ""]
+    # updated_gene_names, duplicated_genes, missing_genes = ecocyc.curate_gene_names(symbols)
+    # rank, difference, ll_two_cluster, ll_one_cluster = make_gene_rankings(seq_data, symbols, symbols, "gmm_llr_rankings_no_rewiring")
 
-    #gene_exp_hist(["yejH", "araE", "hdeB"], symbols, seq_data, sample_data, "honors_proposal_genes")
+    # gene_exp_hist(["yejH", "araE", "hdeB"], symbols, seq_data, sample_data, "honors_proposal_genes")
     # ["yejH", "araE", "hdeB", "treR", "treB", "dnaA"]
     # low STD genes: yejH, yfgD
     # low STD and low z: rutR, paaX, ydfH
@@ -2595,60 +3238,196 @@ if __name__ == '__main__':
     #     'ytfQ', 'ytfR', 'ytfT', 'yjfF', 'araF', 'araG', 'araH_1', 'araH_2', 'ygeA', 'ydeN', 'ydeM',
     #     'xylA', 'xylB']
     # mannitol_gene_names = ['mtlA', 'mtlD', 'mtlR', 'srlA', 'srlB', 'srlE']
-    rutR_regulon = ['rutR', 'rutA', 'rutB', 'rutC', 'rutD', 'rutE', 'rutF', 'rutG',
-        'carA', 'carB', 'fepB', 'gmr', 'nemR', 'nemA', 'gloA',
-        'gadX', 'gadW']
+    rutR_regulon = [
+        "rutR",
+        "rutA",
+        "rutB",
+        "rutC",
+        "rutD",
+        "rutE",
+        "rutF",
+        "rutG",
+        "carA",
+        "carB",
+        "fepB",
+        "gmr",
+        "nemR",
+        "nemA",
+        "gloA",
+        "gadX",
+        "gadW",
+    ]
     # # TODO: add more genes to rutR_regulon
-    thiamine_riboswitch = ['thiM', 'thiD', 'thiC', 'thiE', 'thiF',
-        'thiG', 'thiH'] # EcoMAC is missing thiS
-    sgrR_regulon = ['sgrR', 'tbpA', 'thiP', 'thiQ', 'setA'] # small RNA sroA,
+    thiamine_riboswitch = [
+        "thiM",
+        "thiD",
+        "thiC",
+        "thiE",
+        "thiF",
+        "thiG",
+        "thiH",
+    ]  # EcoMAC is missing thiS
+    sgrR_regulon = ["sgrR", "tbpA", "thiP", "thiQ", "setA"]  # small RNA sroA,
     # and divergently small RNAs sgrR, sgrT with setA
-    orphan_thiamine_synth_genes = ['thiL', 'thiI', 'thiK']
-    cytR_regulon = ['tsx', 'ycdZ', 'cdd', 'nupC', 'nupG', 'ppiA',
-        'rpoH', 'udp', 'cytR', 'deoC', 'deoA', 'deoB', 'deoD']
-    pyridoxal_salvage = ['ydbC', 'pdxY', 'pdxH', 'pdxK']
-    lipoate_salvage = ['lplA', 'ytjB']
-    nadR_regulon = ['nadR', 'nadA', 'pnuC', 'pncB', 'nadB']
-    modE_regulon = ['modE', 'modA', 'modB', 'modC',
-        'moaA', 'moaB', 'moaC', 'moaD', 'moaE',
-        'dmsA', 'dmsB', 'dmsC', 'narX', 'narL',
-        'oppA', 'oppB', 'oppC', 'oppD', 'oppF',
-        'napF', 'napD', 'napA', 'napG', 'napH', 'napB', 'napC', 'ccmA', 'ccmB',
-        'ccmC', 'ccmD', 'ccmE', 'ccmF', 'ccmG', 'ccmH',
-        'hycA', 'hycB', 'hycC', 'hycD', 'hycE', 'hycF', 'hycG', 'hycH', 'hycI',
-        'deoC', 'deoA', 'deoB', 'deoD'
-        ]
-    zur_regulon = ['zur', 'ykgM', 'pliG', 'znuC', 'znuB', 'znuA', 'zinT']
+    orphan_thiamine_synth_genes = ["thiL", "thiI", "thiK"]
+    cytR_regulon = [
+        "tsx",
+        "ycdZ",
+        "cdd",
+        "nupC",
+        "nupG",
+        "ppiA",
+        "rpoH",
+        "udp",
+        "cytR",
+        "deoC",
+        "deoA",
+        "deoB",
+        "deoD",
+    ]
+    pyridoxal_salvage = ["ydbC", "pdxY", "pdxH", "pdxK"]
+    lipoate_salvage = ["lplA", "ytjB"]
+    nadR_regulon = ["nadR", "nadA", "pnuC", "pncB", "nadB"]
+    modE_regulon = [
+        "modE",
+        "modA",
+        "modB",
+        "modC",
+        "moaA",
+        "moaB",
+        "moaC",
+        "moaD",
+        "moaE",
+        "dmsA",
+        "dmsB",
+        "dmsC",
+        "narX",
+        "narL",
+        "oppA",
+        "oppB",
+        "oppC",
+        "oppD",
+        "oppF",
+        "napF",
+        "napD",
+        "napA",
+        "napG",
+        "napH",
+        "napB",
+        "napC",
+        "ccmA",
+        "ccmB",
+        "ccmC",
+        "ccmD",
+        "ccmE",
+        "ccmF",
+        "ccmG",
+        "ccmH",
+        "hycA",
+        "hycB",
+        "hycC",
+        "hycD",
+        "hycE",
+        "hycF",
+        "hycG",
+        "hycH",
+        "hycI",
+        "deoC",
+        "deoA",
+        "deoB",
+        "deoD",
+    ]
+    zur_regulon = ["zur", "ykgM", "pliG", "znuC", "znuB", "znuA", "zinT"]
 
-    arg_regulon = ['argD', 'argE', 'argF', 'argI', 'argR']
+    arg_regulon = ["argD", "argE", "argF", "argI", "argR"]
 
-    purR_regulon = ['purR', 'speA', 'speB', 'purL', 'glnB', 'purC', 'cvpA',
-    'purF', 'ubiX', 'purT', 'purR', 'prs', 'hflD', 'purB', 'pyrD', 'purE',
-    'purK', 'codB', 'codA',
-        'carA', 'carB', 'pyrC', 'purM', 'purN', 'glyA', 'guaB', 'guaA',
-        'purA', 'purH', 'purD']
-    cysB_regulon = ['cysB', 'yciW', 'ydjN', 'fliY', 'cysK', 'tauA', 'tauB',
-        'tauC', 'tauD', 'ybdN', 'ssuE', 'ssuA', 'ssuD', 'ssuC', 'ssuB',
-        'cysP', 'cysU', 'cysW', 'cysA', 'cysM', 'yfbR', 'cbl', 'yoaC',
-        'ydeH', 'hslJ', 'ariR']
+    purR_regulon = [
+        "purR",
+        "speA",
+        "speB",
+        "purL",
+        "glnB",
+        "purC",
+        "cvpA",
+        "purF",
+        "ubiX",
+        "purT",
+        "purR",
+        "prs",
+        "hflD",
+        "purB",
+        "pyrD",
+        "purE",
+        "purK",
+        "codB",
+        "codA",
+        "carA",
+        "carB",
+        "pyrC",
+        "purM",
+        "purN",
+        "glyA",
+        "guaB",
+        "guaA",
+        "purA",
+        "purH",
+        "purD",
+    ]
+    cysB_regulon = [
+        "cysB",
+        "yciW",
+        "ydjN",
+        "fliY",
+        "cysK",
+        "tauA",
+        "tauB",
+        "tauC",
+        "tauD",
+        "ybdN",
+        "ssuE",
+        "ssuA",
+        "ssuD",
+        "ssuC",
+        "ssuB",
+        "cysP",
+        "cysU",
+        "cysW",
+        "cysA",
+        "cysM",
+        "yfbR",
+        "cbl",
+        "yoaC",
+        "ydeH",
+        "hslJ",
+        "ariR",
+    ]
 
-    purR_regulon_filtered = ['purL', 'purC', 'cvpA', 'purF', 'purT', 'purE',
-        'purK', 'codB', 'codA', 'purM', 'purN', 'purH', 'purR']
+    purR_regulon_filtered = [
+        "purL",
+        "purC",
+        "cvpA",
+        "purF",
+        "purT",
+        "purE",
+        "purK",
+        "codB",
+        "codA",
+        "purM",
+        "purN",
+        "purH",
+        "purR",
+    ]
 
-    birA_regulon = ['birA', 'bioA', 'bioB', 'bioC', 'bioF', 'bioD']
+    birA_regulon = ["birA", "bioA", "bioB", "bioC", "bioF", "bioD"]
 
-    cueR_regulon = ['cueR', 'cueO', 'copA']
-    rbs_regulon = ['rbsA', 'rbsB', 'rbsC', 'rbsD', 'rbsK', 'rbsR']
+    cueR_regulon = ["cueR", "cueO", "copA"]
+    rbs_regulon = ["rbsA", "rbsB", "rbsC", "rbsD", "rbsK", "rbsR"]
 
-        #['ilvY', 'ilvC']
-    #gene_names = get_candidate_two_peaks()
-    #gene_names = ['ribD']
+    # ['ilvY', 'ilvC']
+    # gene_names = get_candidate_two_peaks()
+    # gene_names = ['ribD']
 
-
-    #samples, in_range = get_samples_in_range(exp[0], sample_data, (0, 6.5))
-
-
-
+    # samples, in_range = get_samples_in_range(exp[0], sample_data, (0, 6.5))
 
     # # NOTE: srlABE are not induced by mannitol, but added bc they do transport mannitol
     # plot_names = [x+'1010' for x in gene_names]
@@ -2661,47 +3440,67 @@ if __name__ == '__main__':
         components, vectorized_samples = test_treatments()
         plot_components = PlotComponents(components, vectorized_samples)
 
-        exclude = ['biofilm', 'stationary', 'transition', 'ethanol', 'Adaptive evolution',
-            'formation', 'autoinducer-2', 'CORM-2', 'attachment', 'R1drd19 plasmid',
-            'maturation', 'heat shock', 'PenG', 'zinc (II) oxide', 'norfloxacin']
+        exclude = [
+            "biofilm",
+            "stationary",
+            "transition",
+            "ethanol",
+            "Adaptive evolution",
+            "formation",
+            "autoinducer-2",
+            "CORM-2",
+            "attachment",
+            "R1drd19 plasmid",
+            "maturation",
+            "heat shock",
+            "PenG",
+            "zinc (II) oxide",
+            "norfloxacin",
+        ]
         # PenG makes L-form colonies, norfloxacin kills cells, zinc (II) oxide was that outlier magnetic field study (maybe put back)
-        filtered_exp, filtered_components, filtered_samples = plot_components.exclude_component(exp,
-                                                                exclude)
+        filtered_exp, filtered_components, filtered_samples = (
+            plot_components.exclude_component(exp, exclude)
+        )
 
         return filtered_exp, filtered_components, filtered_samples, gene_names
 
     def plot_genes_filtered_components(gene_names, title, exp_comp, control_comp):
-        '''
+        """
         Plots the expression of genes in gene_names, only including samples
         that have been filtered. Plots them also side by side with including
         or excluding each component in "components".
-        '''
-        filtered_exp, filtered_components, filtered_samples, _ = _get_filtered_data(gene_names)
+        """
+        filtered_exp, filtered_components, filtered_samples, _ = _get_filtered_data(
+            gene_names
+        )
         plot_components = PlotComponents(filtered_components, filtered_samples)
-        plot_components.plot_exp_control_components(filtered_exp, title,
-                                       gene_names, exp_comp=exp_comp,
-                                        control_comp=control_comp,
-                                       vectorized_samples=filtered_samples
-                                       )
+        plot_components.plot_exp_control_components(
+            filtered_exp,
+            title,
+            gene_names,
+            exp_comp=exp_comp,
+            control_comp=control_comp,
+            vectorized_samples=filtered_samples,
+        )
 
-    #plot_genes_filtered_components(['lolB', 'chaC'], "lolB_chaC_filtered", 'fumarate', 'arginine')
-    #import ipdb; ipdb.set_trace()
-    #dcuRS = ['dcuR', 'dcuS']
-    #plot_genes_filtered_components(rbs_regulon, "rbsR_regulon_filtered", 'adenine', 'arginine')
+    # plot_genes_filtered_components(['lolB', 'chaC'], "lolB_chaC_filtered", 'fumarate', 'arginine')
+    # import ipdb; ipdb.set_trace()
+    # dcuRS = ['dcuR', 'dcuS']
+    # plot_genes_filtered_components(rbs_regulon, "rbsR_regulon_filtered", 'adenine', 'arginine')
 
     def plot_genes_filtered(gene_names, title):
-        '''
+        """
         Plots the expression of genes in gene_names, only including samples
         that have been filtered.
-        '''
+        """
         filtered_exp, *_ = _get_filtered_data(gene_names)
         hist_from_exp(filtered_exp, gene_names, title)
 
-    #plot_genes_filtered(["pepQ"], "pepQ")
-    #plot_genes_filtered_components(["msrA", "ytfT"], "check_znO", "zinc (II) oxide", "arginine")
-    #plot_genes_filtered_components(["msrA", "ytfT"], "check_bicarbonate", "bicarbonate", "arginine")
-    #plot_genes_filtered_components(["lolB", "dcuR"], "check_fumarate", "fumarate", "arginine")
-    #plot_genes_filtered_components(["potE", "znuA", 'nuoM', 'nuoG'], "check_homopipes", "HOMOPIPES", "pH5.5")
+    # plot_genes_filtered(["pepQ"], "pepQ")
+    # plot_genes_filtered_components(["msrA", "ytfT"], "check_znO", "zinc (II) oxide", "arginine")
+    # plot_genes_filtered_components(["msrA", "ytfT"], "check_bicarbonate", "bicarbonate", "arginine")
+    # plot_genes_filtered_components(["lolB", "dcuR"], "check_fumarate", "fumarate", "arginine")
+    # plot_genes_filtered_components(["potE", "znuA", 'nuoM', 'nuoG'], "check_homopipes", "HOMOPIPES", "pH5.5")
 
     # #
     # ecocyc = EcocycReg(BASE_DIR)
@@ -2711,15 +3510,14 @@ if __name__ == '__main__':
     #                                  "",
     #                                  os.path.join(SAMPLE_REG_DIR, "new_one_peak_genes_reg_plot_v5_3"))
 
-    #symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
-
+    # symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
 
     # plot_components = PlotComponents(total_components, vectorized_samples)
     # plot_components.write_second_peak_data(symbols, seq_data,
     #                                        os.path.join(SAMPLE_REG_DIR, "p_values_v6"),
     #                                        os.path.join(SAMPLE_REG_DIR, "diff_means_v6"),
     #                                        os.path.join(SAMPLE_REG_DIR, "second_peak_results_v6.json"))
-    #import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
     # plot_components.write_one_peak_genes(
     #     seq_data,
@@ -2731,39 +3529,41 @@ if __name__ == '__main__':
     #     0.65,
     #     50,
     #     os.path.join(SAMPLE_REG_DIR, "one_peak_genes_v5_3")
-    #)
+    # )
     # plot_components.write_stats_for_low_spread_genes(seq_data, symbols, os.path.join(SAMPLE_REG_DIR, "mwu_u_stats_v4"),
     #                                                 os.path.join(SAMPLE_REG_DIR, "mwu_p_values_v4"),
     #                                                  os.path.join(SAMPLE_REG_DIR, "mwu_diff_means_v4"))
-    #import ipdb; ipdb.set_trace()
-    #plot_components.write_freq_components(os.path.join(SAMPLE_REG_DIR, "freq_components_v6"))
-    #plot_components.detect_reg(seq_data, symbols, os.path.join(SAMPLE_REG_DIR, "p_values_v6"),
+    # import ipdb; ipdb.set_trace()
+    # plot_components.write_freq_components(os.path.join(SAMPLE_REG_DIR, "freq_components_v6"))
+    # plot_components.detect_reg(seq_data, symbols, os.path.join(SAMPLE_REG_DIR, "p_values_v6"),
     #                         os.path.join(SAMPLE_REG_DIR, "t_statistics_v6"),
     #                          os.path.join(SAMPLE_REG_DIR, "diff_means_v6"))
 
-    import ipdb; idpb.set_trace()
+    import ipdb
+
+    idpb.set_trace()
     # plot_components.write_stats_for_low_spread_genes(seq_data, symbols, os.path.join(SAMPLE_REG_DIR, "mwu_u_stats_v4"),
     #                                                 os.path.join(SAMPLE_REG_DIR, "mwu_p_values_v4"))
-    #fumarate_reg_genes = ['dctA', 'fumB', 'dcuB', 'frdA', 'frdB', 'frdC', 'frdD']
+    # fumarate_reg_genes = ['dctA', 'fumB', 'dcuB', 'frdA', 'frdB', 'frdC', 'frdD']
 
-    #tdc_operon = ['tdcA', 'tdcB', 'tdcC', 'tdcD', 'tdcE', 'tdcF']
+    # tdc_operon = ['tdcA', 'tdcB', 'tdcC', 'tdcD', 'tdcE', 'tdcF']
     # nar_genes = ['narG', 'narH', 'narJ', 'narI']
     # nar_other_genes = ['narZ', 'narY', 'narW', 'narV']
-    #moa_operon = ['moaA', 'moaB', 'moaC', 'moaD', 'moaE']
-    #deo_operon = ['deoA', 'deoB', 'deoC', 'deoD']
-    #gene_exp_hist(deo_operon, symbols, seq_data, sample_data, "Deo_operon")
-    #_, exp = get_gene_exp(symbols, seq_data, gene_names=moa_operon)
+    # moa_operon = ['moaA', 'moaB', 'moaC', 'moaD', 'moaE']
+    # deo_operon = ['deoA', 'deoB', 'deoC', 'deoD']
+    # gene_exp_hist(deo_operon, symbols, seq_data, sample_data, "Deo_operon")
+    # _, exp = get_gene_exp(symbols, seq_data, gene_names=moa_operon)
     # _, exp1 = get_gene_exp(symbols, seq_data, gene_names=nar_genes)
     # _, exp2 = get_gene_exp(symbols, seq_data, gene_names=nar_other_genes)
-    #plot_components.plot_exp_control_components(exp, "test_fumarate_low_p_value", ['ymfN', 'cysB', 'rcsB'],
+    # plot_components.plot_exp_control_components(exp, "test_fumarate_low_p_value", ['ymfN', 'cysB', 'rcsB'],
     #                                           'fumarate', 'arginine')
-    #plot_components.plot_exp_control_components(exp, "fumarate_reg_genes", fumarate_reg_genes,
+    # plot_components.plot_exp_control_components(exp, "fumarate_reg_genes", fumarate_reg_genes,
     #                                            "fumarate", "arginine")
     # plot_components.plot_exp_control_components(exp1, "narGHJI_operon", nar_genes,
     #                                            "nitrate-anaerobic", "anaerobic")
     # plot_components.plot_exp_control_components(exp2, "narZYWV_operon", nar_other_genes,
     #                                             "glycerophosphate, nitrate-aerobic, selenium", "anaerobic")
-    #plot_components.plot_exp_control_components(exp, "moa_operon", moa_operon,
+    # plot_components.plot_exp_control_components(exp, "moa_operon", moa_operon,
     #                                            "DMSO", "molybdate")
     # TODO: so what to do about weird cases like moaA, where for DMSO it has one at 5 and one at 9, so it's not really
     # a lower mean seems more like outliers in data?
@@ -2787,8 +3587,6 @@ if __name__ == '__main__':
     # ecomac_colinet_names = ecocyc.ecocyc_to_ecomac_names(colinet_genes, symbols)
     #
     # colinet_reg_components = coliNet.gene_reg_components
-
-
 
     # plot_components.detect_reg(seq_data, symbols, os.path.join(SAMPLE_REG_DIR, "p_values_v5"),
     #                          os.path.join(SAMPLE_REG_DIR, "t_statistics_v5"),
@@ -2832,7 +3630,6 @@ if __name__ == '__main__':
     # growth rate which is nice. # TODO: that would change coliNet stuff too
     # TODO: whether to take out the Y. Yang BHI agar part maybe because it might be at stationary phase? how to check?
 
-
     # TODO: curate the nitrate concentrations in the media, bc only four samples have nitrate, but 18 other samples have nitrate
     # in media, maybe that's making it show less of a change in p-values &diff_means?? also there's the difference between anaerobic and not anaerobic
     # So now, for each colinet gene, by which ligand do we expect it to be perturbed?
@@ -2844,20 +3641,20 @@ if __name__ == '__main__':
     # TODO: partial least squares regression, think(??)
     # TODO: is sulfate in rich media?
     # TODO: nirC looks not regulated but nirBD do, might nirC have its own promoter or smth? Check with REND-seq or smth?
-    import ipdb; ipdb.set_trace()
+    import ipdb
 
+    ipdb.set_trace()
 
     # genes_reg_by_x('argR', symbols, os.path.join(SAMPLE_REG_DIR, "one_peak_genes2"),
     #                os.path.join(SAMPLE_REG_DIR, "one_peak_reg_by_argR2"))
-    #filtered_exp, filtered_components, filtered_samples, gene_names = _get_filtered_data()
-    #plot_components = PlotComponents(filtered_components, filtered_samples)
-    #plot_components.candidate_two_peak(gene_names, filtered_exp, os.path.join(SAMPLE_REG_DIR, "all_regs2"),
+    # filtered_exp, filtered_components, filtered_samples, gene_names = _get_filtered_data()
+    # plot_components = PlotComponents(filtered_components, filtered_samples)
+    # plot_components.candidate_two_peak(gene_names, filtered_exp, os.path.join(SAMPLE_REG_DIR, "all_regs2"),
     #                                   os.path.join(SAMPLE_REG_DIR, "two_peak_all_regs"))
 
-
-    #plot_components.identify_two_peak(os.path.join(SAMPLE_REG_DIR, "two_peak_all_regs"),
+    # plot_components.identify_two_peak(os.path.join(SAMPLE_REG_DIR, "two_peak_all_regs"),
     #                                  os.path.join(SAMPLE_REG_DIR, "two_peak_genes"))
-    #two_peak_reg_analyze(gene_names, os.path.join(SAMPLE_REG_DIR, "two_peak_genes"),
+    # two_peak_reg_analyze(gene_names, os.path.join(SAMPLE_REG_DIR, "two_peak_genes"),
     #                     os.path.join(SAMPLE_REG_DIR, "two_peak_num_reg_hist"),
     #                     os.path.join(SAMPLE_REG_DIR, "two_peak_reg_data"))
     # plot_components.detect_reg(filtered_exp, gene_names, os.path.join(SAMPLE_REG_DIR, "p_values2"),
@@ -2880,93 +3677,91 @@ if __name__ == '__main__':
     #                    os.path.join(SAMPLE_REG_DIR, "one_peak_reg_info2"),
     #                    os.path.join(SAMPLE_REG_DIR, "one_peak_reg_plot2"))
 
-    import ipdb; ipdb.set_trace()
-    #get_candidate_one_peak(filtered_exp, gene_names, os.path.join(OUTPUT_DIR, "one_peak_standard_dev_0.7_twofold"),
-                           #method='standard_dev')
+    import ipdb
+
+    ipdb.set_trace()
+    # get_candidate_one_peak(filtered_exp, gene_names, os.path.join(OUTPUT_DIR, "one_peak_standard_dev_0.7_twofold"),
+    # method='standard_dev')
     # Use a different method to get one-peak
     # Make the rankings plot
     # Make the histogram plot
     # Do parameter sensitivity
 
-    dpiAB_regulon = ['dpiA', 'dpiB', 'citC', 'citD', 'citE', 'citF', 'citX', 'citG']
-    #plot_genes_filtered(dpiAB_regulon, "dpiAB_regulon_filtered")
-    #plot_genes_filtered_components(dpiAB_regulon, "dpiAB_regulon_filtered", "anaerobic", "arginine")
+    dpiAB_regulon = ["dpiA", "dpiB", "citC", "citD", "citE", "citF", "citX", "citG"]
+    # plot_genes_filtered(dpiAB_regulon, "dpiAB_regulon_filtered")
+    # plot_genes_filtered_components(dpiAB_regulon, "dpiAB_regulon_filtered", "anaerobic", "arginine")
 
-    #sigma_factors = ['rpoD', 'rpoE', 'rpoN', 'rpoH', 'rpoS', 'fliA']
-    #chbR_regulon = ['chbR', 'chbA', 'chbB', 'chbF', 'chbC', 'chbG']
+    # sigma_factors = ['rpoD', 'rpoE', 'rpoN', 'rpoH', 'rpoS', 'fliA']
+    # chbR_regulon = ['chbR', 'chbA', 'chbB', 'chbF', 'chbC', 'chbG']
 
-    #crp_investigation(symbols)
+    # crp_investigation(symbols)
 
-    #one_peak_reg_info(symbols, os.path.join(OUTPUT_DIR, 'one_peak_reg_by_crp_annotated'),
+    # one_peak_reg_info(symbols, os.path.join(OUTPUT_DIR, 'one_peak_reg_by_crp_annotated'),
     #                  '', '')
-    #ulaR_regulon = ['ulaR', 'ulaA', 'ulaC', 'ulaB', 'ulaD', 'ulaE', 'ulaF']
-    #gene_exp_hist(['dcuR', 'dcuS'], symbols, seq_data, sample_data, "dcuRS")
+    # ulaR_regulon = ['ulaR', 'ulaA', 'ulaC', 'ulaB', 'ulaD', 'ulaE', 'ulaF']
+    # gene_exp_hist(['dcuR', 'dcuS'], symbols, seq_data, sample_data, "dcuRS")
 
-    #one_peak_num_reg_histogram(symbols, os.path.join(OUTPUT_DIR, "one_peak_95%_2fold"), os.path.join(
-        #OUTPUT_DIR, "one_peak_num_reg_hist"))
+    # one_peak_num_reg_histogram(symbols, os.path.join(OUTPUT_DIR, "one_peak_95%_2fold"), os.path.join(
+    # OUTPUT_DIR, "one_peak_num_reg_hist"))
 
-    #one_peak_reg_info(symbols, os.path.join(OUTPUT_DIR, "one_peak_95%_2fold_no_sigma"),
+    # one_peak_reg_info(symbols, os.path.join(OUTPUT_DIR, "one_peak_95%_2fold_no_sigma"),
     #                  os.path.join(OUTPUT_DIR, "one_peak_reg_info_no_sigma"),
     #                  os.path.join(OUTPUT_DIR, "one_peak_regulators_compare_no_sigma"))
-
 
     # TODO: so for all these genes, we want to classify by: 1. is it no regulators at all,
     # 2. is it autoregulated only, 3. does it have other regulators (3a no autoreg, 3b yes autoreg),
     # For the class 3, we can look into the other regulators. Can say: 1. only Fis, Lrp, etc.
     # 2. Includes real other regulators.
 
-
-
     # in_range_vectors = vectorized_samples[in_range]
-    #valine_idx = np.where(components=='valine')
+    # valine_idx = np.where(components=='valine')
     # adenine_idx = np.where(components=='adenine')[0][0]
     # no_adenine_mask = (in_range_vectors[:, adenine_idx] == 0.)
     # no_adenine_samples = {k: samples[k][no_adenine_mask] for k in samples.keys()}
     # adenine_samples = {k: samples[k][~no_adenine_mask] for k in samples.keys()}
-    #import ipdb; ipdb.set_trace()
-    #plot_components = PlotComponents(components, vectorized_samples)
-    #plot_components.plot_components(exp, 'ilvY_regulon_components', gene_names,
+    # import ipdb; ipdb.set_trace()
+    # plot_components = PlotComponents(components, vectorized_samples)
+    # plot_components.plot_components(exp, 'ilvY_regulon_components', gene_names,
     #                                components=['valine', 'glucose'])
-    #plot_components.get_enriched()
-    #plot_components.plot_components(exp[0], "arg_Icomponents")
-    #plot_components.plot_enriched(exp[0], (0, 8), 'metHlow', combos=2)
+    # plot_components.get_enriched()
+    # plot_components.plot_components(exp[0], "arg_Icomponents")
+    # plot_components.plot_enriched(exp[0], (0, 8), 'metHlow', combos=2)
 
-
-    #peak_finder = PeakDetection()
-    #peak_finder.gene_data(gene_names, exp, "neg_autoreg_peaks", "neg_autoreg_peaks.txt")
-    #peak_finder.plot_genes(exp, gene_names, "neg_autoreg_genes_num_reg", num_regulators=num_regulators)
-    #peak_finder.plot_genes(exp, gene_names, "argRRegulon")
+    # peak_finder = PeakDetection()
+    # peak_finder.gene_data(gene_names, exp, "neg_autoreg_peaks", "neg_autoreg_peaks.txt")
+    # peak_finder.plot_genes(exp, gene_names, "neg_autoreg_genes_num_reg", num_regulators=num_regulators)
+    # peak_finder.plot_genes(exp, gene_names, "argRRegulon")
     # peaks = peak_finder.detect_peaks_multigene(exp, plot_names=plot_names)
     # peaks = peak_finder.detect_peaks(exp[0], plot_name='araJ1010')
     # peak_finder.gene_data(symbols, exp, 'test_all_peaks', 'test_all_peaks.txt')
 
+    import ipdb
 
-    import ipdb; ipdb.set_trace()
+    ipdb.set_trace()
     # TODO: fix the norfloxacin ones that actually do have arabinose
     # TODO: make a fcn that can plot for any gene given any components
     # TODO: deal with the times, like if time is -300, then you shouldn't
     # actually include the component!
     # TODO: LB doens't have glucose
 
-
-
-
     # TODO: look at these AraA, figure out how to work with the samples and do smth with it!
 
-    #peak_finder = PeakDetection()
-    #peaks = peak_finder.detect_peaks_multigene(exp, plot_names=plot_names)
-    #peaks = peak_finder.detect_peaks(exp[0], plot_name='ygeA1010')
-    #peak_finder.gene_data(symbols, exp, 'all_peaks_nopathogen', 'all_peaks_nopathogen.txt')
+    # peak_finder = PeakDetection()
+    # peaks = peak_finder.detect_peaks_multigene(exp, plot_names=plot_names)
+    # peaks = peak_finder.detect_peaks(exp[0], plot_name='ygeA1010')
+    # peak_finder.gene_data(symbols, exp, 'all_peaks_nopathogen', 'all_peaks_nopathogen.txt')
     # TODO: maybe do it using widths instead of standard devs, maybe normalized
     # by area of the peak or smth (but that's also less "empirical" maybe??)?
-    #peak_finder.gene_data(symbols, exp, "all_peaks", "all_peaks_data.txt")
+    # peak_finder.gene_data(symbols, exp, "all_peaks", "all_peaks_data.txt")
     # TODO: plot some representative examples from the scatterplot in all_peaks,
     # to see if you can get a sense of what they look like? In particular,
     # one with both very low, a couple average ones, one with a highish and lowish,
     # one with a lowish and highish, and one with both high or one high and one
     # low to show the extremes.
     # TODO: get a list of genes that you might call the category?
-    import ipdb; ipdb.set_trace()
+    import ipdb
+
+    ipdb.set_trace()
     # def cluster_genes(gene_names, plot_name):
     #     gene_names, gene_exp = get_gene_exp(symbols, seq_data, gene_names=gene_names)
     # #hist = HistogramPreparations()
@@ -2976,7 +3771,7 @@ if __name__ == '__main__':
     #     return scores
     #
     # scores = cluster_genes(symbols[:50], "TestBigDendrogramSeqAlign")
-    #hist.hist_of_hist(seq_data, "Hist_of_hist")
+    # hist.hist_of_hist(seq_data, "Hist_of_hist")
 
     # gene_names, gene_exp = get_gene_exp(symbols, seq_data, gene_names=symbols)
     # metrics = SimilarityMetrics()
@@ -2986,52 +3781,52 @@ if __name__ == '__main__':
     #
     # leaves = metrics.cluster_genes(gene_exp, gene_names, "all_cluster_heilinger", metric="Heilinger")
     # heatmap.heatmap(gene_exp, "all_cluster_heatmap_heilinger", leaves)
-    #llr_genes = get_genes_from_file('gmm_llr_rankings_no_rewiring')
-    #llr_genes = llr_genes[-500:]
-    #candidates = get_genes_from_file("candidate_genes.txt")
-    #plot_histograms(symbols, seq_data, candidates, "low_std_heatmap")
-    #plot_gmm_llr(symbols, seq_data, "gene_histograms_gmm_llr")
-    #import ipdb; ipdb.set_trace()
-    #plot_exp(seq_data, [0, 100, 1000])
-    #make_table(sample_data, sample_data)
-    #compare_tail_stimulon_enrichment("recB", 8, symbols, seq_data, sample_data)
-    #test_treatments()
-    #synonyms = load_gene_synonyms()
-    #b_numbers, symbols = load_gene_synonyms()
-    #candidates = get_low_z_candidates()
+    # llr_genes = get_genes_from_file('gmm_llr_rankings_no_rewiring')
+    # llr_genes = llr_genes[-500:]
+    # candidates = get_genes_from_file("candidate_genes.txt")
+    # plot_histograms(symbols, seq_data, candidates, "low_std_heatmap")
+    # plot_gmm_llr(symbols, seq_data, "gene_histograms_gmm_llr")
+    # import ipdb; ipdb.set_trace()
+    # plot_exp(seq_data, [0, 100, 1000])
+    # make_table(sample_data, sample_data)
+    # compare_tail_stimulon_enrichment("recB", 8, symbols, seq_data, sample_data)
+    # test_treatments()
+    # synonyms = load_gene_synonyms()
+    # b_numbers, symbols = load_gene_synonyms()
+    # candidates = get_low_z_candidates()
 
-    #ecocyc.find_gene_regulation(symbols)
-    #ecocyc.update_synonyms(symbols)
-    #all_genes = set(ecocyc.all_regulated_genes)
-    #all_genes.update(set(ecocyc.regulation.keys()))
-    #ecocyc.categorize_genes(symbols)
-    #plot_gene_profiles(symbols, candidates[:50], seq_data, sample_data, ecocyc)
-    #ecocyc.compare_category_statistics(symbols, candidates)
-    #make_binary_table(sample_data, sample_data)
-    #plot_rRNAs(symbols, seq_data, sample_data)
+    # ecocyc.find_gene_regulation(symbols)
+    # ecocyc.update_synonyms(symbols)
+    # all_genes = set(ecocyc.all_regulated_genes)
+    # all_genes.update(set(ecocyc.regulation.keys()))
+    # ecocyc.categorize_genes(symbols)
+    # plot_gene_profiles(symbols, candidates[:50], seq_data, sample_data, ecocyc)
+    # ecocyc.compare_category_statistics(symbols, candidates)
+    # make_binary_table(sample_data, sample_data)
+    # plot_rRNAs(symbols, seq_data, sample_data)
 
-    #averaged_exp, types = average_exp(seq_data, sample_data)
-    #gene_names_high_llr = ['rrlG', 'rrsH', 'uxuR', 'rrfH', 'ygaQ_3', "thrS", 'iadA', "rplX", "yjiE",
+    # averaged_exp, types = average_exp(seq_data, sample_data)
+    # gene_names_high_llr = ['rrlG', 'rrsH', 'uxuR', 'rrfH', 'ygaQ_3', "thrS", 'iadA', "rplX", "yjiE",
     #                       "yjiP", "rrrD", "yjiR", "fusA", "yahJ", "hsdM", "ybdN", "yfdQ", "ybeT", "citE", "rplN",
     #                       "yjiX", "setA", "ygeM"]
 
-    #test_classify(sample_data)
-    #gene_names = ['yejH', 'yfgD', 'degQ', 'yeaN', 'helD', 'ulaD', 'nudL', 'csdL', 'yqhC', 'tag']
+    # test_classify(sample_data)
+    # gene_names = ['yejH', 'yfgD', 'degQ', 'yeaN', 'helD', 'ulaD', 'nudL', 'csdL', 'yqhC', 'tag']
 
-    #compare_tail_stimulon_classify(gene_names, symbols, seq_data, sample_data)
-    #gene_names = ['trpR', 'trpA', 'dnaA', 'mtr', 'treB', 'yaiA', 'rplL']
-    #plot_mean_std(symbols, symbols, seq_data, "all_genes_mean_std")
-    #bootstrap_max_normal(2198, 10000)
-    #plot_max_z_score_for_candidates(symbols, seq_data, 'candidate_genes.txt')
-    #get_candidate_genes(symbols, os.path.join(OUTPUT_DIR, "std_prob_plot.txt"), os.path.join(OUTPUT_DIR, "candidate_genes.txt"))
-    #calc_with_moments(seq_data, symbols, symbols, plot_file="momentsNew", write_file="momentsNew.txt")
-    #std_and_prob_plot(seq_data, symbols, symbols, plot_file='std_prob_plot', write_file='std_prob_plot.txt')
+    # compare_tail_stimulon_classify(gene_names, symbols, seq_data, sample_data)
+    # gene_names = ['trpR', 'trpA', 'dnaA', 'mtr', 'treB', 'yaiA', 'rplL']
+    # plot_mean_std(symbols, symbols, seq_data, "all_genes_mean_std")
+    # bootstrap_max_normal(2198, 10000)
+    # plot_max_z_score_for_candidates(symbols, seq_data, 'candidate_genes.txt')
+    # get_candidate_genes(symbols, os.path.join(OUTPUT_DIR, "std_prob_plot.txt"), os.path.join(OUTPUT_DIR, "candidate_genes.txt"))
+    # calc_with_moments(seq_data, symbols, symbols, plot_file="momentsNew", write_file="momentsNew.txt")
+    # std_and_prob_plot(seq_data, symbols, symbols, plot_file='std_prob_plot', write_file='std_prob_plot.txt')
 
-    #rank_by_std_ll(seq_data, symbols, symbols, plot_file="all_std_ll", write_file='all_std_ll.txt')
-    #gene_names = ['yojI', 'ygeR', 'ybjK', 'uvrC', 'yeaN', 'dsbC', 'cmoB', 'yejA', "ybaK", 'murJ'] # low range
-    #gene_names = ['yejH', 'yfgD', 'degQ', 'yeaN', 'helD', 'ulaD', 'nudL', 'csdL', 'yqhC', 'tag']
-    #compare_tail_stimulons(['treB'], symbols, seq_data, sample_data)
-    #for i in range(10):
+    # rank_by_std_ll(seq_data, symbols, symbols, plot_file="all_std_ll", write_file='all_std_ll.txt')
+    # gene_names = ['yojI', 'ygeR', 'ybjK', 'uvrC', 'yeaN', 'dsbC', 'cmoB', 'yejA', "ybaK", 'murJ'] # low range
+    # gene_names = ['yejH', 'yfgD', 'degQ', 'yeaN', 'helD', 'ulaD', 'nudL', 'csdL', 'yqhC', 'tag']
+    # compare_tail_stimulons(['treB'], symbols, seq_data, sample_data)
+    # for i in range(10):
     #    score, p_value, _ = compare_tail_stimulons(['treB'], symbols, seq_data, sample_data)
     #    scores.append(score)
     #    p_values.append(p_value)
@@ -3100,29 +3895,30 @@ if __name__ == '__main__':
     # that were not significant, only one of them was actually regualted), however it showed that treB
     # was rly insignificant.
 
-    #gene_exp_hist(['recB', 'recD'], symbols, seq_data, sample_data, title="recBD test")
-    #rank_by_spread(symbols, symbols, seq_data, sample_data, output_name="all_genes_spread_rank", output_plot_name="all_genes_spread_corr", avg_method=None)
-    #data = get_gene_spread_data(gene_names, os.path.join(OUTPUT_DIR, "all_genes_spread_rank.txt"))
-    #plot_gene_spread_data(os.path.join(OUTPUT_DIR, "all_genes_spread_rank.txt"), "spread_properties")
+    # gene_exp_hist(['recB', 'recD'], symbols, seq_data, sample_data, title="recBD test")
+    # rank_by_spread(symbols, symbols, seq_data, sample_data, output_name="all_genes_spread_rank", output_plot_name="all_genes_spread_corr", avg_method=None)
+    # data = get_gene_spread_data(gene_names, os.path.join(OUTPUT_DIR, "all_genes_spread_rank.txt"))
+    # plot_gene_spread_data(os.path.join(OUTPUT_DIR, "all_genes_spread_rank.txt"), "spread_properties")
 
-    #gene_exp_hist(gene_names_high_llr, symbols, seq_data, sample_data, title="histogram_noavg_high_llr", avg_method=None)
+    # gene_exp_hist(gene_names_high_llr, symbols, seq_data, sample_data, title="histogram_noavg_high_llr", avg_method=None)
 
-    #_, exp = get_gene_exp(symbols, seq_data, gene_names=['treB'])
-    #samples_plot(symbols, gene_names, seq_data, sample_data, avg_method="media")
-    #classify_samples(sample_data, None)
-    #rank, _, _, _ = make_gene_rankings(seq_data, symbols, gene_names, "ggm_llr_test")
-    #rank, difference, ll_two_cluster, ll_one_cluster = make_gene_rankings(seq_data, symbols, symbols, "gmm_llr_minus_std_rankings")
+    # _, exp = get_gene_exp(symbols, seq_data, gene_names=['treB'])
+    # samples_plot(symbols, gene_names, seq_data, sample_data, avg_method="media")
+    # classify_samples(sample_data, None)
+    # rank, _, _, _ = make_gene_rankings(seq_data, symbols, gene_names, "ggm_llr_test")
+    # rank, difference, ll_two_cluster, ll_one_cluster = make_gene_rankings(seq_data, symbols, symbols, "gmm_llr_minus_std_rankings")
 
-
-    #outlier_ranks, outlier_zs = rank_by_outliers(seq_data, gene_names, gene_names)
-    #for name in gene_names:
+    # outlier_ranks, outlier_zs = rank_by_outliers(seq_data, gene_names, gene_names)
+    # for name in gene_names:
     #    name, expression = get_gene_exp(symbols, seq_data, gene_name=name)
     #    _, avg_exp = get_gene_exp(symbols, averaged_exp, gene_name=name)
     #    gene_exp_hist(name, expression)
     #    gene_exp_hist(name, avg_exp, avg_method='media')
-        #x = run_gmm(expression)
-    import ipdb; ipdb.set_trace()
-    #for i in range(10):
+    # x = run_gmm(expression)
+    import ipdb
+
+    ipdb.set_trace()
+    # for i in range(10):
     #    name, expression = get_gene_exp(symbols, seq_data, gene_idx=i)
     #    gene_exp_hist(name, expression)
 

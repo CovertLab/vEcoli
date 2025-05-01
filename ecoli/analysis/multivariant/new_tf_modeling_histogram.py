@@ -12,11 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from typing import Any, cast
 
-from ecoli.library.parquet_emitter import (
-    read_stacked_columns,
-    get_field_metadata,
-    named_idx
-)
+from ecoli.library.parquet_emitter import read_stacked_columns, get_field_metadata
 
 
 IGNORE_FIRST_N_GENS = 4
@@ -26,7 +22,7 @@ this number should be greater than 0 because the first few generations may not
 be representative of the true dynamics occuring in the cell).
 """
 
-COLORS = ["b", "r", "k", "g", 'y']
+COLORS = ["b", "r", "k", "g", "y"]
 
 
 def plot(
@@ -74,7 +70,6 @@ def plot(
         ),
     )
 
-
     # purC_protein_id = "SAICARSYN-MONOMER[c]"
     # prmA_protein_id = "EG11497-MONOMER[c]"
     # lolB_protein_id = "EG11293-MONOMER[c]"
@@ -100,12 +95,14 @@ def plot(
 
     subquery = read_stacked_columns(
         history_sql=history_sql,
-        columns=["listeners__rna_counts__mRNA_counts"],#, "listeners__monomer_counts"],
-        #remove_first=True,
+        columns=[
+            "listeners__rna_counts__mRNA_counts"
+        ],  # , "listeners__monomer_counts"],
+        # remove_first=True,
     )
 
     mRNA_data = conn.sql(mRNA_sql.format(subquery=subquery)).arrow().to_pylist()
-    #protein_data = conn.sql(protein_sql.format(subquery=subquery)).arrow().to_pylist()
+    # protein_data = conn.sql(protein_sql.format(subquery=subquery)).arrow().to_pylist()
 
     exp_id = mRNA_data[0]["experiment_id"]
     variant_name_exp = variant_names[exp_id]
@@ -115,34 +112,32 @@ def plot(
         for i in variant_metadata_exp.keys()
     }
     avg_fracs = {
-        gene: {
-            var: []
-            for var in mRNA_variant_to_name.values()
-        } for gene in gene_names
+        gene: {var: [] for var in mRNA_variant_to_name.values()} for gene in gene_names
     }
     for data in mRNA_data:
-        if data['generation'] > IGNORE_FIRST_N_GENS:
+        if data["generation"] > IGNORE_FIRST_N_GENS:
             if ((data["variant"] == 1) & (data["lineage_seed"] == 20)) | (
-                    ((data["variant"] == 2) & (data["lineage_seed"] == 20)) | (
-                    (data["variant"] == 3) & (data["lineage_seed"] == 20)
-                )
+                ((data["variant"] == 2) & (data["lineage_seed"] == 20))
+                | ((data["variant"] == 3) & (data["lineage_seed"] == 20))
             ):
                 gene_idx = data["gene_idx"]
                 variant_key = data["variant"]
-                avg_fracs[gene_names[gene_idx]][mRNA_variant_to_name[variant_key]].append(data["avg_frac"])
+                avg_fracs[gene_names[gene_idx]][
+                    mRNA_variant_to_name[variant_key]
+                ].append(data["avg_frac"])
 
-    #protein_avg_fracs = np.array([x["avg_frac"] for x in protein_data])
+    # protein_avg_fracs = np.array([x["avg_frac"] for x in protein_data])
 
     # Get variant names
-    #protein_variants = np.array([x["variant"] for x in protein_data])
-    fig, axs = plt.subplots(len(gene_names), figsize=(10, 5*len(gene_names)))
+    # protein_variants = np.array([x["variant"] for x in protein_data])
+    fig, axs = plt.subplots(len(gene_names), figsize=(10, 5 * len(gene_names)))
 
     var_to_plot_name = {
         "basal": "minimal",
         "with_aa": "minimal + aa",
         "with_aa_nucl": "minimal + aa + nucls",
         "acetate": "minimal acetate",
-        "succinate": "minimal succinate"
+        "succinate": "minimal succinate",
     }
 
     for i, gene in enumerate(gene_names):
@@ -151,16 +146,20 @@ def plot(
                 fracs = avg_fracs[gene][var]
                 axs[i].hist(
                     fracs,
-                    bins=np.linspace(0, 1.5*np.max(fracs), num=20),
+                    bins=np.linspace(0, 1.5 * np.max(fracs), num=20),
                     alpha=0.5,
                     lw=3,
                     color=COLORS[j],
-                    label=var_to_plot_name[var]
+                    label=var_to_plot_name[var],
                 )
-            axs[i].set_title(f"{gene} fractional expression for different variants")
-            axs[i].set_ylabel("Number of simulations")
-            axs[i].set_xlabel(f"Time-average fraction of mRNA counts that contain {gene}")
-            axs[i].legend()
+            axs[i].set_title(
+                f"{gene} fractional expression for different variants", size=14
+            )
+            axs[i].set_ylabel("Number of simulations", size=14)
+            axs[i].set_xlabel(
+                f"Time-average fraction of mRNA counts that contain {gene}", size=14
+            )
+            axs[i].legend(fontsize=12)
 
             # protein_var_fracs = protein_avg_fracs[protein_variants == var]
 

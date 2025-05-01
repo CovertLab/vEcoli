@@ -157,9 +157,9 @@ def plot():
             marker="*",
             label=f"{media} (minimal media PRPP)",
         )
-    axs[0].set_title("PurF demand vs. PurF kinetic rate (relative)")
-    axs[0].set_xlabel("Relative demand")
-    axs[0].set_ylabel("Relative PurF kinetic rate")
+    axs[0].set_title("PurF demand vs. PurF kinetic rate (relative)", size=18)
+    axs[0].set_xlabel("Relative demand", size=18)
+    axs[0].set_ylabel("Relative PurF kinetic rate", size=18)
     axs[0].set_xlim(0, 3)
     axs[0].set_ylim(0, 3)
     axs[0].plot([0, 3], [0, 3], color="black", linestyle="--")
