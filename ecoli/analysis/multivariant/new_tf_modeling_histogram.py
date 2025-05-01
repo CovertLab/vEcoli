@@ -130,7 +130,9 @@ def plot(
 
     # Get variant names
     # protein_variants = np.array([x["variant"] for x in protein_data])
-    fig, axs = plt.subplots(len(gene_names), figsize=(10, 5 * len(gene_names)))
+    fig, axs = plt.subplots(
+        len(gene_names) + 1, figsize=(10, 5 * (len(gene_names) + 1))
+    )
 
     var_to_plot_name = {
         "basal": "minimal",
