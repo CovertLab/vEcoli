@@ -28,4 +28,4 @@ jobs:
       - name: Audit dependencies
         run: |
           uv export --all-extras --format requirements-txt --no-emit-project > requirements.txt
-          uvx pip-audit -r requirements.txt --disable-pip --fix -v
+          uvx pip-audit -r requirements.txt --disable-pip -v
