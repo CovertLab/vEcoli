@@ -3,3 +3,9 @@
 # TODO: make a script to automate the recording of the expression values from the ECOMAC data and ColiNet data (for TF_type)
 "TF"	"TF_type"	"regulated_gene"	"low_condition"	"high_condition"	"low_ECOMAC_expression"	"high_ECOMAC_expression"
 "purR"	"repressor"	"purC"	["with_aa_nucl"]	["basal", "no_oxygen", "with_aa", "acetate", "succinate"]	0.00025	0.00075
+"purR"	"repressor"	"purF"	["with_aa_nucl"]	["basal", "no_oxygen", "with_aa", "acetate", "succinate"]	0.000125	0.000375
+"purR"	"repressor"	"purT"	["with_aa_nucl"]	["basal", "no_oxygen", "with_aa", "acetate", "succinate"]	0.0000743	0.000353
+"purR"	"repressor"	"purE"	["with_aa_nucl"]	["basal", "no_oxygen", "with_aa", "acetate", "succinate"]	0.000177	0.00042
+"purR"	"repressor"	"purK"	["with_aa_nucl"]	["basal", "no_oxygen", "with_aa", "acetate", "succinate"]	0.000149	0.000353
+"purR"	"repressor"	"purM"	["with_aa_nucl"]	["basal", "no_oxygen", "with_aa", "acetate", "succinate"]	0.000125	0.00050
+"purR"	"repressor"	"purN"	["with_aa_nucl"]	["basal", "no_oxygen", "with_aa", "acetate", "succinate"]	0.000177	0.00050
