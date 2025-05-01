@@ -30,20 +30,7 @@ jobs:
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Test with pytest
       run: |
-        uv run --env-file .env pytest --cov-report xml:cov.xml --cov=ecoli --cov=reconstruction --cov=wholecell --cov=runscripts --durations=0
-    - name: Code Coverage Report
-      uses: irongut/CodeCoverageSummary@v1.3.0
-      with:
-        filename: cov.xml
-        format: markdown
-        indicators: true
-        output: both
-    - name: Add Coverage PR Comment
-      uses: marocchino/sticky-pull-request-comment@v2
-      if: github.event_name == 'pull_request'
-      with:
-        recreate: true
-        path: code-coverage-results.md
+        uv run --env-file .env pytest --durations=0
   Mypy:
     runs-on: ubuntu-latest
     steps:

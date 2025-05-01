@@ -11,14 +11,14 @@
     "single_daughters": true,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "$SCRATCH"
+        "out_dir": "."
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}}
     },
     "sherlock": {
         "build_image": true,
-        "container_image": "$SCRATCH/test_image",
+        "container_image": "./test_sherlock/test_image",
         "hyperqueue": true,
         "jenkins": false
     }
