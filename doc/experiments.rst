@@ -372,6 +372,7 @@ Here are some general rules to remember when writing your own JSON config files:
 - Trailing commas are not allowed
 - Comments are not allowed
 - Tuples (e.g. in topologies or flows) are written as lists (``["bulk"]`` instead of ``("bulk",)``)
+- ``~`` and environment variables like ``$HOME`` are not expanded (see warning at :doc:`workflows`)
 
 .. note::
     It is strongly recommended that ``fail_at_total_time`` be set to ``True``
