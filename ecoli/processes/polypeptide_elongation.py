@@ -1108,9 +1108,6 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         self.uncharged_trna_to_charge = uncharged_trna_request
 
         # ppGpp reactions based on charged tRNA
-        request_ppgpp_metabolites = np.zeros(
-            len(self.process.ppgpp_reaction_metabolites)
-        )
         bulk_request = [
             (
                 self.process.charging_molecule_idx,
