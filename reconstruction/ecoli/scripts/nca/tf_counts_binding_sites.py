@@ -237,7 +237,7 @@ def make_plot():
     for i in np.where(plot_glucose_counts == 0)[0]:
         plot_glucose_counts[i] = 0.1
 
-    color_dict = {0: "b", 1: "r", -1: "g", 2: "y"}
+    color_dict = {0: "b", 1: "r", -1: "k", 2: "y"}
 
     tf_autoreg = get_autoregulated_tfs()
     plot_tf_colors = []
@@ -259,7 +259,7 @@ def make_plot():
     c_to_label = {
         "b": "no autoreg.",
         "r": "positive autoreg.",
-        "g": "negative autoreg.",
+        "k": "negative autoreg.",
         "y": "pos. and neg. autoreg.",
     }
     fig, axs = plt.subplots(5, figsize=(5, 25))
@@ -279,7 +279,7 @@ def make_plot():
                 "PurR",
                 (np.log2(plot_tf_site_counts[i]), np.log2(plot_glucose_counts[i])),
                 size=12,
-                c="g",
+                c="k",
             )
 
     axs[0].plot([0, 12], [0, 12])

@@ -136,7 +136,7 @@ def plot():
     media_colors = {
         "minimal": "black",
         "plus aas only": "blue",
-        "acetate": "green",
+        "acetate": "gold",
         "succinate": "red",
     }
     for media in rel_demand:

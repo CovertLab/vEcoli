@@ -3008,7 +3008,9 @@ if __name__ == "__main__":
     #               has_gaussian=[1, 0, 0])
 
     ## Figure 2
-    # symbols, sample_data, seq_data, vectorized_samples, total_components = load_data_exclude_rewiring()
+    symbols, sample_data, seq_data, vectorized_samples, total_components = (
+        load_data_exclude_rewiring()
+    )
     # plot_components = PlotComponents(total_components, vectorized_samples)
     # plot_components.plot_freq_components_grid(os.path.join(SAMPLE_REG_DIR, "sample_components_grid"))
 

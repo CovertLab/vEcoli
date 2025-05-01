@@ -738,7 +738,7 @@ class EcocycReg(object):
         )
         axs[0].set_ylim(0, 1.0)
         axs[0].legend(fontsize=12)
-        axs[0].set_title("Histogram of fraction of genes with n regulators", size=14)
+        axs[0].set_title("Fraction of genes with n regulators", size=14)
         axs[0].set_xlabel("Number of regulators", size=14)
         axs[0].set_ylabel("Fraction of genes", size=14)
 
