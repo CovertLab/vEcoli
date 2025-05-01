@@ -1800,7 +1800,7 @@ def determine_chromosome_state(
 
         # Add 2^n initiation events per round. A single initiation event
         # generates two replication forks.
-        n_events_this_round = 2**round_idx
+        n_events_this_round = int(2**round_idx)
 
         # Set attributes of replisomes for this replication round
         coordinates[
@@ -1838,7 +1838,7 @@ def determine_chromosome_state(
             )
 
     # Convert to numpy arrays and wrap into dictionaries
-    oric_state = {"domain_index": domain_index_oric}
+    oric_state: dict[str, npt.NDArray[np.int32]] = {"domain_index": domain_index_oric}
 
     replisome_state = {
         "coordinates": coordinates,
