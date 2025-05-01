@@ -432,7 +432,7 @@ def open_output_file(outfile: str) -> pa.NativeFile:
         PyArrow file object that supports reading, seeking, etc. in bytes
     """
     if not (outfile.startswith("gs://") or outfile.startswith("gcs://")):
-        outfile = os.path.abspath(os.path.expandvars(os.path.expanduser(outfile)))
+        outfile = os.path.abspath(outfile)
     filesystem, outfile = fs.FileSystem.from_uri(outfile)
     return filesystem.open_input_file(outfile)
 
@@ -531,7 +531,8 @@ def read_stacked_columns(
         history_sql: DuckDB SQL string from :py:func:`~.get_dataset_sql`,
             potentially with filters appended in ``WHERE`` clause
         columns: Names of columns to read data for. Alternatively, DuckDB
-            expressions of columns (e.g. ``mean(listeners__mass__cell_mass)``).
+            expressions of columns (e.g. ``avg(listeners__mass__cell_mass) AS avg_mass``
+            or the output of :py:func:`~.named_idx` or :py:func:`~.ndidx_to_duckdb_expr`).
         remove_first: Remove data for first timestep of each cell
         func: Function to call on data for each cell, should take and
             return a PyArrow table with columns equal to ``columns``
@@ -693,9 +694,7 @@ class ParquetEmitter(Emitter):
 
         """
         if "out_uri" not in config:
-            out_uri = os.path.abspath(
-                os.path.expandvars(os.path.expanduser(config["out_dir"]))
-            )
+            out_uri = os.path.abspath(config["out_dir"])
         else:
             out_uri = config["out_uri"]
         self.filesystem, self.outdir = fs.FileSystem.from_uri(out_uri)

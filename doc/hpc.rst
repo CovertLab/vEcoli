@@ -24,10 +24,6 @@ using this image to run the steps of the workflow. To run or interact
 with the model outside of :mod:`runscripts.workflow`, start an
 interactive container by following the steps in :ref:`sherlock-interactive`.
 
-.. note::
-  Files that match the patterns in ``.dockerignore`` are excluded from the
-  Apptainer image.
-
 .. _sherlock-setup:
 
 Setup
@@ -50,7 +46,7 @@ lines to your ``~/.bash_profile``, then close and reopen your SSH connection:
   If you have any lines in your ``~/.bash_profile``, ``~/.bashrc``, or
   ``~/.profile`` that modify the ``PATH`` variable, make sure that
   ``which python3`` returns the Sherlock-managed Python 3 from the
-  ``py-pyarrow`` module (``/share/software/user/open/python/3.xx.x/bin/python3``).
+  ``py-pyarrow`` module: ``/share/software/user/open/python/3.xx.x/bin/python3``.
   If not, comment out lines that modify the ``PATH`` variable
   (for example, ``pyenv``-related), until the right Python is found.
 
@@ -62,15 +58,20 @@ Then, run the following to test your setup:
 
 This will run a small workflow that:
 
-1. Builds an Apptainer image with a snapshot of your cloned repository and saves it
-   to ``$SCRATCH/test_image``.
+1. Builds an Apptainer image with a snapshot of your cloned repository.
 2. Runs the ParCa.
 3. Runs one simulation.
 4. Runs the mass fraction analysis.
 
-All output files will be saved to ``$SCRATCH/test_sherlock``. See :ref:`sherlock-config`
-for a description of the configuration options and :ref:`sherlock-running` for
-a details about running a workflow on Sherlock.
+All output files will be saved to a ``test_sherlock`` directory in your
+cloned repository. You can modify the workflow output directory by changing
+the ``out_dir`` option under ``emitter_arg`` in the config JSON.
+See :ref:`sherlock-config` for a description of the Sherlock-specific
+configuration options and :ref:`sherlock-running` for details about running
+a workflow on Sherlock.
+
+To run scripts on Sherlock outside a workflow, see :ref:`sherlock-interactive`.
+To run scripts on Sherlock through a SLURM batch script, see :ref:`sherlock-noninteractive`.
 
 .. note::
     The above setup is sufficient to run workflows on Sherlock. However, if you
@@ -115,49 +116,61 @@ In addition to these options, you **MUST** set the emitter output directory
 enough space to store your workflow outputs. We recommend setting this to
 a location in your ``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``).
 
+.. warning::
+  ``~`` and environment variables like ``$SCRATCH`` are not expanded in the
+  configuration JSON. See the warning box at :doc:`workflows`.
+
 .. _sherlock-running:
 
-Running Workflow
-================
+Running Workflows
+=================
 
 With these options in the configuration JSON, a workflow can be started by
-running ``python3 runscripts/workflow.py --config {}.json`` on a login node.
-This submits a job that will run the Nextflow workflow orchestrator
-with a 7-day time limit on the lab's dedicated partition. The workflow orchestrator
-will automatically submit jobs for each step in the workflow: one for the ParCa,
-one to create variants, one for each cell, and one for each analysis.
+running ``python3 runscripts/workflow.py --config {}``, substituting
+in the path to your config JSON. 
 
 .. warning::
-  Remember to use ``python3`` to start the workflow instead of ``python``.
+  Remember to use ``python3`` to start workflows instead of ``python``.
+
+This command should be run on a login node (no need to request a compute node).
+If ``build_image`` is true in your config JSON, the terminal will report that
+a SLURM job was submitted to build the container image. When the image build
+job starts, the terminal will report the build progress.
+
+.. note::
+  Files that match the patterns in ``.dockerignore`` are excluded from the image.
+
+.. warning::
+  Do not make any changes to your cloned repository or close your SSH
+  connection until the build has finished.
+
+Once the build has finished, the terminal will report that a SLURM job
+was submitted for the Nextflow workflow orchestrator before exiting
+back to the shell. At this point, you are free to close your connection,
+start additional workflows, etc. Unlike workflows run locally, Sherlock's
+containerized workflows mean any changes made to the repository after the
+container image has been built will not affect the running workflow.
+
+Once started, the Nextflow job will stay alive for the duration of the
+workflow (up to 7 days) and submit new SLURM jobs as needed.
 
 If you are trying to run a workflow that takes longer than 7 days, you can
 use the resume functionality (see :ref:`fault_tolerance`). Alternatively,
 consider running your workflow on Google Cloud, which has no maximum workflow
 runtime (see :doc:`gcloud`).
 
-.. note::
-  Unlike workflows run locally, Sherlock workflows are run using
-  containers with a snapshot of the repository.
-  
-When you run ``python3 runscripts/workflow.py``, you will get a message
-that a SLURM job was submitted to build the image. When that job starts,
-you will get terminal output showing the build progress. Avoid making any
-changes to your cloned repository until the build has finished.
-The built image will contain a snapshot of your cloned repository.
-Any changes made to the repository after the container image has been
-built will not affect the running workflow.
-
 You can start additional, concurrent workflows that each build a new image
 with different modifications to the cloned repository. However, if possible,
 we recommend designing your code to accept options through the config JSON
 which modify the behavior of your workflow without modifying core code. This
-allows you to save time by setting ``build_image`` to false and
-``container_image`` to the path of a previously built image.
+allows you to save time by reusing a previously built image as follows:
+set ``build_image`` to false and ``container_image`` to the path of said image.
 
 There is a 4 hour time limit on each job in the workflow, including analyses.
 This is a generous limit designed to accomodate very slow-dividing cells.
 Generally, we recommend that users exclude analysis scripts which take more
-than a few minutes from their workflow configuration. Instead, create a
+than a few minutes from their workflow configuration. Instead, either run these
+manually following :ref:`sherlock-interactive` or create a
 SLURM batch script to run these analyses following :ref:`sherlock-noninteractive`.
 
 .. _sherlock-interactive:
@@ -165,10 +178,24 @@ SLURM batch script to run these analyses following :ref:`sherlock-noninteractive
 Interactive Container
 =====================
 
-To debug a failed job in a workflow, you must locate the container image that was
-used for that workflow. You can refer to the ``container_image`` key in the
-config JSON saved to the workflow output directory (see :ref:`output`). Start
-an interactive container with that image name as follows:
+.. warning::
+  The following steps should be run on a compute node. See the
+  `Sherlock documentation <https://www.sherlock.stanford.edu/docs/user-guide/running-jobs/?h=interactive#interactive-jobs>`_
+  for details.
+  
+The maximum resource request for an interactive compute
+node is 2 hours, 4 CPU cores, and 8GB RAM/core. Scripts that require more
+resources should be submitted as SLURM batch scripts to the ``mcovert``
+or ``owners`` partition (see :ref:`sherlock-noninteractive`).
+
+To run scripts on Sherlock, you must have either:
+
+- Previously run a workflow on Sherlock and have access to the built container image
+- Built a container image manually using ``runscripts/container/build-image.sh`` with
+  the ``-a`` flag
+
+Start an interactive container with your full image path (see the warning box at
+:doc:`workflows`) by navigating to your cloned repository and running:
 
 .. code-block:: bash
 
@@ -178,21 +205,38 @@ an interactive container with that image name as follows:
   Inside the interactive container, you can safely use ``python`` directly
   in addition to the usual ``uv`` commands.
 
-Now, inside the container, navigate to ``/vEcoli`` and add breakpoints to
-scripts as you see fit. Finally, navigate to the working directory (see
-:ref:`troubleshooting`) for the task that you want to debug. By invoking
-``bash .command.sh``, the job will run and pause upon reaching your
-breakpoints, allowing you to inspect variables and step through the code.
+The above command launches a container containing a snapshot of your
+cloned repository as it was when the image was built. This snapshot
+is located at ``/vEcoli`` inside the container and is mostly intended
+to guarantee reproducibility for troubleshooting failed workflow jobs.
+More specifically, users who wish to debug a failed workflow job should:
+
+1. Start an interactive container with the image used to run the workflow.
+2. Use ``nano`` to add breakpoints (``import ipdb; ipdb.set_trace()``)
+   to the relevant scripts in ``/vEcoli``.
+3. Navigate to the working directory (see :ref:`troubleshooting`) for the
+   job that you want to debug.
+4. Invoke ``bash .command.sh`` to run the failing task and pause upon
+   reaching your breakpoints, allowing you to inspect variables and step
+   through the code.
 
 .. warning::
+  ``~`` and environment variables like ``$SCRATCH`` do not work
+  inside the container. Follow the instructions in the warning box at
+  :doc:`workflows` **outside** the container to get the full path to
+  use inside the container.
+
+.. danger::
   Any changes that you make to ``/vEcoli`` inside the container are discarded
   when the container terminates.
 
-The files located in ``/vEcoli`` are a copy of the repository (excluding
-files ignored by ``.dockerignore``) at the time the workflow was launched.
 To start an interactive container that reflects the current state of your
 cloned repository, navigate to your cloned repository and run the above
-command with the ``-d`` flag to start a "development" container.
+command with the ``-d`` flag to start a "development" container:
+
+.. code-block:: bash
+
+  runscripts/container/interactive.sh -i container_image -a -d
 
 In this mode, instead of editing source files in ``/vEcoli``, you can
 directly edit the source files in your cloned repository and have those
@@ -203,9 +247,10 @@ can be tracked using Git version control.
 
 .. note::
   If the image you use to start a development container was built with
-  an outdated version of ``uv.lock`` or ``pyproject.toml``, there will
-  be a delay on startup while uv updates the packages. To avoid this,
-  build a new image with ``runscripts/container/build-image.sh``.
+  an outdated version of ``uv.lock`` or ``pyproject.toml``, there may
+  be a long startup delay due to package updates. To avoid this,
+  build a new image with ``runscripts/container/build-image.sh -i container_image -a``,
+  replacing ``container_image`` with a path for the image to build.
 
 .. _sherlock-noninteractive:
 
@@ -215,23 +260,34 @@ Non-Interactive Container
 To run any script inside a container without starting an interactive session,
 use the same command as :ref:`sherlock-interactive` but specify a command
 using the ``-c`` flag. For example, to run the ParCa process, navigate to
-your cloned repository and run the following command:
+your cloned repository and run the following command, replacing ``container_image``
+with the pat to your container image and ``{}`` with the path to your
+configuration JSON:
 
 .. code-block:: bash
 
   runscripts/container/interactive.sh -i container_image -c "python /vEcoli/runscripts/parca.py --config {}"
 
-.. note::
-  We strongly recommend sticking to running files from the snapshot
-  of the repository included in the container image at ``/vEcoli``.
-  If you want to run a script from your cloned repository with all
-  changes reflected, add the ``-d`` flag and drop the
-  ``/vEcoli/`` prefix from the script name.
-
-This is particularly useful for writing
+This feature is intended for use in
 `SLURM batch scripts <https://www.sherlock.stanford.edu/docs/getting-started/submitting/#batch-scripts>`_
-to manually run analysis scripts with custom resource requests
-(e.g. more than default 4 hours, 1 CPU, 4 GB RAM in workflow).
+to manually run analysis scripts with custom resource requests. Make sure
+to include one of the following directives at the top of your script:
+
+- ``#SBATCH --partition=owners``: The big advantage of this partition is that you
+  can request very large amounts of resources (for example, dozens of cores). The
+  major downsides are that queue times may be long and other users may preempt
+  your job at any moment, though this is anecdotally rare for jobs under an hour long.
+- ``#SBATCH --partition=mcovert``: Best for high priority scripts (short queue time)
+  that you cannot risk being preempted. The number of available cores is 32 minus
+  whatever is currently being used by other users in the ``mcovert`` partition.
+  Importantly, if all 32 cores are in use by ``mcovert`` users, not only will your
+  script have to wait for resources to free up, so will any workflows. As such,
+  treat this partition as a limited resource reserved for high priority jobs.
+
+Just as with interactive containers, to run scripts directly from your
+cloned repository and not the snapshot, add the ``-d`` flag drop the
+``/vEcoli/`` prefix from script names. Note that changing files in your
+cloned repository may affect SLURM batch jobs submitted with this flag.
 
 .. _other-cluster:
 
