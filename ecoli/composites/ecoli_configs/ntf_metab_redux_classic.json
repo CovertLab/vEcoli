@@ -4,7 +4,7 @@
     "suffix_time": false,
     "parca_options": {
         "cpus": 8,
-        "outdir": "./parca"
+        "outdir": "./test_temp"
     },
     "sim_data_path": "test_constrain_purF/test_constrain_purF/parca/kb/simData.cPickle",
     "skip_baseline": true,
@@ -25,12 +25,12 @@
         }},
     "analysis_options": {
         "single": {
-            "purine_metab_analysis_metab_redux": {}
+            "mass_fraction_summary": {}
         },
-        "outdir": "test_constrain_purF",
         "experiment_id": ["test_constrain_purF"],
         "variant_data_dir": ["test_constrain_purF/test_constrain_purF/variant_sim_data"],
-        "validation_data_path": ["test_constrain_purF/test_constrain_purF/parca/kb/validationData.cPickle"]
+        "validation_data_path": ["test_constrain_purF/test_constrain_purF/parca/kb/validationData.cPickle"],
+        "outdir": "test_constrain_purF"
     },
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-redux-classic"

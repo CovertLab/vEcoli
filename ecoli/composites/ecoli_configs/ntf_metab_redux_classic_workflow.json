@@ -1,5 +1,5 @@
 {
-    "experiment_id": "test_constrain_purF",
+    "experiment_id": "test_temp",
     "lineage_seed": 20,
     "suffix_time": false,
     "parca_options": {
@@ -12,12 +12,13 @@
     "single_daughters": true,
     "emitter" : "parquet",
     "emitter_arg": {
-        "out_dir": "test_constrain_purF"
+        "out_dir": "test_temp"
     },
     "variants": {},
     "analysis_options": {
         "single": {
-            "purine_metab_analysis_metab_redux": {}
+            "purine_metab_analysis_metab_redux": {},
+            "mass_fraction_summary": {}
         }
     },
     "swap_processes" : {
