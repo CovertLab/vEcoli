@@ -16,6 +16,7 @@ BASAL_CONDITION = "basal"
 # TODO: have this here or in internal_state file?
 UNBOUND_TF_BINDING_SITE_IDX = -1
 
+
 class TranscriptionRegulation(object):
     """
     SimulationData for transcription regulation
@@ -45,10 +46,14 @@ class TranscriptionRegulation(object):
         # Create list to store which TFs are modeled with old-tf-modeling
         # Should only be used internally, to set sizes of binding matrices, etc.,
         # all listener outputs should use the total tf_ids.
-        self.old_tf_modeling_tf_ids = list(sorted([x for x in tf_ids
-                                       if self.tf_to_tf_type[x] in ["0CS", "1CS", "2CS"]]))
-        self.new_tf_modeling_tf_ids = list(sorted([x for x in tf_ids
-                                    if x not in self.old_tf_modeling_tf_ids]))
+        self.old_tf_modeling_tf_ids = list(
+            sorted(
+                [x for x in tf_ids if self.tf_to_tf_type[x] in ["0CS", "1CS", "2CS"]]
+            )
+        )
+        self.new_tf_modeling_tf_ids = list(
+            sorted([x for x in tf_ids if x not in self.old_tf_modeling_tf_ids])
+        )
 
         # Store index of tf_binding_site unique object specifying no TF is bound
         self.unbound_tf_binding_site_idx = UNBOUND_TF_BINDING_SITE_IDX
@@ -96,25 +101,23 @@ class TranscriptionRegulation(object):
         """
         return float(signal) ** power / (float(signal) ** power + float(Kd) ** power)
 
-    def get_tf_binding_unbinding_matrices(self, dense=False) -> (Union[sparse.csr_matrix, np.ndarray],
-            Union[sparse.csr_matrix, np.ndarray]):
+    def get_tf_binding_unbinding_matrices(
+        self, dense=False
+    ) -> (Union[sparse.csr_matrix, np.ndarray], Union[sparse.csr_matrix, np.ndarray]):
         """
         Returns the binding and unbinding rate matrices mapping each TF to each binding site.
         """
         assert self._binding_rates_shape == self._unbinding_rates_shape
         binding_rates = sparse.csr_matrix(
-            (
-                self._binding_rates_v,
-                (self._binding_rates_i, self._binding_rates_j)
-            ),
-            shape=self._binding_rates_shape
+            (self._binding_rates_v, (self._binding_rates_i, self._binding_rates_j)),
+            shape=self._binding_rates_shape,
         )
         unbinding_rates = sparse.csr_matrix(
             (
                 self._unbinding_rates_v,
-                (self._unbinding_rates_i, self._unbinding_rates_j)
+                (self._unbinding_rates_i, self._unbinding_rates_j),
             ),
-            shape=self._unbinding_rates_shape
+            shape=self._unbinding_rates_shape,
         )
 
         if dense:
@@ -123,9 +126,7 @@ class TranscriptionRegulation(object):
 
         return binding_rates, unbinding_rates
 
-    def get_delta_aff_matrix(
-            self, dense=False
-    ) -> Union[sparse.csr_matrix, np.ndarray]:
+    def get_delta_aff_matrix(self, dense=False) -> Union[sparse.csr_matrix, np.ndarray]:
         """
         Returns the delta affinity matrix mapping the promoter binding effect
         of each old-TF=modeling TF to each gene.
@@ -160,18 +161,26 @@ class TranscriptionRegulation(object):
         self._binding_rates_i = []
         self._binding_rates_j = []
         self._binding_rates_v = []
-        self._binding_rates_shape = (len(self.tf_binding_site_ids), len(self.new_tf_modeling_tf_ids))
+        self._binding_rates_shape = (
+            len(self.tf_binding_site_ids),
+            len(self.new_tf_modeling_tf_ids),
+        )
 
         self._unbinding_rates_i = []
         self._unbinding_rates_j = []
         self._unbinding_rates_v = []
-        self._unbinding_rates_shape = (len(self.tf_binding_site_ids), len(self.new_tf_modeling_tf_ids))
+        self._unbinding_rates_shape = (
+            len(self.tf_binding_site_ids),
+            len(self.new_tf_modeling_tf_ids),
+        )
 
         binding_site_ids = []
         for row in raw_data.tf_binding_site_rates:
             binding_site_id = row["binding_site_id"]
             if binding_site_id in binding_site_ids:
-                raise Exception("Duplicated binding site id in tf_binding_site_rates.tsv")
+                raise Exception(
+                    "Duplicated binding site id in tf_binding_site_rates.tsv"
+                )
             binding_site_ids.append(binding_site_id)
 
             tf_id = row["TF"]
@@ -183,11 +192,11 @@ class TranscriptionRegulation(object):
 
             self._binding_rates_i.append(binding_site_idx)
             self._binding_rates_j.append(tf_idx)
-            self._binding_rates_v.append(binding_rate.asNumber(1/units.s))
+            self._binding_rates_v.append(binding_rate.asNumber(1 / units.s))
 
             self._unbinding_rates_i.append(binding_site_idx)
             self._unbinding_rates_j.append(tf_idx)
-            self._unbinding_rates_v.append(unbinding_rate.asNumber(1/units.s))
+            self._unbinding_rates_v.append(unbinding_rate.asNumber(1 / units.s))
 
     def _build_lookups(self, raw_data):
         """
@@ -253,9 +262,7 @@ class TranscriptionRegulation(object):
         Also stores a list of binding-site ids, and a list of relative genomic coordinates
         of the ids in the same order.
         """
-        tu_to_genes = {
-            x["id"]: x["genes"] for x in raw_data.transcription_units
-        }
+        tu_to_genes = {x["id"]: x["genes"] for x in raw_data.transcription_units}
         gene_to_tus = {}
         for tu in tu_to_genes:
             for gene in tu_to_genes[tu]:
@@ -269,7 +276,9 @@ class TranscriptionRegulation(object):
         # it's not in tu_to_genes or gene_to_tus, it's because it corresponds
         # to a removed TU.
 
-        tf_bind_site_with_rates = [x["binding_site_id"] for x in raw_data.tf_binding_site_rates]
+        tf_bind_site_with_rates = [
+            x["binding_site_id"] for x in raw_data.tf_binding_site_rates
+        ]
         tf_bind_site_to_tus = {}
         tf_bind_site_to_tfs = {}
         for row in raw_data.tf_binding_sites:
@@ -291,17 +300,26 @@ class TranscriptionRegulation(object):
         self.tf_bind_site_to_tfs = tf_bind_site_to_tfs
         self.tf_binding_site_ids = list(sorted(tf_bind_site_to_tus.keys()))
 
-        tf_bind_site_to_coords = {x["binding_site_id"]: x["coordinates"]
-                                  for x in raw_data.tf_binding_sites}
+        tf_bind_site_to_coords = {
+            x["binding_site_id"]: x["coordinates"] for x in raw_data.tf_binding_sites
+        }
         # TODO: this will break if a binding site with rates has no coordinate (some binding sites have no annotated coordinate)
         # Maybe insert the coordinate of a TU or gene it regulates?
-        raw_tf_binding_site_coords = [int(tf_bind_site_to_coords[x]) for x in self.tf_binding_site_ids]
-        self.tf_binding_site_coords = np.array([self._get_relative_coordinates(x) for x in raw_tf_binding_site_coords])
+        raw_tf_binding_site_coords = [
+            int(tf_bind_site_to_coords[x]) for x in self.tf_binding_site_ids
+        ]
+        self.tf_binding_site_coords = np.array(
+            [self._get_relative_coordinates(x) for x in raw_tf_binding_site_coords]
+        )
 
     def _initialize_one_peak_genes(self, raw_data):
         gene_symbol_to_id = {x["symbol"]: x["id"] for x in raw_data.genes}
-        one_peak_ids = np.array([gene_symbol_to_id[x["gene"]] for x in raw_data.tf_regulations_one_peak])
-        ecomac_exp = np.array([x["ECOMAC_expression"] for x in raw_data.tf_regulations_one_peak])
+        one_peak_ids = np.array(
+            [gene_symbol_to_id[x["gene"]] for x in raw_data.tf_regulations_one_peak]
+        )
+        ecomac_exp = np.array(
+            [x["ECOMAC_expression"] for x in raw_data.tf_regulations_one_peak]
+        )
 
         # Make data objects
         self.one_peak_gene_data = {
@@ -313,7 +331,7 @@ class TranscriptionRegulation(object):
         self.one_peak_TU_data = {
             "TU_idx": None,
             "mRNA_exp_frac": None,
-            "affinity": None
+            "affinity": None,
         }
 
     def _initialize_two_peak_genes(self, raw_data):
@@ -328,33 +346,39 @@ class TranscriptionRegulation(object):
         valid_conditions = [x["condition"] for x in raw_data.condition.condition_defs]
         for row in raw_data.tf_regulations_two_peaks:
             two_peak_gene_ids.append(gene_symbol_to_id[row["regulated_gene"]])
-            two_peak_tf_idxs.append(self.new_tf_modeling_tf_ids.index(self.abbr_to_active_id[row["TF"]][0]))
+            two_peak_tf_idxs.append(
+                self.new_tf_modeling_tf_ids.index(self.abbr_to_active_id[row["TF"]][0])
+            )
 
             # TODO: should these checks be here or later on? should there be errors or just ignore
             # if it's not valid?
             for cond in itertools.chain(row["low_condition"], row["high_condition"]):
                 if cond not in valid_conditions:
-                    raise ValueError("Condition {} not in valid conditions".format(
-                        cond
-                    ))
+                    raise ValueError(
+                        "Condition {} not in valid conditions".format(cond)
+                    )
 
             # If the TF is a repressor, the lower peak is from the TF being bound. If it's an
             # activator, the lower peak is from the TF being unbound.
             if row["TF_type"] == "repressor":
                 unbound_ecomac_exp.append(row["high_ECOMAC_expression"])
                 bound_ecomac_exp.append(row["low_ECOMAC_expression"])
-                condition.append({
-                    "unbound": row["high_condition"],
-                    "bound": row["low_condition"],
-                })
+                condition.append(
+                    {
+                        "unbound": row["high_condition"],
+                        "bound": row["low_condition"],
+                    }
+                )
 
             elif row["TF_type"] == "activator":
                 unbound_ecomac_exp.append(row["low_ECOMAC_expression"])
                 bound_ecomac_exp.append(row["high_ECOMAC_expression"])
-                condition.append({
-                    "unbound": row["low_condition"],
-                    "bound": row["high_condition"],
-                })
+                condition.append(
+                    {
+                        "unbound": row["low_condition"],
+                        "bound": row["high_condition"],
+                    }
+                )
 
         # Make data object
         self.two_peak_gene_data = {
@@ -385,17 +409,20 @@ class TranscriptionRegulation(object):
         transcription = sim_data.process.transcription
 
         def _solve_basal_nnls(target_gene_ids, target_cistron_mRNA_frac):
-            '''
+            """
             Solves NNLS and normalizes to get the fraction of mRNA that TUs broadly defined to be
             any TU in an operon containing the indicated target gene ids, should have to match the
             indicated fraction of cistron mRNA counts for target gene ids, and the basal cistron
             expression levels from sim data for other cistrons in the operons that do not correspond to
             the target gene ids. TODO: make this description more readable
-            '''
-            target_cistron_idxs = [np.where(transcription.cistron_data["gene_id"]
-                                          == gene)[0][0] for gene in target_gene_ids]
+            """
+            target_cistron_idxs = [
+                np.where(transcription.cistron_data["gene_id"] == gene)[0][0]
+                for gene in target_gene_ids
+            ]
             cistron_idx_to_mRNA_frac = {
-                idx: frac for (idx, frac) in zip(target_cistron_idxs, target_cistron_mRNA_frac)
+                idx: frac
+                for (idx, frac) in zip(target_cistron_idxs, target_cistron_mRNA_frac)
             }
 
             cistrons_of_operons = set()
@@ -414,18 +441,23 @@ class TranscriptionRegulation(object):
 
             # Get the cistron expression values
             cistron_exp = transcription.cistron_expression["basal"]
-            cistron_mRNA_sum = np.sum(cistron_exp[transcription.cistron_data["is_mRNA"]])
+            cistron_mRNA_sum = np.sum(
+                cistron_exp[transcription.cistron_data["is_mRNA"]]
+            )
 
             cistron_operon_exp = np.zeros(len(cistrons_of_operons))
             for i, cistron in enumerate(cistrons_of_operons):
                 if cistron in target_cistron_idxs:
-                    cistron_operon_exp[i] = cistron_mRNA_sum * cistron_idx_to_mRNA_frac[cistron]
+                    cistron_operon_exp[i] = (
+                        cistron_mRNA_sum * cistron_idx_to_mRNA_frac[cistron]
+                    )
                 else:
                     cistron_operon_exp[i] = cistron_exp[cistron]
 
             # Solve NNLS for these operons
-            mapping_matrix_these_operons = transcription.cistron_tu_mapping_matrix[cistrons_of_operons, :
-                                           ][:, tus_of_operons].toarray()
+            mapping_matrix_these_operons = transcription.cistron_tu_mapping_matrix[
+                cistrons_of_operons, :
+            ][:, tus_of_operons].toarray()
 
             TU_exp, _ = fast_nnls(mapping_matrix_these_operons, cistron_operon_exp)
             TU_exp /= transcription.unnormalized_mRNA_rna_exp_sum
@@ -434,11 +466,15 @@ class TranscriptionRegulation(object):
         def _update_basal_expression(TU_idxs, TU_mRNA_frac):
             # Update RNA expression
             basal_TU_exp = transcription.rna_expression["basal"]
-            basal_mRNA_TU_exp_sum = np.sum(basal_TU_exp[transcription.rna_data["is_mRNA"]])
+            basal_mRNA_TU_exp_sum = np.sum(
+                basal_TU_exp[transcription.rna_data["is_mRNA"]]
+            )
             basal_TU_exp[TU_idxs] = TU_mRNA_frac * basal_mRNA_TU_exp_sum
             basal_TU_exp = normalize(basal_TU_exp)
             # Update cistron expression
-            cistron_basal_exp = transcription.cistron_tu_mapping_matrix.dot(basal_TU_exp)
+            cistron_basal_exp = transcription.cistron_tu_mapping_matrix.dot(
+                basal_TU_exp
+            )
             transcription.cistron_expression["basal"] = normalize(cistron_basal_exp)
 
         # Solve basal NNLS for one-peak genes and update basal expression
@@ -468,57 +504,95 @@ class TranscriptionRegulation(object):
         cistron_other_mRNA_frac = []
         for i, condition in enumerate(self.two_peak_gene_data["condition"]):
             if BASAL_CONDITION in condition["bound"]:
-                cistron_basal_mRNA_frac.append(self.two_peak_gene_data["bound_mRNA_exp_frac"][i])
-                cistron_other_mRNA_frac.append(self.two_peak_gene_data["unbound_mRNA_exp_frac"][i])
+                cistron_basal_mRNA_frac.append(
+                    self.two_peak_gene_data["bound_mRNA_exp_frac"][i]
+                )
+                cistron_other_mRNA_frac.append(
+                    self.two_peak_gene_data["unbound_mRNA_exp_frac"][i]
+                )
             elif BASAL_CONDITION in condition["unbound"]:
-                cistron_basal_mRNA_frac.append(self.two_peak_gene_data["unbound_mRNA_exp_frac"][i])
-                cistron_other_mRNA_frac.append(self.two_peak_gene_data["bound_mRNA_exp_frac"][i])
+                cistron_basal_mRNA_frac.append(
+                    self.two_peak_gene_data["unbound_mRNA_exp_frac"][i]
+                )
+                cistron_other_mRNA_frac.append(
+                    self.two_peak_gene_data["bound_mRNA_exp_frac"][i]
+                )
             else:
-                raise ValueError("Basal condition not in bound or unbound conditons for two-peak gene {}".format(
-                    self.two_peak_gene_data["regulated_gene_id"][i]
-                ))
+                raise ValueError(
+                    "Basal condition not in bound or unbound conditons for two-peak gene {}".format(
+                        self.two_peak_gene_data["regulated_gene_id"][i]
+                    )
+                )
 
         # Solve basal NNLS for two-peak genes (considers all TUs in the operons containing the two-peak cistrons),
         # and then update basal expression in transcription for use during the parca
-        two_peak_basal_TU_mRNA_frac, two_peak_basal_TU_idxs, two_peak_cistron_idx_to_operon_TUs = _solve_basal_nnls(
+        (
+            two_peak_basal_TU_mRNA_frac,
+            two_peak_basal_TU_idxs,
+            two_peak_cistron_idx_to_operon_TUs,
+        ) = _solve_basal_nnls(
             self.two_peak_gene_data["regulated_gene_id"], cistron_basal_mRNA_frac
         )
-        two_peak_basal_TU_idx_to_mRNA_frac = {idx: frac for idx, frac in zip(
-            two_peak_basal_TU_idxs, two_peak_basal_TU_mRNA_frac)}
+        two_peak_basal_TU_idx_to_mRNA_frac = {
+            idx: frac
+            for idx, frac in zip(two_peak_basal_TU_idxs, two_peak_basal_TU_mRNA_frac)
+        }
 
         _update_basal_expression(two_peak_basal_TU_idxs, two_peak_basal_TU_mRNA_frac)
 
         # Get the corresponding tf-binding-site and the TUs that it regulates
-        target_cistron_idxs = np.array([np.where(transcription.cistron_data["gene_id"]
-                                        == gene)[0][0] for gene in self.two_peak_gene_data["regulated_gene_id"]])
+        target_cistron_idxs = np.array(
+            [
+                np.where(transcription.cistron_data["gene_id"] == gene)[0][0]
+                for gene in self.two_peak_gene_data["regulated_gene_id"]
+            ]
+        )
         tf_binding_site_TU_matrix = sim_data.relation.tf_binding_site_to_tus_mapping()
         tf_binding_site_TF_matrix = sim_data.relation.tf_binding_site_to_tfs_mapping()
 
         tu_regulation_info = {}
         for i, idx in enumerate(target_cistron_idxs):
             tf_binding_sites = set()
-            for TU_idx in transcription.cistron_id_to_rna_indexes(transcription.cistron_data["id"][idx]):
+            for TU_idx in transcription.cistron_id_to_rna_indexes(
+                transcription.cistron_data["id"][idx]
+            ):
                 # Add tf-binding-sites that regulate each TU containing the cistron to a set
-                tf_binding_sites.update(np.where(tf_binding_site_TU_matrix[:, TU_idx] == 1)[0])
+                tf_binding_sites.update(
+                    np.where(tf_binding_site_TU_matrix[:, TU_idx] == 1)[0]
+                )
             tf_binding_sites = list(tf_binding_sites)
             # TODO: maybe could remove this assumption later
-            if len(tf_binding_sites) != 1:
-                raise ValueError("Two-peak cistron must be regulated by only one tf-binding-site")
-
+            if len(tf_binding_sites) > 1:
+                raise ValueError(
+                    f"Two-peak cistron {transcription.cistron_data['id']} has "
+                    f"more than one tf-binding-site regulating it. "
+                )
+            if len(tf_binding_sites) < 1:
+                raise ValueError(
+                    f"Two-peak cistron {transcription.cistron_data['id']} does not have a tf-binding-site regulating it. "
+                )
             tf_binding_site_idx = tf_binding_sites[0]
 
             # Get TF that regulates these TUs (should only be one, and matches the TF idx in two_peak_gene_data)
-            regulating_TFs = np.where(tf_binding_site_TF_matrix[tf_binding_site_idx, :] == 1)[0]
-            regulated_TUs = np.where(tf_binding_site_TU_matrix[tf_binding_site_idx, :] == 1)[0]
+            regulating_TFs = np.where(
+                tf_binding_site_TF_matrix[tf_binding_site_idx, :] == 1
+            )[0]
+            regulated_TUs = np.where(
+                tf_binding_site_TU_matrix[tf_binding_site_idx, :] == 1
+            )[0]
             # Remove TUs that are regulated by the binding site but not part of the same operon as the cistron
             # (e.g. for divergently transcribed operons)
-            regulated_TUs = regulated_TUs[np.isin(regulated_TUs, two_peak_cistron_idx_to_operon_TUs[idx])]
+            regulated_TUs = regulated_TUs[
+                np.isin(regulated_TUs, two_peak_cistron_idx_to_operon_TUs[idx])
+            ]
 
             # Check there's only one TF and TF-binding site
             if len(regulating_TFs) != 1:
                 raise ValueError("Two-peak cistron must be regulated by only one TF")
             if regulating_TFs[0] != self.two_peak_gene_data["tf_idx"][i]:
-                raise ValueError("TF regulating two-peak cistron does not match TF from tf-binding-site data")
+                raise ValueError(
+                    "TF regulating two-peak cistron does not match TF from tf-binding-site data"
+                )
             tf_idx = regulating_TFs[0]
 
             # Get condition data
@@ -526,7 +600,11 @@ class TranscriptionRegulation(object):
 
             # Store data temporarily in a dictionary
             for TU_idx in regulated_TUs:
-                tu_regulation_info[TU_idx] = (tf_idx, tf_binding_site_idx, condition_data)
+                tu_regulation_info[TU_idx] = (
+                    tf_idx,
+                    tf_binding_site_idx,
+                    condition_data,
+                )
 
         two_peak_reg_TU_idxs = np.array(sorted(list(tu_regulation_info.keys())))
         self.two_peak_TU_data["TU_idx"] = two_peak_reg_TU_idxs
@@ -545,7 +623,11 @@ class TranscriptionRegulation(object):
         # Get all TUs that contain these cistrons
         contain_cistron_TU_idxs = set()
         for idx in target_cistron_idxs:
-            contain_cistron_TU_idxs.update(transcription.cistron_id_to_rna_indexes(transcription.cistron_data["id"][idx]))
+            contain_cistron_TU_idxs.update(
+                transcription.cistron_id_to_rna_indexes(
+                    transcription.cistron_data["id"][idx]
+                )
+            )
         contain_cistron_TU_idxs = sorted(list(contain_cistron_TU_idxs))
 
         # Get the target cistron-level target amount (unnormalized expression, at the level
@@ -553,34 +635,42 @@ class TranscriptionRegulation(object):
         # We make the assumption that the total amount of mRNA expression changes negligibly due
         # to changes made to TU expression made here
         cistron_exp_unnormalized_sum = np.sum(
-            transcription.cistron_tu_mapping_matrix.toarray().dot(transcription.rna_expression["basal"])
+            transcription.cistron_tu_mapping_matrix.toarray().dot(
+                transcription.rna_expression["basal"]
+            )
         )
-        #cistron_exp_unnormalized_mRNA_sum = np.sum(cistron_exp_unnormalized[transcription.cistron_data["is_mRNA"]])
-        #cistron_total_target_amount = cistron_exp_unnormalized_mRNA_sum * np.array(cistron_other_mRNA_frac)
+        # cistron_exp_unnormalized_mRNA_sum = np.sum(cistron_exp_unnormalized[transcription.cistron_data["is_mRNA"]])
+        # cistron_total_target_amount = cistron_exp_unnormalized_mRNA_sum * np.array(cistron_other_mRNA_frac)
 
         cistron_exp = transcription.cistron_expression["basal"]
         cistron_mRNA_sum = np.sum(cistron_exp[transcription.cistron_data["is_mRNA"]])
-        cistron_total_target_amount = cistron_mRNA_sum * np.array(cistron_other_mRNA_frac)
+        cistron_total_target_amount = cistron_mRNA_sum * np.array(
+            cistron_other_mRNA_frac
+        )
 
         # Subtract away contribution from relevant TUs that are not regulated
         # (at the level of mapping_matrix * TU_expression)
-        fixed_TU_idxs = np.array([x for x in contain_cistron_TU_idxs if x not in
-                    two_peak_reg_TU_idxs])
+        fixed_TU_idxs = np.array(
+            [x for x in contain_cistron_TU_idxs if x not in two_peak_reg_TU_idxs]
+        )
         if len(fixed_TU_idxs) > 0:
             # TODO: check these calculations are right when a real case pops up?
             fixed_TU_exp = transcription.rna_expression["basal"][fixed_TU_idxs]
 
-            mapping_matrix_target_cistrons = transcription.cistron_tu_mapping_matrix[target_cistron_idxs, :
-                                           ][:, fixed_TU_idxs].toarray()
-            fixed_TU_cistron_amount = (mapping_matrix_target_cistrons.dot(fixed_TU_exp) /
-                                       cistron_exp_unnormalized_sum)
+            mapping_matrix_target_cistrons = transcription.cistron_tu_mapping_matrix[
+                target_cistron_idxs, :
+            ][:, fixed_TU_idxs].toarray()
+            fixed_TU_cistron_amount = (
+                mapping_matrix_target_cistrons.dot(fixed_TU_exp)
+                / cistron_exp_unnormalized_sum
+            )
         else:
             fixed_TU_cistron_amount = 0
 
         cistron_target_amount = cistron_total_target_amount - fixed_TU_cistron_amount
         # Fix negative amounts at 0
         # TODO: does this ever happen? check these cases if it does
-        cistron_target_amount[(cistron_target_amount < 0)] = 0.
+        cistron_target_amount[(cistron_target_amount < 0)] = 0.0
 
         # Solve for target TU expression fraction of mRNA for the other peak
         # (first get unnormalized TU amount that recreates the previous cistron-level amounts,
@@ -588,10 +678,15 @@ class TranscriptionRegulation(object):
         # in transcription object, to get the TU-level fraction of mRNA expression. This again makes
         # the assumption that changes made to TU-expression have a negligible impact on the total
         # sum of TU mRNA expression)
-        mapping_matrix_target_TU_cistrons = transcription.cistron_tu_mapping_matrix[target_cistron_idxs, :
-                                           ][:, two_peak_reg_TU_idxs].toarray()
-        two_peak_other_TU_exp, _ = fast_nnls(mapping_matrix_target_TU_cistrons, cistron_target_amount)
-        two_peak_other_TU_mRNA_frac = two_peak_other_TU_exp / transcription.unnormalized_mRNA_rna_exp_sum
+        mapping_matrix_target_TU_cistrons = transcription.cistron_tu_mapping_matrix[
+            target_cistron_idxs, :
+        ][:, two_peak_reg_TU_idxs].toarray()
+        two_peak_other_TU_exp, _ = fast_nnls(
+            mapping_matrix_target_TU_cistrons, cistron_target_amount
+        )
+        two_peak_other_TU_mRNA_frac = (
+            two_peak_other_TU_exp / transcription.unnormalized_mRNA_rna_exp_sum
+        )
 
         # Convert back into bound and unbound mRNA fracs
         unbound_TU_mRNA_frac = []
@@ -607,9 +702,11 @@ class TranscriptionRegulation(object):
                 unbound_TU_mRNA_frac.append(two_peak_basal_TU_idx_to_mRNA_frac[TU_idx])
                 bound_TU_mRNA_frac.append(two_peak_other_TU_mRNA_frac[i])
             else:
-                raise ValueError("Basal condition not in bound or unbound conditions for TU {}".format(
-                    transcription.rna_data["id"][TU_idx]
-                ))
+                raise ValueError(
+                    "Basal condition not in bound or unbound conditions for TU {}".format(
+                        transcription.rna_data["id"][TU_idx]
+                    )
+                )
 
         # TODO: maybe shorten code by combining some code with _solve_basal_NNLS and other-peak calculations
         # Save data
