@@ -526,7 +526,7 @@ def final_adjustments(sim_data, cell_specs, **kwargs):
 
 
 @save_state
-def optimize_trna_charging_kinetics(sim_data, cell_specs, raw_data, **kwargs):
+def optimize_trna_charging_kinetics(sim_data, cell_specs, raw_data, cpus, **kwargs):
     """
     Calculates, stores, and writes tRNA synthetase kinetic parameters
     that have been optimized to support the cell's protein synthesis
@@ -545,6 +545,7 @@ def optimize_trna_charging_kinetics(sim_data, cell_specs, raw_data, **kwargs):
             expression levels
         raw_data (KnowledgeBaseEcoli object): stores raw data used for
             calculating simulation parameters
+        cpus (int): number of processes to use
 
     Returns:
         sim_data (SimulationDataEcoli object): simulation parameters
@@ -568,9 +569,45 @@ def optimize_trna_charging_kinetics(sim_data, cell_specs, raw_data, **kwargs):
         return sim_data, cell_specs
 
     # Optimize tRNA Charging kinetics
-    solutions, constants = sim_data.relation.optimize_trna_charging_kinetics(
-        sim_data, cell_specs
+    aas_to_optimize = [
+        aa for aa in sim_data.molecule_groups.amino_acids if aa != "L-SELENOCYSTEINE[c]"
+    ]
+    charging_args = [
+        (sim_data, cell_specs, amino_acid) for amino_acid in aas_to_optimize
+    ]
+    optimized_params = {}
+    apply_updates(
+        sim_data.relation.optimize_trna_charging_kinetics,
+        charging_args,
+        aas_to_optimize,
+        optimized_params,
+        cpus,
     )
+    solutions = [
+        [
+            '"synthetase_id"',
+            '"sweep_level"',
+            '"iteration"',
+            '"objective"',
+            '"k_cat (1/units.s)"',
+            '"K_M_amino_acid (units.umol/units.L)"',
+            '"K_M_trna"',
+            '"f_free"',
+            '"f_free_at_min"',
+        ]
+    ]
+    constants = [
+        [
+            '"synthetase_id__condition"',
+            '"synthetase (units.umol/units.L)"',
+            '"amino_acid (units.umol/units.L)"',
+            '"trnas"',
+            '"codons"',
+        ]
+    ]
+    for sol, const in optimized_params.values():
+        solutions.extend(sol)
+        constants.extend(const)
 
     # Record solutions
     solutions_file = os.path.join(

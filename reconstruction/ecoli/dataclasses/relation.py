@@ -640,9 +640,10 @@ class Relation(object):
 
         return
 
-    def optimize_trna_charging_kinetics(self, sim_data, cell_specs):
+    def optimize_trna_charging_kinetics(self, sim_data, cell_specs, amino_acid):
         """
-        Optimizes kinetic parameters describing tRNA charging reactions.
+        Optimizes kinetic parameters describing tRNA charging reactions
+        for a given amino acid.
         - Aims to minimize differences between the rates of tRNA
           aminoacylation and aminoacyl-tRNA utilization (by ribosomes).
         - Holds to the principle that protein content of the cell grows
@@ -837,30 +838,6 @@ class Relation(object):
         ################################################################
         # Optimize tRNA Charging Kinetics and save results
 
-        trna_charging_kinetics_solutions = [
-            [
-                '"synthetase_id"',
-                '"sweep_level"',
-                '"iteration"',
-                '"objective"',
-                '"k_cat (1/units.s)"',
-                '"K_M_amino_acid (units.umol/units.L)"',
-                '"K_M_trna"',
-                '"f_free"',
-                '"f_free_at_min"',
-            ]
-        ]
-
-        trna_charging_kinetics_constants = [
-            [
-                '"synthetase_id__condition"',
-                '"synthetase (units.umol/units.L)"',
-                '"amino_acid (units.umol/units.L)"',
-                '"trnas"',
-                '"codons"',
-            ]
-        ]
-
         # Describe weights
         w_b = 1e-9  # bounds
         w_r = 1e-9  # regularization
@@ -880,422 +857,418 @@ class Relation(object):
         sweep_levels = np.arange(2, n_increments + 1)
         upper_bound = 10  # log
 
-        # Optimize each amino acid system individually
-        for amino_acid in sim_data.molecule_groups.amino_acids:
-            if amino_acid == "L-SELENOCYSTEINE[c]":
-                continue
+        if amino_acid == "L-SELENOCYSTEINE[c]":
+            raise ValueError("Selenocysteine is not supported by the optimization.")
 
-            # Get molecules
-            synthetase = self.amino_acid_to_synthetase[amino_acid]
-            trnas = self.amino_acid_to_trnas[amino_acid]
-            codons = self.amino_acid_to_codons[amino_acid]
+        # Get molecules
+        synthetase = self.amino_acid_to_synthetase[amino_acid]
+        trnas = self.amino_acid_to_trnas[amino_acid]
+        codons = self.amino_acid_to_codons[amino_acid]
 
-            # Get constants
+        # Get constants
+        (
+            c_synthetase,
+            c_amino_acid,
+            c_trnas,
+            v_codons,
+            v_codons_total,
+            trna_charging_kinetics_constants,
+        ) = self.get_constants(
+            synthetase,
+            amino_acid,
+            trnas,
+            codons,
+            sim_data,
+            cell_specs,
+            [],
+        )
+
+        # Build maps
+        n_K_T, K_T_indexes, codons_to_trnas = self.assign_K_T(trnas, codons)
+
+        cases = []
+        for condition in self.conditions:
+            for trna in trnas:
+                cases.append(f"{trna}__{condition}")
+        n_cases = len(cases)
+
+        f_to_cases = np.zeros((n_cases, n_K_T * n_conditions), dtype=np.int64)
+        for row, case in enumerate(cases):
+            trna, condition = case.split("__")
+            K_T_index = K_T_indexes[trnas.index(trna)]
+            col = (self.conditions.index(condition) * n_K_T) + K_T_index
+            f_to_cases[row, col] = 1
+
+        K_T_to_cases = np.zeros((n_cases, n_K_T), dtype=np.int64)
+        for row, case in enumerate(cases):
+            trna, condition = case.split("__")
+            col = K_T_indexes[trnas.index(trna)]
+            K_T_to_cases[row, col] = 1
+
+        cases_to_trna_sum = np.zeros((n_cases, n_cases), dtype=np.int64)
+        for row, case in enumerate(cases):
+            trna, condition = case.split("__")
+            cols = [condition in case for case in cases]
+            cases_to_trna_sum[row, cols] = 1
+
+        codon_cases_to_trna_cases = np.zeros(
+            (n_cases, len(codons) * n_conditions), dtype=np.bool_
+        )
+        for i in range(n_conditions):
+            rows = slice(i * len(trnas), (i + 1) * len(trnas))
+            cols = slice(i * len(codons), (i + 1) * len(codons))
+            codon_cases_to_trna_cases[rows, cols] = codons_to_trnas
+
+        maps = {
+            "f_to_cases": f_to_cases,
+            "K_T_to_cases": K_T_to_cases,
+            "cases_to_trna_sum": cases_to_trna_sum,
+            "codon_cases_to_trna_cases": codon_cases_to_trna_cases,
+        }
+
+        condition_start_indexes = np.arange(0, n_cases, len(trnas))
+        condition_indexes = {
+            k: np.arange(0, n_K_T) + (k * n_K_T) for k in range(n_conditions)
+        }
+
+        # Set indexes
+        n_f = n_conditions * n_K_T
+        k_cat_index = 0
+        K_A_index = 1
+        K_T_slice = slice(2, 2 + n_K_T)
+        f_slice = slice(K_T_slice.stop, K_T_slice.stop + n_f)
+        min_f_slice = slice(f_slice.stop, f_slice.stop + n_f)
+        n_parameters = min_f_slice.stop
+
+        indexes = {
+            "k_cat_index": k_cat_index,
+            "K_A_index": K_A_index,
+            "K_T_slice": K_T_slice,
+            "f_slice": f_slice,
+            "min_f_slice": min_f_slice,
+            "condition_indexes": condition_indexes,
+            "n_parameters": n_parameters,
+        }
+
+        # Bounds
+        K_A = full_saturation_amino_acid(c_amino_acid, c_synthetase, v_codons_total)
+
+        bounds_1 = [() for n in range(n_parameters)]
+        bounds_1[k_cat_index] = (-2, upper_bound)
+        bounds_1[K_A_index] = (K_A, K_A)
+        bounds_1[K_T_slice] = [(-2, upper_bound) for n in range(n_K_T)]
+
+        bounds_1[f_slice] = [
             (
+                np.log10(f_lower_bound),
+                np.log10(f_upper_bound),
+            )
+            for n in range(n_f)
+        ]
+        bounds_1[min_f_slice] = [
+            (
+                np.log10(f_lower_bound),
+                np.log10(f_upper_bound),
+            )
+            for n in range(n_f)
+        ]
+
+        bounds_2 = bounds_1[:]
+        bounds_2[K_A_index] = (-2, upper_bound)
+
+        # Get the minimum trna synthetase concentration observed
+        # from sample simulations
+        synthetase_mins = []
+        for condition in self.conditions:
+            key = f"{synthetase}__{condition}"
+            synthetase_mins.append(
+                self.trna_synthetase_samples[key]["min"].asNumber(self.conc_unit)
+            )
+        synthetase_mins = np.array(synthetase_mins)
+
+        trna_charging_kinetics_solutions = []
+
+        # Sweep over the minimum tRNA synthetase value
+        for sweep_level in sweep_levels:
+            if print_optimization:
+                print("=" * 20)
+                print(amino_acid, sweep_level)
+                print("=" * 20)
+
+            # Calculate the minimum trna synthetase concentration
+            # used in this sweep level
+            c_synthetase_min = []
+            for estimated_minimum in sweep_level / n_increments * synthetase_mins:
+                for i in range(len(trnas)):
+                    c_synthetase_min.append(estimated_minimum)
+            c_synthetase_min = np.array(c_synthetase_min)
+
+            # Determine whether full amino acid saturation holds
+            initial_solution = get_random_initial_solution(
                 c_synthetase,
                 c_amino_acid,
                 c_trnas,
-                v_codons,
                 v_codons_total,
-                trna_charging_kinetics_constants,
-            ) = self.get_constants(
-                synthetase,
-                amino_acid,
-                trnas,
-                codons,
-                sim_data,
-                cell_specs,
-                trna_charging_kinetics_constants,
+                maps,
+                n_K_T,
+                n_f,
+                indexes,
+                condition_start_indexes,
+                K_T_range,
+                assume_full_saturation=True,
             )
 
-            # Build maps
-            n_K_T, K_T_indexes, codons_to_trnas = self.assign_K_T(trnas, codons)
-
-            cases = []
-            for condition in self.conditions:
-                for trna in trnas:
-                    cases.append(f"{trna}__{condition}")
-            n_cases = len(cases)
-
-            f_to_cases = np.zeros((n_cases, n_K_T * n_conditions), dtype=np.int64)
-            for row, case in enumerate(cases):
-                trna, condition = case.split("__")
-                K_T_index = K_T_indexes[trnas.index(trna)]
-                col = (self.conditions.index(condition) * n_K_T) + K_T_index
-                f_to_cases[row, col] = 1
-
-            K_T_to_cases = np.zeros((n_cases, n_K_T), dtype=np.int64)
-            for row, case in enumerate(cases):
-                trna, condition = case.split("__")
-                col = K_T_indexes[trnas.index(trna)]
-                K_T_to_cases[row, col] = 1
-
-            cases_to_trna_sum = np.zeros((n_cases, n_cases), dtype=np.int64)
-            for row, case in enumerate(cases):
-                trna, condition = case.split("__")
-                cols = [condition in case for case in cases]
-                cases_to_trna_sum[row, cols] = 1
-
-            codon_cases_to_trna_cases = np.zeros(
-                (n_cases, len(codons) * n_conditions), dtype=np.bool_
-            )
-            for i in range(n_conditions):
-                rows = slice(i * len(trnas), (i + 1) * len(trnas))
-                cols = slice(i * len(codons), (i + 1) * len(codons))
-                codon_cases_to_trna_cases[rows, cols] = codons_to_trnas
-
-            maps = {
-                "f_to_cases": f_to_cases,
-                "K_T_to_cases": K_T_to_cases,
-                "cases_to_trna_sum": cases_to_trna_sum,
-                "codon_cases_to_trna_cases": codon_cases_to_trna_cases,
-            }
-
-            condition_start_indexes = np.arange(0, n_cases, len(trnas))
-            condition_indexes = {
-                k: np.arange(0, n_K_T) + (k * n_K_T) for k in range(n_conditions)
-            }
-
-            # Set indexes
-            n_f = n_conditions * n_K_T
-            k_cat_index = 0
-            K_A_index = 1
-            K_T_slice = slice(2, 2 + n_K_T)
-            f_slice = slice(K_T_slice.stop, K_T_slice.stop + n_f)
-            min_f_slice = slice(f_slice.stop, f_slice.stop + n_f)
-            n_parameters = min_f_slice.stop
-
-            indexes = {
-                "k_cat_index": k_cat_index,
-                "K_A_index": K_A_index,
-                "K_T_slice": K_T_slice,
-                "f_slice": f_slice,
-                "min_f_slice": min_f_slice,
-                "condition_indexes": condition_indexes,
-                "n_parameters": n_parameters,
-            }
-
-            # Bounds
-            K_A = full_saturation_amino_acid(c_amino_acid, c_synthetase, v_codons_total)
-
-            bounds_1 = [() for n in range(n_parameters)]
-            bounds_1[k_cat_index] = (-2, upper_bound)
-            bounds_1[K_A_index] = (K_A, K_A)
-            bounds_1[K_T_slice] = [(-2, upper_bound) for n in range(n_K_T)]
-
-            bounds_1[f_slice] = [
-                (
-                    np.log10(f_lower_bound),
-                    np.log10(f_upper_bound),
-                )
-                for n in range(n_f)
-            ]
-            bounds_1[min_f_slice] = [
-                (
-                    np.log10(f_lower_bound),
-                    np.log10(f_upper_bound),
-                )
-                for n in range(n_f)
-            ]
-
-            bounds_2 = bounds_1[:]
-            bounds_2[K_A_index] = (-2, upper_bound)
-
-            # Get the minimum trna synthetase concentration observed
-            # from sample simulations
-            synthetase_mins = []
-            for condition in self.conditions:
-                key = f"{synthetase}__{condition}"
-                synthetase_mins.append(
-                    self.trna_synthetase_samples[key]["min"].asNumber(self.conc_unit)
-                )
-            synthetase_mins = np.array(synthetase_mins)
-
-            # Sweep over the minimum tRNA synthetase value
-            for sweep_level in sweep_levels:
-                if print_optimization:
-                    print("=" * 20)
-                    print(amino_acid, sweep_level)
-                    print("=" * 20)
-
-                # Calculate the minimum trna synthetase concentration
-                # used in this sweep level
-                c_synthetase_min = []
-                for estimated_minimum in sweep_level / n_increments * synthetase_mins:
-                    for i in range(len(trnas)):
-                        c_synthetase_min.append(estimated_minimum)
-                c_synthetase_min = np.array(c_synthetase_min)
-
-                # Determine whether full amino acid saturation holds
-                initial_solution = get_random_initial_solution(
+            result = minimize(
+                objective,
+                initial_solution,
+                method="Powell",
+                bounds=bounds_1,
+                args=(
+                    indexes,
+                    maps,
+                    v_codons,
                     c_synthetase,
+                    c_synthetase_min,
                     c_amino_acid,
                     c_trnas,
-                    v_codons_total,
-                    maps,
-                    n_K_T,
-                    n_f,
-                    indexes,
-                    condition_start_indexes,
-                    K_T_range,
-                    assume_full_saturation=True,
-                )
+                ),
+                options={
+                    "maxiter": 1000,
+                    "ftol": 1e-5,
+                },
+            )
 
-                result = minimize(
-                    objective,
-                    initial_solution,
-                    method="Powell",
-                    bounds=bounds_1,
-                    args=(
-                        indexes,
-                        maps,
-                        v_codons,
+            x = np.power(10, result.x)
+            K_A = x[K_A_index]
+            saturation_amino_acid = c_amino_acid / (K_A + c_amino_acid)
+            assume_full_saturation = np.isclose(
+                saturation_amino_acid[condition_start_indexes][1], 0.99, atol=1e-2
+            )
+
+            if print_optimization:
+                print(f"Assuming full AA saturation: {assume_full_saturation}")
+
+            # Solve
+            min_objective = np.inf
+            viable_solution = 0
+            iteration = 0
+            while (iteration < iterations) or (viable_solution < viable_solutions):
+                # Option 1: Assume full saturation of amino acids
+                if assume_full_saturation:
+                    # Initialize random initial solution
+                    initial_solution = get_random_initial_solution(
                         c_synthetase,
-                        c_synthetase_min,
                         c_amino_acid,
                         c_trnas,
-                    ),
-                    options={
-                        "maxiter": 1000,
-                        "ftol": 1e-5,
-                    },
-                )
+                        v_codons_total,
+                        maps,
+                        n_K_T,
+                        n_f,
+                        indexes,
+                        condition_start_indexes,
+                        K_T_range,
+                        assume_full_saturation=True,
+                    )
 
+                    # Optimize
+                    result = minimize(
+                        objective,
+                        initial_solution,
+                        method="Powell",
+                        bounds=bounds_1,
+                        args=(
+                            indexes,
+                            maps,
+                            v_codons,
+                            c_synthetase,
+                            c_synthetase_min,
+                            c_amino_acid,
+                            c_trnas,
+                        ),
+                        options={
+                            "maxiter": 1000,
+                            "ftol": 1e-5,
+                        },
+                    )
+
+                # Option 2: Don't assume full saturation of amino acids
+                else:
+                    # Initialize random initial solution
+                    initial_solution = get_random_initial_solution(
+                        c_synthetase,
+                        c_amino_acid,
+                        c_trnas,
+                        v_codons_total,
+                        maps,
+                        n_K_T,
+                        n_f,
+                        indexes,
+                        condition_start_indexes,
+                        K_T_range,
+                        assume_full_saturation=False,
+                    )
+
+                    # Optimize
+                    result = minimize(
+                        objective,
+                        initial_solution,
+                        method="Powell",
+                        bounds=bounds_2,
+                        args=(
+                            indexes,
+                            maps,
+                            v_codons,
+                            c_synthetase,
+                            c_synthetase_min,
+                            c_amino_acid,
+                            c_trnas,
+                        ),
+                        options={
+                            "maxiter": 1000,
+                            "ftol": 1e-5,
+                        },
+                    )
+
+                # Retrieve solution
                 x = np.power(10, result.x)
+
+                k_cat = x[k_cat_index]
                 K_A = x[K_A_index]
+                K_T = x[K_T_slice]
+                f = x[f_slice]
+                min_f = x[min_f_slice]
+
+                # Calculate charging rate of each free trna
                 saturation_amino_acid = c_amino_acid / (K_A + c_amino_acid)
-                assume_full_saturation = np.isclose(
-                    saturation_amino_acid[condition_start_indexes][1], 0.99, atol=1e-2
+                relative_trnas = (
+                    (maps["f_to_cases"] @ f) * c_trnas / (maps["K_T_to_cases"] @ K_T)
+                )
+                trna_sum = maps["cases_to_trna_sum"] @ relative_trnas
+                saturation_trnas = relative_trnas / (1 + trna_sum)
+                v_charge = (
+                    k_cat * c_synthetase * saturation_amino_acid * saturation_trnas
+                )
+                sat_T = trna_sum / (1 + trna_sum)
+
+                # Calculate distribution of codon reading across trnas
+                # Note: columns of codons_to_trnas sum to 1
+                c_trnas_charged = (1 - (maps["f_to_cases"] @ f)) * c_trnas
+                tile = np.tile(c_trnas_charged, (len(v_codons), 1)).T
+                codons_to_trnas = np.where(maps["codon_cases_to_trna_cases"], tile, 0)
+                denominator = codons_to_trnas.sum(axis=0)
+                denominator[denominator == 0] = 1  # to prevent divide by 0
+                codons_to_trnas = np.divide(codons_to_trnas, denominator)
+
+                # Calculate usage rate of each charged trna
+                v_usage = codons_to_trnas @ v_codons
+
+                # Calculate charging rate of each free trna
+                relative_trnas = (
+                    (maps["f_to_cases"] @ min_f)
+                    * c_trnas
+                    / (maps["K_T_to_cases"] @ K_T)
+                )
+                trna_sum = maps["cases_to_trna_sum"] @ relative_trnas
+                saturation_trnas = relative_trnas / (1 + trna_sum)
+                v_charge_min = (
+                    k_cat * c_synthetase_min * saturation_amino_acid * saturation_trnas
                 )
 
-                if print_optimization:
-                    print(f"Assuming full AA saturation: {assume_full_saturation}")
+                # Calculate distribution of codon reading across trnas
+                # Note: columns of codons_to_trnas sum to 1
+                c_trnas_charged = (1 - (maps["f_to_cases"] @ min_f)) * c_trnas
+                tile = np.tile(c_trnas_charged, (len(v_codons), 1)).T
+                codons_to_trnas = np.where(maps["codon_cases_to_trna_cases"], tile, 0)
+                denominator = codons_to_trnas.sum(axis=0)
+                denominator[denominator == 0] = 1  # to prevent divide by 0
+                codons_to_trnas = np.divide(codons_to_trnas, denominator)
 
-                # Solve
-                min_objective = np.inf
-                viable_solution = 0
-                iteration = 0
-                while (iteration < iterations) or (viable_solution < viable_solutions):
-                    # Option 1: Assume full saturation of amino acids
-                    if assume_full_saturation:
-                        # Initialize random initial solution
-                        initial_solution = get_random_initial_solution(
-                            c_synthetase,
-                            c_amino_acid,
-                            c_trnas,
-                            v_codons_total,
-                            maps,
-                            n_K_T,
-                            n_f,
-                            indexes,
-                            condition_start_indexes,
-                            K_T_range,
-                            assume_full_saturation=True,
+                # Calculate usage rate of each charged trna
+                v_usage_min = codons_to_trnas @ v_codons
+
+                iteration += 1
+
+                # Only save solutions that can maintain steady state
+                if (
+                    np.max(np.abs(v_charge - v_usage)) > 1e-3
+                    or np.isnan(np.max(np.abs(v_charge - v_usage)))
+                    or np.max(np.abs(v_charge_min - v_usage_min)) > 1e-3
+                    or np.isnan(np.max(np.abs(v_charge_min - v_usage_min)))
+                ):
+                    continue
+
+                if result.fun < min_objective:
+                    min_objective = result.fun
+
+                    if print_optimization:
+                        print("=" * 26)
+                        print("\nobj\t", f"{result.fun:.1e}")
+                        print("-" * 26)
+                        print("k_cat\t", f"{k_cat:.2f}")
+                        print("K_A\t", f"{K_A:.2f}")
+                        print("K_T\t", np.round(K_T, 2))
+                        print(
+                            "sat A\t",
+                            f"{saturation_amino_acid[0]:.2f}",
+                            f"\t{saturation_amino_acid[-1]:.2f}",
+                        )
+                        print("sat T\t", f"{sat_T[0]:.2f}", f"\t{sat_T[-1]:.2f}")
+
+                        print("-" * 8, "at exp E", "-" * 8)
+                        print("fc\t", np.round(1 - f, 2))
+                        print(
+                            "v\t",
+                            f"{v_charge[: len(trnas)].sum():.2f}",
+                            f"{v_codons[: len(codons)].sum():.2f}",
                         )
 
-                        # Optimize
-                        result = minimize(
-                            objective,
-                            initial_solution,
-                            method="Powell",
-                            bounds=bounds_1,
-                            args=(
-                                indexes,
-                                maps,
-                                v_codons,
-                                c_synthetase,
-                                c_synthetase_min,
-                                c_amino_acid,
-                                c_trnas,
-                            ),
-                            options={
-                                "maxiter": 1000,
-                                "ftol": 1e-5,
-                            },
+                        print("-" * 8, "at min E", "-" * 8)
+                        print("fc\t", np.round(1 - min_f, 2))
+                        print(
+                            "v\t",
+                            f"{v_charge_min[: len(trnas)].sum():.2f}",
+                            f"{v_codons[: len(codons)].sum():.2f}",
                         )
 
-                    # Option 2: Don't assume full saturation of amino acids
-                    else:
-                        # Initialize random initial solution
-                        initial_solution = get_random_initial_solution(
-                            c_synthetase,
-                            c_amino_acid,
-                            c_trnas,
-                            v_codons_total,
-                            maps,
-                            n_K_T,
-                            n_f,
-                            indexes,
-                            condition_start_indexes,
-                            K_T_range,
-                            assume_full_saturation=False,
+                        print(
+                            "v diff\t\t",
+                            f"{np.max(np.abs(v_charge - v_usage)):.2e}",
+                        )
+                        print(
+                            "v diff min\t",
+                            f"{np.max(np.abs(v_charge_min - v_usage_min)):.2e}",
                         )
 
-                        # Optimize
-                        result = minimize(
-                            objective,
-                            initial_solution,
-                            method="Powell",
-                            bounds=bounds_2,
-                            args=(
-                                indexes,
-                                maps,
-                                v_codons,
-                                c_synthetase,
-                                c_synthetase_min,
-                                c_amino_acid,
-                                c_trnas,
-                            ),
-                            options={
-                                "maxiter": 1000,
-                                "ftol": 1e-5,
-                            },
-                        )
+                # Only save solutions that do not have nans
+                if (
+                    np.isnan(result.fun)
+                    or np.isinf(result.fun)
+                    or np.any(np.isnan(np.power(10, result.x)))
+                    or np.any(np.isinf(np.power(10, result.x)))
+                ):
+                    continue
 
-                    # Retrieve solution
-                    x = np.power(10, result.x)
+                trna_charging_kinetics_solutions.append(
+                    [
+                        f'"{synthetase}"',
+                        sweep_level,
+                        iteration,
+                        result.fun,
+                        k_cat,
+                        K_A,
+                        json.dumps(dict(zip(trnas, K_T[K_T_indexes]))),
+                        json.dumps(dict(zip(cases, maps["f_to_cases"] @ f))),
+                        json.dumps(dict(zip(cases, maps["f_to_cases"] @ min_f))),
+                    ]
+                )
+                viable_solution += 1
 
-                    k_cat = x[k_cat_index]
-                    K_A = x[K_A_index]
-                    K_T = x[K_T_slice]
-                    f = x[f_slice]
-                    min_f = x[min_f_slice]
-
-                    # Calculate charging rate of each free trna
-                    saturation_amino_acid = c_amino_acid / (K_A + c_amino_acid)
-                    relative_trnas = (
-                        (maps["f_to_cases"] @ f)
-                        * c_trnas
-                        / (maps["K_T_to_cases"] @ K_T)
-                    )
-                    trna_sum = maps["cases_to_trna_sum"] @ relative_trnas
-                    saturation_trnas = relative_trnas / (1 + trna_sum)
-                    v_charge = (
-                        k_cat * c_synthetase * saturation_amino_acid * saturation_trnas
-                    )
-                    sat_T = trna_sum / (1 + trna_sum)
-
-                    # Calculate distribution of codon reading across trnas
-                    # Note: columns of codons_to_trnas sum to 1
-                    c_trnas_charged = (1 - (maps["f_to_cases"] @ f)) * c_trnas
-                    tile = np.tile(c_trnas_charged, (len(v_codons), 1)).T
-                    codons_to_trnas = np.where(
-                        maps["codon_cases_to_trna_cases"], tile, 0
-                    )
-                    denominator = codons_to_trnas.sum(axis=0)
-                    denominator[denominator == 0] = 1  # to prevent divide by 0
-                    codons_to_trnas = np.divide(codons_to_trnas, denominator)
-
-                    # Calculate usage rate of each charged trna
-                    v_usage = codons_to_trnas @ v_codons
-
-                    # Calculate charging rate of each free trna
-                    relative_trnas = (
-                        (maps["f_to_cases"] @ min_f)
-                        * c_trnas
-                        / (maps["K_T_to_cases"] @ K_T)
-                    )
-                    trna_sum = maps["cases_to_trna_sum"] @ relative_trnas
-                    saturation_trnas = relative_trnas / (1 + trna_sum)
-                    v_charge_min = (
-                        k_cat
-                        * c_synthetase_min
-                        * saturation_amino_acid
-                        * saturation_trnas
-                    )
-
-                    # Calculate distribution of codon reading across trnas
-                    # Note: columns of codons_to_trnas sum to 1
-                    c_trnas_charged = (1 - (maps["f_to_cases"] @ min_f)) * c_trnas
-                    tile = np.tile(c_trnas_charged, (len(v_codons), 1)).T
-                    codons_to_trnas = np.where(
-                        maps["codon_cases_to_trna_cases"], tile, 0
-                    )
-                    denominator = codons_to_trnas.sum(axis=0)
-                    denominator[denominator == 0] = 1  # to prevent divide by 0
-                    codons_to_trnas = np.divide(codons_to_trnas, denominator)
-
-                    # Calculate usage rate of each charged trna
-                    v_usage_min = codons_to_trnas @ v_codons
-
-                    iteration += 1
-
-                    # Only save solutions that can maintain steady state
-                    if (
-                        np.max(np.abs(v_charge - v_usage)) > 1e-3
-                        or np.isnan(np.max(np.abs(v_charge - v_usage)))
-                        or np.max(np.abs(v_charge_min - v_usage_min)) > 1e-3
-                        or np.isnan(np.max(np.abs(v_charge_min - v_usage_min)))
-                    ):
-                        continue
-
-                    if result.fun < min_objective:
-                        min_objective = result.fun
-
-                        if print_optimization:
-                            print("=" * 26)
-                            print("\nobj\t", f"{result.fun:.1e}")
-                            print("-" * 26)
-                            print("k_cat\t", f"{k_cat:.2f}")
-                            print("K_A\t", f"{K_A:.2f}")
-                            print("K_T\t", np.round(K_T, 2))
-                            print(
-                                "sat A\t",
-                                f"{saturation_amino_acid[0]:.2f}",
-                                f"\t{saturation_amino_acid[-1]:.2f}",
-                            )
-                            print("sat T\t", f"{sat_T[0]:.2f}", f"\t{sat_T[-1]:.2f}")
-
-                            print("-" * 8, "at exp E", "-" * 8)
-                            print("fc\t", np.round(1 - f, 2))
-                            print(
-                                "v\t",
-                                f"{v_charge[: len(trnas)].sum():.2f}",
-                                f"{v_codons[: len(codons)].sum():.2f}",
-                            )
-
-                            print("-" * 8, "at min E", "-" * 8)
-                            print("fc\t", np.round(1 - min_f, 2))
-                            print(
-                                "v\t",
-                                f"{v_charge_min[: len(trnas)].sum():.2f}",
-                                f"{v_codons[: len(codons)].sum():.2f}",
-                            )
-
-                            print(
-                                "v diff\t\t",
-                                f"{np.max(np.abs(v_charge - v_usage)):.2e}",
-                            )
-                            print(
-                                "v diff min\t",
-                                f"{np.max(np.abs(v_charge_min - v_usage_min)):.2e}",
-                            )
-
-                    # Only save solutions that do not have nans
-                    if (
-                        np.isnan(result.fun)
-                        or np.isinf(result.fun)
-                        or np.any(np.isnan(np.power(10, result.x)))
-                        or np.any(np.isinf(np.power(10, result.x)))
-                    ):
-                        continue
-
-                    trna_charging_kinetics_solutions.append(
-                        [
-                            f'"{synthetase}"',
-                            sweep_level,
-                            iteration,
-                            result.fun,
-                            k_cat,
-                            K_A,
-                            json.dumps(dict(zip(trnas, K_T[K_T_indexes]))),
-                            json.dumps(dict(zip(cases, maps["f_to_cases"] @ f))),
-                            json.dumps(dict(zip(cases, maps["f_to_cases"] @ min_f))),
-                        ]
-                    )
-                    viable_solution += 1
-
-        return trna_charging_kinetics_solutions, trna_charging_kinetics_constants
+        return {
+            amino_acid: (
+                trna_charging_kinetics_solutions,
+                trna_charging_kinetics_constants,
+            )
+        }
 
     def get_constants(
         self,
@@ -1375,7 +1348,7 @@ class Relation(object):
             trna_to_conc = {}
             for trna in trnas:
                 c_trna = (
-                    to_conc * trna_cistron_counts[trna_cistron_ids == trna][0]
+                    to_conc * trna_cistron_counts[trna_cistron_ids == trna[:-3]][0]
                 ).asNumber(self.conc_unit)
 
                 trna_to_conc[trna] = c_trna
