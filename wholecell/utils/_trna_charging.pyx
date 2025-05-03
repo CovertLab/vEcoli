@@ -17,6 +17,10 @@ from libc.time cimport time, time_t
 np.import_array()
 cimport cython
 
+cpdef seed_rng(unsigned int seed):
+	"""Seeds the C standard library RNG used by this module."""
+	srand(seed)
+
 @cython.boundscheck(False)  # Deactivate bounds checking
 @cython.wraparound(False)   # Deactivate negative indexing
 @cython.cdivision(True)		# Deactivate 0 division checking
@@ -164,10 +168,6 @@ cpdef reconcile_via_ribosome_positions(
 	const char [:, :] sequences, # 8-bit integer
 	char max_attempts, # 8-bit integer
 	):
-
-	# Set random seed
-	cdef time_t t = time(NULL)
-	srand(t)
 
 	# Initialize variables
 	cdef char attempt = 0
@@ -358,10 +358,6 @@ cpdef reconcile_via_trna_pools(
 	char [:, :] trnas_to_codons, # 8-bit integer
 	char [:] trnas_to_amino_acid_indexes, # 8-bit integer
 	):
-
-	# Set random seed
-	cdef time_t t = time(NULL)
-	srand(t)
 
 	# Initialize variables
 	cdef int i = 0
