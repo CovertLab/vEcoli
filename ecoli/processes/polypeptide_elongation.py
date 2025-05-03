@@ -2270,7 +2270,7 @@ class KineticTrnaChargingModel(BaseElongationModel):
         # kinetics and sequence limits. This width buffer describes
         # the additional sequence positions (towards the C terminal)
         # to view during each time step.
-        self.buffer = 10
+        self.buffer = self.parameters["reconciliation_buffer"]
 
         # Previous rate: the previous ribosome elongation rate is
         # recorded to warm start the next time step's binary search. For
