@@ -24,6 +24,7 @@ from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIn
 from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
 from wholecell.utils._trna_charging import (
+    seed_rng,
     get_initiations,
     reconcile_via_ribosome_positions,
     reconcile_via_trna_pools,
@@ -314,6 +315,7 @@ class PolypeptideElongation(PartitionedProcess):
 
         self.seed = self.parameters["seed"]
         self.random_state = np.random.RandomState(seed=self.seed)
+        seed_rng(self.seed)
 
     def ports_schema(self):
         return {
@@ -2833,7 +2835,7 @@ class KineticTrnaChargingModel(BaseElongationModel):
             candidates = np.logical_and(
                 did_terminate, [self.is_map_substrate[x] for x in protein_indexes]
             )
-            i_cannot_cleave = np.random.multinomial(
+            i_cannot_cleave = self.process.random_state.multinomial(
                 not_cleaved, candidates / candidates.sum()
             ).astype(bool)
 

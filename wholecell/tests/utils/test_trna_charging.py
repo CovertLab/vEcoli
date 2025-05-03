@@ -8,6 +8,7 @@ Test trna_charging.py
 from __future__ import absolute_import, division, print_function
 
 from wholecell.utils._trna_charging import (
+    seed_rng,
     get_initiations,
     get_codon_at,
     get_candidates_to_C,
@@ -35,7 +36,7 @@ class Test_trna_charging(unittest.TestCase):
         pass
 
     def setUp(self):
-        pass
+        seed_rng(0)
 
     def tearDown(self):
         pass
@@ -487,6 +488,92 @@ class Test_trna_charging(unittest.TestCase):
 
         n_codons_read = get_codons_read(sequences, elongations, size)
         assert_equal(n_codons_read, np.array([3, 3], dtype=np.int64))
+
+
+def test_reconcile_different_seeds_different_results():
+    """
+    Tests that reconcile_via_ribosome_positions:
+    - Produces DIFFERENT outputs given the same inputs but DIFFERENT random seeds
+    - Produces SAME outputs given the same inputs and SAME random seeds
+    """
+    # --- 1. Define two different seeds ---
+    seed1 = 12345
+    seed2 = 54321
+
+    # --- 2. Define fixed, non-trivial inputs ---
+    # (Using the same inputs as the previous 20-codon example)
+    initial_sequence_codons = np.array(
+        [5, 2, 8, 3, 1, 4, 6, 5, 9, 3, 7, 3, 5, 1, 8, 2, 4, 6, 2, 10], dtype=np.int64
+    )
+    kinetics_codons = np.array(
+        [6, 1, 7, 4, 2, 3, 5, 3, 8, 2, 6, 4, 6, 0, 9, 1, 5, 5, 1, 9], dtype=np.int64
+    )
+    initial_elongations = np.array([8, 12, 5, 10, 7], dtype=np.int64)
+    sequences = np.array(
+        [
+            [0, 1, 2, 3, 4, 5, 6, 7, -1, -1, -1, -1, -1, -1, -1],
+            [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, -1, -1, -1],
+            [1, 3, 5, 7, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+            [2, 4, 6, 8, 10, 12, 14, 16, 18, 0, -1, -1, -1, -1, -1],
+            [19, 17, 15, 13, 11, 9, 7, -1, -1, -1, -1, -1, -1, -1, -1],
+        ],
+        dtype=np.int8,
+    )
+    max_attempts = np.int8(50)
+
+    # --- 3. Run 1 with seed1 ---
+    sequence_codons_run1 = np.copy(initial_sequence_codons)
+    elongations_run1 = np.copy(initial_elongations)
+    seed_rng(seed1)  # Seed with first seed
+    reconcile_via_ribosome_positions(
+        sequence_codons_run1,
+        elongations_run1,
+        kinetics_codons,
+        sequences,
+        max_attempts,
+    )
+
+    # --- 4. Run 2 with seed2 ---
+    sequence_codons_run2 = np.copy(initial_sequence_codons)
+    elongations_run2 = np.copy(initial_elongations)
+    seed_rng(seed2)  # Seed with second, different seed
+    reconcile_via_ribosome_positions(
+        sequence_codons_run2,
+        elongations_run2,
+        kinetics_codons,
+        sequences,
+        max_attempts,
+    )
+
+    # --- 5. Run 3 with seed1 ---
+    sequence_codons_run3 = np.copy(initial_sequence_codons)
+    elongations_run3 = np.copy(initial_elongations)
+    seed_rng(seed1)  # Seed with first seed
+    reconcile_via_ribosome_positions(
+        sequence_codons_run3,
+        elongations_run3,
+        kinetics_codons,
+        sequences,
+        max_attempts,
+    )
+
+    # --- 6. Assert inequality ---
+    # Check that the results are different for different seed.
+    sequence_codons_differ = np.any(sequence_codons_run1 != sequence_codons_run2)
+    elongations_differ = np.any(elongations_run1 != elongations_run2)
+
+    # --- 7. Assert equality ---
+    # Check that the results are same for same seed.
+    sequence_codons_same = np.all(sequence_codons_run1 == sequence_codons_run3)
+    elongations_same = np.all(elongations_run1 == elongations_run3)
+
+    assert sequence_codons_differ or elongations_differ, (
+        "Outputs were unexpectedly identical for different seeds."
+    )
+
+    assert sequence_codons_same or elongations_same, (
+        "Outputs were unexpectedly different for same seeds."
+    )
 
 
 if __name__ == "__main__":
