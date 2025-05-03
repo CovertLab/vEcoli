@@ -1121,6 +1121,7 @@ class LoadSimData:
             "K_M_trna__per_L": K_M_trna__per_L,
             "max_curated_kcats": max_curated_kcats,
             "kcats_curated": curated,
+            "reconciliation_buffer": relation.reconciliation_buffer,
             "elongation_max": (
                 constants.ribosome_elongation_rate_max
                 if self.variable_elongation_translation
