@@ -345,6 +345,9 @@ class Relation(object):
         molecule_ids = [protein_id[:-3] for protein_id in protein_ids]
         sequences = [self._codon_sequences[molecule_id] for molecule_id in molecule_ids]
 
+        # See ecoli.processes.polypeptide_elongation.KineticTrnaChargingModel.
+        self.reconciliation_buffer = 10
+
         # Calculate the number of columns required to read beyond
         # (towards the C-terminal) the longest mRNA coding region.
         # Note: For polypeptides undergoing N-terminal cleavage of the
@@ -360,6 +363,8 @@ class Relation(object):
                     units.aa / units.s
                 )
             )
+            # Add read-ahead buffer for reconciliation
+            + self.reconciliation_buffer
         )
 
         self.codon_sequences = np.full(
