@@ -1436,7 +1436,9 @@ class Transcription(object):
         aa_names = sim_data.molecule_groups.amino_acids
         aa_indices = {aa: i for i, aa in enumerate(aa_names)}
         trna_indices = {trna: i for i, trna in enumerate(self.uncharged_trna_names)}
-        self.aa_from_trna = np.zeros((len(aa_names), len(self.uncharged_trna_names)))
+        self.aa_from_trna = np.zeros(
+            (len(aa_names), len(self.uncharged_trna_names)), dtype=int
+        )
         for trna in self.uncharged_trna_names:
             aa = trna[:3].upper()
             if aa == "ALA":
