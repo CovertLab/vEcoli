@@ -5,17 +5,21 @@ from vivarium.core.engine import Engine, pp
 from basico import *
 from vivarium.core.types import State
 
-from utils.basico_helper import _set_initial_concentrations, _get_transient_concentration
+from ecoli.processes.vkecoli.utils.basico_helper import _set_initial_concentrations, _get_transient_concentration
 import matplotlib.pyplot as plt
-from utils.updater import bulk_numpy_updater, get_bulk_counts, divide_bulk
+from ecoli.processes.vkecoli.utils.updater import bulk_numpy_updater, get_bulk_counts, divide_bulk
 import os
 
 
 from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
-NAME = "ecoli-complexation"
-TOPOLOGY = {"bulk": ("bulk",), "listeners": ("listeners",), "timestep": ("timestep",)}
+NAME = "Kecoli"
+# TOPOLOGY = {"bulk": ("bulk",), "listeners": ("listeners",), "timestep": ("timestep",)}
+
+TOPOLOGY = {'species': ('species_store',)},
+
+
 topology_registry.register(NAME, TOPOLOGY)
 
 
