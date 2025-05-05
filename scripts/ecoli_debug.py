@@ -21,7 +21,7 @@ from vivarium.library.topology import assoc_path
 
 
 def run_default():
-    sim = EcoliSim.from_file(filepath='ecoli/composites/ecoli_configs/test_debug.json')
+    sim = EcoliSim.from_file(filepath='ecoli/composites/ecoli_configs/test_configs/test_debug.json')
     # sim.total_time = 20
     print(f'INITIAL PROCESS CONFIGS: {pf(sim.config["process_configs"])}')
 
