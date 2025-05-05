@@ -967,7 +967,7 @@ class ChromosomeStructure(Step):
         new_molecule_coordinates: npt.NDArray[np.int64],
         spans_oriC: bool,
         spans_terC: bool,
-    ) -> dict[str, npt.NDArray[np.int64]]:
+    ) -> dict[str, npt.NDArray[np.int64 | np.float64]]:
         """
         Calculates the updated attributes of chromosomal segments belonging to
         a specific chromosomal domain, given the previous and current
@@ -1204,7 +1204,7 @@ class ChromosomeStructure(Step):
         # Handle edge case where a domain was just initialized, and two
         # replisomes are bound to the origin
         if len(new_linking_numbers) == 0:
-            new_linking_numbers = [0]
+            new_linking_numbers = [np.float64(0)]
 
         # Build Mx2 array for boundary indexes and coordinates
         new_boundary_molecule_indexes = np.hstack(

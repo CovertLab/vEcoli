@@ -310,7 +310,8 @@ def main():
         query_strings = {}
         # Figure out what Hive partition in main output directory
         # to store outputs for analyses run on this cell subset
-        curr_outdir = config["outdir"]
+        curr_outdir = os.path.abspath(config["outdir"])
+        config_outdir = curr_outdir
         if len(cols) > 0:
             joined_cols = ", ".join(cols)
             data_ids = conn.sql(
@@ -358,7 +359,7 @@ def main():
                 )
 
     # Save copy of config JSON with parameters for plots
-    with open(os.path.join(config["outdir"], "metadata.json"), "w") as f:
+    with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
         json.dump(config, f)
 
 

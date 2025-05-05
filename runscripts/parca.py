@@ -182,6 +182,8 @@ def main():
     cli_options.pop("config")
     parca_options = config.pop("parca_options")
     SimConfig.merge_config_dicts(parca_options, cli_options)
+    # Expand outdir to absolute path
+    parca_options["outdir"] = os.path.abspath(parca_options["outdir"])
     # Set cache directory for ParCa to outdir/cache
     parca_options["cache_dir"] = os.path.join(parca_options["outdir"], "cache")
     os.makedirs(parca_options["cache_dir"], exist_ok=True)
