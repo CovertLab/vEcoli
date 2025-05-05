@@ -592,6 +592,7 @@ class LoadSimData:
             "exchange_data": self.get_exchange_data_config,
             "media_update": self.get_media_update_config,
             "bulk-timeline": self.get_bulk_timeline_config,
+            "Kecoli": self.get_vkecoli_config,
         }
 
         try:
@@ -1670,6 +1671,15 @@ class LoadSimData:
             self.sim_data.internal_state.bulk_molecules.bulk_data["mass"][tf_indexes]
             / self.sim_data.constants.n_avogadro
         ).asNumber(units.fg)
+        return config
+
+    def get_vkecoli_config(self, time_step=1):
+
+        config = {
+            "time_step": time_step,
+            "model_file": "ecoli/procesess/vkecoli/sbml/E_coli_Millard2016.xml",
+        }
+
         return config
 
     def get_rna_synth_prob_listener_config(self, time_step=1):
