@@ -22,6 +22,8 @@ from ecoli.library.initial_conditions import (
     set_small_molecule_counts,
 )
 
+from ecoli.processes import KecoliCell
+
 if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
@@ -1854,6 +1856,11 @@ class LoadSimData:
         for unique_state in unique_molecules.values():
             unique_state.flags.writeable = False
 
+        kecoli_process = KecoliCell(parameters=self.get_vkecoli_config())
+        kecoli_initial_state = kecoli_process.initial_state()
+        kecoli_initial_state['species_store'] = kecoli_initial_state.pop('species')
+
+
         return {
             "bulk": bulk_state,
             "unique": unique_molecules,
@@ -1871,4 +1878,5 @@ class LoadSimData:
                     for mol, conc in current_concentrations.items()
                 }
             },
+            "species_store": kecoli_initial_state['species_store']
         }
