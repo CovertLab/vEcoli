@@ -52,7 +52,7 @@ class KecoliCell(Process):
     defaults = {
         'model_file': DEFAULT_MODEL_FILE, # path to the sbml model file
         'time_step': 1.0,
-        'env_perturb': ["Gluc_e"], #TODO: dict, assert env species
+        'env_perturb': ["GLCx"], #TODO: dict, assert env species
         'env_conc': [1.0],
     }
 

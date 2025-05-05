@@ -1677,7 +1677,7 @@ class LoadSimData:
 
         config = {
             "time_step": time_step,
-            "model_file": "ecoli/procesess/vkecoli/sbml/E_coli_Millard2016.xml",
+            "model_file": "ecoli/processes/vkecoli/sbml/E_coli_Millard2016.xml",
         }
 
         return config
