@@ -17,7 +17,7 @@ from ecoli.processes.registries import topology_registry
 NAME = "Kecoli"
 # TOPOLOGY = {"bulk": ("bulk",), "listeners": ("listeners",), "timestep": ("timestep",)}
 
-TOPOLOGY = {'species': ('species_store',)},
+TOPOLOGY = {'species': ('species_store',)}
 
 
 topology_registry.register(NAME, TOPOLOGY)
@@ -55,7 +55,8 @@ class KecoliCell(Process):
         'env_perturb': ["GLCx"], #TODO: dict, assert env species
         'env_conc': [1.0],
     }
-
+    name = NAME
+    topology = TOPOLOGY
     def __init__(self, parameters=None): #constructor
         super().__init__(parameters)
 

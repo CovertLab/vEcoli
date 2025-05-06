@@ -1856,10 +1856,10 @@ class LoadSimData:
         for unique_state in unique_molecules.values():
             unique_state.flags.writeable = False
 
-        kecoli_process = KecoliCell(parameters=self.get_vkecoli_config())
-        kecoli_initial_state = kecoli_process.initial_state()
-        kecoli_initial_state['species_store'] = kecoli_initial_state.pop('species')
-
+        # kecoli_process = KecoliCell(parameters=self.get_vkecoli_config())
+        # kecoli_initial_state = kecoli_process.initial_state()
+        # kecoli_initial_state['species_store'] = kecoli_initial_state.pop('species')
+        #
 
         return {
             "bulk": bulk_state,
@@ -1877,6 +1877,6 @@ class LoadSimData:
                     mol: conc * vivunits.mM
                     for mol, conc in current_concentrations.items()
                 }
-            },
-            "species_store": kecoli_initial_state['species_store']
+            }
+            # "species_store": kecoli_initial_state['species_store']
         }

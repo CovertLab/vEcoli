@@ -97,7 +97,7 @@ process_registry.register(ConcentrationsDeriver.name, ConcentrationsDeriver)
 process_registry.register(Aggregator.name, Aggregator)
 
 # kecoli processes
-process_registry.register("Kecoli",KecoliCell)
+process_registry.register(KecoliCell.name,KecoliCell)
 
 # environment processes
 process_registry.register(Lysis.name, Lysis)
