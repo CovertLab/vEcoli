@@ -84,7 +84,7 @@ def run_default():
     # get the data
     timeseries = sim.ecoli_experiment.emitter.get_timeseries()
 
-    print(timeseries)
+    print(timeseries['agents']['0']['species_store'])
 
 #%%
 
