@@ -343,10 +343,7 @@ class KnowledgeBaseEcoli(object):
                 + insertion_sequence
                 + self.genome_sequence[insert_pos:]
             )
-            assert (
-                self.genome_sequence[insert_pos : (insert_end + 1)]
-                == insertion_sequence
-            )
+            assert self.genome_sequence[insert_pos:insert_end] == insertion_sequence
 
             self.added_data = self.new_gene_added_data
             self._join_data()
@@ -648,7 +645,7 @@ class KnowledgeBaseEcoli(object):
             ), "gaps in new gene insertions are not supported at this time"
 
         insert_end = new_genes_data[-1]["right_end_pos"] + insert_pos
-        insert_len = insert_end - insert_pos + 1
+        insert_len = insert_end - insert_pos
 
         # Update global positions of original genes
         self._update_global_coordinates(genes_data, insert_pos, insert_len)
@@ -686,8 +683,8 @@ class KnowledgeBaseEcoli(object):
 
         insertion_seq = Seq.Seq("")
         new_genes_data = sorted(new_genes_data, key=lambda d: d["left_end_pos"])
-        assert new_genes_data[0]["left_end_pos"] == 0, (
-            "first gene in new sequence must start at relative coordinate 0"
+        assert new_genes_data[0]["left_end_pos"] == 1, (
+            "first gene in new sequence must start at relative coordinate 1"
         )
 
         for gene in new_genes_data:
