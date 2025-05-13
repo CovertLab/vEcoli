@@ -791,6 +791,9 @@ def avg_1d_array_over_scalar_sql(array_column: str, scalar_column: str) -> str:
     each element in a 1D array column divided by a scalar column, and
     aggregates those ratios per variant into mean and std columns.
 
+    .. note::
+        Time steps with 0 in the scalar column are assigned a ratio of 0.
+
     Args:
         array_column: Name of 1D list column to aggregate
         scalar_column: Name of scalar column to divide ``array_column``
@@ -805,7 +808,11 @@ def avg_1d_array_over_scalar_sql(array_column: str, scalar_column: str) -> str:
             FROM ({{subquery}})
         ),
         avg_per_cell AS (
-            SELECT avg(array_col / scalar_col) AS avg_ratio,
+            SELECT avg(
+                CASE
+                    WHEN scalar_col = 0 THEN 0
+                    ELSE array_col / scalar_col
+                END) AS avg_ratio,
                 experiment_id, variant, lineage_seed,
                 generation, agent_id, array_idx
             FROM unnested_counts
@@ -831,6 +838,9 @@ def avg_sum_1d_array_over_scalar_sql(array_column: str, scalar_column: str) -> s
     the sum of elements in a 1D array column divided by a scalar column, and
     aggregates those ratios per variant as mean and std columns.
 
+    .. note::
+        Time steps with 0 in the scalar column are assigned a ratio of 0.
+
     Args:
         array_column: Name of 1D list column to aggregate
         scalar_column: Name of scalar column to divide ``array_column``
@@ -838,7 +848,11 @@ def avg_sum_1d_array_over_scalar_sql(array_column: str, scalar_column: str) -> s
     """
     return f"""
         WITH avg_per_cell AS (
-            SELECT avg(list_sum({array_column}) / {scalar_column}) AS avg_ratio,
+            SELECT avg(
+                CASE
+                    WHEN {scalar_column} = 0 THEN 0
+                    ELSE list_sum({array_column}) / {scalar_column}
+                END) AS avg_ratio,
                 experiment_id, variant, lineage_seed,
                 generation, agent_id
             FROM ({{subquery}})
