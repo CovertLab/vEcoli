@@ -18,7 +18,9 @@
         "out_dir": "/scratch/groups/mcovert/vecoli"
     },
     "analysis_options": {
-        "single": {"mass_fraction_summary": {}}
+        "single": {"mass_fraction_summary": {}},
+        "multiseed": {"protein_counts_validation": {}},
+        "multivariant": {"doubling_time_hist": {}, "doubling_time_line": {}}
     },
     "sherlock": {
         "container_image": "container-image",
