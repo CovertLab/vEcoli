@@ -548,9 +548,8 @@ def read_stacked_columns(
             If provided, will be used to filter out unsuccessful sims.
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
-    columns.append(id_cols)
     columns = ", ".join(columns)
-    sql_query = f"SELECT {columns} FROM ({history_sql})"
+    sql_query = f"SELECT {columns}, {id_cols} FROM ({history_sql})"
     # Use a semi join to filter out unsuccessful sims
     if success_sql is not None:
         sql_query = f"""
@@ -563,8 +562,8 @@ def read_stacked_columns(
         sql_query = f"""
             SELECT * FROM ({sql_query})
             ANTI JOIN (
-                SELECT (experiment_id, variant, lineage_seed, generation,
-                    agent_id, MIN(time))
+                SELECT experiment_id, variant, lineage_seed, generation,
+                    agent_id, MIN(time) AS time
                 FROM ({history_sql.replace("COLNAMEHERE", "time")})
                 GROUP BY experiment_id, variant, lineage_seed, generation,
                     agent_id
