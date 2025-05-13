@@ -16,7 +16,7 @@
         "single": {"mass_fraction_summary": {}},
         "multiseed": {"protein_counts_validation": {}},
         "multivariant": {
-            "doubling_time_hist": {},
+            "doubling_time_hist": {"skip_n_gens": 0},
             "doubling_time_line": {},
             "new_gene_translation_efficiency_heatmaps": {
                 "count_index": 4,
@@ -30,7 +30,6 @@
         "new_gene_internal_shift": {
             "condition": {"value": ["basal"]},
             "induction_gen": {"value": [1]},
-            "knockout_gen": {"value": [-1]},
             "exp_trl_eff": {
                 "nested": {
                     "exp": {
