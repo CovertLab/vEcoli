@@ -1153,15 +1153,26 @@ def plot(
     Create either a single multi-heatmap plot or 1+ separate heatmaps of data
     for a grid of new gene variant simulations with varying expression and
     translation efficiencies.
+
+    Params (override corresponding hard-coded global variables):
+        font_size, dashboard_flag, std_dev_flag, count_index, min_cell_index,
+        max_cell_index
     """
+    # Extract plot parameters
+    min_cell_index = params.get("min_cell_index", MIN_CELL_INDEX)
+    max_cell_index = params.get("max_cell_index", MAX_CELL_INDEX)
+    dashboard_flag = params.get("dashboard_flag", DASHBOARD_FLAG)
+    std_dev_flag = params.get("std_dev_flag", STD_DEV_FLAG)
+    count_index = params.get("count_index", COUNT_INDEX)
+
     # Filter to specified generation range
     history_sql = (
-        f"FROM ({history_sql}) WHERE generation >= {MIN_CELL_INDEX}"
-        f" AND generation < {MAX_CELL_INDEX}"
+        f"FROM ({history_sql}) WHERE generation >= {min_cell_index}"
+        f" AND generation < {max_cell_index}"
     )
     config_sql = (
-        f"FROM ({config_sql}) WHERE generation >= {MIN_CELL_INDEX}"
-        f" AND generation < {MAX_CELL_INDEX}"
+        f"FROM ({config_sql}) WHERE generation >= {min_cell_index}"
+        f" AND generation < {max_cell_index}"
     )
     # Define baseline variant (ID = 0) as 0 new gene expr. and trans. eff.
     experiment_id = next(iter(variant_metadata.keys()))
@@ -1341,12 +1352,12 @@ def plot(
                     GROUP BY experiment_id, variant, lineage_seed
                 )
                 -- Boolean values must be explicitly cast to numeric for aggregation
-                SELECT variant, avg((max_generation = {COUNT_INDEX})::BIGINT) AS mean,
-                    stddev((max_generation = {COUNT_INDEX})::BIGINT) AS std
+                SELECT variant, avg((max_generation = {count_index})::BIGINT) AS mean,
+                    stddev((max_generation = {count_index})::BIGINT) AS std
                 FROM max_gen_per_seed
                 GROUP BY experiment_id, variant
                 """,
-            "plot_title": f"Percentage of Sims That Reached Generation {COUNT_INDEX}",
+            "plot_title": f"Percentage of Sims That Reached Generation {count_index}",
         },
         "doubling_times_heatmap": {
             "columns": ["time"],
@@ -2231,13 +2242,13 @@ def plot(
     # Figure out whether to create dashboard / individual plots and
     # whether to make std. dev. plots in addition to mean plots
     summary_statistics = ["mean"]
-    if DASHBOARD_FLAG == 0:
+    if dashboard_flag == 0:
         is_dashboards = [False]
-    elif DASHBOARD_FLAG == 1:
+    elif dashboard_flag == 1:
         is_dashboards = [True]
-    elif DASHBOARD_FLAG == 2:
+    elif dashboard_flag == 2:
         is_dashboards = [True, False]
-    if STD_DEV_FLAG:
+    if std_dev_flag:
         summary_statistics.append("std_dev")
     for is_dashboard in is_dashboards:
         for summary_statistic in summary_statistics:
