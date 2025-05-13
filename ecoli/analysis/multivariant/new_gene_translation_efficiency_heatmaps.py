@@ -97,7 +97,7 @@ STD_DEV_FLAG = True
 Count number of sims that reach this generation (remember index 7 
 corresponds to generation 8)
 """
-COUNT_INDEX = 23
+COUNT_INDEX = 32
 # COUNT_INDEX = 2 ### TODO: revert back after developing plot locally
 
 """
@@ -108,7 +108,7 @@ due to how they are initialized
 MIN_CELL_INDEX = 16
 # # MIN_CELL_INDEX = 1 ### TODO: revert back after developing plot locally
 # MIN_CELL_INDEX = 0
-MAX_CELL_INDEX = 24
+MAX_CELL_INDEX = 33
 
 """
 Specify which subset of heatmaps should be made
@@ -684,6 +684,9 @@ def avg_ratio_of_1d_arrays_sql(numerator: str, denominator: str) -> str:
     element in two 1D list columns divided elementwise and aggregates those
     ratios per variant into mean and std columns.
 
+    .. note::
+        Time steps with 0 in the denominator are assigned a ratio of 0.
+
     Args:
         numerator: Name of 1D list column that will be numerator in ratio
         denominator: Name of 1D list column that will be denominator in ratio
@@ -697,8 +700,12 @@ def avg_ratio_of_1d_arrays_sql(numerator: str, denominator: str) -> str:
             FROM ({{subquery}})
         ),
         ratio_avg_per_cell AS (
-            SELECT avg(numerator / denominator)
-                AS ratio_avg, experiment_id, variant, list_idx
+            SELECT avg(
+                CASE
+                    WHEN denominator = 0 THEN 0
+                    ELSE numerator / denominator
+                END
+            ) AS ratio_avg, experiment_id, variant, list_idx
             FROM unnested_data
             GROUP BY experiment_id, variant, lineage_seed, generation, agent_id, list_idx
         ),
@@ -1451,12 +1458,32 @@ def plot(
             "num_digits_rounding": 0,
             "box_text_size": "x-small",
             "columns": [get_ribosome_counts_projection(sim_data, bulk_ids)],
+            "custom_sql": """
+                WITH avg_per_cell AS (
+                    SELECT avg(bulk) AS avg_col, experiment_id, variant
+                    FROM ({subquery})
+                    GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+                )
+                SELECT variant, avg(avg_col) AS mean, stddev(avg_col) AS std
+                FROM avg_per_cell
+                GROUP BY experiment_id, variant
+                """,
         },
         "free_rnap_counts_heatmap": {
             "plot_title": "Free RNA Polymerase (RNAP) Counts",
             "num_digits_rounding": 0,
             "box_text_size": "x-small",
             "columns": [get_rnap_counts_projection(sim_data, bulk_ids)],
+            "custom_sql": """
+                WITH avg_per_cell AS (
+                    SELECT avg(bulk) AS avg_col, experiment_id, variant
+                    FROM ({subquery})
+                    GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
+                )
+                SELECT variant, avg(avg_col) AS mean, stddev(avg_col) AS std
+                FROM avg_per_cell
+                GROUP BY experiment_id, variant
+                """,
         },
         "rnap_ribosome_counts_ratio_heatmap": {
             "plot_title": "RNAP Counts / Ribosome Counts",
@@ -2175,6 +2202,7 @@ def plot(
     heatmap_data = {}
     for h in tqdm(heatmaps_to_make):
         h_details = heatmap_details[h]
+        print(h)
         mean_matrix, std_matrix = get_mean_and_std_matrices(
             conn,
             variant_to_row_col,
