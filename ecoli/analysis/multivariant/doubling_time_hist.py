@@ -22,10 +22,10 @@ def plot(
 ):
     """
     Histogram of doubling times with average marked.
-    """
-    import time
 
-    start_time = time.time()
+    Configure number of initial generations to skip using ``skip_n_gens`` key
+    in params.
+    """
     doubling_time_sql = read_stacked_columns(
         history_sql,
         ["time"],
@@ -33,16 +33,12 @@ def plot(
         success_sql=success_sql,
     )
     # Skip first 8 generations to avoid initialization bias
-    doubling_time_sql = skip_n_gens(doubling_time_sql, 8)
+    doubling_time_sql = skip_n_gens(doubling_time_sql, params["skip_n_gens"])
     doubling_times = conn.sql(f"""
-        SET enable_profiling = 'query_tree_optimizer';
         SELECT (max(time) - min(time)) / 60 AS 'Doubling Time (min)', experiment_id, variant, lineage_seed, generation, agent_id
         FROM ({doubling_time_sql})
         GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
     """).pl()
-    print(
-        f"{time.ctime()}: Finished calculating doubling times in {time.time() - start_time:.2f} seconds"
-    )
     # Calculate the average doubling time
     avg_doubling_time = doubling_times["Doubling Time (min)"].mean()
     if avg_doubling_time is None:
