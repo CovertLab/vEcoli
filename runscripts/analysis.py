@@ -145,7 +145,6 @@ def main():
         "--cpus",
         "-n",
         type=int,
-        default=1,
         help="Number of CPUs to use for DuckDB and PyArrow.",
     )
     parser.add_argument(
