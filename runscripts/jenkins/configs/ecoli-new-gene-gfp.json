@@ -15,7 +15,15 @@
     "analysis_options": {
         "single": {"mass_fraction_summary": {}},
         "multiseed": {"protein_counts_validation": {}},
-        "multivariant": {"doubling_time_hist": {}, "doubling_time_line": {}}
+        "multivariant": {
+            "doubling_time_hist": {},
+            "doubling_time_line": {},
+            "new_gene_translation_efficiency_heatmaps": {
+                "count_index": 4,
+                "min_cell_index": 1,
+                "max_cell_index": 5
+            }
+        }
     },
     "skip_baseline": true,
     "variants": {
