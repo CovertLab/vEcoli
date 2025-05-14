@@ -247,7 +247,9 @@ def ndarray_to_ndlist(arr: np.ndarray) -> pa.FixedSizeListArray:
     return nested_array
 
 
-def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> str:
+def ndidx_to_duckdb_expr(
+    name: str, idx: list[int | list[int] | list[bool] | str]
+) -> str:
     """
     Returns a DuckDB expression for a column equivalent to converting each row
     of ``name`` into an ndarray ``name_arr`` (:py:func:`~.ndlist_to_ndarray`)
@@ -303,8 +305,10 @@ def ndidx_to_duckdb_expr(name: str, idx: list[int | list[int | bool] | str]) -> 
                 raise TypeError("Indices must be integers or boolean masks.")
         elif indices == ":":
             select_expr = f"list_transform(x_{i + 1}, x_{i} -> {select_expr})"
-        elif isinstance(first_idx, int):
-            select_expr = f"list_transform(x_{i + 1}[{cast(int, indices) + 1}], x_{i} -> {select_expr})"
+        elif isinstance(indices, int):
+            select_expr = (
+                f"list_transform(x_{i + 1}[{int(indices) + 1}], x_{i} -> {select_expr})"
+            )
         else:
             raise TypeError("All indices must be lists, ints, or ':'.")
     select_expr = select_expr.replace(f"x_{i + 1}", name)
