@@ -87,9 +87,10 @@ class PolypeptideInitiation(PartitionedProcess):
         ]
         self.tu_ids = self.parameters["tu_ids"]
         self.n_TUs = len(self.tu_ids)
-        self.active_ribosome_footprint_size = self.parameters[
-            "active_ribosome_footprint_size"
-        ]
+        # Convert ribosome footprint size from nucleotides to amino acids
+        self.active_ribosome_footprint_size = (
+            self.parameters["active_ribosome_footprint_size"] / 3
+        )
 
         # Get mapping from cistrons to protein monomers and TUs
         self.cistron_to_monomer_mapping = self.parameters["cistron_to_monomer_mapping"]

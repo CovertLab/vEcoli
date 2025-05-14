@@ -67,9 +67,6 @@ def setup_profiler():
     )
 
 
-setup_profiler()
-
-
 def _setupRealExample():
     # Test data pulled from an actual sim at an early time point.
     monomerLimits = np.array(
@@ -226,4 +223,5 @@ def _fullProfile():
 
 
 if __name__ == "__main__":
+    setup_profiler()
     _fullProfile()

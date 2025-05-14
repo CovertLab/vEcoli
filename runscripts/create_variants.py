@@ -62,6 +62,9 @@ def parse_variants(
     # Extract operation if more than one parameter
     operation = None
     if len(variant_config) > 1:
+        assert "op" in variant_config, (
+            "Variant has more than 1 parameter but no op key defined."
+        )
         operation = variant_config.pop("op")
     elif "op" in variant_config:
         raise TypeError(

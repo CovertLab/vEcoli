@@ -51,6 +51,10 @@
         "variable_elongation_translation": false
     },
 
+    "analysis_options": {
+        "cpus": 1
+    },
+
     "gcloud": null,
 
     "agent_id": "0",
