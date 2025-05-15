@@ -55,7 +55,7 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic",
-    total_time=1500,
+    total_time=5000,
     divide=True,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
@@ -106,7 +106,7 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.run()
 
     query = []
-    folder = f"out/cofactors/{name}_{total_time}_{datetime.date.today()}/"
+    folder = f"out/cofactors/colony/"
     save_sim_output(folder, query, sim, save_model=True)
 
 
@@ -150,6 +150,46 @@ def run_colony(
         query = []
         folder = f"out/cofactors/minimal-{seed}/"
         save_sim_output(folder, query, sim, save_model=False)
+
+def run_lineage(
+    filename="metabolism_redux_classic",
+    total_time=1500,
+    divide=True,
+    # initial_state_file='wcecoli_t0', # 'met_division_test_state',
+    progress_bar=True,
+    log_updates=False,
+    emitter="timeseries",  # 'timeseries',
+    name="metabolism-redux-classic-rich",
+    raw_output=False,
+    save=True,
+    save_times=[1, 200, 400, 1300, 1400, 1500],
+    condition="with_aa",  # basal, with_aa
+    fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
+):
+    # filename = 'default'
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
+    sim.total_time = total_time
+    sim.divide = divide
+    sim.progress_bar = progress_bar
+    sim.log_updates = log_updates
+    sim.emitter = emitter
+    # sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+    sim.raw_output = raw_output
+    sim.save = save
+    sim.save_times = save_times
+
+    sim.condition = condition
+    sim.fixed_media = fixed_media
+
+    sim.seed = 1
+
+    sim.build_ecoli()
+
+    sim.run()
+
+    query = []
+    folder = f"out/cofactors/lineage-{sim.seed}/"
+    save_sim_output(folder, query, sim, save_model=False)
 
 
 @pytest.mark.slow
@@ -295,6 +335,7 @@ experiment_library = {
     "2": run_ecoli_with_metabolism_redux,
     "2a": run_ecoli_with_metabolism_redux_classic,
     "2b": run_colony,
+    "2c": run_lineage,
     "3": test_ecoli_with_metabolism_redux,
     "3a": test_ecoli_with_metabolism_classic,
     "4": test_ecoli_with_metabolism_redux_div,
