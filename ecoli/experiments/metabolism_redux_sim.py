@@ -153,16 +153,16 @@ def run_colony(
 
 def run_lineage(
     filename="metabolism_redux_classic",
-    total_time=1500,
+    total_time=1700,
     divide=True,
-    # initial_state_file='wcecoli_t0', # 'met_division_test_state',
+    initial_state_file='wcecoli_t0', # 'wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries',
     name="metabolism-redux-classic-rich",
     raw_output=False,
     save=True,
-    save_times=[1, 200, 400, 1300, 1400, 1500],
+    save_times=[1, 1300, 1400, 1500, 1600, 1700],
     condition="with_aa",  # basal, with_aa
     fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
 ):
@@ -183,12 +183,16 @@ def run_lineage(
 
     sim.seed = 1
 
+    # this means that sims will not create conflicting random indices when loading from saved state
+    if initial_state_file != 'wcecoli_t0':
+        sim.seed += int(sim.initial_state['global_time'])
+
     sim.build_ecoli()
 
     sim.run()
 
     query = []
-    folder = f"out/cofactors/lineage-{sim.seed}/"
+    folder = f"out/cofactors/lineage-{initial_state_file}/"
     save_sim_output(folder, query, sim, save_model=False)
 
 
