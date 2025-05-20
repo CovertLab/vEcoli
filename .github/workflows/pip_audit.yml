@@ -1,7 +1,8 @@
 name: pip-audit
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 
 on:
   schedule:
@@ -20,12 +21,186 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           version: "0.6.10"
-      - name: Audit dependencies
+
+      - name: Configure Git
         run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Audit dependencies and identify vulnerabilities
+        id: audit
+        run: |
+          # Export requirements for pip-audit to analyze
           uv export --all-extras --format requirements-txt --no-emit-project > requirements.txt
-          uvx pip-audit -r requirements.txt --disable-pip -v
+          
+          # Run pip-audit but don't fail if vulnerabilities are found
+          uvx pip-audit -r requirements.txt --disable-pip -v > pip_audit_results.txt || true
+          
+          # Check if vulnerabilities were found
+          grep -q "No known vulnerabilities found" pip_audit_results.txt || code=$?
+          if [ "$code" -eq 0 ]; then
+            echo "No vulnerabilities detected."
+            echo "has_vulnerabilities=false" >> $GITHUB_OUTPUT
+          else
+            # Parse output to find vulnerable packages and the fixed versions (skip header and separator lines)
+            vulnerable_packages=$(grep -v "^Name\|^------" pip_audit_results.txt | awk '{print $1"=="$NF}' | sort -u)
+            
+            # Store the list of packages to update
+            echo "has_vulnerabilities=true" >> $GITHUB_OUTPUT
+            echo "vulnerable_packages<<EOF" >> $GITHUB_OUTPUT
+            echo "$vulnerable_packages" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+
+            # Generate a unique signature for this set of updates
+            update_signature=$(echo "$vulnerable_packages" | sort | md5sum | cut -d ' ' -f1)
+            echo "update_signature=$update_signature" >> $GITHUB_OUTPUT
+
+            # Create a detailed report for the PR description
+            {
+              echo "# Security Vulnerability Fixes"
+              echo ""
+              echo "The following vulnerabilities were identified and fixed:"
+              echo ""
+              echo "| Package | Current Version | Vulnerability ID | Fixed Version |"
+              echo "| ------- | -------------- | --------------- | ------------ |"
+              while IFS= read -r line; do
+                if [[ $line =~ ([^=]+)==(.+) ]]; then
+                  pkg="${BASH_REMATCH[1]}"
+                  fix_ver="${BASH_REMATCH[2]}"
+                  # Find the matching line for this package and extract all info
+                  pkg_info=$(grep -E "^$pkg[[:space:]]+" pip_audit_results.txt | head -1)
+                  if [[ -n "$pkg_info" ]]; then
+                    current_ver=$(echo "$pkg_info" | awk '{print $2}')
+                    vuln_id=$(echo "$pkg_info" | awk '{print $3}')
+                    echo "| $pkg | $current_ver | $vuln_id | $fix_ver |"
+                  fi
+                fi
+              done <<< "$vulnerable_packages"
+
+              echo ""
+              echo "To merge this PR, first close and reopen it to trigger the CI tests."
+              
+              # Add the update signature as a hidden comment
+              echo ""
+              echo "<!-- security-update-signature: $update_signature -->"
+            } > vulnerability_report.md
+
+            cat vulnerability_report.md
+          fi
+
+      - name: Check for existing PRs
+        if: steps.audit.outputs.has_vulnerabilities == 'true'
+        id: check_prs
+        run: |
+          # Check for existing PRs with our signature
+          signature="${{ steps.audit.outputs.update_signature }}"
+          existing_pr=$(gh pr list --json number,body,state --search "security-update-signature: $signature in:body is:open" --jq '.[0].number')
+          
+          if [[ -n "$existing_pr" ]]; then
+            echo "Found existing PR #$existing_pr with the same security updates"
+            echo "skip_pr_creation=true" >> $GITHUB_OUTPUT
+          else
+            echo "No existing PR found for these updates"
+            echo "skip_pr_creation=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update vulnerable packages
+        if: steps.audit.outputs.has_vulnerabilities == 'true' && steps.check_prs.outputs.skip_pr_creation == 'false'
+        id: update
+        continue-on-error: true  # Continue to cleanup step even if this fails
+        run: |
+          # Create a unique branch name with date and run ID
+          branch_name="security-updates-$(date +'%Y-%m-%d')-${{ github.run_id }}"
+          echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
+          
+          # Create a clean temporary directory for working with the latest master
+          temp_dir=$(mktemp -d)
+          echo "Using temporary directory: $temp_dir"
+          
+          # Clone the repository fresh to avoid conflicts
+          git clone --depth 1 https://github.com/${{ github.repository }} $temp_dir
+          cd $temp_dir
+          
+          # Set up git configuration in this directory
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Create a new branch from the clean master
+          git checkout -b $branch_name
+          
+          # Copy the vulnerability report for later use
+          cp $GITHUB_WORKSPACE/vulnerability_report.md ./
+          
+          echo "Setting up uv venv in clean environment..."
+          uv sync --frozen --all-extras
+
+          # Update only the vulnerable packages to their fixed versions
+          echo "Updating vulnerable packages:"
+          echo "${{ steps.audit.outputs.vulnerable_packages }}" | while IFS= read -r package_spec; do
+            if [[ -n "$package_spec" ]]; then
+              echo "Updating $package_spec"
+              pkg_name=$(echo "$package_spec" | cut -d'=' -f1)
+              pkg_version=$(echo "$package_spec" | cut -d'=' -f3)
+              uv add "${pkg_name}==${pkg_version}"
+            fi
+          done
+          
+          # Update the lock file
+          uv sync
+          
+          # Verify changes were made
+          if git diff --quiet uv.lock; then
+            echo "No changes detected in uv.lock file. This might indicate an issue with the update process."
+            exit 1
+          fi
+          
+          # Commit changes
+          git add uv.lock
+          git commit -m "fix: update dependencies to fix security vulnerabilities"
+          
+          # Push to the remote branch using a token to ensure proper authentication
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git push -u origin $branch_name
+          
+          # Return to workspace directory for the next step
+          cd $GITHUB_WORKSPACE
+          
+      - name: Create Pull Request
+        if: steps.audit.outputs.has_vulnerabilities == 'true' && steps.update.outcome == 'success' && steps.check_prs.outputs.skip_pr_creation == 'false'
+        id: create_pr
+        continue-on-error: true
+        run: |
+          gh pr create \
+            --title "Security updates" \
+            --body-file vulnerability_report.md \
+            --base master \
+            --head ${{ steps.update.outputs.branch_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup on failure
+        if: |
+          (steps.update.outcome == 'failure' || steps.create_pr.outcome == 'failure') && 
+          steps.update.outputs.branch_name != '' && 
+          steps.check_prs.outputs.skip_pr_creation == 'false'
+        run: |
+          echo "Cleaning up branch due to workflow failure..."
+          branch_name="${{ steps.update.outputs.branch_name }}"
+          
+          # Check if branch exists before attempting to delete
+          if git ls-remote --heads origin $branch_name | grep -q $branch_name; then
+            echo "Deleting branch: $branch_name"
+            git push origin --delete $branch_name
+          else
+            echo "Branch $branch_name does not exist or was not created"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
