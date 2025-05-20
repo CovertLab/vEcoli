@@ -81,6 +81,18 @@ jobs:
               
               # Use awk to process the CSV and find highest versions
               awk -F, 'BEGIN {OFS=","}
+              # Custom function for semantic version comparison
+              function version_gt(v1, v2) {
+                n1 = split(v1, a, "[.-]")
+                n2 = split(v2, b, "[.-]")
+                
+                # Compare each version component
+                for (i = 1; i <= n1 && i <= n2; i++) {
+                  if (a[i] == b[i]) continue
+                  return (a[i]+0) > (b[i]+0)
+                }
+                return n1 > n2
+              }
               NR == 1 {next}  # Skip header
               {
                 pkg = $1
@@ -94,7 +106,7 @@ jobs:
                 current_ver[pkg] = curr_ver
                 
                 # Check if we have seen this package before
-                if (!(pkg in highest_ver) || fix_ver > highest_ver[pkg]) {
+                if (!(pkg in highest_ver) || version_gt(fix_ver, highest_ver[pkg])) {
                   highest_ver[pkg] = fix_ver
                   print "  Updated highest version for", pkg, "to", fix_ver
                 }
