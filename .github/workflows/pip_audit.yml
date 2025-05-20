@@ -308,7 +308,7 @@ jobs:
             # Parse the CSV data to extract vulnerabilities for this package
             echo "$all_vulns" | grep -v "^pkg_name" | grep "^${{ matrix.package.name }}," | while IFS=, read -r pkg curr_ver vuln_id fixed_ver; do
               # If the vulnerability is fixed by the version we're updating to, include it
-              echo "| $vuln_id | $curr_ver | ${{ matrix.package.version }} |"
+              echo "| $vuln_id | $curr_ver | $fixed_ver |"
             done
 
             echo ""
