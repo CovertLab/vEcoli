@@ -56,102 +56,139 @@ jobs:
             echo "vulnerable_packages<<EOF" >> $GITHUB_OUTPUT
             echo "$vulnerable_packages" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
-
-            # Generate a unique signature for this set of updates
-            update_signature=$(echo "$vulnerable_packages" | sort | md5sum | cut -d ' ' -f1)
-            echo "update_signature=$update_signature" >> $GITHUB_OUTPUT
-
-            # Create a detailed report for the PR description
-            {
-              echo "# Security Vulnerability Fixes"
-              echo ""
-              echo "The following vulnerabilities were identified and fixed:"
-              echo ""
-              echo "| Package | Current Version | Vulnerability ID | Fixed Version |"
-              echo "| ------- | -------------- | --------------- | ------------ |"
-              while IFS= read -r line; do
-                if [[ $line =~ ([^=]+)==(.+) ]]; then
-                  pkg="${BASH_REMATCH[1]}"
-                  fix_ver="${BASH_REMATCH[2]}"
-                  # Find the matching line for this package and extract all info
-                  pkg_info=$(grep -E "^$pkg[[:space:]]+" pip_audit_results.txt | head -1)
-                  if [[ -n "$pkg_info" ]]; then
-                    current_ver=$(echo "$pkg_info" | awk '{print $2}')
-                    vuln_id=$(echo "$pkg_info" | awk '{print $3}')
-                    echo "| $pkg | $current_ver | $vuln_id | $fix_ver |"
-                  fi
-                fi
-              done <<< "$vulnerable_packages"
-
-              echo ""
-              echo "To merge this PR, first close and reopen it to trigger the CI tests."
-              
-              # Add the update signature as a hidden comment
-              echo ""
-              echo "<!-- security-update-signature: $update_signature -->"
-            } > vulnerability_report.md
-
-            cat vulnerability_report.md
           fi
+
+      - name: Process vulnerable packages individually
+        if: steps.audit.outputs.has_vulnerabilities == 'true'
+        id: process_packages
+        run: |
+          # Build the JSON array in a variable first
+          json_data="["
+          first_item=true
+          
+          while IFS= read -r line; do
+            if [[ -n "$line" && $line =~ ([^=]+)==(.+) ]]; then
+              pkg_name="${BASH_REMATCH[1]}"
+              pkg_version="${BASH_REMATCH[2]}"
+              
+              # Get current version info
+              pkg_info=$(grep -E "^$pkg_name[[:space:]]+" pip_audit_results.txt | head -1)
+              current_ver=$(echo "$pkg_info" | awk '{print $2}')
+              vuln_id=$(echo "$pkg_info" | awk '{print $3}')
+              
+              # Create signature specific to this package
+              pkg_signature=$(echo "$pkg_name-$pkg_version" | md5sum | cut -d ' ' -f1)
+              
+              # Add to JSON (with comma if not first)
+              if [ "$first_item" = "true" ]; then
+                first_item=false
+              else
+                json_data+=","
+              fi
+              
+              # Escape any special characters in the values
+              pkg_name_esc=$(echo "$pkg_name" | jq -R .)
+              pkg_version_esc=$(echo "$pkg_version" | jq -R .)
+              current_ver_esc=$(echo "$current_ver" | jq -R .)
+              vuln_id_esc=$(echo "$vuln_id" | jq -R .)
+              
+              # Build the JSON object with proper escaping
+              json_data+="{\"name\":${pkg_name_esc},\"version\":${pkg_version_esc},\"current_version\":${current_ver_esc},\"vuln_id\":${vuln_id_esc},\"signature\":\"$pkg_signature\"}"
+            fi
+          done <<< "${{ steps.audit.outputs.vulnerable_packages }}"
+          
+          # Close the JSON array
+          json_data+="]"
+          
+          # Use the multiline delimiter syntax for GitHub Actions outputs
+          echo "package_data<<EOF" >> $GITHUB_OUTPUT
+          echo "$json_data" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+    outputs:
+      has_vulnerabilities: ${{ steps.audit.outputs.has_vulnerabilities }}
+      package_data: ${{ steps.process_packages.outputs.package_data }}
+
+  update_packages:
+    needs: build
+    if: needs.build.outputs.has_vulnerabilities == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJSON(needs.build.outputs.package_data) }}
+      # Allow other package updates to continue if one fails
+      fail-fast: false
+      # Limit concurrent jobs to avoid API rate limits
+      max-parallel: 5
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.6.10"
 
       - name: Check for existing PRs
-        if: steps.audit.outputs.has_vulnerabilities == 'true'
         id: check_prs
         run: |
-          # Check for existing PRs with our signature
-          signature="${{ steps.audit.outputs.update_signature }}"
-          existing_pr=$(gh pr list --json number,body,state --search "security-update-signature: $signature in:body is:open" --jq '.[0].number')
+          # Check for existing PRs with this package name
+          pkg_name="${{ matrix.package.name }}"
+          existing_pr=$(gh pr list --json number,title,body --search "in:title security update for $pkg_name" --jq '.[0]')
           
           if [[ -n "$existing_pr" ]]; then
-            echo "Found existing PR #$existing_pr with the same security updates"
-            echo "skip_pr_creation=true" >> $GITHUB_OUTPUT
-          else
-            echo "No existing PR found for these updates"
-            echo "skip_pr_creation=false" >> $GITHUB_OUTPUT
+            pr_number=$(echo "$existing_pr" | jq -r '.number')
+            echo "Found existing PR #$pr_number for $pkg_name"
+            
+            # Check if PR contains an older version of the same package
+            pr_body=$(echo "$existing_pr" | jq -r '.body')
+            if echo "$pr_body" | grep -q "Package signature: ${{ matrix.package.signature }}"; then
+              echo "Found PR with identical package version - skipping"
+              echo "skip_pr_creation=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            
+            # PR exists but for a different version - we'll close it and create new one
+            echo "PR exists for different version - will close and create new PR"
+            gh pr close $pr_number --comment "Closing in favor of PR with newer version ${pkg_name}==${matrix.package.version}"
           fi
+          
+          echo "Will create new PR for ${pkg_name}==${{ matrix.package.version }}"
+          echo "skip_pr_creation=false" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update vulnerable packages
-        if: steps.audit.outputs.has_vulnerabilities == 'true' && steps.check_prs.outputs.skip_pr_creation == 'false'
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+      
+      - name: Update package
+        if: steps.check_prs.outputs.skip_pr_creation == 'false'
         id: update
         continue-on-error: true  # Continue to cleanup step even if this fails
         run: |
-          # Create a unique branch name with date and run ID
-          branch_name="security-updates-$(date +'%Y-%m-%d')-${{ github.run_id }}"
+          # Create a unique branch name for this package
+          branch_name="security-update-${{ matrix.package.name }}-${{ github.run_id }}"
           echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
           
-          # Create a clean temporary directory for working with the latest master
-          temp_dir=$(mktemp -d)
-          echo "Using temporary directory: $temp_dir"
+          # Ensure we're on master and it's up-to-date
+          git fetch origin master
+          git checkout master
+          git pull origin master
           
-          # Clone the repository fresh to avoid conflicts
-          git clone --depth 1 https://github.com/${{ github.repository }} $temp_dir
-          cd $temp_dir
-          
-          # Set up git configuration in this directory
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          # Create a new branch from the clean master
+          # Create new branch for this package only
           git checkout -b $branch_name
           
-          # Copy the vulnerability report for later use
-          cp $GITHUB_WORKSPACE/vulnerability_report.md ./
-          
-          echo "Setting up uv venv in clean environment..."
+          echo "Setting up uv environment..."
           uv sync --frozen --all-extras
-
-          # Update only the vulnerable packages to their fixed versions
-          echo "Updating vulnerable packages:"
-          echo "${{ steps.audit.outputs.vulnerable_packages }}" | while IFS= read -r package_spec; do
-            if [[ -n "$package_spec" ]]; then
-              echo "Updating $package_spec"
-              pkg_name=$(echo "$package_spec" | cut -d'=' -f1)
-              pkg_version=$(echo "$package_spec" | cut -d'=' -f3)
-              uv add "${pkg_name}==${pkg_version}"
-            fi
-          done
+          
+          # Update only this specific package
+          echo "Updating ${{ matrix.package.name }} to ${{ matrix.package.version }}"
+          uv add "${{ matrix.package.name }}==${{ matrix.package.version }}"
           
           # Update the lock file
           uv sync
@@ -164,33 +201,47 @@ jobs:
           
           # Commit changes
           git add uv.lock
-          git commit -m "fix: update dependencies to fix security vulnerabilities"
+          git commit -m "fix(security): update ${{ matrix.package.name }} to ${{ matrix.package.version }}"
           
-          # Push to the remote branch using a token to ensure proper authentication
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git push -u origin $branch_name
+          # Push to the remote branch
+          git push origin $branch_name
+      
+      - name: Create package-specific PR report
+        if: steps.check_prs.outputs.skip_pr_creation == 'false' && steps.update.outcome == 'success'
+        id: create_report
+        run: |
+          cat > pr_description.md << EOF
+          # Security Update: ${{ matrix.package.name }}
           
-          # Return to workspace directory for the next step
-          cd $GITHUB_WORKSPACE
+          This PR updates **${{ matrix.package.name }}** from version ${{ matrix.package.current_version }} to **${{ matrix.package.version }}** to fix security vulnerability ${{ matrix.package.vuln_id }}.
           
+          ## Vulnerability Details
+          
+          | Package | Current Version | Vulnerability ID | Fixed Version |
+          | ------- | -------------- | --------------- | ------------ |
+          | ${{ matrix.package.name }} | ${{ matrix.package.current_version }} | ${{ matrix.package.vuln_id }} | ${{ matrix.package.version }} |
+          
+          <!-- Package signature: ${{ matrix.package.signature }} -->
+          EOF
+      
       - name: Create Pull Request
-        if: steps.audit.outputs.has_vulnerabilities == 'true' && steps.update.outcome == 'success' && steps.check_prs.outputs.skip_pr_creation == 'false'
+        if: steps.check_prs.outputs.skip_pr_creation == 'false' && steps.update.outcome == 'success'
         id: create_pr
         continue-on-error: true
         run: |
           gh pr create \
-            --title "Security updates" \
-            --body-file vulnerability_report.md \
+            --title "Security update for ${{ matrix.package.name }} to ${{ matrix.package.version }}" \
+            --body-file pr_description.md \
             --base master \
             --head ${{ steps.update.outputs.branch_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+      
       - name: Cleanup on failure
         if: |
+          steps.check_prs.outputs.skip_pr_creation == 'false' && 
           (steps.update.outcome == 'failure' || steps.create_pr.outcome == 'failure') && 
-          steps.update.outputs.branch_name != '' && 
-          steps.check_prs.outputs.skip_pr_creation == 'false'
+          steps.update.outputs.branch_name != ''
         run: |
           echo "Cleaning up branch due to workflow failure..."
           branch_name="${{ steps.update.outputs.branch_name }}"
