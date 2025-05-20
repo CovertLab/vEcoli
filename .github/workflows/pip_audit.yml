@@ -298,7 +298,11 @@ jobs:
               # If the vulnerability is fixed by the version we're updating to, include it
               echo "| $vuln_id | $curr_ver | ${{ matrix.package.version }} |"
             done
-            
+
+            echo ""
+            echo "Close and reopen this PR to trigger the CI/CD pipelines before merging."
+            echo ""
+
             echo ""
             echo "<!-- Package signature: ${{ matrix.package.signature }} -->"
           } > pr_description.md
