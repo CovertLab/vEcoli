@@ -43,9 +43,7 @@ jobs:
           uvx pip-audit -r requirements.txt --disable-pip -v > pip_audit_results.txt || true
           
           # Check if vulnerabilities were found
-          grep -q "No known vulnerabilities found" pip_audit_results.txt || code=$?
-          if [ "$code" -eq 0 ]; then
-            echo "No vulnerabilities detected."
+          if [ ! -s pip_audit_results.txt ]; then
             echo "has_vulnerabilities=false" >> $GITHUB_OUTPUT
           else
             echo "has_vulnerabilities=true" >> $GITHUB_OUTPUT
@@ -101,9 +99,6 @@ jobs:
                 fix_ver = $4
                 
                 print "Found=" pkg, "current=" curr_ver, "vuln=" vuln, "fix=" fix_ver
-                
-                # Store current version
-                current_ver[pkg] = curr_ver
                 
                 # Check if we have seen this package before
                 if (!(pkg in highest_ver) || version_gt(fix_ver, highest_ver[pkg])) {
@@ -202,8 +197,6 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch all history
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
