@@ -43,7 +43,6 @@ dependencies = [
     "tqdm",
     "unum",
     "vivarium-core",
-    "pysal",
     "opencv-python-headless",
     "statsmodels",
     "ecos",
