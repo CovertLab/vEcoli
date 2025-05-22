@@ -24,7 +24,6 @@ dependencies = [
     "pyarrow",
     "ipdb",
     "ipython",
-    "jupyter",
     "line-profiler",
     "altair",
     "numba",
@@ -45,10 +44,8 @@ dependencies = [
     "imageio[ffmpeg]",
     "statsmodels",
     "ecos",
-    "nbclassic",
     "matplotlib",
     "iteround",
-    "wheel",
     "stochastic-arrow",
     "autograd",
 ]
@@ -60,6 +57,8 @@ dev = [
     "mypy",
     "ruff",
     "pre-commit",
+    "jupyter",
+    "marimo[sql,lsp]"
 ]
 docs = [
     "Sphinx",
