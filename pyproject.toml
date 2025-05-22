@@ -48,6 +48,7 @@ dependencies = [
     "iteround",
     "stochastic-arrow",
     "autograd",
+    "xmltodict",
 ]
 
 [project.optional-dependencies]
