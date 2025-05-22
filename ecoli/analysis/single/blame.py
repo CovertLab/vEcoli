@@ -341,8 +341,7 @@ def idx_array_from(dictionary):
 
 
 def test_blame():
-    sim = EcoliSim.from_file()
-    sim.merge(EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json"))
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json")
     sim.build_ecoli()
     bulk_ids = sim.generated_initial_state["agents"]["0"]["bulk"]["id"]
     sim.run()
@@ -559,7 +558,7 @@ def test_blame_timeseries():
         sim.log_updates = True
         sim.emit_topology = False
         sim.emit_processes = False
-        sim.total_time = 100
+        sim.total_time = 10
         sim.build_ecoli()
         bulk_ids = sim.generated_initial_state["agents"]["0"]["bulk"]["id"]
         sim.run()

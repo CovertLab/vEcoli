@@ -9,7 +9,6 @@ steps, topology, and initial state of the E. coli whole cell model.
 # mypy: disable-error-code=attr-defined
 
 from copy import deepcopy
-import os
 from typing import Any, Optional
 import warnings
 
@@ -40,18 +39,6 @@ from ecoli.processes.unique_update import UniqueUpdate
 from ecoli.processes.partition import Requester, Evolver, Step, Process
 from ecoli.library.json_state import get_state_from_file
 
-SIM_DATA_PATH = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "reconstruction",
-        "sim_data",
-        "kb",
-        "simData.cPickle",
-    )
-)
-
 MINIMAL_MEDIA_ID = "minimal"
 AA_MEDIA_ID = "minimal_plus_amino_acids"
 ANAEROBIC_MEDIA_ID = "minimal_minus_oxygen"
@@ -67,7 +54,7 @@ class Ecoli(Composer):
     defaults = {
         "time_step": 2.0,
         "seed": 0,
-        "sim_data_path": SIM_DATA_PATH,
+        "sim_data_path": "",
         "agent_id": "0",
         "division_threshold": 668,  # fg
         "division_variable": ("listeners", "mass", "dry_mass"),
