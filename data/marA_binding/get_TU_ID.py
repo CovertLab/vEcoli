@@ -35,14 +35,14 @@ def main():
     args = parser.parse_args()
     # Load complexation and TU index data from sim_data
     sim_data = pickle.load(open(args.sim_data_path, "rb"))
-    bulk_names = sim_data.internal_state.bulk_molecules.bulk_data["id"]
+    bulk_names = sim_data.internal_state.bulk_molecules.bulk_data["id"].tolist()
     cistron_id_to_index = {
         cistron: idx
         for idx, cistron in enumerate(sim_data.process.transcription.cistron_data["id"])
     }
     cistron_tu_mapping = sim_data.process.transcription.cistron_tu_mapping_matrix
     comp_stoich = sim_data.process.complexation.stoich_matrix().astype(np.int64).T
-    comp_molecules = sim_data.process.complexation.molecule_names
+    comp_molecules = [str(i) for i in sim_data.process.complexation.molecule_names]
 
     rnas = pd.read_table("reconstruction/ecoli/flat/rnas.tsv", comment="#")
     rnas["synonyms"] = rnas["synonyms"].apply(literal_eval)
@@ -118,7 +118,7 @@ def main():
                 stoich = comp_rxns.loc[comp_rxns[bulk_id] < 0, :]
                 for i in range(len(stoich)):
                     curr_stoich = stoich.iloc[i, :]
-                    monomers_used.append(curr_stoich[bulk_id])
+                    monomers_used.append(int(curr_stoich[bulk_id]))
                     complex_names.append(
                         curr_stoich.loc[curr_stoich > 0].index.array[0]
                     )
