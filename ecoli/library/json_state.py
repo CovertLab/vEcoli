@@ -78,7 +78,7 @@ def numpy_molecules(states):
 
 
 def get_state_from_file(
-    path="data/wcecoli_t0.json",
+    path="",
 ):
     serialized_state = load_states(path)
     # Parallelize deserialization of colony states

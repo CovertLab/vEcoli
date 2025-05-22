@@ -1,9 +1,10 @@
-import os
 import re
 import binascii
 from itertools import chain
 import numpy as np
+import pandas as pd
 import pickle
+import os
 from typing import Any, Optional, TYPE_CHECKING
 from vivarium.library.units import units as vivunits
 from wholecell.utils import units
@@ -11,7 +12,6 @@ from wholecell.utils.unit_struct_array import UnitStructArray
 from wholecell.utils.fitting import normalize
 from wholecell.utils.filepath import ROOT_PATH
 
-from ecoli.analysis.antibiotics_colony import DE_GENES
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
 from ecoli.library.parameters import param_store
 from ecoli.library.initial_conditions import (
@@ -26,17 +26,13 @@ if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
 RAND_MAX = 2**31
-SIM_DATA_PATH = os.path.join(ROOT_PATH, "reconstruction/sim_data/kb/simData.cPickle")
-SIM_DATA_PATH_NO_OPERONS = os.path.join(
-    ROOT_PATH, "reconstruction/sim_data/kb_no_operons/simData.cPickle"
-)
 MAX_TIME_STEP = 1
 
 
 class LoadSimData:
     def __init__(
         self,
-        sim_data_path: str = SIM_DATA_PATH,
+        sim_data_path: str,
         seed: int = 0,
         total_time: int = 10,
         fixed_media: Optional[str] = None,
@@ -229,9 +225,30 @@ class LoadSimData:
             treg_alias.tf_to_tf_type["CPLX0-7710"] = "1CS"
             treg_alias.active_to_bound["CPLX0-7710"] = "marR-tet"
 
+            # Add marA and marR to pPromoterBound dict for initial state generation
+            for bound_probs in self.sim_data.pPromoterBound.values():
+                bound_probs["CPLX0-7710"] = 1
+                bound_probs["PD00365"] = 1
+
+            # Expand promoter bound_TF field for marA and marR
+            curr_size = self.sim_data.internal_state.unique_molecule.unique_molecule_definitions[
+                "promoter"
+            ]["bound_TF"][1]
+            self.sim_data.internal_state.unique_molecule.unique_molecule_definitions[
+                "promoter"
+            ]["bound_TF"] = ("?", curr_size + 2)
+
             # TU index of genes for outer membrane proteins, regulators,
             # and inner membrane transporters
-            new_deltaI = DE_GENES["TU_idx"].to_numpy()
+            try:
+                de_genes = pd.read_csv(
+                    os.path.join(ROOT_PATH, "data/marA_binding/gene_fc.csv")
+                )
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    "Please run data/marA_binding/get_TU_ID.py first to generate the gene_fc.csv file."
+                )
+            new_deltaI = de_genes["TU_idx"].to_numpy()
             new_deltaJ = np.array([24] * 24)
             # Values were chosen to recapitulate mRNA fold change when exposed
             # to 1.5 mg/L tetracycline (Viveiros et al. 2007)

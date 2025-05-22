@@ -13,8 +13,6 @@ from vivarium.library.dict_utils import deep_merge
 
 # vivarium-ecoli imports
 from ecoli.library.sim_data import LoadSimData
-from ecoli.library.json_state import get_state_from_file
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.metabolism_redux import MetabolismRedux
 from ecoli.processes.stubs.exchange_stub import Exchange
 from ecoli.processes.registries import topology_registry
@@ -34,7 +32,7 @@ class MetabolismExchange(Composer):
             "kinetic_rates": [],
         },
         "exchanger": {},
-        "sim_data_path": SIM_DATA_PATH,
+        "sim_data_path": "",
         "seed": 0,
     }
 
@@ -89,13 +87,13 @@ class MetabolismExchange(Composer):
 
 def run_metabolism():
     # load the sim data
-    load_sim_data = LoadSimData(sim_data_path=SIM_DATA_PATH, seed=0)
+    load_sim_data = LoadSimData(sim_data_path="out/kb/simData.cPickle", seed=0)
 
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_metabolism_redux_config()
     metabolism_process = MetabolismRedux(config)
 
-    initial_state = get_state_from_file(path="data/wcecoli_t0.json")
+    initial_state = load_sim_data.generate_initial_state()
 
     metabolism_composite = metabolism_process.generate()
     metabolism_composite["topology"]["ecoli-metabolism-redux"]["bulk_total"] = ("bulk",)
@@ -112,11 +110,11 @@ def run_metabolism():
 
 
 def run_metabolism_composite():
-    composer = MetabolismExchange()
+    composer = MetabolismExchange({"sim_data_path": "out/kb/simData.cPickle"})
     metabolism_composite = composer.generate()
     metabolism_composite["topology"]["metabolism"]["bulk_total"] = ("bulk",)
 
-    initial_state = get_state_from_file(path="data/wcecoli_t0.json")
+    initial_state = composer.load_sim_data.generate_initial_state()
     initial_state["process_state"] = {
         "polypeptide_elongation": {
             "aa_exchange_rates": units.mol

@@ -48,6 +48,7 @@ __pycache__
 ###################
 data/blame_test_data.json
 data/vivecoli_t2.json
+data/marA_binding/gene_fc.csv
 ecoli/composites/ecoli_configs/test_configs/test_export.json
 /notebooks/test_files/
 cache/

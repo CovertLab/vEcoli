@@ -6,10 +6,9 @@
         "antibiotic-transport-odeint",
         "conc_to_counts"
     ],
-    "initial_state_file": "antibiotics_wcecoli_t0",
     "mar_regulon": "True",
     "amp_lysis": true,
-    "sim_data_path": "reconstruction/sim_data/kb_no_operons/simData.cPickle",
+    "sim_data_path": "out/no_operons/kb/simData.cPickle",
     "spatial_environment_config": {
         "multibody": {
             "bounds": [
