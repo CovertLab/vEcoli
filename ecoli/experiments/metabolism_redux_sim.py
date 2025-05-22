@@ -153,16 +153,16 @@ def run_colony(
 
 def run_lineage(
     filename="metabolism_redux_classic",
-    total_time=1700,
+    total_time=1600,
     divide=True,
-    initial_state_file='wcecoli_t0', # 'wcecoli_t0', # 'met_division_test_state',
+    initial_state_file='lineage_2', # 'wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries',
     name="metabolism-redux-classic-rich",
     raw_output=False,
     save=True,
-    save_times=[1, 1300, 1400, 1500, 1600, 1700],
+    save_times=[1, 1300, 1400, 1500, 1600,],
     condition="with_aa",  # basal, with_aa
     fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
 ):
@@ -173,7 +173,7 @@ def run_lineage(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
-    # sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+    sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
     sim.save = save
     sim.save_times = save_times
