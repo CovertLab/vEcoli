@@ -24,3 +24,4 @@
 "NUON-MONOMER[m]"	5		"fit_sim_data_1.py"	"Main NADH:quinone oxidoreductase. Better alignment with ribosome profiling"
 "HOMOCYSMET-MONOMER[c]"	2		"fit_sim_data_1.py"	"Main methionine synthase when there's no B12. Better alignment with ribosome profiling"
 "PGMI-MONOMER[c]"	0.25		"fit_sim_data_1.py"	"Better alignment with ribosome profiling"
+"EG10242-MONOMER[c]"	3		"fit_sim_data_1.py"	"dnaN, important for mechanistic replisome and better match experimental counts"
