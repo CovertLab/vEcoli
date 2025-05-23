@@ -1302,9 +1302,9 @@ class LoadSimData:
             "import_constraint_threshold": self.sim_data.external_state.import_constraint_threshold,
             "exchange_molecules": self.sim_data.external_state.all_external_exchange_molecules,
             # these are options given to the wholecell.sim.simulation
-            "use_trna_charging": self.trna_charging,
+            "use_trna_charging": self.steady_state_trna_charging,
             "include_ppgpp": (not self.ppgpp_regulation)
-            or (not self.trna_charging)
+            or (not self.steady_state_trna_charging)
             or getattr(metabolism, "force_constant_ppgpp", False),
             "mechanistic_aa_transport": self.mechanistic_aa_transport,
             # variables
