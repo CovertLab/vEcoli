@@ -395,6 +395,8 @@ class LoadSimData:
                 duplex_lengths = np.zeros(n_duplex_rnas)
                 duplex_ACGU = np.zeros((n_duplex_rnas, 4))
                 duplex_mw = np.zeros(n_duplex_rnas)
+                cistron_data = ts_alias.cistron_data.fullArray()
+                cistron_tu_mapping = ts_alias.cistron_tu_mapping_matrix
                 rna_data = ts_alias.rna_data.fullArray()
                 rna_units = ts_alias.rna_data.fullUnits()
                 rna_sequences = ts_alias.transcription_sequences
@@ -403,8 +405,12 @@ class LoadSimData:
                     zip(self.srna_ids, target_ids)
                 ):
                     # Use first match for each sRNA and target mRNA
-                    srna_tu_id = np.where(rna_data["id"] == srna_id)[0][0]
-                    self.target_tu_ids[i] = np.where(rna_data["id"] == target_id)[0][0]
+                    srna_tu_id = cistron_tu_mapping[
+                        cistron_data["id"] == srna_id[:-3]
+                    ].nonzero()[1][0]
+                    self.target_tu_ids[i] = cistron_tu_mapping[
+                        cistron_data["id"] == target_id[:-3]
+                    ].nonzero()[1][0]
                     duplex_ACGU[i] = (
                         rna_data["counts_ACGU"][srna_tu_id]
                         + rna_data["counts_ACGU"][self.target_tu_ids[i]]
