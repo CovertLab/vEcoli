@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: ghcr.io/astral-sh/uv@sha256:21051ff1d154bb559756e842d8b49f6e1f12cbbf75895b818df6e5c4ab50a2e7
+From: ghcr.io/astral-sh/uv@sha256:514430fd611a1c12d24b496799133004b5236313dc0a417624d91458523cc17e
 
 # Refer to Dockerfile for comments about build process. Apptainer does not
 # support layer caching which results in a much less interesting build file.
@@ -23,7 +23,7 @@ From: ghcr.io/astral-sh/uv@sha256:21051ff1d154bb559756e842d8b49f6e1f12cbbf75895b
     FILES_TO_ADD
 
 %post
-    apt-get update && apt-get install -y git gcc procps
+    apt-get update && apt-get install -y gcc procps
     cd /vEcoli
     UV_COMPILE_BYTECODE=1 uv sync --frozen
 
