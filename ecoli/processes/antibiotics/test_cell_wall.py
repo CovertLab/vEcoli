@@ -34,7 +34,7 @@ def create_composite(timeline_data, antibiotics=True):
         timeline_data,
         {
             "CPD-12261[p]": ("bulk", "CPD-12261[p]"),
-            "CPLX0-7717[m]": ("bulk", "CPLX0-7717[m]"),
+            "CPLX0-7717[i]": ("bulk", "CPLX0-7717[i]"),
             "CPLX0-3951[i]": ("bulk", "CPLX0-3951[i]"),
             "Volume": ("cell_global", "volume"),
         },
@@ -101,7 +101,7 @@ def create_composite(timeline_data, antibiotics=True):
 
     # Create initial state
     initial_murein = int(timeline_data.iloc[0]["CPD-12261[p]"])
-    initial_PBP1A = int(timeline_data.iloc[0]["CPLX0-7717[m]"])
+    initial_PBP1A = int(timeline_data.iloc[0]["CPLX0-7717[i]"])
     initial_PBP1B = int(timeline_data.iloc[0]["CPLX0-3951[i]"])
     initial_volume = parse_unit_string(timeline_data.iloc[0]["Volume"])
 
@@ -109,7 +109,7 @@ def create_composite(timeline_data, antibiotics=True):
         "bulk": np.array(
             [
                 ("CPD-12261[p]", initial_murein),
-                ("CPLX0-7717[m]", initial_PBP1A),
+                ("CPLX0-7717[i]", initial_PBP1A),
                 ("CPLX0-3951[i]", initial_PBP1B),
                 ("CPLX0-8300[c]", 0),
             ],
@@ -134,7 +134,7 @@ def output_data(data, filepath):
         ("concentrations", "ampicillin"),
         ("wall_state", "cracked"),
         ("bulk", "CPD-12261[p]"),
-        ("bulk", "CPLX0-7717[m]"),
+        ("bulk", "CPLX0-7717[i]"),
         ("bulk", "CPLX0-3951[i]"),
         ("murein_state", "incorporated_murein"),
         ("murein_state", "unincorporated_murein"),

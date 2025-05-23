@@ -19,7 +19,7 @@ from time import process_time as process_time_seconds
 
 
 CAUSALITY_ENV_VAR = "CAUSALITY_SERVER"
-SIM_DATA_PATH = "reconstruction/sim_data/kb/simData.cPickle"
+SIM_DATA_PATH = "out/kb/simData.cPickle"
 DYNAMICS_OUTPUT = "out/seriesOut"
 
 

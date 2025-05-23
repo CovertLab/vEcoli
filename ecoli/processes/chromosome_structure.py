@@ -1389,7 +1389,9 @@ def test_superhelical_removal_sim():
             }
 
     composer = TestComposer()
-    template_initial_state = get_state_from_file()
+    template_initial_state = get_state_from_file("data/vivecoli_t2527.json")["agents"][
+        "0"
+    ]
     # Zero out all unique molecules
     for unique_mol in template_initial_state["unique"].values():
         unique_mol.flags.writeable = True

@@ -9,7 +9,6 @@ steps, topology, and initial state of the E. coli whole cell model.
 # mypy: disable-error-code=attr-defined
 
 from copy import deepcopy
-import os
 from typing import Any, Optional
 import warnings
 
@@ -40,17 +39,7 @@ from ecoli.processes.unique_update import UniqueUpdate
 from ecoli.processes.partition import Requester, Evolver, Step, Process
 from ecoli.library.json_state import get_state_from_file
 
-SIM_DATA_PATH = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "reconstruction",
-        "sim_data",
-        "kb",
-        "simData.cPickle",
-    )
-)
+from reconstruction.ecoli.dataclasses.process.replication import MAX_TIMESTEP
 
 MINIMAL_MEDIA_ID = "minimal"
 AA_MEDIA_ID = "minimal_plus_amino_acids"
@@ -67,7 +56,7 @@ class Ecoli(Composer):
     defaults = {
         "time_step": 2.0,
         "seed": 0,
-        "sim_data_path": SIM_DATA_PATH,
+        "sim_data_path": "",
         "agent_id": "0",
         "division_threshold": 668,  # fg
         "division_variable": ("listeners", "mass", "dry_mass"),
@@ -307,6 +296,12 @@ class Ecoli(Composer):
             and a flow describing the dependencies between steps.
         """
         time_step = config["time_step"]
+        if time_step > MAX_TIMESTEP:
+            raise ValueError(
+                f"Time step {time_step} is greater than the maximum time step "
+                f"{MAX_TIMESTEP} defined in reconstruction/ecoli/dataclasses/process/replication.py."
+                f"Edit and re-run ParCa with a larger maximum or use a smaller time step."
+            )
         # get the configs from sim_data (except for allocator, built later)
         process_configs = config["process_configs"]
         for process in process_configs.keys():
