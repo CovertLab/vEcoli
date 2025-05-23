@@ -16,27 +16,33 @@ Required files:
  PLOS ONE 2(4): e365. https://doi.org/10.1371/journal.pone.0000365
 """
 
+import argparse
 import pandas as pd
 import pickle
 import json
 import numpy as np
 from ast import literal_eval
 
-from ecoli.library.sim_data import SIM_DATA_PATH_NO_OPERONS
-
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-s",
+        "--sim_data_path",
+        action="store",
+        help="Path to the simulation data file from ParCa",
+    )
+    args = parser.parse_args()
     # Load complexation and TU index data from sim_data
-    sim_data = pickle.load(open(SIM_DATA_PATH_NO_OPERONS, "rb"))
-    if sim_data.operons_on:
-        raise TypeError("marA regulon only works with operons OFF")
-    bulk_names = sim_data.internal_state.bulk_molecules.bulk_data["id"]
-    TU_id_to_index = {
-        rna: idx
-        for idx, rna in enumerate(sim_data.process.transcription.rna_data["id"])
+    sim_data = pickle.load(open(args.sim_data_path, "rb"))
+    bulk_names = sim_data.internal_state.bulk_molecules.bulk_data["id"].tolist()
+    cistron_id_to_index = {
+        cistron: idx
+        for idx, cistron in enumerate(sim_data.process.transcription.cistron_data["id"])
     }
+    cistron_tu_mapping = sim_data.process.transcription.cistron_tu_mapping_matrix
     comp_stoich = sim_data.process.complexation.stoich_matrix().astype(np.int64).T
-    comp_molecules = sim_data.process.complexation.molecule_names
+    comp_molecules = [str(i) for i in sim_data.process.complexation.molecule_names]
 
     rnas = pd.read_table("reconstruction/ecoli/flat/rnas.tsv", comment="#")
     rnas["synonyms"] = rnas["synonyms"].apply(literal_eval)
@@ -60,9 +66,12 @@ def main():
         ~((de_genes["Gene name"] == "acrB") & (de_genes["common_name"] == "gyrB"))
     ]
 
-    # Get model RNAs names by appending the "[c]" suffix, then get TU index for RNA
-    TU_idx = [TU_id_to_index[rna_id + "[c]"] for rna_id in de_genes["id"]]
-    de_genes["TU_idx"] = TU_idx
+    # Get get TU index for genes
+    # For genes in multiple TUs, take the first one
+    cistron_idx = [cistron_id_to_index[rna_id] for rna_id in de_genes["id"]]
+    row_id, tu_idx = cistron_tu_mapping[cistron_idx, :].nonzero()
+    _, unique_idx = np.unique(row_id, return_index=True)
+    de_genes["TU_idx"] = tu_idx[unique_idx]
 
     # Include complexes
     comp_rxns = pd.DataFrame(comp_stoich, columns=comp_molecules)
@@ -109,7 +118,7 @@ def main():
                 stoich = comp_rxns.loc[comp_rxns[bulk_id] < 0, :]
                 for i in range(len(stoich)):
                     curr_stoich = stoich.iloc[i, :]
-                    monomers_used.append(curr_stoich[bulk_id])
+                    monomers_used.append(int(curr_stoich[bulk_id]))
                     complex_names.append(
                         curr_stoich.loc[curr_stoich > 0].index.array[0]
                     )
@@ -150,7 +159,7 @@ def main():
     ].to_numpy()[0]
     marR_monomers_used.append(-2)
 
-    de_genes.to_csv("reconstruction/ecoli/flat/tetracycline/gene_fc.csv", index=False)
+    de_genes.to_csv("data/marA_binding/gene_fc.csv", index=False)
 
 
 if __name__ == "__main__":

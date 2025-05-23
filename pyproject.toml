@@ -20,12 +20,10 @@ dependencies = [
     "cython",
     "dill",
     "duckdb",
-    "ete3",
     "gcsfs",
     "pyarrow",
     "ipdb",
     "ipython",
-    "jupyter",
     "line-profiler",
     "altair",
     "numba",
@@ -43,17 +41,14 @@ dependencies = [
     "tqdm",
     "unum",
     "vivarium-core",
-    "pysal",
-    "opencv-python-headless",
+    "imageio[ffmpeg]",
     "statsmodels",
     "ecos",
-    "nbclassic",
     "matplotlib",
-    "pyqt5",
     "iteround",
-    "wheel",
     "stochastic-arrow",
     "autograd",
+    "xmltodict",
 ]
 
 [project.optional-dependencies]
@@ -63,6 +58,8 @@ dev = [
     "mypy",
     "ruff",
     "pre-commit",
+    "jupyter",
+    "marimo[sql,lsp]"
 ]
 docs = [
     "Sphinx",
@@ -73,7 +70,6 @@ docs = [
 [tool.setuptools]
 packages = [
     "ecoli",
-    "migration", 
     "reconstruction",
     "runscripts",
     "validation",

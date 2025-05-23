@@ -89,7 +89,7 @@ class CellWall(Process):
         # Molecules
         "murein": "CPD-12261[p]",  # four crosslinked peptidoglycan units
         "PBP": {  # penicillin-binding proteins
-            "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase
+            "PBP1A": "CPLX0-7717[i]",  # transglycosylase-transpeptidase
             # PBP1B has three isoforms: α (currently not produced by model),
             # β (degradation product of α, not in vivo), and γ (made by model)
             "PBP1B_alpha": "CPLX0-3951[i]",
@@ -255,6 +255,7 @@ class CellWall(Process):
         # murein count before MureinDivision and PBPBinding run after division
         if states["murein_state"]["incorporated_murein"] == 0:
             incorporated_monomers = np.sum(lattice)
+            update["murein_state"] = {"incorporated_murein": incorporated_monomers}
 
         if not isinstance(lattice, np.ndarray):
             lattice = np.array(lattice)

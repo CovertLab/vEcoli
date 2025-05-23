@@ -46,7 +46,7 @@ class PBPBinding(Step):
         "murein_name": "CPD-12261[p]",
         "beta_lactam": "ampicillin",  # Supports cephaloridine, ampicillin
         "PBP": {  # penicillin-binding proteins
-            "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase ~100
+            "PBP1A": "CPLX0-7717[i]",  # transglycosylase-transpeptidase ~100
             # PBP1B has three isoforms: α (currently not produced by model),
             # β (degradation product of α, not in vivo), and γ (made by model)
             "PBP1B_alpha": "CPLX0-3951[i]",
@@ -294,7 +294,6 @@ class PBPBinding(Step):
                         }
                     }
                 )
-                return update
 
         # New murein to allocate
         new_murein = 4 * counts(states["bulk"], self.murein_idx) - sum(
@@ -374,7 +373,7 @@ def test_pbp_binding():
             "bulk": np.array(
                 [
                     ("CPD-12261[p]", initial_murein),
-                    ("CPLX0-7717[m]", 100),
+                    ("CPLX0-7717[i]", 100),
                     ("CPLX0-3951[i]", 100),
                     ("CPLX0-8300[c]", 0),
                 ],

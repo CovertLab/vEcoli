@@ -61,7 +61,6 @@ class TranscriptElongation(PartitionedProcess):
     """Transcript Elongation PartitionedProcess
 
     defaults:
-        - max_time_step (float) : ???
         - rnaPolymeraseElongationRateDict (dict): Array with elongation rate
             set points for different media environments.
         - rnaIds (array[str]) : array of names for each TU
@@ -89,7 +88,6 @@ class TranscriptElongation(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     defaults = {
-        "max_time_step": 0.0,
         # Parameters
         "rnaPolymeraseElongationRateDict": {},
         "rnaIds": [],
@@ -126,8 +124,6 @@ class TranscriptElongation(PartitionedProcess):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-
-        self.max_time_step = self.parameters["max_time_step"]
 
         # Load parameters
         self.rnaPolymeraseElongationRateDict = self.parameters[
@@ -581,9 +577,6 @@ class TranscriptElongation(PartitionedProcess):
 
         return update
 
-    def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
-        return inputTimeStep <= self.max_time_step
-
 
 def get_mapping_arrays(x, y):
     """
@@ -636,7 +629,6 @@ def test_transcript_elongation():
         return lengths.astype(np.int64)
 
     test_config = TranscriptElongation.defaults
-    test_config["max_time_step"] = 2.0
 
     with open("data/elongation_sequences.npy", "rb") as f:
         sequences = np.load(f)

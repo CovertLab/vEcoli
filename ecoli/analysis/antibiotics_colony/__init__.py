@@ -7,9 +7,12 @@ from wholecell.utils.filepath import ROOT_PATH
 plt.rcParams["svg.fonttype"] = "none"
 plt.rcParams["font.family"] = "Arial"
 
-DE_GENES = pd.read_csv(
-    os.path.join(ROOT_PATH, "reconstruction/ecoli/flat/tetracycline/gene_fc.csv")
-)
+try:
+    DE_GENES = pd.read_csv(os.path.join(ROOT_PATH, "data/marA_binding/gene_fc.csv"))
+except FileNotFoundError:
+    raise FileNotFoundError(
+        "Please run data/marA_binding/get_TU_ID.py first to generate the gene_fc.csv file."
+    )
 SPLIT_TIME = 11550
 MAX_TIME = 26000
 COUNTS_PER_FL_TO_NANOMOLAR = 1 / (1e-15) / N_A * (1e9)
@@ -103,7 +106,7 @@ PATHS_TO_LOAD = {
         "outer_tetracycline_permeability",
     ),
     "Murein tetramer": ("bulk", "CPD-12261[p]"),
-    "PBP1a complex": ("bulk", "CPLX0-7717[m]"),
+    "PBP1a complex": ("bulk", "CPLX0-7717[i]"),
     "PBP1a mRNA": ("mrna", "EG10748_RNA"),
     "PBP1b alpha complex": ("bulk", "CPLX0-3951[i]"),
     "PBP1b mRNA": ("mrna", "EG10605_RNA"),
