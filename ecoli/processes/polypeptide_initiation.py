@@ -123,6 +123,16 @@ class PolypeptideInitiation(PartitionedProcess):
         self.ribosome30S_idx = None
 
     def ports_schema(self):
+        # Updater for trna_charging listener when no molecules specified for ribosome profiling
+        if len(self.ribosome_profiling_molecules) == 0:
+            trna_charging_schema = {"_updater": "set", "_default": {}}
+        else:
+            trna_charging_schema = listener_schema(
+                {
+                    f"ribosome_initiation_{gene}": []
+                    for gene in self.ribosome_profiling_molecules.values()
+                }
+            )
         return {
             "environment": {"media_id": {"_default": "", "_updater": "set"}},
             "listeners": {
@@ -156,12 +166,7 @@ class PolypeptideInitiation(PartitionedProcess):
                         "is_n_ribosomes_to_activate_reduced": False,
                     }
                 ),
-                "trna_charging": listener_schema(
-                    {
-                        f"ribosome_initiation_{gene}": []
-                        for gene in self.ribosome_profiling_molecules.values()
-                    }
-                ),
+                "trna_charging": trna_charging_schema,
             },
             "active_ribosome": numpy_schema(
                 "active_ribosome", emit=self.parameters["emit_unique"]
