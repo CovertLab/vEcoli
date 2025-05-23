@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
 RAND_MAX = 2**31
-MAX_TIME_STEP = 1
 
 
 class LoadSimData:
@@ -57,11 +56,6 @@ class LoadSimData:
         translation_supply: bool = True,
         aa_supply_in_charging: bool = True,
         disable_ppgpp_elongation_inhibition: bool = False,
-        # TODO: Implement these
-        adjust_timestep_for_charging: bool = False,
-        time_step_safety_fraction: float = 1.3,
-        update_time_step_freq: int = 5,
-        max_time_step: int = MAX_TIME_STEP,
         emit_unique: bool = False,
         **kwargs,
     ):
@@ -165,7 +159,6 @@ class LoadSimData:
         self.mechanistic_aa_transport = mechanistic_aa_transport
         self.translation_supply = translation_supply
         self.aa_supply_in_charging = aa_supply_in_charging
-        self.adjust_timestep_for_charging = adjust_timestep_for_charging
         self.disable_ppgpp_elongation_inhibition = disable_ppgpp_elongation_inhibition
         self.recycle_stalled_elongation = recycle_stalled_elongation
         self.emit_unique = emit_unique
@@ -652,7 +645,6 @@ class LoadSimData:
 
         chromosome_replication_config = {
             "time_step": time_step,
-            "max_time_step": self.sim_data.process.replication.max_time_step,
             "get_dna_critical_mass": get_dna_critical_mass,
             "criticalInitiationMass": get_dna_critical_mass(doubling_time),
             "nutrientToDoublingTime": self.sim_data.nutrient_to_doubling_time,
@@ -769,7 +761,6 @@ class LoadSimData:
     def get_transcript_elongation_config(self, time_step=1):
         transcript_elongation_config = {
             "time_step": time_step,
-            "max_time_step": self.sim_data.process.transcription.max_time_step,
             "rnaPolymeraseElongationRateDict": self.sim_data.process.transcription.rnaPolymeraseElongationRateDict,
             "rnaIds": self.sim_data.process.transcription.rna_data["id"],
             "rnaLengths": self.sim_data.process.transcription.rna_data[
@@ -967,7 +958,6 @@ class LoadSimData:
             "time_step": time_step,
             # simulation options
             "aa_supply_in_charging": self.aa_supply_in_charging,
-            "adjust_timestep_for_charging": self.adjust_timestep_for_charging,
             "mechanistic_translation_supply": self.mechanistic_translation_supply,
             "mechanistic_aa_transport": self.mechanistic_aa_transport,
             "ppgpp_regulation": self.ppgpp_regulation,
@@ -976,7 +966,6 @@ class LoadSimData:
             "translation_supply": self.translation_supply,
             "trna_charging": self.trna_charging,
             # base parameters
-            "max_time_step": translation.max_time_step,
             "n_avogadro": constants.n_avogadro,
             "proteinIds": translation.monomer_data["id"],
             "proteinLengths": translation.monomer_data["length"].asNumber(),

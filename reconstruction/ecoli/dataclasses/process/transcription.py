@@ -14,7 +14,7 @@ from scipy.sparse import csr_matrix
 import sympy as sp
 
 from reconstruction.ecoli.dataclasses.getter_functions import EXCLUDED_RNA_TYPES
-from ecoli.library.sim_data import MAX_TIME_STEP
+from .replication import MAX_TIMESTEP
 from ecoli.library.schema import bulk_name_to_idx, counts
 from wholecell.utils import data, fitting, units
 from wholecell.utils.fast_nonnegative_least_squares import fast_nnls
@@ -24,7 +24,6 @@ from wholecell.utils.polymerize import polymerize
 from wholecell.utils.random import make_elongation_rates
 
 
-PROCESS_MAX_TIME_STEP = 2.0
 RNA_SEQ_ANALYSIS = "rsem_tpm"
 PPGPP_CONC_UNITS = units.umol / units.L
 PRINT_VALUES = False  # print values for supplemental table if True
@@ -40,8 +39,6 @@ class Transcription(object):
     """
 
     def __init__(self, raw_data, sim_data):
-        self.max_time_step = min(MAX_TIME_STEP, PROCESS_MAX_TIME_STEP)
-
         self._build_ppgpp_regulation(raw_data, sim_data)
         self._build_oric_terc_coordinates(raw_data, sim_data)
         self._build_cistron_data(raw_data, sim_data)
@@ -1341,7 +1338,8 @@ class Transcription(object):
         # Construct transcription sequence matrix
         maxLen = np.int64(
             self.rna_data["length"].asNumber().max()
-            + self.max_time_step
+            # Add buffer to account for elongation by max timestep
+            + MAX_TIMESTEP
             * sim_data.constants.RNAP_elongation_rate_for_stable_RNA.asNumber(
                 units.nt / units.s
             )

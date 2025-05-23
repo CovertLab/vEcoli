@@ -54,7 +54,6 @@ class ChromosomeReplication(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     defaults = {
-        "max_time_step": 2.0,
         "get_dna_critical_mass": lambda doubling_time: units.Unum,
         "criticalInitiationMass": 975 * units.fg,
         "nutrientToDoublingTime": {},
@@ -82,8 +81,6 @@ class ChromosomeReplication(PartitionedProcess):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-
-        self.max_time_step = self.parameters["max_time_step"]
 
         # Load parameters
         self.get_dna_critical_mass = self.parameters["get_dna_critical_mass"]

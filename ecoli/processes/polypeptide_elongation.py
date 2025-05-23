@@ -100,7 +100,6 @@ class PolypeptideElongation(PartitionedProcess):
     topology = TOPOLOGY
     defaults = {
         "time_step": 1,
-        "max_time_step": 2.0,
         "n_avogadro": 6.02214076e23 / units.mol,
         "proteinIds": np.array([]),
         "proteinLengths": np.array([]),
@@ -118,7 +117,6 @@ class PolypeptideElongation(PartitionedProcess):
         "aa_from_trna": np.zeros(21),
         "gtpPerElongation": 4.2,
         "aa_supply_in_charging": False,
-        "adjust_timestep_for_charging": False,
         "mechanistic_translation_supply": False,
         "mechanistic_aa_transport": False,
         "ppgpp_regulation": False,
@@ -183,13 +181,8 @@ class PolypeptideElongation(PartitionedProcess):
     def __init__(self, parameters=None):
         super().__init__(parameters)
 
-        self.max_time_step = self.parameters["max_time_step"]
-
         # Simulation options
         self.aa_supply_in_charging = self.parameters["aa_supply_in_charging"]
-        self.adjust_timestep_for_charging = self.parameters[
-            "adjust_timestep_for_charging"
-        ]
         self.mechanistic_translation_supply = self.parameters[
             "mechanistic_translation_supply"
         ]
@@ -730,13 +723,6 @@ class PolypeptideElongation(PartitionedProcess):
 
         return update
 
-    def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
-        model_specific = self.elongation_model.isTimeStepShortEnough(
-            inputTimeStep, timeStepSafetyFraction
-        )
-        max_time_step = inputTimeStep <= self.max_time_step
-        return model_specific and max_time_step
-
 
 class BaseElongationModel(object):
     """
@@ -803,9 +789,6 @@ class BaseElongationModel(object):
                 ]
             },
         )
-
-    def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
-        return True
 
 
 class TranslationSupplyElongationModel(BaseElongationModel):
@@ -895,15 +878,6 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # Amino acid supply calculations
         self.aa_supply_scaling = self.parameters["aa_supply_scaling"]
 
-        # Manage unstable charging with too long time step by setting
-        # time_step_short_enough to False during updates. Other variables
-        # manage when to trigger an adjustment and how quickly the time step
-        # increases after being reduced
-        self.time_step_short_enough = True
-        self.max_time_step = self.process.max_time_step
-        self.time_step_increase = 1.01
-        self.max_amino_acid_adjustment = 0.05
-
         self.amino_acid_synthesis = self.parameters["amino_acid_synthesis"]
         self.amino_acid_import = self.parameters["amino_acid_import"]
         self.amino_acid_export = self.parameters["amino_acid_export"]
@@ -937,10 +911,6 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
     def request(
         self, states: dict, aasInSequences: npt.NDArray[np.int64]
     ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], dict]:
-        self.max_time_step = min(
-            self.process.max_time_step, self.max_time_step * self.time_step_increase
-        )
-
         # Conversion from counts to molarity
         cell_mass = states["listeners"]["mass"]["cell_mass"] * units.fg
         dry_mass = states["listeners"]["mass"]["dry_mass"] * units.fg
@@ -1360,11 +1330,6 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # the concentration target in metabolism during the next time step
         aa_used_trna = np.dot(self.process.aa_from_trna, total_charging_reactions)
         aa_diff = self.process.aa_supply - aa_used_trna
-        if np.any(
-            np.abs(aa_diff / counts(states["bulk_total"], self.process.amino_acid_idx))
-            > self.max_amino_acid_adjustment
-        ):
-            self.time_step_short_enough = False
 
         update["listeners"]["growth_limits"]["trna_charged"] = aa_used_trna.astype(int)
 
@@ -1430,24 +1395,6 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             trna_counts[idx] = counts
 
         return trna_counts
-
-    def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
-        short_enough = True
-
-        # Needs to be less than the max time step to prevent oscillatory
-        # behavior
-        if inputTimeStep > self.max_time_step:
-            short_enough = False
-
-        # Decrease the max time step to get more stable charging
-        if (not self.time_step_short_enough) and (
-            self.process.adjust_timestep_for_charging
-        ):
-            self.max_time_step = inputTimeStep / 2
-            self.time_step_short_enough = True
-            short_enough = False
-
-        return short_enough
 
 
 def ppgpp_metabolite_changes(

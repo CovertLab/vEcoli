@@ -4,21 +4,18 @@ SimulationData for translation process
 
 import numpy as np
 
-from ecoli.library.sim_data import MAX_TIME_STEP
+from .replication import MAX_TIMESTEP
+
 from wholecell.utils import data, units
 from wholecell.utils.unit_struct_array import UnitStructArray
 from wholecell.utils.polymerize import polymerize
 from wholecell.utils.random import make_elongation_rates
 
 
-PROCESS_MAX_TIME_STEP = 2.0
-
-
 class Translation(object):
     """Translation"""
 
     def __init__(self, raw_data, sim_data):
-        self.max_time_step = min(MAX_TIME_STEP, PROCESS_MAX_TIME_STEP)
         self.next_aa_pad = (
             1  # Need an extra amino acid in sequences lengths to find next one
         )
@@ -200,7 +197,8 @@ class Translation(object):
         max_len = (
             np.int64(
                 self.monomer_data["length"].asNumber().max()
-                + self.max_time_step
+                # Add buffer to account for elongation by max timestep
+                + MAX_TIMESTEP
                 * sim_data.constants.ribosome_elongation_rate_max.asNumber(
                     units.aa / units.s
                 )
