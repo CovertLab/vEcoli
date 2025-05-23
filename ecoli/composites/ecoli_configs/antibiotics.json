@@ -8,7 +8,7 @@
     ],
     "mar_regulon": "True",
     "amp_lysis": true,
-    "sim_data_path": "out/no_operons/kb/simData.cPickle",
+    "sim_data_path": "out/kb/simData.cPickle",
     "spatial_environment_config": {
         "multibody": {
             "bounds": [
