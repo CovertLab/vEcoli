@@ -7,6 +7,7 @@ import numpy as np
 from scipy.optimize import minimize
 import json
 
+from .process.replication import MAX_TIMESTEP
 from wholecell.utils import units
 from wholecell.utils.polymerize import polymerize
 
@@ -358,7 +359,7 @@ class Relation(object):
             translation.monomer_data["length"].asNumber().max()
             # Max number of anticipated readings
             + (
-                translation.max_time_step
+                MAX_TIMESTEP
                 * sim_data.constants.ribosome_elongation_rate_max.asNumber(
                     units.aa / units.s
                 )
