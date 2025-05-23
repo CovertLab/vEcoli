@@ -100,6 +100,9 @@ class ChromosomeStructure(Step):
         "mature_rna_nt_counts": [],
         "unprocessed_rna_index_mapping": {},
         "time_step": 1.0,
+        "ribosome_profiling_molecules": {},
+        "ribosome_profiling_listener_sizes": {},
+        "ribosome_profiling_molecule_indexes": {},
     }
 
     # Constructor
@@ -160,6 +163,16 @@ class ChromosomeStructure(Step):
         self.emit_unique = self.parameters.get("emit_unique", True)
 
     def ports_schema(self):
+        # Updater for trna_charging listener when no molecules specified for ribosome profiling
+        if len(self.ribosome_profiling_molecules) == 0:
+            trna_charging_schema = {"_updater": "set", "_default": {}}
+        else:
+            trna_charging_schema = listener_schema(
+                {
+                    f"ribosome_initiation_{gene}": []
+                    for gene in self.ribosome_profiling_molecules.values()
+                }
+            )
         ports = {
             "listeners": {
                 "rnap_data": listener_schema(
@@ -178,14 +191,7 @@ class ChromosomeStructure(Step):
                         "empty_fork_collision_coordinates": [],
                     }
                 ),
-                "trna_charging": listener_schema(
-                    {
-                        f"collision_removed_ribosomes_{gene}": np.zeros(
-                            self.ribosome_profiling_listener_sizes[molecule], np.int64
-                        )
-                        for molecule, gene in self.ribosome_profiling_molecules.items()
-                    }
-                ),
+                "trna_charging": trna_charging_schema,
             },
             "bulk": numpy_schema("bulk"),
             # Unique molecules
