@@ -5,13 +5,13 @@ SimulationData for replication process
 import numpy as np
 import collections
 
-from ecoli.library.sim_data import MAX_TIME_STEP
 from wholecell.utils import units
 from wholecell.utils.polymerize import polymerize
 from wholecell.utils.random import stochasticRound
 
 
-PROCESS_MAX_TIME_STEP = 2.0
+# Maximum allowed simulation time step. Used to create buffer for sequences.
+MAX_TIMESTEP = 2
 
 
 class SiteNotFoundError(Exception):
@@ -24,8 +24,6 @@ class Replication(object):
     """
 
     def __init__(self, raw_data, sim_data):
-        self.max_time_step = min(MAX_TIME_STEP, PROCESS_MAX_TIME_STEP)
-
         self._n_nt_types = len(sim_data.dntp_code_to_id_ordered)
 
         self._build_sequence(raw_data, sim_data)
@@ -165,7 +163,8 @@ class Replication(object):
         # Determine size of the matrix used by polymerize function
         maxLen = np.int64(
             self.replichore_lengths.max()
-            + self.max_time_step
+            # Add buffer to account for elongation by max timestep
+            + MAX_TIMESTEP
             * sim_data.constants.replisome_elongation_rate.asNumber(units.nt / units.s)
         )
 

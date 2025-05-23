@@ -39,6 +39,8 @@ from ecoli.processes.unique_update import UniqueUpdate
 from ecoli.processes.partition import Requester, Evolver, Step, Process
 from ecoli.library.json_state import get_state_from_file
 
+from reconstruction.ecoli.dataclasses.process.replication import MAX_TIMESTEP
+
 MINIMAL_MEDIA_ID = "minimal"
 AA_MEDIA_ID = "minimal_plus_amino_acids"
 ANAEROBIC_MEDIA_ID = "minimal_minus_oxygen"
@@ -294,6 +296,12 @@ class Ecoli(Composer):
             and a flow describing the dependencies between steps.
         """
         time_step = config["time_step"]
+        if time_step > MAX_TIMESTEP:
+            raise ValueError(
+                f"Time step {time_step} is greater than the maximum time step "
+                f"{MAX_TIMESTEP} defined in reconstruction/ecoli/dataclasses/process/replication.py."
+                f"Edit and re-run ParCa with a larger maximum or use a smaller time step."
+            )
         # get the configs from sim_data (except for allocator, built later)
         process_configs = config["process_configs"]
         for process in process_configs.keys():
