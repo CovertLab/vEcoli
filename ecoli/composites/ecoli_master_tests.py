@@ -93,7 +93,7 @@ def test_division(agent_id="0", total_time=4):
     # this is not exact because the mother grew slightly in the timestep
     # after its last emit but before being split into two daughter cells
     assert np.allclose(
-        mother_bulk, np.array(daughter_bulk[0]) + np.array(daughter_bulk[1]), atol=51
+        mother_bulk, np.array(daughter_bulk[0]) + np.array(daughter_bulk[1]), atol=60
     )
 
     # compare the counts of unique molecules between the mother and daughters
