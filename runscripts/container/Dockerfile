@@ -2,7 +2,7 @@
 #
 # Use runscripts/container/build-image.sh to build.
 
-FROM ghcr.io/astral-sh/uv:0.6.10-python3.12-bookworm-slim@sha256:21051ff1d154bb559756e842d8b49f6e1f12cbbf75895b818df6e5c4ab50a2e7
+FROM ghcr.io/astral-sh/uv@sha256:514430fd611a1c12d24b496799133004b5236313dc0a417624d91458523cc17e
 
 LABEL application="Whole Cell Model of Escherichia coli" \
     email="wholecellteam@lists.stanford.edu" \
@@ -15,7 +15,7 @@ RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
     && cp ~/.bashrc /
 
 # procps necessary for `ps` command used by Nextflow to track processes.
-RUN apt-get update && apt-get install -y git gcc procps
+RUN apt-get update && apt-get install -y gcc procps
 
 # Install the project into `/vEcoli`
 WORKDIR /vEcoli
