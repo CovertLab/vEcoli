@@ -82,9 +82,9 @@ def run_default():
     sim.run()
 
     # get the data
-    timeseries = sim.ecoli_experiment.emitter.get_timeseries()
-
-    print(timeseries['agents']['0']['species_store'])
+    # timeseries = sim.ecoli_experiment.emitter.get_timeseries()
+    #
+    # print(timeseries['agents']['0']['species'])
 
 #%%
 

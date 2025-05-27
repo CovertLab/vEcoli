@@ -234,6 +234,37 @@ class get_bulk_counts(Serializer):
         """
         return np.ascontiguousarray(bulk["count"])
 
+class get_species_counts(Serializer):
+    def serialize(species_store: np.ndarray) -> np.ndarray:
+
+        return np.ascontiguousarray(species_store["count"])
+
+
+def species_store_updater(
+    current: np.ndarray, update: List[Tuple[int | np.ndarray, int | np.ndarray]]
+) -> np.ndarray:
+
+    result = current
+
+    for idx, value in update:
+        result["count"][idx] += value
+
+    return result
+
+def divide_species_store(state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+
+    counts = state["count"]
+    seed = counts.sum() % RAND_MAX
+
+    random_state = np.random.RandomState(seed=seed)
+    daughter_1 = state.copy()
+    daughter_2 = state.copy()
+    daughter_1["count"] = random_state.binomial(counts, 0.5)
+    daughter_2["count"] = counts - daughter_1["count"]
+    daughter_1.flags.writeable = False
+    daughter_2.flags.writeable = False
+    return daughter_1, daughter_2
+
 
 class get_unique_fields(Serializer):
     """Serializer for unique molecules."""
@@ -266,6 +297,11 @@ def numpy_schema(name: str, emit: bool = True) -> Dict[str, Any]:
         # Only pull out counts to be serialized (save space and time)
         schema["_serializer"] = get_bulk_counts
         schema["_divider"] = "bulk_binomial"
+    elif name == "species":
+        schema["_updater"] = species_store_updater
+        # Only pull out counts to be serialized (save space and time)
+        schema["_serializer"] = get_species_counts
+        schema["_divider"] = divide_species_store
     else:
         # Since vivarium-core ensures that each store will only have a single
         # updater, it's OK to create new UniqueNumpyUpdater objects each time

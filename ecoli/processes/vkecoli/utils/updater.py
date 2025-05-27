@@ -5,7 +5,7 @@ from typing import List, Tuple, Dict, Any
 
 RAND_MAX = 2**31 - 1
 
-def bulk_numpy_updater(
+def species_store_updater(
     current: np.ndarray, update: List[Tuple[int | np.ndarray, int | np.ndarray]]
 ) -> np.ndarray:
     """Updater function for bulk molecule structured array.
@@ -33,7 +33,7 @@ def bulk_numpy_updater(
     return result
 
 
-def divide_bulk(state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def divide_species_store(state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Divider function for bulk molecules. Automatically added to bulk
     molecule ports schemas by :py:func:`ecoli.library.schema.numpy_schema`
     when ``name == 'bulk'``. Uses binomial distribution with ``p=0.5`` to

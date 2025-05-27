@@ -4,10 +4,10 @@ from vivarium.core.process import Process
 from vivarium.core.engine import Engine, pp
 from basico import *
 from vivarium.core.types import State
-
+from ecoli.library.schema import numpy_schema
 from ecoli.processes.vkecoli.utils.basico_helper import _set_initial_concentrations, _get_transient_concentration
 import matplotlib.pyplot as plt
-from ecoli.processes.vkecoli.utils.updater import bulk_numpy_updater, get_bulk_counts, divide_bulk
+from ecoli.processes.vkecoli.utils.updater import species_store_updater, get_bulk_counts, divide_species_store
 import os
 
 
@@ -17,7 +17,7 @@ from ecoli.processes.registries import topology_registry
 NAME = "Kecoli"
 # TOPOLOGY = {"bulk": ("bulk",), "listeners": ("listeners",), "timestep": ("timestep",)}
 
-TOPOLOGY = {'species': ('species_store',)}
+TOPOLOGY = {'species': ('species',)}
 
 
 topology_registry.register(NAME, TOPOLOGY)
@@ -83,12 +83,13 @@ class KecoliCell(Process):
     def ports_schema(self):
 
         ports = {
-            'species': {
-                '_default':[],
-                '_updater': bulk_numpy_updater, # modified version of vEcoli bulk updater
-                '_emit': True,
-                "_divider": divide_bulk # modified version of vEcoli bulk divider
-            }
+            'species': numpy_schema("species")
+            # 'species': {
+            #     '_default':[],
+            #     '_updater': species_store_updater, # modified version of vEcoli bulk updater
+            #     '_emit': True,
+            #     "_divider": divide_species_store # modified version of vEcoli bulk divider
+            # }
         }
 
         return ports
