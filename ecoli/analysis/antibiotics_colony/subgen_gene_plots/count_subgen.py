@@ -24,7 +24,7 @@ RESPONSE_GENES_PATH = (
 )
 # rnas.tsv file is from the release version of wcEcoli
 RNAS_TSV_PATH = "reconstruction/ecoli/flat/rnas.tsv"
-SIM_DATA_PATH = "reconstruction/sim_data/kb/simData.cPickle"
+SIM_DATA_PATH = "out/kb/simData.cPickle"
 
 
 def convert_dict_to_df(data):

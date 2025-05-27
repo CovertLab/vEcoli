@@ -4,7 +4,7 @@
     "suffix_time" : true,
     "description" : "",
     "progress_bar" : true,
-    "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
+    "sim_data_path": "out/kb/simData.cPickle",
     "emitter" : "timeseries",
     "emitter_arg": {},
     "emit_topology" : false,
@@ -35,7 +35,7 @@
 
     "parca_options": {
         "cpus": 1,
-        "outdir": "reconstruction/sim_data",
+        "outdir": "out",
         "operons": true,
         "ribosome_fitting": true,
         "rnapoly_fitting": true,
@@ -49,6 +49,10 @@
         "intermediates_directory": "",
         "variable_elongation_transcription": true,
         "variable_elongation_translation": false
+    },
+
+    "analysis_options": {
+        "cpus": 1
     },
 
     "gcloud": null,

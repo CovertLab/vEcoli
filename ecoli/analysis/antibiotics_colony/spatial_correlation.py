@@ -8,9 +8,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy.stats import spearmanr
-from esda.moran import Moran
-from libpysal.weights import DistanceBand
-from splot.esda import plot_moran
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -19,7 +16,55 @@ from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR
 from ecoli.analysis.antibiotics_colony.amp_plots import PERIPLASMIC_VOLUME_FRACTION
 
 
+def calculate_morans_i(values, locations, threshold=-1, alpha=-2.0):
+    """
+    Calculate Moran's I for spatial autocorrelation.
+
+    Args:
+        values (np.ndarray): Array of values at each location.
+        locations (np.ndarray): Array of (x, y) coordinates for each location.
+        threshold (float): Distance threshold for spatial weights. Set negative to disable.
+        alpha (float): Exponent for inverse distance weighting.
+
+    Returns:
+        float: Moran's I value.
+    """
+    N = len(values)
+    mean_value = np.mean(values)
+
+    # Calculate pairwise distances
+    distances = np.linalg.norm(locations[:, None, :] - locations[None, :, :], axis=-1)
+
+    # Create spatial weights matrix
+    if threshold < 0:
+        weights = distances**alpha
+    else:
+        weights = np.where(distances <= threshold, distances**alpha, 0)
+    assert np.all(np.diag(weights) == 0)  # No self-loops
+
+    # Calculate Moran's I
+    W = np.sum(weights)
+    numerator = np.sum(
+        weights * (values[:, None] - mean_value) * (values[None, :] - mean_value)
+    )
+    denominator = np.sum((values - mean_value) ** 2)
+
+    morans_i = (N / W) * (numerator / denominator)
+    return morans_i
+
+
 def make_spatial_correlation_plot(glc_data, column, to_conc=False):
+    """
+    Create a spatial correlation plot using a custom Moran's I implementation.
+
+    Args:
+        glc_data (pd.DataFrame): Input data.
+        column (str): Column to analyze.
+        to_conc (bool): Whether to convert to concentration.
+
+    Returns:
+        fig, ax, morans_i: Matplotlib figure, axis, and Moran's I value.
+    """
     # Filter to just last snapshot
     max_t = glc_data.Time.max()
     data = glc_data[glc_data.Time == max_t][["Boundary", "Volume", column]]
@@ -31,17 +76,35 @@ def make_spatial_correlation_plot(glc_data, column, to_conc=False):
     data["X"] = location.apply(lambda loc: loc[0])
     data["Y"] = location.apply(lambda loc: loc[1])
 
-    location = data[["X", "Y"]].values
+    locations = data[["X", "Y"]].values
+    values = data[column].values
 
-    weights = DistanceBand(location, 3, alpha=-2.0, binary=False)
-    moran = Moran(data[column], weights, permutations=9999)
+    # Calculate Moran's I
+    morans_i = calculate_morans_i(values, locations)
 
-    fig, ax = plot_moran(moran)
+    # Plot Moran's I
+    fig, ax = plt.subplots()
+    ax.hist(values, bins=20, alpha=0.7, label=f"Moran's I = {morans_i:.4f}")
+    ax.set_title(f"Spatial Correlation for {column}")
+    ax.set_xlabel("Value")
+    ax.set_ylabel("Frequency")
+    ax.legend()
 
-    return fig, ax, moran
+    return fig, ax, morans_i
 
 
 def make_threshold_sweep_plot(glc_data, column, to_conc=False):
+    """
+    Create a threshold sweep plot for Moran's I.
+
+    Args:
+        glc_data (pd.DataFrame): Input data.
+        column (str): Column to analyze.
+        to_conc (bool): Whether to convert to concentration.
+
+    Returns:
+        fig, ax: Matplotlib figure and axis.
+    """
     # Filter to just last snapshot
     max_t = glc_data.Time.max()
     data = glc_data[glc_data.Time == max_t][["Boundary", "Volume", column]]
@@ -53,18 +116,18 @@ def make_threshold_sweep_plot(glc_data, column, to_conc=False):
     data["X"] = location.apply(lambda loc: loc[0])
     data["Y"] = location.apply(lambda loc: loc[1])
 
-    location = data[["X", "Y"]].values
+    locations = data[["X", "Y"]].values
+    values = data[column].values
 
     thresholds = np.linspace(0, 50, 50)
     i_values = []
     max_i = 0
     max_d = 0
     for d in thresholds:
-        weights = DistanceBand(location, d, alpha=-2.0, binary=False)
-        moran = Moran(data[column], weights, permutations=9999)
-        i_values.append(moran.I)
-        if moran.I > max_i:
-            max_i = moran.I
+        morans_i = calculate_morans_i(values, locations, threshold=d)
+        i_values.append(morans_i)
+        if morans_i > max_i:
+            max_i = morans_i
             max_d = d
 
     fig, ax = plt.subplots()

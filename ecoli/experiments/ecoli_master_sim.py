@@ -42,6 +42,8 @@ from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.parquet_emitter import ParquetEmitter
 from ecoli.library.schema import not_a_process
 
+from wholecell.utils.filepath import ROOT_PATH
+
 from runscripts.workflow import LIST_KEYS_TO_MERGE
 
 
@@ -77,22 +79,68 @@ def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
 
 def get_git_revision_hash() -> str:
     """Returns current Git hash for model repository to include in metadata
-    that is emitted when starting a simulation."""
-    return (
-        subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"])
-        .decode("ascii")
-        .strip()
+    that is emitted when starting a simulation.
+
+    First tries to run git command if git is installed.
+    If that fails, tries to get the value from IMAGE_GIT_HASH environment variable.
+    Raises an error if both methods fail.
+    """
+    # Try to run git command
+    try:
+        return (
+            subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"])
+            .decode("ascii")
+            .strip()
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass  # Continue to next method if git command fails
+
+    # Try to get from environment variable
+    env_hash = os.environ.get("IMAGE_GIT_HASH")
+    if env_hash:
+        return env_hash.strip()
+
+    # Raise error if both methods fail
+    raise RuntimeError(
+        "Could not determine Git hash: git command failed and IMAGE_GIT_HASH "
+        "environment variable is not set. Either install git, set the environment "
+        "variable, or run from a container with this information."
     )
 
 
-def get_git_status() -> str:
-    """Returns Git status of model repository to include in metadata that is
+def get_git_diff() -> str:
+    """Returns Git diff of model repository to include in metadata that is
     emitted when starting a simulation.
+
+    First tries to run git command if git is installed.
+    If that fails, tries to read the diff from source-info/git-diff.txt file.
+    Raises an error if both methods fail.
     """
-    return (
-        subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "status", "--porcelain"])
-        .decode("ascii")
-        .strip()
+    # Try to run git command
+    try:
+        return (
+            subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "diff", "HEAD"])
+            .decode("ascii")
+            .strip()
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass  # Continue to next method if git command fails
+
+    # Try to read from git-diff.txt file
+    diff_file_path = os.path.join(ROOT_PATH, "source-info", "git_diff.txt")
+    if os.path.exists(diff_file_path):
+        try:
+            with open(diff_file_path, "r") as f:
+                return f.read().strip()
+        except IOError:
+            pass  # Continue to next method if file read fails
+
+    # Raise error if both methods fail
+    raise RuntimeError(
+        "Could not determine Git diff: git command failed and "
+        f"{diff_file_path} does not exist or cannot be read. "
+        "Either install git, create the git-diff.txt file, "
+        "or run from a container with this information."
     )
 
 
@@ -924,14 +972,8 @@ class EcoliSim:
         # with an additional key for the current git hash.
         # Goal is to save enough information to reproduce the experiment.
         metadata = dict(self.config)
-        try:
-            metadata["git_hash"] = get_git_revision_hash()
-        except subprocess.CalledProcessError:
-            warnings.warn(
-                "Unable to retrieve current git revision hash. "
-                "Try making a note of this manually if your experiment may "
-                "need to be replicated."
-            )
+        metadata["git_hash"] = get_git_revision_hash()
+        metadata["git_diff"] = get_git_diff()
         metadata["processes"] = [k for k in metadata["processes"].keys()]
         metadata["time"] = datetime.now()
         return metadata

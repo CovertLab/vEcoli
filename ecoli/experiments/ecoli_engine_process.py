@@ -24,7 +24,7 @@ from ecoli.experiments.ecoli_master_sim import (
     EcoliSim,
     SimConfig,
     get_git_revision_hash,
-    get_git_status,
+    get_git_diff,
     report_profiling,
     tuplify_topology,
 )
@@ -452,7 +452,7 @@ def run_simulation(config):
     metadata = config.to_dict()
     metadata.pop("initial_state", None)
     metadata["git_hash"] = get_git_revision_hash()
-    metadata["git_status"] = get_git_status()
+    metadata["git_diff"] = get_git_diff()
 
     # Since unique numpy updater is an class method, internal
     # deepcopying in vivarium-core causes this warning to appear

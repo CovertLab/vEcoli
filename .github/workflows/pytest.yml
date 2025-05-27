@@ -28,6 +28,14 @@ jobs:
         version: "0.6.10"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
+    - name: Run ParCa
+      run: |
+        uv run --env-file .env runscripts/parca.py \
+          --config ecoli/composites/ecoli_configs/gha_pytest.json
+    - name: Extract tetracycline gene regulation parameters
+      run: |
+        uv run --env-file .env data/marA_binding/get_TU_ID.py \
+          -s out/kb/simData.cPickle
     - name: Test with pytest
       run: |
         uv run --env-file .env pytest --durations=0
@@ -58,4 +66,4 @@ jobs:
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Ruff
       run: |
-        uv run ruff check doc ecoli migration wholecell runscripts validation reconstruction
+        uv run ruff check doc ecoli wholecell runscripts validation reconstruction

@@ -208,8 +208,7 @@ All partitioned processes are instances of the
 :py:class:`~ecoli.processes.partition.PartitionedProcess` class. This both 
 serves to identify the processes that require partitioning and also implements 
 a standard ``next_update`` method that allows these processes to be run on 
-their own (as in 
-`migration tests <https://github.com/CovertLab/vivarium-ecoli/tree/master/migration>`_).
+their own.
 
 .. WARNING::
     In instances of :py:class:`~ecoli.processes.partition.PartitionedProcess`, 
