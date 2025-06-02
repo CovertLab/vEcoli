@@ -64,8 +64,7 @@ def plot(
 
     # Get IDs of associated monomers and genes
     monomer_ids = [
-        cistron_id_to_protein_id.get(cistron_id, None)
-        for cistron_id in mRNA_cistron_ids
+        cistron_id_to_protein_id[cistron_id] for cistron_id in mRNA_cistron_ids
     ]
     cistron_id_to_gene_id = {
         cistron["id"]: cistron["gene_id"] for cistron in cistron_data
