@@ -255,6 +255,10 @@ to read data using DuckDB. These include:
   Analysis scripts (see :ref:`analysis_scripts`) receive a ``history_sql`` and
   ``config_sql`` that reads data from Parquet files with filters applied when
   run using :py:mod:`runscripts.analysis`.
+- :py:func:`~ecoli.library.parquet_emitter.union_by_name`: Modify SQL query
+  from :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql` to
+  use DuckDB's `union_by_name <https://duckdb.org/docs/stable/data/multiple_files/combining_schemas.html#union-by-name>`_.
+  This is useful when reading data from simulations with different columns.
 - :py:func:`~ecoli.library.parquet_emitter.num_cells`: Quickly get a count of
   the number of cells whose data is included in a SQL query
 - :py:func:`~ecoli.library.parquet_emitter.skip_n_gens`: Add a filter to an SQL
