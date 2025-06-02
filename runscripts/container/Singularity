@@ -9,6 +9,7 @@ From: ghcr.io/astral-sh/uv@sha256:2597ffa44de9d160ca9ee2e1073728e6492af57b9abba5
     export IMAGE_GIT_HASH="{{ git_hash }}"
     export IMAGE_GIT_BRANCH="{{ git_branch }}"
     export IMAGE_TIMESTAMP="{{ timestamp }}"
+    export UV_CACHE_DIR="/vEcoli/.uv_cache"
 
 %labels
     application "Whole Cell Model Runtime Environment"
