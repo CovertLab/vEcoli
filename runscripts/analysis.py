@@ -290,7 +290,7 @@ def main():
     # Establish DuckDB connection
     conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("cpus"))
     history_sql, config_sql, success_sql = get_dataset_sql(
-        out_uri, config["experiment_id"], config["union_by_name"]
+        out_uri, config["experiment_id"]
     )
     # If no explicit analysis type given, run all types in config JSON
     if "analysis_types" not in config:

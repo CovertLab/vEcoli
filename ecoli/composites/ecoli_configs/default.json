@@ -52,8 +52,7 @@
     },
 
     "analysis_options": {
-        "cpus": 1,
-        "union_by_name": false
+        "cpus": 1
     },
 
     "gcloud": null,

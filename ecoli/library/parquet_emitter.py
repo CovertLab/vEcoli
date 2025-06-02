@@ -99,9 +99,23 @@ def json_to_parquet(
         pathlib.Path(ndjson).unlink()
 
 
-def get_dataset_sql(
-    out_dir: str, experiment_ids: list[str], union_by_name: bool = False
-) -> tuple[str, str, str]:
+def union_by_name(query_sql: str) -> str:
+    """
+    Modifies SQL query string from :py:func:`~.get_dataset_sql` to
+    include ``union_by_name = true`` in the DuckDB ``read_parquet``
+    function. This allows data to be read from simulations that have
+    different columns by filling in nulls and casting as necessary.
+    This comes with a performance penalty and should be avoided if possible.
+
+    Args:
+        query_sql: SQL query string from :py:func:`~.get_dataset_sql`
+    """
+    return query_sql.replace(
+        "hive_partitioning = true,", "hive_partitioning = true, union_by_name = true,"
+    )
+
+
+def get_dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, str]:
     """
     Creates DuckDB SQL strings for sim outputs, configs, and metadata on which
     sims were successful.
@@ -114,11 +128,6 @@ def get_dataset_sql(
             from more than one experiment ID, the listeners in the output of the
             first experiment ID in the list must be a strict subset of the listeners
             in the output of the subsequent experiment ID(s).
-        union_by_name: If True, set ``union_by_name=True`` in DuckDB
-            ``read_parquet`` function. This will allow data to be read
-            from simulations that have different columns by filling in
-            nulls and casting as necessary. This comes with a performance
-            penalty and should be avoided if possible.
 
     Returns:
         3-element tuple containing
@@ -130,10 +139,6 @@ def get_dataset_sql(
           (see :py:func:`~.read_stacked_columns`)
 
     """
-    if union_by_name:
-        union_by_name_sql = "union_by_name = true,"
-    else:
-        union_by_name_sql = ""
     sql_queries = []
     for query_type in ("history", "configuration", "success"):
         query_files = []
@@ -147,7 +152,6 @@ def get_dataset_sql(
             FROM read_parquet(
                 [{query_files}],
                 hive_partitioning = true,
-                {union_by_name_sql}
                 hive_types = {{
                     'experiment_id': VARCHAR,
                     'variant': BIGINT,
