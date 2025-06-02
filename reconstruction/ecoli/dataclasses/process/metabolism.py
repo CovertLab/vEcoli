@@ -1855,10 +1855,10 @@ class Metabolism(object):
         # Check calculations that could end up negative
         neg_idx = np.where(self.max_specific_import_rates < 0)[0]
         if len(neg_idx):
-            aas = ", ".join([aa_ids[idx] for idx in neg_idx])
+            bad_aas = ", ".join([aa_ids[idx] for idx in neg_idx])
             print(f"{self.max_specific_import_rates = }")
             raise ValueError(
-                f"Import rate was determined to be negative for {aas}."
+                f"Import rate was determined to be negative for {bad_aas}."
                 " Check input parameters like supply and synthesis or enzyme expression."
             )
 
