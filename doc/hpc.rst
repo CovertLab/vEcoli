@@ -314,14 +314,7 @@ If not, you may run into errors when running workflows because
 Apptainer containers are read-only. You may be able to resolve this by
 adding ``--writeable-tmpfs`` to ``containerOptions`` for the ``sherlock``
 and ``sherlock-hq`` profiles in ``runscripts/nextflow/config.template``.
-
-If this does not work, Nextflow allows users to define ``beforeScript`` and
-``afterScript`` directives for each process that we can potentially use to create
-and clean up Apptainer overlay files. Then, the ``containerOptions``
-directive can be modified to start containers with these overlays. However,
-the simplest solution is likely to set up vEcoli as if Apptainer was not
-available (see below). Note that if Apptainer is not configured to automount
-filesystems, you will need to manually specify paths to mount when debugging
+Additionally, you will need to manually specify paths to mount when debugging
 with interactive containers (see :ref:`sherlock-interactive`). This can be done
 using the ``-p`` argument for ``runscripts/container/interactive.sh``.
 
@@ -356,7 +349,9 @@ If your HPC cluster uses a different scheduler, refer to the Nextflow
 for more information on configuring the right executor. Beyond changing queue
 names as described above, this could be as simple as modifying the ``executor``
 directives for the ``sherlock`` and ``sherlock_hq`` profiles in
-``runscripts/nextflow/config.template``.
+``runscripts/nextflow/config.template``. Additionally, you will need to
+replace the SLURM submission directives in :py:func:`runscripts.workflow.main`
+with equivalent directives for your scheduler.
 
 
 .. _hyperqueue:

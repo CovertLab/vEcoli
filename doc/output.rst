@@ -174,13 +174,6 @@ null values or nested types containing null values (e.g. empty list). For these 
 all values except the null entries must be the same type (e.g. column with lists
 of integers where some entries are empty lists).
 
-Currently, the Parquet emitter does not support saving data from stores that are
-dynamically added or removed over the course of a simulation or workflow. This means
-that all cells in a workflow must emit a consistent store hierarchy that flattens to
-a dictionary with the same double-underscore concatenated keys (resulting Parquet
-files all have the same columns). This limitation may be relaxed in the future via
-an optional flag that will come with an unknown performance penalty.
-
 The Parquet emitter saves the serialized tabular data to two Hive-partitioned
 directories in the output folder (``out_dir`` or ``out_uri`` option under
 ``emitter_arg`` in :ref:`json_config`):
