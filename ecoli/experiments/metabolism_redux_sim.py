@@ -153,18 +153,18 @@ def run_colony(
 
 def run_lineage(
     filename="metabolism_redux_classic",
-    total_time=1600,
+    total_time=2900,
     divide=True,
-    initial_state_file='lineage_3', # 'wcecoli_t0', # 'met_division_test_state',
+    initial_state_file='wcecoli_t0', # 'wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries',
     name="metabolism-redux-classic-rich",
     raw_output=False,
     save=True,
-    save_times=[1, 1300, 1400, 1500, 1600,],
-    condition="with_aa",  # basal, with_aa
-    fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids
+    save_times=[1, 2500, 2600, 2700, 2800, 2900],
+    condition="basal",  # basal, with_aa
+    fixed_media="minimal",  # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
@@ -192,7 +192,7 @@ def run_lineage(
     sim.run()
 
     query = []
-    folder = f"out/cofactors/lineage-{initial_state_file}/"
+    folder = f"out/cofactors/lineage-min-{initial_state_file}/"
     save_sim_output(folder, query, sim, save_model=False)
 
 
