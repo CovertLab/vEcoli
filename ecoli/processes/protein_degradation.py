@@ -20,7 +20,7 @@ from ecoli.library.data_predicates import (
     monotonically_decreasing,
     all_nonnegative,
 )
-from ecoli.library.schema import numpy_schema, counts, bulk_name_to_idx
+from ecoli.library.schema import numpy_schema, counts, bulk_name_to_idx, listener_schema
 
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
@@ -28,7 +28,7 @@ from ecoli.processes.partition import PartitionedProcess
 
 # Register default topology for this process, associating it with process name
 NAME = "ecoli-protein-degradation"
-TOPOLOGY = {"bulk": ("bulk",), "timestep": ("timestep",)}
+TOPOLOGY = {"bulk": ("bulk",), "listeners": ("listeners",), "timestep": ("timestep",)}
 topology_registry.register(NAME, TOPOLOGY)
 
 
@@ -86,6 +86,16 @@ class ProteinDegradation(PartitionedProcess):
     def ports_schema(self):
         return {
             "bulk": numpy_schema("bulk"),
+            "listeners": {
+                "monomer_degradation": listener_schema(
+                    {
+                        "monomers_degraded": (
+                            np.zeros(len(self.protein_ids), np.int64),
+                            self.protein_ids,
+                        ),
+                    }
+                )
+            },
             "timestep": {"_default": self.parameters["time_step"]},
         }
 
@@ -133,7 +143,10 @@ class ProteinDegradation(PartitionedProcess):
             "bulk": [
                 (self.metabolite_idx, metabolites_delta),
                 (self.protein_idx, -allocated_proteins),
-            ]
+            ],
+            "listeners": {
+                "monomer_degradation": {"monomers_degraded": allocated_proteins}
+            },
         }
 
         return update
