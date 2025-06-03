@@ -26,7 +26,7 @@ From: ghcr.io/astral-sh/uv@sha256:2597ffa44de9d160ca9ee2e1073728e6492af57b9abba5
 %post
     apt-get update && apt-get install -y gcc procps
     cd /vEcoli
-    UV_COMPILE_BYTECODE=1 uv sync --frozen
+    UV_CACHE_DIR="/vEcoli/.uv_cache" UV_COMPILE_BYTECODE=1 uv sync --frozen
 
 %runscript
     if [ -f /vEcoli/.env ]; then
