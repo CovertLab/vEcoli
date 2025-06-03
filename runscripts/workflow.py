@@ -5,8 +5,8 @@ import pathlib
 import random
 import shutil
 import subprocess
-import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from urllib import parse
 
@@ -287,156 +287,28 @@ def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):
             stream.write(f.read())
 
 
-def check_job_state(job_id, timeout_seconds=3600, sleep_interval=30):
+def stream_log(output_log: str, sleep_time: int = 1):
     """
-    Check the state of a SLURM job until it completes or fails.
-
-    Args:
-        job_id: The SLURM job ID to check
-        timeout_seconds: Maximum time to wait in seconds (default: 1 hour)
-        sleep_interval: Time to sleep between checks in seconds (default: 30 seconds)
-
-    Returns:
-        True if job completed successfully, False otherwise
+    As long as output_log exists, read and print new content to stdout.
     """
-    print(f"Checking final status of job {job_id}...")
-    start_time = time.time()
-
-    while time.time() - start_time < timeout_seconds:
-        # Get the current job state using sacct
-        try:
-            result = subprocess.run(
-                ["sacct", "-j", job_id, "-o", "State", "-n", "--parsable2"],
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=True,
-            )
-            state_output = result.stdout.strip()
-
-            # Handle empty output
-            if not state_output:
-                print(
-                    f"No state information found for job {job_id}, checking if it's in the queue..."
-                )
-                # Check if job is in the queue at all
-                queue_result = subprocess.run(
-                    ["squeue", "-j", job_id, "-h"],
-                    text=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-                if queue_result.returncode != 0 or not queue_result.stdout.strip():
-                    print(
-                        f"Job {job_id} is not in the queue and has no records in sacct."
-                    )
-                    # Wait a bit in case sacct is delayed in updating
-                    time.sleep(sleep_interval)
-                    continue
-
-            # Split by newline and take the first line (main job state)
-            job_state = state_output.split("\n")[0]
-
-            # Check terminal states
-            if job_state == "COMPLETED":
-                print(f"Job {job_id} completed successfully.")
-                return True
-            elif job_state in (
-                "FAILED",
-                "TIMEOUT",
-                "CANCELLED",
-                "NODE_FAIL",
-                "PREEMPTED",
-            ):
-                print(f"Job {job_id} failed with state {job_state}")
-                return False
-            elif job_state in ("RUNNING", "PENDING", "CONFIGURING", "COMPLETING"):
-                print(f"Job {job_id} is in state {job_state}, waiting...")
-            else:
-                print(f"Job {job_id} is in state {job_state}, continuing to monitor...")
-
-        except subprocess.CalledProcessError as e:
-            print(f"Error checking job state: {e}")
-            print(f"stderr: {e.stderr}")
-
-        # Sleep before checking again
-        time.sleep(sleep_interval)
-
-    # If we get here, we've timed out
-    print(
-        f"Timed out waiting for job {job_id} to complete after {timeout_seconds} seconds"
-    )
-    return False
-
-
-def forward_sbatch_output(
-    batch_script: str,
-    output_log: str,
-    timeout_seconds: int = 3600,
-):
-    """
-    Submit a SLURM job that is configured to pipe its output to a log file.
-    Then, monitor the log file with `tail -f` and print the output to stdout.
-    This function will exit when the job completes.
-    """
-    # Delete any pre-existing log file
     log_path = pathlib.Path(output_log)
-    if log_path.exists():
-        log_path.unlink()
-
-    # Submit the job and get the job ID
-    result = subprocess.run(
-        ["sbatch", "--parsable", batch_script],
-        check=True,
-        text=True,
-        stdout=subprocess.PIPE,
-    )
-    job_id = result.stdout.strip().split(";")[0]
-
-    print(f"Submitted SLURM job {job_id}, log file: {output_log}")
-
     # Track last position read in output log file
     last_position = 0
-
     while True:
         # Read any new content from the log file
         if log_path.exists():
             with open(output_log, "r") as f:
                 # Move to where we left off
                 f.seek(last_position)
-
                 # Read and print new content
                 new_content = f.read()
                 if new_content:
                     print(new_content, end="", flush=True)
-
                 # Remember where we are now
                 last_position = f.tell()
-
-        # Check if job is still running
-        job_status = subprocess.run(
-            ["squeue", "-j", job_id, "-h", "-o", "%t"],
-            text=True,
-            stdout=subprocess.PIPE,
-        ).stdout.strip()
-
-        # If job no longer exists in queue
-        if not job_status:
-            # Catch up with final output
-            time.sleep(5)
-            with open(output_log, "r") as f:
-                f.seek(last_position)
-                new_content = f.read()
-                if new_content:
-                    print(new_content, end="", flush=True)
+        else:
             break
-
-        # Wait a bit before checking job status again
-        time.sleep(30)
-
-    # Final check of job success
-    if not check_job_state(job_id, timeout_seconds):
-        sys.exit(1)
+        time.sleep(sleep_time)
 
 
 def main():
@@ -566,12 +438,15 @@ def main():
                 "Cannot set both Sherlock and Google Cloud options in the input JSON."
             )
         nf_profile = "sherlock"
+        # Start a new thread to forward output of submitted jobs to stdout
+        thread_executor = ThreadPoolExecutor(max_workers=1)
         container_image = sherlock_config.get("container_image", None)
         if container_image is None:
             raise RuntimeError("Must supply name for container image.")
         if sherlock_config.get("build_image", False):
             image_cmd = " ".join(build_image_cmd(container_image, True))
             image_build_script = os.path.join(local_outdir, "container.sh")
+            log_file = os.path.join(local_outdir, "build-image.out")
             with open(image_build_script, "w") as f:
                 f.write(f"""#!/bin/bash
 #SBATCH --job-name="build-image-{experiment_id}"
@@ -579,12 +454,19 @@ def main():
 #SBATCH --cpus-per-task 2
 #SBATCH --mem=8GB
 #SBATCH --partition=owners,normal
-#SBATCH --output={os.path.join(local_outdir, "build-image.out")}
+#SBATCH --wait
+#SBATCH --output={log_file}
 {image_cmd}
 """)
-            forward_sbatch_output(
-                image_build_script, os.path.join(local_outdir, "build-image.out")
-            )
+            # Create empty log file for thread to stream from
+            log_path = pathlib.Path(log_file)
+            log_path.touch(exist_ok=True)
+            thread_executor.submit(stream_log, log_file)
+            try:
+                subprocess.run(["sbatch", image_build_script], check=True)
+            finally:
+                # Always delete log file to stop streaming thread
+                log_path.unlink()
         nf_config = nf_config.replace("IMAGE_NAME", container_image)
     local_config = os.path.join(local_outdir, "nextflow.config")
     with open(local_config, "w") as f:
@@ -666,6 +548,7 @@ hq alloc add slurm --time-limit 8h -- --partition=owners,normal --mem=4GB
 #SBATCH --mem=4GB
 #SBATCH --partition=mcovert
 #SBATCH --output={nf_slurm_output}
+{"#SBATCH --wait" if sherlock_config.get("jenkins", False) else ""}
 set -e
 # Ensure HyperQueue shutdown on failure or interruption
 trap 'exitcode=$?; {hyperqueue_exit}' EXIT
@@ -678,7 +561,15 @@ nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
         )
         # Make stdout of workflow viewable in Jenkins
         if sherlock_config.get("jenkins", False):
-            forward_sbatch_output(batch_script, nf_slurm_output, 3600 * 24)
+            # Create empty log file for thread to stream from
+            log_path = pathlib.Path(nf_slurm_output)
+            log_path.touch(exist_ok=True)
+            thread_executor.submit(stream_log, nf_slurm_output)
+            try:
+                subprocess.run(["sbatch", batch_script], check=True)
+            finally:
+                # Always delete log file to stop streaming thread
+                log_path.unlink()
         else:
             subprocess.run(["sbatch", batch_script], check=True)
     shutil.rmtree(local_outdir)
