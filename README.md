@@ -112,10 +112,10 @@ This will run the following basic simulation workflow:
 3. [Analyze simulation output](runscripts/analysis.py) by creating a
     [mass fraction plot](ecoli/analysis/single/mass_fraction_summary.py).
 
-## Next Steps
-Review the online [user guide](https://covertlab.github.io/vEcoli/) to learn how
-to configure and run your own simulation workflows.
+## Documentation
+The documentation is located at [https://covertlab.github.io/vEcoli/](https://covertlab.github.io/vEcoli/)
+and contains more information about the model architecture, output,
+and workflow configuration.
 
-If you encounter a problem that you cannot solve after searching the user guide
-(also linked in the repository sidebar), feel free to create a GitHub issue, and we will
+If you encounter an issue not addressed by the docs, feel free to create a GitHub issue, and we will
 get back to you as soon as we can.
