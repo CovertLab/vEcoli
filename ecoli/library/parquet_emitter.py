@@ -68,7 +68,7 @@ def json_to_parquet(
     encodings: dict[str, str],
     schema: pa.Schema,
     outfile: str,
-    filesystem: Optional[fs.FileSystem] = None,
+    filesystem: fs.FileSystem,
 ):
     """
     Reads newline-delimited JSON file and converts to Parquet file.
@@ -84,9 +84,15 @@ def json_to_parquet(
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
     try:
         t = pj.read_json(ndjson, read_options=read_options, parse_options=parse_options)
+        # GCS should have atomic uploads, but on a local filesystem, DuckDB may fail
+        # trying to read partially written Parquet files. Get around this by writing
+        # to a temporary file and then renaming it to the final output file.
+        temp_outfile = outfile
+        if filesystem.type_name == "local":
+            temp_outfile = outfile + ".tmp"
         pq.write_table(
             t,
-            outfile,
+            temp_outfile,
             use_dictionary=False,
             compression="zstd",
             column_encoding=encodings,
@@ -95,6 +101,8 @@ def json_to_parquet(
             # and dramatically slows down reading while increasing RAM usage
             write_statistics=False,
         )
+        if filesystem.type_name == "local":
+            filesystem.move(temp_outfile, outfile)
     finally:
         pathlib.Path(ndjson).unlink()
 
