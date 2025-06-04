@@ -1,0 +1,8 @@
+``ecoli.analysis.antibiotics_colony.spatial_correlation``
+=========================================================
+.. automodule:: ecoli.analysis.antibiotics_colony.spatial_correlation
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

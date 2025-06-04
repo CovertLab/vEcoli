@@ -1,0 +1,17 @@
+``ecoli.analysis.multivariant``
+===============================
+.. automodule:: ecoli.analysis.multivariant
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   ecoli.analysis.multivariant.average_monomer_counts
+   ecoli.analysis.multivariant.doubling_time_hist
+   ecoli.analysis.multivariant.doubling_time_line
+   ecoli.analysis.multivariant.dummy
+   ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps
