@@ -75,9 +75,9 @@ class RibosomeData(Step):
                         "rRNA5S_init_prob": 0.0,
                         "rRNA16S_init_prob": 0.0,
                         "rRNA23S_init_prob": 0.0,
-                        "mRNA_TU_index": [0],
-                        "n_ribosomes_on_each_mRNA": [0],
-                        "protein_mass_on_polysomes": [0.0],
+                        "mRNA_TU_index": [],
+                        "n_ribosomes_on_each_mRNA": [],
+                        "protein_mass_on_polysomes": [],
                         "rRNA_initiated_TU": [0] * n_rRNA_TUs,
                         "rRNA_init_prob_TU": [0.0] * n_rRNA_TUs,
                     }
