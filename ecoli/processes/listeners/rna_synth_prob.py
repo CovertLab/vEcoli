@@ -115,15 +115,24 @@ class RnaSynthProb(Step):
                 / target_rna_synth_prob_per_cistron.sum()
             )
 
+        tf_idx = np.zeros(10000, dtype=np.int16)
+        tf_idx[: len(TF_indexes)] = TF_indexes
+        bound_TF_coordinates = np.zeros(10000, dtype=np.int64)
+        bound_coords = all_coordinates[bound_promoter_indexes]
+        bound_TF_coordinates[: len(bound_coords)] = bound_coords
+        bound_TF_domains = np.zeros(10000, dtype=np.int64)
+        bound_domains = all_domains[bound_promoter_indexes]
+        bound_TF_domains[: len(bound_domains)] = bound_domains
+
         return {
             "rna_synth_prob": {
                 "promoter_copy_number": np.bincount(TU_indexes, minlength=self.n_TU),
                 "gene_copy_number": np.bincount(
                     cistron_indexes, minlength=self.n_cistron
                 ),
-                "bound_TF_indexes": TF_indexes,
-                "bound_TF_coordinates": all_coordinates[bound_promoter_indexes],
-                "bound_TF_domains": all_domains[bound_promoter_indexes],
+                "bound_TF_indexes": tf_idx,
+                "bound_TF_coordinates": bound_TF_coordinates,
+                "bound_TF_domains": bound_TF_domains,
                 "expected_rna_init_per_cistron": expected_rna_init_per_cistron,
                 "actual_rna_synth_prob_per_cistron": actual_rna_synth_prob_per_cistron,
                 "target_rna_synth_prob_per_cistron": target_rna_synth_prob_per_cistron,

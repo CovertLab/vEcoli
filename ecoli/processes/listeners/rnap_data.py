@@ -124,21 +124,38 @@ class RnapData(Step):
             partial_RNA_RNAP_indexes, RNAP_unique_indexes
         )
 
+        coords = np.zeros(10000, dtype=np.int64)
+        coords[: len(coordinates)] = coordinates
+        domain_idxs = np.zeros(10000, dtype=np.int64)
+        domain_idxs[: len(domain_indexes)] = domain_indexes
+        RNAP_unique_idxs = np.zeros(10000, dtype=np.int64)
+        RNAP_unique_idxs[: len(RNAP_unique_indexes)] = RNAP_unique_indexes
+        act_rnap_on_stable_rna_idx = np.zeros(10000, dtype=np.int64)
+        active_rnap_on_stable_RNA_indexes = RNA_RNAP_index[
+            np.logical_and(is_stable_RNA, is_partial_transcript)
+        ]
+        act_rnap_on_stable_rna_idx[: len(active_rnap_on_stable_RNA_indexes)] = (
+            active_rnap_on_stable_RNA_indexes
+        )
+        act_rnap_n_bound_ribs = np.zeros(10000, dtype=np.int64)
+        active_rnap_n_bound_ribosomes = np.array(
+            [
+                RNA_index_counts.get(partial_RNA_unique_indexes[i], 0)
+                for i in partial_RNA_to_RNAP_mapping
+            ]
+        )
+        act_rnap_n_bound_ribs[: len(active_rnap_n_bound_ribosomes)] = (
+            active_rnap_n_bound_ribosomes
+        )
+
         update = {
             "listeners": {
                 "rnap_data": {
-                    "active_rnap_coordinates": coordinates,
-                    "active_rnap_domain_indexes": domain_indexes,
-                    "active_rnap_unique_indexes": RNAP_unique_indexes,
-                    "active_rnap_on_stable_RNA_indexes": RNA_RNAP_index[
-                        np.logical_and(is_stable_RNA, is_partial_transcript)
-                    ],
-                    "active_rnap_n_bound_ribosomes": np.array(
-                        [
-                            RNA_index_counts.get(partial_RNA_unique_indexes[i], 0)
-                            for i in partial_RNA_to_RNAP_mapping
-                        ]
-                    ),
+                    # "active_rnap_coordinates": coords,
+                    # "active_rnap_domain_indexes": domain_idxs,
+                    # "active_rnap_unique_indexes": RNAP_unique_idxs,
+                    # "active_rnap_on_stable_RNA_indexes": act_rnap_on_stable_rna_idx,
+                    # "active_rnap_n_bound_ribosomes": act_rnap_n_bound_ribs,
                     # Calculate hypothetical RNA initiation events per cistron
                     "rna_init_event_per_cistron": self.cistron_tu_mapping_matrix.dot(
                         states["listeners"]["rnap_data"]["rna_init_event"]

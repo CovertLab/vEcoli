@@ -242,7 +242,7 @@ class Metabolism(Step):
                 ),
                 "fba_results": listener_schema(
                     {
-                        "media_id": "",
+                        "media_id": 0,
                         "conc_updates": (
                             [0.0] * len(self.conc_update_molecules),
                             self.conc_update_molecules,
@@ -596,7 +596,7 @@ class Metabolism(Step):
             },
             "listeners": {
                 "fba_results": {
-                    "media_id": current_media_id,
+                    "media_id": 0,
                     "conc_updates": [
                         conc_updates.get(m, 0) for m in self.conc_update_molecules
                     ],

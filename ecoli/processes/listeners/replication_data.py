@@ -68,12 +68,18 @@ class ReplicationData(Step):
 
         (DnaA_box_bound,) = attrs(states["DnaA_boxes"], ["DnaA_bound"])
 
+        fork_coords = np.zeros(1000, dtype=np.float64)
+        fork_coords[: len(fork_coordinates)] = fork_coordinates
+        fork_doms = np.zeros(1000, dtype=np.int64)
+        fork_doms[: len(fork_domains)] = fork_domains
+        fork_unique_idx = np.zeros(1000, dtype=np.int64)
+        fork_unique_idx[: len(fork_unique_index)] = fork_unique_index
         update = {
             "listeners": {
                 "replication_data": {
-                    "fork_coordinates": fork_coordinates,
-                    "fork_domains": fork_domains,
-                    "fork_unique_index": fork_unique_index,
+                    "fork_coordinates": fork_coords,
+                    "fork_domains": fork_doms,
+                    "fork_unique_index": fork_unique_idx,
                     "number_of_oric": states["oriCs"]["_entryState"].sum(),
                     "total_DnaA_boxes": len(DnaA_box_bound),
                     "free_DnaA_boxes": np.count_nonzero(np.logical_not(DnaA_box_bound)),

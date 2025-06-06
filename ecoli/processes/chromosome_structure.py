@@ -157,15 +157,15 @@ class ChromosomeStructure(Step):
                         "n_total_collisions": 0,
                         "n_headon_collisions": 0,
                         "n_codirectional_collisions": 0,
-                        "headon_collision_coordinates": [],
-                        "codirectional_collision_coordinates": [],
+                        "headon_collision_coordinates": [0] * 10000,
+                        "codirectional_collision_coordinates": [0] * 10000,
                         "n_removed_ribosomes": 0,
                         "incomplete_transcription_events": (
                             np.zeros(self.n_TUs, np.int64),
                             self.rna_ids,
                         ),
                         "n_empty_fork_collisions": 0,
-                        "empty_fork_collision_coordinates": [],
+                        "empty_fork_collision_coordinates": [0] * 10000,
                     }
                 )
             },
@@ -389,18 +389,22 @@ class ChromosomeStructure(Step):
         n_codirectional_collisions = np.count_nonzero(RNAP_codirectional_collision_mask)
 
         # Write values to listeners
+        headon_collision_coordinates = np.zeros(10000, dtype=np.int64)
+        headon_collision_coordinates[:n_headon_collisions] = RNAP_coordinates[
+            RNAP_headon_collision_mask
+        ]
+        codirectional_collision_coordinates = np.zeros(10000, dtype=np.int64)
+        codirectional_collision_coordinates[:n_codirectional_collisions] = (
+            RNAP_coordinates[RNAP_codirectional_collision_mask]
+        )
         update = {
             "listeners": {
                 "rnap_data": {
                     "n_total_collisions": n_total_collisions,
                     "n_headon_collisions": n_headon_collisions,
                     "n_codirectional_collisions": n_codirectional_collisions,
-                    "headon_collision_coordinates": RNAP_coordinates[
-                        RNAP_headon_collision_mask
-                    ],
-                    "codirectional_collision_coordinates": RNAP_coordinates[
-                        RNAP_codirectional_collision_mask
-                    ],
+                    "headon_collision_coordinates": headon_collision_coordinates,
+                    "codirectional_collision_coordinates": codirectional_collision_coordinates,
                 }
             },
             "bulk": [],

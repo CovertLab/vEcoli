@@ -422,7 +422,7 @@ class PolypeptideElongation(PartitionedProcess):
                     "_divider": "zero",
                 },
                 "aa_exchange_rates": {
-                    "_default": [0.0],
+                    "_default": [0.0] * 21,
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "zero",

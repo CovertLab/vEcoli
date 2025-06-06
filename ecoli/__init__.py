@@ -5,6 +5,7 @@ from vivarium.core.registry import (
 )
 
 from ecoli.library.parquet_emitter import ParquetEmitter
+from ecoli.library.zarr_emitter import ZarrEmitter
 from ecoli.library.schema import (
     divide_binomial,
     divide_bulk,
@@ -37,6 +38,7 @@ import faulthandler
 faulthandler.enable()
 
 emitter_registry.register("parquet", ParquetEmitter)
+emitter_registry.register("zarr", ZarrEmitter)
 
 # register :term:`updaters`
 inverse_updater_registry.register("accumulate", inverse_update_accumulate)

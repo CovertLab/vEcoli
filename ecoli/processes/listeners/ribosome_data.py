@@ -75,9 +75,9 @@ class RibosomeData(Step):
                         "rRNA5S_init_prob": 0.0,
                         "rRNA16S_init_prob": 0.0,
                         "rRNA23S_init_prob": 0.0,
-                        "mRNA_TU_index": [0],
-                        "n_ribosomes_on_each_mRNA": [0],
-                        "protein_mass_on_polysomes": [0.0],
+                        "mRNA_TU_index": [0] * 10000,
+                        "n_ribosomes_on_each_mRNA": [0] * 10000,
+                        "protein_mass_on_polysomes": [0.0] * 10000,
                         "rRNA_initiated_TU": [0] * n_rRNA_TUs,
                         "rRNA_init_prob_TU": [0.0] * n_rRNA_TUs,
                     }
@@ -199,6 +199,13 @@ class RibosomeData(Step):
             minlength=bincount_minlength,
         )[reduced_to_normal_mRNA_indices]
 
+        mrna_tu_idx = np.zeros(10000, dtype=np.int64)
+        mrna_tu_idx[: len(mRNA_TU_index)] = mRNA_TU_index
+        n_rib_per_mrna = np.zeros(10000, dtype=np.int64)
+        n_rib_per_mrna[: len(n_ribosomes_on_each_mRNA)] = n_ribosomes_on_each_mRNA
+        prot_mass_on_poly = np.zeros(10000, dtype=np.float64)
+        prot_mass_on_poly[: len(protein_mass_on_polysomes)] = protein_mass_on_polysomes
+
         update = {
             "listeners": {
                 "ribosome_data": {
@@ -212,9 +219,9 @@ class RibosomeData(Step):
                     "rRNA5S_init_prob": rRNA5S_init_prob,
                     "rRNA16S_init_prob": rRNA16S_init_prob,
                     "rRNA23S_init_prob": rRNA23S_init_prob,
-                    "mRNA_TU_index": mRNA_TU_index,
-                    "n_ribosomes_on_each_mRNA": n_ribosomes_on_each_mRNA,
-                    "protein_mass_on_polysomes": protein_mass_on_polysomes,
+                    "mRNA_TU_index": mrna_tu_idx,
+                    "n_ribosomes_on_each_mRNA": n_rib_per_mrna,
+                    "protein_mass_on_polysomes": prot_mass_on_poly,
                 }
             },
             "next_update_time": states["global_time"] + states["timestep"],
