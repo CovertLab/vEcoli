@@ -3104,6 +3104,7 @@ dependencies = [
     { name = "biopython" },
     { name = "cvxpy" },
     { name = "cython" },
+    { name = "dask" },
     { name = "dill" },
     { name = "duckdb" },
     { name = "ecos" },
@@ -3134,7 +3135,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "unum" },
     { name = "vivarium-core" },
+    { name = "xarray" },
     { name = "xmltodict" },
+    { name = "zarrs" },
 ]
 
 [package.optional-dependencies]
@@ -3160,6 +3163,7 @@ requires-dist = [
     { name = "biopython" },
     { name = "cvxpy" },
     { name = "cython" },
+    { name = "dask", specifier = ">=2025.5.1" },
     { name = "dill" },
     { name = "duckdb" },
     { name = "ecos" },
@@ -3200,7 +3204,9 @@ requires-dist = [
     { name = "tqdm" },
     { name = "unum" },
     { name = "vivarium-core" },
+    { name = "xarray", specifier = ">=2025.4.0" },
     { name = "xmltodict" },
+    { name = "zarrs", specifier = ">=0.1.4" },
 ]
 provides-extras = ["dev", "docs"]
 
