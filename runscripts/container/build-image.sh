@@ -151,11 +151,22 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
   echo "=== Building Apptainer Image: ${IMAGE} ==="
   echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
 
-  apptainer build --force \
+  # Retry 10 times to handle inconsistent failures on Sherlock
+  MAX_ATTEMPTS=10
+  ATTEMPT=1
+  until apptainer build --force \
     --build-arg git_hash="${GIT_HASH}" \
     --build-arg git_branch="${GIT_BRANCH}" \
     --build-arg timestamp="${TIMESTAMP}" \
-    "${IMAGE}" "$TEMP_DEF"
+    "${IMAGE}" "$TEMP_DEF"; do
+    if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+        echo "ERROR: Apptainer build failed after $MAX_ATTEMPTS attempts."
+        exit 1
+    fi
+    ATTEMPT=$((ATTEMPT + 1))
+    echo "Apptainer build attempt $ATTEMPT failed."
+  done
+  echo "Apptainer build successful after $ATTEMPT attempt(s)!"
 
 else
   echo "=== Cloud-building Docker Image ${IMAGE} ==="
