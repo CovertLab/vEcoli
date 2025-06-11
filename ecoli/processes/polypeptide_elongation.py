@@ -425,7 +425,7 @@ class PolypeptideElongation(PartitionedProcess):
                     "_default": self.zero_aa_exchange_rates.copy(),
                     "_emit": True,
                     "_updater": "set",
-                    "_divider": "zero",
+                    "_divider": "set",
                 },
             },
             "timestep": {"_default": self.parameters["time_step"]},

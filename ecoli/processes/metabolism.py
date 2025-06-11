@@ -365,7 +365,7 @@ class Metabolism(Step):
                     * np.zeros(len(self.aa_exchange_names)),
                     "_emit": True,
                     "_updater": "set",
-                    "_divider": "zero",
+                    "_divider": "set",
                     "_serializer": "<class 'unum.Unum'>",
                 },
             },

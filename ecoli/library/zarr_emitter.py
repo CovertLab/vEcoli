@@ -142,7 +142,7 @@ class ZarrEmitter(Emitter):
             dtype="bool",
             chunks=(self.total_num_emits,),
             dimension_names=[
-                "agent_time",
+                "data_id",
             ],
             config={"write_empty_chunks": False},
         )
