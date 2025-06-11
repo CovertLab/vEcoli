@@ -242,7 +242,7 @@ class Metabolism(Step):
                 ),
                 "fba_results": listener_schema(
                     {
-                        "media_id": 0,
+                        "media_id": "",
                         "conc_updates": (
                             [0.0] * len(self.conc_update_molecules),
                             self.conc_update_molecules,
@@ -360,10 +360,13 @@ class Metabolism(Step):
                     "_divider": "zero",
                 },
                 "aa_exchange_rates": {
-                    "_default": 0.0,
+                    "_default": CONC_UNITS
+                    / TIME_UNITS
+                    * np.zeros(len(self.aa_exchange_names)),
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "zero",
+                    "_serializer": "<class 'unum.Unum'>",
                 },
             },
             "global_time": {"_default": 0.0},
@@ -596,7 +599,7 @@ class Metabolism(Step):
             },
             "listeners": {
                 "fba_results": {
-                    "media_id": 0,
+                    "media_id": current_media_id,
                     "conc_updates": [
                         conc_updates.get(m, 0) for m in self.conc_update_molecules
                     ],

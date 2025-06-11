@@ -1,77 +1,71 @@
 import zarr
+import zipfile
 import os
-import orjson
-from pyarrow import json as pj
+import shutil
+from fsspec import filesystem
 from urllib import parse
 from typing import Any, Optional
 from ecoli.library.parquet_emitter import (
     flatten_dict,
     USE_UINT16,
     USE_UINT32,
-    ndlist_to_ndarray,
 )
-from vivarium.core.emitter import Emitter, make_fallback_serializer_function
+from vivarium.core.emitter import Emitter
 from concurrent.futures import ThreadPoolExecutor, Future
-import tempfile
-
-zarr.config.set({"codec_pipeline.path": "zarrs.ZarrsCodecPipeline"})
+import numpy as np
+import warnings
 
 
 def get_encoding(
     val: Any, field_name: str, use_uint16: bool = False, use_uint32: bool = False
-) -> tuple[str, bool, tuple[int, ...]]:
+) -> tuple[Any, tuple[int, ...]]:
     """
     Get optimal Zarr type for input value.
     """
     if isinstance(val, float):
-        return "float64", False, ()
+        return np.float64, ()
     elif isinstance(val, bool):
-        return "bool", False, ()
+        return np.bool_, ()
     elif isinstance(val, str):
-        return "str", False, ()
+        return np.dtypes.StringDType, ()
     elif isinstance(val, int):
         # Optimize memory usage for select integer fields
         if use_uint16:
-            zarr_type = "uint16"
+            return np.uint16, ()
         elif use_uint32:
-            zarr_type = "uint32"
+            return np.uint32, ()
         else:
-            zarr_type = "int64"
-        return zarr_type, False, ()
+            return np.int64, ()
+    elif isinstance(val, np.ndarray):
+        return val.dtype, val.shape
     elif isinstance(val, list):
         if len(val) > 0:
             for inner_val in val:
-                inner_type, is_null, dims = get_encoding(
+                np_type, dims = get_encoding(
                     inner_val, field_name, use_uint16, use_uint32
                 )
-                if is_null:
+                if np_type is None:
                     continue
-                return inner_type, is_null, (len(val),) + dims
-        return "null", True, ()
+                return np_type, (len(val),) + dims
+        return None, ()
     elif val is None:
-        return "null", True, ()
+        return None, ()
     raise TypeError(f"{field_name} has unsupported type {type(val)}.")
 
 
 def write_to_zarr(
-    temp_file: str,
+    buffered_emits: dict[str, np.ndarray],
     root_store: zarr.Group,
-    non_null_keys: set[str],
-    time_range: tuple[int, int],
+    start_index: int,
+    end_index: int,
 ) -> None:
     """
     Write data to a Zarr array at the specified coordinates.
     """
-    t = pj.read_json(temp_file, read_options=pj.ReadOptions(block_size=1e9))
-    for k in sorted(non_null_keys):
-        if k in t.column_names:
-            array = root_store[k]
-            try:
-                array.append(ndlist_to_ndarray(t[k]))
-            except ValueError as e:
-                raise ValueError(
-                    f"Failed to write data for key '{k}' at time range {time_range}: {e}"
-                ) from e
+    for k, v in buffered_emits.items():
+        array = root_store[k]
+        array[start_index:end_index] = v
+        buffered_emits[k] = None
 
 
 class ZarrEmitter(Emitter):
@@ -88,21 +82,82 @@ class ZarrEmitter(Emitter):
 
                 {
                     'type': 'zarr',
+                    'emits_to_batch': Number of emits to batch before writing (default: 400),
+                    'max_time': Estimated maximum number of emits (automatically doubled
+                        every time exceeded, default: 10800),
+                    # One of the following is REQUIRED
                     'out_dir': local output directory (absolute/relative),
+                    'out_uri': Google Cloud storage bucket URI
                 }
 
         """
-        self.out_dir = os.path.abspath(config["out_dir"])
-        self.root_store = None
-        self.fallback_serializer = make_fallback_serializer_function()
-        self.non_null_keys = set()
-        self.zarr_types = {}
-        self.executor = ThreadPoolExecutor(2)
+        if "out_uri" not in config:
+            self.out_uri = os.path.abspath(config["out_dir"])
+            self.filesystem = filesystem("file")
+        else:
+            self.out_uri = config["out_uri"]
+            self.filesystem = filesystem(parse.urlparse(self.out_uri).scheme)
+        self.batch_size = config.get("batch_size", 400)
+        self.max_time = config.get("max_time", 10800)
+        self.np_types = {}
+        self.executor = ThreadPoolExecutor(1)
         self.last_batch_future: Optional[Future] = None
-        self.temp_data = tempfile.NamedTemporaryFile(delete=False)
-        self.last_time = 0
+        self.root_store = None
         self.num_emits = 0
+        self.total_num_emits = 0
         self.partitioning_keys = {}
+        self.buffered_emits = {}
+        self.store_dir = None
+        self.success = False
+        # Silence warnings about strings not being officially part of Zarr v3
+        warnings.filterwarnings(
+            "ignore", category=UserWarning, message="The codec `vlen-utf8`"
+        )
+        warnings.filterwarnings(
+            "ignore", category=UserWarning, message="The dtype `StringDType"
+        )
+
+    def _finalize(self):
+        """Convert remaining batched emits to Parquet at sim shutdown
+        and mark sim as successful if ``success`` flag was set. In vEcoli,
+        this is done by :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
+        upon reaching division.
+        """
+        if self.last_batch_future is not None:
+            self.last_batch_future.result()
+        # If we have any buffered emits left, write them to Zarr
+        for k, v in self.buffered_emits.items():
+            if v is not None:
+                self.buffered_emits[k] = v[: self.num_emits]
+        write_to_zarr(
+            self.buffered_emits,
+            self.root_store,
+            self.total_num_emits - self.num_emits,
+            self.total_num_emits,
+        )
+        # Include success flag for easy filtering in analyses
+        self.root_store.create_array(
+            name="success",
+            shape=(self.total_num_emits,),
+            dtype="bool",
+            chunks=(self.total_num_emits,),
+            dimension_names=[
+                "agent_time",
+            ],
+            config={"write_empty_chunks": False},
+        )
+        self.root_store["success"][:] = self.success
+        for v in self.root_store.array_values():
+            v.resize((self.total_num_emits,) + v.shape[1:])
+        zarr.consolidate_metadata(self.root_store.store)
+        # Zip Zarr store to reduce file count
+        with zipfile.ZipFile(self.store_dir + ".zip", "w", zipfile.ZIP_STORED) as zf:
+            for root, _, files in os.walk(self.store_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, self.store_dir)
+                    zf.write(file_path, arcname)
+        shutil.rmtree(self.store_dir)
 
     def emit(self, data: dict[str, Any]):
         """
@@ -121,15 +176,20 @@ class ZarrEmitter(Emitter):
                 data.get("experiment_id", "default")
             )
             self.partitioning_keys = {
-                "experiment_id": quoted_experiment_id,
                 "variant": data.get("variant", 0),
                 "lineage_seed": data.get("lineage_seed", 0),
                 "generation": len(agent_id),
                 "agent_id": agent_id,
             }
-            self.root_store = zarr.create_group(
-                store=os.path.join(self.out_dir, quoted_experiment_id), overwrite=True
+            self.store_dir = os.path.join(
+                self.out_uri,
+                quoted_experiment_id,
+                "history",
+                *(f"{k}={v}" for k, v in self.partitioning_keys.items()),
             )
+            self.partitioning_keys["experiment_id"] = quoted_experiment_id
+            self.filesystem.makedirs(self.store_dir, exist_ok=True)
+            self.root_store = zarr.create_group(store=self.store_dir, overwrite=True)
             return
         # Each Engine that uses this emitter should only simulate a single cell
         # In lineage simulations, StopAfterDivision Step will terminate
@@ -141,59 +201,60 @@ class ZarrEmitter(Emitter):
         for agent_data in data["data"]["agents"].values():
             agent_data["time"] = float(data["data"]["time"])
             agent_data = flatten_dict(agent_data)
+            serialized_agent = agent_data
+            for k, v in self.partitioning_keys.items():
+                serialized_agent[k] = v
             # If we encounter columns that have, up until this point,
             # been NULL, serialize/deserialize them and update their
             # type in our cached Parquet schema
-            new_keys = set(agent_data) - set(self.non_null_keys)
-            if len(new_keys) > 0:
-                new_key_data = orjson.loads(
-                    orjson.dumps(
-                        {k: agent_data[k] for k in new_keys},
-                        option=orjson.OPT_SERIALIZE_NUMPY,
-                        default=self.fallback_serializer,
-                    )
-                )
-                for k, v in new_key_data.items():
-                    zarr_type, is_null, dims = get_encoding(
-                        v, k, k in USE_UINT16, k in USE_UINT32
-                    )
-                    if not is_null:
-                        self.zarr_types[k] = zarr_type
-                        self.non_null_keys.add(k)
+            for k, v in serialized_agent.items():
+                if k not in self.buffered_emits:
+                    if k not in self.np_types:
+                        np_type, dims = get_encoding(
+                            v, k, k in USE_UINT16, k in USE_UINT32
+                        )
+                        if np_type is None:
+                            continue
+                        self.np_types[k] = (np_type, dims)
                         if k not in self.root_store:
+                            if (
+                                np_type == np.dtype("str")
+                                or np_type == np.dtype("object")
+                                or np_type == np.dtypes.StringDType()
+                            ):
+                                np_type = "str"
                             self.root_store.create_array(
                                 name=k,
-                                shape=(0,) + dims,
-                                dtype=zarr_type,
-                                chunks=(100,) + dims,
-                                shards=(4000,) + dims,
+                                shape=(self.max_time,) + dims,
+                                dtype=np_type,
                                 dimension_names=[
-                                    "time",
+                                    "data_id",
                                 ]
                                 + [f"{k}_{i}" for i in range(len(dims))],
                                 config={"write_empty_chunks": False},
                             )
-            for k, v in self.partitioning_keys.items():
-                agent_data[k] = v
-            self.temp_data.write(
-                orjson.dumps(
-                    agent_data,
-                    option=orjson.OPT_SERIALIZE_NUMPY,
-                    default=self.fallback_serializer,
-                )
-            )
-            self.num_emits += 1
-        if self.num_emits % 100 == 0:
+                    np_type, dims = self.np_types[k]
+                    self.buffered_emits[k] = np.zeros(
+                        (self.batch_size,) + dims, dtype=np_type
+                    )
+                self.buffered_emits[k][self.num_emits] = v
+        self.num_emits += 1
+        self.total_num_emits += 1
+        if self.total_num_emits > self.max_time:
+            # Resize arrays to accommodate more than 10800 emits
+            self.max_time *= 2
+            for v in self.root_store.array_values():
+                v.resize((self.max_time,) + v.shape[1:])
+        if self.num_emits % self.batch_size == 0:
             # If last batch of emits failed, exception should be raised here
-            self.temp_data.close()
             if self.last_batch_future is not None:
                 self.last_batch_future.result()
             self.last_batch_future = self.executor.submit(
                 write_to_zarr,
-                self.temp_data.name,
+                self.buffered_emits,
                 self.root_store,
-                self.non_null_keys,
-                (self.last_time, int(agent_data["time"]) - 1),
+                self.total_num_emits - self.num_emits,
+                self.total_num_emits,
             )
-            self.last_time = int(agent_data["time"]) + 1
-            self.temp_data = tempfile.NamedTemporaryFile(delete=False)
+            self.buffered_emits = {}
+            self.num_emits = 0

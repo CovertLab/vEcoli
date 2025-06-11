@@ -40,6 +40,7 @@ from ecoli.processes.registries import topology_registry
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.parquet_emitter import ParquetEmitter
+from ecoli.library.zarr_emitter import ZarrEmitter
 from ecoli.library.schema import not_a_process
 
 from wholecell.utils.filepath import ROOT_PATH
@@ -776,7 +777,15 @@ class EcoliSim:
                 )
                 with open("division_time.sh", "w") as f:
                     f.write(f"export division_time={self.ecoli_experiment.global_time}")
+                # Tell Parquet emitter that simulation was successful
+                if isinstance(
+                    self.ecoli_experiment.emitter, ParquetEmitter
+                ) or isinstance(self.ecoli_experiment.emitter, ZarrEmitter):
+                    self.ecoli_experiment.emitter.success = True
                 sys.exit()
+            finally:
+                if isinstance(self.ecoli_experiment.emitter, ZarrEmitter):
+                    self.ecoli_experiment.emitter._finalize()
             time_elapsed = self.save_times[i]
             state = self.ecoli_experiment.state.get_value(condition=not_a_process)
             if self.divide:
@@ -907,9 +916,14 @@ class EcoliSim:
                 with open("division_time.sh", "w") as f:
                     f.write(f"export division_time={self.ecoli_experiment.global_time}")
                 # Tell Parquet emitter that simulation was successful
-                if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
+                if isinstance(
+                    self.ecoli_experiment.emitter, ParquetEmitter
+                ) or isinstance(self.ecoli_experiment.emitter, ZarrEmitter):
                     self.ecoli_experiment.emitter.success = True
                 sys.exit()
+            finally:
+                if isinstance(self.ecoli_experiment.emitter, ZarrEmitter):
+                    self.ecoli_experiment.emitter._finalize()
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
