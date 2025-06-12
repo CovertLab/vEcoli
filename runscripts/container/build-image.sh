@@ -163,8 +163,8 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
         echo "ERROR: Apptainer build failed after $MAX_ATTEMPTS attempts."
         exit 1
     fi
-    ATTEMPT=$((ATTEMPT + 1))
     echo "Apptainer build attempt $ATTEMPT failed."
+    ATTEMPT=$((ATTEMPT + 1))
   done
   echo "Apptainer build successful after $ATTEMPT attempt(s)!"
 
