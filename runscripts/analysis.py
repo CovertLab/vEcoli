@@ -7,9 +7,7 @@ from urllib import parse
 from typing import Any
 
 import duckdb
-from fsspec import filesystem
-import pyarrow as pa
-from pyarrow import fs
+from fsspec import filesystem, url_to_fs
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
@@ -73,11 +71,11 @@ def parse_variant_data_dir(
             }
         if not (v_data_dir.startswith("gs://") or v_data_dir.startswith("gcs://")):
             v_data_dir = os.path.abspath(v_data_dir)
-        filesystem, data_dir = fs.FileSystem.from_uri(v_data_dir)
+        fs, data_dir = url_to_fs(v_data_dir)
         sim_data_dict[e_id] = {
-            int(os.path.basename(os.path.splitext(i.path)[0])): str(i.path)
-            for i in filesystem.get_file_info(fs.FileSelector(data_dir, recursive=True))
-            if os.path.splitext(i.path)[1] == ".cPickle"
+            int(os.path.basename(os.path.splitext(data_path)[0])): str(data_path)
+            for data_path in fs.find(data_dir)
+            if os.path.splitext(data_path)[1] == ".cPickle"
         }
     return variant_metadata, sim_data_dict, variant_names
 
@@ -145,7 +143,7 @@ def main():
         "--cpus",
         "-n",
         type=int,
-        help="Number of CPUs to use for DuckDB and PyArrow.",
+        help="Number of CPUs to use for DuckDB.",
     )
     parser.add_argument(
         "--variant_metadata_path",
@@ -200,10 +198,6 @@ def main():
     for k, v in vars(args).items():
         if v is not None:
             config[k] = v
-
-    # Set number of threads for PyArrow
-    if "cpus" in config:
-        pa.set_cpu_count(config["cpus"])
 
     # Set up DuckDB filters for data
     duckdb_filter = []

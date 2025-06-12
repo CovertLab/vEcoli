@@ -222,9 +222,8 @@ Each simulation will save Parquet files containing serialized simulation output 
 inside its corresponding Hive partition under the ``history`` folder. The columns in
 these Parquet files come from flattening the hierarchy of emitted stores. To leverage
 Parquet's columnar compression and efficient reading, we batch many time steps worth
-of emits into a temporary newline-delimited JSON file before reading them into a
-`PyArrow <https://arrow.apache.org/docs/python/index.html>`_ table where each row
-contains the column values for a single time step. This PyArrow table is then
+of emits into either Numpy arrays (constant dimensions) or lists of lists (variable
+dimensions). These batched emits are efficiently converted into a Polars DataFrame and
 written to a Parquet file named ``{batch size * number of batches}.pq`` (e.g.
 ``400.pq``, ``800.pq``, etc. for a batch size of 400). The default batch size of
 400 has been tuned for our current model but can be adjusted via ``emits_to_batch``
@@ -256,10 +255,9 @@ to read data using DuckDB. These include:
   the number of cells whose data is included in a SQL query
 - :py:func:`~ecoli.library.parquet_emitter.skip_n_gens`: Add a filter to an SQL
   query to skip the first N generations worth of data
-- :py:func:`~ecoli.library.parquet_emitter.ndlist_to_ndarray`: Convert a PyArrow
-  column of nested lists into a N-D Numpy array
-- :py:func:`~ecoli.library.parquet_emitter.ndarray_to_ndlist`: Convert a N-D Numpy
-  array into a PyArrow column of nested lists
+- :py:func:`~ecoli.library.parquet_emitter.ndlist_to_ndarray`: Convert a
+  column of nested lists read from Parquet into an N-D Numpy array (use
+  :py:class:`polars.Series` to do opposite conversion)
 - :py:func:`~ecoli.library.parquet_emitter.ndidx_to_duckdb_expr`: Get a DuckDB SQL
   expression which can be included in a ``SELECT`` statement that uses Numpy-style
   indexing to retrieve values from a nested list Parquet column

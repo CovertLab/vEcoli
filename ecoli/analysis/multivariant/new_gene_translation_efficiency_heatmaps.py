@@ -51,7 +51,7 @@ import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
 import math
-import pyarrow as pa
+import polars as pl
 from unum.units import fg
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 from tqdm import tqdm
@@ -59,7 +59,6 @@ from tqdm import tqdm
 from ecoli.variants.new_gene_internal_shift import get_new_gene_ids_and_indices
 from ecoli.library.parquet_emitter import (
     get_field_metadata,
-    ndarray_to_ndlist,
     ndlist_to_ndarray,
     open_arbitrary_sim_data,
     read_stacked_columns,
@@ -223,8 +222,8 @@ def get_mean_and_std_matrices(
             where the result of read_stacked_columns will be placed. Final query
             result must only have two columns in order: ``variant`` and a value
             for each variant. If not provided, defaults to average of averages
-        post_func: Function that is called on PyArrow table resulting from query.
-            Should return a PyArrow table with exactly three columns: ``variant``
+        post_func: Function that is called on Polars DataFrame resulting from query.
+            Should return a Polars DataFrame with exactly three columns: ``variant``
             for the variant IDs, ``mean`` for some mean aggregate value (can be
             N-D list column), and ``std`` for some standard deviation aggregate.
         num_digits_rounding: Number of decimal places to round to
@@ -266,16 +265,16 @@ def get_mean_and_std_matrices(
             GROUP BY experiment_id, variant
             """
     if post_func is None:
-        data = conn.sql(custom_sql.format(subquery=subquery)).arrow()
+        data = conn.sql(custom_sql.format(subquery=subquery)).pl()
     else:
-        data = conn.sql(custom_sql.format(subquery=subquery)).arrow()
+        data = conn.sql(custom_sql.format(subquery=subquery)).pl()
         data = post_func(data)
-    if set(data.column_names) != {"variant", "mean", "std"}:
+    if set(data.columns) != {"variant", "mean", "std"}:
         raise RuntimeError(
-            "post_func should return a PyArrow table with "
+            "post_func should return a Polars DataFrame with "
             "exactly three columns named `variant`, `mean`, and `std`"
         )
-    data = [(i["variant"], i["mean"], i["std"]) for i in data.to_pylist()]
+    data = [(i["variant"], i["mean"], i["std"]) for i in data.rows()]
     mean_matrix = [
         [default_value for _ in range(variant_matrix_shape[1])]
         for _ in range(variant_matrix_shape[0])
@@ -438,7 +437,7 @@ def get_gene_mass_prod_func(
     sim_data: "SimulationDataEcoli",
     index_type: str,
     gene_ids: list[str] | list[list[str]],
-) -> Callable[[pa.Table], pa.Table]:
+) -> Callable[[pl.DataFrame], pl.DataFrame]:
     """
     Create a function to be passed as the ``post_func`` argument to
     :py:func:`~.get_mean_and_std_matrices` which multiplies the
@@ -486,11 +485,11 @@ def get_gene_mass_prod_func(
     def gene_mass_prod(variant_agg):
         avg_arr = ndlist_to_ndarray(variant_agg["mean"])
         std_arr = ndlist_to_ndarray(variant_agg["std"])
-        return pa.table(
+        return pl.DataFrame(
             {
                 "variant": variant_agg["variant"],
-                "mean": ndarray_to_ndlist(avg_arr * gene_masses),
-                "std": ndarray_to_ndlist(std_arr * gene_masses),
+                "mean": pl.Series(avg_arr * gene_masses),
+                "std": pl.Series(std_arr * gene_masses),
             }
         )
 

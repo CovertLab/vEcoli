@@ -37,18 +37,10 @@ lines to your ``~/.bash_profile``, then close and reopen your SSH connection:
 
 .. code-block:: bash
 
-    # Load newer Git, Java (for Nextflow), and PyArrow
-    module load system git java/21.0.4 py-pyarrow
+    # Load newer Git and Java (for Nextflow)
+    module load system git java/21.0.4
     # Include shared Nextflow and HyperQueue installations on PATH
     export PATH=$PATH:$GROUP_HOME/vEcoli_env
-
-.. warning::
-  If you have any lines in your ``~/.bash_profile``, ``~/.bashrc``, or
-  ``~/.profile`` that modify the ``PATH`` variable, make sure that
-  ``which python3`` returns the Sherlock-managed Python 3 from the
-  ``py-pyarrow`` module: ``/share/software/user/open/python/3.xx.x/bin/python3``.
-  If not, comment out lines that modify the ``PATH`` variable
-  (for example, ``pyenv``-related), until the right Python is found.
 
 Then, run the following to test your setup:
 
@@ -304,7 +296,7 @@ Prerequisites
 The following are required:
 
 - Nextflow (requires Java)
-- PyArrow
+- Python 3
 - Git clone vEcoli to a location that is accessible from all nodes in your cluster
 
 If your cluster has Apptainer (formerly known as Singularity) installed,
