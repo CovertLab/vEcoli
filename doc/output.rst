@@ -174,6 +174,11 @@ null values or nested types containing null values (e.g. empty list). For these 
 all values except the null entries must be the same type (e.g. column with lists
 of integers where some entries are empty lists).
 
+.. warning::
+  The Parquet emitter is poorly suited for storing large listeners that have more
+  than a single dimension per time step. We recommend splitting these listeners up
+  if possible, especially if you plan to read specific indices along those dimensions.
+
 The Parquet emitter saves the serialized tabular data to two Hive-partitioned
 directories in the output folder (``out_dir`` or ``out_uri`` option under
 ``emitter_arg`` in :ref:`json_config`):
@@ -312,6 +317,15 @@ accomplished in one of two ways:
             GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
         )
         SELECT avg(*) FROM cell_avgs
+
+.. tip::
+  DuckDB will efficiently read only the rows and columns necessary to complete your query.
+  However, if you are reading a column of lists (e.g. bulk molecule counts every time step)
+  or nested lists, DuckDB reads the entire nested value for every relevant row in that column,
+  even if you only care about a small subset of indices. To avoid repeatedly incurring this
+  cost, we recommend using :py:func:`~ecoli.library.parquet_emitter.named_idx` to select all
+  indices of interest to be read in one go. As long as the final result fits in RAM, this
+  should be much faster than reading each index individually.
 
 See :py:mod:`~ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps`
 for examples of complex queries, as well as helper functions to create SQL expressions
