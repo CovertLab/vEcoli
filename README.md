@@ -48,28 +48,33 @@ On MacOS, curl is preinstalled and git and clang come with the Xcode Command Lin
 
 ### Installation
 
-Clone the repository:
+1. Clone the repository:
 
-    git clone https://github.com/CovertLab/vEcoli.git
+```
+git clone https://github.com/CovertLab/vEcoli.git
+```
 
 > **Tip:** You can specify a directory to clone into after the
 > URL of the repository. Otherwise, the above command will clone into
 > a new directory called `vEcoli` in your current directory. To speed up
 > the clone and save disk space, add `--filter=blob:none` to the command.
 
-[Follow these instructions](https://docs.astral.sh/uv/getting-started/installation/)
-to install `uv`, our Python package and project manager of choice. Once finished,
-close and reopen your terminal before continuing.
+2. [Follow these instructions](https://docs.astral.sh/uv/getting-started/installation/)
+to install `uv`, our Python package and project manager of choice.
+   
+3. Close and reopen your terminal.
 
-Navigate into the cloned repository and use `uv` to install the model:
+4. Navigate into the cloned repository and use `uv` to install the model:
 
-    cd vEcoli
-    # Install base and dev dependencies (see pyproject.toml)
-    uv sync --frozen --extra dev
-    # Install pre-commit hook that runs ruff linter before every commit
-    uv run pre-commit install
+```
+cd vEcoli
+# Install base and dev dependencies (see pyproject.toml)
+uv sync --frozen --extra dev
+# Install pre-commit hook that runs ruff linter before every commit
+uv run pre-commit install
+```
 
-Install `nextflow` [following these instructions](https://www.nextflow.io/docs/latest/install.html).
+5. Install `nextflow` [following these instructions](https://www.nextflow.io/docs/latest/install.html).
 If your system has `wget` but not `curl`, replace `curl` in the commands
 with `wget -qO-`. If you choose to install Java with SDKMAN!, after
 the Java installation finishes, close and reopen your terminal before
@@ -78,39 +83,52 @@ continuing with the `nextflow` installation steps.
 > **Tip:** If any step in the `nextflow` installation fails,
 > try rerunning a few times to see if that fixes the issue.
 
-Add the following to your `~/.bashrc` and/or `~/.zshrc`, replacing `abspath` with
-the absolute path to your cloned repository (output of `pwd` from top level of
-cloned repo):
+6. Add the `uvenv` alias to your shell configuration:
 
-    # Specify project and use absolute paths so that `uvenv` correctly loads
-    # the vEcoli virtual environment no matter what directory it is run in
-    alias uvenv='uv run --env-file abspath/.env --project abspath'
+```
+echo -e "\nalias uvenv='uv run --env-file $(pwd)/.env --project $(pwd)'" >> $HOME/.$(basename $SHELL)rc
+```
 
-> **Tip:** Run `echo $0` to determine what shell you are using and the
-> appropriate file to add the above line to.
+7. Close and reopen your terminal.
 
-Close and reopen your terminal.
-
-For integration with IDEs, select the newly created virtual environment
+8. (optional) For integration with IDEs, select the newly created virtual environment
 located at `.venv` inside your cloned repository (e.g.
 [for PyCharm](https://www.jetbrains.com/help/pycharm/uv.html)).
 
+9. If you are a member of the Covert Lab, ask to be added to the GitHub organization
+and [set up SSH authentication](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
+Then, in a terminal inside your cloned repository, run:
+
+```
+git remote set-url origin git@github.com:CovertLab/vEcoli
+```
+
 ## Test Installation
 
-To test your installation, from the top-level of the cloned repository, invoke:
+From the top-level of the cloned repository, run:
 
     uvenv runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
 
-> **Note:** Use `uvenv` to run scripts instead of `python`. To start
+Ignore the following warning on macOS:
+
+    WARN: Task runtime metrics are not reported when using macOS without a container engine
+
+> **Note:** Local installations should always use `uvenv` to run scripts instead of `python`. To start
 > a Python shell, use `uvenv python` or `uvenv ipython`.
 
-This will run the following basic simulation workflow:
+This will run the following basic simulation workflow, saving all output to `out/test_installation`:
 
 1. Run the [parameter calculator](runscripts/parca.py) to generate simulation data.
-2. Run the [simulation](ecoli/experiments/ecoli_master_sim.py)
-    for a single generation, saving output in `out` folder.
+2. Run the [simulation](ecoli/experiments/ecoli_master_sim.py) for a single generation.
 3. [Analyze simulation output](runscripts/analysis.py) by creating a
-    [mass fraction plot](ecoli/analysis/single/mass_fraction_summary.py).
+[mass fraction plot](ecoli/analysis/single/mass_fraction_summary.py).
+
+This takes about 10 minutes to run on a MacBook Air (2022, M2). If the Nextflow workflow
+completes with no errors, navigate to the following folder inside the cloned repository
+using a file browser and open `mass_fraction_summary.html` to inspect the mass fraction
+summary plot for the simulation you just ran:
+
+    out/test_installation/analyses/variant=0/lineage_seed=0/generation=1/agent_id=0/plots
 
 ## Documentation
 The documentation is located at [https://covertlab.github.io/vEcoli/](https://covertlab.github.io/vEcoli/)
