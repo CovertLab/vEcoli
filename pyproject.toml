@@ -21,7 +21,6 @@ dependencies = [
     "dill",
     "duckdb",
     "gcsfs",
-    "pyarrow",
     "ipdb",
     "ipython",
     "line-profiler",
@@ -49,9 +48,6 @@ dependencies = [
     "stochastic-arrow",
     "autograd",
     "xmltodict",
-    "zarrs>=0.1.4",
-    "xarray>=2025.4.0",
-    "dask>=2025.5.1",
 ]
 
 [project.optional-dependencies]
