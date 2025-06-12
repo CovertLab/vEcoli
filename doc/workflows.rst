@@ -345,7 +345,8 @@ options under the ``analysis_options`` key:
   to the ``outdir`` argument for analysis script ``plot`` functions
   (see :ref:`analysis_template`). A copy of the configuration options
   used to run :py:mod:`runscripts.analysis` is saved as ``outdir/metadata.json``.
-- ``cpus``: Number of CPU cores to let DuckDB use (default: 1)
+- ``cpus``: Number of CPU cores to let DuckDB use. DuckDB generally scales well
+  with more cores at the cost of proportionally increased RAM usage (default: 1)
 - ``analysis_types``: List of analysis types to run. By default (if this option
   is not used), all analyses provided under all the analysis type keys are run
   on all possible subsets of the data after applying the data filters given using
