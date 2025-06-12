@@ -59,9 +59,10 @@ USE_UINT32 = {
 def json_to_parquet(
     emit_dict: dict[str, np.ndarray],
     outfile: str,
+    schema_overrides: dict[str, Any],
 ):
     """Convert dictionary to Parquet with lower memory footprint."""
-    tbl = pl.DataFrame(emit_dict)
+    tbl = pl.DataFrame(emit_dict, schema_overrides=schema_overrides)
     del emit_dict
     tbl.write_parquet(outfile, statistics=False)
 
@@ -657,7 +658,7 @@ class ParquetEmitter(Emitter):
         self.executor = ThreadPoolExecutor(2)
         # Keep a cache of field encodings and fields encountered
         self.buffered_emits = {}
-        self.non_null_keys: set[str] = set()
+        self.var_len_types = {}
         self.num_emits = 0
         # Wait until next batch of emits to check whether last batch
         # was successfully written to Parquet in order to avoid blocking
@@ -682,7 +683,7 @@ class ParquetEmitter(Emitter):
         for k, v in self.buffered_emits.items():
             self.buffered_emits[k] = v[: self.num_emits % self.batch_size]
         if not self.filesystem.exists(outfile):
-            json_to_parquet(self.buffered_emits, outfile)
+            json_to_parquet(self.buffered_emits, outfile, self.var_len_types)
         # Hive-partitioned directory that only contains successful sims
         if self.success:
             success_file = os.path.join(
@@ -782,6 +783,7 @@ class ParquetEmitter(Emitter):
                 json_to_parquet,
                 config_emit,
                 outfile,
+                {},
             )
             # Delete any sim output files in final filesystem
             history_outdir = os.path.join(
@@ -812,17 +814,19 @@ class ParquetEmitter(Emitter):
                         (self.batch_size,) + dims, dtype=np_type
                     )
                 emit_idx = self.num_emits % self.batch_size
-                if isinstance(self.buffered_emits[k], np.ndarray):
-                    v_arr = np.asarray(v, dtype=self.buffered_emits[k].dtype)
-                    if v_arr.shape != self.buffered_emits[k].shape[1:]:
-                        self.buffered_emits[k] = self.buffered_emits[k][
-                            :emit_idx
-                        ].tolist() + [0] * (self.batch_size - emit_idx)
-                        v = v_arr.tolist()
-                    else:
-                        v = v_arr
-                elif isinstance(v, np.ndarray):
-                    v = v.tolist()
+                if isinstance(v, np.ndarray):
+                    v = np.asarray(v, dtype=self.buffered_emits[k][0].dtype)
+                    if (
+                        k not in self.var_len_types
+                        and v.shape != self.buffered_emits[k].shape[1:]
+                    ):
+                        pl_dtype = pl.Series(np.empty(0, dtype=v.dtype)).dtype
+                        for _ in range(len(v.shape)):
+                            pl_dtype = pl.List(pl_dtype)
+                        self.var_len_types[k] = pl_dtype
+                        self.buffered_emits[k] = list(
+                            self.buffered_emits[k][:emit_idx]
+                        ) + [0] * (self.batch_size - emit_idx)
                 self.buffered_emits[k][emit_idx] = v
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
@@ -839,5 +843,7 @@ class ParquetEmitter(Emitter):
                 json_to_parquet,
                 self.buffered_emits,
                 outfile,
+                self.var_len_types,
             )
             self.buffered_emits = {}
+            self.var_len_types = {}
