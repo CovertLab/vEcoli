@@ -57,13 +57,21 @@ USE_UINT32 = {
 
 
 def json_to_parquet(
-    emit_dict: dict[str, np.ndarray],
+    emit_dict: dict[str, np.ndarray | list[np.ndarray]],
     outfile: str,
-    schema_overrides: dict[str, Any],
+    schema: dict[str, Any],
 ):
-    """Convert dictionary to Parquet with lower memory footprint."""
-    tbl = pl.DataFrame(emit_dict, schema_overrides=schema_overrides)
-    del emit_dict
+    """Convert dictionary to Parquet.
+
+    Args:
+        emit_dict: Mapping from column names to Numpy array (fixed-shape)
+            or list of Numpy arrays (variable-shape)
+        outfile: Path to output Parquet file. Can be local path or URI.
+        schema: Lists of variable-shape arrays need explicit types
+            and fixed-shape arrays are better off written as Lists instead of
+            Arrays (see code comment in :py:class:`~.ParquetEmitter`).
+    """
+    tbl = pl.DataFrame(emit_dict, schema={k: schema[k] for k in emit_dict})
     tbl.write_parquet(outfile, statistics=False)
 
 
@@ -562,43 +570,37 @@ def read_stacked_columns(
 
 def get_encoding(
     val: Any, field_name: str, use_uint16: bool = False, use_uint32: bool = False
-) -> tuple[Any, str]:
+) -> Any:
     """
     Get optimal Numpy type for input value.
     """
-    if isinstance(val, (float, np.floating)):
-        return np.float64, ()
+    if use_uint16:
+        return np.uint16
+    elif use_uint32:
+        return np.uint32
+    elif isinstance(val, (float, np.floating)):
+        return np.float64
     elif isinstance(val, bool):
-        return np.bool_, ()
+        return np.bool_
     elif isinstance(val, (int, np.integer)):
-        # Optimize memory usage for select integer fields
-        if use_uint16:
-            np_type = np.uint16
-        elif use_uint32:
-            np_type = np.uint32
-        else:
-            np_type = np.int64
-        return np_type, ()
+        return np.int64
     elif isinstance(val, (str, np.str_)):
-        return np.dtypes.StringDType, ()
+        return np.dtypes.StringDType
     elif isinstance(val, np.ndarray):
-        if len(val) > 0:
-            np_type, _ = get_encoding(
-                val.flat[0].item(), field_name, use_uint16, use_uint32
-            )
-            return np_type, val.shape
-        return None, val.shape
+        return val.dtype
     elif isinstance(val, (list, tuple)):
         if len(val) > 0:
             for inner_val in val:
                 if inner_val is not None:
-                    np_type, inner_dims = get_encoding(val[0], use_uint16, use_uint32)
+                    np_type = get_encoding(
+                        inner_val, field_name, use_uint16, use_uint32
+                    )
                     if np_type is None:
                         continue
-                    return (np_type, (len(val), *inner_dims))
-        return None, (0,)
+                    return np_type
+        return None
     elif val is None:
-        return None, ()
+        return None
     raise TypeError(f"{field_name} has unsupported type {type(val)}.")
 
 
@@ -624,6 +626,16 @@ def flatten_dict(d: dict):
 
     visit_key(d, results, _FLAG_FIRST)
     return dict(results)
+
+
+def get_polars_dtype_from_ndarray(arr: np.ndarray) -> pl.DataType:
+    """
+    Get Polars data type for a Numpy array, including nested lists.
+    """
+    pl_dtype = pl.Series(np.empty(1, dtype=arr.dtype)).dtype
+    for _ in range(arr.ndim):
+        pl_dtype = pl.List(pl_dtype)
+    return pl_dtype
 
 
 class ParquetEmitter(Emitter):
@@ -656,13 +668,27 @@ class ParquetEmitter(Emitter):
         self.filesystem, _ = url_to_fs(self.out_uri)
         self.batch_size = config.get("batch_size", 400)
         self.executor = ThreadPoolExecutor(2)
-        # Keep a cache of field encodings and fields encountered
+        # Buffer emits for each listener in a Numpy array
         self.buffered_emits = {}
-        self.var_len_types = {}
+        # Explicitly set Polars types to avoid a potential schema mismatch.
+        # Polars automatically casts Numpy arrays to its Array type, which
+        # comes with performance and memory advantages. Unfortunately,
+        # unlike with the generic Parquet List type, Polars will complain
+        # if the shape of an Array column changes between files. Since other
+        # Parquet consumers (e.g. DuckDB) do not treat Parquet data differently
+        # regardless of whether it was written as a Polars Array or generic List,
+        # I am inclined to continue using the generic List type.
+        self.pl_types = {}
+        # Keep track of ndims for each variable-shape column and raise
+        # an error if this changes (e.g. go from 2D to 3D)
+        self.var_len_dims = {}
+        # Figure out the type of each column on first encounter and cache it
+        self.np_types = {}
         self.num_emits = 0
         # Wait until next batch of emits to check whether last batch
         # was successfully written to Parquet in order to avoid blocking
         self.last_batch_future: Future = Future()
+        self.last_batch_future.set_result(None)
         # Set either by EcoliSim or by EngineProcess if sim reaches division
         self.success = False
         atexit.register(self._finalize)
@@ -673,6 +699,9 @@ class ParquetEmitter(Emitter):
         this is done by :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
         upon reaching division.
         """
+        # Wait for last batch to finish writing
+        self.last_batch_future.result()
+        # Flush any remaining buffered emits to Parquet
         outfile = os.path.join(
             self.out_uri,
             self.experiment_id,
@@ -680,10 +709,10 @@ class ParquetEmitter(Emitter):
             self.partitioning_path,
             f"{self.num_emits}.pq",
         )
-        for k, v in self.buffered_emits.items():
-            self.buffered_emits[k] = v[: self.num_emits % self.batch_size]
         if not self.filesystem.exists(outfile):
-            json_to_parquet(self.buffered_emits, outfile, self.var_len_types)
+            for k, v in self.buffered_emits.items():
+                self.buffered_emits[k] = v[: self.num_emits % self.batch_size]
+            json_to_parquet(self.buffered_emits, outfile, self.pl_types)
         # Hive-partitioned directory that only contains successful sims
         if self.success:
             success_file = os.path.join(
@@ -737,7 +766,7 @@ class ParquetEmitter(Emitter):
         """
         # Config will always be first emit
         if data["table"] == "configuration":
-            data = {**data["data"].pop("metadata"), **data["data"]}
+            data = {**data["data"].pop("metadata", {}), **data["data"]}
             data["time"] = data.get("initial_global_time", 0.0)
             # Manually create filepaths with hive partitioning
             # Start agent ID with 1 to avoid leading zeros
@@ -758,13 +787,15 @@ class ParquetEmitter(Emitter):
             )
             data = flatten_dict(data)
             config_emit = {}
+            config_schema = {}
             for k, v in data.items():
-                np_type, dims = get_encoding(v, k)
+                np_type = get_encoding(v, k)
                 if np_type is None:
                     config_emit[k] = [None]
+                    config_schema[k] = pl.Null
                     continue
-                config_emit[k] = np.zeros((1,) + dims, dtype=np_type)
-                config_emit[k][0] = v
+                config_emit[k] = np.asarray(v, dtype=np_type)[np.newaxis]
+                config_schema[k] = get_polars_dtype_from_ndarray(config_emit[k])
             outfile = os.path.join(
                 self.out_uri,
                 self.experiment_id,
@@ -783,7 +814,7 @@ class ParquetEmitter(Emitter):
                 json_to_parquet,
                 config_emit,
                 outfile,
-                {},
+                config_schema,
             )
             # Delete any sim output files in final filesystem
             history_outdir = os.path.join(
@@ -805,28 +836,58 @@ class ParquetEmitter(Emitter):
         for agent_data in data["data"]["agents"].values():
             agent_data["time"] = float(data["data"]["time"])
             agent_data = flatten_dict(agent_data)
+            emit_idx = self.num_emits % self.batch_size
             for k, v in agent_data.items():
-                if k not in self.buffered_emits:
-                    np_type, dims = get_encoding(v, k, k in USE_UINT16, k in USE_UINT32)
-                    if np_type is None:
-                        continue
-                    self.buffered_emits[k] = np.zeros(
-                        (self.batch_size,) + dims, dtype=np_type
+                if k in self.np_types:
+                    np_type = self.np_types[k]
+                else:
+                    np_type = get_encoding(
+                        v, k, use_uint16=k in USE_UINT16, use_uint32=k in USE_UINT32
                     )
-                emit_idx = self.num_emits % self.batch_size
-                if isinstance(v, np.ndarray):
-                    v = np.asarray(v, dtype=self.buffered_emits[k][0].dtype)
-                    if (
-                        k not in self.var_len_types
-                        and v.shape != self.buffered_emits[k].shape[1:]
-                    ):
-                        pl_dtype = pl.Series(np.empty(0, dtype=v.dtype)).dtype
-                        for _ in range(len(v.shape)):
-                            pl_dtype = pl.List(pl_dtype)
-                        self.var_len_types[k] = pl_dtype
+                # Skip null values and empty lists
+                if np_type is None:
+                    continue
+                v = np.asarray(v, dtype=np_type)
+                # Skip empty arrays
+                if v.size == 0:
+                    continue
+                self.np_types[k] = v.dtype
+                if k not in self.pl_types:
+                    self.pl_types[k] = get_polars_dtype_from_ndarray(v)
+                if k not in self.buffered_emits:
+                    # Known variable-shape fields are buffered in lists of arrays
+                    if k in self.var_len_dims:
+                        if v.ndim != self.var_len_dims[k]:
+                            raise ValueError(
+                                f"Variable-length field {k} has shape {v.shape} "
+                                f"but expected {self.var_len_dims[k]} dimensions."
+                            )
+                        self.buffered_emits[k] = [
+                            np.empty((0,) * v.ndim, dtype=v.dtype)
+                        ] * self.batch_size
+                    # If a nested field is null (skipped) for at least one emit
+                    # after sim start/disk write, it must be variable-shape
+                    elif emit_idx != 0 and v.ndim > 0:
+                        self.var_len_dims[k] = v.ndim
+                        self.buffered_emits[k] = [
+                            np.empty((0,) * v.ndim, dtype=v.dtype)
+                        ] * self.batch_size
+                    # Optimistically assume all other fields remain fixed-shape
+                    else:
+                        self.buffered_emits[k] = np.zeros(
+                            (self.batch_size,) + v.shape, dtype=v.dtype
+                        )
+                if isinstance(self.buffered_emits[k], np.ndarray):
+                    # Convert fixed-shape buffer to variable-shape if
+                    # dimension mismatch detected
+                    if v.shape != self.buffered_emits[k].shape[1:]:
+                        self.var_len_dims[k] = v.ndim
                         self.buffered_emits[k] = list(
                             self.buffered_emits[k][:emit_idx]
-                        ) + [0] * (self.batch_size - emit_idx)
+                        ) + [np.empty((0,) * v.ndim, dtype=v.dtype)] * (
+                            self.batch_size - emit_idx
+                        )
+                # Write current column value to buffer
                 self.buffered_emits[k][emit_idx] = v
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
@@ -843,7 +904,8 @@ class ParquetEmitter(Emitter):
                 json_to_parquet,
                 self.buffered_emits,
                 outfile,
-                self.var_len_types,
+                self.pl_types,
             )
+            # Clear buffers because they are mutable and we do not want to
+            # accidentally modify data as it is being written in the background
             self.buffered_emits = {}
-            self.var_len_types = {}
