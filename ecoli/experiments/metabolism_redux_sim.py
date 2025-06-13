@@ -155,7 +155,7 @@ def run_lineage(
     filename="metabolism_redux_classic",
     total_time=2900,
     divide=True,
-    initial_state_file='wcecoli_t0', # 'wcecoli_t0', # 'met_division_test_state',
+    initial_state_file='lineage_min_2', # 'wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries',
