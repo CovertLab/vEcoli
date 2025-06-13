@@ -1,3 +1,4 @@
+import atexit
 import os
 import tempfile
 import shutil
@@ -96,30 +97,28 @@ class TestParquetEmitter:
         yield tmp
         shutil.rmtree(tmp)
 
-    @patch("ecoli.library.parquet_emitter.url_to_fs")
-    def test_initialization(self, mock_url_to_fs, temp_dir):
+    def test_initialization(self, temp_dir):
         """Test ParquetEmitter initialization with different configs."""
-
-        mock_fs = Mock()
-        mock_url_to_fs.return_value = (mock_fs, temp_dir)
-
         # Test with out_dir
         emitter = ParquetEmitter({"out_dir": temp_dir})
+        emitter.experiment_id = "test_exp"
+        emitter.partitioning_path = "path/to/output"
         assert emitter.out_uri == os.path.abspath(temp_dir)
-        assert emitter.filesystem == mock_fs
         assert emitter.batch_size == 400
 
         # Test with out_uri and custom batch size
         emitter = ParquetEmitter({"out_uri": "gs://bucket/path", "batch_size": 100})
+        emitter.experiment_id = "test_exp"
+        emitter.partitioning_path = "path/to/output"
         assert emitter.out_uri == "gs://bucket/path"
         assert emitter.batch_size == 100
+        # GCSFS uses asyncio and cannot schedule futures after interpreter shutdown
+        # so _finalize hook with raise an error that is ignored. Here we just
+        # unregister the hook to avoid cluttering the pytest log
+        atexit.unregister(emitter._finalize)
 
-    @patch("ecoli.library.parquet_emitter.url_to_fs")
-    def test_emit_configuration(self, mock_url_to_fs, temp_dir):
+    def test_emit_configuration(self, temp_dir):
         """Test emitting configuration data."""
-        mock_fs = Mock()
-        mock_url_to_fs.return_value = (mock_fs, temp_dir)
-
         emitter = ParquetEmitter({"out_dir": temp_dir})
 
         # Setup ThreadPoolExecutor mock
@@ -141,10 +140,6 @@ class TestParquetEmitter:
         }
 
         emitter.emit(config_data)
-
-        # Verify filesystem operations
-        mock_fs.delete.assert_called()
-        mock_fs.makedirs.assert_called()
 
         # Verify partitioning path
         assert emitter.experiment_id == "test_exp"
@@ -240,12 +235,8 @@ class TestParquetEmitter:
         assert all(t["nested__value"] == [100] * 2)
         assert emitter.buffered_emits == {}
 
-    @patch("ecoli.library.parquet_emitter.url_to_fs")
-    def test_variable_length_arrays(self, mock_url_to_fs, temp_dir):
+    def test_variable_length_arrays(self, temp_dir):
         """Test handling arrays with changing dimensions."""
-        mock_fs = Mock()
-        mock_url_to_fs.return_value = (mock_fs, temp_dir)
-
         emitter = ParquetEmitter({"out_dir": temp_dir})
         emitter.experiment_id = "test_exp"
         emitter.partitioning_path = "path/to/output"
@@ -255,7 +246,12 @@ class TestParquetEmitter:
             "table": "simulation",
             "data": {
                 "time": 1.0,
-                "agents": {"agent1": {"dynamic_array": np.array([1, 2, 3])}},
+                "agents": {
+                    "agent1": {
+                        "dynamic_array": np.array([1, 2, 3]),
+                        "ragged_nd": [[1, 2, 3], [1, 2], [1]],
+                    }
+                },
             },
         }
         emitter.emit(sim_data1)
@@ -272,7 +268,8 @@ class TestParquetEmitter:
                 "time": 2.0,
                 "agents": {
                     "agent1": {
-                        "dynamic_array": np.array([4, 5, 6, 7])  # Different length
+                        "dynamic_array": np.array([4, 5, 6, 7]),  # Different length
+                        "ragged_nd": [[1], [1, 2], [1, 2, 3]],
                     }
                 },
             },
@@ -314,6 +311,7 @@ class TestParquetEmitter:
                         "very_long_string": "x" * 10000,
                         # Nested structures
                         "deep_nesting": {"level1": {"level2": {"level3": [1, 2, 3]}}},
+                        "ragged_nullable": [None, [1, 2], [None, 1, 2, 3]],
                     }
                 },
             },
@@ -382,6 +380,12 @@ class TestParquetEmitter:
                                 "level2": {"level3": [1, 2, 3, 4], "level4": [5, 6, 7]}
                             }
                         },
+                        "ragged_nullable": [
+                            [1, 3, 4],
+                            [None, None, 1],
+                            None,
+                            [1, 2, None],
+                        ],
                     }
                 },
             },
@@ -442,13 +446,8 @@ class TestParquetEmitter:
                         assert pq == vl, f"Mismatch for key: {key} with value: {vl}"
                         print("direct", key, output_pl[key].to_numpy(), value)
 
-    @patch("ecoli.library.parquet_emitter.url_to_fs")
-    def test_finalize(self, mock_url_to_fs, temp_dir):
+    def test_finalize(self, temp_dir):
         """Test _finalize method that handles remaining data."""
-        mock_fs = Mock()
-        mock_fs.exists.return_value = False
-        mock_url_to_fs.return_value = (mock_fs, temp_dir)
-
         emitter = ParquetEmitter({"out_dir": temp_dir})
         emitter.experiment_id = "test_exp"
         emitter.partitioning_path = "path/to/output"
@@ -487,13 +486,10 @@ class TestParquetEmitter:
             # Verify success file was written
             mock_write.assert_called()
 
-    @patch("ecoli.library.parquet_emitter.url_to_fs")
-    def test_multiple_agents(self, mock_url_to_fs, temp_dir):
-        """Test that multi-agent data is ignored."""
-        mock_fs = Mock()
-        mock_url_to_fs.return_value = (mock_fs, temp_dir)
-
+    def test_multiple_agents(self, temp_dir):
         emitter = ParquetEmitter({"out_dir": temp_dir})
+        emitter.experiment_id = "test_exp"
+        emitter.partitioning_path = "path/to/output"
 
         # Create data with multiple agents
         sim_data = {
