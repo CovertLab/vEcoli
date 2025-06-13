@@ -1,16 +1,19 @@
 import atexit
 import os
+from io import BytesIO
+import warnings
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable, cast, Mapping, Optional
 from urllib import parse
 
 import duckdb
+import orjson
 import numpy as np
 import polars as pl
 from fsspec.core import url_to_fs, OpenFile
 from fsspec.spec import AbstractFileSystem
 from tqdm import tqdm
-from vivarium.core.emitter import Emitter
+from vivarium.core.emitter import Emitter, make_fallback_serializer_function
 
 METADATA_PREFIX = "output_metadata__"
 """
@@ -689,6 +692,9 @@ class ParquetEmitter(Emitter):
         # was successfully written to Parquet in order to avoid blocking
         self.last_batch_future: Future = Future()
         self.last_batch_future.set_result(None)
+        # Last-resort serialization uses orjson to convert to JSON that
+        # is read in by Polars
+        self.fallback_serializer = make_fallback_serializer_function()
         # Set either by EcoliSim or by EngineProcess if sim reaches division
         self.success = False
         atexit.register(self._finalize)
@@ -709,6 +715,7 @@ class ParquetEmitter(Emitter):
             self.partitioning_path,
             f"{self.num_emits}.pq",
         )
+        self.filesystem.makedirs(os.path.dirname(outfile), exist_ok=True)
         if not self.filesystem.exists(outfile):
             for k, v in self.buffered_emits.items():
                 self.buffered_emits[k] = v[: self.num_emits % self.batch_size]
@@ -789,12 +796,40 @@ class ParquetEmitter(Emitter):
             config_emit = {}
             config_schema = {}
             for k, v in data.items():
-                np_type = get_encoding(v, k)
+                try:
+                    np_type = get_encoding(v, k)
+                except TypeError:
+                    warnings.warn(
+                        f"Falling back to JSON to Polars serialization for {k}. This is inefficient."
+                        " If possible, convert your data to a type supported by get_encoding."
+                    )
+                    v = pl.read_json(
+                        BytesIO(
+                            orjson.dumps({"a": v}, default=self.fallback_serializer)
+                        )
+                    )["a"]
+                    config_emit[k] = v
+                    config_schema[k] = v.dtype
+                    continue
                 if np_type is None:
                     config_emit[k] = [None]
                     config_schema[k] = pl.Null
                     continue
-                config_emit[k] = np.asarray(v, dtype=np_type)[np.newaxis]
+                try:
+                    config_emit[k] = np.asarray(v, dtype=np_type)[np.newaxis]
+                except ValueError:
+                    warnings.warn(
+                        f"Falling back to JSON/Polars serialization for potential ragged ND array {k}."
+                        " This is inefficient. If possible, use a different data type."
+                    )
+                    v = pl.read_json(
+                        BytesIO(
+                            orjson.dumps({"a": v}, default=self.fallback_serializer)
+                        )
+                    )["a"]
+                    config_emit[k] = v
+                    config_schema[k] = v.dtype
+                    continue
                 config_schema[k] = get_polars_dtype_from_ndarray(config_emit[k])
             outfile = os.path.join(
                 self.out_uri,
@@ -840,16 +875,59 @@ class ParquetEmitter(Emitter):
             for k, v in agent_data.items():
                 if k in self.np_types:
                     np_type = self.np_types[k]
+                elif k in self.pl_types:
+                    # Only way for key to have Polars type but not Numpy type
+                    # is if it previously fell back to JSON serialization
+                    v = pl.read_json(
+                        BytesIO(
+                            orjson.dumps({"a": v}, default=self.fallback_serializer)
+                        )
+                    )["a"][0]
+                    self.buffered_emits[k][emit_idx] = v
+                    continue
                 else:
-                    np_type = get_encoding(
-                        v, k, use_uint16=k in USE_UINT16, use_uint32=k in USE_UINT32
-                    )
+                    try:
+                        np_type = get_encoding(
+                            v, k, use_uint16=k in USE_UINT16, use_uint32=k in USE_UINT32
+                        )
+                    except TypeError:
+                        warnings.warn(
+                            f"Falling back to JSON serialization for {k}. This is inefficient."
+                            " If possible, convert your data to a type supported by get_encoding."
+                        )
+                        v = pl.read_json(
+                            BytesIO(
+                                orjson.dumps({"a": v}, default=self.fallback_serializer)
+                            )
+                        )["a"]
+                        self.pl_types[k] = v.dtype
+                        if k not in self.buffered_emits:
+                            self.buffered_emits[k] = [
+                                pl.Series([], dtype=v.dtype)
+                            ] * self.batch_size
+                        self.buffered_emits[k][emit_idx] = v[0]
+                        continue
                 # Skip null values and empty lists
                 if np_type is None:
                     continue
-                v = np.asarray(v, dtype=np_type)
-                # Skip empty arrays
-                if v.size == 0:
+                try:
+                    v = np.asarray(v, dtype=np_type)
+                except ValueError:
+                    warnings.warn(
+                        f"Falling back to JSON serialization for potential ragged ND array {k}."
+                        " This is inefficient. If possible, use a different data type."
+                    )
+                    v = pl.read_json(
+                        BytesIO(
+                            orjson.dumps({"a": v}, default=self.fallback_serializer)
+                        )
+                    )["a"]
+                    self.pl_types[k] = v.dtype
+                    if k not in self.buffered_emits:
+                        self.buffered_emits[k] = [
+                            pl.Series([], dtype=v.dtype)
+                        ] * self.batch_size
+                    self.buffered_emits[k][emit_idx] = v[0]
                     continue
                 self.np_types[k] = v.dtype
                 if k not in self.pl_types:
