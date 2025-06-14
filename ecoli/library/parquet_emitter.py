@@ -1,19 +1,16 @@
 import atexit
 import os
-from io import BytesIO
-import warnings
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable, cast, Mapping, Optional
 from urllib import parse
 
 import duckdb
-import orjson
 import numpy as np
 import polars as pl
 from fsspec.core import url_to_fs, OpenFile
 from fsspec.spec import AbstractFileSystem
 from tqdm import tqdm
-from vivarium.core.emitter import Emitter, make_fallback_serializer_function
+from vivarium.core.emitter import Emitter
 
 METADATA_PREFIX = "output_metadata__"
 """
@@ -63,6 +60,7 @@ def json_to_parquet(
     emit_dict: dict[str, np.ndarray | list[np.ndarray]],
     outfile: str,
     schema: dict[str, Any],
+    filesystem: AbstractFileSystem,
 ):
     """Convert dictionary to Parquet.
 
@@ -75,7 +73,15 @@ def json_to_parquet(
             Arrays (see code comment in :py:class:`~.ParquetEmitter`).
     """
     tbl = pl.DataFrame(emit_dict, schema={k: schema[k] for k in emit_dict})
-    tbl.write_parquet(outfile, statistics=False)
+    # GCS should have atomic uploads, but on a local filesystem, DuckDB may fail
+    # trying to read partially written Parquet files. Get around this by writing
+    # to a temporary file and then renaming it to the final output file.
+    temp_outfile = outfile
+    if parse.urlparse(outfile).scheme in ("", "file", "local"):
+        temp_outfile = outfile + ".tmp"
+    tbl.write_parquet(temp_outfile, statistics=False)
+    if temp_outfile != outfile:
+        filesystem.mv(temp_outfile, outfile)
 
 
 def union_by_name(query_sql: str) -> str:
@@ -596,6 +602,11 @@ def get_encoding(
     elif isinstance(val, (str, np.str_)):
         return np.dtypes.StringDType
     elif isinstance(val, np.ndarray):
+        if val.dtype.kind == "S":
+            # Using NumPy bytes would result in truncation
+            # to the length of the first value. Instead,
+            # use Polars directly.
+            raise TypeError(f"{field_name} has unsupported type {type(val)}.")
         return val.dtype
     elif isinstance(val, (list, tuple)):
         if len(val) > 0:
@@ -641,6 +652,8 @@ def get_polars_dtype_from_ndarray(arr: np.ndarray) -> pl.DataType:
     """
     Get Polars data type for a Numpy array, including nested lists.
     """
+    # Must be size 1 in order for np.dtypes.StringDType to
+    # convert to Polars String type
     pl_dtype = pl.Series(np.empty(1, dtype=arr.dtype)).dtype
     for _ in range(arr.ndim):
         pl_dtype = pl.List(pl_dtype)
@@ -698,9 +711,6 @@ class ParquetEmitter(Emitter):
         # was successfully written to Parquet in order to avoid blocking
         self.last_batch_future: Future = Future()
         self.last_batch_future.set_result(None)
-        # Last-resort serialization uses orjson to convert to JSON that
-        # is read in by Polars
-        self.fallback_serializer = make_fallback_serializer_function()
         # Set either by EcoliSim or by EngineProcess if sim reaches division
         self.success = False
         atexit.register(self._finalize)
@@ -725,7 +735,9 @@ class ParquetEmitter(Emitter):
         if not self.filesystem.exists(outfile):
             for k, v in self.buffered_emits.items():
                 self.buffered_emits[k] = v[: self.num_emits % self.batch_size]
-            json_to_parquet(self.buffered_emits, outfile, self.pl_types)
+            json_to_parquet(
+                self.buffered_emits, outfile, self.pl_types, self.filesystem
+            )
         # Hive-partitioned directory that only contains successful sims
         if self.success:
             success_file = os.path.join(
@@ -748,10 +760,8 @@ class ParquetEmitter(Emitter):
     def emit(self, data: dict[str, Any]):
         """
         Flattens emit dictionary by concatenating nested key names with double
-        underscores (:py:func:`~.flatten_dict`), serializes flattened emit with
-        ``orjson``, and writes newline-delimited JSONs in a temporary file to be
-        batched for some number of timesteps before conversion to Parquet by
-        :py:func:`~.json_to_parquet`.
+        underscores (:py:func:`~.flatten_dict`), buffers it in memory, and writes
+        to a Parquet file upon buffering a configurable number of emits.
 
         The output directory (``config["out_dir"]`` or ``config["out_uri"]``) will
         have the following structure::
@@ -805,15 +815,7 @@ class ParquetEmitter(Emitter):
                 try:
                     np_type = get_encoding(v, k)
                 except TypeError:
-                    warnings.warn(
-                        f"Falling back to JSON to Polars serialization for {k}. This is inefficient."
-                        " If possible, convert your data to a type supported by get_encoding."
-                    )
-                    v = pl.read_json(
-                        BytesIO(
-                            orjson.dumps({"a": v}, default=self.fallback_serializer)
-                        )
-                    )["a"]
+                    v = pl.Series([v])
                     config_emit[k] = v
                     config_schema[k] = v.dtype
                     continue
@@ -824,15 +826,7 @@ class ParquetEmitter(Emitter):
                 try:
                     config_emit[k] = np.asarray(v, dtype=np_type)[np.newaxis]
                 except ValueError:
-                    warnings.warn(
-                        f"Falling back to JSON/Polars serialization for potential ragged ND array {k}."
-                        " This is inefficient. If possible, use a different data type."
-                    )
-                    v = pl.read_json(
-                        BytesIO(
-                            orjson.dumps({"a": v}, default=self.fallback_serializer)
-                        )
-                    )["a"]
+                    v = pl.Series([v])
                     config_emit[k] = v
                     config_schema[k] = v.dtype
                     continue
@@ -858,6 +852,7 @@ class ParquetEmitter(Emitter):
                 config_emit,
                 outfile,
                 config_schema,
+                self.filesystem,
             )
             # Delete any sim output files in final filesystem
             history_outdir = os.path.join(
@@ -886,12 +881,12 @@ class ParquetEmitter(Emitter):
                 elif k in self.pl_types:
                     # Only way for key to have Polars type but not Numpy type
                     # is if it previously fell back to JSON serialization
-                    v = pl.read_json(
-                        BytesIO(
-                            orjson.dumps({"a": v}, default=self.fallback_serializer)
-                        )
-                    )["a"][0]
-                    self.buffered_emits[k][emit_idx] = v
+                    v = pl.Series([v], dtype=self.pl_types[k])
+                    if k not in self.buffered_emits:
+                        self.buffered_emits[k] = [
+                            pl.Series([], dtype=v.dtype)
+                        ] * self.batch_size
+                    self.buffered_emits[k][emit_idx] = v[0]
                     continue
                 else:
                     try:
@@ -899,15 +894,7 @@ class ParquetEmitter(Emitter):
                             v, k, use_uint16=k in USE_UINT16, use_uint32=k in USE_UINT32
                         )
                     except TypeError:
-                        warnings.warn(
-                            f"Falling back to JSON serialization for {k}. This is inefficient."
-                            " If possible, convert your data to a type supported by get_encoding."
-                        )
-                        v = pl.read_json(
-                            BytesIO(
-                                orjson.dumps({"a": v}, default=self.fallback_serializer)
-                            )
-                        )["a"]
+                        v = pl.Series([v])
                         self.pl_types[k] = v.dtype
                         if k not in self.buffered_emits:
                             self.buffered_emits[k] = [
@@ -921,15 +908,7 @@ class ParquetEmitter(Emitter):
                 try:
                     v = np.asarray(v, dtype=np_type)
                 except ValueError:
-                    warnings.warn(
-                        f"Falling back to JSON serialization for potential ragged ND array {k}."
-                        " This is inefficient. If possible, use a different data type."
-                    )
-                    v = pl.read_json(
-                        BytesIO(
-                            orjson.dumps({"a": v}, default=self.fallback_serializer)
-                        )
-                    )["a"]
+                    v = pl.Series([v])
                     self.pl_types[k] = v.dtype
                     if k not in self.buffered_emits:
                         self.buffered_emits[k] = [
@@ -937,7 +916,7 @@ class ParquetEmitter(Emitter):
                         ] * self.batch_size
                     self.buffered_emits[k][emit_idx] = v[0]
                     continue
-                self.np_types[k] = v.dtype
+                self.np_types[k] = np_type
                 if k not in self.pl_types:
                     self.pl_types[k] = get_polars_dtype_from_ndarray(v)
                 if k not in self.buffered_emits:
@@ -967,6 +946,11 @@ class ParquetEmitter(Emitter):
                     # Convert fixed-shape buffer to variable-shape if
                     # dimension mismatch detected
                     if v.shape != self.buffered_emits[k].shape[1:]:
+                        if v.ndim != self.buffered_emits[k].ndim - 1:
+                            raise ValueError(
+                                f"Field {k} has shape {v.shape} but expected "
+                                f"{self.buffered_emits[k].ndim - 1} dimension(s)."
+                            )
                         self.var_len_dims[k] = v.ndim
                         self.buffered_emits[k] = list(
                             self.buffered_emits[k][:emit_idx]
@@ -991,6 +975,7 @@ class ParquetEmitter(Emitter):
                 self.buffered_emits,
                 outfile,
                 self.pl_types,
+                self.filesystem,
             )
             # Clear buffers because they are mutable and we do not want to
             # accidentally modify data as it is being written in the background
