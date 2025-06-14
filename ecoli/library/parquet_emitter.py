@@ -178,12 +178,6 @@ def ndlist_to_ndarray(s) -> np.ndarray:
     a user-defined function (see DuckDB documentation on Python Function API and
     ``func`` kwarg for :py:func:`~read_stacked_columns`).
 
-    .. warning::
-        PyArrow must be separately installed to properly use DuckDB's
-        Python Function API. You can do this with ``uv add pyarrow``. Just
-        remember NOT to commit the modified ``pyproject.toml`` or ``uv.lock``
-        so other users can have a more minimal installation.
-
     For elementwise arithmetic of two nested list columns, this can be used
     to define a custom DuckDB function as follows::
 
