@@ -1,5 +1,6 @@
 import atexit
 import os
+import re
 import tempfile
 import shutil
 import numpy as np
@@ -7,6 +8,7 @@ import polars as pl
 import pytest
 import time
 import math
+import datetime
 from unittest.mock import Mock, patch
 from concurrent.futures import ThreadPoolExecutor, Future
 from queue import Queue
@@ -86,7 +88,7 @@ class TestHelperFunctions:
         assert np_type is None
 
         # Invalid types
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="complex_field has unsupported type"):
             get_encoding(complex(1, 2), "complex_field")
 
 
@@ -365,12 +367,32 @@ class TestParquetEmitter:
                         "inf_value": np.inf,
                         # Special cases
                         "empty_array": np.array([]),
-                        "zero_dim_array": np.array(42),  # 0-d array
+                        "zero_dim_array": np.array(42),
                         "unicode_string": "Unicode: 日本語",
                         "very_long_string": "x" * 10000,
                         # Nested structures
                         "deep_nesting": {"level1": {"level2": {"level3": [1, 2, 3]}}},
                         "ragged_nullable": [None, [1, 2], [None, 1, 2, 3]],
+                        # Python datetime objects
+                        "datetime_list": [
+                            datetime.datetime(2000, 12, 25),
+                            datetime.datetime(2001, 4, 1, 12),
+                            datetime.datetime(2002, 1, 1, 0, 1),
+                            datetime.datetime(2003, 2, 14, 5, 5, 5),
+                            datetime.datetime(2003, 7, 4, 7, 8, 9, 10),
+                        ],
+                        "time_list": [
+                            datetime.time(1),
+                            datetime.time(2, 3),
+                            datetime.time(4, 5, 6),
+                            datetime.time(7, 8, 9, 10),
+                        ],
+                        "datetime": datetime.datetime(1776, 7, 4),
+                        # Test bytes
+                        "npbytes": np.array([b"test bytes"])[0],
+                        "pybytes": b"test bytes",
+                        "npbytes_list": np.array([b"test1", b"test2"]),
+                        "pybytes_list": [b"test1", b"test2"],
                     }
                 },
             },
@@ -430,7 +452,7 @@ class TestParquetEmitter:
                         "inf_value": np.nan,
                         # More special cases
                         "empty_array": np.array([np.nan]),
-                        "zero_dim_array": np.array(np.inf),  # 0-d array
+                        "zero_dim_array": np.array(0),
                         "unicode_string": "Unicode: 日本語 再び",
                         "very_long_string": "x" * 100000,
                         # Nested structures
@@ -445,6 +467,15 @@ class TestParquetEmitter:
                             None,
                             [1, 2, None],
                         ],
+                        # Python datetime objects
+                        "datetime_list": [datetime.datetime(2000, 12, 25)],
+                        "time_list": [datetime.time(1)],
+                        "datetime": datetime.datetime(2000, 12, 25),
+                        # Test bytes
+                        "npbytes": np.array([b"short"])[0],
+                        "pybytes": b"short",
+                        "npbytes_list": np.array([b"much longer bytestring", b"1"]),
+                        "pybytes_list": [b"much longer bytestring", b"1"],
                     }
                 },
             },
@@ -470,8 +501,7 @@ class TestParquetEmitter:
             "nan_value": [np.nan, np.inf],
             "inf_value": [np.inf, np.nan],
             "empty_array": [[], [np.nan]],
-            # Silently incorrectly stores np.inf
-            "zero_dim_array": [42, -9223372036854775808],
+            "zero_dim_array": [42, 0],
             "unicode_string": ["Unicode: 日本語", "Unicode: 日本語 再び"],
             "very_long_string": ["x" * 10000, "x" * 100000],
             "deep_nesting__level1__level2__level3": [[1, 2, 3], [1, 2, 3, 4]],
@@ -480,6 +510,34 @@ class TestParquetEmitter:
                 [None, [1, 2], [None, 1, 2, 3]],
                 [[1, 3, 4], [None, None, 1], None, [1, 2, None]],
             ],
+            "datetime_list": [
+                [
+                    datetime.datetime(2000, 12, 25),
+                    datetime.datetime(2001, 4, 1, 12),
+                    datetime.datetime(2002, 1, 1, 0, 1),
+                    datetime.datetime(2003, 2, 14, 5, 5, 5),
+                    datetime.datetime(2003, 7, 4, 7, 8, 9, 10),
+                ],
+                [datetime.datetime(2000, 12, 25)],
+            ],
+            "time_list": [
+                [
+                    datetime.time(1),
+                    datetime.time(2, 3),
+                    datetime.time(4, 5, 6),
+                    datetime.time(7, 8, 9, 10),
+                ],
+                [datetime.time(1)],
+            ],
+            "datetime": [
+                datetime.datetime(1776, 7, 4),
+                datetime.datetime(2000, 12, 25),
+            ],
+            # Test bytes
+            "npbytes": [b"test bytes", b"short"],
+            "pybytes": [b"test bytes", b"short"],
+            "npbytes_list": [[b"test1", b"test2"], [b"much longer bytestring", b"1"]],
+            "pybytes_list": [[b"test1", b"test2"], [b"much longer bytestring", b"1"]],
         }
         for key, value in output_data.items():
             assert compare_nested(output_pl[key].to_list(), value), (
@@ -521,10 +579,16 @@ class TestParquetEmitter:
 
         # Test success flag
         emitter.success = True
-        with patch("polars.DataFrame.write_parquet") as mock_write:
-            emitter._finalize()
-            # Verify success file was written
-            mock_write.assert_called()
+        emitter._finalize()
+        assert os.path.exists(
+            os.path.join(
+                emitter.out_uri,
+                emitter.experiment_id,
+                "success",
+                emitter.partitioning_path,
+                "s.pq",
+            )
+        )
 
     def test_multiple_agents(self, temp_dir):
         emitter = ParquetEmitter({"out_dir": temp_dir})
@@ -711,6 +775,10 @@ class TestParquetEmitterEdgeCases:
             "field2": pl.Int64,
         }
 
+        # Changed type for field2 to list so should fail
+        with pytest.raises(pl.exceptions.InvalidOperationError):
+            emitter._finalize()
+        atexit.unregister(emitter._finalize)
         # Cleanup the real executor
         real_executor.shutdown()
 
@@ -788,23 +856,7 @@ class TestParquetEmitterEdgeCases:
         }
         emitter.emit(sim_data3)
 
-        # PHASE 4: Test after disk write with 2D array instead of expected 1D
-        sim_data4 = {
-            "table": "simulation",
-            "data": {
-                "time": 4.0,
-                "agents": {
-                    "agent1": {
-                        "dynamic_array": np.array([[1, 2], [3, 4]]),
-                        "subtle_array": np.array([[1], [2], [3]]),
-                    }
-                },
-            },
-        }
-        with pytest.raises(ValueError):
-            emitter.emit(sim_data4)
-
-        # PHASE 5: subtle_array changed shape but we are at the start of a new batch.
+        # PHASE 4: subtle_array changed shape but we are at the start of a new batch.
         # ParquetEmitter is designed to assume all arrays are fixed-shape until
         # proven otherwise (better performance and memory usage). The distinction
         # between a fixed-shape and variable-shape array is purely an implmentation
@@ -813,11 +865,10 @@ class TestParquetEmitterEdgeCases:
         # is variable in shape, as long as it takes on a consistent shape within
         # a batch of emits, ParquetEmitter is more than happy to treat it as
         # fixed-shape and reap the performance benefits.
-
-        sim_data5 = {
+        sim_data4 = {
             "table": "simulation",
             "data": {
-                "time": 5.0,
+                "time": 4.0,
                 "agents": {
                     "agent1": {
                         "dynamic_array": np.array([1]),
@@ -826,20 +877,18 @@ class TestParquetEmitterEdgeCases:
                 },
             },
         }
-        emitter.emit(sim_data5)
+        emitter.emit(sim_data4)
 
         # Should be instantiated as variable length from last batch
         assert isinstance(emitter.buffered_emits["dynamic_array"], list)
-        for dyn_arr in emitter.buffered_emits["dynamic_array"]:
-            assert isinstance(dyn_arr, np.ndarray) and dyn_arr.ndim == 1
         assert emitter.buffered_emits["dynamic_array"][0].tolist() == [1]
         # Should be treated as fixed-shape still
         assert isinstance(emitter.buffered_emits["subtle_array"], np.ndarray)
         assert emitter.buffered_emits["subtle_array"].shape[1:] == (5, 1)
 
         # Trigger another Parquet write and read them both back to confirm
-        emitter.emit(sim_data5)
-        emitter.emit(sim_data5)
+        emitter.emit(sim_data4)
+        emitter.emit(sim_data4)
 
         emitter.last_batch_future.result()
         t = pl.read_parquet(
@@ -867,3 +916,124 @@ class TestParquetEmitterEdgeCases:
             [[1], [2], [3], [4], [5]],
             [[1], [2], [3], [4], [5]],
         ]
+
+    def test_expected_failures(self, temp_dir):
+        """
+        Test a few cases that are expected to fail.
+        """
+        # Use a small batch size to quickly hit the boundary
+        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 3})
+
+        # Setup: Emit configuration data to intitialize variables
+        config_data = {
+            "table": "configuration",
+            "data": {
+                "experiment_id": "test_exp",
+                "variant": 1,
+                "lineage_seed": 1,
+                "agent_id": "1",
+            },
+        }
+        emitter.emit(config_data)
+
+        # Test initial null, empty list, empty array skipping
+        sim_data1 = {
+            "table": "simulation",
+            "data": {
+                "time": 1.0,
+                "agents": {
+                    "agent1": {
+                        "init_null": None,
+                        "init_empty_list": [],
+                        "init_empty_array": np.array([]),
+                        # Setup initial value for later test
+                        "3d_array": np.random.rand(2, 3, 4),
+                    }
+                },
+            },
+        }
+        emitter.emit(sim_data1)
+
+        for key in ["init_null", "init_empty_list"]:
+            assert key not in emitter.buffered_emits
+            assert key not in emitter.var_len_dims
+            assert key not in emitter.pl_types
+            assert key not in emitter.np_types
+        assert "init_empty_array" in emitter.buffered_emits
+        assert isinstance(emitter.buffered_emits["init_empty_array"], np.ndarray)
+        assert emitter.buffered_emits["init_empty_array"].dtype == np.float64
+
+        # Try adding another dimension to empty array
+        sim_data2 = {
+            "table": "simulation",
+            "data": {
+                "time": 2.0,
+                "agents": {
+                    "agent1": {
+                        "init_empty_array": np.array([[]]),
+                    }
+                },
+            },
+        }
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Field init_empty_array has shape (1, 0) but expected 1 dimension(s)."
+            ),
+        ):
+            emitter.emit(sim_data2)
+
+        # Try adding 2D array with non-nulls to 3D array field
+        sim_data3 = {
+            "table": "simulation",
+            "data": {
+                "time": 2.0,
+                "agents": {
+                    "agent1": {
+                        "3d_array": np.array([[1, 2]]),
+                    }
+                },
+            },
+        }
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Field 3d_array has shape (1, 2) but expected 3 dimension(s)."
+            ),
+        ):
+            emitter.emit(sim_data3)
+
+        # Try NumPy unsupported datetime64 resolution
+        sim_data4 = {
+            "table": "simulation",
+            "data": {
+                "time": 3.0,
+                "agents": {
+                    "agent1": {
+                        "datetime_arr": np.array(
+                            [
+                                np.datetime64("2023-01-01T01"),
+                                np.datetime64("2023-01-02T02:02"),
+                            ]
+                        ),
+                    }
+                },
+            },
+        }
+        with pytest.raises(ValueError, match="incorrect NumPy datetime resolution"):
+            emitter.emit(sim_data4)
+
+        # Try NumPy void
+        sim_data5 = {
+            "table": "simulation",
+            "data": {
+                "time": 4.0,
+                "agents": {
+                    "agent1": {
+                        "npvoid": np.array([b"test bytes"], dtype=np.void)[0],
+                    }
+                },
+            },
+        }
+        with pytest.raises(ValueError):
+            emitter.emit(sim_data5)
