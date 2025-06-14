@@ -223,7 +223,7 @@ def ndlist_to_ndarray(s) -> np.ndarray:
         dimensions.append(len(inner_s))
     inner_s = inner_s.dtype
     while inner_s.is_nested():
-        inner_s = inner_s.inner
+        inner_s = inner_s.inner  # type: ignore[attr-defined]
         dimensions.append(0)
     return pl.Series(s, dtype=pl.Array(inner_s, tuple(dimensions))).to_numpy()
 
@@ -381,10 +381,10 @@ def get_plot_metadata(
         "description": get_config_value(conn, config_subquery, "description"),
         "variant_function": variant_name,
         "variant_index": conn.sql(f"SELECT DISTINCT variant FROM ({config_subquery})")
-        .pl()
+        .arrow()
         .to_pydict()["variant"],
         "seed": conn.sql(f"SELECT DISTINCT lineage_seed FROM ({config_subquery})")
-        .pl()
+        .arrow()
         .to_pydict()["lineage_seed"],
         "total_gens": cast(
             tuple,
@@ -691,7 +691,7 @@ class ParquetEmitter(Emitter):
         self.batch_size = config.get("batch_size", 400)
         self.executor = ThreadPoolExecutor(2)
         # Buffer emits for each listener in a Numpy array
-        self.buffered_emits = {}
+        self.buffered_emits: dict[str, Any] = {}
         # Explicitly set Polars types to avoid a potential schema mismatch.
         # Polars automatically casts Numpy arrays to its Array type, which
         # comes with performance and memory advantages. Unfortunately,
@@ -700,12 +700,12 @@ class ParquetEmitter(Emitter):
         # Parquet consumers (e.g. DuckDB) do not treat Parquet data differently
         # regardless of whether it was written as a Polars Array or generic List,
         # I am inclined to continue using the generic List type.
-        self.pl_types = {}
+        self.pl_types: dict[str, pl.DataType] = {}
         # Keep track of ndims for each variable-shape column and raise
         # an error if this changes (e.g. go from 2D to 3D)
-        self.var_len_dims = {}
+        self.var_len_dims: dict[str, int] = {}
         # Figure out the type of each column on first encounter and cache it
-        self.np_types = {}
+        self.np_types: dict[str, Any] = {}
         self.num_emits = 0
         # Wait until next batch of emits to check whether last batch
         # was successfully written to Parquet in order to avoid blocking
@@ -809,8 +809,8 @@ class ParquetEmitter(Emitter):
                 *(f"{k}={v}" for k, v in partitioning_keys.items())
             )
             data = flatten_dict(data)
-            config_emit = {}
-            config_schema = {}
+            config_emit: dict[str, Any] = {}
+            config_schema: dict[str, pl.DataType] = {}
             for k, v in data.items():
                 try:
                     np_type = get_encoding(v, k)
@@ -821,7 +821,7 @@ class ParquetEmitter(Emitter):
                     continue
                 if np_type is None:
                     config_emit[k] = [None]
-                    config_schema[k] = pl.Null
+                    config_schema[k] = pl.Null()
                     continue
                 try:
                     config_emit[k] = np.asarray(v, dtype=np_type)[np.newaxis]

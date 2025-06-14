@@ -274,7 +274,7 @@ def get_mean_and_std_matrices(
             "post_func should return a Polars DataFrame with "
             "exactly three columns named `variant`, `mean`, and `std`"
         )
-    data = [(i["variant"], i["mean"], i["std"]) for i in data.rows()]
+    data = [(i["variant"], i["mean"], i["std"]) for i in data.rows(named=True)]  # type: ignore[assignment]
     mean_matrix = [
         [default_value for _ in range(variant_matrix_shape[1])]
         for _ in range(variant_matrix_shape[0])
