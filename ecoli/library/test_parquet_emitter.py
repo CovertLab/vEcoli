@@ -6,6 +6,7 @@ import numpy as np
 import polars as pl
 import pytest
 import time
+import math
 from unittest.mock import Mock, patch
 from concurrent.futures import ThreadPoolExecutor, Future
 from queue import Queue
@@ -87,6 +88,22 @@ class TestHelperFunctions:
         # Invalid types
         with pytest.raises(TypeError):
             get_encoding(complex(1, 2), "complex_field")
+
+
+def compare_nested(a: list, b: list) -> bool:
+    """
+    Compare two lists for equality, including special handling for NaN.
+    """
+    if isinstance(a, list) and isinstance(b, list):
+        if len(a) != len(b):
+            return False
+        return all(compare_nested(a[i], b[i]) for i in range(len(a)))
+    if a != b:
+        try:
+            return math.isnan(a) and math.isnan(b)
+        except TypeError:
+            return False
+    return True
 
 
 class TestParquetEmitter:
@@ -237,11 +254,20 @@ class TestParquetEmitter:
 
     def test_variable_length_arrays(self, temp_dir):
         """Test handling arrays with changing dimensions."""
-        emitter = ParquetEmitter({"out_dir": temp_dir})
-        emitter.experiment_id = "test_exp"
-        emitter.partitioning_path = "path/to/output"
+        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 3})
+        # Configuration emit to initialize variables
+        config_data = {
+            "table": "configuration",
+            "data": {
+                "experiment_id": "test_exp",
+                "variant": 1,
+                "lineage_seed": 1,
+                "agent_id": "1",
+            },
+        }
+        emitter.emit(config_data)
+        emitter.last_batch_future.result()
 
-        # First emit with 3-element array
         sim_data1 = {
             "table": "simulation",
             "data": {
@@ -257,18 +283,23 @@ class TestParquetEmitter:
         emitter.emit(sim_data1)
         emitter.last_batch_future.result()
 
-        # Verify array was stored correctly
+        # Verify arrays were stored correctly
         assert "dynamic_array" in emitter.buffered_emits
         assert emitter.buffered_emits["dynamic_array"].shape[1:] == (3,)
+        assert "ragged_nd" in emitter.buffered_emits
+        assert all(
+            emitter.buffered_emits["ragged_nd"][0]
+            == pl.Series([[1, 2, 3], [1, 2], [1]])
+        )
 
-        # Second emit with 4-element array (different shape)
+        # Second emit with different shapes
         sim_data2 = {
             "table": "simulation",
             "data": {
                 "time": 2.0,
                 "agents": {
                     "agent1": {
-                        "dynamic_array": np.array([4, 5, 6, 7]),  # Different length
+                        "dynamic_array": np.array([4, 5, 6, 7]),
                         "ragged_nd": [[1], [1, 2], [1, 2, 3]],
                     }
                 },
@@ -282,6 +313,34 @@ class TestParquetEmitter:
         assert isinstance(emitter.buffered_emits["dynamic_array"], list)
         assert emitter.buffered_emits["dynamic_array"][0].tolist() == [1, 2, 3]
         assert emitter.buffered_emits["dynamic_array"][1].tolist() == [4, 5, 6, 7]
+        assert all(
+            emitter.buffered_emits["ragged_nd"][1]
+            == pl.Series([[1], [1, 2], [1, 2, 3]])
+        )
+
+        # Write to Parquet and check output
+        emitter.emit(sim_data2)
+        emitter.last_batch_future.result()
+
+        t = pl.read_parquet(
+            os.path.join(
+                emitter.out_uri,
+                emitter.experiment_id,
+                "history",
+                emitter.partitioning_path,
+                "*.pq",
+            )
+        )
+        assert t["dynamic_array"].to_list() == [
+            [1, 2, 3],
+            [4, 5, 6, 7],
+            [4, 5, 6, 7],
+        ]
+        assert t["ragged_nd"].to_list() == [
+            [[1, 2, 3], [1, 2], [1]],
+            [[1], [1, 2], [1, 2, 3]],
+            [[1], [1, 2], [1, 2, 3]],
+        ]
 
     def test_extreme_data_types(self, temp_dir):
         """Test with extreme data types and edge cases."""
@@ -404,47 +463,28 @@ class TestParquetEmitter:
         output_pl = pl.read_parquet(out_path)
 
         output_data = {
-            "max_int": np.array(
-                [np.iinfo(np.int64).max, np.iinfo(np.int64).min], dtype=np.int64
-            ),
-            "min_int": np.array(
-                [np.iinfo(np.int64).min, np.iinfo(np.int64).max], dtype=np.int64
-            ),
-            "max_float": np.array(
-                [np.finfo(np.float64).max, np.finfo(np.float64).min], dtype=np.float64
-            ),
-            "tiny_float": np.array([1e-100, 1e100], dtype=np.float64),
-            "nan_value": np.array([np.nan, np.inf], dtype=np.float64),
-            "inf_value": np.array([np.inf, np.nan], dtype=np.float64),
-            "empty_array": np.array([np.array([]), np.array([np.nan])], dtype=object),
+            "max_int": [np.iinfo(np.int64).max, np.iinfo(np.int64).min],
+            "min_int": [np.iinfo(np.int64).min, np.iinfo(np.int64).max],
+            "max_float": [np.finfo(np.float64).max, np.finfo(np.float64).min],
+            "tiny_float": [1e-100, 1e100],
+            "nan_value": [np.nan, np.inf],
+            "inf_value": [np.inf, np.nan],
+            "empty_array": [[], [np.nan]],
             # Silently incorrectly stores np.inf
-            "zero_dim_array": np.array([42, -9223372036854775808], dtype=np.int64),
-            "unicode_string": np.array(["Unicode: 日本語", "Unicode: 日本語 再び"]),
-            "very_long_string": np.array(["x" * 10000, "x" * 100000]),
-            "deep_nesting__level1__level2__level3": np.array(
-                [np.array([1, 2, 3], dtype=int), np.array([1, 2, 3, 4], dtype=int)],
-                dtype=object,
-            ),
-            "deep_nesting__level1__level2__level4": np.array(
-                [np.array([], dtype=int), np.array([5, 6, 7], dtype=int)], dtype=object
-            ),
+            "zero_dim_array": [42, -9223372036854775808],
+            "unicode_string": ["Unicode: 日本語", "Unicode: 日本語 再び"],
+            "very_long_string": ["x" * 10000, "x" * 100000],
+            "deep_nesting__level1__level2__level3": [[1, 2, 3], [1, 2, 3, 4]],
+            "deep_nesting__level1__level2__level4": [[], [5, 6, 7]],
+            "ragged_nullable": [
+                [None, [1, 2], [None, 1, 2, 3]],
+                [[1, 3, 4], [None, None, 1], None, [1, 2, None]],
+            ],
         }
         for key, value in output_data.items():
-            try:
-                assert np.array_equal(
-                    output_pl[key].to_numpy(), value, equal_nan=True
-                ), f"Mismatch for key: {key}"
-                print("basic", key, output_pl[key].to_numpy(), value)
-            except TypeError:
-                for pq, vl in zip(output_pl[key].to_numpy(), value):
-                    try:
-                        assert np.array_equal(pq, vl, equal_nan=True), (
-                            f"Mismatch for key: {key} with value: {vl}"
-                        )
-                        print("zip", key, output_pl[key].to_numpy(), value)
-                    except TypeError:
-                        assert pq == vl, f"Mismatch for key: {key} with value: {vl}"
-                        print("direct", key, output_pl[key].to_numpy(), value)
+            assert compare_nested(output_pl[key].to_list(), value), (
+                f"Mismatch in field {key}"
+            )
 
     def test_finalize(self, temp_dir):
         """Test _finalize method that handles remaining data."""
@@ -641,23 +681,35 @@ class TestParquetEmitterEdgeCases:
                 "time": 3.0,
                 "agents": {
                     "agent1": {
-                        f"field{i}": np.array([7, 8, 9, 10]) for i in range(3, 30)
+                        f"field{i}": np.array([7, 8, 9, 10]) for i in range(1, 10)
                     }
                 },
             },
         }
         emitter.emit(sim_data3)
 
-        # # Verify the captured data matches what was in buffers before clearing
+        # Verify the captured data matches what was in buffers before clearing
         captured_data, captured_types = data_capture_queue.get(timeout=1)
         assert captured_data["experiment_id"] == "test_exp"
         assert captured_data["variant"] == 1
         assert captured_data["lineage_seed"] == 1
+        assert captured_types == {
+            "experiment_id": pl.String,
+            "variant": pl.Int64,
+            "lineage_seed": pl.Int64,
+            "agent_id": pl.String,
+            "time": pl.Float64,
+        }
 
         captured_data, captured_types = data_capture_queue.get(timeout=1)
         assert len(captured_data["field1"]) == emitter.batch_size
         assert captured_data["field1"][0].tolist() == [1, 2, 3]
         assert captured_data["field1"][1].tolist() == [4, 5, 6]
+        assert captured_types == {
+            "time": pl.Float64,
+            "field1": pl.List(pl.Int64),
+            "field2": pl.Int64,
+        }
 
         # Cleanup the real executor
         real_executor.shutdown()
