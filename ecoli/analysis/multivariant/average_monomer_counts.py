@@ -123,9 +123,7 @@ def plot(
         variant_pair = avg_monomer_per_variant.filter(
             pl.col("variant").is_in([control_variant, exp_variant])
         ).sort("variant")
-        avg_monomer_counts = ndlist_to_ndarray(
-            variant_pair["avg_monomer_counts"].to_arrow()
-        )
+        avg_monomer_counts = ndlist_to_ndarray(variant_pair["avg_monomer_counts"])
         # Save unfiltered data
         col_labels = ["all_monomer_ids", "var_0_avg_PCs", f"var_{exp_variant}_avg_PCs"]
         values = np.concatenate((all_monomer_ids.T, avg_monomer_counts.T), axis=1)
