@@ -337,36 +337,6 @@ for common query patterns. These include:
 - :py:func:`~ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_1d_array_over_scalar_sql`
 - :py:func:`~ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_sum_1d_array_over_scalar_sql`
 
-.. _special_float_values:
-
-Special Float Values
-====================
-
-The Parquet emitter uses ``orjson`` to convert simulation output data to an intermediate JSON
-format that is then written to Parquet.  Because special float values like NaN/infinity are
-not included in the JSON specification, ``orjson`` converts them to null. As such, processes
-**MUST** be written so that these values do not appear under normal circumstances.
-
-If you anticipate that these values may appear when something has gone wrong, note
-that DuckDB, the library used to read Parquet data, ignores null values by default in
-aggregation functions like ``sum`` and ``avg``. To make these aggregations return null if
-any input values are null, use the following syntax (example for ``sum``):
-
-.. code-block:: sql
-
-  SELECT
-    CASE
-      -- If any values in column are null, return null
-      WHEN bool_or(column_name is NULL) THEN NULL
-      -- Otherwise, perform the aggregation as normal
-      ELSE SUM(column_name)
-    END AS safe_sum
-  FROM your_table;
-
-For more advanced users who require these values for a one-off test, we have made a
-`branch of orjson <https://github.com/CovertLab/orjson/tree/updated-infnan>`_ that is
-patched to support these values. It is not actively maintained, and changes that require
-this patched package will not be merged into the main vEcoli codebase.
 
 ---------------------
 Other Workflow Output
