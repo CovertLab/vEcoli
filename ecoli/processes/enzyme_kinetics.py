@@ -170,7 +170,7 @@ def test_enzyme_kinetics(end_time=100):
     settings = {"total_time": end_time, "initial_state": initial_state}
 
     data = simulate_process(kinetic_process, settings)
-    return data is not None
+    assert data is not None
 
 
 # run module with uvenv ecoli/processes/enzyme_kinetics.py

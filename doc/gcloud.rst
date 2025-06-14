@@ -132,8 +132,9 @@ installing ``uv`` and finishing with installing Nextflow.
 
 .. note::
   The only requirements to run :mod:`runscripts.workflow` on Google Cloud
-  are Nextflow and PyArrow. The workflow steps will be run inside Docker
-  containers (see :ref:`docker-images`). The other Python requirements can be
+  are Nextflow, Python 3, and `GCSFS <https://gcsfs.readthedocs.io/en/latest/>`_.
+  The workflow steps will be run inside Docker containers (see
+  :ref:`docker-images`). The other Python requirements can be
   omitted for a more minimal installation. You will need to use
   :ref:`interactive containers <interactive-containers>` to run the model using
   any interface other than :mod:`runscripts.workflow`, but this may be a good
@@ -323,7 +324,7 @@ will be applied, resulting in much lower costs.
 
 If you absolutely must interact with cloud resources from a local machine, the above
 error may be resolved by running the following command to generate credentials that
-will be automatically picked up by PyArrow:
+will be automatically picked up by GCSFS:
 
 .. code-block:: bash
 

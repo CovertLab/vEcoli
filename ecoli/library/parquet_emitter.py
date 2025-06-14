@@ -1,23 +1,16 @@
 import atexit
 import os
-import pathlib
-from itertools import pairwise
-import tempfile
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable, cast, Mapping, Optional
 from urllib import parse
 
 import duckdb
 import numpy as np
-import orjson
-import pyarrow as pa
-from pyarrow import compute as pc
-from pyarrow import fs
-from pyarrow import json as pj
-from pyarrow import parquet as pq
+import polars as pl
+from fsspec.core import url_to_fs, OpenFile
+from fsspec.spec import AbstractFileSystem
 from tqdm import tqdm
 from vivarium.core.emitter import Emitter
-from vivarium.core.serialize import make_fallback_serializer_function
 
 METADATA_PREFIX = "output_metadata__"
 """
@@ -64,47 +57,31 @@ USE_UINT32 = {
 
 
 def json_to_parquet(
-    ndjson: str,
-    encodings: dict[str, str],
-    schema: pa.Schema,
+    emit_dict: dict[str, np.ndarray | list[np.ndarray]],
     outfile: str,
-    filesystem: fs.FileSystem,
+    schema: dict[str, Any],
+    filesystem: AbstractFileSystem,
 ):
-    """
-    Reads newline-delimited JSON file and converts to Parquet file.
+    """Convert dictionary to Parquet.
 
     Args:
-        ndjson: Path to newline-delimited JSON file.
-        encodings: Mapping of column names to Parquet encodings
-        schema: PyArrow schema of Parquet file to write
-        outfile: Filepath of output Parquet file
-        filesystem: PyArrow filesystem for Parquet output (local if None)
+        emit_dict: Mapping from column names to Numpy array (fixed-shape)
+            or list of Numpy arrays (variable-shape)
+        outfile: Path to output Parquet file. Can be local path or URI.
+        schema: Lists of variable-shape arrays need explicit types
+            and fixed-shape arrays are better off written as Lists instead of
+            Arrays (see code comment in :py:class:`~.ParquetEmitter`).
     """
-    parse_options = pj.ParseOptions(explicit_schema=schema)
-    read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
-    try:
-        t = pj.read_json(ndjson, read_options=read_options, parse_options=parse_options)
-        # GCS should have atomic uploads, but on a local filesystem, DuckDB may fail
-        # trying to read partially written Parquet files. Get around this by writing
-        # to a temporary file and then renaming it to the final output file.
-        temp_outfile = outfile
-        if filesystem.type_name == "local":
-            temp_outfile = outfile + ".tmp"
-        pq.write_table(
-            t,
-            temp_outfile,
-            use_dictionary=False,
-            compression="zstd",
-            column_encoding=encodings,
-            filesystem=filesystem,
-            # Writing statistics with giant nested columns bloats metadata
-            # and dramatically slows down reading while increasing RAM usage
-            write_statistics=False,
-        )
-        if filesystem.type_name == "local":
-            filesystem.move(temp_outfile, outfile)
-    finally:
-        pathlib.Path(ndjson).unlink()
+    tbl = pl.DataFrame(emit_dict, schema={k: schema[k] for k in emit_dict})
+    # GCS should have atomic uploads, but on a local filesystem, DuckDB may fail
+    # trying to read partially written Parquet files. Get around this by writing
+    # to a temporary file and then renaming it to the final output file.
+    temp_outfile = outfile
+    if parse.urlparse(outfile).scheme in ("", "file", "local"):
+        temp_outfile = outfile + ".tmp"
+    tbl.write_parquet(temp_outfile, statistics=False)
+    if temp_outfile != outfile:
+        filesystem.mv(temp_outfile, outfile)
 
 
 def union_by_name(query_sql: str) -> str:
@@ -193,7 +170,7 @@ def skip_n_gens(subquery: str, n: int) -> str:
     return f"SELECT * FROM ({subquery}) WHERE generation >= {n}"
 
 
-def ndlist_to_ndarray(s: pa.Array) -> np.ndarray:
+def ndlist_to_ndarray(s) -> np.ndarray:
     """
     Convert a PyArrow series of nested lists with fixed dimensions into
     a Numpy ndarray. This should really only be necessary if you are trying
@@ -201,18 +178,17 @@ def ndlist_to_ndarray(s: pa.Array) -> np.ndarray:
     a user-defined function (see DuckDB documentation on Python Function API and
     ``func`` kwarg for :py:func:`~read_stacked_columns`).
 
-    For elementwise arithmetic with two nested list columns, this can be used
-    in combination with :py:func:`~.ndarray_to_ndlist` to define a custom DuckDB
-    function as follows::
+    For elementwise arithmetic of two nested list columns, this can be used
+    to define a custom DuckDB function as follows::
 
         import duckdb
-        from ecoli.library.parquet_emitter import (
-            ndarray_to_ndlist, ndlist_to_ndarray)
+        import polars as pl
+        from ecoli.library.parquet_emitter import ndlist_to_ndarray
         def sum_arrays(col_0, col_1):
-            return ndarray_to_ndlist(
+            return pl.Series(
                 ndlist_to_ndarray(col_0) +
                 ndlist_to_ndarray(col_1)
-            )
+            ).to_arrow()
         conn = duckdb.connect()
         conn.create_function(
             "sum_2d_int_arrays", # Function name for use in SQL (must be unique)
@@ -231,38 +207,19 @@ def ndlist_to_ndarray(s: pa.Array) -> np.ndarray:
             list[list[float]], # Adding int to float array gives float in Numpy
             type = "arrow"
         )
-        conn.sql("SELECT sum_2d_int_arrays(int_col_0, float_col_0) from input_table")
+        conn.sql("SELECT sum_2d_int_and_float(int_col_0, float_col_0) from input_table")
 
     """
-    dimensions = [1, len(s)]
-    while (
-        isinstance(s.type, pa.ListType)
-        or isinstance(s.type, pa.FixedSizeListType)
-        or isinstance(s.type, pa.LargeListType)
-    ):
-        s = pc.list_flatten(s)
-        dimensions.append(len(s))
-    dimensions = [p[1] // p[0] for p in pairwise(dimensions)]
-    return s.to_numpy().reshape(dimensions)
-
-
-def ndarray_to_ndlist(arr: np.ndarray) -> pa.FixedSizeListArray:
-    """
-    Convert a Numpy ndarray into a PyArrow FixedSizeListArray. This is useful
-    for writing user-defined functions (see DuckDB documentation on Python
-    Function API and ``func`` kwarg for :py:func:`~read_stacked_columns`)
-    that expect a PyArrow return type.
-
-    Note that the number of rows in the returned PyArrow array is equal to the
-    size of the first dimension of the input array. This means for a 3 x 4 x 5
-    Numpy array, the return PyArrow array will have 3 rows where each row is
-    a nested list with 4 lists of length 5.
-    """
-    arrow_flat_array = pa.array(arr.flatten())
-    nested_array = arrow_flat_array
-    for dim_size in reversed(arr.shape[1:]):
-        nested_array = pa.FixedSizeListArray.from_arrays(nested_array, dim_size)
-    return nested_array
+    inner_s = pl.Series(s)
+    dimensions = []
+    while inner_s.dtype.is_nested() and len(inner_s) > 0:
+        inner_s = inner_s[0]
+        dimensions.append(len(inner_s))
+    inner_s = inner_s.dtype
+    while inner_s.is_nested():
+        inner_s = inner_s.inner  # type: ignore[attr-defined]
+        dimensions.append(0)
+    return pl.Series(s, dtype=pl.Array(inner_s, tuple(dimensions))).to_numpy()
 
 
 def ndidx_to_duckdb_expr(
@@ -438,7 +395,7 @@ def get_plot_metadata(
     }
 
 
-def open_output_file(outfile: str) -> pa.NativeFile:
+def open_output_file(outfile: str) -> OpenFile:
     """
     Open a file by its path, whether that be a path on local storage or
     Google Cloud Storage.
@@ -449,15 +406,12 @@ def open_output_file(outfile: str) -> pa.NativeFile:
             on local storage.
 
     Returns:
-        PyArrow file object that supports reading, seeking, etc. in bytes
+        File object that supports reading, seeking, etc. in bytes
     """
-    if not (outfile.startswith("gs://") or outfile.startswith("gcs://")):
-        outfile = os.path.abspath(outfile)
-    filesystem, outfile = fs.FileSystem.from_uri(outfile)
-    return filesystem.open_input_file(outfile)
+    return url_to_fs(outfile).open(outfile)
 
 
-def open_arbitrary_sim_data(sim_data_dict: dict[str, dict[int, Any]]) -> pa.NativeFile:
+def open_arbitrary_sim_data(sim_data_dict: dict[str, dict[int, Any]]) -> OpenFile:
     """
     Given a mapping from experiment ID(s) to mappings from variant ID(s)
     to sim_data path(s), pick an arbitrary sim_data to read.
@@ -467,7 +421,7 @@ def open_arbitrary_sim_data(sim_data_dict: dict[str, dict[int, Any]]) -> pa.Nati
             each analysis script as an argument.
 
     Returns:
-        PyArrow file object for arbitrarily chosen sim_data to be loaded
+        File object for arbitrarily chosen sim_data to be loaded
         with ``pickle.load``
     """
     sim_data_path = next(iter(next(iter(sim_data_dict.values())).values()))
@@ -478,11 +432,11 @@ def read_stacked_columns(
     history_sql: str,
     columns: list[str],
     remove_first: bool = False,
-    func: Optional[Callable[[pa.Table], pa.Table]] = None,
+    func: Optional[Callable[[pl.DataFrame], pl.DataFrame]] = None,
     conn: Optional[duckdb.DuckDBPyConnection] = None,
     order_results: bool = True,
     success_sql: Optional[str] = None,
-) -> pa.Table | str:
+) -> pl.DataFrame | str:
     """
     Loads columns for many cells. If you would like to perform more advanced
     computatations (aggregations, window functions, etc.) using the optimized
@@ -514,14 +468,13 @@ def read_stacked_columns(
             GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
             '''
         conn = duckdb.connect()
-        data = conn.sql(query).arrow()
+        data = conn.sql(query).pl()
 
     Here is a more complicated example that defines a custom function to get
     the per-cell average RNA synthesis probability per cistron::
 
         import duckdb
         import pickle
-        import pyarrow as pa
         from ecoli.library.parquet_emitter import (
             get_dataset_sql, ndlist_to_ndarray, read_stacked_columns)
         history_sql, config_sql, _ = get_dataset_sql('out/', 'exp_id')
@@ -537,8 +490,8 @@ def read_stacked_columns(
                 "listeners__rna_synth_prob__actual_rna_synth_prob"])
             rna_synth_prob_per_cistron = cistron_tu_mat.dot(rna_synth_prob.T).T
             # Return value must be a PyArrow table
-            return pa.table({'avg_rna_synth_prob_per_cistron': [
-                rna_synth_prob_per_cistron.mean(axis=0)]})
+            return pl.DataFrame({'avg_rna_synth_prob_per_cistron': [
+                rna_synth_prob_per_cistron.mean(axis=0)]}).to_arrow()
         conn = duckdb.connect()
         result = read_stacked_columns(
             history_sql,
@@ -555,7 +508,7 @@ def read_stacked_columns(
             or the output of :py:func:`~.named_idx` or :py:func:`~.ndidx_to_duckdb_expr`).
         remove_first: Remove data for first timestep of each cell
         func: Function to call on data for each cell, should take and
-            return a PyArrow table with columns equal to ``columns``
+            return a Polars DataFrame with columns equal to ``columns``
         conn: DuckDB connection instance with which to run query. Typically
             provided by :py:func:`runscripts.analysis.main` to the ``plot``
             method of analysis scripts (tweaked some DuckDB settings). Can
@@ -613,56 +566,55 @@ def read_stacked_columns(
                 ORDER BY time
                 """
             # Apply func to data for each cell
-            all_cell_tbls.append(func(conn.sql(cell_joined).arrow()))
-        return pa.concat_tables(all_cell_tbls)
+            all_cell_tbls.append(func(conn.sql(cell_joined).pl()))
+        return pl.concat(all_cell_tbls)
     if order_results:
         query = f"SELECT * FROM ({sql_query}) ORDER BY {id_cols}"
     else:
         query = sql_query
     if conn is None:
         return query
-    return conn.sql(query).arrow()
+    return conn.sql(query).pl()
 
 
 def get_encoding(
     val: Any, field_name: str, use_uint16: bool = False, use_uint32: bool = False
-) -> tuple[Any, str, str, bool]:
+) -> Any:
     """
-    Get optimal PyArrow type and Parquet encoding for input value.
+    Get optimal Numpy type for input value.
     """
-    if isinstance(val, float):
-        # Polars does not support BYTE_STREAM_SPLIT yet
-        return pa.float64(), "PLAIN", field_name, False
+    if use_uint16:
+        return np.uint16
+    elif use_uint32:
+        return np.uint32
+    elif isinstance(val, (float, np.floating)):
+        return np.float64
     elif isinstance(val, bool):
-        return pa.bool_(), "RLE", field_name, False
-    elif isinstance(val, int):
-        # Optimize memory usage for select integer fields
-        if use_uint16:
-            pa_type = pa.uint16()
-        elif use_uint32:
-            pa_type = pa.uint32()
-        else:
-            pa_type = pa.int64()
-        return pa_type, "DELTA_BINARY_PACKED", field_name, False
-    elif isinstance(val, str):
-        return pa.string(), "DELTA_BYTE_ARRAY", field_name, False
-    elif isinstance(val, list):
+        return np.bool_
+    elif isinstance(val, (int, np.integer)):
+        return np.int64
+    elif isinstance(val, (str, np.str_)):
+        return np.dtypes.StringDType
+    elif isinstance(val, np.ndarray):
+        if val.dtype.kind == "S":
+            # Using NumPy bytes would result in truncation
+            # to the length of the first value. Instead,
+            # use Polars directly.
+            raise TypeError(f"{field_name} has unsupported type {type(val)}.")
+        return val.dtype
+    elif isinstance(val, (list, tuple)):
         if len(val) > 0:
             for inner_val in val:
                 if inner_val is not None:
-                    inner_type, _, field_name, is_null = get_encoding(
-                        val[0], field_name, use_uint16, use_uint32
+                    np_type = get_encoding(
+                        inner_val, field_name, use_uint16, use_uint32
                     )
-                    # PLAIN encoding yields overall better compressed size for lists
-                    return (
-                        pa.list_(inner_type),
-                        "PLAIN",
-                        field_name + ".list.element",
-                        is_null,
-                    )
-        return pa.list_(pa.null()), "PLAIN", field_name + ".list.element", True
+                    if np_type is None:
+                        continue
+                    return np_type
+        return None
     elif val is None:
-        return pa.null(), "PLAIN", field_name, True
+        return None
     raise TypeError(f"{field_name} has unsupported type {type(val)}.")
 
 
@@ -690,6 +642,18 @@ def flatten_dict(d: dict):
     return dict(results)
 
 
+def get_polars_dtype_from_ndarray(arr: np.ndarray) -> pl.DataType:
+    """
+    Get Polars data type for a Numpy array, including nested lists.
+    """
+    # Must be size 1 in order for np.dtypes.StringDType to
+    # convert to Polars String type
+    pl_dtype = pl.Series(np.empty(1, dtype=arr.dtype)).dtype
+    for _ in range(arr.ndim):
+        pl_dtype = pl.List(pl_dtype)
+    return pl_dtype
+
+
 class ParquetEmitter(Emitter):
     """
     Emit data to a Parquet dataset.
@@ -713,23 +677,34 @@ class ParquetEmitter(Emitter):
 
         """
         if "out_uri" not in config:
-            out_uri = os.path.abspath(config["out_dir"])
+            self.out_uri = os.path.abspath(config["out_dir"])
         else:
-            out_uri = config["out_uri"]
-        self.filesystem, self.outdir = fs.FileSystem.from_uri(out_uri)
+            self.out_uri = config["out_uri"]
+        self.filesystem: AbstractFileSystem
+        self.filesystem, _ = url_to_fs(self.out_uri)
         self.batch_size = config.get("batch_size", 400)
-        self.fallback_serializer = make_fallback_serializer_function()
-        # Batch emits as newline-delimited JSONs in temporary file
-        self.temp_data = tempfile.NamedTemporaryFile(delete=False)
         self.executor = ThreadPoolExecutor(2)
-        # Keep a cache of field encodings and fields encountered
-        self.encodings: dict[str, str] = {}
-        self.schema = pa.schema([])
-        self.non_null_keys: set[str] = set()
+        # Buffer emits for each listener in a Numpy array
+        self.buffered_emits: dict[str, Any] = {}
+        # Explicitly set Polars types to avoid a potential schema mismatch.
+        # Polars automatically casts Numpy arrays to its Array type, which
+        # comes with performance and memory advantages. Unfortunately,
+        # unlike with the generic Parquet List type, Polars will complain
+        # if the shape of an Array column changes between files. Since other
+        # Parquet consumers (e.g. DuckDB) do not treat Parquet data differently
+        # regardless of whether it was written as a Polars Array or generic List,
+        # I am inclined to continue using the generic List type.
+        self.pl_types: dict[str, pl.DataType] = {}
+        # Keep track of ndims for each variable-shape column and raise
+        # an error if this changes (e.g. go from 2D to 3D)
+        self.var_len_dims: dict[str, int] = {}
+        # Figure out the type of each column on first encounter and cache it
+        self.np_types: dict[str, Any] = {}
         self.num_emits = 0
         # Wait until next batch of emits to check whether last batch
         # was successfully written to Parquet in order to avoid blocking
         self.last_batch_future: Future = Future()
+        self.last_batch_future.set_result(None)
         # Set either by EcoliSim or by EngineProcess if sim reaches division
         self.success = False
         atexit.register(self._finalize)
@@ -740,50 +715,47 @@ class ParquetEmitter(Emitter):
         this is done by :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
         upon reaching division.
         """
+        # Wait for last batch to finish writing
+        self.last_batch_future.result()
+        # Flush any remaining buffered emits to Parquet
         outfile = os.path.join(
-            self.outdir,
+            self.out_uri,
             self.experiment_id,
             "history",
             self.partitioning_path,
             f"{self.num_emits}.pq",
         )
-        if self.filesystem.get_file_info(outfile).type == 0:
+        self.filesystem.makedirs(os.path.dirname(outfile), exist_ok=True)
+        if not self.filesystem.exists(outfile):
+            for k, v in self.buffered_emits.items():
+                self.buffered_emits[k] = v[: self.num_emits % self.batch_size]
             json_to_parquet(
-                self.temp_data.name,
-                self.encodings,
-                self.schema,
-                outfile,
-                self.filesystem,
+                self.buffered_emits, outfile, self.pl_types, self.filesystem
             )
         # Hive-partitioned directory that only contains successful sims
         if self.success:
             success_file = os.path.join(
-                self.outdir,
+                self.out_uri,
                 self.experiment_id,
                 "success",
                 self.partitioning_path,
                 "s.pq",
             )
             try:
-                self.filesystem.delete_dir(os.path.dirname(success_file))
+                self.filesystem.delete(os.path.dirname(success_file), recursive=True)
             except (FileNotFoundError, OSError):
                 pass
-            self.filesystem.create_dir(os.path.dirname(success_file))
-            pq.write_table(
-                pa.table({"success": [True]}),
+            self.filesystem.makedirs(os.path.dirname(success_file))
+            pl.DataFrame({"success": [True]}).write_parquet(
                 success_file,
-                filesystem=self.filesystem,
-                use_dictionary=False,
-                write_statistics=False,
+                statistics=False,
             )
 
     def emit(self, data: dict[str, Any]):
         """
         Flattens emit dictionary by concatenating nested key names with double
-        underscores (:py:func:`~.flatten_dict`), serializes flattened emit with
-        ``orjson``, and writes newline-delimited JSONs in a temporary file to be
-        batched for some number of timesteps before conversion to Parquet by
-        :py:func:`~.json_to_parquet`.
+        underscores (:py:func:`~.flatten_dict`), buffers it in memory, and writes
+        to a Parquet file upon buffering a configurable number of emits.
 
         The output directory (``config["out_dir"]`` or ``config["out_uri"]``) will
         have the following structure::
@@ -811,7 +783,7 @@ class ParquetEmitter(Emitter):
         """
         # Config will always be first emit
         if data["table"] == "configuration":
-            data = {**data["data"].pop("metadata"), **data["data"]}
+            data = {**data["data"].pop("metadata", {}), **data["data"]}
             data["time"] = data.get("initial_global_time", 0.0)
             # Manually create filepaths with hive partitioning
             # Start agent ID with 1 to avoid leading zeros
@@ -831,22 +803,32 @@ class ParquetEmitter(Emitter):
                 *(f"{k}={v}" for k, v in partitioning_keys.items())
             )
             data = flatten_dict(data)
-            data_str = orjson.dumps(
-                data,
-                option=orjson.OPT_SERIALIZE_NUMPY,
-                default=self.fallback_serializer,
-            )
-            self.temp_data.write(data_str)
-            data = orjson.loads(data_str)
-            encodings = {}
-            schema = []
+            config_emit: dict[str, Any] = {}
+            config_schema: dict[str, pl.DataType] = {}
             for k, v in data.items():
-                pa_type, encoding, field_name, _ = get_encoding(v, k)
-                if encoding is not None:
-                    encodings[field_name] = encoding
-                schema.append((k, pa_type))
+                try:
+                    np_type = get_encoding(v, k)
+                except TypeError:
+                    v = pl.Series([v])
+                    config_emit[k] = v
+                    config_schema[k] = v.dtype
+                    continue
+                if np_type is None:
+                    config_emit[k] = [None]
+                    config_schema[k] = pl.Null()
+                    continue
+                try:
+                    config_emit[k] = np.asarray(v, dtype=np_type)[np.newaxis]
+                except ValueError:
+                    v = pl.Series([v])
+                    config_emit[k] = v
+                    config_schema[k] = v.dtype
+                    continue
+                config_schema[k] = get_polars_dtype_from_ndarray(
+                    np.asarray(config_emit[k][0])
+                )
             outfile = os.path.join(
-                self.outdir,
+                self.out_uri,
                 self.experiment_id,
                 "configuration",
                 self.partitioning_path,
@@ -855,28 +837,26 @@ class ParquetEmitter(Emitter):
             # Cleanup any existing output files from previous runs then
             # create new folder for config / simulation output
             try:
-                self.filesystem.delete_dir(os.path.dirname(outfile))
+                self.filesystem.delete(os.path.dirname(outfile), recursive=True)
             except (FileNotFoundError, OSError):
                 pass
-            self.filesystem.create_dir(os.path.dirname(outfile))
+            self.filesystem.makedirs(os.path.dirname(outfile))
             self.last_batch_future = self.executor.submit(
                 json_to_parquet,
-                self.temp_data.name,
-                self.encodings,
-                pa.schema(schema),
+                config_emit,
                 outfile,
+                config_schema,
                 self.filesystem,
             )
-            self.temp_data = tempfile.NamedTemporaryFile(delete=False)
             # Delete any sim output files in final filesystem
             history_outdir = os.path.join(
-                self.outdir, self.experiment_id, "history", self.partitioning_path
+                self.out_uri, self.experiment_id, "history", self.partitioning_path
             )
             try:
-                self.filesystem.delete_dir(history_outdir)
+                self.filesystem.delete(history_outdir, recursive=True)
             except (FileNotFoundError, OSError):
                 pass
-            self.filesystem.create_dir(history_outdir)
+            self.filesystem.makedirs(history_outdir)
             return
         # Each Engine that uses this emitter should only simulate a single cell
         # In lineage simulations, StopAfterDivision Step will terminate
@@ -888,47 +868,97 @@ class ParquetEmitter(Emitter):
         for agent_data in data["data"]["agents"].values():
             agent_data["time"] = float(data["data"]["time"])
             agent_data = flatten_dict(agent_data)
-            # If we encounter columns that have, up until this point,
-            # been NULL, serialize/deserialize them and update their
-            # type in our cached Parquet schema
-            new_keys = set(agent_data) - set(self.non_null_keys)
-            if len(new_keys) > 0:
-                new_key_data = orjson.loads(
-                    orjson.dumps(
-                        {k: agent_data[k] for k in new_keys},
-                        option=orjson.OPT_SERIALIZE_NUMPY,
-                        default=self.fallback_serializer,
-                    )
-                )
-                for k, v in new_key_data.items():
-                    pa_type, encoding, field_name, is_null = get_encoding(
-                        v, k, k in USE_UINT16, k in USE_UINT32
-                    )
-                    if encoding is not None:
-                        self.encodings[field_name] = encoding
-                    if not is_null:
-                        self.non_null_keys.add(k)
-                    new_field = pa.field(k, pa_type)
-                    field_index = self.schema.get_field_index(k)
-                    if field_index >= 0:
-                        self.schema = self.schema.set(field_index, new_field)
+            emit_idx = self.num_emits % self.batch_size
+            for k, v in agent_data.items():
+                if k in self.np_types:
+                    np_type = self.np_types[k]
+                elif k in self.pl_types:
+                    # Only way for key to have Polars type but not Numpy type
+                    # is if it previously fell back to JSON serialization
+                    v = pl.Series([v], dtype=self.pl_types[k])
+                    if k not in self.buffered_emits:
+                        self.buffered_emits[k] = [
+                            pl.Series([], dtype=v.dtype)
+                        ] * self.batch_size
+                    self.buffered_emits[k][emit_idx] = v[0]
+                    continue
+                else:
+                    try:
+                        np_type = get_encoding(
+                            v, k, use_uint16=k in USE_UINT16, use_uint32=k in USE_UINT32
+                        )
+                    except TypeError:
+                        v = pl.Series([v])
+                        self.pl_types[k] = v.dtype
+                        if k not in self.buffered_emits:
+                            self.buffered_emits[k] = [
+                                pl.Series([], dtype=v.dtype)
+                            ] * self.batch_size
+                        self.buffered_emits[k][emit_idx] = v[0]
+                        continue
+                # Skip null values and empty lists
+                if np_type is None:
+                    continue
+                try:
+                    v = np.asarray(v, dtype=np_type)
+                except ValueError:
+                    v = pl.Series([v])
+                    self.pl_types[k] = v.dtype
+                    if k not in self.buffered_emits:
+                        self.buffered_emits[k] = [
+                            pl.Series([], dtype=v.dtype)
+                        ] * self.batch_size
+                    self.buffered_emits[k][emit_idx] = v[0]
+                    continue
+                self.np_types[k] = np_type
+                if k not in self.pl_types:
+                    self.pl_types[k] = get_polars_dtype_from_ndarray(v)
+                if k not in self.buffered_emits:
+                    # Known variable-shape fields are buffered in lists of arrays
+                    if k in self.var_len_dims:
+                        if v.ndim != self.var_len_dims[k]:
+                            raise ValueError(
+                                f"Variable-length field {k} has shape {v.shape} "
+                                f"but expected {self.var_len_dims[k]} dimensions."
+                            )
+                        self.buffered_emits[k] = [
+                            np.empty((0,) * v.ndim, dtype=v.dtype)
+                        ] * self.batch_size
+                    # If a nested field is null (skipped) for at least one emit
+                    # after sim start/disk write, it must be variable-shape
+                    elif emit_idx != 0 and v.ndim > 0:
+                        self.var_len_dims[k] = v.ndim
+                        self.buffered_emits[k] = [
+                            np.empty((0,) * v.ndim, dtype=v.dtype)
+                        ] * self.batch_size
+                    # Optimistically assume all other fields remain fixed-shape
                     else:
-                        self.schema = self.schema.append(new_field)
-            self.temp_data.write(
-                orjson.dumps(
-                    agent_data,
-                    option=orjson.OPT_SERIALIZE_NUMPY,
-                    default=self.fallback_serializer,
-                )
-            )
-            self.temp_data.write("\n".encode("utf-8"))
+                        self.buffered_emits[k] = np.zeros(
+                            (self.batch_size,) + v.shape, dtype=v.dtype
+                        )
+                if isinstance(self.buffered_emits[k], np.ndarray):
+                    # Convert fixed-shape buffer to variable-shape if
+                    # dimension mismatch detected
+                    if v.shape != self.buffered_emits[k].shape[1:]:
+                        if v.ndim != self.buffered_emits[k].ndim - 1:
+                            raise ValueError(
+                                f"Field {k} has shape {v.shape} but expected "
+                                f"{self.buffered_emits[k].ndim - 1} dimension(s)."
+                            )
+                        self.var_len_dims[k] = v.ndim
+                        self.buffered_emits[k] = list(
+                            self.buffered_emits[k][:emit_idx]
+                        ) + [np.empty((0,) * v.ndim, dtype=v.dtype)] * (
+                            self.batch_size - emit_idx
+                        )
+                # Write current column value to buffer
+                self.buffered_emits[k][emit_idx] = v
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
             # If last batch of emits failed, exception should be raised here
             self.last_batch_future.result()
-            self.temp_data.close()
             outfile = os.path.join(
-                self.outdir,
+                self.out_uri,
                 self.experiment_id,
                 "history",
                 self.partitioning_path,
@@ -936,10 +966,11 @@ class ParquetEmitter(Emitter):
             )
             self.last_batch_future = self.executor.submit(
                 json_to_parquet,
-                self.temp_data.name,
-                self.encodings,
-                self.schema,
+                self.buffered_emits,
                 outfile,
+                self.pl_types,
                 self.filesystem,
             )
-            self.temp_data = tempfile.NamedTemporaryFile(delete=False)
+            # Clear buffers because they are mutable and we do not want to
+            # accidentally modify data as it is being written in the background
+            self.buffered_emits = {}

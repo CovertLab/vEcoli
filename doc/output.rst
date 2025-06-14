@@ -174,6 +174,11 @@ null values or nested types containing null values (e.g. empty list). For these 
 all values except the null entries must be the same type (e.g. column with lists
 of integers where some entries are empty lists).
 
+.. warning::
+  The Parquet emitter is poorly suited for storing large listeners that have more
+  than a single dimension per time step. We recommend splitting these listeners up
+  if possible, especially if you plan to read specific indices along those dimensions.
+
 The Parquet emitter saves the serialized tabular data to two Hive-partitioned
 directories in the output folder (``out_dir`` or ``out_uri`` option under
 ``emitter_arg`` in :ref:`json_config`):
@@ -222,9 +227,8 @@ Each simulation will save Parquet files containing serialized simulation output 
 inside its corresponding Hive partition under the ``history`` folder. The columns in
 these Parquet files come from flattening the hierarchy of emitted stores. To leverage
 Parquet's columnar compression and efficient reading, we batch many time steps worth
-of emits into a temporary newline-delimited JSON file before reading them into a
-`PyArrow <https://arrow.apache.org/docs/python/index.html>`_ table where each row
-contains the column values for a single time step. This PyArrow table is then
+of emits into either Numpy arrays (constant dimensions) or lists of lists (variable
+dimensions). These batched emits are efficiently converted into a Polars DataFrame and
 written to a Parquet file named ``{batch size * number of batches}.pq`` (e.g.
 ``400.pq``, ``800.pq``, etc. for a batch size of 400). The default batch size of
 400 has been tuned for our current model but can be adjusted via ``emits_to_batch``
@@ -256,10 +260,9 @@ to read data using DuckDB. These include:
   the number of cells whose data is included in a SQL query
 - :py:func:`~ecoli.library.parquet_emitter.skip_n_gens`: Add a filter to an SQL
   query to skip the first N generations worth of data
-- :py:func:`~ecoli.library.parquet_emitter.ndlist_to_ndarray`: Convert a PyArrow
-  column of nested lists into a N-D Numpy array
-- :py:func:`~ecoli.library.parquet_emitter.ndarray_to_ndlist`: Convert a N-D Numpy
-  array into a PyArrow column of nested lists
+- :py:func:`~ecoli.library.parquet_emitter.ndlist_to_ndarray`: Convert a
+  column of nested lists read from Parquet into an N-D Numpy array (use
+  :py:class:`polars.Series` to do opposite conversion)
 - :py:func:`~ecoli.library.parquet_emitter.ndidx_to_duckdb_expr`: Get a DuckDB SQL
   expression which can be included in a ``SELECT`` statement that uses Numpy-style
   indexing to retrieve values from a nested list Parquet column
@@ -315,6 +318,15 @@ accomplished in one of two ways:
         )
         SELECT avg(*) FROM cell_avgs
 
+.. tip::
+  DuckDB will efficiently read only the rows and columns necessary to complete your query.
+  However, if you are reading a column of lists (e.g. bulk molecule counts every time step)
+  or nested lists, DuckDB reads the entire nested value for every relevant row in that column,
+  even if you only care about a small subset of indices. To avoid repeatedly incurring this
+  cost, we recommend using :py:func:`~ecoli.library.parquet_emitter.named_idx` to select all
+  indices of interest to be read in one go. As long as the final result fits in RAM, this
+  should be much faster than reading each index individually.
+
 See :py:mod:`~ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps`
 for examples of complex queries, as well as helper functions to create SQL expressions
 for common query patterns. These include:
@@ -325,36 +337,6 @@ for common query patterns. These include:
 - :py:func:`~ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_1d_array_over_scalar_sql`
 - :py:func:`~ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_sum_1d_array_over_scalar_sql`
 
-.. _special_float_values:
-
-Special Float Values
-====================
-
-The Parquet emitter uses ``orjson`` to convert simulation output data to an intermediate JSON
-format that is then written to Parquet.  Because special float values like NaN/infinity are
-not included in the JSON specification, ``orjson`` converts them to null. As such, processes
-**MUST** be written so that these values do not appear under normal circumstances.
-
-If you anticipate that these values may appear when something has gone wrong, note
-that DuckDB, the library used to read Parquet data, ignores null values by default in
-aggregation functions like ``sum`` and ``avg``. To make these aggregations return null if
-any input values are null, use the following syntax (example for ``sum``):
-
-.. code-block:: sql
-
-  SELECT
-    CASE
-      -- If any values in column are null, return null
-      WHEN bool_or(column_name is NULL) THEN NULL
-      -- Otherwise, perform the aggregation as normal
-      ELSE SUM(column_name)
-    END AS safe_sum
-  FROM your_table;
-
-For more advanced users who require these values for a one-off test, we have made a
-`branch of orjson <https://github.com/CovertLab/orjson/tree/updated-infnan>`_ that is
-patched to support these values. It is not actively maintained, and changes that require
-this patched package will not be merged into the main vEcoli codebase.
 
 ---------------------
 Other Workflow Output

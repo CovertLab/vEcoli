@@ -776,6 +776,9 @@ class EcoliSim:
                 )
                 with open("division_time.sh", "w") as f:
                     f.write(f"export division_time={self.ecoli_experiment.global_time}")
+                # Tell Parquet emitter that simulation was successful
+                if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
+                    self.ecoli_experiment.emitter.success = True
                 sys.exit()
             time_elapsed = self.save_times[i]
             state = self.ecoli_experiment.state.get_value(condition=not_a_process)
