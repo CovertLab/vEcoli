@@ -588,9 +588,6 @@ is a list workflow behaviors enabled in our model to handle unexpected errors.
 Output
 ------
 
-.. warning::
-  See :ref:`special_float_values` for an important caveat involving NaN/infinity.
-
 A completed workflow will have the following directory structure underneath
 the output directory specified via ``out_dir`` or ``out_uri`` under the
 ``emitter_arg`` option in the configuration JSON (see :ref:`json_config`):
