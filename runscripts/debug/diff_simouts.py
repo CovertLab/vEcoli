@@ -23,15 +23,11 @@ if __name__ == "__main__":
     history_sql, _, _ = get_dataset_sql(args.output, list(args.exp_ids))
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
     ordered_sql = f"SELECT * FROM ({{sql_query}}) WHERE experiment_id = '{{exp_id}}' ORDER BY {id_cols}"
-    data_1 = duckdb.sql(
-        ordered_sql.format(sql_query=history_sql, exp_id=exp_id_1)
-    ).arrow()
-    data_2 = duckdb.sql(
-        ordered_sql.format(sql_query=history_sql, exp_id=exp_id_2)
-    ).arrow()
-    assert data_1.column_names == data_2.column_names, "Different columns."
+    data_1 = duckdb.sql(ordered_sql.format(sql_query=history_sql, exp_id=exp_id_1)).pl()
+    data_2 = duckdb.sql(ordered_sql.format(sql_query=history_sql, exp_id=exp_id_2)).pl()
+    assert data_1.columns == data_2.columns, "Different columns."
     for i, (col_1, col_2) in enumerate(zip(data_1, data_2)):
-        if col_1 != col_2 and data_1.column_names[i] not in [
+        if col_1 != col_2 and data_1.columns[i] not in [
             "experiment_id",
             "agent_id",
         ]:
@@ -39,5 +35,5 @@ if __name__ == "__main__":
                 ndlist_to_ndarray(col_1),
                 ndlist_to_ndarray(col_2),
                 atol=1e-12,
-                err_msg=f"{data_1.column_names[i]} not equal",
+                err_msg=f"{data_1.columns[i]} not equal",
             )

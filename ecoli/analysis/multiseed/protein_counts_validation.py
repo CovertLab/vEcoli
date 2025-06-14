@@ -54,7 +54,7 @@ def plot(
         SELECT list(avgCounts ORDER BY idx) AS avgCounts
         FROM avg_counts
         GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
-        """).arrow()
+        """).pl()
     monomer_counts = ndlist_to_ndarray(monomer_counts["avgCounts"])
 
     sim_monomer_ids = sim_data.process.translation.monomer_data["id"]
