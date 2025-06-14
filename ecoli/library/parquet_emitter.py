@@ -836,7 +836,9 @@ class ParquetEmitter(Emitter):
                     config_emit[k] = v
                     config_schema[k] = v.dtype
                     continue
-                config_schema[k] = get_polars_dtype_from_ndarray(config_emit[k])
+                config_schema[k] = get_polars_dtype_from_ndarray(
+                    np.asarray(config_emit[k][0])
+                )
             outfile = os.path.join(
                 self.out_uri,
                 self.experiment_id,
