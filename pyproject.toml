@@ -21,6 +21,7 @@ dependencies = [
     "dill",
     "duckdb",
     "gcsfs",
+    "pyarrow",
     "ipdb",
     "ipython",
     "line-profiler",
