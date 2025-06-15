@@ -164,7 +164,7 @@ This is flattened to:
         "g": 5
     }
 
-Then, :py:func:`~ecoli.library.parquet_emitter.get_encoding` is used to get the
+Then, :py:func:`~ecoli.library.parquet_emitter.np_dtype` is used to get the
 the type of the Parquet column that will be created for each key-value pair in
 the flattened dictionary, where each key is the column name and each value is one
 entry in the column. Parquet files are strongly typed, so emitted store data
@@ -197,7 +197,7 @@ its corresponding Hive partition under the ``configuration`` folder.
 Many of the columns inside this Parquet file come from flattening the configuration
 JSON used to run the simulation and can be read back in analysis scripts (see
 :ref:`analysis_scripts`) using the helper function
-:py:func:`~ecoli.library.parquet_emitter.get_config_value`.
+:py:func:`~ecoli.library.parquet_emitter.config_value`.
 
 Additionally, this file can contain metadata for each store to emit. This metadata
 can be specified under the ``_properties`` key in a port schema as follows:
@@ -213,11 +213,11 @@ can be specified under the ``_properties`` key in a port schema as follows:
 Schemas constructed with the :py:func:`~ecoli.library.schema.listener_schema` helper
 function can populate this metdata concisely. These metadata values are compiled for
 all stores in the simulation state hierarchy by
-:py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`. In the
+:py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata`. In the
 saved configuration Parquet file, the metadata values will be located in
 columns with names equal to the double-underscore concatenated store path
 prefixed by ``output_metadata__``. For convenience, the
-:py:func:`~ecoli.library.parquet_emitter.get_field_metadata` can be used in
+:py:func:`~ecoli.library.parquet_emitter.field_metadata` can be used in
 analysis scripts to read this metadata.
 
 ``history``
@@ -246,14 +246,14 @@ complex queries. Refer to the `DuckDB documentation <https://duckdb.org/docs/>`_
 We provide a variety of helper functions in :py:mod:`ecoli.library.parquet_emitter`
 to read data using DuckDB. These include:
 
-- :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql`: Construct basic
+- :py:func:`~ecoli.library.parquet_emitter.dataset_sql`: Construct basic
   SQL queries to read data from ``history`` and ``configuration`` folders. This
   is mainly intended for ad-hoc Parquet reading (e.g. in a Jupyter notebook).
   Analysis scripts (see :ref:`analysis_scripts`) receive a ``history_sql`` and
   ``config_sql`` that reads data from Parquet files with filters applied when
   run using :py:mod:`runscripts.analysis`.
 - :py:func:`~ecoli.library.parquet_emitter.union_by_name`: Modify SQL query
-  from :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql` to
+  from :py:func:`~ecoli.library.parquet_emitter.dataset_sql` to
   use DuckDB's `union_by_name <https://duckdb.org/docs/stable/data/multiple_files/combining_schemas.html#union-by-name>`_.
   This is useful when reading data from simulations with different columns.
 - :py:func:`~ecoli.library.parquet_emitter.num_cells`: Quickly get a count of
@@ -269,9 +269,9 @@ to read data using DuckDB. These include:
 - :py:func:`~ecoli.library.parquet_emitter.named_idx`: Get a DuckDB SQL expression
   which can be included in a ``SELECT`` statement that extracts values at certain indices
   from each row of a nested list Parquet column and returns them as individually named columns
-- :py:func:`~ecoli.library.parquet_emitter.get_field_metadata`: Read saved store
+- :py:func:`~ecoli.library.parquet_emitter.field_metadata`: Read saved store
   metadata (see :ref:`configuration_parquet`)
-- :py:func:`~ecoli.library.parquet_emitter.get_config_value`: Read option from
+- :py:func:`~ecoli.library.parquet_emitter.config_value`: Read option from
   configuration JSON used to run simulation
 - :py:func:`~ecoli.library.parquet_emitter.read_stacked_columns`: Main interface
   for reading simulation output from ``history`` folder. Can either immediately read
