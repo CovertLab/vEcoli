@@ -957,9 +957,7 @@ class ParquetEmitter(Emitter):
                         self.pl_types[k] = union_pl_dtypes(self.pl_types[k], v.dtype, k)
                     # Necessary because self.buffered_emits is cleared after each batch
                     if k not in self.buffered_emits:
-                        self.buffered_emits[k] = [
-                            pl.Series(None, dtype=self.pl_types[k])
-                        ] * self.batch_size
+                        self.buffered_emits[k] = [None] * self.batch_size
                     self.buffered_emits[k][emit_idx] = v[0]
                     continue
                 else:
@@ -976,9 +974,7 @@ class ParquetEmitter(Emitter):
                         assert k not in self.pl_types
                         self.pl_types[k] = v.dtype
                         assert k not in self.buffered_emits
-                        self.buffered_emits[k] = [
-                            pl.Series(None, dtype=v.dtype)
-                        ] * self.batch_size
+                        self.buffered_emits[k] = [None] * self.batch_size
                         self.buffered_emits[k][emit_idx] = v[0]
                         continue
                 try:
@@ -999,15 +995,11 @@ class ParquetEmitter(Emitter):
                     else:
                         self.pl_types[k] = v.dtype
                     if k not in self.buffered_emits:
-                        self.buffered_emits[k] = [
-                            pl.Series(None, dtype=self.pl_types[k])
-                        ] * self.batch_size
+                        self.buffered_emits[k] = [None] * self.batch_size
                     else:
                         self.buffered_emits[k] = self.buffered_emits[k][
                             :emit_idx
-                        ].tolist() + [pl.Series(None, dtype=self.pl_types[k])] * (
-                            self.batch_size - emit_idx
-                        )
+                        ].tolist() + [None] * (self.batch_size - emit_idx)
                     self.buffered_emits[k][emit_idx] = v[0]
                     continue
                 self.np_types[k] = np_type
@@ -1018,9 +1010,7 @@ class ParquetEmitter(Emitter):
                     if emit_idx != 0:
                         self.np_types.pop(k)
                         v = pl.Series([v], dtype=self.pl_types[k])
-                        self.buffered_emits[k] = [
-                            pl.Series(None, dtype=self.pl_types[k])
-                        ] * self.batch_size
+                        self.buffered_emits[k] = [None] * self.batch_size
                         self.buffered_emits[k][emit_idx] = v[0]
                         continue
                 if k not in self.buffered_emits:
@@ -1037,9 +1027,7 @@ class ParquetEmitter(Emitter):
                         self.pl_types[k] = union_pl_dtypes(self.pl_types[k], v.dtype, k)
                     self.buffered_emits[k] = self.buffered_emits[k][
                         :emit_idx
-                    ].tolist() + [pl.Series(None, dtype=self.pl_types[k])] * (
-                        self.batch_size - emit_idx
-                    )
+                    ].tolist() + [None] * (self.batch_size - emit_idx)
                     v = v[0]
                 # Write current column value to buffer
                 self.buffered_emits[k][emit_idx] = v
