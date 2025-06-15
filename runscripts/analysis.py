@@ -11,7 +11,7 @@ from fsspec import filesystem, url_to_fs
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
-from ecoli.library.parquet_emitter import get_dataset_sql, open_output_file
+from ecoli.library.parquet_emitter import dataset_sql, open_output_file
 
 FILTERS = {
     "experiment_id": str,
@@ -283,9 +283,7 @@ def main():
 
     # Establish DuckDB connection
     conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("cpus"))
-    history_sql, config_sql, success_sql = get_dataset_sql(
-        out_uri, config["experiment_id"]
-    )
+    history_sql, config_sql, success_sql = dataset_sql(out_uri, config["experiment_id"])
     # If no explicit analysis type given, run all types in config JSON
     if "analysis_types" not in config:
         config["analysis_types"] = [

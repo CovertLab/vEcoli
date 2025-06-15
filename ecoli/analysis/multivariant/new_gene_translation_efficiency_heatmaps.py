@@ -58,7 +58,7 @@ from tqdm import tqdm
 
 from ecoli.variants.new_gene_internal_shift import get_new_gene_ids_and_indices
 from ecoli.library.parquet_emitter import (
-    get_field_metadata,
+    field_metadata,
     ndlist_to_ndarray,
     open_arbitrary_sim_data,
     read_stacked_columns,
@@ -215,7 +215,7 @@ def get_mean_and_std_matrices(
         variant_mapping: Mapping of variant IDs to row and column in matrix
             of new gene translation efficiency and expression factor variants
         variant_matrix_shape: Number of rows and columns in variant matrix
-        history_sql: SQL subquery from :py:func:`ecoli.library.parquet_emitter.get_dataset_sql`
+        history_sql: SQL subquery from :py:func:`ecoli.library.parquet_emitter.dataset_sql`
         columns, remove_first, func, order_results, success_sql: See
             :py:func:`ecoli.library.parquet_emitter.read_stacked_columns`
         custom_sql: SQL string containing a placeholder with name ``subquery``
@@ -342,7 +342,7 @@ def get_indexes(
     Args:
         conn: DuckDB database connection
         config_sql: DuckDB SQL query for sim config data (see
-            :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql`)
+            :py:func:`~ecoli.library.parquet_emitter.dataset_sql`)
         index_type: Type of indices to return (one of ``cistron``,
             ``RNA``, ``mRNA``, or ``monomer``)
         ids: List of IDs to get indices for (must be monomer IDs
@@ -356,7 +356,7 @@ def get_indexes(
         cistron_idx_dict = {
             cis: i + 1
             for i, cis in enumerate(
-                get_field_metadata(
+                field_metadata(
                     conn, config_sql, "listeners__rnap_data__rna_init_event_per_cistron"
                 )
             )
@@ -367,7 +367,7 @@ def get_indexes(
         RNA_idx_dict = {
             rna: i + 1
             for i, rna in enumerate(
-                get_field_metadata(
+                field_metadata(
                     conn, config_sql, "listeners__rna_synth_prob__target_rna_synth_prob"
                 )
             )
@@ -378,9 +378,7 @@ def get_indexes(
         mRNA_idx_dict = {
             rna: i + 1
             for i, rna in enumerate(
-                get_field_metadata(
-                    conn, config_sql, "listeners__rna_counts__mRNA_counts"
-                )
+                field_metadata(conn, config_sql, "listeners__rna_counts__mRNA_counts")
             )
         }
         return [[mRNA_idx_dict.get(rna_id) for rna_id in rna_ids] for rna_ids in ids]
@@ -389,7 +387,7 @@ def get_indexes(
         monomer_idx_dict = {
             monomer: i + 1
             for i, monomer in enumerate(
-                get_field_metadata(conn, config_sql, "listeners__monomer_counts")
+                field_metadata(conn, config_sql, "listeners__monomer_counts")
             )
         }
         return [monomer_idx_dict.get(monomer_id) for monomer_id in ids]
@@ -1238,7 +1236,7 @@ def plot(
         conn, config_sql, variant_to_row_col, variant_matrix_shape
     )
 
-    bulk_ids = get_field_metadata(conn, config_sql, "bulk")
+    bulk_ids = field_metadata(conn, config_sql, "bulk")
     ntp_ids = list(sim_data.ntp_code_to_id_ordered.values())
     # Get indices for data extraction
     rnap_subunit_mRNA_ids = get_mRNA_ids_from_monomer_ids(
@@ -1273,7 +1271,7 @@ def plot(
     ribosomal_monomer_indexes = get_indexes(
         conn, config_sql, "monomer", sim_data.molecule_groups.ribosomal_proteins
     )
-    cistron_ids = get_field_metadata(
+    cistron_ids = field_metadata(
         conn, config_sql, "listeners__rna_counts__full_mRNA_cistron_counts"
     )
     capacity_gene_mRNA_ids = get_mRNA_ids_from_monomer_ids(
@@ -1312,7 +1310,7 @@ def plot(
 
     # Determine glucose index in exchange fluxes
     external_molecule_ids = np.array(
-        get_field_metadata(
+        field_metadata(
             conn, config_sql, "listeners__fba_results__external_exchange_fluxes"
         )
     )

@@ -15,7 +15,7 @@ from vivarium.core.emitter import Emitter
 METADATA_PREFIX = "output_metadata__"
 """
 In the config dataset, user-defined metadata for each store
-(see :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`)
+(see :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata`)
 will be contained in columns with this prefix.
 """
 
@@ -86,21 +86,21 @@ def json_to_parquet(
 
 def union_by_name(query_sql: str) -> str:
     """
-    Modifies SQL query string from :py:func:`~.get_dataset_sql` to
+    Modifies SQL query string from :py:func:`~.dataset_sql` to
     include ``union_by_name = true`` in the DuckDB ``read_parquet``
     function. This allows data to be read from simulations that have
     different columns by filling in nulls and casting as necessary.
     This comes with a performance penalty and should be avoided if possible.
 
     Args:
-        query_sql: SQL query string from :py:func:`~.get_dataset_sql`
+        query_sql: SQL query string from :py:func:`~.dataset_sql`
     """
     return query_sql.replace(
         "hive_partitioning = true,", "hive_partitioning = true, union_by_name = true,"
     )
 
 
-def get_dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, str]:
+def dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, str]:
     """
     Creates DuckDB SQL strings for sim outputs, configs, and metadata on which
     sims were successful.
@@ -118,8 +118,8 @@ def get_dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, 
         3-element tuple containing
 
         - **history_sql**: SQL query for sim output (see :py:func:`~.read_stacked_columns`),
-        - **config_sql**: SQL query for sim configs (see :py:func:`~.get_field_metadata`
-          and :py:func:`~.get_config_value`)
+        - **config_sql**: SQL query for sim configs (see :py:func:`~.field_metadata`
+          and :py:func:`~.config_value`)
         - **success_sql**: SQL query for metadata marking successful sims
           (see :py:func:`~.read_stacked_columns`)
 
@@ -314,12 +314,12 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> str:
     return ", ".join(f'{col}[{i + 1}] AS "{n}"' for n, i in zip(names, idx))
 
 
-def get_field_metadata(
+def field_metadata(
     conn: duckdb.DuckDBPyConnection, config_subquery: str, field: str
 ) -> list:
     """
     Gets the saved metadata (see
-    :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`)
+    :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata`)
     for a given field as a list.
 
     Args:
@@ -338,7 +338,7 @@ def get_field_metadata(
     return list(metadata)
 
 
-def get_config_value(
+def config_value(
     conn: duckdb.DuckDBPyConnection, config_subquery: str, field: str
 ) -> Any:
     """
@@ -357,7 +357,7 @@ def get_config_value(
     )[0]
 
 
-def get_plot_metadata(
+def plot_metadata(
     conn: duckdb.DuckDBPyConnection, config_subquery: str, variant_name: str
 ) -> dict[str, Any]:
     """
@@ -370,9 +370,9 @@ def get_plot_metadata(
         variant_name: Name of variant
     """
     return {
-        "git_hash": get_config_value(conn, config_subquery, "git_hash"),
-        "time": get_config_value(conn, config_subquery, "time"),
-        "description": get_config_value(conn, config_subquery, "description"),
+        "git_hash": config_value(conn, config_subquery, "git_hash"),
+        "time": config_value(conn, config_subquery, "time"),
+        "description": config_value(conn, config_subquery, "description"),
         "variant_function": variant_name,
         "variant_index": conn.sql(f"SELECT DISTINCT variant FROM ({config_subquery})")
         .arrow()
@@ -453,8 +453,8 @@ def read_stacked_columns(
 
         import duckdb
         from ecoli.library.parquet_emitter import (
-            get_dataset_sql, read_stacked_columns)
-        history_sql, config_sql, _ = get_dataset_sql('out/', 'exp_id')
+            dataset_sql, read_stacked_columns)
+        history_sql, config_sql, _ = dataset_sql('out/', 'exp_id')
         subquery = read_stacked_columns(
             history_sql,
             # Note DuckDB arrays are 1-indexed
@@ -476,8 +476,8 @@ def read_stacked_columns(
         import duckdb
         import pickle
         from ecoli.library.parquet_emitter import (
-            get_dataset_sql, ndlist_to_ndarray, read_stacked_columns)
-        history_sql, config_sql, _ = get_dataset_sql('out/', 'exp_id')
+            dataset_sql, ndlist_to_ndarray, read_stacked_columns)
+        history_sql, config_sql, _ = dataset_sql('out/', 'exp_id')
         # Load sim data
         with open("reconstruction/sim_data/kb/simData.cPickle", "rb") as f:
             sim_data = pickle.load(f)
@@ -501,7 +501,7 @@ def read_stacked_columns(
         )
 
     Args:
-        history_sql: DuckDB SQL string from :py:func:`~.get_dataset_sql`,
+        history_sql: DuckDB SQL string from :py:func:`~.dataset_sql`,
             potentially with filters appended in ``WHERE`` clause
         columns: Names of columns to read data for. Alternatively, DuckDB
             expressions of columns (e.g. ``avg(listeners__mass__cell_mass) AS avg_mass``
@@ -519,7 +519,7 @@ def read_stacked_columns(
             ``time``. If no ``conn`` is provided, this can usually be disabled
             and any sorting can be deferred until the last step in the query with
             a manual ``ORDER BY``. Doing this can greatly reduce RAM usage.
-        success_sql: Final DuckDB SQL string from :py:func:`~.get_dataset_sql`.
+        success_sql: Final DuckDB SQL string from :py:func:`~.dataset_sql`.
             If provided, will be used to filter out unsuccessful sims.
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
@@ -577,15 +577,13 @@ def read_stacked_columns(
     return conn.sql(query).pl()
 
 
-def get_encoding(
-    val: Any, field_name: str, use_uint16: bool = False, use_uint32: bool = False
-) -> Any:
+def np_dtype(val: Any, field_name: str) -> Any:
     """
-    Get optimal Numpy type for input value.
+    Get optimal NumPy type for input value.
     """
-    if use_uint16:
+    if field_name in USE_UINT16:
         return np.uint16
-    elif use_uint32:
+    elif field_name in USE_UINT32:
         return np.uint32
     elif isinstance(val, (float, np.floating)):
         return np.float64
@@ -606,16 +604,86 @@ def get_encoding(
         if len(val) > 0:
             for inner_val in val:
                 if inner_val is not None:
-                    np_type = get_encoding(
-                        inner_val, field_name, use_uint16, use_uint32
-                    )
+                    np_type = np_dtype(inner_val, field_name)
                     if np_type is None:
                         continue
                     return np_type
-        return None
-    elif val is None:
-        return None
+    # We also raise error for None and fall back to Polars serialization
+    # The correct types, if any, will be filled in later emits using
+    # union_pl_dtypes
     raise TypeError(f"{field_name} has unsupported type {type(val)}.")
+
+
+PL_INTEGER_PRIO = {
+    pl.Int8: 0,
+    pl.Int16: 1,
+    pl.Int32: 2,
+    pl.Int64: 3,
+    pl.UInt8: 4,
+    pl.UInt16: 5,
+    pl.UInt32: 6,
+    pl.UInt64: 7,
+}
+
+
+def union_pl_dtypes(dt1: pl.DataType, dt2: pl.DataType, k: str) -> pl.DataType:
+    """
+    Returns the more specific data type when combining two Polars datatypes.
+    Mainly intended to fill out nested List types that contain Nulls, but
+    also upcasts integer and float types. Intentionally does not handle other
+    conversions and raises error suggesting the store be modified to contain
+    a consistent type.
+
+    Args:
+        dt1: First Polars datatype
+        dt2: Second Polars datatype
+        k: Name of column being combined (for error messages)
+
+    Returns:
+        The resulting promoted datatype
+    """
+    # Handle Null type (Null is compatible with any other type)
+    if isinstance(dt1, pl.Null):
+        return dt2
+    if isinstance(dt2, pl.Null):
+        return dt1
+
+    # Same types - return either
+    if dt1 == dt2:
+        return dt1
+
+    # Handle List/Array types recursively
+    if isinstance(dt1, (pl.List, pl.Array)) and isinstance(dt2, (pl.List, pl.Array)):
+        # Recursively find the common type for inner elements
+        inner_type = union_pl_dtypes(dt1.inner, dt2.inner, k)
+        return pl.List(inner_type)
+
+    # Integer promotion
+    if dt1.is_integer() and dt2.is_integer():
+        if k in USE_UINT16:
+            return pl.UInt16
+        elif k in USE_UINT32:
+            return pl.UInt32
+        elif dt1.is_signed_integer() != dt2.is_signed_integer():
+            raise TypeError(
+                f"Incompatible inner types for field {k}: {dt1} and {dt2}. "
+                "Cannot combine signed and unsigned integers."
+            )
+        elif PL_INTEGER_PRIO[dt1] > PL_INTEGER_PRIO[dt2]:
+            return dt1
+        else:
+            return dt2
+
+    # Float promotion
+    if dt1.is_float() and dt2.is_float():
+        if dt1 == pl.Float64 or dt2 == pl.Float64:
+            return pl.Float64
+        return pl.Float32
+
+    raise TypeError(
+        f"Incompatible inner types for field {k}: {dt1} and {dt2}."
+        " Please modify the store value to contain a consistent type."
+    )
 
 
 _FLAG_FIRST = object()
@@ -642,7 +710,7 @@ def flatten_dict(d: dict):
     return dict(results)
 
 
-def get_polars_dtype_from_ndarray(arr: np.ndarray) -> pl.DataType:
+def pl_dtype_from_ndarray(arr: np.ndarray) -> pl.DataType:
     """
     Get Polars data type for a Numpy array, including nested lists.
     """
@@ -683,7 +751,7 @@ class ParquetEmitter(Emitter):
         self.filesystem: AbstractFileSystem
         self.filesystem, _ = url_to_fs(self.out_uri)
         self.batch_size = config.get("batch_size", 400)
-        self.executor = ThreadPoolExecutor(2)
+        self.executor = ThreadPoolExecutor(1)
         # Buffer emits for each listener in a Numpy array
         self.buffered_emits: dict[str, Any] = {}
         # Explicitly set Polars types to avoid a potential schema mismatch.
@@ -695,9 +763,6 @@ class ParquetEmitter(Emitter):
         # regardless of whether it was written as a Polars Array or generic List,
         # I am inclined to continue using the generic List type.
         self.pl_types: dict[str, pl.DataType] = {}
-        # Keep track of ndims for each variable-shape column and raise
-        # an error if this changes (e.g. go from 2D to 3D)
-        self.var_len_dims: dict[str, int] = {}
         # Figure out the type of each column on first encounter and cache it
         self.np_types: dict[str, Any] = {}
         self.num_emits = 0
@@ -779,7 +844,7 @@ class ParquetEmitter(Emitter):
             |   |   |   |   |   |   |-- config.pq (sim config data)
 
         This Hive-partioned directory structure can be efficiently filtered
-        and queried using DuckDB (see :py:func:`~.get_dataset_sql`).
+        and queried using DuckDB (see :py:func:`~.dataset_sql`).
         """
         # Config will always be first emit
         if data["table"] == "configuration":
@@ -807,7 +872,7 @@ class ParquetEmitter(Emitter):
             config_schema: dict[str, pl.DataType] = {}
             for k, v in data.items():
                 try:
-                    np_type = get_encoding(v, k)
+                    np_type = np_dtype(v, k)
                 except TypeError:
                     v = pl.Series([v])
                     config_emit[k] = v
@@ -824,9 +889,7 @@ class ParquetEmitter(Emitter):
                     config_emit[k] = v
                     config_schema[k] = v.dtype
                     continue
-                config_schema[k] = get_polars_dtype_from_ndarray(
-                    np.asarray(config_emit[k][0])
-                )
+                config_schema[k] = pl_dtype_from_ndarray(np.asarray(config_emit[k][0]))
             outfile = os.path.join(
                 self.out_uri,
                 self.experiment_id,
@@ -869,88 +932,115 @@ class ParquetEmitter(Emitter):
             agent_data["time"] = float(data["data"]["time"])
             agent_data = flatten_dict(agent_data)
             emit_idx = self.num_emits % self.batch_size
+            # The first time we encounter a field:
+            # 1. Get and cache NumPy type
+            # 2. Convert value to NumPy array of determined type
+            #
+            # If either step fails, fall back to Polars serialization,
+            # which stores emits as a list of one-length Polars Series.
+            #
+            # If both steps succeed, create a NumPy array large enough
+            # to hold batch_size values the same shape as the current.
+            #
+            # On subsequent encounters, either convert the value to
+            # the cached NumPy type and store it in the buffer array
+            # or to a Polars Series and store it in the buffer list.
             for k, v in agent_data.items():
                 if k in self.np_types:
                     np_type = self.np_types[k]
                 elif k in self.pl_types:
                     # Only way for key to have Polars type but not Numpy type
-                    # is if it previously fell back to JSON serialization
-                    v = pl.Series([v], dtype=self.pl_types[k])
+                    # is if it previously fell back to Polars serialization
+                    v = pl.Series([v])
+                    # Mainly intended to fill in nested nullable Lists
+                    if v.dtype != self.pl_types[k]:
+                        self.pl_types[k] = union_pl_dtypes(self.pl_types[k], v.dtype, k)
+                    # Necessary because self.buffered_emits is cleared after each batch
                     if k not in self.buffered_emits:
                         self.buffered_emits[k] = [
-                            pl.Series([], dtype=v.dtype)
+                            pl.Series(None, dtype=self.pl_types[k])
                         ] * self.batch_size
                     self.buffered_emits[k][emit_idx] = v[0]
                     continue
                 else:
                     try:
-                        np_type = get_encoding(
-                            v, k, use_uint16=k in USE_UINT16, use_uint32=k in USE_UINT32
-                        )
+                        np_type = np_dtype(v, k)
                     except TypeError:
+                        # Fall back to Polars serialization if not NumPy-compatible.
+                        # Mainly intended to handle datetime and binary objects.
+                        # If you want to store nested values of the above types,
+                        # they must be NumPy arrays of NumPy types or Python lists
+                        # of Python types. For example, NumPy datetime objects in
+                        # a Python list will not work.
                         v = pl.Series([v])
+                        assert k not in self.pl_types
                         self.pl_types[k] = v.dtype
-                        if k not in self.buffered_emits:
-                            self.buffered_emits[k] = [
-                                pl.Series([], dtype=v.dtype)
-                            ] * self.batch_size
+                        assert k not in self.buffered_emits
+                        self.buffered_emits[k] = [
+                            pl.Series(None, dtype=v.dtype)
+                        ] * self.batch_size
                         self.buffered_emits[k][emit_idx] = v[0]
                         continue
-                # Skip null values and empty lists
-                if np_type is None:
-                    continue
                 try:
                     v = np.asarray(v, dtype=np_type)
                 except ValueError:
+                    # Fall back to Polars serialization if conversion fails.
+                    # Mainly intended to handle ragged nested Lists.
+                    # Note that these must be nested Python lists and not
+                    # lists of NumPy arrays.
+                    self.np_types.pop(k, None)
                     v = pl.Series([v])
-                    self.pl_types[k] = v.dtype
+                    if k in self.pl_types:
+                        # Mainly intended to fill in nested nullable Lists
+                        if v.dtype != self.pl_types[k]:
+                            self.pl_types[k] = union_pl_dtypes(
+                                self.pl_types[k], v.dtype, k
+                            )
+                    else:
+                        self.pl_types[k] = v.dtype
                     if k not in self.buffered_emits:
                         self.buffered_emits[k] = [
-                            pl.Series([], dtype=v.dtype)
+                            pl.Series(None, dtype=self.pl_types[k])
                         ] * self.batch_size
+                    else:
+                        self.buffered_emits[k] = self.buffered_emits[k][
+                            :emit_idx
+                        ].tolist() + [pl.Series(None, dtype=self.pl_types[k])] * (
+                            self.batch_size - emit_idx
+                        )
                     self.buffered_emits[k][emit_idx] = v[0]
                     continue
                 self.np_types[k] = np_type
                 if k not in self.pl_types:
-                    self.pl_types[k] = get_polars_dtype_from_ndarray(v)
+                    self.pl_types[k] = pl_dtype_from_ndarray(v)
+                    # First non-null value was not at first time step,
+                    # so it must be variable-length. Fall back to Polars.
+                    if emit_idx != 0:
+                        self.np_types.pop(k)
+                        v = pl.Series([v], dtype=self.pl_types[k])
+                        self.buffered_emits[k] = [
+                            pl.Series(None, dtype=self.pl_types[k])
+                        ] * self.batch_size
+                        self.buffered_emits[k][emit_idx] = v[0]
+                        continue
                 if k not in self.buffered_emits:
-                    # Known variable-shape fields are buffered in lists of arrays
-                    if k in self.var_len_dims:
-                        if v.ndim != self.var_len_dims[k]:
-                            raise ValueError(
-                                f"Variable-length field {k} has shape {v.shape} "
-                                f"but expected {self.var_len_dims[k]} dimensions."
-                            )
-                        self.buffered_emits[k] = [
-                            np.empty((0,) * v.ndim, dtype=v.dtype)
-                        ] * self.batch_size
-                    # If a nested field is null (skipped) for at least one emit
-                    # after sim start/disk write, it must be variable-shape
-                    elif emit_idx != 0 and v.ndim > 0:
-                        self.var_len_dims[k] = v.ndim
-                        self.buffered_emits[k] = [
-                            np.empty((0,) * v.ndim, dtype=v.dtype)
-                        ] * self.batch_size
-                    # Optimistically assume all other fields remain fixed-shape
-                    else:
-                        self.buffered_emits[k] = np.zeros(
-                            (self.batch_size,) + v.shape, dtype=v.dtype
-                        )
-                if isinstance(self.buffered_emits[k], np.ndarray):
-                    # Convert fixed-shape buffer to variable-shape if
-                    # dimension mismatch detected
-                    if v.shape != self.buffered_emits[k].shape[1:]:
-                        if v.ndim != self.buffered_emits[k].ndim - 1:
-                            raise ValueError(
-                                f"Field {k} has shape {v.shape} but expected "
-                                f"{self.buffered_emits[k].ndim - 1} dimension(s)."
-                            )
-                        self.var_len_dims[k] = v.ndim
-                        self.buffered_emits[k] = list(
-                            self.buffered_emits[k][:emit_idx]
-                        ) + [np.empty((0,) * v.ndim, dtype=v.dtype)] * (
-                            self.batch_size - emit_idx
-                        )
+                    self.buffered_emits[k] = np.zeros(
+                        (self.batch_size,) + v.shape, dtype=v.dtype
+                    )
+                # Convert fixed-shape buffer to variable-shape if
+                # dimension mismatch detected
+                if v.shape != self.buffered_emits[k].shape[1:]:
+                    self.np_types.pop(k)
+                    v = pl.Series([v], dtype=pl_dtype_from_ndarray(v))
+                    if v.dtype != self.pl_types[k]:
+                        # Mainly intended to fill in nested nullable Lists
+                        self.pl_types[k] = union_pl_dtypes(self.pl_types[k], v.dtype, k)
+                    self.buffered_emits[k] = self.buffered_emits[k][
+                        :emit_idx
+                    ].tolist() + [pl.Series(None, dtype=self.pl_types[k])] * (
+                        self.batch_size - emit_idx
+                    )
+                    v = v[0]
                 # Write current column value to buffer
                 self.buffered_emits[k][emit_idx] = v
         self.num_emits += 1

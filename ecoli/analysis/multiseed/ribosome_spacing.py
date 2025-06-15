@@ -8,7 +8,7 @@ import polars as pl
 from ecoli.library.parquet_emitter import (
     open_arbitrary_sim_data,
     read_stacked_columns,
-    get_field_metadata,
+    field_metadata,
     ndidx_to_duckdb_expr,
 )
 from wholecell.utils import units
@@ -32,11 +32,11 @@ def plot(
     # Map monomer IDs to cistron indices
     monomer_data = sim_data.process.translation.monomer_data.struct_array
     monomer_to_cistron_id = dict(zip(monomer_data["id"], monomer_data["cistron_id"]))
-    mrna_cistron_ids = get_field_metadata(
+    mrna_cistron_ids = field_metadata(
         conn, config_sql, "listeners__rna_counts__mRNA_cistron_counts"
     )
     cistron_idx_dict = {rna: i for i, rna in enumerate(mrna_cistron_ids)}
-    monomer_ids = get_field_metadata(conn, config_sql, "listeners__monomer_counts")
+    monomer_ids = field_metadata(conn, config_sql, "listeners__monomer_counts")
     cistron_idx_for_monomers = [
         cistron_idx_dict[monomer_to_cistron_id[monomer_id]]
         for monomer_id in monomer_ids

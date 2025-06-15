@@ -15,7 +15,7 @@ from queue import Queue
 
 from ecoli.library.parquet_emitter import (
     json_to_parquet,
-    get_encoding,
+    np_dtype,
     flatten_dict,
     ParquetEmitter,
 )
@@ -47,49 +47,49 @@ class TestHelperFunctions:
         assert nested["a"] == [1, 2, 3]
         np.testing.assert_array_equal(nested["b__c"], np.array([4, 5, 6]))
 
-    def test_get_encoding(self):
+    def test_np_dtype(self):
         # Basic types
-        np_type = get_encoding(1.0, "float_field")
+        np_type = np_dtype(1.0, "float_field")
         assert np_type == np.float64
 
-        np_type = get_encoding(True, "bool_field")
+        np_type = np_dtype(True, "bool_field")
         assert np_type == np.bool_
 
-        np_type = get_encoding("text", "string_field")
+        np_type = np_dtype("text", "string_field")
         assert np_type == np.dtypes.StringDType
 
         # Integer with different encodings
-        np_type = get_encoding(42, "int_field")
+        np_type = np_dtype(42, "int_field")
         assert np_type == np.int64
 
-        np_type = get_encoding(42, "uint16_field", use_uint16=True)
+        np_type = np_dtype(42, "listeners__ribosome_data__mRNA_TU_index")
         assert np_type == np.uint16
 
-        np_type = get_encoding(42, "uint32_field", use_uint32=True)
+        np_type = np_dtype(42, "listeners__monomer_counts")
         assert np_type == np.uint32
 
         # Arrays with various dimensions
-        np_type = get_encoding(np.array([1, 2, 3]), "array1d_field")
+        np_type = np_dtype(np.array([1, 2, 3]), "array1d_field")
         assert np_type == np.int64
 
-        np_type = get_encoding(np.array([[1, 2], [3, 4]]), "array2d_field")
+        np_type = np_dtype(np.array([[1, 2], [3, 4]]), "array2d_field")
         assert np_type == np.int64
 
         # Empty arrays still have a dtype
-        np_type = get_encoding(np.array([]), "empty_array_field")
+        np_type = np_dtype(np.array([]), "empty_array_field")
         assert np_type == np.float64
 
-        # Empty lists do not have a dtype and are skipped
-        np_type = get_encoding([], "empty_list_field")
-        assert np_type is None
+        # Raise error for empty lists to fall back to Polars serialization
+        with pytest.raises(TypeError, match="empty_list_field has unsupported"):
+            np_type = np_dtype([[], [], None], "empty_list_field")
 
-        # None values
-        np_type = get_encoding(None, "none_field")
-        assert np_type is None
+        # Raise error for none to fall back to Polars serialization
+        with pytest.raises(TypeError, match="none_field has unsupported"):
+            np_type = np_dtype(None, "none_field")
 
         # Invalid types
         with pytest.raises(TypeError, match="complex_field has unsupported type"):
-            get_encoding(complex(1, 2), "complex_field")
+            np_dtype(complex(1, 2), "complex_field")
 
 
 def compare_nested(a: list, b: list) -> bool:
@@ -311,10 +311,9 @@ class TestParquetEmitter:
         emitter.last_batch_future.result()
 
         # Verify conversion to variable length type
-        assert "dynamic_array" in emitter.var_len_dims
         assert isinstance(emitter.buffered_emits["dynamic_array"], list)
-        assert emitter.buffered_emits["dynamic_array"][0].tolist() == [1, 2, 3]
-        assert emitter.buffered_emits["dynamic_array"][1].tolist() == [4, 5, 6, 7]
+        assert emitter.buffered_emits["dynamic_array"][0] == [1, 2, 3]
+        assert emitter.buffered_emits["dynamic_array"][1].to_list() == [4, 5, 6, 7]
         assert all(
             emitter.buffered_emits["ragged_nd"][1]
             == pl.Series([[1], [1, 2], [1, 2, 3]])
@@ -881,7 +880,7 @@ class TestParquetEmitterEdgeCases:
 
         # Should be instantiated as variable length from last batch
         assert isinstance(emitter.buffered_emits["dynamic_array"], list)
-        assert emitter.buffered_emits["dynamic_array"][0].tolist() == [1]
+        assert emitter.buffered_emits["dynamic_array"][0].to_list() == [1]
         # Should be treated as fixed-shape still
         assert isinstance(emitter.buffered_emits["subtle_array"], np.ndarray)
         assert emitter.buffered_emits["subtle_array"].shape[1:] == (5, 1)
@@ -954,14 +953,15 @@ class TestParquetEmitterEdgeCases:
         }
         emitter.emit(sim_data1)
 
-        for key in ["init_null", "init_empty_list"]:
-            assert key not in emitter.buffered_emits
-            assert key not in emitter.var_len_dims
-            assert key not in emitter.pl_types
-            assert key not in emitter.np_types
-        assert "init_empty_array" in emitter.buffered_emits
+        assert isinstance(emitter.buffered_emits["init_null"], list)
+        assert emitter.buffered_emits["init_null"][0] is None
+        assert emitter.pl_types["init_null"] == pl.Null
+        assert isinstance(emitter.buffered_emits["init_empty_list"], list)
+        assert emitter.buffered_emits["init_empty_list"][0].dtype == pl.Null
+        assert emitter.pl_types["init_empty_list"] == pl.List(pl.Null)
         assert isinstance(emitter.buffered_emits["init_empty_array"], np.ndarray)
         assert emitter.buffered_emits["init_empty_array"].dtype == np.float64
+        assert emitter.pl_types["init_empty_array"] == pl.List(pl.Float64)
 
         # Try adding another dimension to empty array
         sim_data2 = {
@@ -976,9 +976,9 @@ class TestParquetEmitterEdgeCases:
             },
         }
         with pytest.raises(
-            ValueError,
+            TypeError,
             match=re.escape(
-                "Field init_empty_array has shape (1, 0) but expected 1 dimension(s)."
+                "Incompatible inner types for field init_empty_array: Float64 and List(Float64)."
             ),
         ):
             emitter.emit(sim_data2)
@@ -996,9 +996,9 @@ class TestParquetEmitterEdgeCases:
             },
         }
         with pytest.raises(
-            ValueError,
+            TypeError,
             match=re.escape(
-                "Field 3d_array has shape (1, 2) but expected 3 dimension(s)."
+                "Incompatible inner types for field 3d_array: List(Float64) and Float64."
             ),
         ):
             emitter.emit(sim_data3)
@@ -1037,3 +1037,136 @@ class TestParquetEmitterEdgeCases:
         }
         with pytest.raises(ValueError):
             emitter.emit(sim_data5)
+
+        # Try NumPy datetime64 in Python list
+        sim_data6 = {
+            "table": "simulation",
+            "data": {
+                "time": 3.0,
+                "agents": {
+                    "agent1": {
+                        "mixed_datetime": [
+                            np.datetime64("2023-01-01"),
+                            np.datetime64("2023-01-02"),
+                        ],
+                    }
+                },
+            },
+        }
+        with pytest.raises(
+            TypeError, match=re.escape("not yet implemented: Nested object types")
+        ):
+            emitter.emit(sim_data6)
+
+        # Try list of NumPy arrays
+        sim_data7 = {
+            "table": "simulation",
+            "data": {
+                "time": 3.0,
+                "agents": {
+                    "agent1": {
+                        "mixed_nested": [
+                            np.array([1, 2, 3]),
+                            np.array([4, 5]),
+                            [6],
+                            None,
+                        ],
+                    }
+                },
+            },
+        }
+        with pytest.raises(
+            TypeError,
+            match=re.escape("failed to determine supertype of object and list[i64]"),
+        ):
+            emitter.emit(sim_data7)
+
+    def test_nested_nullable(self, temp_dir):
+        """Test handling nullable nested types that increase in depth."""
+        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 3})
+        # Configuration emit to initialize variables
+        config_data = {
+            "table": "configuration",
+            "data": {
+                "experiment_id": "test_exp",
+                "variant": 1,
+                "lineage_seed": 1,
+                "agent_id": "1",
+            },
+        }
+        emitter.emit(config_data)
+        emitter.last_batch_future.result()
+
+        sim_data1 = {
+            "table": "simulation",
+            "data": {
+                "time": 1.0,
+                "agents": {
+                    "agent1": {
+                        "nullable_nested": [],
+                    }
+                },
+            },
+        }
+        emitter.emit(sim_data1)
+        emitter.last_batch_future.result()
+
+        # Verify arrays were stored correctly
+        assert isinstance(emitter.buffered_emits["nullable_nested"], list)
+        assert emitter.buffered_emits["nullable_nested"][0].dtype == pl.Null
+        assert emitter.pl_types["nullable_nested"] == pl.List(pl.Null)
+
+        # Second emit goes one level deeper
+        sim_data2 = {
+            "table": "simulation",
+            "data": {
+                "time": 2.0,
+                "agents": {
+                    "agent1": {
+                        "nullable_nested": [None, [None], [], [None, None], []],
+                    }
+                },
+            },
+        }
+        emitter.emit(sim_data2)
+        emitter.last_batch_future.result()
+
+        # Verify arrays were stored correctly
+        assert emitter.buffered_emits["nullable_nested"][1].dtype == pl.List(pl.Null)
+        assert emitter.pl_types["nullable_nested"] == pl.List(pl.List(pl.Null))
+
+        # Third emit goes one level deeper and defines non-null values
+        sim_data3 = {
+            "table": "simulation",
+            "data": {
+                "time": 2.0,
+                "agents": {
+                    "agent1": {
+                        "nullable_nested": [
+                            [],
+                            [["wow", "this", "is"], [], ["deep"], None],
+                            None,
+                            [[], None],
+                        ],
+                    }
+                },
+            },
+        }
+        emitter.emit(sim_data3)
+        emitter.last_batch_future.result()
+
+        # Check output
+        t = pl.read_parquet(
+            os.path.join(
+                emitter.out_uri,
+                emitter.experiment_id,
+                "history",
+                emitter.partitioning_path,
+                "*.pq",
+            )
+        )
+        assert t["nullable_nested"].to_list() == [
+            [],
+            [None, [None], [], [None, None], []],
+            [[], [["wow", "this", "is"], [], ["deep"], None], None, [[], None]],
+        ]
