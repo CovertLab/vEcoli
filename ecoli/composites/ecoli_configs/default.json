@@ -48,7 +48,8 @@
         "save_intermediates": false,
         "intermediates_directory": "",
         "variable_elongation_transcription": true,
-        "variable_elongation_translation": false
+        "variable_elongation_translation": false,
+        "optimize_trna_charging_kinetics": false
     },
 
     "analysis_options": {

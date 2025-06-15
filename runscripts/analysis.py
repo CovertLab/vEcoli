@@ -4,6 +4,7 @@ import json
 import os
 import warnings
 from urllib import parse
+import tempfile
 from typing import Any
 
 import duckdb
@@ -82,13 +83,22 @@ def parse_variant_data_dir(
     return variant_metadata, sim_data_dict, variant_names
 
 
-def create_duckdb_conn(out_uri, gcs_bucket, cpus=None):
+def create_duckdb_conn(temp_dir, gcs_bucket, cpus=None):
+    """Create a DuckDB connection with appropriate configuration.
+
+    Args:
+        temp_dir: Temporary directory for DuckDB to use for spilling
+        gcs_bucket: Whether GCS bucket access is needed
+        cpus: Number of CPU threads for DuckDB to use
+
+    Returns:
+        DuckDB connection object
+    """
     conn = duckdb.connect()
-    out_path = out_uri
     if gcs_bucket:
         conn.register_filesystem(filesystem("gcs"))
     # Temp directory so DuckDB can spill to disk when data larger than RAM
-    conn.execute(f"SET temp_directory = '{out_path}'")
+    conn.execute(f"SET temp_directory = '{temp_dir}'")
     # Turning this off reduces RAM usage
     conn.execute("SET preserve_insertion_order = false")
     # Cache Parquet metadata so only needs to be scanned once
@@ -288,7 +298,9 @@ def main():
         variant_names = {config["experiment_id"][0]: variant_name}
 
     # Establish DuckDB connection
-    conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("cpus"))
+    # Create a temporary directory for DuckDB to use for spilling
+    temp_dir = tempfile.TemporaryDirectory()
+    conn = create_duckdb_conn(temp_dir.name, gcs_bucket, config.get("cpus"))
     history_sql, config_sql, success_sql = get_dataset_sql(
         out_uri, config["experiment_id"]
     )
@@ -360,6 +372,9 @@ def main():
     # Save copy of config JSON with parameters for plots
     with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
         json.dump(config, f)
+
+    # Cleanup DuckDB temp dir
+    temp_dir.cleanup()
 
 
 if __name__ == "__main__":
