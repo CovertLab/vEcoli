@@ -7,7 +7,7 @@ from urllib import parse
 import duckdb
 import numpy as np
 import polars as pl
-from polars.datatypes import IntegerType, DataTypeClass
+from polars.datatypes import DataTypeClass
 from fsspec.core import url_to_fs, OpenFile
 from fsspec.spec import AbstractFileSystem
 from tqdm import tqdm
@@ -615,75 +615,49 @@ def np_dtype(val: Any, field_name: str) -> Any:
     raise TypeError(f"{field_name} has unsupported type {type(val)}.")
 
 
-PL_INTEGER_PRIO = {
-    pl.Int8(): 0,
-    pl.Int16(): 1,
-    pl.Int32(): 2,
-    pl.Int64(): 3,
-    pl.UInt8(): 4,
-    pl.UInt16(): 5,
-    pl.UInt32(): 6,
-    pl.UInt64(): 7,
-}
-
-
 def union_pl_dtypes(
-    dt1: pl.DataType | DataTypeClass, dt2: pl.DataType | DataTypeClass, k: str
+    dt1: pl.DataType | DataTypeClass,
+    dt2: pl.DataType | DataTypeClass,
+    k: str,
+    force_inner: Optional[pl.DataType | DataTypeClass] = None,
 ) -> pl.DataType | DataTypeClass:
     """
     Returns the more specific data type when combining two Polars datatypes.
-    Mainly intended to fill out nested List types that contain Nulls, but
-    also upcasts integer and float types. Intentionally does not handle other
-    conversions and raises error suggesting the store be modified to contain
-    a consistent type.
+    Mainly intended to fill out nested List types that contain Nulls.
 
     Args:
         dt1: First Polars datatype
         dt2: Second Polars datatype
         k: Name of column being combined (for error messages)
+        force_inner: Force this inner type when possible
 
     Returns:
-        The resulting promoted datatype
+        The resulting datatype
     """
-    # Handle Null type (Null is compatible with any other type)
-    if isinstance(dt1, pl.Null):
-        return dt2
-    if isinstance(dt2, pl.Null):
-        return dt1
-
-    # Same types - return either
-    if dt1 == dt2:
-        return dt1
-
-    # Handle List/Array types recursively
     if isinstance(dt1, (pl.List, pl.Array)) and isinstance(dt2, (pl.List, pl.Array)):
         # Recursively find the common type for inner elements
-        inner_type = union_pl_dtypes(dt1.inner, dt2.inner, k)
+        inner_type = union_pl_dtypes(dt1.inner, dt2.inner, k, force_inner)
         return pl.List(inner_type)
 
-    # Integer promotion
-    if dt1.is_integer() and dt2.is_integer():
-        dt1 = cast(IntegerType, dt1)
-        dt2 = cast(IntegerType, dt2)
-        if k in USE_UINT16:
-            return pl.UInt16
-        elif k in USE_UINT32:
-            return pl.UInt32
-        elif dt1.is_signed_integer() != dt2.is_signed_integer():
-            raise TypeError(
-                f"Incompatible inner types for field {k}: {dt1} and {dt2}. "
-                "Cannot combine signed and unsigned integers."
-            )
-        elif PL_INTEGER_PRIO[dt1] > PL_INTEGER_PRIO[dt2]:
-            return dt1
-        else:
-            return dt2
+    if dt1 == pl.Null:
+        # To force a specific inner type, may need to recurse
+        if force_inner is not None:
+            if isinstance(dt2, (pl.List, pl.Array)):
+                return pl.List(union_pl_dtypes(dt2.inner, dt2.inner, k, force_inner))
+            return force_inner
+        return dt2
+    if dt2 == pl.Null:
+        if force_inner is not None:
+            if isinstance(dt1, (pl.List, pl.Array)):
+                return pl.List(union_pl_dtypes(dt1.inner, dt1.inner, k, force_inner))
+            return force_inner
+        return dt1
 
-    # Float promotion
-    if dt1.is_float() and dt2.is_float():
-        if dt1 == pl.Float64 or dt2 == pl.Float64:
-            return pl.Float64
-        return pl.Float32
+    if force_inner is not None:
+        return force_inner
+
+    if dt1 == dt2:
+        return dt1
 
     raise TypeError(
         f"Incompatible inner types for field {k}: {dt1} and {dt2}."
@@ -959,7 +933,14 @@ class ParquetEmitter(Emitter):
                     v = pl.Series([v])
                     # Mainly intended to fill in nested nullable Lists
                     if v.dtype != self.pl_types[k]:
-                        self.pl_types[k] = union_pl_dtypes(self.pl_types[k], v.dtype, k)
+                        force_inner: Optional[pl.DataType] = None
+                        if k in USE_UINT16:
+                            force_inner = pl.UInt16()
+                        elif k in USE_UINT32:
+                            force_inner = pl.UInt32()
+                        self.pl_types[k] = union_pl_dtypes(
+                            self.pl_types[k], v.dtype, k, force_inner
+                        )
                     # Necessary because self.buffered_emits is cleared after each batch
                     if k not in self.buffered_emits:
                         self.buffered_emits[k] = [None] * self.batch_size
@@ -994,8 +975,13 @@ class ParquetEmitter(Emitter):
                     if k in self.pl_types:
                         # Mainly intended to fill in nested nullable Lists
                         if v.dtype != self.pl_types[k]:
+                            force_inner = None
+                            if k in USE_UINT16:
+                                force_inner = pl.UInt16()
+                            elif k in USE_UINT32:
+                                force_inner = pl.UInt32()
                             self.pl_types[k] = union_pl_dtypes(
-                                self.pl_types[k], v.dtype, k
+                                self.pl_types[k], v.dtype, k, force_inner
                             )
                     else:
                         self.pl_types[k] = v.dtype
@@ -1027,9 +1013,16 @@ class ParquetEmitter(Emitter):
                 if v.shape != self.buffered_emits[k].shape[1:]:
                     self.np_types.pop(k)
                     v = pl.Series([v], dtype=pl_dtype_from_ndarray(v))
+                    # Mainly intended to fill in nested nullable Lists
                     if v.dtype != self.pl_types[k]:
-                        # Mainly intended to fill in nested nullable Lists
-                        self.pl_types[k] = union_pl_dtypes(self.pl_types[k], v.dtype, k)
+                        force_inner = None
+                        if k in USE_UINT16:
+                            force_inner = pl.UInt16()
+                        elif k in USE_UINT32:
+                            force_inner = pl.UInt32()
+                        self.pl_types[k] = union_pl_dtypes(
+                            self.pl_types[k], v.dtype, k, force_inner
+                        )
                     self.buffered_emits[k] = self.buffered_emits[k][
                         :emit_idx
                     ].tolist() + [None] * (self.batch_size - emit_idx)

@@ -17,6 +17,7 @@ from ecoli.library.parquet_emitter import (
     json_to_parquet,
     np_dtype,
     flatten_dict,
+    union_pl_dtypes,
     ParquetEmitter,
 )
 
@@ -90,6 +91,91 @@ class TestHelperFunctions:
         # Invalid types
         with pytest.raises(TypeError, match="complex_field has unsupported type"):
             np_dtype(complex(1, 2), "complex_field")
+
+    def test_union_pl_dtypes(self):
+        # Basic types
+        with pytest.raises(
+            TypeError, match=re.escape("Incompatible inner types for field")
+        ):
+            union_pl_dtypes(pl.Int32, pl.Int64, "fail")
+        with pytest.raises(
+            TypeError, match=re.escape("Incompatible inner types for field")
+        ):
+            union_pl_dtypes(pl.Float32, pl.String, "fail")
+
+        # Nested types
+        with pytest.raises(
+            TypeError, match=re.escape("Incompatible inner types for field")
+        ):
+            union_pl_dtypes(pl.List(pl.Int16), pl.List(pl.Int64), "nest")
+        with pytest.raises(
+            TypeError, match=re.escape("Incompatible inner types for field")
+        ):
+            union_pl_dtypes(pl.List(pl.UInt16), pl.List(pl.String), "nest_fail")
+        with pytest.raises(
+            TypeError, match=re.escape("Incompatible inner types for field")
+        ):
+            union_pl_dtypes(
+                pl.List(pl.List(pl.UInt16)), pl.List(pl.String), "nest_fail"
+            )
+        with pytest.raises(
+            TypeError, match=re.escape("Incompatible inner types for field")
+        ):
+            union_pl_dtypes(
+                pl.List(pl.UInt16), pl.List(pl.Array(pl.String, (1,))), "nest_fail"
+            )
+        assert union_pl_dtypes(
+            pl.List(pl.UInt16), pl.List(pl.Int64), "force_u32", pl.UInt32
+        ) == pl.List(pl.UInt32)
+
+        # Forced types: a bit scary but we assume user knows what they are doing
+        assert union_pl_dtypes(pl.Int16, pl.UInt8, "force_u16", pl.UInt16) == pl.UInt16
+        assert union_pl_dtypes(pl.UInt16, pl.Int64, "force_u32", pl.UInt32) == pl.UInt32
+        assert (
+            union_pl_dtypes(pl.UInt16, pl.String, "force_u32", pl.UInt32) == pl.UInt32
+        )
+        assert union_pl_dtypes(
+            pl.List(pl.UInt16), pl.List(pl.String), "force_u32", pl.UInt32
+        ) == pl.List(pl.UInt32)
+        assert union_pl_dtypes(
+            pl.List(pl.UInt16), pl.List(pl.Int64), "force_u32", pl.UInt32
+        ) == pl.List(pl.UInt32)
+        assert union_pl_dtypes(
+            pl.Array(pl.UInt16, (1, 1)),
+            pl.List(pl.List(pl.Int64)),
+            "force_u16",
+            pl.UInt16,
+        ) == pl.List(pl.List(pl.UInt16))
+
+        # Null merge
+        assert union_pl_dtypes(pl.Null, pl.Int64, "null_merge") == pl.Int64
+        assert union_pl_dtypes(pl.Null, pl.Float64, "force_u16", pl.UInt16) == pl.UInt16
+        assert union_pl_dtypes(
+            pl.Null, pl.List(pl.Int64), "force_u16", pl.UInt16
+        ) == pl.List(pl.UInt16)
+        assert union_pl_dtypes(
+            pl.List(pl.Null), pl.List(pl.List(pl.Float32)), "null_merge"
+        ) == pl.List(pl.List(pl.Float32))
+        assert union_pl_dtypes(
+            pl.Array(pl.Null, (1, 1, 1)),
+            pl.List(pl.Array(pl.Float32, (1, 1))),
+            "null_merge",
+        ) == pl.List(pl.List(pl.List(pl.Float32)))
+        assert union_pl_dtypes(
+            pl.List(pl.Null), pl.List(pl.String), "force_u16", pl.UInt16
+        ) == pl.List(pl.UInt16)
+        assert union_pl_dtypes(
+            pl.List(pl.Null), pl.List(pl.List(pl.Int32)), "force_u32", pl.UInt32
+        ) == pl.List(pl.List(pl.UInt32))
+        assert union_pl_dtypes(
+            pl.List(pl.Null), pl.List(pl.List(pl.List(pl.Int32))), "null_merge"
+        ) == pl.List(pl.List(pl.List(pl.Int32)))
+        assert union_pl_dtypes(
+            pl.List(pl.Null),
+            pl.List(pl.List(pl.List(pl.Int32))),
+            "force_u32",
+            pl.UInt32,
+        ) == pl.List(pl.List(pl.List(pl.UInt32)))
 
 
 def compare_nested(a: list, b: list) -> bool:
