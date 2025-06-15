@@ -7,7 +7,7 @@ import pickle
 import polars as pl
 
 from ecoli.library.parquet_emitter import (
-    get_field_metadata,
+    field_metadata,
     open_arbitrary_sim_data,
     named_idx,
     read_stacked_columns,
@@ -58,7 +58,7 @@ def plot(
     mRNA_idx_dict = {
         rna[:-3]: i
         for i, rna in enumerate(
-            get_field_metadata(conn, config_sql, "listeners__rna_counts__mRNA_counts")
+            field_metadata(conn, config_sql, "listeners__rna_counts__mRNA_counts")
         )
     }
     new_gene_mRNA_indexes = [
@@ -69,7 +69,7 @@ def plot(
     monomer_idx_dict = {
         monomer: i
         for i, monomer in enumerate(
-            get_field_metadata(conn, config_sql, "listeners__monomer_counts")
+            field_metadata(conn, config_sql, "listeners__monomer_counts")
         )
     }
     new_gene_monomer_indexes = [

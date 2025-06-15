@@ -20,8 +20,8 @@ import polars as pl
 from scipy.stats import pearsonr
 
 from ecoli.library.parquet_emitter import (
-    get_config_value,
-    get_field_metadata,
+    config_value,
+    field_metadata,
     open_arbitrary_sim_data,
     open_output_file,
     num_cells,
@@ -97,14 +97,14 @@ def plot(
         return
 
     # Load tables and attributes for mRNAs
-    mRNA_ids = get_field_metadata(
+    mRNA_ids = field_metadata(
         conn, config_sql, "listeners__rna_counts__mRNA_cistron_counts"
     )
-    # mass_unit = get_field_metadata(config_lf, 'listeners__mass__dry_mass')
+    # mass_unit = field_metadata(config_lf, 'listeners__mass__dry_mass')
     # assert mass_unit == 'fg'
 
     # Load tables and attributes for tRNAs and rRNAs
-    bulk_ids = get_field_metadata(conn, config_sql, "bulk")
+    bulk_ids = field_metadata(conn, config_sql, "bulk")
     bulk_id_to_idx = {bulk_id: i + 1 for i, bulk_id in enumerate(bulk_ids)}
     uncharged_tRNA_ids = sim_data.process.transcription.uncharged_trna_names
     uncharged_tRNA_idx = [bulk_id_to_idx[trna] for trna in uncharged_tRNA_ids]
@@ -227,7 +227,7 @@ def plot(
         cistron_id_to_gene_id[rna_id]
         for rna_id in mRNA_ids + tRNA_cistron_ids + rRNA_cistron_ids
     ]
-    gene_ids_rna_synth_prob = get_field_metadata(
+    gene_ids_rna_synth_prob = field_metadata(
         conn, config_sql, "listeners__rna_synth_prob__gene_copy_number"
     )
     gene_id_to_idx = {gene: i for i, gene in enumerate(gene_ids_rna_synth_prob)}
@@ -306,10 +306,10 @@ def plot(
 
     # Build dictionary for metadata
     ecocyc_metadata = {
-        "git_hash": get_config_value(conn, config_sql, "git_hash"),
+        "git_hash": config_value(conn, config_sql, "git_hash"),
         "n_ignored_generations": IGNORE_FIRST_N_GENS,
-        "n_total_generations": get_config_value(conn, config_sql, "generations"),
-        "n_seeds": get_config_value(conn, config_sql, "n_init_sims"),
+        "n_total_generations": config_value(conn, config_sql, "generations"),
+        "n_seeds": config_value(conn, config_sql, "n_init_sims"),
         "n_cells": num_cells(conn, config_sql),
         "n_timesteps": len(rna_data),
     }
@@ -349,7 +349,7 @@ def plot(
         ORDER BY monomer_idx
         """
     ).pl()
-    monomer_ids = get_field_metadata(conn, config_sql, "listeners__monomer_counts")
+    monomer_ids = field_metadata(conn, config_sql, "listeners__monomer_counts")
     monomer_ecocyc_ids = [monomer[:-3] for monomer in monomer_ids]  # strip [*]
     monomer_mw = sim_data.getter.get_masses(monomer_ids).asNumber(
         units.fg / units.count

@@ -12,7 +12,7 @@ from duckdb import DuckDBPyConnection
 import polars as pl
 
 from ecoli.library.parquet_emitter import (
-    get_field_metadata,
+    field_metadata,
     ndidx_to_duckdb_expr,
     num_cells,
     open_arbitrary_sim_data,
@@ -72,7 +72,7 @@ def plot(
     gene_ids = [cistron_id_to_gene_id[cistron_id] for cistron_id in mRNA_cistron_ids]
 
     # Get subcolumn for mRNA cistron IDs in RNA counts table
-    mRNA_cistron_ids_rna_counts_table = get_field_metadata(
+    mRNA_cistron_ids_rna_counts_table = field_metadata(
         conn, config_sql, "listeners__rna_counts__mRNA_cistron_counts"
     )
 
@@ -86,7 +86,7 @@ def plot(
     ]
 
     # Get subcolumn for monomer IDs in monomer counts table
-    monomer_ids_monomer_counts_table = get_field_metadata(
+    monomer_ids_monomer_counts_table = field_metadata(
         conn, config_sql, "listeners__monomer_counts"
     )
 
