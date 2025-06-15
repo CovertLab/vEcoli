@@ -7,6 +7,7 @@ from urllib import parse
 import duckdb
 import numpy as np
 import polars as pl
+from polars.datatypes import IntegerType, DataTypeClass
 from fsspec.core import url_to_fs, OpenFile
 from fsspec.spec import AbstractFileSystem
 from tqdm import tqdm
@@ -615,18 +616,20 @@ def np_dtype(val: Any, field_name: str) -> Any:
 
 
 PL_INTEGER_PRIO = {
-    pl.Int8: 0,
-    pl.Int16: 1,
-    pl.Int32: 2,
-    pl.Int64: 3,
-    pl.UInt8: 4,
-    pl.UInt16: 5,
-    pl.UInt32: 6,
-    pl.UInt64: 7,
+    pl.Int8(): 0,
+    pl.Int16(): 1,
+    pl.Int32(): 2,
+    pl.Int64(): 3,
+    pl.UInt8(): 4,
+    pl.UInt16(): 5,
+    pl.UInt32(): 6,
+    pl.UInt64(): 7,
 }
 
 
-def union_pl_dtypes(dt1: pl.DataType, dt2: pl.DataType, k: str) -> pl.DataType:
+def union_pl_dtypes(
+    dt1: pl.DataType | DataTypeClass, dt2: pl.DataType | DataTypeClass, k: str
+) -> pl.DataType | DataTypeClass:
     """
     Returns the more specific data type when combining two Polars datatypes.
     Mainly intended to fill out nested List types that contain Nulls, but
@@ -660,6 +663,8 @@ def union_pl_dtypes(dt1: pl.DataType, dt2: pl.DataType, k: str) -> pl.DataType:
 
     # Integer promotion
     if dt1.is_integer() and dt2.is_integer():
+        dt1 = cast(IntegerType, dt1)
+        dt2 = cast(IntegerType, dt2)
         if k in USE_UINT16:
             return pl.UInt16
         elif k in USE_UINT32:
@@ -762,7 +767,7 @@ class ParquetEmitter(Emitter):
         # Parquet consumers (e.g. DuckDB) do not treat Parquet data differently
         # regardless of whether it was written as a Polars Array or generic List,
         # I am inclined to continue using the generic List type.
-        self.pl_types: dict[str, pl.DataType] = {}
+        self.pl_types: dict[str, pl.DataType | DataTypeClass] = {}
         # Figure out the type of each column on first encounter and cache it
         self.np_types: dict[str, Any] = {}
         self.num_emits = 0
