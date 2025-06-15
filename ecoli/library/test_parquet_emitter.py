@@ -504,7 +504,7 @@ class TestParquetEmitter:
             "unicode_string": ["Unicode: 日本語", "Unicode: 日本語 再び"],
             "very_long_string": ["x" * 10000, "x" * 100000],
             "deep_nesting__level1__level2__level3": [[1, 2, 3], [1, 2, 3, 4]],
-            "deep_nesting__level1__level2__level4": [[], [5, 6, 7]],
+            "deep_nesting__level1__level2__level4": [None, [5, 6, 7]],
             "ragged_nullable": [
                 [None, [1, 2], [None, 1, 2, 3]],
                 [[1, 3, 4], [None, None, 1], None, [1, 2, None]],
@@ -1083,7 +1083,7 @@ class TestParquetEmitterEdgeCases:
 
     def test_nested_nullable(self, temp_dir):
         """Test handling nullable nested types that increase in depth."""
-        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 3})
+        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 4})
         # Configuration emit to initialize variables
         config_data = {
             "table": "configuration",
@@ -1100,10 +1100,10 @@ class TestParquetEmitterEdgeCases:
         sim_data1 = {
             "table": "simulation",
             "data": {
-                "time": 1.0,
+                "time": 0.0,
                 "agents": {
                     "agent1": {
-                        "nullable_nested": [],
+                        "nullable_nested": None,
                     }
                 },
             },
@@ -1113,11 +1113,30 @@ class TestParquetEmitterEdgeCases:
 
         # Verify arrays were stored correctly
         assert isinstance(emitter.buffered_emits["nullable_nested"], list)
-        assert emitter.buffered_emits["nullable_nested"][0].dtype == pl.Null
+        assert emitter.buffered_emits["nullable_nested"][0] is None
+        assert emitter.pl_types["nullable_nested"] == pl.Null
+
+        sim_data2 = {
+            "table": "simulation",
+            "data": {
+                "time": 1.0,
+                "agents": {
+                    "agent1": {
+                        "nullable_nested": [None, None],
+                    }
+                },
+            },
+        }
+        emitter.emit(sim_data2)
+        emitter.last_batch_future.result()
+
+        # Verify arrays were stored correctly
+        assert isinstance(emitter.buffered_emits["nullable_nested"], list)
+        assert emitter.buffered_emits["nullable_nested"][1].dtype == pl.Null
         assert emitter.pl_types["nullable_nested"] == pl.List(pl.Null)
 
-        # Second emit goes one level deeper
-        sim_data2 = {
+        # One level deeper
+        sim_data3 = {
             "table": "simulation",
             "data": {
                 "time": 2.0,
@@ -1128,15 +1147,15 @@ class TestParquetEmitterEdgeCases:
                 },
             },
         }
-        emitter.emit(sim_data2)
+        emitter.emit(sim_data3)
         emitter.last_batch_future.result()
 
         # Verify arrays were stored correctly
-        assert emitter.buffered_emits["nullable_nested"][1].dtype == pl.List(pl.Null)
+        assert emitter.buffered_emits["nullable_nested"][2].dtype == pl.List(pl.Null)
         assert emitter.pl_types["nullable_nested"] == pl.List(pl.List(pl.Null))
 
-        # Third emit goes one level deeper and defines non-null values
-        sim_data3 = {
+        # One level deeper and defines non-null values
+        sim_data4 = {
             "table": "simulation",
             "data": {
                 "time": 2.0,
@@ -1152,7 +1171,7 @@ class TestParquetEmitterEdgeCases:
                 },
             },
         }
-        emitter.emit(sim_data3)
+        emitter.emit(sim_data4)
         emitter.last_batch_future.result()
 
         # Check output
@@ -1162,11 +1181,39 @@ class TestParquetEmitterEdgeCases:
                 emitter.experiment_id,
                 "history",
                 emitter.partitioning_path,
-                "*.pq",
+                "4.pq",
             )
         )
         assert t["nullable_nested"].to_list() == [
-            [],
+            None,
+            [None, None],
             [None, [None], [], [None, None], []],
             [[], [["wow", "this", "is"], [], ["deep"], None], None, [[], None]],
         ]
+
+        emitter.emit(sim_data1)
+        emitter.last_batch_future.result()
+        # Should remember that we fully defined the type before
+        assert isinstance(emitter.buffered_emits["nullable_nested"], list)
+        assert emitter.buffered_emits["nullable_nested"][0] is None
+        assert emitter.pl_types["nullable_nested"] == pl.List(
+            pl.List(pl.List(pl.String))
+        )
+
+        # Emit until batch size and check output
+        for _ in range(3):
+            emitter.emit(sim_data1)
+            emitter.last_batch_future.result()
+
+        # Check output
+        t = pl.read_parquet(
+            os.path.join(
+                emitter.out_uri,
+                emitter.experiment_id,
+                "history",
+                emitter.partitioning_path,
+                "8.pq",
+            )
+        )
+        assert t["nullable_nested"].to_list() == [None] * 4
+        assert t["nullable_nested"].dtype == pl.List(pl.List(pl.List(pl.String)))
