@@ -408,7 +408,7 @@ def open_output_file(outfile: str) -> OpenFile:
     Returns:
         File object that supports reading, seeking, etc. in bytes
     """
-    return url_to_fs(outfile).open(outfile)
+    return url_to_fs(outfile)[0].open(outfile)
 
 
 def open_arbitrary_sim_data(sim_data_dict: dict[str, dict[int, Any]]) -> OpenFile:
