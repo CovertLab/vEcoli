@@ -72,12 +72,8 @@ class TestParseUri:
         simulate_no_fsspec(monkeypatch)
 
         # This should just return None and the absolute path
-        fs, path = parse_uri(cloud_uri)
-
-        # Since we can't do much with a cloud URI without fsspec,
-        # it just converts it to an absolute path
-        assert fs is None
-        assert path == os.path.abspath(cloud_uri)
+        with pytest.raises(RuntimeError, match="fsspec is not available"):
+            fs, path = parse_uri(cloud_uri)
 
 
 class TestCopyToFilesystem:
