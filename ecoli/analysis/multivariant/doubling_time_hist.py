@@ -26,11 +26,14 @@ def plot(
     Configure number of initial generations to skip using ``skip_n_gens`` key
     in params.
     """
-    doubling_time_sql = read_stacked_columns(
-        history_sql,
-        ["time"],
-        order_results=False,
-        success_sql=success_sql,
+    doubling_time_sql: str = cast(
+        str,
+        read_stacked_columns(
+            history_sql,
+            ["time"],
+            order_results=False,
+            success_sql=success_sql,
+        ),
     )
     # Skip first 8 generations to avoid initialization bias
     doubling_time_sql = skip_n_gens(doubling_time_sql, params["skip_n_gens"])

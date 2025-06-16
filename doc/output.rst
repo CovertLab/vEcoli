@@ -164,7 +164,7 @@ This is flattened to:
         "g": 5
     }
 
-Then, :py:func:`~ecoli.library.parquet_emitter.get_encoding` is used to get the
+Then, :py:func:`~ecoli.library.parquet_emitter.np_dtype` is used to get the
 the type of the Parquet column that will be created for each key-value pair in
 the flattened dictionary, where each key is the column name and each value is one
 entry in the column. Parquet files are strongly typed, so emitted store data
@@ -173,6 +173,11 @@ must always be serialized to the same type as they were in the first time step
 null values or nested types containing null values (e.g. empty list). For these columns,
 all values except the null entries must be the same type (e.g. column with lists
 of integers where some entries are empty lists).
+
+.. warning::
+  The Parquet emitter is poorly suited for storing large listeners that have more
+  than a single dimension per time step. We recommend splitting these listeners up
+  if possible, especially if you plan to read specific indices along those dimensions.
 
 The Parquet emitter saves the serialized tabular data to two Hive-partitioned
 directories in the output folder (``out_dir`` or ``out_uri`` option under
@@ -192,7 +197,7 @@ its corresponding Hive partition under the ``configuration`` folder.
 Many of the columns inside this Parquet file come from flattening the configuration
 JSON used to run the simulation and can be read back in analysis scripts (see
 :ref:`analysis_scripts`) using the helper function
-:py:func:`~ecoli.library.parquet_emitter.get_config_value`.
+:py:func:`~ecoli.library.parquet_emitter.config_value`.
 
 Additionally, this file can contain metadata for each store to emit. This metadata
 can be specified under the ``_properties`` key in a port schema as follows:
@@ -208,11 +213,11 @@ can be specified under the ``_properties`` key in a port schema as follows:
 Schemas constructed with the :py:func:`~ecoli.library.schema.listener_schema` helper
 function can populate this metdata concisely. These metadata values are compiled for
 all stores in the simulation state hierarchy by
-:py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`. In the
+:py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata`. In the
 saved configuration Parquet file, the metadata values will be located in
 columns with names equal to the double-underscore concatenated store path
 prefixed by ``output_metadata__``. For convenience, the
-:py:func:`~ecoli.library.parquet_emitter.get_field_metadata` can be used in
+:py:func:`~ecoli.library.parquet_emitter.field_metadata` can be used in
 analysis scripts to read this metadata.
 
 ``history``
@@ -222,9 +227,8 @@ Each simulation will save Parquet files containing serialized simulation output 
 inside its corresponding Hive partition under the ``history`` folder. The columns in
 these Parquet files come from flattening the hierarchy of emitted stores. To leverage
 Parquet's columnar compression and efficient reading, we batch many time steps worth
-of emits into a temporary newline-delimited JSON file before reading them into a
-`PyArrow <https://arrow.apache.org/docs/python/index.html>`_ table where each row
-contains the column values for a single time step. This PyArrow table is then
+of emits into either Numpy arrays (constant dimensions) or lists of lists (variable
+dimensions). These batched emits are efficiently converted into a Polars DataFrame and
 written to a Parquet file named ``{batch size * number of batches}.pq`` (e.g.
 ``400.pq``, ``800.pq``, etc. for a batch size of 400). The default batch size of
 400 has been tuned for our current model but can be adjusted via ``emits_to_batch``
@@ -242,33 +246,32 @@ complex queries. Refer to the `DuckDB documentation <https://duckdb.org/docs/>`_
 We provide a variety of helper functions in :py:mod:`ecoli.library.parquet_emitter`
 to read data using DuckDB. These include:
 
-- :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql`: Construct basic
+- :py:func:`~ecoli.library.parquet_emitter.dataset_sql`: Construct basic
   SQL queries to read data from ``history`` and ``configuration`` folders. This
   is mainly intended for ad-hoc Parquet reading (e.g. in a Jupyter notebook).
   Analysis scripts (see :ref:`analysis_scripts`) receive a ``history_sql`` and
   ``config_sql`` that reads data from Parquet files with filters applied when
   run using :py:mod:`runscripts.analysis`.
 - :py:func:`~ecoli.library.parquet_emitter.union_by_name`: Modify SQL query
-  from :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql` to
+  from :py:func:`~ecoli.library.parquet_emitter.dataset_sql` to
   use DuckDB's `union_by_name <https://duckdb.org/docs/stable/data/multiple_files/combining_schemas.html#union-by-name>`_.
   This is useful when reading data from simulations with different columns.
 - :py:func:`~ecoli.library.parquet_emitter.num_cells`: Quickly get a count of
   the number of cells whose data is included in a SQL query
 - :py:func:`~ecoli.library.parquet_emitter.skip_n_gens`: Add a filter to an SQL
   query to skip the first N generations worth of data
-- :py:func:`~ecoli.library.parquet_emitter.ndlist_to_ndarray`: Convert a PyArrow
-  column of nested lists into a N-D Numpy array
-- :py:func:`~ecoli.library.parquet_emitter.ndarray_to_ndlist`: Convert a N-D Numpy
-  array into a PyArrow column of nested lists
+- :py:func:`~ecoli.library.parquet_emitter.ndlist_to_ndarray`: Convert a
+  column of nested lists read from Parquet into an N-D Numpy array (use
+  :py:class:`polars.Series` to do opposite conversion)
 - :py:func:`~ecoli.library.parquet_emitter.ndidx_to_duckdb_expr`: Get a DuckDB SQL
   expression which can be included in a ``SELECT`` statement that uses Numpy-style
   indexing to retrieve values from a nested list Parquet column
 - :py:func:`~ecoli.library.parquet_emitter.named_idx`: Get a DuckDB SQL expression
   which can be included in a ``SELECT`` statement that extracts values at certain indices
   from each row of a nested list Parquet column and returns them as individually named columns
-- :py:func:`~ecoli.library.parquet_emitter.get_field_metadata`: Read saved store
+- :py:func:`~ecoli.library.parquet_emitter.field_metadata`: Read saved store
   metadata (see :ref:`configuration_parquet`)
-- :py:func:`~ecoli.library.parquet_emitter.get_config_value`: Read option from
+- :py:func:`~ecoli.library.parquet_emitter.config_value`: Read option from
   configuration JSON used to run simulation
 - :py:func:`~ecoli.library.parquet_emitter.read_stacked_columns`: Main interface
   for reading simulation output from ``history`` folder. Can either immediately read
@@ -315,6 +318,15 @@ accomplished in one of two ways:
         )
         SELECT avg(*) FROM cell_avgs
 
+.. tip::
+  DuckDB will efficiently read only the rows and columns necessary to complete your query.
+  However, if you are reading a column of lists (e.g. bulk molecule counts every time step)
+  or nested lists, DuckDB reads the entire nested value for every relevant row in that column,
+  even if you only care about a small subset of indices. To avoid repeatedly incurring this
+  cost, we recommend using :py:func:`~ecoli.library.parquet_emitter.named_idx` to select all
+  indices of interest to be read in one go. As long as the final result fits in RAM, this
+  should be much faster than reading each index individually.
+
 See :py:mod:`~ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps`
 for examples of complex queries, as well as helper functions to create SQL expressions
 for common query patterns. These include:
@@ -325,36 +337,6 @@ for common query patterns. These include:
 - :py:func:`~ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_1d_array_over_scalar_sql`
 - :py:func:`~ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_sum_1d_array_over_scalar_sql`
 
-.. _special_float_values:
-
-Special Float Values
-====================
-
-The Parquet emitter uses ``orjson`` to convert simulation output data to an intermediate JSON
-format that is then written to Parquet.  Because special float values like NaN/infinity are
-not included in the JSON specification, ``orjson`` converts them to null. As such, processes
-**MUST** be written so that these values do not appear under normal circumstances.
-
-If you anticipate that these values may appear when something has gone wrong, note
-that DuckDB, the library used to read Parquet data, ignores null values by default in
-aggregation functions like ``sum`` and ``avg``. To make these aggregations return null if
-any input values are null, use the following syntax (example for ``sum``):
-
-.. code-block:: sql
-
-  SELECT
-    CASE
-      -- If any values in column are null, return null
-      WHEN bool_or(column_name is NULL) THEN NULL
-      -- Otherwise, perform the aggregation as normal
-      ELSE SUM(column_name)
-    END AS safe_sum
-  FROM your_table;
-
-For more advanced users who require these values for a one-off test, we have made a
-`branch of orjson <https://github.com/CovertLab/orjson/tree/updated-infnan>`_ that is
-patched to support these values. It is not actively maintained, and changes that require
-this patched package will not be merged into the main vEcoli codebase.
 
 ---------------------
 Other Workflow Output

@@ -776,6 +776,9 @@ class EcoliSim:
                 )
                 with open("division_time.sh", "w") as f:
                     f.write(f"export division_time={self.ecoli_experiment.global_time}")
+                # Tell Parquet emitter that simulation was successful
+                if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
+                    self.ecoli_experiment.emitter.success = True
                 sys.exit()
             time_elapsed = self.save_times[i]
             state = self.ecoli_experiment.state.get_value(condition=not_a_process)
@@ -804,7 +807,7 @@ class EcoliSim:
             )
 
         metadata = self.get_metadata()
-        metadata["output_metadata"] = self.get_output_metadata()
+        metadata["output_metadata"] = self.output_metadata()
         # make the experiment
         if isinstance(self.emitter, str):
             self.emitter_config = {"type": self.emitter}
@@ -921,7 +924,7 @@ class EcoliSim:
         Query data that was emitted to RAMEmitter (``config['emitter'] == 'timeseries'``).
         For the Parquet emitter, query sim output with an analysis script run using
         :py:mod:`runscripts.analysis` or with ad-hoc DuckDB SQL queries built using
-        :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql` as a base.
+        :py:func:`~ecoli.library.parquet_emitter.dataset_sql` as a base.
 
         Args:
             query: List of tuple-style paths in the simulation state to
@@ -944,7 +947,7 @@ class EcoliSim:
                 "Query method only works for timeseries emitter."
                 " For Parquet emitter, either write an analysis script to be run"
                 " using runscripts/analysis.py or build off the DuckDB SQL query"
-                " returned by ecoli.library.parquet_emitter.get_dataset_sql."
+                " returned by ecoli.library.parquet_emitter.dataset_sql."
             )
         # Retrieve queried data (all if not specified)
         if self.raw_output:
@@ -978,7 +981,7 @@ class EcoliSim:
         metadata["time"] = datetime.now()
         return metadata
 
-    def get_output_metadata(self) -> dict[str, Any]:
+    def output_metadata(self) -> dict[str, Any]:
         """
         Filters all ports schemas to include only output metadata
         located at the path ``('_properties', 'metadata')`` for each schema by
@@ -988,7 +991,7 @@ class EcoliSim:
         This dictionary of output metadata is flattened (see :py:func:`~ecoli.library.parquet_emitter.flatten_dict`)
         into columns with prefix :py:data:`~ecoli.library.parquet_emitter.METADATA_PREFIX`
         and emitted as part of the simulation config by the Parquet emitter. It can
-        be retrieved later using :py:func:`~ecoli.library.parquet_emitter.get_field_metadata`.
+        be retrieved later using :py:func:`~ecoli.library.parquet_emitter.field_metadata`.
         """
         if self.divide:
             processes_and_steps = self.ecoli.processes["agents"][self.agent_id]
