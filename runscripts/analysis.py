@@ -1,19 +1,39 @@
-import argparse
-import importlib
-import json
 import os
-import warnings
-from urllib import parse
-from typing import Any
+import argparse
+import json
 
-import duckdb
-from fsspec import filesystem
-import pyarrow as pa
-from pyarrow import fs
 
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
-from ecoli.experiments.ecoli_master_sim import SimConfig
-from ecoli.library.parquet_emitter import get_dataset_sql, open_output_file
+# First, do minimal argument parsing just to get the CPU count
+def parse_cpu_arg():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--cpus", "-n", default=1, type=int)
+    parser.add_argument("--config")
+    # Only arguments necessary to determine CPU count
+    args, _ = parser.parse_known_args()
+    if args.config is None:
+        return args.cpus
+    with open(args.config, "r") as f:
+        config = json.load(f)
+    return config["analysis_options"].get("cpus", args.cpus)
+
+
+# Set Polars thread count before any imports might load it
+cpu_count = parse_cpu_arg()
+if cpu_count is not None:
+    os.environ["POLARS_MAX_THREADS"] = str(cpu_count)
+    print(f"Setting POLARS_MAX_THREADS={cpu_count}")
+
+import importlib  # noqa: E402
+import warnings  # noqa: E402
+from urllib import parse  # noqa: E402
+from typing import Any  # noqa: E402
+
+import duckdb  # noqa: E402
+from fsspec import filesystem, url_to_fs  # noqa: E402
+
+from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH  # noqa: E402
+from ecoli.experiments.ecoli_master_sim import SimConfig  # noqa: E402
+from ecoli.library.parquet_emitter import dataset_sql, open_output_file  # noqa: E402
 
 FILTERS = {
     "experiment_id": str,
@@ -73,11 +93,11 @@ def parse_variant_data_dir(
             }
         if not (v_data_dir.startswith("gs://") or v_data_dir.startswith("gcs://")):
             v_data_dir = os.path.abspath(v_data_dir)
-        filesystem, data_dir = fs.FileSystem.from_uri(v_data_dir)
+        fs, data_dir = url_to_fs(v_data_dir)
         sim_data_dict[e_id] = {
-            int(os.path.basename(os.path.splitext(i.path)[0])): str(i.path)
-            for i in filesystem.get_file_info(fs.FileSelector(data_dir, recursive=True))
-            if os.path.splitext(i.path)[1] == ".cPickle"
+            int(os.path.basename(os.path.splitext(data_path)[0])): str(data_path)
+            for data_path in fs.find(data_dir)
+            if os.path.splitext(data_path)[1] == ".cPickle"
         }
     return variant_metadata, sim_data_dict, variant_names
 
@@ -145,7 +165,7 @@ def main():
         "--cpus",
         "-n",
         type=int,
-        help="Number of CPUs to use for DuckDB and PyArrow.",
+        help="Number of CPUs to use for DuckDB.",
     )
     parser.add_argument(
         "--variant_metadata_path",
@@ -200,10 +220,6 @@ def main():
     for k, v in vars(args).items():
         if v is not None:
             config[k] = v
-
-    # Set number of threads for PyArrow
-    if "cpus" in config:
-        pa.set_cpu_count(config["cpus"])
 
     # Set up DuckDB filters for data
     duckdb_filter = []
@@ -289,9 +305,7 @@ def main():
 
     # Establish DuckDB connection
     conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("cpus"))
-    history_sql, config_sql, success_sql = get_dataset_sql(
-        out_uri, config["experiment_id"]
-    )
+    history_sql, config_sql, success_sql = dataset_sql(out_uri, config["experiment_id"])
     # If no explicit analysis type given, run all types in config JSON
     if "analysis_types" not in config:
         config["analysis_types"] = [

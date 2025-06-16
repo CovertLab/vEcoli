@@ -360,10 +360,13 @@ class Metabolism(Step):
                     "_divider": "zero",
                 },
                 "aa_exchange_rates": {
-                    "_default": 0.0,
+                    "_default": CONC_UNITS
+                    / TIME_UNITS
+                    * np.zeros(len(self.aa_exchange_names)),
                     "_emit": True,
                     "_updater": "set",
-                    "_divider": "zero",
+                    "_divider": "set",
+                    "_serializer": "<class 'unum.Unum'>",
                 },
             },
             "global_time": {"_default": 0.0},

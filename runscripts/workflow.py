@@ -9,8 +9,17 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from urllib import parse
+from typing import Optional
 
-from pyarrow import fs
+# Try to import fsspec, but make it optional
+try:
+    from fsspec import url_to_fs
+    from fsspec.spec import AbstractFileSystem
+
+    FSSPEC_AVAILABLE = True
+except ImportError:
+    FSSPEC_AVAILABLE = False
+
 
 LIST_KEYS_TO_MERGE = (
     "save_times",
@@ -63,6 +72,22 @@ MULTIVARIANT_CHANNEL = """
         .groupTuple(by: [1])
         .set {{ multiVariantCh }}
 """
+
+
+def parse_uri(uri: str) -> tuple[Optional["AbstractFileSystem"], str]:
+    """
+    Parse URI and return appropriate filesystem and path.
+
+    For cloud/remote URIs (when fsspec is available), returns fsspec filesystem.
+    For local paths, returns None and absolute path.
+    """
+    if not FSSPEC_AVAILABLE:
+        if parse.urlparse(uri).scheme in ("local", "file", ""):
+            return None, os.path.abspath(uri)
+        raise RuntimeError(
+            "fsspec is not available. Please install fsspec to use remote URIs."
+        )
+    return url_to_fs(uri)
 
 
 def merge_dicts(a, b):
@@ -271,18 +296,24 @@ def build_image_cmd(image_name, apptainer=False) -> list[str]:
     return cmd
 
 
-def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):
+def copy_to_filesystem(
+    source: str, dest: str, filesystem: Optional["AbstractFileSystem"] = None
+):
     """
-    Robustly copy the contents of a local source file to a destination path on
-    a PyArrow filesystem.
+    Robustly copy the contents of a local source file to a destination path.
 
     Args:
         source: Path to source file on local filesystem
-        dest: Path to destination file on PyArrow filesystem. If Cloud Storage
-            bucket, DO NOT include ``gs://`` or ``gcs://``.
-        filesystem: PyArrow filesystem instantiated from URI of ``dest``
+        dest: Path to destination file on filesystem
+        filesystem: LocalFileSystem or fsspec filesystem
     """
-    with filesystem.open_output_stream(dest) as stream:
+    if filesystem is None:
+        # Simple local file copy
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        shutil.copy2(source, dest)
+        return
+    # fsspec implementation
+    with filesystem.open(dest, mode="wb") as stream:
         with open(source, "rb") as f:
             stream.write(f.read())
 
@@ -372,22 +403,35 @@ def main():
     if "out_uri" not in config["emitter_arg"]:
         out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
         config["emitter_arg"]["out_dir"] = out_uri
+        assert parse.urlparse(out_uri).scheme == "", (
+            "Output directory must be a local path, not a URI. "
+            "Specify URIs using 'out_uri' under 'emitter_arg'."
+        )
     else:
         out_uri = config["emitter_arg"]["out_uri"]
-        out_bucket = out_uri.split("://")[1].split("/")[0]
+        parsed_uri = parse.urlparse(out_uri)
+        if parsed_uri.schema not in ("local", "file") and not FSSPEC_AVAILABLE:
+            raise RuntimeError(
+                f"URI '{out_uri}' specified but fsspec is not available. "
+                "Install fsspec or provide a local URI/out directory."
+            )
+        out_bucket = parsed_uri.netloc
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
         config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
     # Use random seed for Jenkins CI runs
     if config.get("sherlock", {}).get("jenkins", False):
         config["lineage_seed"] = random.randint(0, 2**31 - 1)
-    filesystem, outdir = fs.FileSystem.from_uri(out_uri)
+    filesystem, outdir = parse_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
     out_uri = os.path.join(out_uri, experiment_id, "nextflow")
     repo_dir = os.path.dirname(os.path.dirname(__file__))
     local_outdir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
     os.makedirs(local_outdir, exist_ok=True)
-    filesystem.create_dir(outdir)
+    if filesystem is None:
+        os.makedirs(outdir, exist_ok=True)
+    else:
+        filesystem.makedirs(outdir, exist_ok=True)
     temp_config_path = f"{local_outdir}/workflow_config.json"
     final_config_path = os.path.join(outdir, "workflow_config.json")
     final_config_uri = os.path.join(out_uri, "workflow_config.json")

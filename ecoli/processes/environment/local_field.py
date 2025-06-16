@@ -108,7 +108,7 @@ def test_local_fields():
     }
 
     output = local_fields_process.next_update(0, initial_state)
-    return output is not None
+    assert output is not None
 
 
 if __name__ == "__main__":
