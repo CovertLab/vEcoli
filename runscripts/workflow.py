@@ -588,6 +588,7 @@ python3 {os.path.join(NEXTFLOW_DIR, "submit_hq.py")} \\
     --partition {hyperqueue_config["partition"]} \\
     --idle-timeout {hyperqueue_config["idle_timeout"]} \\
     --server-dir ${{HQ_SERVER_DIR}}
+    --label {experiment_id}
 """
             hyperqueue_exit = "hq job wait all; hq worker stop all; hq server stop"
         nf_slurm_output = os.path.join(outdir, f"{experiment_id}_slurm.out")
