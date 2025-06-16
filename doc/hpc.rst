@@ -37,8 +37,8 @@ lines to your ``~/.bash_profile``, then close and reopen your SSH connection:
 
 .. code-block:: bash
 
-    # Load newer Git and Java (for Nextflow)
-    module load system git java/21.0.4
+    # Load newer Git, Java (for nextflow), and Python
+    module load system git java/21.0.4 python/3.12.1
     # Include shared Nextflow and HyperQueue installations on PATH
     export PATH=$PATH:$GROUP_HOME/vEcoli_env
 
