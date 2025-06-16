@@ -19,7 +19,6 @@
     },
     "sherlock": {
         "container_image": "container-image",
-        "hyperqueue": true,
         "jenkins": true
     }
 }

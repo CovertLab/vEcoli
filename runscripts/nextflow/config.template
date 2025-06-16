@@ -69,11 +69,6 @@ profiles {
     }
     sherlock {
         process {
-            // Run analyses and create variants locally with
-            // the job used to launch workflow to avoid long queue times
-            withLabel: short {
-                executor = 'local'
-            }
             withLabel: parca {
                 cpus = params.parca_cpus
                 memory = params.parca_cpus * 2.GB
@@ -89,8 +84,6 @@ profiles {
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
             queue = 'owners,normal'
             executor = 'slurm'
-            // Single core sims are slightly slower but can have shorter
-            // queue times and is less damaging to future job priority
             cpus = 1
             memory = {
                 if ( task.exitStatus in [137, 140] ) {
@@ -130,6 +123,8 @@ profiles {
         executor.retry.maxDelay = '5 min'
         // Throttle submission rate to avoid overwhelming scheduler
         executor.submitRateLimit = '20/min'
+        // Raise limit to maximum allowed on Sherlock normal partition
+        executor.queueSize = 2000
         // Give NFS time to update and sync before raising errors
         executor.exitReadTimeout = '10 min'
         workflow.failOnIgnore = true
@@ -177,6 +172,8 @@ profiles {
             }
             maxRetries = 3
         }
+        // Raise limit to maximum allowed on Sherlock normal partition
+        executor.queueSize = 2000
         apptainer.enabled = true
         params.projectRoot = '/vEcoli'
         workflow.failOnIgnore = true

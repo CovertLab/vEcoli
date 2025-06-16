@@ -25,7 +25,6 @@
     "sherlock": {
         "container_image": "container-image",
         "build_image": true,
-        "hyperqueue": true,
         "jenkins": true
     },
     "parca_options": {

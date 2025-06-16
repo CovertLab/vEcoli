@@ -92,9 +92,19 @@ keys in your configuration JSON (note the top-level ``sherlock`` key):
       # Path (relative or absolute, including file name) of Apptainer image to
       # build (or use directly, if build_image is false)
       "container_image": "",
-      # Boolean, whether to use HyperQueue executor for simulation jobs
-      # (see HyperQueue section below)
-      "hyperqueue": true,
+      # Optional, all required to use HyperQueue
+      "hyperqueue": {
+        # Integer, number of HyperQueue workers to start
+        "num_workers": 1,
+        # Integer, number of cores to allocate to each worker
+        "cores_per_worker": 4,
+        # Integer, amount of RAM to allocate to each worker in MB
+        "ram_per_worker_mb": 16000,
+        # String, SLURM partition(s) to allocate workers on
+        "partition": "owners,normal",
+        # Integer, number of minutes before idle workers are shut down
+        "idle_timeout": 5
+      },
       # Boolean, denotes that a workflow is being run as part of Jenkins
       # continuous integration testing. Randomizes the initial seed and
       # ensures that all STDOUT and STDERR is piped to the launching process
@@ -296,7 +306,7 @@ Prerequisites
 The following are required:
 
 - Nextflow (requires Java)
-- Python 3
+- Python 3.9+
 - Git clone vEcoli to a location that is accessible from all nodes in your cluster
 
 If your cluster has Apptainer (formerly known as Singularity) installed,
@@ -353,10 +363,47 @@ HyperQueue
 ----------
 
 HyperQueue is a job scheduler that is designed to run on top of a traditional HPC
-scheduler like SLURM. It consists of a head server that can automatically allocate
-worker jobs using the underlying HPC scheduler. These worker jobs can be configured
-to persist for long enough to complete multiple tasks, greatly reducing the overhead
-of job submission and queuing, especially for shorter jobs.
+scheduler like SLURM. It consists of a head server and one or more workers scheduled
+by the underlying HPC scheduler. By configuring the worker jobs to persist for long
+enough to complete multiple tasks, HyperQueue reduces the amount of time tasks spend
+waiting in the queue, especially for shorter tasks. We recommend using HyperQueue
+if your workflow spans more than a handful of generations.
+
+With the required options set (:ref:`sherlock-config`), HyperQueue will start a head
+server in the same SLURM job that will run Nextflow. Then, the user-configured worker
+jobs will be submitted to SLURM. Finally, Nextflow will start the workflow and
+submit tasks to the HyperQueue head server. From there, HyperQueue will manage the
+scheduling of tasks on workers as they come online subject to resource constraints.
+
+Here is a more detailed description of the required HyperQueue options:
+
+1. ``num_workers``: The number of HyperQueue workers to start. Each worker will
+   run in its own SLURM job with a 24-hour time limit. They will automatically
+   resubmit themselves upon reaching the time limit or being preempted.
+2. ``cores_per_worker``: The number of CPU cores to allocate to each worker. A
+   good rule of thumb is to set this to 4, as this improves scheduling efficiency
+   without being so large that it results in long queue times and/or frequent
+   preemptions that kill many tasks at once. Try to set ``num_workers`` such that
+   ``num_workers * cores_per_worker`` is equal to the maximum number of concurrent
+   simulations in your workflow (seeds * variants).
+3. ``ram_per_worker_mb``: The amount of RAM to allocate to each worker in MB. A
+   good rule of thumb is to set this to ``4000 * cores_per_worker``, as each workflow
+   task is configured to request 1 core and 4GB RAM/core by default. Workflow tasks
+   that fail with exit code ``137`` or ``140`` are configured to retry up to 3 times
+   and request ``4 * retry_num`` GB RAM each time. If you set ``ram_per_worker_mb``
+   below 16GB, some of these retry attempts will never get scheduled. On the other
+   hand, setting this too high relative to ``cores_per_worker`` would just waste
+   the allocated resources most of the time. The recommended 4 cores per worker
+   and 16GB of RAM per worker is the most granular configuration that allows
+   HyperQueue to schedule 4 normal tasks (4GB each, 100% cores used), 2 normal and
+   1 first retry (4 + 4 + 8, 75%), 1 normal and 1 second retry (4 + 12, 50%), or 1
+   third retry (16, 25%).
+4. ``partition``: The SLURM partition(s) to allocate workers on.
+5. ``idle_timeout``: The number of minutes before idle workers are shut down.
+   This should be set to a low value (5 as rule of thumb) to ensure that workers
+   do not consume resources when there are no tasks to run. If you set this too high,
+   workers will stay alive for longer than necessary, which drains resources and
+   may harm your future job submission priority.
 
 HyperQueue is distributed as a pre-built binary on GitHub.
 Unfortunately, this binary is built with a newer version of GLIBC

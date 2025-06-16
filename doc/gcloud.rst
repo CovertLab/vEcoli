@@ -132,7 +132,7 @@ installing ``uv`` and finishing with installing Nextflow.
 
 .. note::
   The only requirements to run :mod:`runscripts.workflow` on Google Cloud
-  are Nextflow, Python 3, and `GCSFS <https://gcsfs.readthedocs.io/en/latest/>`_.
+  are Nextflow, Python 3.9+, and `GCSFS <https://gcsfs.readthedocs.io/en/latest/>`_.
   The workflow steps will be run inside Docker containers (see
   :ref:`docker-images`). The other Python requirements can be
   omitted for a more minimal installation. You will need to use
