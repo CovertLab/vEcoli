@@ -46,7 +46,7 @@ def configure_slurm_workers(
 _resubmit() {{
     # Resubmit job if we reach time limit
     echo "$(date): job $SLURM_JOBID received SIGUSR1, re-submitting"
-    sbatch $0
+    sbatch -J $SLURM_JOB_NAME-resubmit $0
 }}
 trap _resubmit SIGUSR1
 
