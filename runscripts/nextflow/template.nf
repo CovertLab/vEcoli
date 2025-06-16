@@ -28,8 +28,6 @@ process runParca {
 process analysisParca {
     publishDir "${params.publishDir}/${params.experimentId}/parca/analysis", mode: "copy"
 
-    label "short"
-
     input:
     path config
     path kb
@@ -56,8 +54,6 @@ process analysisParca {
 process createVariants {
     // Parse variants in config JSON to generate variants
     publishDir "${params.publishDir}/${params.experimentId}/variant_sim_data", mode: "copy"
-
-    label "short"
 
     input:
     path config

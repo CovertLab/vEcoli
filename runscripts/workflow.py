@@ -568,7 +568,8 @@ def main():
         batch_script = os.path.join(local_outdir, "nextflow_job.sh")
         hyperqueue_init = ""
         hyperqueue_exit = ""
-        if sherlock_config.get("hyperqueue", False):
+        hyperqueue_config = sherlock_config.get("hyperqueue", None)
+        if hyperqueue_config is not None:
             nf_profile = "sherlock_hq"
             hyperqueue_init = f"""
 # Set the directory which HyperQueue will use 
@@ -579,8 +580,14 @@ mkdir -p ${{HQ_SERVER_DIR}}
 hq server start --journal {os.path.join(outdir, ".hq-server/journal")} &
 until hq job list &>/dev/null ; do sleep 1 ; done
 
-# Enable HyperQueue automatic allocation
-hq alloc add slurm --time-limit 8h -- --partition=owners,normal --mem=4GB
+# Start HyperQueue workers
+python3 {os.path.join(NEXTFLOW_DIR, "submit_hq.py")} \\
+    --num-workers {hyperqueue_config["num_workers"]} \\
+    --cores-per-worker {hyperqueue_config["cores_per_worker"]} \\
+    --ram-per-worker-mb {hyperqueue_config["ram_per_worker_mb"]} \\
+    --partition {hyperqueue_config["partition"]} \\
+    --idle-timeout {hyperqueue_config["idle_timeout"]} \\
+    --server-dir ${{HQ_SERVER_DIR}}
 """
             hyperqueue_exit = "hq job wait all; hq worker stop all; hq server stop"
         nf_slurm_output = os.path.join(outdir, f"{experiment_id}_slurm.out")

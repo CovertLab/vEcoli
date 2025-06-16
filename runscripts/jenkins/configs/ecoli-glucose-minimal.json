@@ -16,7 +16,13 @@
     "sherlock": {
         "container_image": "container-image",
         "build_image": true,
-        "hyperqueue": true,
+        "hyperqueue": {
+            "num_workers": 1,
+            "cores_per_worker": 1,
+            "ram-per-worker-mb": 4000,
+            "partition": "owners,normal",
+            "idle_timeout": 5
+        },
         "jenkins": true
     },
     "parca_options": {
