@@ -1,17 +1,39 @@
-import argparse
-import importlib
-import json
 import os
-import warnings
-from urllib import parse
-from typing import Any
+import argparse
+import json
 
-import duckdb
-from fsspec import filesystem, url_to_fs
 
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
-from ecoli.experiments.ecoli_master_sim import SimConfig
-from ecoli.library.parquet_emitter import dataset_sql, open_output_file
+# First, do minimal argument parsing just to get the CPU count
+def parse_cpu_arg():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--cpus", "-n", default=1, type=int)
+    parser.add_argument("--config")
+    # Only arguments necessary to determine CPU count
+    args, _ = parser.parse_known_args()
+    if args.config is None:
+        return args.cpus
+    with open(args.config, "r") as f:
+        config = json.load(f)
+    return config["analysis_options"].get("cpus", args.cpus)
+
+
+# Set Polars thread count before any imports might load it
+cpu_count = parse_cpu_arg()
+if cpu_count is not None:
+    os.environ["POLARS_MAX_THREADS"] = str(cpu_count)
+    print(f"Setting POLARS_MAX_THREADS={cpu_count}")
+
+import importlib  # noqa: E402
+import warnings  # noqa: E402
+from urllib import parse  # noqa: E402
+from typing import Any  # noqa: E402
+
+import duckdb  # noqa: E402
+from fsspec import filesystem, url_to_fs  # noqa: E402
+
+from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH  # noqa: E402
+from ecoli.experiments.ecoli_master_sim import SimConfig  # noqa: E402
+from ecoli.library.parquet_emitter import dataset_sql, open_output_file  # noqa: E402
 
 FILTERS = {
     "experiment_id": str,
