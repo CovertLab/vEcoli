@@ -807,26 +807,6 @@ class ParquetEmitter(Emitter):
                 statistics=False,
             )
 
-    def fallback_serialize(self, v: Any, k: str, emit_idx: int) -> Any:
-        """
-        Use Polars serialization to handle the exceptions described in
-        :py:func:`~.np_dtype`.
-        """
-        v = pl.Series([v])
-        # Ensure type consistency
-        curr_type = self.pl_types.setdefault(k, pl.Null)
-        if v.dtype != curr_type:
-            force_inner: Optional[pl.DataType] = None
-            if k in USE_UINT16:
-                force_inner = pl.UInt16()
-            elif k in USE_UINT32:
-                force_inner = pl.UInt32()
-            self.pl_types[k] = union_pl_dtypes(curr_type, v.dtype, k, force_inner)
-        # Need to recreate buffer after every batch
-        if k not in self.buffered_emits:
-            self.buffered_emits[k] = [None] * self.batch_size
-        self.buffered_emits[k][emit_idx] = v[0]
-
     def emit(self, data: dict[str, Any]):
         """
         Flattens emit dictionary by concatenating nested key names with double
@@ -978,7 +958,23 @@ class ParquetEmitter(Emitter):
                             self.buffered_emits[k] = self.buffered_emits[k][
                                 :emit_idx
                             ].tolist() + [None] * (self.batch_size - emit_idx)
-                self.fallback_serialize(v, k, emit_idx)
+                # Fall back Polars serialization
+                v = pl.Series([v])
+                # Ensure type consistency
+                curr_type = self.pl_types.setdefault(k, pl.Null)
+                if v.dtype != curr_type:
+                    force_inner: Optional[pl.DataType] = None
+                    if k in USE_UINT16:
+                        force_inner = pl.UInt16()
+                    elif k in USE_UINT32:
+                        force_inner = pl.UInt32()
+                    self.pl_types[k] = union_pl_dtypes(
+                        curr_type, v.dtype, k, force_inner
+                    )
+                # Need to recreate buffer after every batch
+                if k not in self.buffered_emits:
+                    self.buffered_emits[k] = [None] * self.batch_size
+                self.buffered_emits[k][emit_idx] = v[0]
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
             # If last batch of emits failed, exception should be raised here
