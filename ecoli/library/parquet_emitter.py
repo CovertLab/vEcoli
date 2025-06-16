@@ -25,6 +25,10 @@ USE_UINT16 = {
     "listeners__rna_synth_prob__n_bound_TF_per_cistron",
     "listeners__rnap_data__rna_init_event_per_cistron",
     "listeners__rna_synth_prob__gene_copy_number",
+    # Expected RNA init per cistron is a float64 but adds >10%
+    # to final output size and is mostly redundant (equal to
+    # actual_rna_synth_prob_per_cistron * total_rna_init)
+    # so downcast to uint16 to save space.
     "listeners__rna_synth_prob__expected_rna_init_per_cistron",
     "listeners__rna_degradation_listener__count_RNA_degraded_per_cistron",
     "listeners__rna_degradation_listener__count_rna_degraded",
