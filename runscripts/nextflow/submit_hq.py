@@ -13,6 +13,7 @@ def configure_slurm_workers(
     partition: str,
     idle_timeout: int,
     server_dir: str,
+    label: str,
 ) -> None:
     """
     Configure and submit user-defined Slurm workers for HyperQueue.
@@ -24,6 +25,7 @@ def configure_slurm_workers(
         partition: Slurm partition(s) to use
         idle_timeout: Idle timeout for workers in minutes
         server_dir: HyperQueue server directory
+        label: Job label for workers
     """
     # Make sure server directory exists
     assert os.path.exists(server_dir)
@@ -52,7 +54,7 @@ trap _resubmit SIGUSR1
 hq worker start --manager slurm \\
     --server-dir {server_dir} \\
     --cpus {cores_per_worker} \\
-    --resource "mem={ram_per_worker_mb}" \\
+    --resource "mem=sum({ram_per_worker_mb})" \\
     --idle-timeout {idle_timeout}m &
 wait $!
 """
@@ -64,13 +66,12 @@ wait $!
         temp_script.write(script_content)
         script_file = temp_script.name
 
-    subprocess.run(["cat", script_file], check=True)  # Print script for debugging
-
     # Submit workers
     print(f"Submitting {num_workers} HyperQueue workers to Slurm...")
 
     max_retries = 5
     submitted_workers = 0
+    label = f"{label}-hq-worker"
 
     for i in range(num_workers):
         worker_submitted = False
@@ -87,7 +88,7 @@ wait $!
                     time.sleep(backoff_time)
 
                 result = subprocess.run(
-                    ["sbatch", script_file],
+                    ["sbatch", "-J", label, script_file],
                     capture_output=True,
                     text=True,
                     check=True,  # Raise exception on error
@@ -141,6 +142,9 @@ def main():
     parser.add_argument(
         "--server-dir", type=str, required=True, help="HyperQueue server directory"
     )
+    parser.add_argument(
+        "--label", type=str, required=True, help="Job label for workers"
+    )
 
     args = parser.parse_args()
 
@@ -151,6 +155,7 @@ def main():
         partition=args.partition,
         idle_timeout=args.idle_timeout,
         server_dir=args.server_dir,
+        label=args.label,
     )
 
 
