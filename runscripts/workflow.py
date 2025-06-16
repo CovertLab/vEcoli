@@ -82,7 +82,7 @@ def parse_uri(uri: str) -> tuple[Optional["AbstractFileSystem"], str]:
     For local paths, returns None and absolute path.
     """
     if not FSSPEC_AVAILABLE:
-        if parse.urlparse(uri).scheme in ("local", "file"):
+        if parse.urlparse(uri).scheme in ("local", "file", ""):
             return None, os.path.abspath(uri)
         raise RuntimeError(
             "fsspec is not available. Please install fsspec to use remote URIs."
