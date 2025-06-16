@@ -1023,7 +1023,7 @@ class TestParquetEmitterEdgeCases:
         }
         emitter.emit(config_data)
 
-        # Test initial null, empty list, empty array skipping
+        # Test initial null/empty list (null types), empty NumPy array (typed)
         sim_data1 = {
             "table": "simulation",
             "data": {
