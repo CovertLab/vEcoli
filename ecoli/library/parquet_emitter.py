@@ -62,7 +62,7 @@ USE_UINT32 = {
 
 
 def json_to_parquet(
-    emit_dict: dict[str, np.ndarray | list[np.ndarray]],
+    emit_dict: dict[str, np.ndarray | list[pl.Series]],
     outfile: str,
     schema: dict[str, Any],
     filesystem: AbstractFileSystem,
@@ -70,12 +70,12 @@ def json_to_parquet(
     """Convert dictionary to Parquet.
 
     Args:
-        emit_dict: Mapping from column names to Numpy array (fixed-shape)
-            or list of Numpy arrays (variable-shape)
+        emit_dict: Mapping from column names to NumPy arrays (fixed-shape)
+            or lists of Polars Series (variable-shape).
         outfile: Path to output Parquet file. Can be local path or URI.
-        schema: Lists of variable-shape arrays need explicit types
-            and fixed-shape arrays are better off written as Lists instead of
-            Arrays (see code comment in :py:class:`~.ParquetEmitter`).
+        schema: Full mapping of column names to Polars dtypes.
+        filesystem: On local filesystem, fsspec filesystem needed to
+            write Parquet file atomically.
     """
     tbl = pl.DataFrame(emit_dict, schema={k: schema[k] for k in emit_dict})
     # GCS should have atomic uploads, but on a local filesystem, DuckDB may fail
@@ -584,39 +584,52 @@ def read_stacked_columns(
 
 def np_dtype(val: Any, field_name: str) -> Any:
     """
-    Get optimal NumPy type for input value.
+    Get NumPy type for input value. There are a few scenarios
+    where this function raises an exception intentionally:
+
+    - An internal value is None or an empty list/tuple: data is
+      ragged/nullable and needs Polars serialization.
+    - Python bytes type: NumPy only has fixed-length bytes type
+      so use Polars serialization to avoid truncation.
+    - Python datetime types: Simpler and less error-prone to use
+      Polars serialization instead of converting to NumPy.
+
+    .. warning::
+        ``np.bytes_`` values and arrays will get truncated to the
+        size of the first encountered value. Convert to Python
+        bytes type to avoid this.
+
+    The ``try...except`` blocks in :py:meth:`~.ParquetEmitter.emit`
+    are designed to catch these exceptions and fall back to
+    Polars serialization.
+
+    All other exceptions raised by this function indicate that the
+    value is of an unsupported type for which even the fall back
+    Polars serialization likely will not work.
     """
     if field_name in USE_UINT16:
         return np.uint16
     elif field_name in USE_UINT32:
         return np.uint32
-    elif isinstance(val, (float, np.floating)):
+    elif isinstance(val, float):
         return np.float64
     elif isinstance(val, bool):
         return np.bool_
-    elif isinstance(val, (int, np.integer)):
+    elif isinstance(val, int):
         return np.int64
+    # Use NumPy variable-length string type
     elif isinstance(val, (str, np.str_)):
         return np.dtypes.StringDType
+    elif isinstance(val, np.generic):
+        return val.dtype
     elif isinstance(val, np.ndarray):
-        if val.dtype.kind == "S":
-            # Using NumPy bytes would result in truncation
-            # to the length of the first value. Instead,
-            # use Polars directly.
-            raise TypeError(f"{field_name} has unsupported type {type(val)}.")
         return val.dtype
     elif isinstance(val, (list, tuple)):
         if len(val) > 0:
             for inner_val in val:
                 if inner_val is not None:
-                    np_type = np_dtype(inner_val, field_name)
-                    if np_type is None:
-                        continue
-                    return np_type
-    # We also raise error for None and fall back to Polars serialization
-    # The correct types, if any, will be filled in later emits using
-    # union_pl_dtypes
-    raise TypeError(f"{field_name} has unsupported type {type(val)}.")
+                    return np_dtype(inner_val, field_name)
+    raise ValueError(f"{field_name} has unsupported type {type(val)}.")
 
 
 def union_pl_dtypes(
@@ -737,17 +750,12 @@ class ParquetEmitter(Emitter):
         self.executor = ThreadPoolExecutor(1)
         # Buffer emits for each listener in a Numpy array
         self.buffered_emits: dict[str, Any] = {}
-        # Explicitly set Polars types to avoid a potential schema mismatch.
-        # Polars automatically casts Numpy arrays to its Array type, which
-        # comes with performance and memory advantages. Unfortunately,
-        # unlike with the generic Parquet List type, Polars will complain
-        # if the shape of an Array column changes between files. Since other
-        # Parquet consumers (e.g. DuckDB) do not treat Parquet data differently
-        # regardless of whether it was written as a Polars Array or generic List,
-        # I am inclined to continue using the generic List type.
+        # Remember most specific Polars type for each column
         self.pl_types: dict[str, pl.DataType | DataTypeClass] = {}
-        # Figure out the type of each column on first encounter and cache it
+        # Remember NumPy type for each column
         self.np_types: dict[str, Any] = {}
+        # Remember which columns required Polars serialization
+        self.pl_serialized: set[str] = set()
         self.num_emits = 0
         # Wait until next batch of emits to check whether last batch
         # was successfully written to Parquet in order to avoid blocking
@@ -799,6 +807,26 @@ class ParquetEmitter(Emitter):
                 statistics=False,
             )
 
+    def fallback_serialize(self, v: Any, k: str, emit_idx: int) -> Any:
+        """
+        Use Polars serialization to handle the exceptions described in
+        :py:func:`~.np_dtype`.
+        """
+        v = pl.Series([v])
+        # Ensure type consistency
+        curr_type = self.pl_types.setdefault(k, pl.Null)
+        if v.dtype != curr_type:
+            force_inner: Optional[pl.DataType] = None
+            if k in USE_UINT16:
+                force_inner = pl.UInt16()
+            elif k in USE_UINT32:
+                force_inner = pl.UInt32()
+            self.pl_types[k] = union_pl_dtypes(curr_type, v.dtype, k, force_inner)
+        # Need to recreate buffer after every batch
+        if k not in self.buffered_emits:
+            self.buffered_emits[k] = [None] * self.batch_size
+        self.buffered_emits[k][emit_idx] = v[0]
+
     def emit(self, data: dict[str, Any]):
         """
         Flattens emit dictionary by concatenating nested key names with double
@@ -834,7 +862,6 @@ class ParquetEmitter(Emitter):
             data = {**data["data"].pop("metadata", {}), **data["data"]}
             data["time"] = data.get("initial_global_time", 0.0)
             # Manually create filepaths with hive partitioning
-            # Start agent ID with 1 to avoid leading zeros
             agent_id = data.get("agent_id", "1")
             quoted_experiment_id = parse.quote_plus(
                 data.get("experiment_id", "default")
@@ -855,24 +882,13 @@ class ParquetEmitter(Emitter):
             config_schema: dict[str, pl.DataType] = {}
             for k, v in data.items():
                 try:
-                    np_type = np_dtype(v, k)
-                except TypeError:
-                    v = pl.Series([v])
-                    config_emit[k] = v
-                    config_schema[k] = v.dtype
-                    continue
-                if np_type is None:
-                    config_emit[k] = [None]
-                    config_schema[k] = pl.Null()
-                    continue
-                try:
-                    config_emit[k] = np.asarray(v, dtype=np_type)[np.newaxis]
+                    v = np.asarray(v, dtype=np_dtype(v, k))
+                    config_emit[k] = v[np.newaxis]
+                    config_schema[k] = pl_dtype_from_ndarray(v)
                 except ValueError:
                     v = pl.Series([v])
                     config_emit[k] = v
                     config_schema[k] = v.dtype
-                    continue
-                config_schema[k] = pl_dtype_from_ndarray(np.asarray(config_emit[k][0]))
             outfile = os.path.join(
                 self.out_uri,
                 self.experiment_id,
@@ -915,124 +931,54 @@ class ParquetEmitter(Emitter):
             agent_data["time"] = float(data["data"]["time"])
             agent_data = flatten_dict(agent_data)
             emit_idx = self.num_emits % self.batch_size
-            # The first time we encounter a field:
-            # 1. Get and cache NumPy type
-            # 2. Convert value to NumPy array of determined type
+            # At every emit, each field can take one of two paths.
             #
-            # If either step fails, fall back to Polars serialization,
-            # which stores emits as a list of one-length Polars Series.
+            # The efficient NumPy path converts the field value to a
+            # NumPy array with a dtype (and Polars/Parquet type)
+            # determined from the first encountered value of that field.
+            # These N-D arrays are buffered in a (N+1)-D array,
+            # where the first dimension is the batch size.
             #
-            # If both steps succeed, create a NumPy array large enough
-            # to hold batch_size values the same shape as the current.
-            #
-            # On subsequent encounters, either convert the value to
-            # the cached NumPy type and store it in the buffer array
-            # or to a Polars Series and store it in the buffer list.
+            # If any step in the NumPy path fails with a ValueError,
+            # the field will henceforth be serialized using the fallback
+            # Polars path. This path is mainly intended for fields
+            # that are ragged (e.g. lists of different lengths) or
+            # Python bytes/datetime objects. Field values are converted
+            # to Polars Series and buffered in Python lists with length
+            # equal to the batch size. The Polars type is reconciled at
+            # every timestep in order to fill in null levels.
             for k, v in agent_data.items():
-                if k in self.np_types:
-                    np_type = self.np_types[k]
-                elif k in self.pl_types:
-                    # Only way for key to have Polars type but not Numpy type
-                    # is if it previously fell back to Polars serialization
-                    v = pl.Series([v])
-                    # Mainly intended to fill in nested nullable Lists
-                    if v.dtype != self.pl_types[k]:
-                        force_inner: Optional[pl.DataType] = None
-                        if k in USE_UINT16:
-                            force_inner = pl.UInt16()
-                        elif k in USE_UINT32:
-                            force_inner = pl.UInt32()
-                        self.pl_types[k] = union_pl_dtypes(
-                            self.pl_types[k], v.dtype, k, force_inner
-                        )
-                    # Necessary because self.buffered_emits is cleared after each batch
-                    if k not in self.buffered_emits:
-                        self.buffered_emits[k] = [None] * self.batch_size
-                    self.buffered_emits[k][emit_idx] = v[0]
-                    continue
-                else:
+                if k not in self.pl_serialized:
                     try:
-                        np_type = np_dtype(v, k)
-                    except TypeError:
-                        # Fall back to Polars serialization if not NumPy-compatible.
-                        # Mainly intended to handle datetime and binary objects.
-                        # If you want to store nested values of the above types,
-                        # they must be NumPy arrays of NumPy types or Python lists
-                        # of Python types. For example, NumPy datetime objects in
-                        # a Python list will not work.
-                        v = pl.Series([v])
-                        assert k not in self.pl_types
-                        self.pl_types[k] = v.dtype
-                        assert k not in self.buffered_emits
-                        self.buffered_emits[k] = [None] * self.batch_size
-                        self.buffered_emits[k][emit_idx] = v[0]
+                        # Should only need to determine NumPy type once
+                        if k not in self.np_types:
+                            self.np_types[k] = np_dtype(v, k)
+                        v_np = np.asarray(v, dtype=self.np_types[k])
+                        # Need to recreate buffer after every batch
+                        if k not in self.buffered_emits:
+                            if emit_idx == 0:
+                                self.buffered_emits[k] = np.zeros(
+                                    (self.batch_size,) + v_np.shape, dtype=v_np.dtype
+                                )
+                            else:
+                                raise ValueError(f"Field {k} added mid-batch.")
+                        # Should only need to determine Polars type once
+                        if k not in self.pl_types:
+                            self.pl_types[k] = pl_dtype_from_ndarray(v_np)
+                        # Fall back to Polars serialization if shape mismatch
+                        if v_np.shape != self.buffered_emits[k].shape[1:]:
+                            raise ValueError(f"Shape mismatch for {k}.")
+                        self.buffered_emits[k][emit_idx] = v_np
                         continue
-                try:
-                    v = np.asarray(v, dtype=np_type)
-                except ValueError:
-                    # Fall back to Polars serialization if conversion fails.
-                    # Mainly intended to handle ragged nested Lists.
-                    # Note that these must be nested Python lists and not
-                    # lists of NumPy arrays.
-                    self.np_types.pop(k, None)
-                    v = pl.Series([v])
-                    if k in self.pl_types:
-                        # Mainly intended to fill in nested nullable Lists
-                        if v.dtype != self.pl_types[k]:
-                            force_inner = None
-                            if k in USE_UINT16:
-                                force_inner = pl.UInt16()
-                            elif k in USE_UINT32:
-                                force_inner = pl.UInt32()
-                            self.pl_types[k] = union_pl_dtypes(
-                                self.pl_types[k], v.dtype, k, force_inner
-                            )
-                    else:
-                        self.pl_types[k] = v.dtype
-                    if k not in self.buffered_emits:
-                        self.buffered_emits[k] = [None] * self.batch_size
-                    else:
-                        self.buffered_emits[k] = self.buffered_emits[k][
-                            :emit_idx
-                        ].tolist() + [None] * (self.batch_size - emit_idx)
-                    self.buffered_emits[k][emit_idx] = v[0]
-                    continue
-                self.np_types[k] = np_type
-                if k not in self.pl_types:
-                    self.pl_types[k] = pl_dtype_from_ndarray(v)
-                    # First non-null value was not at first time step,
-                    # so it must be variable-length. Fall back to Polars.
-                    if emit_idx != 0:
-                        self.np_types.pop(k)
-                        v = pl.Series([v], dtype=self.pl_types[k])
-                        self.buffered_emits[k] = [None] * self.batch_size
-                        self.buffered_emits[k][emit_idx] = v[0]
-                        continue
-                if k not in self.buffered_emits:
-                    self.buffered_emits[k] = np.zeros(
-                        (self.batch_size,) + v.shape, dtype=v.dtype
-                    )
-                # Convert fixed-shape buffer to variable-shape if
-                # dimension mismatch detected
-                if v.shape != self.buffered_emits[k].shape[1:]:
-                    self.np_types.pop(k)
-                    v = pl.Series([v], dtype=pl_dtype_from_ndarray(v))
-                    # Mainly intended to fill in nested nullable Lists
-                    if v.dtype != self.pl_types[k]:
-                        force_inner = None
-                        if k in USE_UINT16:
-                            force_inner = pl.UInt16()
-                        elif k in USE_UINT32:
-                            force_inner = pl.UInt32()
-                        self.pl_types[k] = union_pl_dtypes(
-                            self.pl_types[k], v.dtype, k, force_inner
-                        )
-                    self.buffered_emits[k] = self.buffered_emits[k][
-                        :emit_idx
-                    ].tolist() + [None] * (self.batch_size - emit_idx)
-                    v = v[0]
-                # Write current column value to buffer
-                self.buffered_emits[k][emit_idx] = v
+                    except ValueError:
+                        self.pl_serialized.add(k)
+                        # Buffered emits must be converted to Python
+                        # types for Polars serialization to work
+                        if k in self.buffered_emits:
+                            self.buffered_emits[k] = self.buffered_emits[k][
+                                :emit_idx
+                            ].tolist() + [None] * (self.batch_size - emit_idx)
+                self.fallback_serialize(v, k, emit_idx)
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
             # If last batch of emits failed, exception should be raised here

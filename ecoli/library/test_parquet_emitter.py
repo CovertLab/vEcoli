@@ -81,15 +81,15 @@ class TestHelperFunctions:
         assert np_type == np.float64
 
         # Raise error for empty lists to fall back to Polars serialization
-        with pytest.raises(TypeError, match="empty_list_field has unsupported"):
+        with pytest.raises(ValueError, match="empty_list_field has unsupported"):
             np_type = np_dtype([[], [], None], "empty_list_field")
 
         # Raise error for none to fall back to Polars serialization
-        with pytest.raises(TypeError, match="none_field has unsupported"):
+        with pytest.raises(ValueError, match="none_field has unsupported"):
             np_type = np_dtype(None, "none_field")
 
         # Invalid types
-        with pytest.raises(TypeError, match="complex_field has unsupported type"):
+        with pytest.raises(ValueError, match="complex_field has unsupported type"):
             np_dtype(complex(1, 2), "complex_field")
 
     def test_union_pl_dtypes(self):
@@ -543,6 +543,7 @@ class TestParquetEmitter:
                         # Nested structures
                         "deep_nesting": {
                             "level1": {
+                                # Add a new field mid-batch
                                 "level2": {"level3": [1, 2, 3, 4], "level4": [5, 6, 7]}
                             }
                         },
@@ -621,7 +622,8 @@ class TestParquetEmitter:
             # Test bytes
             "npbytes": [b"test bytes", b"short"],
             "pybytes": [b"test bytes", b"short"],
-            "npbytes_list": [[b"test1", b"test2"], [b"much longer bytestring", b"1"]],
+            # Note the truncation for the NumPy bytes array
+            "npbytes_list": [[b"test1", b"test2"], [b"much\x20", b"1"]],
             "pybytes_list": [[b"test1", b"test2"], [b"much longer bytestring", b"1"]],
         }
         for key, value in output_data.items():
@@ -1033,6 +1035,7 @@ class TestParquetEmitterEdgeCases:
                         "init_empty_array": np.array([]),
                         # Setup initial value for later test
                         "3d_array": np.random.rand(2, 3, 4),
+                        "another_3d_array": np.random.rand(2, 3, 4),
                     }
                 },
             },
@@ -1056,7 +1059,7 @@ class TestParquetEmitterEdgeCases:
                 "time": 2.0,
                 "agents": {
                     "agent1": {
-                        "init_empty_array": np.array([[]]),
+                        "init_empty_array": [[]],
                     }
                 },
             },
@@ -1064,7 +1067,7 @@ class TestParquetEmitterEdgeCases:
         with pytest.raises(
             TypeError,
             match=re.escape(
-                "Incompatible inner types for field init_empty_array: Float64 and List(Float64)."
+                "Incompatible inner types for field init_empty_array: Float64 and List(Null)."
             ),
         ):
             emitter.emit(sim_data2)
@@ -1076,7 +1079,7 @@ class TestParquetEmitterEdgeCases:
                 "time": 2.0,
                 "agents": {
                     "agent1": {
-                        "3d_array": np.array([[1, 2]]),
+                        "3d_array": [[1.0, 2.0]],
                     }
                 },
             },
@@ -1166,6 +1169,34 @@ class TestParquetEmitterEdgeCases:
             match=re.escape("failed to determine supertype of object and list[i64]"),
         ):
             emitter.emit(sim_data7)
+
+        # Try shape-varying 3D NumPy array
+        # Polars can gracefully handle nested Python lists wihout explicit type
+        # information, but not NumPy arrays. For example:
+        # WORKS: pl.Series([[[1, 2], [3, 4]]])
+        # FAILS: pl.Series([np.array([[1, 2], [3, 4]])])
+        # This is thankfully not an issue for 1D NumPy arrays, which are the
+        # only type of ragged NumPy arrays in vEcoli. I do not think it
+        # makes much sense to have a ND NumPy array field with variable
+        # shape anyways as it would still be constrained to a data cube.
+        # Nested Python lists would let you deviate from a strict data cube
+        # and even have null values, if desired.
+        sim_data8 = {
+            "table": "simulation",
+            "data": {
+                "time": 3.0,
+                "agents": {
+                    "agent1": {
+                        "another_3d_array": np.zeros((10, 10, 10)),
+                    }
+                },
+            },
+        }
+        with pytest.raises(
+            ValueError,
+            match=re.escape("cannot parse numpy data type dtype('O')"),
+        ):
+            emitter.emit(sim_data8)
 
     def test_nested_nullable(self, temp_dir):
         """Test handling nullable nested types that increase in depth."""
