@@ -29,7 +29,8 @@ dependencies = [
     "numba",
     "orjson",
     # Constraint can be removed once cvxpy supports newer ortools
-    "ortools<9.12",
+    # than 9.12, need 9.11 to support newer protobuf (see gh-326)
+    "ortools<9.11",
     "pandas",
     "polars",
     "pymunk",
