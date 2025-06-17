@@ -85,6 +85,7 @@ nitpick_ignore = [
     ("py:class", "fsspec.core.OpenFile"),
     # Silence warning in ecoli.processes.environment.field_timeline.FieldTimeline
     ("py:class", "vivarium.processes.timeline.TimelineProcess"),
+    ("py:class", "concurrent.futures._base.Future"),
 ]
 
 
