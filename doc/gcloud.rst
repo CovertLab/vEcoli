@@ -11,7 +11,7 @@ Members of the Covert Lab should skip to the `Create Your VM`_ section for setup
 Fresh Project Setup
 -------------------
 
-Create a new project for vEcoli using `this link <https://console.cloud.google.com/projectcreate>`_.
+Create a new project for vEcoli using `New project <https://console.cloud.google.com/projectcreate>`_.
 Choose any name that you like and you should be brought to the Google Cloud
 console dashboard for your new project. Use the top search bar to find
 the following APIs and enable them:
@@ -27,12 +27,12 @@ You will be asked to link a billing account at this time.
   familiarize yourself with the Cloud console after enabling the above APIs.
 
 Set a default region and zone for Compute Engine following
-`these instructions <https://cloud.google.com/compute/docs/regions-zones/changing-default-zone-region#console>`_.
+`Changing the default region or zone <https://cloud.google.com/compute/docs/regions-zones/changing-default-zone-region#console>`_.
 This avoids unnecessary charges for multi-region data availability and access,
 improves latency, and is required for some of vEcoli's code to work.
 
 Create a new repository in Artifact Registry following the steps
-on `this page <https://cloud.google.com/artifact-registry/docs/repositories/create-repos>`_.
+on `Create standard repositories <https://cloud.google.com/artifact-registry/docs/repositories/create-repos>`_.
 Make sure to name the repository ``vecoli`` and create it in the same
 region as your Compute Engine default. This is where the Docker images
 used to run the workflow will be stored (see `Build Docker Images`_).
@@ -40,7 +40,7 @@ used to run the workflow will be stored (see `Build Docker Images`_).
 The Compute Engine VMs that vEcoli spawns to run workflow jobs do not
 have external IP addresses (no internet access) but need access to
 Google Cloud APIs. Follow the instructions on
-`this page <https://cloud.google.com/vpc/docs/configure-private-google-access#enabling-pga>`_
+`Configure Private Google Access <https://cloud.google.com/vpc/docs/configure-private-google-access#enabling-pga>`_
 to turn on Private Google Access for these VMs. For a fresh project, you
 can click on the ``default`` network, then under the "Subnets"
 tab, click on the subnet for your Compute Engine default region.

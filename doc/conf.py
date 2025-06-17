@@ -79,6 +79,7 @@ nitpick_ignore = [
     ("py:class", "pandas.core.frame.DataFrame"),
     ("py:class", "polars.series.series.Series"),
     ("py:class", "polars.dataframe.frame.DataFrame"),
+    ("py:class", "polars.datatypes.classes.DataTypeClass"),
     # No docs for fsspec
     ("py:class", "fsspec.spec.AbstractFileSystem"),
     ("py:class", "fsspec.core.OpenFile"),

@@ -8,7 +8,7 @@ on Sherlock, follow the instructions in the :ref:`sherlock` section. For users
 looking to run the model on other HPC clusters, follow the instructions in the
 :ref:`other-cluster` section.
 
-To speed up HPC workflows, vEcoli supports the HyperQueue executor. See :ref:`hyperqueue`
+To speed up HPC workflows, vEcoli supports the HyperQueue executor. See :ref:`hq-info`
 for more information. 
 
 .. _sherlock:
@@ -71,7 +71,7 @@ To run scripts on Sherlock through a SLURM batch script, see :ref:`sherlock-noni
     navigate to ``$GROUP_HOME/vEcoli_env`` and run:
 
     1. Nextflow: ``NXF_EDGE=1 nextflow self-update``
-    2. HyperQueue: See :ref:`hyperqueue`.
+    2. HyperQueue: See :ref:`hq-info`.
 
 .. _sherlock-config:
 
@@ -92,7 +92,8 @@ keys in your configuration JSON (note the top-level ``sherlock`` key):
       # Path (relative or absolute, including file name) of Apptainer image to
       # build (or use directly, if build_image is false)
       "container_image": "",
-      # Optional, all required to use HyperQueue
+      # Optional, but all required to use HyperQueue. If not provided,
+      # Nextflow will submit jobs directly to SLURM.
       "hyperqueue": {
         # Integer, number of HyperQueue workers to start
         "num_workers": 1,
@@ -356,26 +357,30 @@ replace the SLURM submission directives in :py:func:`runscripts.workflow.main`
 with equivalent directives for your scheduler.
 
 
-.. _hyperqueue:
+.. _hq-info:
 
 ----------
 HyperQueue
 ----------
 
-HyperQueue is a job scheduler that is designed to run on top of a traditional HPC
-scheduler like SLURM. It consists of a head server and one or more workers scheduled
-by the underlying HPC scheduler. By configuring the worker jobs to persist for long
-enough to complete multiple tasks, HyperQueue reduces the amount of time tasks spend
-waiting in the queue, especially for shorter tasks. We recommend using HyperQueue
+`HyperQueue <https://it4innovations.github.io/hyperqueue/stable/>`_ consists of a head server
+and one or more workers scheduled by the underlying HPC scheduler. By configuring the
+worker jobs to persist for long enough to complete multiple tasks, HyperQueue reduces
+the amount of time spent waiting in the queue, which is especially important for
+workflows with numerous shorter (\< 1 hour) tasks like ours. We recommend using HyperQueue
 if your workflow spans more than a handful of generations.
 
-With the required options set (:ref:`sherlock-config`), HyperQueue will start a head
-server in the same SLURM job that will run Nextflow. Then, the user-configured worker
-jobs will be submitted to SLURM. Finally, Nextflow will start the workflow and
-submit tasks to the HyperQueue head server. From there, HyperQueue will manage the
-scheduling of tasks on workers as they come online subject to resource constraints.
+With the required configuration options set, HyperQueue will start a head server in
+the same SLURM job as Nextflow. Then, the user-configured worker jobs will be submitted
+to SLURM. Finally, Nextflow will start the workflow and submit tasks to the HyperQueue
+head server. From there, HyperQueue will manage the scheduling of tasks on workers as
+they come online.
 
-Here is a more detailed description of the required HyperQueue options:
+Configuration
+=============
+
+The following options are required under the ``hyperqueue`` key in your
+configuration JSON (see :ref:`sherlock-config`):
 
 1. ``num_workers``: The number of HyperQueue workers to start. Each worker will
    run in its own SLURM job with a 24-hour time limit. They will automatically
@@ -384,7 +389,7 @@ Here is a more detailed description of the required HyperQueue options:
    good rule of thumb is to set this to 4, as this improves scheduling efficiency
    without being so large that it results in long queue times and/or frequent
    preemptions that kill many tasks at once. Try to set ``num_workers`` such that
-   ``num_workers * cores_per_worker`` is equal to the maximum number of concurrent
+   ``num_workers * cores_per_worker`` is close to the maximum number of concurrent
    simulations in your workflow (seeds * variants).
 3. ``ram_per_worker_mb``: The amount of RAM to allocate to each worker in MB. A
    good rule of thumb is to set this to ``4000 * cores_per_worker``, as each workflow
@@ -393,17 +398,37 @@ Here is a more detailed description of the required HyperQueue options:
    and request ``4 * retry_num`` GB RAM each time. If you set ``ram_per_worker_mb``
    below 16GB, some of these retry attempts will never get scheduled. On the other
    hand, setting this too high relative to ``cores_per_worker`` would just waste
-   the allocated resources most of the time. The recommended 4 cores per worker
-   and 16GB of RAM per worker is the most granular configuration that allows
-   HyperQueue to schedule 4 normal tasks (4GB each, 100% cores used), 2 normal and
-   1 first retry (4 + 4 + 8, 75%), 1 normal and 1 second retry (4 + 12, 50%), or 1
+   the allocated resources most of the time. The recommended 4 cores and 16GB of
+   RAM per worker is the most granular configuration that allows HyperQueue to
+   schedule 4 normal tasks (4GB each, 100% cores used), 2 normal and 1 first
+   retry (4 + 4 + 8, 75%), 1 normal and 1 second retry (4 + 12, 50%), or 1
    third retry (16, 25%).
-4. ``partition``: The SLURM partition(s) to allocate workers on.
+4. ``partition``: The SLURM partition(s) to allocate workers on. Members of the
+   Covert Lab should set this to ``owners,normal``.
 5. ``idle_timeout``: The number of minutes before idle workers are shut down.
    This should be set to a low value (5 as rule of thumb) to ensure that workers
    do not consume resources when there are no tasks to run. If you set this too high,
-   workers will stay alive for longer than necessary, which drains resources and
-   may harm your future job submission priority.
+   workers will stay alive for longer than necessary at the end of a workflow, which
+   drains resources and may harm your future job submission priority. Setting this
+   too low could result in workers being shut down prematurely.
+
+Monitoring
+==========
+
+You can use the following command to open a dashboard showing the current
+HyperQueue status, including all workers and tasks.
+
+.. code-block:: bash
+
+  # Replace OUTDIR with the output directory and EXPERIMENT_ID with the
+  # experiment ID from your configuration JSON.
+  hq --server-dir=OUTDIR/EXPERIMENT_ID/nextflow/.hq-server dashboard
+
+As long as you include the ``--server-dir`` option, you can use any of the
+HyperQueue commands (`cheatsheet <https://it4innovations.github.io/hyperqueue/latest/cheatsheet/>`_).
+
+Updating
+========
 
 HyperQueue is distributed as a pre-built binary on GitHub.
 Unfortunately, this binary is built with a newer version of GLIBC
