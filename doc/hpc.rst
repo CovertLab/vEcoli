@@ -376,11 +376,11 @@ will occur in order:
 5. Nextflow submits SLURM jobs to start ``(# seeds * # variants) // 4`` HyperQueue
    workers, each worker with 4 cores, 16GB RAM, and a 24 hour limit. A
    proportionally smaller worker is potentially created to handle the remainder
-   (for 2 leftover, 2 cores, 8GB RAM, and same 24 hour limit).
+   (e.g. for 2 leftover, 2 cores, 8GB RAM, and same 24 hour limit).
 6. Nextflow submits all other workflow tasks (e.g. simulations, analyses) to the
    HyperQueue head server, which schedules them on the available workers.
 7. If any HyperQueue worker job terminates with one of three exit codes
-   (see :ref:`fault_tolerace`), it is resubmitted by Nextflow to maintain
+   (see :ref:`fault_tolerance`), it is resubmitted by Nextflow to maintain
    the optimal number of workers for parallelizing the workflow.
 8. As lineages fail and/or complete, the number of concurrent simulations decreases
    and HyperQueue workers start to go idle. Idle workers automatically terminate
@@ -402,11 +402,11 @@ for a given workflow
   # experiment ID from your configuration JSON.
 
   # Get HyperQueue JOB_ID from this list of jobs
-  hq --server-dir=OUTDIR/EXPERIMENT_ID/nextflow/.hq-server job list
+  hq --server-dir OUTDIR/EXPERIMENT_ID/nextflow/.hq-server job list
 
   # Get more detailed information about a specific job by ID, including
   # its work directory, runtime, and node
-  hq --server-dir=OUTDIR/EXPERIMENT_ID/nextflow/.hq-server job info JOB_ID
+  hq --server-dir OUTDIR/EXPERIMENT_ID/nextflow/.hq-server job info JOB_ID
 
 Updating
 ========

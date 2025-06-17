@@ -554,10 +554,10 @@ Fault Tolerance
 Nextflow workflows can be configured to be highly fault tolerant. The following
 is a list workflow behaviors enabled in our model to handle unexpected errors.
 
-- When running on Sherlock, jobs that fail with exit codes 140 (hit job
+- When running on Sherlock, jobs that fail with exit codes 137 or 140 (job
   limits for RAM or runtime) or 143 (job was preempted by another user)
-  are automatically retried up to a maximum of 3 tries. For the resource
-  limit error code (140), Nextflow will automatically request more RAM
+  are automatically retried up to a maximum of 3 times. For the resource
+  limit exit codes, Nextflow will automatically request more RAM
   and a higher runtime limit with each attempt: ``4 * {attempt num}``
   GB of memory and ``1 * {attempt num}`` hours of runtime. See the
   ``sherlock`` profile in ``runscripts/nextflow/config.template``.
