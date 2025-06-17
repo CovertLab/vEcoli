@@ -10,6 +10,9 @@ From: ghcr.io/astral-sh/uv@sha256:1cc0392c8aad8026ef3922e3f997fff0f31e506b0ffe95
     export IMAGE_GIT_BRANCH="{{ git_branch }}"
     export IMAGE_TIMESTAMP="{{ timestamp }}"
     export UV_CACHE_DIR="/vEcoli/.uv_cache"
+    # runscripts/container/build-image.sh has some custom logic to replace this
+    # with the environment variables that are set in .env
+    DOT_ENV_VARS
 
 %labels
     application "Whole Cell Model Runtime Environment"
@@ -27,12 +30,3 @@ From: ghcr.io/astral-sh/uv@sha256:1cc0392c8aad8026ef3922e3f997fff0f31e506b0ffe95
     apt-get update && apt-get install -y gcc procps
     cd /vEcoli
     UV_CACHE_DIR="/vEcoli/.uv_cache" UV_COMPILE_BYTECODE=1 uv sync --frozen
-
-%runscript
-    if [ -f /vEcoli/.env ]; then
-        echo "Loading environment variables from /vEcoli/.env"
-        set -a
-        source /vEcoli/.env
-        set +a
-    fi
-    exec /bin/bash "$@"
