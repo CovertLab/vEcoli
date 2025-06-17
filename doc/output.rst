@@ -262,7 +262,7 @@ to read data using DuckDB. These include:
   query to skip the first N generations worth of data
 - :py:func:`~ecoli.library.parquet_emitter.ndlist_to_ndarray`: Convert a
   column of nested lists read from Parquet into an N-D Numpy array (use
-  :py:class:`polars.Series` to do opposite conversion)
+  ``polars.Series`` to do opposite conversion)
 - :py:func:`~ecoli.library.parquet_emitter.ndidx_to_duckdb_expr`: Get a DuckDB SQL
   expression which can be included in a ``SELECT`` statement that uses Numpy-style
   indexing to retrieve values from a nested list Parquet column
