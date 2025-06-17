@@ -587,7 +587,7 @@ python3 {os.path.join(NEXTFLOW_DIR, "submit_hq.py")} \\
     --ram-per-worker-mb {hyperqueue_config["ram_per_worker_mb"]} \\
     --partition {hyperqueue_config["partition"]} \\
     --idle-timeout {hyperqueue_config["idle_timeout"]} \\
-    --server-dir ${{HQ_SERVER_DIR}}
+    --server-dir ${{HQ_SERVER_DIR}} \\
     --label {experiment_id}
 """
             hyperqueue_exit = "hq job wait all; hq worker stop all; hq server stop"
