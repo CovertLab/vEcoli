@@ -7,10 +7,12 @@ params {
     container_image = 'IMAGE_NAME'
 }
 
-trace {
-    enabled = true
-    fields = 'name,native_id,status,submit,start,complete,duration,realtime,exit,realtime,%cpu,%mem,rss,peak_rss,error_action,attempt,cpu_model,workdir'
-}
+trace.enabled = true
+// Report dates/times in ms and memory in bytes for easier analysis
+trace.raw = true
+trace.sep = ','
+trace.fields = 'name,native_id,status,submit,start,complete,duration,realtime,exit,%cpu,%mem,rss,peak_rss,error_action,attempt,cpu_model,workdir'
+trace.file = "trace--${params.experimentId}--" + new java.text.SimpleDateFormat("yyyy-MM-dd--HH-mm-ss").format(new Date()) + ".csv"
 
 profiles {
     gcloud {
