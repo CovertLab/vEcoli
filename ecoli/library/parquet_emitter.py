@@ -718,6 +718,21 @@ def pl_dtype_from_ndarray(arr: np.ndarray) -> pl.DataType:
     return pl_dtype
 
 
+class BlockingExecutor:
+    def submit(self, fn: Callable, *args, **kwargs) -> Future:
+        """
+        Run function in the current thread and return a Future that
+        is already done.
+        """
+        future = Future()
+        try:
+            result = fn(*args, **kwargs)
+            future.set_result(result)
+        except Exception as e:
+            future.set_exception(e)
+        return future
+
+
 class ParquetEmitter(Emitter):
     """
     Emit data to a Parquet dataset.
@@ -734,6 +749,8 @@ class ParquetEmitter(Emitter):
                     'type': 'parquet',
                     'emits_to_batch': Number of emits per Parquet row
                         group (optional, default: 400),
+                    'background_thread': Whether to write Parquet files
+                        in a background thread (optional, default: True),
                     # One of the following is REQUIRED
                     'out_dir': local output directory (absolute/relative),
                     'out_uri': Google Cloud storage bucket URI
@@ -747,7 +764,11 @@ class ParquetEmitter(Emitter):
         self.filesystem: AbstractFileSystem
         self.filesystem, _ = url_to_fs(self.out_uri)
         self.batch_size = config.get("batch_size", 400)
-        self.executor = ThreadPoolExecutor(1)
+        self.background_thread = config.get("background_thread", True)
+        if self.background_thread:
+            self.executor = ThreadPoolExecutor(1)
+        else:
+            self.executor = BlockingExecutor()
         # Buffer emits for each listener in a Numpy array
         self.buffered_emits: dict[str, Any] = {}
         # Remember most specific Polars type for each column
@@ -995,4 +1016,5 @@ class ParquetEmitter(Emitter):
             )
             # Clear buffers because they are mutable and we do not want to
             # accidentally modify data as it is being written in the background
-            self.buffered_emits = {}
+            if self.background_thread:
+                self.buffered_emits = {}
