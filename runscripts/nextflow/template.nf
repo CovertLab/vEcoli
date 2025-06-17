@@ -130,11 +130,11 @@ RUN_PARCA
     createVariants.out
         .variantMetadata
         .set { variantMetadataCh }
+WORKFLOW
     // Start a HyperQueue worker for every 4 concurrent sims
     if ( params.hyperqueue ) {
         variantCh.combine(seedCh).groupTuple(size: 4, remainder: true)
             .map { it[1].size }.set { hqChannel }
         hqWorker(hqChannel)
     }
-WORKFLOW
 }
