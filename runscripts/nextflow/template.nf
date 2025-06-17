@@ -80,6 +80,45 @@ process createVariants {
     """
 }
 
+process hqWorker {
+    cpus num_sims
+
+    memory {
+        if ( task.exitStatus in [137, 140] ) {
+            task.cpus * 4.GB + 4.GB * (task.attempt - 1)
+        } else {
+            task.cpus * 4.GB
+        }
+    }
+    time 24.h
+    maxRetries 10
+
+    executor 'slurm'
+    queue 'owners,normal'
+    clusterOptions ''
+    container null
+
+    input:
+    val num_sims
+
+    script:
+    server_dir = "${params.publishDir}/${params.experimentId}/nextflow/.hq-server"
+    """
+    # Start HyperQueue worker with specified options
+    hq worker start --manager slurm \\
+        --server-dir ${server_dir} \\
+        --cpus ${task.cpus} \\
+        --resource "mem=sum(${task.cpus * 4096})" \\
+        --idle-timeout 5m
+    """
+
+    stub:
+    """
+    echo "Started HyperQueue worker for $num_sims" \\
+        >> $server_dir/worker.log
+    """
+}
+
 IMPORTS
 
 workflow {
@@ -91,5 +130,11 @@ RUN_PARCA
     createVariants.out
         .variantMetadata
         .set { variantMetadataCh }
+    // Start a HyperQueue worker for every 4 concurrent sims
+    if ( params.hyperqueue ) {
+        variantCh.combine(seedCh).groupTuple(size: 4, remainder: true)
+            .map { it[1].size }.set { hqChannel }
+        hqWorker(hqChannel)
+    }
 WORKFLOW
 }

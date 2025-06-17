@@ -515,7 +515,7 @@ There are three main ways to monitor a workflow's progress.
    personal computer, Nextflow will periodically print its progress
    to the command line. On Sherlock, this output is written to the
    ``slurm-{job ID}.out`` file in the directory you started the workflow from.
-#. Open the file named ``trace--{experiment ID}--{timestamp}.txt``
+#. Open the file named ``trace--{experiment ID}--{timestamp}.csv``
    in the directory you started the workflow from. This file contains
    information about completed processes as they complete. Note that
    ``submit,start,complete,duration,realtime`` are reported in ms and

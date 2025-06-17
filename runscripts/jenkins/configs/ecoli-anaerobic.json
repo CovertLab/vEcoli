@@ -19,7 +19,8 @@
     "skip_baseline": true,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "/scratch/groups/mcovert/vecoli"
+        "out_dir": "/scratch/groups/mcovert/vecoli",
+        "background_thread": false
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}},
@@ -32,13 +33,7 @@
     "sherlock": {
         "container_image": "container-image",
         "build_image": true,
-        "hyperqueue": {
-            "num_workers": 1,
-            "cores_per_worker": 1,
-            "ram-per-worker-mb": 4000,
-            "partition": "owners,normal",
-            "idle_timeout": 5
-        },
+        "hyperqueue": true,
         "jenkins": true
     },
     "parca_options": {
