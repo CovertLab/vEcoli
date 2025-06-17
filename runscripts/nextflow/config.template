@@ -149,6 +149,11 @@ profiles {
                     }
                 }
             }
+            withLabel: create_variants {
+                executor = 'slurm'
+                queue = 'owners,normal'
+                clusterOptions = ''
+            }
             container = params.container_image
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
             executor = 'hq'

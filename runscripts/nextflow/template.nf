@@ -55,6 +55,8 @@ process createVariants {
     // Parse variants in config JSON to generate variants
     publishDir "${params.publishDir}/${params.experimentId}/variant_sim_data", mode: "copy"
 
+    label "create_variants"
+
     input:
     path config
     path kb
