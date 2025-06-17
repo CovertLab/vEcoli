@@ -81,7 +81,7 @@ process createVariants {
 }
 
 process hqWorker {
-    cpus num_sims
+    cpus { num_sims }
 
     memory {
         if ( task.exitStatus in [137, 140] ) {
