@@ -134,6 +134,26 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
   # Debug output
   echo "Generated $(wc -l <"$TEMP_FILES_LIST") files to include in the image"
 
+  # Initialize environment variables string
+  DOT_ENV_VARS=""
+  # Check if .env file exists
+  if [ -f ".env" ]; then
+      echo "Processing .env for Singularity environment..."
+      # Read .env file line by line
+      while IFS= read -r line || [ -n "$line" ]; do
+          # Skip empty lines and comments
+          if [[ -n "$line" && ! "$line" =~ ^\s*# ]]; then
+              # Strip any existing 'export ' prefix
+              line=${line#export }
+              # Add to environment variables string with export prefix
+              DOT_ENV_VARS+="    export $line"$'\n'
+          fi
+      done < ".env"
+      echo "Found $(echo "$DOT_ENV_VARS" | grep -c 'export ') environment variables"
+  else
+      echo "Warning: .env not found"
+  fi
+
   # Read the Singularity file line by line
   while IFS= read -r line; do
     if [[ "$line" == *"FILES_TO_ADD"* ]]; then
@@ -141,6 +161,8 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
       while IFS= read -r file; do
         echo "    $file /vEcoli/$file" >>"$TEMP_DEF"
       done <"$TEMP_FILES_LIST"
+    elif [[ "$line" == *"DOT_ENV_VARS"* ]]; then
+      echo "$DOT_ENV_VARS" >> "$TEMP_DEF"
     else
       # Otherwise just add the line as-is
       echo "$line" >>"$TEMP_DEF"
