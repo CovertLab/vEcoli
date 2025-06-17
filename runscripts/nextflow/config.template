@@ -5,6 +5,7 @@ params {
     parca_cpus = PARCA_CPUS
     publishDir = 'PUBLISH_DIR'
     container_image = 'IMAGE_NAME'
+    hyperqueue = false
 }
 
 trace.enabled = true
@@ -174,6 +175,7 @@ profiles {
             }
             maxRetries = 3
         }
+        params.hyperqueue = true
         // Raise limit to maximum allowed on Sherlock normal partition
         executor.queueSize = 2000
         apptainer.enabled = true
