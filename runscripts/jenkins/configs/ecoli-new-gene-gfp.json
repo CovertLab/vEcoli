@@ -7,7 +7,7 @@
     "emitter": "parquet",
     "emitter_arg": {
         "out_dir": "/scratch/groups/mcovert/vecoli",
-        "background_thread": false
+        "threaded": false
     },
     "parca_options": {
         "new_genes": "gfp",

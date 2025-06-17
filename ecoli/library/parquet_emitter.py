@@ -743,13 +743,12 @@ class ParquetEmitter(Emitter):
         Configure emitter.
 
         Args:
-            config: Should be a dictionary as follows::
+            config: Should be a dictionary with the following keys::
 
                 {
-                    'type': 'parquet',
-                    'emits_to_batch': Number of emits per Parquet row
+                    'batch_size': Number of emits per Parquet row
                         group (optional, default: 400),
-                    'background_thread': Whether to write Parquet files
+                    'threaded': Whether to write Parquet files
                         in a background thread (optional, default: True),
                     # One of the following is REQUIRED
                     'out_dir': local output directory (absolute/relative),
@@ -764,8 +763,8 @@ class ParquetEmitter(Emitter):
         self.filesystem: AbstractFileSystem
         self.filesystem, _ = url_to_fs(self.out_uri)
         self.batch_size = config.get("batch_size", 400)
-        self.background_thread = config.get("background_thread", True)
-        if self.background_thread:
+        self.threaded = config.get("threaded", True)
+        if self.threaded:
             self.executor = ThreadPoolExecutor(1)
         else:
             self.executor = BlockingExecutor()
@@ -1016,5 +1015,5 @@ class ParquetEmitter(Emitter):
             )
             # Clear buffers because they are mutable and we do not want to
             # accidentally modify data as it is being written in the background
-            if self.background_thread:
+            if self.threaded:
                 self.buffered_emits = {}

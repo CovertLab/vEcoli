@@ -8,7 +8,7 @@
     "emitter": "parquet",
     "emitter_arg": {
         "out_dir": "/scratch/groups/mcovert/vecoli",
-        "background_thread": false
+        "threaded": false
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}},

@@ -6,6 +6,7 @@ import random
 import shutil
 import subprocess
 import time
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from urllib import parse
@@ -482,6 +483,16 @@ def main():
                 "Cannot set both Sherlock and Google Cloud options in the input JSON."
             )
         nf_profile = "sherlock"
+        # Suggest that users turn off background thread for Parquet emitter
+        if config["emitter"] == "parquet" and config["emitter_arg"].get(
+            "threaded", True
+        ):
+            warnings.warn(
+                "Using a background thread in the Parquet emitter may degrade "
+                "performance on Sherlock, where each simulation is allocated a "
+                "single CPU core. Consider setting 'threaded' to False "
+                "under 'emitter_arg'."
+            )
         # Start a new thread to forward output of submitted jobs to stdout
         thread_executor = ThreadPoolExecutor(max_workers=1)
         container_image = sherlock_config.get("container_image", None)

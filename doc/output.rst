@@ -102,7 +102,9 @@ Parquet Emitter
 
 When ``parquet`` is specified using the ``emitter`` option in a configuration JSON,
 simulation output is stored in a tabular file format called Parquet inside a nested
-directory structure called Hive partitioning.
+directory structure called Hive partitioning.  For details on the available JSON
+configuration options, see :py:class:`~ecoli.library.parquet_emitter.ParquetEmitter`.
+
 
 Hive Partitioning
 =================
@@ -227,11 +229,11 @@ Each simulation will save Parquet files containing serialized simulation output 
 inside its corresponding Hive partition under the ``history`` folder. The columns in
 these Parquet files come from flattening the hierarchy of emitted stores. To leverage
 Parquet's columnar compression and efficient reading, we batch many time steps worth
-of emits into either Numpy arrays (constant dimensions) or lists of lists (variable
+of emits into either NumPy arrays (constant dimensions) or lists of Polars Series (variable
 dimensions). These batched emits are efficiently converted into a Polars DataFrame and
 written to a Parquet file named ``{batch size * number of batches}.pq`` (e.g.
 ``400.pq``, ``800.pq``, etc. for a batch size of 400). The default batch size of
-400 has been tuned for our current model but can be adjusted via ``emits_to_batch``
+400 has been tuned for our current model but can be adjusted via ``batch_size``
 under the ``emitter_arg`` option in a configuration JSON.
 
 .. _parquet_read:
