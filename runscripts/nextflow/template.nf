@@ -28,6 +28,8 @@ process runParca {
 process analysisParca {
     publishDir "${params.publishDir}/${params.experimentId}/parca/analysis", mode: "copy"
 
+    label "slurm_submit"
+
     input:
     path config
     path kb
@@ -55,7 +57,7 @@ process createVariants {
     // Parse variants in config JSON to generate variants
     publishDir "${params.publishDir}/${params.experimentId}/variant_sim_data", mode: "copy"
 
-    label "create_variants"
+    label "slurm_submit"
 
     input:
     path config
