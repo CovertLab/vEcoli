@@ -95,6 +95,8 @@ process hqWorker {
     time 24.h
     maxRetries 10
 
+    tag "hq_${params.experimentId}_${task.index}"
+
     executor 'slurm'
     queue 'owners,normal'
     clusterOptions ''
