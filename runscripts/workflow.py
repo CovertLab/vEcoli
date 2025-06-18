@@ -625,7 +625,7 @@ until hq job list &>/dev/null ; do sleep 1 ; done
         nf_slurm_output = os.path.join(outdir, f"{experiment_id}_slurm.out")
         with open(batch_script, "w") as f:
             f.write(f"""#!/bin/bash
-#SBATCH --job-name="nf--{experiment_id}"
+#SBATCH --job-name="nf-{experiment_id}"
 #SBATCH --time=7-00:00:00
 #SBATCH --cpus-per-task 1
 #SBATCH --mem=4GB
