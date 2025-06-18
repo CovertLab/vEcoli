@@ -724,7 +724,7 @@ class BlockingExecutor:
         Run function in the current thread and return a Future that
         is already done.
         """
-        future = Future()
+        future: Future = Future()
         try:
             result = fn(*args, **kwargs)
             future.set_result(result)
@@ -765,7 +765,7 @@ class ParquetEmitter(Emitter):
         self.batch_size = config.get("batch_size", 400)
         self.threaded = config.get("threaded", True)
         if self.threaded:
-            self.executor = ThreadPoolExecutor(1)
+            self.executor: ThreadPoolExecutor | BlockingExecutor = ThreadPoolExecutor(1)
         else:
             self.executor = BlockingExecutor()
         # Buffer emits for each listener in a Numpy array
