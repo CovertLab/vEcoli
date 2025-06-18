@@ -37,7 +37,7 @@ from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.environment.lysis import Lysis
 from ecoli.processes.division_detector import DivisionDetector
 from ecoli.composites.environment.lattice import Lattice
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+from configs import CONFIG_DIR_PATH
 
 
 class EcoliInnerWrapper(Composite):

@@ -46,7 +46,7 @@ Then, run the following to test your setup:
 
 .. code-block:: bash
 
-  python3 runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_sherlock.json
+  python3 runscripts/workflow.py --config configs/test_sherlock.json
 
 This will run a small workflow that:
 

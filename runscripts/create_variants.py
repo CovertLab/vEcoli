@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+from configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
 
 if TYPE_CHECKING:
@@ -213,7 +213,7 @@ def test_create_variants():
                 "python",
                 "runscripts/create_variants.py",
                 "--config",
-                "ecoli/composites/ecoli_configs/test_variant.json",
+                "configs/test_variant.json",
                 "--kb",
                 "test_create_variants/kb",
                 "-o",
