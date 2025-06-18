@@ -107,6 +107,20 @@ In addition to these options, you **MUST** set the emitter output directory
 enough space to store your workflow outputs. We recommend setting this to
 a location in your ``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``).
 
+If using the Parquet emitter and ``threaded`` is not set to false under
+``emitter_arg``, a warning will be printed suggesting that you set ``threaded``
+to false. This ensures that simulations use only a single CPU core, the default
+that is allocated per simulation on Sherlock (regardless of whether HyperQueue
+is used). On Sherlock, storage speed is not a bottleneck, so performance with
+``threaded`` set to false and 1 core per simulation is comparable to running
+with ``threaded`` unset (default: true) and 2 cores per simulation.
+
+If storage speed was a bottleneck, the additional thread would allow
+simulation execution to continue while Polars writes Parquet files to disk.
+To properly take advantage of this, you would also need to increase the number
+of cores per simulation to 2 by modifying the ``cpus`` directive under the
+``sherlock`` and ``sherlock_hq`` profiles in ``runscripts/nextflow/config.template``.
+
 .. warning::
   ``~`` and environment variables like ``$SCRATCH`` are not expanded in the
   configuration JSON. See the warning box at :doc:`workflows`.
@@ -236,13 +250,6 @@ container. Because you are just modifying your cloned repository, any
 code changes you make will persist after the container terminates and
 can be tracked using Git version control.
 
-.. note::
-  If the image you use to start a development container was built with
-  an outdated version of ``uv.lock`` or ``pyproject.toml``, there may
-  be a long startup delay due to package updates. To avoid this,
-  build a new image with ``runscripts/container/build-image.sh -i container_image -a``,
-  replacing ``container_image`` with a path for the image to build.
-
 .. _sherlock-noninteractive:
 
 Non-Interactive Container
@@ -252,7 +259,7 @@ To run any script inside a container without starting an interactive session,
 use the same command as :ref:`sherlock-interactive` but specify a command
 using the ``-c`` flag. For example, to run the ParCa process, navigate to
 your cloned repository and run the following command, replacing ``container_image``
-with the pat to your container image and ``{}`` with the path to your
+with the path to your container image and ``{}`` with the path to your
 configuration JSON:
 
 .. code-block:: bash
@@ -264,19 +271,23 @@ This feature is intended for use in
 to manually run analysis scripts with custom resource requests. Make sure
 to include one of the following directives at the top of your script:
 
-- ``#SBATCH --partition=owners``: The big advantage of this partition is that you
-  can request very large amounts of resources (for example, dozens of cores). The
-  major downsides are that queue times may be long and other users may preempt
-  your job at any moment, though this is anecdotally rare for jobs under an hour long.
+- ``#SBATCH --partition=owners``: This is the largest partition on Sherlock and
+  the most likely to have free resources available for job scheduling. Even so,
+  queue times are variable, and other users may preempt your job at any moment,
+  though this is anecdotally rare for small jobs under an hour long.
 - ``#SBATCH --partition=mcovert``: Best for high priority scripts (short queue time)
   that you cannot risk being preempted. The number of available cores is 32 minus
   whatever is currently being used by other users in the ``mcovert`` partition.
   Importantly, if all 32 cores are in use by ``mcovert`` users, not only will your
   script have to wait for resources to free up, so will any workflows. As such,
   treat this partition as a limited resource reserved for high priority jobs.
+- ``#SBATCH --partition=normal``: Potentially longer queue time than either of the
+  two options above but no risk of preemption.
+- ``#SBATCH --partition=owners,normal``: Uses either the ``owners`` or ``normal``
+  partition. This is the recommended option for the vast majority of scripts.
 
 Just as with interactive containers, to run scripts directly from your
-cloned repository and not the snapshot, add the ``-d`` flag drop the
+cloned repository and not the snapshot, add the ``-d`` flag and drop the
 ``/vEcoli/`` prefix from script names. Note that changing files in your
 cloned repository may affect SLURM batch jobs submitted with this flag.
 
@@ -297,17 +308,16 @@ The following are required:
 - Nextflow (requires Java)
 - Python 3.9+
 - Git clone vEcoli to a location that is accessible from all nodes in your cluster
+- ``out_dir`` under ``emitter_arg`` set to a location that is accessible from all
+  nodes in your cluster
 
 If your cluster has Apptainer (formerly known as Singularity) installed,
-check to see if it is configured to automatically mount all filesystems (see
-`Apptainer docs <https://apptainer.org/docs/user/main/bind_paths_and_mounts.html#system-defined-bind-paths>`_).
-If not, you may run into errors when running workflows because
-Apptainer containers are read-only. You may be able to resolve this by
-adding ``--writeable-tmpfs`` to ``containerOptions`` for the ``sherlock``
-and ``sherlock-hq`` profiles in ``runscripts/nextflow/config.template``.
-Additionally, you will need to manually specify paths to mount when debugging
-with interactive containers (see :ref:`sherlock-interactive`). This can be done
-using the ``-p`` argument for ``runscripts/container/interactive.sh``.
+check to see if it is configured to automatically mount the filesystem of
+``out_dir`` (e.g. ``$SCRATCH``). If not, you will need to add ``-B /full/path/to/out_dir``
+to the ``containerOptions`` directives in ``runscripts/nextflow/config.template``,
+substituting in the absolute path to ``out_dir``. Additionally, you will need to
+manually specify the same paths when running interactive containers
+(see :ref:`sherlock-interactive`) using the ``-p`` option.
 
 If your cluster does not have Apptainer, you can try the following steps:
 
@@ -333,16 +343,16 @@ If your HPC cluster uses the SLURM scheduler,
 you can use vEcoli on that cluster by changing the ``queue`` option in
 ``runscripts/nextflow/config.template`` and ``runscripts/nextflow/template.nf``
 and all instances of ``--partition=QUEUE(S)`` in :py:mod:`runscripts.workflow`
-to the right queue(s) for your cluster.
+to the right queue(s) for your cluster. Also, remove the ``-C "CPU_GEN...``
+``clusterOptions`` in those same files.
 
 If your HPC cluster uses a different scheduler, refer to the Nextflow
 `executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_
-for more information on configuring the right executor. Beyond changing queue
-names as described above, this could be as simple as modifying the ``executor``
-directives for the ``sherlock`` and ``sherlock_hq`` profiles in
-``runscripts/nextflow/config.template`` and for the ``hqWorker`` process
-in ``runscripts/nextflow/template.nf``. Additionally, you will need to
-replace the SLURM submission directives in :py:func:`runscripts.workflow.main`
+for more information on configuring the right executor. Beyond the changes above,
+you will at least need to modify the ``executor`` directives for the ``sherlock``
+and ``sherlock_hq`` profiles in ``runscripts/nextflow/config.template`` and for the
+``hqWorker`` process in ``runscripts/nextflow/template.nf``. Additionally, you will
+need to replace the SLURM submission directives in :py:func:`runscripts.workflow.main`
 with equivalent directives for your scheduler.
 
 

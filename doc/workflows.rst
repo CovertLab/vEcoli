@@ -720,19 +720,13 @@ failing process. Navigate to the working directory and run:
 
 .. code-block:: bash
 
-  uvenv bash .command.run
+  uvenv bash .command.sh
 
-from the working directory. This should re-run the job and pause upon
-reaching the breakpoints you set. You should now be in an ipdb shell which
-you can use to examine variable values or step through the code.
-
-.. warning::
-  Running ``.command.run`` will overwrite the ``.command.out``, ``.command.err``,
-  and ``.command.log`` files in the work directory. Create a copy of these
-  files if you would like to compare them with the new output.
+This should re-run the job and pause upon reaching the breakpoints you
+set. You should now be in an ipdb shell which you can use to examine
+variable values or step through the code.
 
 After fixing the issue, you can resume the workflow (avoid re-running
 already successful jobs) by navigating back to the directory in which you
-originally started the workflow and issuing the same command
-(:py:mod:`runscripts.workflow`) with the ``--resume`` option
-(see :ref:`fault_tolerance`).
+originally started the workflow and running :py:mod:`runscripts.workflow`
+with the ``--resume`` option (see :ref:`fault_tolerance`).
