@@ -366,26 +366,29 @@ If the ``hyperqueue`` option is set to true under the ``sherlock`` key in the
 configuration JSON used to run ``runscripts/workflow.py``, the following steps
 will occur in order:
 
-1. If ``build_image`` is True, submit a SLURM job to build the container image.
-2. Submit a single long-running SLURM job on the dedicated Covert Lab partition
+#. If ``build_image`` is True, submit a SLURM job to build the container image.
+#. Submit a single long-running SLURM job on the dedicated Covert Lab partition
    to run both Nextflow and the HyperQueue head server.
-3. Start the HyperQueue head server (initially no workers).
-4. Nextflow submits a SLURM job to run the ParCa then another to create variants.
+#. Start the HyperQueue head server (initially no workers).
+#. Nextflow submits a SLURM job to run the ParCa then another to create variants.
    Both must finish for Nextflow to calculate the maximum number of concurrent
    simulations ``# seeds * # variants``.
-5. Nextflow submits SLURM jobs to start ``(# seeds * # variants) // 4`` HyperQueue
+#. Nextflow submits SLURM jobs to start ``(# seeds * # variants) // 4`` HyperQueue
    workers, each worker with 4 cores, 16GB RAM, and a 24 hour limit. A
    proportionally smaller worker is potentially created to handle the remainder
    (e.g. for 2 leftover, 2 cores, 8GB RAM, and same 24 hour limit).
-6. Nextflow submits all other workflow tasks (e.g. simulations, analyses) to the
-   HyperQueue head server, which schedules them on the available workers.
-7. If any HyperQueue worker job terminates with one of three exit codes
+#. Nextflow submits simulation tasks to the HyperQueue head server, which schedules
+   them on the available workers.
+#. Nextflow submits analysis tasks to SLURM directly as they do not hold up the
+   workflow and can wait for a bit in the queue. This increases simulation
+   throughput by dedicating all HyperQueue worker resources to running simulations.
+#. If any HyperQueue worker job terminates with one of three exit codes
    (see :ref:`fault_tolerance`), it is resubmitted by Nextflow to maintain
    the optimal number of workers for parallelizing the workflow.
-8. As lineages fail and/or complete, the number of concurrent simulations decreases
+#. As lineages fail and/or complete, the number of concurrent simulations decreases
    and HyperQueue workers start to go idle. Idle workers automatically terminate
    after 5 minutes of inactivity.
-9. Upon completion of the Nextflow workflow, the HyperQueue head server terminates
+#.  Upon completion of the Nextflow workflow, the HyperQueue head server terminates
    any remaining workers and exits.
 
 Monitoring

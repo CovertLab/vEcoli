@@ -149,7 +149,12 @@ profiles {
                     }
                 }
             }
-            withLabel: create_variants {
+            // Creating variants happens before the HyperQueue workers
+            // are allocated and requires a separate SLURM job
+            // Analyses do not hold up the workflow and can be
+            // scheduled on separate SLURM jobs to keep the HyperQueue
+            // workers fully focused on running simulations
+            withLabel: slurm_submit {
                 executor = 'slurm'
                 queue = 'owners,normal'
                 clusterOptions = ''
