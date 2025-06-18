@@ -113,7 +113,20 @@ process hqWorker {
         --server-dir ${server_dir} \\
         --cpus ${task.cpus} \\
         --resource "mem=sum(${task.cpus * 4096})" \\
-        --idle-timeout 5m
+        --idle-timeout 5m &
+
+    worker_pid=\$!
+    wait \$worker_pid
+    exit_code=\$?
+
+    # Only exit with 0 if the exit code is 0 or 1
+    # This allows code 1 to be treated as success but propagates all other errors
+    if [ \$exit_code -eq 0 ] || [ \$exit_code -eq 1 ]; then
+        exit 0
+    else
+        # Forward the original error code to Nextflow
+        exit \$exit_code
+    fi
     """
 
     stub:
