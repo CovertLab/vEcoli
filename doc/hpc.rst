@@ -8,7 +8,7 @@ on Sherlock, follow the instructions in the :ref:`sherlock` section. For users
 looking to run the model on other HPC clusters, follow the instructions in the
 :ref:`other-cluster` section.
 
-To speed up HPC workflows, vEcoli supports the HyperQueue executor. See :ref:`hyperqueue`
+To speed up HPC workflows, vEcoli supports the HyperQueue executor. See :ref:`hq-info`
 for more information. 
 
 .. _sherlock:
@@ -71,7 +71,7 @@ To run scripts on Sherlock through a SLURM batch script, see :ref:`sherlock-noni
     navigate to ``$GROUP_HOME/vEcoli_env`` and run:
 
     1. Nextflow: ``NXF_EDGE=1 nextflow self-update``
-    2. HyperQueue: See :ref:`hyperqueue`.
+    2. HyperQueue: See :ref:`hq-info`.
 
 .. _sherlock-config:
 
@@ -92,9 +92,8 @@ keys in your configuration JSON (note the top-level ``sherlock`` key):
       # Path (relative or absolute, including file name) of Apptainer image to
       # build (or use directly, if build_image is false)
       "container_image": "",
-      # Boolean, whether to use HyperQueue executor for simulation jobs
-      # (see HyperQueue section below)
-      "hyperqueue": true,
+      # Boolean, whether to run using HyperQueue.
+      "hyperqueue": false,
       # Boolean, denotes that a workflow is being run as part of Jenkins
       # continuous integration testing. Randomizes the initial seed and
       # ensures that all STDOUT and STDERR is piped to the launching process
@@ -296,7 +295,7 @@ Prerequisites
 The following are required:
 
 - Nextflow (requires Java)
-- Python 3
+- Python 3.9+
 - Git clone vEcoli to a location that is accessible from all nodes in your cluster
 
 If your cluster has Apptainer (formerly known as Singularity) installed,
@@ -332,39 +331,96 @@ Cluster Options
 
 If your HPC cluster uses the SLURM scheduler,
 you can use vEcoli on that cluster by changing the ``queue`` option in
-``runscripts/nextflow/config.template`` and all instances of
-``--partition=QUEUE(S)`` in :py:mod:`runscripts.workflow` to the
-right queue(s) for your cluster.
+``runscripts/nextflow/config.template`` and ``runscripts/nextflow/template.nf``
+and all instances of ``--partition=QUEUE(S)`` in :py:mod:`runscripts.workflow`
+to the right queue(s) for your cluster.
 
 If your HPC cluster uses a different scheduler, refer to the Nextflow
 `executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_
 for more information on configuring the right executor. Beyond changing queue
 names as described above, this could be as simple as modifying the ``executor``
 directives for the ``sherlock`` and ``sherlock_hq`` profiles in
-``runscripts/nextflow/config.template``. Additionally, you will need to
+``runscripts/nextflow/config.template`` and for the ``hqWorker`` process
+in ``runscripts/nextflow/template.nf``. Additionally, you will need to
 replace the SLURM submission directives in :py:func:`runscripts.workflow.main`
 with equivalent directives for your scheduler.
 
 
-.. _hyperqueue:
+.. _hq-info:
 
 ----------
 HyperQueue
 ----------
 
-HyperQueue is a job scheduler that is designed to run on top of a traditional HPC
-scheduler like SLURM. It consists of a head server that can automatically allocate
-worker jobs using the underlying HPC scheduler. These worker jobs can be configured
-to persist for long enough to complete multiple tasks, greatly reducing the overhead
-of job submission and queuing, especially for shorter jobs.
+`HyperQueue <https://it4innovations.github.io/hyperqueue/stable/>`_ consists of a
+head server and one or more workers allocated by the underlying HPC scheduler. By
+configuring the worker jobs to persist for long enough to complete multiple tasks,
+HyperQueue reduces the amount of time spent waiting in the queue, which is especially
+important for workflows with numerous shorter tasks like ours. We recommend using
+HyperQueue for all workflows that span more than a handful of generations.
+
+Internal Logic
+==============
+
+If the ``hyperqueue`` option is set to true under the ``sherlock`` key in the
+configuration JSON used to run ``runscripts/workflow.py``, the following steps
+will occur in order:
+
+#. If ``build_image`` is True, submit a SLURM job to build the container image.
+#. Submit a single long-running SLURM job on the dedicated Covert Lab partition
+   to run both Nextflow and the HyperQueue head server.
+#. Start the HyperQueue head server (initially no workers).
+#. Nextflow submits a SLURM job to run the ParCa then another to create variants.
+   Both must finish for Nextflow to calculate the maximum number of concurrent
+   simulations ``# seeds * # variants``.
+#. Nextflow submits SLURM jobs to start ``(# seeds * # variants) // 4`` HyperQueue
+   workers, each worker with 4 cores, 16GB RAM, and a 24 hour limit. A
+   proportionally smaller worker is potentially created to handle the remainder
+   (e.g. for 2 leftover, 2 cores, 8GB RAM, and same 24 hour limit).
+#. Nextflow submits simulation tasks to the HyperQueue head server, which schedules
+   them on the available workers.
+#. Nextflow submits analysis tasks to SLURM directly as they do not hold up the
+   workflow and can wait for a bit in the queue. This increases simulation
+   throughput by dedicating all HyperQueue worker resources to running simulations.
+#. If any HyperQueue worker job terminates with one of three exit codes
+   (see :ref:`fault_tolerance`), it is resubmitted by Nextflow to maintain
+   the optimal number of workers for parallelizing the workflow.
+#. As lineages fail and/or complete, the number of concurrent simulations decreases
+   and HyperQueue workers start to go idle. Idle workers automatically terminate
+   after 5 minutes of inactivity.
+#. Upon completion of the Nextflow workflow, the HyperQueue head server terminates
+   any remaining workers and exits.
+
+
+Monitoring
+==========
+
+As long as ``--server-dir`` is given as described below, the ``hq`` command can be
+run on any node to monitor the status of the HyperQueue workers and jobs
+for a given workflow
+(`cheatsheet <https://it4innovations.github.io/hyperqueue/latest/cheatsheet/>`_).
+
+.. code-block:: bash
+
+  # Replace OUTDIR with the output directory and EXPERIMENT_ID with the
+  # experiment ID from your configuration JSON.
+
+  # Get HyperQueue JOB_ID from this list of jobs
+  hq --server-dir OUTDIR/EXPERIMENT_ID/nextflow/.hq-server job list
+
+  # Get more detailed information about a specific job by ID, including
+  # its work directory, runtime, and node
+  hq --server-dir OUTDIR/EXPERIMENT_ID/nextflow/.hq-server job info JOB_ID
+
+Updating
+========
 
 HyperQueue is distributed as a pre-built binary on GitHub.
-Unfortunately, this binary is built with a newer version of GLIBC
-than is available on Sherlock, necessitating a rebuild from source. A binary
-built in this way is available in ``$GROUP_HOME/vEcoli_env`` to users with
-access to the Covert Lab's partition on Sherlock. This is added to ``PATH``
-in the Sherlock setup instructions, and unless you have a compelling reason
-to update it, no further action is required.
+Unfortunately, this binary is built with a newer version of GLIBC than the
+one available on Sherlock, necessitating a rebuild from source. A binary built
+in this way is available in ``$GROUP_HOME/vEcoli_env`` to users with access to
+the Covert Lab's partition on Sherlock. This is added to ``PATH`` in the
+Sherlock setup instructions, so no further action is required.
 
 Users who want or need to build from source should follow
 `these instructions <https://it4innovations.github.io/hyperqueue/stable/installation/#compilation-from-source-code>`_.

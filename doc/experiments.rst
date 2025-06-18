@@ -112,7 +112,8 @@ documented in :ref:`/workflows.rst`.
         "emitter" : "timeseries",
         # If choosing "parquet" emitter, must provide "out_dir" with path (relative
         # or absolute) to output folder OR "out_uri" with URI for Google Cloud Storage
-        # bucket. Only provide one of the above.
+        # bucket. Only provide one of the above. Other Parquet emitter options are
+        # documented under the Parquet Emitter section in the Output page.
         "emitter_arg": {"out_dir": "out"},
         # See API documentation on vivarium-core for vivarium.core.engine.Engine.
         # Can usually leave as false.

@@ -515,9 +515,11 @@ There are three main ways to monitor a workflow's progress.
    personal computer, Nextflow will periodically print its progress
    to the command line. On Sherlock, this output is written to the
    ``slurm-{job ID}.out`` file in the directory you started the workflow from.
-#. Open the file named ``trace-{start timestamp}.txt`` in the directory
-   you started the workflow from. This file contains useful
-   information about completed processes.
+#. Open the file named ``trace--{experiment ID}--{timestamp}.csv``
+   in the directory you started the workflow from. This file contains
+   information about completed processes as they complete. Note that
+   ``submit,start,complete,duration,realtime`` are reported in ms and
+   ``rss,peak_rss`` are reported in bytes.
 #. Open the file named ``.nextflow.log`` in the directory you started the
    workflow from. This is a fairly verbose and technical log
    that may be useful for debugging purposes.
@@ -552,10 +554,10 @@ Fault Tolerance
 Nextflow workflows can be configured to be highly fault tolerant. The following
 is a list workflow behaviors enabled in our model to handle unexpected errors.
 
-- When running on Sherlock, jobs that fail with exit codes 140 (hit job
+- When running on Sherlock, jobs that fail with exit codes 137 or 140 (job
   limits for RAM or runtime) or 143 (job was preempted by another user)
-  are automatically retried up to a maximum of 3 tries. For the resource
-  limit error code (140), Nextflow will automatically request more RAM
+  are automatically retried up to a maximum of 3 times. For the resource
+  limit exit codes, Nextflow will automatically request more RAM
   and a higher runtime limit with each attempt: ``4 * {attempt num}``
   GB of memory and ``1 * {attempt num}`` hours of runtime. See the
   ``sherlock`` profile in ``runscripts/nextflow/config.template``.

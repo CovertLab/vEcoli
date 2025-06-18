@@ -6,7 +6,8 @@
     "sim_data_path": null,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "/scratch/groups/mcovert/vecoli"
+        "out_dir": "/scratch/groups/mcovert/vecoli",
+        "threaded": false
     },
     "parca_options": {
         "operons": false,
@@ -19,7 +20,7 @@
     },
     "sherlock": {
         "container_image": "container-image",
-        "hyperqueue": true,
+        "hyperqueue": false,
         "jenkins": true
     }
 }
