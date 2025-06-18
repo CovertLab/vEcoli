@@ -107,7 +107,7 @@ git remote set-url origin git@github.com:CovertLab/vEcoli
 
 From the top-level of the cloned repository, run:
 
-    uvenv runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
+    uvenv runscripts/workflow.py --config configs/test_installation.json
 
 Ignore the following warning on macOS:
 
