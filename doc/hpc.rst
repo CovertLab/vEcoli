@@ -388,8 +388,9 @@ will occur in order:
 #. As lineages fail and/or complete, the number of concurrent simulations decreases
    and HyperQueue workers start to go idle. Idle workers automatically terminate
    after 5 minutes of inactivity.
-#.  Upon completion of the Nextflow workflow, the HyperQueue head server terminates
+#. Upon completion of the Nextflow workflow, the HyperQueue head server terminates
    any remaining workers and exits.
+
 
 Monitoring
 ==========
