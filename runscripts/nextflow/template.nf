@@ -156,6 +156,6 @@ WORKFLOW
             .buffer( size: 4, remainder: true )
             .map { it.size() }
             .set { hqChannel }
-        hqWorker(hqChannel)
+        hqWorker( hqChannel )
     }
 }
