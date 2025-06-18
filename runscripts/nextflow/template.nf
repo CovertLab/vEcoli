@@ -101,7 +101,8 @@ process hqWorker {
 
     executor 'slurm'
     queue 'owners,normal'
-    clusterOptions ''
+    // Run on newer, faster CPUs
+    clusterOptions '-C "CPU_GEN:MLN|CPU_GEN:SIE|CPU_GEN:GEN|CPU_GEN:SPR"'
     container null
 
     input:
