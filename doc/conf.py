@@ -79,11 +79,13 @@ nitpick_ignore = [
     ("py:class", "pandas.core.frame.DataFrame"),
     ("py:class", "polars.series.series.Series"),
     ("py:class", "polars.dataframe.frame.DataFrame"),
+    ("py:class", "polars.datatypes.classes.DataTypeClass"),
     # No docs for fsspec
     ("py:class", "fsspec.spec.AbstractFileSystem"),
     ("py:class", "fsspec.core.OpenFile"),
     # Silence warning in ecoli.processes.environment.field_timeline.FieldTimeline
     ("py:class", "vivarium.processes.timeline.TimelineProcess"),
+    ("py:class", "concurrent.futures._base.Future"),
 ]
 
 

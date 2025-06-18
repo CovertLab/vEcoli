@@ -15,7 +15,8 @@
     "emitter": "parquet",
     "sim_data_path": null,
     "emitter_arg": {
-        "out_dir": "/scratch/groups/mcovert/vecoli"
+        "out_dir": "/scratch/groups/mcovert/vecoli",
+        "threaded": false
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}},
@@ -25,7 +26,7 @@
     "sherlock": {
         "container_image": "container-image",
         "build_image": true,
-        "hyperqueue": true,
+        "hyperqueue": false,
         "jenkins": true
     },
     "parca_options": {

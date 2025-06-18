@@ -3,7 +3,7 @@ process analysisSingle {
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
-    label "short"
+    label "slurm_submit"
 
     input:
     path config
@@ -53,7 +53,7 @@ process analysisMultiDaughter {
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
-    label "short"
+    label "slurm_submit"
 
     input:
     path config
@@ -101,7 +101,7 @@ process analysisMultiGeneration {
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}"
 
-    label "short"
+    label "slurm_submit"
 
     input:
     path config
@@ -147,7 +147,7 @@ process analysisMultiSeed {
 
     tag "variant=${variant}"
 
-    label "short"
+    label "slurm_submit"
 
     input:
     path config
@@ -189,7 +189,7 @@ process analysisMultiSeed {
 process analysisMultiVariant {
     publishDir "${params.publishDir}/${params.experimentId}/analyses", mode: "copy"
 
-    label "short"
+    label "slurm_submit"
 
     input:
     path config

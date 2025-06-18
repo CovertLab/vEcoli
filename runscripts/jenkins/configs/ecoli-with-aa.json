@@ -7,7 +7,8 @@
     "lineage_seed": 100,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "/scratch/groups/mcovert/vecoli"
+        "out_dir": "/scratch/groups/mcovert/vecoli",
+        "threaded": false
     },
     "analysis_options": {
         "single": {"mass_fraction_summary": {}},

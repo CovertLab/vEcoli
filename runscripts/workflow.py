@@ -1,11 +1,14 @@
 import argparse
 import json
 import os
+import sys
 import pathlib
 import random
 import shutil
 import subprocess
 import time
+import tempfile
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from urllib import parse
@@ -482,6 +485,16 @@ def main():
                 "Cannot set both Sherlock and Google Cloud options in the input JSON."
             )
         nf_profile = "sherlock"
+        # Suggest that users turn off background thread for Parquet emitter
+        if config["emitter"] == "parquet" and config["emitter_arg"].get(
+            "threaded", True
+        ):
+            warnings.warn(
+                "Using a background thread in the Parquet emitter may degrade "
+                "performance on Sherlock, where each simulation is allocated a "
+                "single CPU core. Consider setting 'threaded' to False "
+                "under 'emitter_arg'."
+            )
         # Start a new thread to forward output of submitted jobs to stdout
         thread_executor = ThreadPoolExecutor(max_workers=1)
         container_image = sherlock_config.get("container_image", None)
@@ -547,23 +560,51 @@ def main():
     )
     workdir = os.path.join(out_uri, "nextflow_workdirs")
     if nf_profile == "standard" or nf_profile == "gcloud":
-        subprocess.run(
-            [
-                "nextflow",
-                "-C",
-                local_config,
-                "run",
-                local_workflow,
-                "-profile",
-                nf_profile,
-                "-with-report",
-                report_path,
-                "-work-dir",
-                workdir,
-                "-resume" if args.resume is not None else "",
-            ],
-            check=True,
-        )
+        # Create a temporary file to capture stderr
+        with tempfile.NamedTemporaryFile(mode="w+") as tmp_stderr:
+            # Run process with stderr going to both terminal and temp file
+            process = subprocess.Popen(
+                [
+                    "nextflow",
+                    "-C",
+                    local_config,
+                    "run",
+                    local_workflow,
+                    "-profile",
+                    nf_profile,
+                    "-with-report",
+                    report_path,
+                    "-work-dir",
+                    workdir,
+                    "-resume" if args.resume is not None else "",
+                ],
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+            )
+            # Stream stderr to both terminal and file in real-time
+            for line in process.stderr:
+                sys.stderr.write(line)  # Show in terminal
+                tmp_stderr.write(line)  # Save to file
+            # Wait for process to complete
+            returncode = process.wait()
+            # Check if process failed
+            if returncode != 0:
+                # Go back to start of file to read content
+                tmp_stderr.seek(0)
+                stderr_content = tmp_stderr.read()
+                # Check for specific error string
+                if "Report file already exists:" in stderr_content:
+                    raise RuntimeError(
+                        "You are about to run a workflow with the same experiment ID "
+                        "and output directory as a previously completed workflow. "
+                        "If you are resuming a workflow, delete the HTML report file "
+                        "in the upstream error message and try again. If you are starting "
+                        "a new workflow, either change the experiment ID, change the output "
+                        "directory, or completely delete the existing output directory "
+                        "to avoid mixing output from multiple workflows."
+                    )
+                # Otherwise, raise generic subprocess error
+                raise subprocess.CalledProcessError(returncode, process.args)
     elif nf_profile == "sherlock":
         batch_script = os.path.join(local_outdir, "nextflow_job.sh")
         hyperqueue_init = ""
@@ -579,14 +620,12 @@ mkdir -p ${{HQ_SERVER_DIR}}
 hq server start --journal {os.path.join(outdir, ".hq-server/journal")} &
 until hq job list &>/dev/null ; do sleep 1 ; done
 
-# Enable HyperQueue automatic allocation
-hq alloc add slurm --time-limit 8h -- --partition=owners,normal --mem=4GB
 """
             hyperqueue_exit = "hq job wait all; hq worker stop all; hq server stop"
         nf_slurm_output = os.path.join(outdir, f"{experiment_id}_slurm.out")
         with open(batch_script, "w") as f:
             f.write(f"""#!/bin/bash
-#SBATCH --job-name="nextflow-{experiment_id}"
+#SBATCH --job-name="nf-{experiment_id}"
 #SBATCH --time=7-00:00:00
 #SBATCH --cpus-per-task 1
 #SBATCH --mem=4GB
