@@ -59,7 +59,7 @@ for process_name in processes + list(add_processes):
 ECOLI_DEFAULT_TOPOLOGY = {}
 """
 At runtime, the topologies for the processes in 
-:py:data:`~ecoli.composites.ecoli_configs.ECOLI_DEFAULT_PROCESSES` 
+:py:data:`~configs.ECOLI_DEFAULT_PROCESSES` 
 are retrieved from the topology registry (most processes in ``ecoli/processes`` 
 register their topology near the top of their source files). 
 

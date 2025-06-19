@@ -86,6 +86,8 @@ profiles {
             container = params.container_image
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
             queue = 'owners,normal'
+            // Run on newer, faster CPUs
+            clusterOptions = '--prefer="CPU_GEN:GEN|CPU_GEN:SPR" --constraint="CPU_GEN:RME|CPU_GEN:MLN|CPU_GEN:BGM|CPU_GEN:SIE|CPU_GEN:GEN|CPU_GEN:SPR"'
             executor = 'slurm'
             cpus = 1
             memory = {
@@ -140,7 +142,8 @@ profiles {
                 memory = params.parca_cpus * 2.GB
                 executor = 'slurm'
                 queue = 'owners,normal'
-                clusterOptions = ''
+                // Run on newer, faster CPUs
+                clusterOptions = '--prefer="CPU_GEN:GEN|CPU_GEN:SPR" --constraint="CPU_GEN:RME|CPU_GEN:MLN|CPU_GEN:BGM|CPU_GEN:SIE|CPU_GEN:GEN|CPU_GEN:SPR"'
                 time = {
                     if ( task.exitStatus == 140 ) {
                         1.h * task.attempt
