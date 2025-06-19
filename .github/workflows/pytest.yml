@@ -31,7 +31,7 @@ jobs:
     - name: Run ParCa
       run: |
         uv run --env-file .env runscripts/parca.py \
-          --config ecoli/composites/ecoli_configs/gha_pytest.json
+          --config configs/gha_pytest.json
     - name: Extract tetracycline gene regulation parameters
       run: |
         uv run --env-file .env data/marA_binding/get_TU_ID.py \

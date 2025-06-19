@@ -18,7 +18,7 @@ from ecoli.analysis.colony.snapshots import (
     format_snapshot_data,
     make_video,
 )
-from ecoli.composites.ecoli_configs import (
+from configs import (
     ECOLI_DEFAULT_PROCESSES,
     ECOLI_DEFAULT_TOPOLOGY,
 )

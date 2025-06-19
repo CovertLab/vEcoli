@@ -15,7 +15,7 @@ RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
     && cp ~/.bashrc /
 
 # procps necessary for `ps` command used by Nextflow to track processes.
-RUN apt-get update && apt-get install -y gcc procps
+RUN apt-get update && apt-get install -y gcc procps nano
 
 # Install the project into `/vEcoli`
 WORKDIR /vEcoli

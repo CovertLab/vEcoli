@@ -6,7 +6,7 @@ A typical simulation workflow has four main steps:
 
 1. Run the parameter calculator (:py:mod:`runscripts.parca`) to generate simulation parameters from raw data.
 2. Create one or more variants (:py:mod:`runscripts.create_variants`) of the simulation parameters.
-3. Simulate cells (:py:mod:`ecoli.experiments.ecoli_master_sim`).
+3. Simulate cells (:py:mod:`runscripts.sim` wraps :py:mod:`ecoli.experiments.ecoli_master_sim`).
 4. Aggregate simulation results with analysis scripts (:py:mod:`runscripts.analysis`).
 
 While each of these steps can be run manually by invoking their associated scripts,
@@ -17,7 +17,15 @@ As mentioned in :ref:`json_config`, the preferred method for supplying configura
 options to runscripts is via a JSON configuration file specified using the ``--config``
 command-line option. Please check the configuration JSON located at
 :py:attr:`~ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path`
-for the most up-to-date default configuration options.
+for the most up-to-date default configuration options. 
+
+.. tip::
+
+  Template configuration JSON files for running :py:mod:`runscripts.parca`,
+  :py:mod:`runscripts.create_variants`, and :py:mod:`runscripts.analysis`
+  standalone are located in ``configs/templates``. See ``configs/default.json``
+  for a template :py:mod:`runscripts.sim`/:py:mod:`ecoli.experiments.ecoli_master_sim`
+  configuration JSON.
 
 .. note::
     Remember that when creating your own JSON configuration
@@ -720,19 +728,13 @@ failing process. Navigate to the working directory and run:
 
 .. code-block:: bash
 
-  uvenv bash .command.run
+  uvenv bash .command.sh
 
-from the working directory. This should re-run the job and pause upon
-reaching the breakpoints you set. You should now be in an ipdb shell which
-you can use to examine variable values or step through the code.
-
-.. warning::
-  Running ``.command.run`` will overwrite the ``.command.out``, ``.command.err``,
-  and ``.command.log`` files in the work directory. Create a copy of these
-  files if you would like to compare them with the new output.
+This should re-run the job and pause upon reaching the breakpoints you
+set. You should now be in an ipdb shell which you can use to examine
+variable values or step through the code.
 
 After fixing the issue, you can resume the workflow (avoid re-running
 already successful jobs) by navigating back to the directory in which you
-originally started the workflow and issuing the same command
-(:py:mod:`runscripts.workflow`) with the ``--resume`` option
-(see :ref:`fault_tolerance`).
+originally started the workflow and running :py:mod:`runscripts.workflow`
+with the ``--resume`` option (see :ref:`fault_tolerance`).

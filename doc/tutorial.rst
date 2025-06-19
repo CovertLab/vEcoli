@@ -326,6 +326,7 @@ To add a new analysis script:
   in ``ecoli/analysis/{analysis_type}`` folder
 - Add analysis name (file name minus ``.py``) to appropriate analysis type
   key (e.g. ``single``, ``multidaughter``, etc) under ``analysis_options``
+  in the configuration JSON
 
 .. _run-workflow:
 
