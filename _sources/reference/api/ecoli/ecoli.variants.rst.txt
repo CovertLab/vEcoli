@@ -1,0 +1,15 @@
+``ecoli.variants``
+==================
+.. automodule:: ecoli.variants
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   ecoli.variants.condition
+   ecoli.variants.new_gene_internal_shift
+   ecoli.variants.variant_test

@@ -1,0 +1,8 @@
+``ecoli.analysis.multivariant.dummy``
+=====================================
+.. automodule:: ecoli.analysis.multivariant.dummy
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

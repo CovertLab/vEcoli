@@ -1,0 +1,8 @@
+``ecoli.library.test_parquet_emitter``
+======================================
+.. automodule:: ecoli.library.test_parquet_emitter
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:
