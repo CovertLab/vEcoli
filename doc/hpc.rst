@@ -343,7 +343,7 @@ If your HPC cluster uses the SLURM scheduler,
 you can use vEcoli on that cluster by changing the ``queue`` option in
 ``runscripts/nextflow/config.template`` and ``runscripts/nextflow/template.nf``
 and all instances of ``--partition=QUEUE(S)`` in :py:mod:`runscripts.workflow`
-to the right queue(s) for your cluster. Also, remove the ``--constraint="CPU_GEN...``
+to the right queue(s) for your cluster. Also, remove the ``--prefer="CPU_GEN...``
 ``clusterOptions`` in those same files.
 
 If your HPC cluster uses a different scheduler, refer to the Nextflow
