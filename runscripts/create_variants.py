@@ -281,7 +281,9 @@ def main():
     if args.config is not None:
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
-    SimConfig.merge_config_dicts(config, vars(args))
+    for k, v in vars(args).items():
+        if v is not None:
+            config[k] = v
 
     print("Loading sim_data...")
     with open(os.path.join(config["kb"], "simData.cPickle"), "rb") as f:

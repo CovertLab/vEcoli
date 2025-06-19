@@ -178,10 +178,10 @@ def main():
             SimConfig.merge_config_dicts(config, json.load(f))
     # ParCa options are defined under `parca_options` key in config JSON
     # Merge these with CLI arguments, which take precedence
-    cli_options = {k: v for k, v in vars(args).items() if v is not None}
-    cli_options.pop("config")
     parca_options = config.pop("parca_options")
-    SimConfig.merge_config_dicts(parca_options, cli_options)
+    for k, v in vars(args).items():
+        if v is not None:
+            parca_options[k] = v
     # Expand outdir to absolute path
     parca_options["outdir"] = os.path.abspath(parca_options["outdir"])
     # Set cache directory for ParCa to outdir/cache
