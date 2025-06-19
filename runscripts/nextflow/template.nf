@@ -102,7 +102,7 @@ process hqWorker {
     executor 'slurm'
     queue 'owners,normal'
     // Run on newer, faster CPUs
-    clusterOptions '-C "CPU_GEN:MLN|CPU_GEN:BGM|CPU_GEN:SIE|CPU_GEN:GEN|CPU_GEN:SPR"'
+    clusterOptions '--constraint="CPU_GEN:RME|CPU_GEN:MLN|CPU_GEN:BGM|CPU_GEN:SIE|CPU_GEN:GEN|CPU_GEN:SPR"'
     container null
 
     input:
