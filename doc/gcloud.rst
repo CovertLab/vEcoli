@@ -45,14 +45,13 @@ to turn on Private Google Access for these VMs. For a fresh project, you
 can click on the ``default`` network, then under the "Subnets"
 tab, click on the subnet for your Compute Engine default region.
 
-Compute Engine VMs come with `service accounts <https://cloud.google.com/compute/docs/access/service-accounts>`_
-allow users to control access to project resources (compute, storage, etc.).
+Compute Engine VMs come with `service accounts <https://cloud.google.com/compute/docs/access/service-accounts>`_.
 To run vEcoli workflows, only a small subset of the default
 service account permissions are necessary. For that reason, we strongly
 recommend that users either modify the default Compute Engine service
-account permissions or create a dedicated vEcoli service account.
+account permissions or create a dedicated vEcoli service account as follows.
 
-Using the `Google Cloud console <https://console.cloud.google.com>`_,
+From the `Google Cloud console <https://console.cloud.google.com>`_,
 navigate to the "IAM & Admin" panel. You can edit the Compute Engine default
 service account on this page by clicking the pencil icon in the corresponding row.
 To create a new service account, click the "Service Accounts" tab in the side bar
@@ -131,7 +130,7 @@ Now follow the installation instructions from the README starting with
 installing ``uv`` and finishing with installing Nextflow.
 
 .. note::
-  The only requirements to run :mod:`runscripts.workflow` on Google Cloud
+  Technically, the only requirements to run :mod:`runscripts.workflow` on Google Cloud
   are Nextflow, Python 3.9+, and `GCSFS <https://gcsfs.readthedocs.io/en/latest/>`_.
   The workflow steps will be run inside Docker containers (see
   :ref:`docker-images`). The other Python requirements can be
@@ -169,7 +168,7 @@ On Google Cloud, each job in a workflow (ParCa, sim 1, sim 2, etc.) is run
 on its own temporary VM. To ensure reproducibility, workflows run on Google
 Cloud are run using Docker containers. vEcoli uses ``runscripts/container/build-image.sh``
 and Cloud Build to build the required Docker image from the current state
-of your repository. The built images being automatically uploaded to the
+of your repository. The built images are automatically uploaded to the
 ``vecoli`` Artifact Registry repository of your project.
 
 .. tip:: 
@@ -212,8 +211,7 @@ console, invoke :py:mod:`runscripts.workflow` as normal to start a workflow::
 Once your workflow has started, you can use press "ctrl+a d" to detach from the
 virtual console and close your SSH connection to your VM. The VM must continue
 to run until the workflow is complete. You can SSH into your VM and reconnect to
-the virtual terminal with ``screen -r`` to monitor progress or inspect the file
-``.nextflow.log`` in the root of the cloned repository. See :ref:`progress`.
+the virtual terminal with ``screen -r`` to monitor progress (see :ref:`progress`).
 
 .. warning::
   While there is no strict time limit for workflow jobs on Google Cloud, jobs
@@ -281,6 +279,8 @@ the working directory, run the following commands:
 
   # Symlink files, including the script for the task (.command.sh)
   bash {working directory}/.command.run nxf_stage
+  # Now enter working directory
+  cd {working directory}
   # Run the task, pausing at breakpoints
   bash .command.sh
 
@@ -312,7 +312,7 @@ may encounter an error like the following:
 We do not recommend using local computers to launch
 cloud workflows because that would require the computer to be on and connected
 to the internet for the entire duration of the workflow. We STRONGLY discourage
-using a local computer to run analyses on workflow output saved in
+the use of a local computer to run analyses on workflow output saved in
 Cloud Storage as that will incur hefty data egress charges.
 
 Instead, users should stick to launching workflows and running analysis scripts

@@ -38,7 +38,7 @@ from ecoli.processes import process_registry
 from ecoli.processes.cell_division import DivisionDetected
 from ecoli.processes.registries import topology_registry
 
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+from configs import CONFIG_DIR_PATH
 from ecoli.library.parquet_emitter import ParquetEmitter
 from ecoli.library.schema import not_a_process
 
@@ -677,7 +677,7 @@ class EcoliSim:
         Adds spatial environment if ``config['spatial_environment']`` is
         ``True``. Spatial environment config options are loaded from
         ``config['spatial_environment_config`]``. See
-        ``ecoli/composites/ecoli_configs/spatial.json`` for an example.
+        ``configs/spatial.json`` for an example.
         """
         # build processes, topology, configs
         self.processes = self._retrieve_processes(
