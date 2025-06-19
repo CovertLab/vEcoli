@@ -31,7 +31,7 @@ from typing import Any  # noqa: E402
 import duckdb  # noqa: E402
 from fsspec import filesystem, url_to_fs  # noqa: E402
 
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH  # noqa: E402
+from configs import CONFIG_DIR_PATH  # noqa: E402
 from ecoli.experiments.ecoli_master_sim import SimConfig  # noqa: E402
 from ecoli.library.parquet_emitter import dataset_sql, open_output_file  # noqa: E402
 

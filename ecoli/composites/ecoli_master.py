@@ -26,7 +26,7 @@ from ecoli.library.sim_data import LoadSimData, RAND_MAX
 from ecoli.library.logging_tools import make_logging_process
 
 # vivarium-ecoli processes
-from ecoli.composites.ecoli_configs import (
+from configs import (
     ECOLI_DEFAULT_PROCESSES,
     ECOLI_DEFAULT_TOPOLOGY,
 )
@@ -72,8 +72,7 @@ class Ecoli(Composer):
     purposes (see :py:func:`~ecoli.composites.ecoli_master.ecoli_topology_plot`). 
     For normal users, this composer should only be called indirectly via the 
     :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` interface, whose 
-    defaults are laid out in the JSON file at 
-    ``ecoli/composites/ecoli_configs/default.json``. 
+    defaults are laid out in the JSON file at ``configs/default.json``. 
 
     :meta hide-value:
     """

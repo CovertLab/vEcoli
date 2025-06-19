@@ -70,6 +70,7 @@ docs = [
 
 [tool.setuptools]
 packages = [
+    "configs",
     "ecoli",
     "reconstruction",
     "runscripts",

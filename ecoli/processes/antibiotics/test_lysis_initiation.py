@@ -4,7 +4,7 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim
 
 
 def test_lysis_initiation():
-    from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+    from configs import CONFIG_DIR_PATH
 
     ecoli = EcoliSim.from_file(
         os.path.join(CONFIG_DIR_PATH, "test_configs/test_lysis_initiation.json")

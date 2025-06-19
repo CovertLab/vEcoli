@@ -40,9 +40,7 @@ user-specified JSON) instead of being directly overriden.
 
 CONFIG_DIR_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "ecoli",
-    "composites",
-    "ecoli_configs",
+    "configs",
 )
 NEXTFLOW_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nextflow")
 

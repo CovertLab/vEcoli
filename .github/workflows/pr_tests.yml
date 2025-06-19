@@ -34,9 +34,9 @@ jobs:
       run: USE_CYTHON=1 uv sync --frozen
     - name: Test ParCa reproducibility
       run: |
-        uv run --env-file .env runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
+        uv run --env-file .env runscripts/parca.py --config configs/run_parca.json \
             -c 3 -o out/parca_1
-        uv run --env-file .env runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
+        uv run --env-file .env runscripts/parca.py --config configs/run_parca.json \
             -c 3 -o out/parca_2
         uv run --env-file .env runscripts/debug/compare_pickles.py out/parca_1/kb out/parca_2/kb
     - name: Test simulation reproducibility
@@ -77,7 +77,7 @@ jobs:
         NXF_EDGE=1 ./nextflow self-update
     - name: Two generations
       run: |
-        uv run --env-file .env runscripts/workflow.py --config ecoli/composites/ecoli_configs/two_generations.json
+        uv run --env-file .env runscripts/workflow.py --config configs/two_generations.json
     - name: Show stderr for failed Nextflow tasks
       if: ${{ failure() }}
       run: |

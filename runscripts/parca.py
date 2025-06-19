@@ -5,7 +5,7 @@ import pickle
 import shutil
 import time
 
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+from configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
 from reconstruction.ecoli.knowledge_base_raw import KnowledgeBaseEcoli
 from reconstruction.ecoli.fit_sim_data_1 import fitSimData_1
@@ -178,10 +178,10 @@ def main():
             SimConfig.merge_config_dicts(config, json.load(f))
     # ParCa options are defined under `parca_options` key in config JSON
     # Merge these with CLI arguments, which take precedence
-    cli_options = {k: v for k, v in vars(args).items() if v is not None}
-    cli_options.pop("config")
     parca_options = config.pop("parca_options")
-    SimConfig.merge_config_dicts(parca_options, cli_options)
+    for k, v in vars(args).items():
+        if v is not None:
+            parca_options[k] = v
     # Expand outdir to absolute path
     parca_options["outdir"] = os.path.abspath(parca_options["outdir"])
     # Set cache directory for ParCa to outdir/cache

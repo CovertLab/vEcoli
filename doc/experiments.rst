@@ -85,10 +85,9 @@ documented in :ref:`/workflows.rst`.
 .. code-block::
 
     {
-        # List of string filenames in the ecoli/composites/ecoli_configs directory
-        # (include .json extension). These files are loaded in order and merged
-        # into the configuration of this file. Avoid overly complex inheritance
-        # chains if possible.
+        # List of JSON filenames in the "configs" directory (include ".json").
+        # These files are loaded in order and merged into this configuration.
+        # Avoid overly complex inheritance chains if possible.
         "inherit_from": [],
         # String that uniquely identifies simulation (or workflow if passed
         # as input to runscripts/workflow.py). Special characters and spaces
@@ -230,7 +229,7 @@ documented in :ref:`/workflows.rst`.
         # mainly useful for colony simulations.
         "spatial_environment": false,
         # Configuration options for Lattice composite. See the JSON config
-        # file at ecoli/composites/ecoli_configs/spatial.json for an example.
+        # file at configs/spatial.json for an example.
         "spatial_environment_config": {},
         # Whether to serialize the simulation state to JSON and save it to
         # files at the times listed in "save_times". See the API documentation

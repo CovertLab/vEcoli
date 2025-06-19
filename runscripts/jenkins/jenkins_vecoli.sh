@@ -7,6 +7,8 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --signal=B:SIGUSR1@90
 #SBATCH --partition=mcovert
+#SBATCH --output=/home/groups/mcovert/jenkins_vecoli/slurm_logs/%j.out
+#SBATCH --error=/home/groups/mcovert/jenkins_vecoli/slurm_logs/%j.out
 
 # Set the port Jenkins will use
 port=8080
@@ -130,7 +132,7 @@ if [ $? -ne 0 ]; then
             SSH_PID=$!
             if [ $? -eq 0 ]; then
                 login_node=$node
-                scontrol update jobid=$SLURM_JOBID comment="Jenkins UI accessible via: ssh username@$login_node.sherlock.stanford.edu -L $port:localhost:$port"
+                scontrol update jobid=$SLURM_JOBID comment="$login_node"
                 echo "Using $login_node for SSH tunnel"
                 break
             else
