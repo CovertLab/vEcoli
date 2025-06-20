@@ -99,8 +99,10 @@ def plot(
     subquery = read_stacked_columns(history_sql, [agg_expr], order_results=False)
     avg_monomer_per_variant = conn.sql(f"""
         -- Calculate average monomer counts per variant
-        SELECT * EXCLUDE (experiment_id, lineage_seed, generation, agent_id, time)
-        FROM ({subquery})
+        SELECT * FROM (
+            SELECT * EXCLUDE (experiment_id, lineage_seed, generation, agent_id, time)
+            FROM ({subquery})
+        )
         GROUP BY variant
         ORDER BY variant
         """).pl()
