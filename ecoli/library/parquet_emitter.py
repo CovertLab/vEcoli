@@ -467,8 +467,8 @@ def nested_col_shape(
 ) -> tuple[int, ...]:
     """
     Get the shape of a fixed-shape nested list column in a DuckDB SQL query.
-    This is useful for aggregating fixed-shape nested list columns
-    (e.g. 3D arrays) using :py:func:`~fixed_shape_agg`.
+    This is useful for creating separate columns for each element using
+    :py:func:`~named_idx` to accelerate elementwise aggregations.
 
     Args:
         conn: DuckDB connection
@@ -487,46 +487,6 @@ def nested_col_shape(
         f"at all times, but got {sample[0].shape} and {sample[1].shape}."
     )
     return sample[0].shape
-
-
-def fixed_shape_agg(
-    col: str,
-    agg: str,
-    shape: tuple[int, ...],
-) -> str:
-    """
-    Generate an SQL expression for fixed-shape nested list column
-    aggregation that can be included in list of ``columns`` for
-    :py:func:`~read_stacked_columns`.
-
-    Args:
-        col: Name of fixed-shape nested list column to aggregate
-        agg: SQL aggregation expression to apply elementwise to the column.
-            MUST contain ``COL_SUB`` as a placeholder for the column name.
-            The columns will be returned in depth-first order. For example,
-            ``"AVG(COL_SUB)"`` will return columns ``AVG(3dcol)_1_1_1``,
-            ``AVG(3dcol)_1_1_2``, ... containing the average of ``3dcol[1][1][1]``,
-            ``3dcol[1][1][2]``, ... (DuckDB arrays are 1-indexed).
-        shape: Shape of the fixed-shape nested list column as a tuple. See
-            :py:func:`~nested_col_shape`.
-    """
-
-    # Apply aggregation to each element
-    def recursive_select(
-        col_name: str, expr: str, exprs: list[str], shape: tuple[int, ...]
-    ):
-        if len(shape) == 0:
-            exprs.append(agg.replace("COL_SUB", expr) + " AS " + f'"{col_name}"')
-            return
-        for i in range(1, shape[0] + 1):
-            sub_expr = f"{expr}[{i}]"
-            sub_col_name = f"{col_name}_{i}"
-            recursive_select(sub_col_name, sub_expr, exprs, shape[1:])
-
-    exprs = []
-    recursive_select(col, f'"{col}"', exprs, shape)
-
-    return ", ".join(exprs)
 
 
 def read_stacked_columns(
@@ -607,8 +567,7 @@ def read_stacked_columns(
             potentially with filters appended in ``WHERE`` clause
         columns: Names of columns to read data for. Alternatively, DuckDB
             expressions of columns (e.g. ``avg(listeners__mass__cell_mass) AS avg_mass``
-            or the output of :py:func:`~.named_idx`, :py:func:`~.ndidx_to_duckdb_expr`,
-            and/or :py:func:`~.fixed_shape_agg`).
+            or the output of :py:func:`~.named_idx` or :py:func:`~.ndidx_to_duckdb_expr`).
         remove_first: Remove data for first timestep of each cell
         func: Function to call on data for each cell, should take and
             return a PyArrow Table with columns equal to ``columns``.

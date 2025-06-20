@@ -16,7 +16,7 @@ from typing import Any, cast
 
 from ecoli.library.parquet_emitter import (
     read_stacked_columns,
-    fixed_shape_agg,
+    named_idx,
     nested_col_shape,
     open_arbitrary_sim_data,
 )
@@ -91,18 +91,15 @@ def plot(
     monomer_counts_shape = nested_col_shape(
         conn, history_sql, "listeners__monomer_counts"
     )
-    agg_expr = fixed_shape_agg(
-        "listeners__monomer_counts",
-        "avg(COL_SUB)",
-        monomer_counts_shape,
+    named_cols = [f"monomer_{i}" for i in range(monomer_counts_shape[0])]
+    all_cols = named_idx(
+        "listeners__monomer_counts", named_cols, list(range(monomer_counts_shape[0]))
     )
-    subquery = read_stacked_columns(history_sql, [agg_expr], order_results=False)
+    subquery = read_stacked_columns(history_sql, [all_cols], order_results=False)
+    avg_cols = [f"AVG({col}) AS {col}" for col in named_cols]
     avg_monomer_per_variant = conn.sql(f"""
         -- Calculate average monomer counts per variant
-        SELECT * FROM (
-            SELECT * EXCLUDE (experiment_id, lineage_seed, generation, agent_id, time)
-            FROM ({subquery})
-        )
+        SELECT {avg_cols} FROM ({subquery})
         GROUP BY variant
         ORDER BY variant
         """).pl()
