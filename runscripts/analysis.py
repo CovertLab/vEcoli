@@ -310,7 +310,6 @@ def main():
         # Figure out what Hive partition in main output directory
         # to store outputs for analyses run on this cell subset
         curr_outdir = os.path.abspath(config["outdir"])
-        config_outdir = curr_outdir
         if len(cols) > 0:
             joined_cols = ", ".join(cols)
             data_ids = conn.sql(
@@ -332,10 +331,10 @@ def main():
                     f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
                 )
         else:
-            query_strings[data_filters] = (
+            query_strings[duckdb_filter] = (
                 f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
-                f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
+                f"SELECT * FROM ({success_sql}) WHERE {duckdb_filter}",
             )
         os.makedirs(curr_outdir, exist_ok=True)
         for analysis_name in config[analysis_type]:
@@ -358,7 +357,9 @@ def main():
                 )
 
     # Save copy of config JSON with parameters for plots
-    with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
+    with open(
+        os.path.join(os.path.abspath(config["outdir"]), "metadata.json"), "w"
+    ) as f:
         json.dump(config, f)
 
 
