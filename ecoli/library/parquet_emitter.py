@@ -585,26 +585,15 @@ def read_stacked_columns(
             lineage_seed, generation, agent_id FROM ({history_sql}) ORDER BY {id_cols}
         """).fetchall()
         all_cell_tbls = []
-        conn.sql(f"""PREPARE cell_query AS
-            SELECT * FROM ({sql_query})
-            WHERE experiment_id = ? AND
-                variant = ? AND
-                lineage_seed = ? AND
-                generation = ? AND
-                agent_id = ?
-            ORDER BY time
-            """)
         for experiment_id, variant, lineage_seed, generation, agent_id in tqdm(
             cell_ids
         ):
             # Apply func to data for each cell
-            all_cell_tbls.append(
-                func(
-                    conn.sql(
-                        f"EXECUTE cell_query('{experiment_id}', {variant}, {lineage_seed}, {generation}, '{agent_id}')"
-                    ).pl()
-                )
+            cell_sql = history_sql.replace(
+                "history/*/*/*/*/*",
+                f"history/experiment_id={experiment_id}/variant={variant}/lineage_seed={lineage_seed}/generation={generation}/agent_id={agent_id}",
             )
+            all_cell_tbls.append(func(conn.sql(cell_sql).pl()))
         return pl.concat(all_cell_tbls)
     if order_results:
         query = f"SELECT * FROM ({sql_query}) ORDER BY {id_cols}"
