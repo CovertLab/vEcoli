@@ -317,8 +317,9 @@ def ndidx_to_duckdb_expr(
             )
         else:
             raise TypeError("All indices must be lists, ints, or ':'.")
-    select_expr = select_expr.replace(f"x_{i + 1}", name)
-    return select_expr + f" AS {name}"
+    quoted_name = f'"{name}"'
+    select_expr = select_expr.replace(f"x_{i + 1}", quoted_name)
+    return select_expr + f" AS {quoted_name}"
 
 
 def named_idx(col: str, names: list[str], idx: list[int]) -> str:
@@ -342,7 +343,7 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> str:
         DuckDB SQL expression for a set of named columns corresponding to
         the values at given indices of a list column
     """
-    return ", ".join(f'{col}[{i + 1}] AS "{n}"' for n, i in zip(names, idx))
+    return ", ".join(f'"{col}"[{i + 1}] AS "{n}"' for n, i in zip(names, idx))
 
 
 def field_metadata(
@@ -459,11 +460,39 @@ def open_arbitrary_sim_data(sim_data_dict: dict[str, dict[int, Any]]) -> OpenFil
     return open_output_file(sim_data_path)
 
 
-def fixed_shape_agg(
+def nested_col_shape(
     conn: duckdb.DuckDBPyConnection,
     history_sql: str,
     col: str,
+) -> tuple[int, ...]:
+    """
+    Get the shape of a fixed-shape nested list column in a DuckDB SQL query.
+    This is useful for aggregating fixed-shape nested list columns
+    (e.g. 3D arrays) using :py:func:`~fixed_shape_agg`.
+
+    Args:
+        conn: DuckDB connection
+        history_sql: DuckDB SQL string from :py:func:`~.dataset_sql`
+        col: Name of fixed-shape nested list column to get shape of
+
+    Returns:
+        Shape of the fixed-shape nested list column as a tuple.
+    """
+    # Get shape of fixed-shape nested list column
+    sample = ndlist_to_ndarray(
+        conn.sql(f'SELECT "{col}" FROM ({history_sql}) LIMIT 2').pl()
+    )
+    assert sample[0].shape == sample[1].shape, (
+        f"Expected fixed-shape nested list column {col} to have the same shape "
+        f"at all times, but got {sample[0].shape} and {sample[1].shape}."
+    )
+    return sample[0].shape
+
+
+def fixed_shape_agg(
+    col: str,
     agg: str,
+    shape: tuple[int, ...],
 ) -> str:
     """
     Generate an SQL expression for fixed-shape nested list column
@@ -471,31 +500,23 @@ def fixed_shape_agg(
     :py:func:`~read_stacked_columns`.
 
     Args:
-        conn: DuckDB connection
-        history_sql: DuckDB SQL string from :py:func:`~.dataset_sql`
         col: Name of fixed-shape nested list column to aggregate
         agg: SQL aggregation expression to apply elementwise to the column.
             MUST contain ``COL_SUB`` as a placeholder for the column name.
-            For example, ``"avg(COL_SUB)"`` will return columns ``3dcol_1_1_1``,
-            ``3dcol_1_1_2``, ... containing the average of ``3dcol[1][1][1]``,
+            The columns will be returned in depth-first order. For example,
+            ``"AVG(COL_SUB)"`` will return columns ``AVG(3dcol)_1_1_1``,
+            ``AVG(3dcol)_1_1_2``, ... containing the average of ``3dcol[1][1][1]``,
             ``3dcol[1][1][2]``, ... (DuckDB arrays are 1-indexed).
+        shape: Shape of the fixed-shape nested list column as a tuple. See
+            :py:func:`~nested_col_shape`.
     """
-    # Get shape of fixed-shape nested list column
-    sample = ndlist_to_ndarray(
-        conn.sql(f"SELECT {col} FROM ({history_sql}) LIMIT 2").pl()
-    )
-    assert sample[0].shape == sample[1].shape, (
-        f"Expected fixed-shape nested list column {col} to have the same shape "
-        f"at all times, but got {sample[0].shape} and {sample[1].shape}."
-    )
-    shape = sample[0].shape
 
     # Apply aggregation to each element
     def recursive_select(
         col_name: str, expr: str, exprs: list[str], shape: tuple[int, ...]
     ):
         if len(shape) == 0:
-            exprs.append(agg.replace("COL_SUB", expr) + " AS " + col_name)
+            exprs.append(agg.replace("COL_SUB", expr) + " AS " + f'"{col_name}"')
             return
         for i in range(1, shape[0] + 1):
             sub_expr = f"{expr}[{i}]"
@@ -503,7 +524,7 @@ def fixed_shape_agg(
             recursive_select(sub_col_name, sub_expr, exprs, shape[1:])
 
     exprs = []
-    recursive_select(col, col, exprs, shape)
+    recursive_select('"col"', col, exprs, shape)
 
     return ", ".join(exprs)
 
@@ -607,7 +628,7 @@ def read_stacked_columns(
             If provided, will be used to filter out unsuccessful sims.
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
-    columns_str = ", ".join(columns)
+    columns_str = '"' + '", "'.join(columns) + '"'
     sql_query = f"SELECT {columns_str}, {id_cols} FROM ({history_sql})"
     # Use a semi join to filter out unsuccessful sims
     if success_sql is not None:
