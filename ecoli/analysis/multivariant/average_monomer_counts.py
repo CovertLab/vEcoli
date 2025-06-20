@@ -16,7 +16,8 @@ from typing import Any, cast
 
 from ecoli.library.parquet_emitter import (
     read_stacked_columns,
-    ndlist_to_ndarray,
+    fixed_shape_agg,
+    nested_col_shape,
     open_arbitrary_sim_data,
 )
 from reconstruction.ecoli.fit_sim_data_1 import SimulationDataEcoli
@@ -87,26 +88,19 @@ def plot(
         for monomer_id in original_monomer_ids
     ]
 
-    subquery = read_stacked_columns(
-        history_sql, ["listeners__monomer_counts"], order_results=False
+    monomer_counts_shape = nested_col_shape(
+        conn, history_sql, "listeners__monomer_counts"
     )
+    agg_expr = fixed_shape_agg(
+        "listeners__monomer_counts",
+        "avg(COL_SUB)",
+        monomer_counts_shape,
+    )
+    subquery = read_stacked_columns(history_sql, [agg_expr], order_results=False)
     avg_monomer_per_variant = conn.sql(f"""
-        WITH unnested_counts AS (
-            SELECT unnest(listeners__monomer_counts) AS monomer_counts,
-                generate_subscripts(listeners__monomer_counts, 1)
-                    AS monomer_idx, variant
-            FROM ({subquery})
-        ),
-        -- Get average counts per monomer per variant
-        average_counts AS (
-            SELECT avg(monomer_counts) AS avg_counts, variant, monomer_idx
-            FROM unnested_counts
-            GROUP BY variant, monomer_idx
-        )
-        -- Organize average counts into lists, one row per variant
-        SELECT list(avg_counts ORDER BY monomer_idx)
-            AS avg_monomer_counts, variant
-        FROM average_counts
+        -- Calculate average monomer counts per variant
+        SELECT * EXCLUDE (experiment_id, lineage_seed, generation, agent_id, time)
+        FROM ({subquery})
         GROUP BY variant
         ORDER BY variant
         """).pl()
@@ -123,10 +117,14 @@ def plot(
         variant_pair = avg_monomer_per_variant.filter(
             pl.col("variant").is_in([control_variant, exp_variant])
         ).sort("variant")
-        avg_monomer_counts = ndlist_to_ndarray(variant_pair["avg_monomer_counts"])
+        avg_monomer_counts = variant_pair.select(
+            pl.all().exclude(["variant"])
+        ).to_numpy()
         # Save unfiltered data
         col_labels = ["all_monomer_ids", "var_0_avg_PCs", f"var_{exp_variant}_avg_PCs"]
-        values = np.concatenate((all_monomer_ids.T, avg_monomer_counts.T), axis=1)
+        values = np.concatenate(
+            (all_monomer_ids[:, np.newaxis], avg_monomer_counts.T), axis=1
+        )
         save_file(
             unfiltered_dir, f"wcm_full_monomers_{file_suffix}", col_labels, values
         )
@@ -145,7 +143,9 @@ def plot(
             "var_0_avg_PCs",
             f"var_{exp_variant}_avg_PCs",
         ]
-        values = np.concatenate((filtered_ids.T, avg_monomer_counts.T), axis=1)
+        values = np.concatenate(
+            (filtered_ids[:, np.newaxis], avg_monomer_counts.T), axis=1
+        )
         save_file(
             filtered_dir, f"wcm_filter_monomers_{file_suffix}", col_labels, values
         )
