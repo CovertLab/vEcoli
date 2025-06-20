@@ -588,11 +588,13 @@ def read_stacked_columns(
         for experiment_id, variant, lineage_seed, generation, agent_id in tqdm(
             cell_ids
         ):
-            # Apply func to data for each cell
-            cell_sql = history_sql.replace(
+            # Explicitly specify Hive partition because DuckDB
+            # will otherwise spend a lot of time scanning all files
+            cell_sql = sql_query.replace(
                 "history/*/*/*/*/*",
                 f"history/experiment_id={experiment_id}/variant={variant}/lineage_seed={lineage_seed}/generation={generation}/agent_id={agent_id}",
             )
+            # Apply func to data for each cell
             all_cell_tbls.append(func(conn.sql(cell_sql).pl()))
         return pl.concat(all_cell_tbls)
     if order_results:
