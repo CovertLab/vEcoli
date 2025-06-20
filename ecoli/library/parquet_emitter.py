@@ -8,7 +8,7 @@ import duckdb
 import numpy as np
 import polars as pl
 from polars.datatypes import DataTypeClass
-from fsspec.core import url_to_fs, OpenFile
+from fsspec.core import filesystem, url_to_fs, OpenFile
 from fsspec.spec import AbstractFileSystem
 from tqdm import tqdm
 from vivarium.core.emitter import Emitter
@@ -103,6 +103,32 @@ def union_by_name(query_sql: str) -> str:
     return query_sql.replace(
         "hive_partitioning = true,", "hive_partitioning = true, union_by_name = true,"
     )
+
+
+def create_duckdb_conn(
+    temp_dir: str = "/tmp", gcs: bool = False, cpus: Optional[int] = None
+) -> duckdb.DuckDBPyConnection:
+    """
+    Create a DuckDB connection.
+
+    Args:
+        temp_dir: Temporary directory for spilling to disk.
+        gcs: Set to True if reading from Google Cloud Storage.
+        cpus: Number of cores to use (by default, use all detected cores).
+    """
+    conn = duckdb.connect()
+    if gcs:
+        conn.register_filesystem(filesystem("gcs"))
+    # Temp directory so DuckDB can spill to disk when data larger than RAM
+    conn.execute(f"SET temp_directory = '{temp_dir}'")
+    # Turning this off reduces RAM usage
+    conn.execute("SET preserve_insertion_order = false")
+    # Cache Parquet metadata so only needs to be scanned once
+    conn.execute("SET enable_object_cache = true")
+    # Set number of threads for DuckDB
+    if cpus is not None:
+        conn.execute(f"SET threads = {cpus}")
+    return conn
 
 
 def dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, str]:
@@ -528,8 +554,8 @@ def read_stacked_columns(
             If provided, will be used to filter out unsuccessful sims.
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
-    columns = ", ".join(columns)
-    sql_query = f"SELECT {columns}, {id_cols} FROM ({history_sql})"
+    columns_str = ", ".join(columns)
+    sql_query = f"SELECT {columns_str}, {id_cols} FROM ({history_sql})"
     # Use a semi join to filter out unsuccessful sims
     if success_sql is not None:
         sql_query = f"""
