@@ -524,7 +524,7 @@ def fixed_shape_agg(
             recursive_select(sub_col_name, sub_expr, exprs, shape[1:])
 
     exprs = []
-    recursive_select('"col"', col, exprs, shape)
+    recursive_select(col, f'"{col}"', exprs, shape)
 
     return ", ".join(exprs)
 
