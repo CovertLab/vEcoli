@@ -459,6 +459,55 @@ def open_arbitrary_sim_data(sim_data_dict: dict[str, dict[int, Any]]) -> OpenFil
     return open_output_file(sim_data_path)
 
 
+def fixed_shape_agg(
+    conn: duckdb.DuckDBPyConnection,
+    history_sql: str,
+    col: str,
+    agg: str,
+) -> str:
+    """
+    Generate an SQL expression for fixed-shape nested list column
+    aggregation that can be included in list of ``columns`` for
+    :py:func:`~read_stacked_columns`.
+
+    Args:
+        conn: DuckDB connection
+        history_sql: DuckDB SQL string from :py:func:`~.dataset_sql`
+        col: Name of fixed-shape nested list column to aggregate
+        agg: SQL aggregation expression to apply elementwise to the column.
+            MUST contain ``COL_SUB`` as a placeholder for the column name.
+            For example, ``"avg(COL_SUB)"`` will return columns ``3dcol_1_1_1``,
+            ``3dcol_1_1_2``, ... containing the average of ``3dcol[1][1][1]``,
+            ``3dcol[1][1][2]``, ... (DuckDB arrays are 1-indexed).
+    """
+    # Get shape of fixed-shape nested list column
+    sample = ndlist_to_ndarray(
+        conn.sql(f"SELECT {col} FROM ({history_sql}) LIMIT 2").pl()
+    )
+    assert sample[0].shape == sample[1].shape, (
+        f"Expected fixed-shape nested list column {col} to have the same shape "
+        f"at all times, but got {sample[0].shape} and {sample[1].shape}."
+    )
+    shape = sample[0].shape
+
+    # Apply aggregation to each element
+    def recursive_select(
+        col_name: str, expr: str, exprs: list[str], shape: tuple[int, ...]
+    ):
+        if len(shape) == 0:
+            exprs.append(agg.replace("COL_SUB", expr) + " AS " + col_name)
+            return
+        for i in range(1, shape[0] + 1):
+            sub_expr = f"{expr}[{i}]"
+            sub_col_name = f"{col_name}_{i}"
+            recursive_select(sub_col_name, sub_expr, exprs, shape[1:])
+
+    exprs = []
+    recursive_select(col, col, exprs, shape)
+
+    return ", ".join(exprs)
+
+
 def read_stacked_columns(
     history_sql: str,
     columns: list[str],
@@ -506,6 +555,7 @@ def read_stacked_columns(
 
         import duckdb
         import pickle
+        import pyarrow as pa
         from ecoli.library.parquet_emitter import (
             dataset_sql, ndlist_to_ndarray, read_stacked_columns)
         history_sql, config_sql, _ = dataset_sql('out/', 'exp_id')
@@ -521,8 +571,8 @@ def read_stacked_columns(
                 "listeners__rna_synth_prob__actual_rna_synth_prob"])
             rna_synth_prob_per_cistron = cistron_tu_mat.dot(rna_synth_prob.T).T
             # Return value must be a PyArrow table
-            return pl.DataFrame({'avg_rna_synth_prob_per_cistron': [
-                rna_synth_prob_per_cistron.mean(axis=0)]}).to_arrow()
+            return pa.table({'avg_rna_synth_prob_per_cistron': [
+                rna_synth_prob_per_cistron.mean(axis=0)]})
         conn = duckdb.connect()
         result = read_stacked_columns(
             history_sql,
@@ -536,10 +586,13 @@ def read_stacked_columns(
             potentially with filters appended in ``WHERE`` clause
         columns: Names of columns to read data for. Alternatively, DuckDB
             expressions of columns (e.g. ``avg(listeners__mass__cell_mass) AS avg_mass``
-            or the output of :py:func:`~.named_idx` or :py:func:`~.ndidx_to_duckdb_expr`).
+            or the output of :py:func:`~.named_idx`, :py:func:`~.ndidx_to_duckdb_expr`,
+            and/or :py:func:`~.fixed_shape_agg`).
         remove_first: Remove data for first timestep of each cell
         func: Function to call on data for each cell, should take and
-            return a Polars DataFrame with columns equal to ``columns``
+            return a PyArrow Table with columns equal to ``columns``.
+            Note that this will generally be slower and more memory-intensive
+            than using DuckDB SQL directly and should be avoided if possible.
         conn: DuckDB connection instance with which to run query. Typically
             provided by :py:func:`runscripts.analysis.main` to the ``plot``
             method of analysis scripts (tweaked some DuckDB settings). Can
@@ -549,7 +602,7 @@ def read_stacked_columns(
             ``variant``, ``lineage_seed``, ``generation``, ``agent_id``, and
             ``time``. If no ``conn`` is provided, this can usually be disabled
             and any sorting can be deferred until the last step in the query with
-            a manual ``ORDER BY``. Doing this can greatly reduce RAM usage.
+            a manual ``ORDER BY``. Disabling this can greatly reduce RAM usage.
         success_sql: Final DuckDB SQL string from :py:func:`~.dataset_sql`.
             If provided, will be used to filter out unsuccessful sims.
     """
