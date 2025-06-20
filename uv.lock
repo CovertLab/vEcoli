@@ -3133,7 +3133,6 @@ dependencies = [
     { name = "sympy" },
     { name = "tqdm" },
     { name = "unum" },
-    { name = "urllib3" },
     { name = "vivarium-core" },
     { name = "xmltodict" },
 ]
@@ -3199,7 +3198,6 @@ requires-dist = [
     { name = "sympy" },
     { name = "tqdm" },
     { name = "unum" },
-    { name = "urllib3", specifier = "==2.5.0" },
     { name = "vivarium-core" },
     { name = "xmltodict" },
 ]
