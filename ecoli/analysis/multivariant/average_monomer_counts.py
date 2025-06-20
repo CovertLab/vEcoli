@@ -96,10 +96,10 @@ def plot(
         "listeners__monomer_counts", named_cols, list(range(monomer_counts_shape[0]))
     )
     subquery = read_stacked_columns(history_sql, [all_cols], order_results=False)
-    avg_cols = [f"AVG({col}) AS {col}" for col in named_cols]
+    avg_cols = ", ".join([f"AVG({col}) AS {col}" for col in named_cols])
     avg_monomer_per_variant = conn.sql(f"""
         -- Calculate average monomer counts per variant
-        SELECT {avg_cols} FROM ({subquery})
+        SELECT {avg_cols}, variant FROM ({subquery})
         GROUP BY variant
         ORDER BY variant
         """).pl()
