@@ -1,7 +1,9 @@
 import atexit
 import os
+import re
+import warnings
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any, Callable, cast, Mapping, Optional
+from typing import Any, Callable, cast, Optional
 from urllib import parse
 
 import duckdb
@@ -317,9 +319,8 @@ def ndidx_to_duckdb_expr(
             )
         else:
             raise TypeError("All indices must be lists, ints, or ':'.")
-    quoted_name = f'"{name}"'
-    select_expr = select_expr.replace(f"x_{i + 1}", quoted_name)
-    return select_expr + f" AS {quoted_name}"
+    select_expr = select_expr.replace(f"x_{i + 1}", name)
+    return select_expr + f" AS {name}"
 
 
 def named_idx(col: str, names: list[str], idx: list[int]) -> str:
@@ -343,7 +344,7 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> str:
         DuckDB SQL expression for a set of named columns corresponding to
         the values at given indices of a list column
     """
-    return ", ".join(f'"{col}"[{i + 1}] AS "{n}"' for n, i in zip(names, idx))
+    return ", ".join(f'{col}[{i + 1}] AS "{n}"' for n, i in zip(names, idx))
 
 
 def field_metadata(
@@ -362,7 +363,7 @@ def field_metadata(
     metadata = cast(
         tuple,
         conn.sql(
-            f'SELECT first("{METADATA_PREFIX + field}") FROM ({config_subquery})'
+            f"SELECT first({METADATA_PREFIX + field}) FROM ({config_subquery})"
         ).fetchone(),
     )[0]
     if isinstance(metadata, list):
@@ -385,7 +386,7 @@ def config_value(
     """
     return cast(
         tuple,
-        conn.sql(f'SELECT first("{field}") FROM ({config_subquery})').fetchone(),
+        conn.sql(f"SELECT first({field}) FROM ({config_subquery})").fetchone(),
     )[0]
 
 
@@ -480,7 +481,7 @@ def nested_col_shape(
     """
     # Get shape of fixed-shape nested list column
     sample = ndlist_to_ndarray(
-        conn.sql(f'SELECT "{col}" FROM ({history_sql}) LIMIT 2').pl()
+        conn.sql(f"SELECT {col} FROM ({history_sql}) LIMIT 2").pl()
     )
     assert sample[0].shape == sample[1].shape, (
         f"Expected fixed-shape nested list column {col} to have the same shape "
@@ -739,7 +740,11 @@ def union_pl_dtypes(
     )
 
 
-_FLAG_FIRST = object()
+# Pre-compile regex for key sanitization
+# Replace any non-alphanumeric characters with underscores
+# and remove consecutive underscores
+SANITIZE_REGEX = re.compile(r"[^a-zA-Z0-9_]+")
+CONSECUTIVE_UNDERSCORES = re.compile(r"_{2,}")
 
 
 def flatten_dict(d: dict):
@@ -748,19 +753,60 @@ def flatten_dict(d: dict):
     concatenates all the keys needed to reach the corresponding value
     in the input. Allows each leaf field in a nested emit to be turned
     into a column in a Parquet file for efficient storage and retrieval.
+    Also sanitizes keys by replacing special characters with ``X`` to
+    ensure that they can be used unquoted in SQL queries.
     """
-    results: list[tuple[str, Any]] = []
+    results: dict[str, Any] = {}
 
-    def visit_key(subdict, results, partialKey):
-        for k, v in subdict.items():
-            newKey = k if partialKey == _FLAG_FIRST else f"{partialKey}__{k}"
-            if isinstance(v, Mapping):
-                visit_key(v, results, newKey)
-            else:
-                results.append((newKey, v))
+    def sanitize_key(key: str) -> str:
+        # Replace special characters with capital X
+        sanitized = SANITIZE_REGEX.sub("X", key)
+        # Warn user if any special characters were replaced
+        if sanitized != key:
+            warnings.warn(
+                f"Key '{key}' contains special characters. "
+                "These have been replaced with 'X' to ensure compatibility with SQL."
+            )
+        # Remove leading/trailing underscores
+        sanitized = sanitized.strip("_")
+        # Ensure key doesn't start with a number (SQL requirement)
+        if sanitized and sanitized[0].isdigit():
+            sanitized = f"col_{sanitized}"
+        # Handle empty keys
+        if not sanitized:
+            sanitized = "unnamed_col"
+        return sanitized
 
-    visit_key(d, results, _FLAG_FIRST)
-    return dict(results)
+    def visit_key(subdict: dict, parent_key: str = ""):
+        """Iterative flattening using a stack to avoid recursion overhead"""
+        stack = [(subdict, parent_key)]
+
+        while stack:
+            current_dict, current_prefix = stack.pop()
+
+            for k, v in current_dict.items():
+                # Build new key
+                if current_prefix:
+                    new_key = f"{current_prefix}__{k}"
+                else:
+                    new_key = k
+
+                if isinstance(v, dict):
+                    # Add to stack for processing (nested dict)
+                    stack.append((v, new_key))
+                else:
+                    # Leaf value - add to results
+                    sanitized_key = sanitize_key(new_key)
+                    # Handle key collisions by appending a number
+                    original_key = sanitized_key
+                    counter = 1
+                    while sanitized_key in results:
+                        sanitized_key = f"{original_key}_{counter}"
+                        counter += 1
+                    results[sanitized_key] = v
+
+    visit_key(d)
+    return results
 
 
 def pl_dtype_from_ndarray(arr: np.ndarray) -> pl.DataType:

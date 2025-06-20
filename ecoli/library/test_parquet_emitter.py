@@ -48,6 +48,24 @@ class TestHelperFunctions:
         assert nested["a"] == [1, 2, 3]
         np.testing.assert_array_equal(nested["b__c"], np.array([4, 5, 6]))
 
+        # Dictionary with special characters and empty keys
+        special_chars = flatten_dict(
+            {
+                "listeners.mass.cell_mass": 123,
+                "bulk-molecules": [1, 2, 3],
+                "2D_array": [[1, 2], [3, 4]],
+                "special@chars#here": "value",
+                "": "empty_key_value",
+            }
+        )
+        assert special_chars == {
+            "listenersXmassXcell_mass": 123,
+            "bulkXmolecules": [1, 2, 3],
+            "col_2D_array": [[1, 2], [3, 4]],
+            "specialXcharsXhere": "value",
+            "unnamed_col": "empty_key_value",
+        }
+
     def test_np_dtype(self):
         # Basic types
         np_type = np_dtype(1.0, "float_field")
@@ -1087,7 +1105,7 @@ class TestParquetEmitterEdgeCases:
         with pytest.raises(
             TypeError,
             match=re.escape(
-                "Incompatible inner types for field 3d_array: List(Float64) and Float64."
+                "Incompatible inner types for field col_3d_array: List(Float64) and Float64."
             ),
         ):
             emitter.emit(sim_data3)
