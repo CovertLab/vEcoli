@@ -85,12 +85,14 @@ def plot(
     with open_output_file(validation_data_paths[0]) as f:
         validation_data = pickle.load(f)
 
+    ignore_first_n_gens = params.get("ignore_first_n_gens", IGNORE_FIRST_N_GENS)
+
     media_name = sim_data.conditions[sim_data.condition]["nutrients"]
     media_id = MEDIA_NAME_TO_ID.get(media_name, media_name)
 
     # Ignore first N generations
-    history_sql = skip_n_gens(history_sql, IGNORE_FIRST_N_GENS)
-    config_sql = skip_n_gens(config_sql, IGNORE_FIRST_N_GENS)
+    history_sql = skip_n_gens(history_sql, ignore_first_n_gens)
+    config_sql = skip_n_gens(config_sql, ignore_first_n_gens)
 
     if num_cells(conn, config_sql) == 0:
         print("Skipping analysis -- not enough simulations run.")
@@ -307,7 +309,7 @@ def plot(
     # Build dictionary for metadata
     ecocyc_metadata = {
         "git_hash": config_value(conn, config_sql, "git_hash"),
-        "n_ignored_generations": IGNORE_FIRST_N_GENS,
+        "n_ignored_generations": ignore_first_n_gens,
         "n_total_generations": config_value(conn, config_sql, "generations"),
         "n_seeds": config_value(conn, config_sql, "n_init_sims"),
         "n_cells": num_cells(conn, config_sql),

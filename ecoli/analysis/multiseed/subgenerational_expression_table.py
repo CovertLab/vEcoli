@@ -39,9 +39,11 @@ def plot(
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
 
+    ignore_first_n_gens = params.get("ignore_first_n_gens", IGNORE_FIRST_N_GENS)
+
     # Ignore first N generations
-    history_sql = skip_n_gens(history_sql, IGNORE_FIRST_N_GENS)
-    config_sql = skip_n_gens(config_sql, IGNORE_FIRST_N_GENS)
+    history_sql = skip_n_gens(history_sql, ignore_first_n_gens)
+    config_sql = skip_n_gens(config_sql, ignore_first_n_gens)
 
     if num_cells(conn, config_sql) == 0:
         print("Skipping analysis - not enough generations run.")
