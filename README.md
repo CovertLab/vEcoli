@@ -67,6 +67,7 @@ to install `uv`, our Python package and project manager of choice.
 4. Navigate into the cloned repository and use `uv` to install the model:
 
 ```
+# Navigate into cloned repository ("vEcoli", by default)
 cd vEcoli
 # Install base and dev dependencies (see pyproject.toml)
 uv sync --frozen --extra dev
@@ -83,9 +84,12 @@ continuing with the `nextflow` installation steps.
 > **Tip:** If any step in the `nextflow` installation fails,
 > try rerunning a few times to see if that fixes the issue.
 
-6. Add the `uvenv` alias to your shell configuration:
+6. Navigate back to the cloned repository and add the `uvenv` alias to your shell configuration:
 
 ```
+# Navigate back to cloned repository ("vEcoli", by default)
+cd vEcoli
+# Add uvenv alias to shell config (e.g. .bashrc, .zshrc, etc.)
 echo -e "\nalias uvenv='uv run --env-file $(pwd)/.env --project $(pwd)'" >> $HOME/.$(basename $SHELL)rc
 ```
 
