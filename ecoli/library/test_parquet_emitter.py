@@ -3,6 +3,7 @@ import os
 import re
 import tempfile
 import shutil
+import duckdb
 import numpy as np
 import polars as pl
 import pytest
@@ -16,6 +17,9 @@ from queue import Queue
 from ecoli.library.parquet_emitter import (
     json_to_parquet,
     np_dtype,
+    named_idx,
+    nested_col_shape,
+    ndidx_to_duckdb_expr,
     flatten_dict,
     union_pl_dtypes,
     ParquetEmitter,
@@ -23,6 +27,84 @@ from ecoli.library.parquet_emitter import (
 
 
 class TestHelperFunctions:
+    @pytest.fixture
+    def query_conn(self):
+        """Create a Polars DataFrame for DuckDB to query."""
+        conn = duckdb.connect(":memory:")
+        # Create Polars DataFrame for DuckDB to query
+        df = pl.DataFrame(  # noqa: F841
+            {
+                "a": [[0.1, 0.0, 0.3], [0.4, 0.5, 0.0], [None, 0.8, 0.9]],
+                "b": [
+                    [[0.1, 0.2], [0.3, None]],
+                    [[0.5, 0.6], [0.0, 0.8]],
+                    [[0.9, 0.0], [1.1, 1.2]],
+                ],
+                "c": [[[0.1, 0.2], [0.3]], [[0.5], [0.0, 0.8]], [[0.9], [1.1]]],
+            }
+        )
+        conn.sql("CREATE OR REPLACE TABLE test_table AS SELECT * FROM df")
+        yield conn
+
+    def test_named_idx(self, query_conn):
+        col_expr = named_idx("a", ["col1", "col2", "col3"], [[0, 1, 2]])
+        result = query_conn.sql(f"SELECT {col_expr} FROM test_table").pl()
+        expected = pl.DataFrame(
+            {"col1": [0.1, 0.4, None], "col2": [0.0, 0.5, 0.8], "col3": [0.3, 0.0, 0.9]}
+        )
+        assert result.equals(expected)
+
+        col_expr = named_idx(
+            "a", ["col1", "col2", "col3"], [[0, 1, 2]], zero_to_null=True
+        )
+        result = query_conn.sql(f"SELECT {col_expr} FROM test_table").pl()
+        expected = pl.DataFrame(
+            {
+                "col1": [0.1, 0.4, None],
+                "col2": [None, 0.5, 0.8],
+                "col3": [0.3, None, 0.9],
+            }
+        )
+        assert result.equals(expected)
+
+        col_expr = named_idx(
+            "b", ["col1", "col2", "col3", "col4"], [[0, 1], [0, 1]], zero_to_null=True
+        )
+        result = query_conn.sql(f"SELECT {col_expr} FROM test_table").pl()
+        expected = pl.DataFrame(
+            {
+                "col1": [0.1, 0.5, 0.9],
+                "col2": [0.2, 0.6, None],
+                "col3": [0.3, None, 1.1],
+                "col4": [None, 0.8, 1.2],
+            }
+        )
+        assert result.equals(expected)
+
+    def test_nested_col_shape(self, query_conn):
+        assert nested_col_shape(query_conn, "FROM test_table", "a") == (3,)
+        assert nested_col_shape(query_conn, "FROM test_table", "b") == (2, 2)
+        with pytest.raises(pl.exceptions.ComputeError, match="not all elements"):
+            nested_col_shape(query_conn, "FROM test_table", "c")
+
+    def test_ndidx_to_duckdb_expr(self, query_conn):
+        expr = ndidx_to_duckdb_expr("b", [0, 1])
+        result = query_conn.sql(f"SELECT {expr} FROM test_table").pl()
+        expected = pl.DataFrame({"b": [[[0.2]], [[0.6]], [[0.0]]]})
+        assert result.equals(expected)
+
+        expr = ndidx_to_duckdb_expr("b", [":", [True, False]])
+        print(expr)
+        result = query_conn.sql(f"SELECT {expr} FROM test_table").pl()
+        expected = pl.DataFrame({"b": [[[0.1], [0.3]], [[0.5], [0.0]], [[0.9], [1.1]]]})
+        print(result)
+        assert result.equals(expected)
+
+        expr = ndidx_to_duckdb_expr("c", [[0], ":"])
+        result = query_conn.sql(f"SELECT {expr} FROM test_table").pl()
+        expected = pl.DataFrame({"c": [[[0.1, 0.2]], [[0.5]], [[0.9]]]})
+        assert result.equals(expected)
+
     def test_flatten_dict(self):
         # Simple dictionary
         assert flatten_dict({"a": 1, "b": 2}) == {"a": 1, "b": 2}
