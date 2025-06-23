@@ -286,63 +286,90 @@ def ndidx_to_duckdb_expr(
     # Construct expression from inside out (deepest to shallowest axis)
     first_idx = idx.pop(0)
     if isinstance(first_idx, list):
-        if isinstance(first_idx[0], int):
+        # Python bools are instances of int so check bool first
+        if isinstance(first_idx[0], bool):
+            select_expr = f"list_where(x_0, {first_idx})"
+        elif isinstance(first_idx[0], int):
             one_indexed_idx = ", ".join(str(i + 1) for i in first_idx)
             select_expr = f"list_select(x_0, [{one_indexed_idx}])"
-        elif isinstance(first_idx[0], bool):
-            select_expr = f"list_where(x_0, {first_idx})"
         else:
             raise TypeError("Indices must be integers or boolean masks.")
     elif first_idx == ":":
         select_expr = "x_0"
     elif isinstance(first_idx, int):
-        select_expr = f"x_0[{int(first_idx) + 1}]"
+        select_expr = f"list_select(x_0, [{int(first_idx) + 1}])"
     else:
         raise TypeError("All indices must be lists, ints, or ':'.")
     i = -1
     for i, indices in enumerate(idx):
         if isinstance(indices, list):
-            if isinstance(indices[0], int):
+            if isinstance(indices[0], bool):
+                select_expr = f"list_transform(list_where(x_{i + 1}, {indices}), lambda x_{i} : {select_expr})"
+            elif isinstance(indices[0], int):
                 one_indexed_idx = ", ".join(str(i + 1) for i in indices)
-                select_expr = f"list_transform(list_select(x_{i + 1}, [{one_indexed_idx}]), x_{i} -> {select_expr})"
-            elif isinstance(indices[0], bool):
-                select_expr = f"list_transform(list_where(x_{i + 1}, {indices}), x_{i} -> {select_expr})"
+                select_expr = f"list_transform(list_select(x_{i + 1}, [{one_indexed_idx}]), lambda x_{i} : {select_expr})"
             else:
                 raise TypeError("Indices must be integers or boolean masks.")
         elif indices == ":":
-            select_expr = f"list_transform(x_{i + 1}, x_{i} -> {select_expr})"
+            select_expr = f"list_transform(x_{i + 1}, lambda x_{i} : {select_expr})"
         elif isinstance(indices, int):
-            select_expr = (
-                f"list_transform(x_{i + 1}[{int(indices) + 1}], x_{i} -> {select_expr})"
-            )
+            select_expr = f"list_transform(list_select(x_{i + 1}, [{int(indices) + 1}]), lambda x_{i} : {select_expr})"
         else:
             raise TypeError("All indices must be lists, ints, or ':'.")
     select_expr = select_expr.replace(f"x_{i + 1}", name)
     return select_expr + f" AS {name}"
 
 
-def named_idx(col: str, names: list[str], idx: list[int]) -> str:
+def named_idx(
+    col: str, names: list[str], idx: list[list[int]], zero_to_null: bool = False
+) -> str:
     """
     Create DuckDB expressions for given indices from a list column. Can be
     used in ``projection`` kwarg of :py:func:`~.read_stacked_columns`. Since
     each index gets pulled out into its own column, this greatly simplifies
-    aggregations like averages, etc. Only use this if the number of indices
-    is relatively small (<100) and the list column is 1-dimensional. For 2+
-    dimensions or >100 indices, see :py:func:`~.ndidx_to_duckdb_expr`.
+    and speeds up aggregations like averages, etc. Do NOT use this in combination
+    with the ``func`` kwarg of :py:func:`~.read_stacked_columns` because the
+    overhead of having so many columns will be multiplied by the number of cells
+    that are individually queried.
 
     .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
         supplied index!
 
     Args:
         col: Name of list column.
-        names: New column names, one for each index.
-        idx: Indices to retrieve from ``col``
+        names: List of names for the new columns. Length must match the
+            number of index combinations in ``idx`` (4 for example below).
+        idx: Integer indices to retrieve from each dimension of ``col``.
+            For example, ``[[0, 1], [2, 3]]`` will retrieve the third and
+            fourth elements of the second dimension for the first and second
+            elements of the first dimension.
+        zero_to_null: Whether to turn 0s into nulls. This is useful when
+            dividing by the values in this column, as most DuckDB aggregation
+            functions (e.g. ``avg``, ``max``) propagate NaNs but ignore nulls.
 
     Returns:
         DuckDB SQL expression for a set of named columns corresponding to
         the values at given indices of a list column
     """
-    return ", ".join(f'{col}[{i + 1}] AS "{n}"' for n, i in zip(names, idx))
+    assert isinstance(idx[0], list), "idx must be a list of lists."
+    col_exprs = []
+    if len(idx) == 1:
+        for i in idx[0]:
+            if zero_to_null:
+                col_exprs.append(
+                    f"CASE WHEN {col}[{i + 1}] = 0 THEN NULL ELSE {col}[{i + 1}] END AS {names[i]}"
+                )
+            else:
+                col_exprs.append(f"{col}[{i + 1}] AS {names[i]}")
+    else:
+        col_counter = 0
+        for i in idx[0]:
+            sub_col_exprs = named_idx(
+                f"{col}[{i + 1}]", names[col_counter:], idx[1:], zero_to_null
+            )
+            col_counter += sub_col_exprs.count(", ") + 1
+            col_exprs.append(sub_col_exprs)
+    return ", ".join(col_exprs)
 
 
 def field_metadata(
