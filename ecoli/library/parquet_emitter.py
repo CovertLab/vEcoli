@@ -354,13 +354,13 @@ def named_idx(
     assert isinstance(idx[0], list), "idx must be a list of lists."
     col_exprs = []
     if len(idx) == 1:
-        for i in idx[0]:
+        for num, i in enumerate(idx[0]):
             if zero_to_null:
                 col_exprs.append(
-                    f"CASE WHEN {col}[{i + 1}] = 0 THEN NULL ELSE {col}[{i + 1}] END AS {names[i]}"
+                    f"CASE WHEN {col}[{i + 1}] = 0 THEN NULL ELSE {col}[{i + 1}] END AS {names[num]}"
                 )
             else:
-                col_exprs.append(f"{col}[{i + 1}] AS {names[i]}")
+                col_exprs.append(f"{col}[{i + 1}] AS {names[num]}")
     else:
         col_counter = 0
         for i in idx[0]:

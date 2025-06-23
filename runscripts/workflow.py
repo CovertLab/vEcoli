@@ -595,9 +595,7 @@ def main():
                     raise RuntimeError(
                         "You are about to run a workflow with the same experiment ID "
                         "and output directory as a previously completed workflow. "
-                        "If you are resuming a workflow, delete the HTML report file "
-                        "in the upstream error message and try again. If you are starting "
-                        "a new workflow, either change the experiment ID, change the output "
+                        "Either change the experiment ID, change the output "
                         "directory, or completely delete the existing output directory "
                         "to avoid mixing output from multiple workflows."
                     )
