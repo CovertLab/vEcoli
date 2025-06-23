@@ -165,7 +165,7 @@ profiles {
             container = params.container_image
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
             // Use SLURM directly for retries requesting more RAM
-            // to avoid hogging HyperQueue worker resources away
+            // to avoid hogging HyperQueue worker resources away from
             // non-retry simulations
             executor = {
                 if ( task.exitStatus in [137, 140] ) {
