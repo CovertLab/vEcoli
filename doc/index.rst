@@ -48,4 +48,5 @@ in the Vivarium documentation.
    hpc
    gcloud
    ci
+   pycharm
    API Reference <reference/api_ref.rst>

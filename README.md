@@ -95,10 +95,11 @@ echo -e "\nalias uvenv='uv run --env-file $(pwd)/.env --project $(pwd)'" >> $HOM
 
 7. Close and reopen your terminal.
 
-8. (optional) For integration with IDEs, select the newly created virtual environment
-located at `.venv` inside your cloned repository (e.g.
-[for PyCharm](https://www.jetbrains.com/help/pycharm/uv.html),
-[for VSCode](https://code.visualstudio.com/docs/python/environments#_working-with-python-interpreters)).
+8. (optional) For PyCharm integration, follow
+[these instructions](https://covertlab.github.io/vEcoli/pycharm.html).
+For VS Code integration, select the interpreter located at `.venv/bin/python`
+inside the cloned repository following
+[these instructions](https://code.visualstudio.com/docs/python/environments#_working-with-python-interpreters).
 
 9. If you are a member of the Covert Lab, ask to be added to the GitHub organization
 and [set up SSH authentication](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
