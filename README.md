@@ -127,10 +127,14 @@ This will run the following basic simulation workflow, saving all output to `out
 3. [Analyze simulation output](runscripts/analysis.py) by creating a
 [mass fraction plot](ecoli/analysis/single/mass_fraction_summary.py).
 
-This takes about 10 minutes to run on a MacBook Air (2022, M2). If the Nextflow workflow
-completes with no errors, navigate to the following folder inside the cloned repository
-using a file browser and open `mass_fraction_summary.html` to inspect the mass fraction
-summary plot for the simulation you just ran:
+The percentage displayed for each step only changes when inidividual tasks in
+that step complete. For example, the parameter calculator step is a single task,
+so its percentage will go from 0 to 100 when it completes.
+
+The full workflow takes about 10 minutes to run on a MacBook Air (2022, M2). If the
+Nextflow workflow completes with no errors, navigate to the following folder inside
+the cloned repository using a file browser and open `mass_fraction_summary.html` to
+inspect the mass fraction summary plot for the simulation you just ran:
 
     out/test_installation/analyses/variant=0/lineage_seed=0/generation=1/agent_id=0/plots
 
