@@ -117,7 +117,7 @@ def plot(
                 unnest(monomer_counts) AS monomer_counts,
                 unnest(mrna_counts) AS mrna_counts,
                 generate_subscripts(mrna_counts, 1) AS cistron_idx
-            FROM {subquery}
+            FROM ({subquery})
         ),
         -- Group by cell and cistron to get existence of each mRNA per cell
         cell_aggregate AS (
