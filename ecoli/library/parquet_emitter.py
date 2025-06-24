@@ -334,11 +334,11 @@ def named_idx(
     Create DuckDB expressions for given indices from a list column. Can be
     used in ``projection`` kwarg of :py:func:`~.read_stacked_columns`. Since
     each index gets pulled out into its own column, this greatly simplifies
-    and speeds up aggregations like averages, etc. Do NOT use this in combination
-    with the ``func`` kwarg of :py:func:`~.read_stacked_columns` because the
-    overhead of having so many columns will be multiplied by the number of cells
-    that are individually queried. Automatically quotes column names to handle
-    special characters. Do NOT use double quotes in ``names`` or ``col``.
+    aggregations like averages, etc. Only use this if the number of indices
+    is relatively small (<100) and the list column is 1-dimensional. For 2+
+    dimensions or >100 indices, see :py:func:`~.ndidx_to_duckdb_expr`.
+    Automatically quotes column names to handle special characters.
+    Do NOT use double quotes in ``names`` or ``col``.
 
     .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
         supplied index!
