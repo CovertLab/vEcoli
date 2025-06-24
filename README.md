@@ -67,6 +67,7 @@ to install `uv`, our Python package and project manager of choice.
 4. Navigate into the cloned repository and use `uv` to install the model:
 
 ```
+# Navigate into cloned repository ("vEcoli", by default)
 cd vEcoli
 # Install base and dev dependencies (see pyproject.toml)
 uv sync --frozen --extra dev
@@ -83,17 +84,22 @@ continuing with the `nextflow` installation steps.
 > **Tip:** If any step in the `nextflow` installation fails,
 > try rerunning a few times to see if that fixes the issue.
 
-6. Add the `uvenv` alias to your shell configuration:
+6. Navigate back to the cloned repository and add the `uvenv` alias to your shell configuration:
 
 ```
+# Navigate back to cloned repository ("vEcoli", by default)
+cd vEcoli
+# Add uvenv alias to shell config (e.g. .bashrc, .zshrc, etc.)
 echo -e "\nalias uvenv='uv run --env-file $(pwd)/.env --project $(pwd)'" >> $HOME/.$(basename $SHELL)rc
 ```
 
 7. Close and reopen your terminal.
 
-8. (optional) For integration with IDEs, select the newly created virtual environment
-located at `.venv` inside your cloned repository (e.g.
-[for PyCharm](https://www.jetbrains.com/help/pycharm/uv.html)).
+8. (optional) For PyCharm integration, follow
+[these instructions](https://covertlab.github.io/vEcoli/pycharm.html).
+For VS Code integration, select the interpreter located at `.venv/bin/python`
+inside the cloned repository following
+[these instructions](https://code.visualstudio.com/docs/python/environments#_working-with-python-interpreters).
 
 9. If you are a member of the Covert Lab, ask to be added to the GitHub organization
 and [set up SSH authentication](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
@@ -123,10 +129,14 @@ This will run the following basic simulation workflow, saving all output to `out
 3. [Analyze simulation output](runscripts/analysis.py) by creating a
 [mass fraction plot](ecoli/analysis/single/mass_fraction_summary.py).
 
-This takes about 10 minutes to run on a MacBook Air (2022, M2). If the Nextflow workflow
-completes with no errors, navigate to the following folder inside the cloned repository
-using a file browser and open `mass_fraction_summary.html` to inspect the mass fraction
-summary plot for the simulation you just ran:
+The percentage displayed for each step only changes when inidividual tasks in
+that step complete. For example, the parameter calculator step is a single task,
+so its percentage will go from 0 to 100 when it completes.
+
+The full workflow takes about 10 minutes to run on a MacBook Air (2022, M2). If the
+Nextflow workflow completes with no errors, navigate to the following folder inside
+the cloned repository using a file browser and open `mass_fraction_summary.html` to
+inspect the mass fraction summary plot for the simulation you just ran:
 
     out/test_installation/analyses/variant=0/lineage_seed=0/generation=1/agent_id=0/plots
 
