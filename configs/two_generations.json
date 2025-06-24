@@ -5,7 +5,7 @@
         "cpus": 3
     },
     "sim_data_path": null,
-    "fail_at_total_time": true,
+    "fail_at_max_duration": true,
     "generations": 2,
     "n_init_sims": 3,
     "single_daughters": true,

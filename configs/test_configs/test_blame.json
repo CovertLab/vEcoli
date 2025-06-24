@@ -1,6 +1,6 @@
 {
     "experiment_id" : "test_blame",
-    "total_time" : 4,
+    "max_duration" : 4.0,
     "log_updates" : true,
     "raw_output" : false
 }
