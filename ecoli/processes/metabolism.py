@@ -348,7 +348,7 @@ class Metabolism(Step):
             },
             "polypeptide_elongation": {
                 "aa_count_diff": {
-                    "_default": {},
+                    "_default": [0.0] * len(self.aa_names),
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "empty_dict",
@@ -467,7 +467,12 @@ class Metabolism(Step):
             conc_updates.update(
                 self.update_amino_acid_targets(
                     counts_to_molar,
-                    states["polypeptide_elongation"]["aa_count_diff"],
+                    dict(
+                        zip(
+                            self.aa_names,
+                            states["polypeptide_elongation"]["aa_count_diff"],
+                        )
+                    ),
                     dict(zip(self.aa_names, counts(states["bulk_total"], self.aa_idx))),
                 )
             )

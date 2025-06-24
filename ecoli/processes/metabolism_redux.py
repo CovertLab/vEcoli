@@ -350,7 +350,7 @@ class MetabolismRedux(Step):
             "boundary": {"external": {"*": {"_default": 0 * vivunits.mM}}},
             "polypeptide_elongation": {
                 "aa_count_diff": {
-                    "_default": {},
+                    "_default": [0.0] * len(self.aa_names),
                     "_emit": True,
                     "_divider": "empty_dict",
                 },
@@ -535,7 +535,12 @@ class MetabolismRedux(Step):
             conc_updates.update(
                 self.update_amino_acid_targets(
                     self.counts_to_molar,
-                    states["polypeptide_elongation"]["aa_count_diff"],
+                    dict(
+                        zip(
+                            self.aa_names,
+                            states["polypeptide_elongation"]["aa_count_diff"],
+                        )
+                    ),
                     dict(zip(self.aa_names, counts(states["bulk_total"], self.aa_idx))),
                 )
             )
