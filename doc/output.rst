@@ -282,6 +282,12 @@ to read data using DuckDB. These include:
   to large to read into memory all at once).
 
 .. warning::
+  Column names that contain special characters (e.g. spaces, dashes, etc.) must be
+  enclosed in double quotes when used in DuckDB SQL queries. This is automatically
+  handled by the relevant helper functions listed above, but if you are writing
+  your own SQL queries from scratch, you must remember to do this yourself.
+
+.. warning::
     Parquet lists are 1-indexed. :py:func:`~ecoli.library.parquet_emitter.ndidx_to_duckdb_expr`
     and :py:func:`~ecoli.library.parquet_emitter.named_idx` automatically add 1 to
     user-supplied indices.
