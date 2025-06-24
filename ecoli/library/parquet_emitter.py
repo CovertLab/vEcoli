@@ -324,7 +324,11 @@ def ndidx_to_duckdb_expr(
 
 
 def named_idx(
-    col: str, names: list[str], idx: list[list[int]], zero_to_null: bool = False
+    col: str,
+    names: list[str],
+    idx: list[list[int]],
+    zero_to_null: bool = False,
+    _quote_col: bool = True,
 ) -> str:
     """
     Create DuckDB expressions for given indices from a list column. Can be
@@ -334,7 +338,7 @@ def named_idx(
     with the ``func`` kwarg of :py:func:`~.read_stacked_columns` because the
     overhead of having so many columns will be multiplied by the number of cells
     that are individually queried. Automatically quotes column names to handle
-    special characters. Do NOT use double quotes in ``names``.
+    special characters. Do NOT use double quotes in ``names`` or ``col``.
 
     .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
         supplied index!
@@ -350,12 +354,16 @@ def named_idx(
         zero_to_null: Whether to turn 0s into nulls. This is useful when
             dividing by the values in this column, as most DuckDB aggregation
             functions (e.g. ``avg``, ``max``) propagate NaNs but ignore nulls.
+        _quote_col: Private argument to ensure ``col`` is quoted properly.
 
     Returns:
         DuckDB SQL expression for a set of named columns corresponding to
         the values at given indices of a list column
     """
     assert isinstance(idx[0], list), "idx must be a list of lists."
+    # Quote column name on initial call
+    if _quote_col:
+        col = f'"{col}"'
     col_exprs = []
     if len(idx) == 1:
         for num, i in enumerate(idx[0]):
@@ -370,7 +378,11 @@ def named_idx(
         col_counter = 0
         for i in idx[0]:
             sub_col_exprs = named_idx(
-                f"{col}[{i + 1}]", names[col_counter:], idx[1:], zero_to_null
+                f"{col}[{i + 1}]",
+                names[col_counter:],
+                idx[1:],
+                zero_to_null,
+                _quote_col=False,
             )
             col_counter += sub_col_exprs.count(", ") + 1
             col_exprs.append(sub_col_exprs)
