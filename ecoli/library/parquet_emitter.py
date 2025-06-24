@@ -262,6 +262,8 @@ def ndidx_to_duckdb_expr(
     and getting ``name_arr[idx]``. ``idx`` can contain 1D lists of integers,
     boolean masks, or ``":"`` (no 2D+ indices like ``x[[[1,2]]]``). See also
     :py:func:`~named_idx` if pulling out a relatively small set of indices.
+    Automatically quotes column names to handle special characters. Do NOT
+    use double quotes in ``name``.
 
     .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
         supplied integer index!
@@ -281,6 +283,7 @@ def ndidx_to_duckdb_expr(
                 [[0, 1], ":", [0, 1]]
 
     """
+    quoted_name = f'"{name}"'
     idx = idx.copy()
     idx.reverse()
     # Construct expression from inside out (deepest to shallowest axis)
@@ -316,8 +319,8 @@ def ndidx_to_duckdb_expr(
             select_expr = f"list_transform(list_select(x_{i + 1}, [{int(indices) + 1}]), lambda x_{i} : {select_expr})"
         else:
             raise TypeError("All indices must be lists, ints, or ':'.")
-    select_expr = select_expr.replace(f"x_{i + 1}", name)
-    return select_expr + f" AS {name}"
+    select_expr = select_expr.replace(f"x_{i + 1}", quoted_name)
+    return select_expr + f" AS {quoted_name}"
 
 
 def named_idx(
@@ -330,7 +333,8 @@ def named_idx(
     and speeds up aggregations like averages, etc. Do NOT use this in combination
     with the ``func`` kwarg of :py:func:`~.read_stacked_columns` because the
     overhead of having so many columns will be multiplied by the number of cells
-    that are individually queried.
+    that are individually queried. Automatically quotes column names to handle
+    special characters. Do NOT use double quotes in ``names``.
 
     .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
         supplied index!
@@ -355,12 +359,13 @@ def named_idx(
     col_exprs = []
     if len(idx) == 1:
         for num, i in enumerate(idx[0]):
+            quoted_name = f'"{names[num]}"'
             if zero_to_null:
                 col_exprs.append(
-                    f"CASE WHEN {col}[{i + 1}] = 0 THEN NULL ELSE {col}[{i + 1}] END AS {names[num]}"
+                    f"CASE WHEN {col}[{i + 1}] = 0 THEN NULL ELSE {col}[{i + 1}] END AS {quoted_name}"
                 )
             else:
-                col_exprs.append(f"{col}[{i + 1}] AS {names[num]}")
+                col_exprs.append(f"{col}[{i + 1}] AS {quoted_name}")
     else:
         col_counter = 0
         for i in idx[0]:
@@ -378,7 +383,8 @@ def field_metadata(
     """
     Gets the saved metadata (see
     :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata`)
-    for a given field as a list.
+    for a given field as a list. Automatically quotes the field name to
+    handle special characters. Do NOT use double quotes in ``field``.
 
     Args:
         conn: DuckDB connection
@@ -402,7 +408,8 @@ def config_value(
     """
     Gets the saved configuration option (anything in config JSON, with
     double underscore concatenation for nested fields due to
-    :py:func:`~.flatten_dict`).
+    :py:func:`~.flatten_dict`). Automatically quotes the field name to
+    handle special characters. Do NOT use double quotes in ``field``.
 
     Args:
         conn: DuckDB connection
@@ -505,6 +512,11 @@ def read_stacked_columns(
     return value (whether it be the actual data or an SQL subquery) will
     also include the ``experiment_id``, ``variant``, ``lineage_seed``,
     ``generation``, ``agent_id``, and ``time`` columns.
+
+    .. warning:: If the column expressions in ``columns`` are not from
+        :py:func:`~named_idx` or :py:func:`~ndidx_to_duckdb_expr`,
+        they may need to be enclosed in double quotes to handle
+        special characters (e.g. ``"col-with-hyphens"``).
 
     For example, to get the average total concentration of three bulk molecules
     with indices 100, 1000, and 10000 per cell::
