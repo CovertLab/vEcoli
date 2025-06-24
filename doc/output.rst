@@ -279,13 +279,16 @@ to read data using DuckDB. These include:
   for reading simulation output from ``history`` folder. Can either immediately read
   all data in specified columns into memory by supplying ``conn`` argument or
   return a DuckDB SQL query that can be iteratively built upon (useful when data
-  to large to read into memory all at once).
+  too large to read into memory all at once).
 
 .. warning::
   Column names that contain special characters (e.g. spaces, dashes, etc.) must be
   enclosed in double quotes when used in DuckDB SQL queries. This is automatically
-  handled by the relevant helper functions listed above, but if you are writing
-  your own SQL queries from scratch, you must remember to do this yourself.
+  handled by :py:func:`~ecoli.library.parquet_emitter.ndidx_to_duckdb_expr`,
+  :py:func:`~ecoli.library.parquet_emitter.named_idx`,
+  :py:func:`~ecoli.library.parquet_emitter.field_metadata`,
+  and :py:func:`~ecoli.library.parquet_emitter.config_value`, but NOT
+  :py:func:`~ecoli.library.parquet_emitter.read_stacked_columns`.
 
 .. warning::
     Parquet lists are 1-indexed. :py:func:`~ecoli.library.parquet_emitter.ndidx_to_duckdb_expr`
