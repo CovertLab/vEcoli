@@ -18,7 +18,6 @@ from ecoli.library.parquet_emitter import (
     json_to_parquet,
     np_dtype,
     named_idx,
-    nested_col_shape,
     ndidx_to_duckdb_expr,
     flatten_dict,
     union_pl_dtypes,
@@ -80,12 +79,6 @@ class TestHelperFunctions:
             }
         )
         assert result.equals(expected)
-
-    def test_nested_col_shape(self, query_conn):
-        assert nested_col_shape(query_conn, "FROM test_table", "a") == (3,)
-        assert nested_col_shape(query_conn, "FROM test_table", "b") == (2, 2)
-        with pytest.raises(pl.exceptions.ComputeError, match="not all elements"):
-            nested_col_shape(query_conn, "FROM test_table", "c")
 
     def test_ndidx_to_duckdb_expr(self, query_conn):
         expr = ndidx_to_duckdb_expr("b", [0, 1])
