@@ -2,7 +2,7 @@
     "experiment_id": "daily-no-growth-rate-control",
     "single_daughters": true,
     "generations": 4,
-    "fail_at_total_time": true,
+    "fail_at_max_duration": true,
     "trna_attenuation": false,
     "ppgpp_regulation": false,
     "mechanistic_translation_supply": false,

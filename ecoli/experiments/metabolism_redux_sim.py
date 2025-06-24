@@ -22,7 +22,7 @@ import dill
 
 def run_ecoli_with_metabolism_redux(
     filename="metabolism_redux",
-    total_time=5000,
+    max_duration=5000,
     divide=True,
     initial_state_file="wcecoli_t0",
     progress_bar=True,
@@ -35,7 +35,7 @@ def run_ecoli_with_metabolism_redux(
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
-    sim.total_time = total_time
+    sim.max_duration = max_duration
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
@@ -48,14 +48,14 @@ def run_ecoli_with_metabolism_redux(
     sim.run()
 
     query = []
-    folder = f"out/fbagd/{name}_{total_time}_{datetime.date.today()}/"
+    folder = f"out/fbagd/{name}_{max_duration}_{datetime.date.today()}/"
     save_sim_output(folder, query, sim, save_model=True)
 
 
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic",
-    total_time=10,
+    max_duration=10,
     divide=True,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
@@ -70,7 +70,7 @@ def run_ecoli_with_metabolism_redux_classic(
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
-    sim.total_time = total_time
+    sim.max_duration = max_duration
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
@@ -104,13 +104,13 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.run()
 
     query = []
-    folder = f"out/cofactors/{name}_{total_time}_{datetime.date.today()}/"
+    folder = f"out/cofactors/{name}_{max_duration}_{datetime.date.today()}/"
     save_sim_output(folder, query, sim, save_model=True)
 
 
 def run_colony(
     filename="metabolism_redux_classic",
-    total_time=1400,
+    max_duration=1400,
     divide=True,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
@@ -125,7 +125,7 @@ def run_colony(
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
-    sim.total_time = total_time
+    sim.max_duration = max_duration
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
@@ -153,14 +153,14 @@ def run_colony(
 @pytest.mark.slow
 def test_ecoli_with_metabolism_redux(
     filename="metabolism_redux",
-    total_time=4,
+    max_duration=4,
     divide=False,
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
-    sim.total_time = total_time
+    sim.max_duration = max_duration
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
@@ -174,13 +174,13 @@ def test_ecoli_with_metabolism_redux(
 @pytest.mark.slow
 def test_ecoli_with_metabolism_redux_div(
     filename="metabolism_redux",
-    total_time=4,
+    max_duration=4,
     divide=True,
     emitter="timeseries",
 ):
     # TODO (Cyrus) - Add test that affirms structure of output query.
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
-    sim.total_time = total_time
+    sim.max_duration = max_duration
     sim.divide = divide
     sim.emitter = emitter
     sim.build_ecoli()
@@ -213,14 +213,14 @@ def test_ecoli_with_metabolism_redux_div(
 @pytest.mark.slow
 def test_ecoli_with_metabolism_classic(
     filename="metabolism_redux_classic",
-    total_time=4,
+    max_duration=4,
     divide=False,
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
-    sim.total_time = total_time
+    sim.max_duration = max_duration
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
@@ -234,14 +234,14 @@ def test_ecoli_with_metabolism_classic(
 # @pytest.mark.slow
 # def test_ecoli_with_metabolism_classic_div(
 #         filename='metabolism_redux_classic',
-#         total_time=10,
+#         max_duration=10,
 #         divide=True,
 #         emitter='timeseries',
 #         initial_state_file='met_division_test_state',
 # ):
 #     # TODO (Cyrus) - Add test that affirms structure of output query.
 #     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
-#     sim.total_time = total_time
+#     sim.max_duration = max_duration
 #     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
 #
 #     sim.divide = divide
@@ -260,14 +260,14 @@ def test_ecoli_with_metabolism_classic(
 
 def run_ecoli_with_default_metabolism(
     filename="default",
-    total_time=10,
+    max_duration=10,
     divide=False,
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
-    sim.total_time = total_time
+    sim.max_duration = max_duration
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
@@ -278,7 +278,7 @@ def run_ecoli_with_default_metabolism(
     # output = sim.query()
     output = sim.ecoli_experiment.emitter.get_timeseries()
 
-    folder = f"out/fbagd/{total_time}/{datetime.datetime.now()}/"
+    folder = f"out/fbagd/{max_duration}/{datetime.datetime.now()}/"
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
     np.save(folder + "fba_results.npy", output["listeners"]["fba_results"])
     np.save(folder + "mass.npy", output["listeners"]["mass"])
