@@ -258,12 +258,9 @@ jobs:
           echo "Setting up uv environment..."
           uv sync --frozen --all-extras
           
-          # Update only this specific package
+          # Update only this specific package in the lock file
           echo "Updating ${{ matrix.package.name }} to ${{ matrix.package.version }}"
-          uv add "${{ matrix.package.name }}==${{ matrix.package.version }}"
-          
-          # Update the lock file
-          uv sync
+          uv lock --upgrade-package "${{ matrix.package.name }}==${{ matrix.package.version }}"
           
           # Verify changes were made
           if git diff --quiet uv.lock; then

@@ -14,11 +14,8 @@ identified via a unique experiment ID.
     the same experiment ID.
 
 When running workflows with :py:mod:`runscripts.workflow` (see :ref:`/workflows.rst`),
-users are prevented from accidentally overwriting data by ``nextflow``, the software
-used to run the workflow. Specifically, nextflow generates an HTML execution report
-in the output folder for a given experiment ID (see :ref:`output`)
-and will refuse to run another workflow with the same experiment ID unless
-that execution report is renamed, moved, or deleted.
+users are prevented from accidentally overwriting data by a check that ensures
+``{out_dir}/{experiment_id}/nextflow`` does not already exist.
 
 
 .. _sim_config:
@@ -169,18 +166,18 @@ documented in :ref:`/workflows.rst`.
         # and runscripts/workflow.py. Most of the time, division occurs well before
         # 10800 seconds have elapsed. However, if this is not the case, this time
         # sets a hard stopping point for the simulation. MUST BE FLOAT.
-        "total_time": 10800.0,
+        "max_duration": 10800.0,
         # The value to initialize the ("global_time",) store with. Mainly used for
         # simulations run with runscripts/workflow.py, which frequently entail
         # simulating daughter cells after a mother cell divides. MUST BE FLOAT.
-        # Note that the "total_time" option is applied on top of this value.
-        # For example, for an "initial_global_time" of 3000.0 and a "total_time"
+        # Note that the "max_duration" option is applied on top of this value.
+        # For example, for an "initial_global_time" of 3000.0 and a "max_duration"
         # of 10000.0, the simulation will have a hard stopping point at 13000.0 s.
         "initial_global_time": 0.0,
         # Whether to raise ecoli.experiments.ecoli_master_sim.TimeLimitError when
         # a simulation reaches the hard stopping point or to gracefully stop with
         # no error raised.
-        "fail_at_total_time": false,
+        "fail_at_max_duration": false,
         # String identifier for single cell simulation. For workflows run with
         # runscripts/workflow.py, subsequent generations will append "0" and "1"
         # to this initial agent ID for each daughter cell (only "0" if not
@@ -375,8 +372,8 @@ Here are some general rules to remember when writing your own JSON config files:
 - ``~`` and environment variables like ``$HOME`` are not expanded (see warning at :doc:`workflows`)
 
 .. note::
-    It is strongly recommended that ``fail_at_total_time`` be set to ``True``
-    when running multi-generation workflows. If a simulation reaches total time
+    It is strongly recommended that ``fail_at_max_duration`` be set to ``True``
+    when running multi-generation workflows. If a simulation reaches max duration
     without dividing, this results in a more informative error message instead
     of a Nextflow error about missing daughter cell states.
 
@@ -509,4 +506,4 @@ files in the ``ecoli/experiments`` folder include:
   process (:py:class:`~ecoli.processes.metabolism.Metabolism`) with experimental
   alternatives (e.g. :py:class:`~ecoli.processes.metabolism_redux_classic.MetabolismReduxClassic`).
   Makes use of the object-oriented interface for sim configuration mentioned
-  in :ref:`sim_config` (e.g. ``sim.total_time = 100``).
+  in :ref:`sim_config` (e.g. ``sim.max_duration = 100``).

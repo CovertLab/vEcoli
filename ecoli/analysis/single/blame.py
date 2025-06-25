@@ -558,7 +558,7 @@ def test_blame_timeseries():
         sim.log_updates = True
         sim.emit_topology = False
         sim.emit_processes = False
-        sim.total_time = 10
+        sim.max_duration = 10
         sim.build_ecoli()
         bulk_ids = sim.generated_initial_state["agents"]["0"]["bulk"]["id"]
         sim.run()
