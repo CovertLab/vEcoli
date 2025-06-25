@@ -14,11 +14,8 @@ identified via a unique experiment ID.
     the same experiment ID.
 
 When running workflows with :py:mod:`runscripts.workflow` (see :ref:`/workflows.rst`),
-users are prevented from accidentally overwriting data by ``nextflow``, the software
-used to run the workflow. Specifically, nextflow generates an HTML execution report
-in the output folder for a given experiment ID (see :ref:`output`)
-and will refuse to run another workflow with the same experiment ID unless
-that execution report is renamed, moved, or deleted.
+users are prevented from accidentally overwriting data by a check that ensures
+``{out_dir}/{experiment_id}/nextflow`` does not already exist.
 
 
 .. _sim_config:
