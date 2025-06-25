@@ -22,7 +22,9 @@ class UnitStructArray(object):
     units are being used while loading constants.
     """
 
-    def __init__(self, struct_array: npt.ArrayLike, units: dict[str, Optional[str]]):
+    def __init__(
+        self, struct_array: npt.NDArray, units: dict[str, Optional[unum.Unum]]
+    ):
         self._validate(struct_array, units)
 
         self.struct_array = struct_array

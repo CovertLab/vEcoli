@@ -145,7 +145,10 @@ def main():
         help="Path to the validation_data pickle(s) to use.",
     )
     parser.add_argument(
-        "--outdir", "-o", help="Directory that all analysis output is saved to."
+        "--outdir",
+        "-o",
+        help="Directory that all analysis output is saved to."
+        " MUST be a local path, not a Cloud Storage bucket URI.",
     )
     parser.add_argument(
         "--cpus",
@@ -303,45 +306,55 @@ def main():
                 f"Specified {analysis_type} analysis type"
                 " but none provided in analysis_options."
             )
+        elif len(config[analysis_type]) == 0:
+            print(f"Skipping {analysis_type} analysis - none provided in config.")
+            continue
         # Compile collection of history and config SQL queries for each cell
         # subset identified for current analysis type
-        cols = ANALYSIS_TYPES[analysis_type]
+        id_cols = ANALYSIS_TYPES[analysis_type]
         query_strings = {}
         # Figure out what Hive partition in main output directory
         # to store outputs for analyses run on this cell subset
-        curr_outdir = os.path.abspath(config["outdir"])
-        if len(cols) > 0:
-            joined_cols = ", ".join(cols)
+        if len(id_cols) > 0:
+            joined_cols = ", ".join(id_cols)
             data_ids = conn.sql(
                 f"SELECT DISTINCT ON({joined_cols}) {joined_cols}"
                 f" FROM ({config_sql}) WHERE {duckdb_filter}"
             ).fetchall()
             for data_id in data_ids:
                 data_filters = []
-                for col, col_val in zip(cols, data_id):
+                curr_outdir = os.path.abspath(config["outdir"])
+                for col, col_val in zip(id_cols, data_id):
                     curr_outdir = os.path.join(curr_outdir, f"{col}={col_val}")
                     # Quote string Hive partition values for DuckDB query
                     if FILTERS[col] is str:
                         col_val = f"'{col_val}'"
                     data_filters.append(f"{col}={col_val}")
+                os.makedirs(curr_outdir, exist_ok=True)
                 data_filters = " AND ".join(data_filters)
                 query_strings[data_filters] = (
                     f"SELECT * FROM ({history_sql}) WHERE {data_filters}",
                     f"SELECT * FROM ({config_sql}) WHERE {data_filters}",
                     f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
+                    curr_outdir,
                 )
         else:
             query_strings[duckdb_filter] = (
                 f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({success_sql}) WHERE {duckdb_filter}",
+                os.path.abspath(config["outdir"]),
             )
-        os.makedirs(curr_outdir, exist_ok=True)
         for analysis_name in config[analysis_type]:
             analysis_mod = importlib.import_module(
                 f"ecoli.analysis.{analysis_type}.{analysis_name}"
             )
-            for data_filters, (history_q, config_q, success_q) in query_strings.items():
+            for data_filters, (
+                history_q,
+                config_q,
+                success_q,
+                curr_outdir,
+            ) in query_strings.items():
                 print(f"Running {analysis_type} {analysis_name} with {data_filters}.")
                 analysis_mod.plot(
                     config[analysis_type][analysis_name],

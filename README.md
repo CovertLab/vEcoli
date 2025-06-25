@@ -46,6 +46,15 @@ On MacOS, curl is preinstalled and git and clang come with the Xcode Command Lin
 
     xcode-select --install
 
+> **Warning:** If you used Apple's migration wizard to transfer your data from an
+> Intel-based (released pre-2020) to a newer Mac, open "System Information" and
+> click "Applications" in the left side menu. Sort by "Kind" and look for any "Intel"
+> applications. For best performance and compatibility, we recommend uninstalling
+> and reinstalling those apps, if possible. You likely will need to do the same for
+> any installed developer apps like Homebrew, etc. Lastly, if you see a message in
+> your terminal about changing the default shell to zsh, we recommend running the
+> listed command to do so ([detailed instructions](https://support.apple.com/en-us/102360)).
+
 ### Installation
 
 1. Clone the repository:
