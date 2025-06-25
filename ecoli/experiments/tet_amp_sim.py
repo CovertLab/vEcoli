@@ -74,7 +74,7 @@ def run_sim(
             runtime = 26002
             config["save"] = True
             config["save_times"] = [11550, 23100]
-        config["total_time"] = runtime
+        config["max_duration"] = runtime
         # Ensure that sim starts with correctly reduced murein counts
         config["initial_state_overrides"] = ["overrides/reduced_murein"]
     else:
@@ -86,7 +86,7 @@ def run_sim(
             runtime = 14452
             config["save"] = True
             config["save_times"] = [11550]
-        config["total_time"] = runtime
+        config["max_duration"] = runtime
     if cloud:
         config["emitter_arg"] = {"host": "10.138.0.75:27017", "emit_limit": 5000000}
 

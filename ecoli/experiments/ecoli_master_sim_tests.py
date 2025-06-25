@@ -5,14 +5,14 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 def testDefault():
     sim = EcoliSim.from_file()
-    sim.total_time = 2
+    sim.max_duration = 2
     sim.build_ecoli()
     sim.run()
 
 
 def testAddProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "test_configs/test_add_process.json")
-    sim.total_time = 2
+    sim.max_duration = 2
     sim.build_ecoli()
     assert "clock" in sim.ecoli.processes["agents"]["0"].keys()
     sim.ecoli.processes["agents"]["0"].pop("global_clock")
@@ -29,7 +29,7 @@ def testAddProcess():
 
 def testExcludeProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "test_configs/test_exclude_process.json")
-    sim.total_time = 2
+    sim.max_duration = 2
     sim.build_ecoli()
     assert "ecoli-polypeptide-initiation" not in sim.ecoli.processes.keys()
     assert "ecoli-polypeptide-initiation" not in sim.ecoli.topology.keys()
@@ -41,12 +41,12 @@ def testExcludeProcess():
 def test_merge():
     sim1 = EcoliSim.from_file()
     sim2 = EcoliSim.from_file()
-    sim1.total_time = 10
-    sim2.total_time = 20
+    sim1.max_duration = 10
+    sim2.max_duration = 20
     sim1.merge(sim2)
 
-    assert sim1.total_time == 20
-    assert sim2.total_time == 20
+    assert sim1.max_duration == 20
+    assert sim2.max_duration == 20
 
 
 def test_export():

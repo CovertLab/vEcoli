@@ -410,7 +410,7 @@ class PolypeptideElongation(PartitionedProcess):
             ),
             "polypeptide_elongation": {
                 "aa_count_diff": {
-                    "_default": {},
+                    "_default": [0.0] * len(self.amino_acids),
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "empty_dict",
@@ -552,7 +552,9 @@ class PolypeptideElongation(PartitionedProcess):
         # Begin wcEcoli evolveState()
         # Set values for metabolism in case of early return
         update["polypeptide_elongation"]["gtp_to_hydrolyze"] = 0
-        update["polypeptide_elongation"]["aa_count_diff"] = {}
+        update["polypeptide_elongation"]["aa_count_diff"] = np.zeros(
+            len(self.amino_acids), dtype=np.float64
+        )
 
         # Get number of active ribosomes
         n_active_ribosomes = states["active_ribosome"]["_entryState"].sum()
@@ -695,9 +697,7 @@ class PolypeptideElongation(PartitionedProcess):
         # Write data to listeners
         update["listeners"]["growth_limits"]["net_charged"] = net_charged
         update["listeners"]["growth_limits"]["aas_used"] = aas_used
-        update["listeners"]["growth_limits"]["aa_count_diff"] = [
-            aa_count_diff.get(id_, 0) for id_ in self.amino_acids
-        ]
+        update["listeners"]["growth_limits"]["aa_count_diff"] = aa_count_diff
 
         ribosome_data_listener = update["listeners"].setdefault("ribosome_data", {})
         ribosome_data_listener["effective_elongation_rate"] = currElongRate
@@ -781,7 +781,7 @@ class BaseElongationModel(object):
         )
         return (
             net_charged,
-            {},
+            np.zeros(len(self.process.amino_acids), dtype=np.float64),
             {
                 "bulk": [
                     (self.process.amino_acid_idx, -aas_used),
@@ -1335,7 +1335,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
 
         return (
             net_charged,
-            {aa: diff for aa, diff in zip(self.process.amino_acids, aa_diff)},
+            aa_diff,
             update,
         )
 

@@ -39,9 +39,11 @@ def plot(
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
 
+    ignore_first_n_gens = params.get("ignore_first_n_gens", IGNORE_FIRST_N_GENS)
+
     # Ignore first N generations
-    history_sql = skip_n_gens(history_sql, IGNORE_FIRST_N_GENS)
-    config_sql = skip_n_gens(config_sql, IGNORE_FIRST_N_GENS)
+    history_sql = skip_n_gens(history_sql, ignore_first_n_gens)
+    config_sql = skip_n_gens(config_sql, ignore_first_n_gens)
 
     if num_cells(conn, config_sql) == 0:
         print("Skipping analysis - not enough generations run.")
@@ -103,7 +105,7 @@ def plot(
     )
     subquery = read_stacked_columns(
         history_sql,
-        [f"{monomer_expr} AS monomer_counts", f"{cistron_expr} AS mrna_counts"],
+        [monomer_expr, cistron_expr],
         order_results=False,
     )
     out_df = conn.sql(
@@ -112,10 +114,10 @@ def plot(
         -- index so we can later calculate per-cistron aggregates
         WITH unnested_counts AS (
             SELECT lineage_seed, generation, agent_id,
-                unnest(monomer_counts) AS monomer_counts,
-                unnest(mrna_counts) AS mrna_counts,
-                generate_subscripts(mrna_counts, 1) AS cistron_idx
-            FROM {subquery}
+                unnest(listeners__monomer_counts) AS monomer_counts,
+                unnest(listeners__rna_counts__mRNA_cistron_counts) AS mrna_counts,
+                generate_subscripts(listeners__monomer_counts, 1) AS cistron_idx
+            FROM ({subquery})
         ),
         -- Group by cell and cistron to get existence of each mRNA per cell
         cell_aggregate AS (

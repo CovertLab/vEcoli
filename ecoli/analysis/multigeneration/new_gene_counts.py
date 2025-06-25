@@ -79,10 +79,10 @@ def plot(
 
     # Load data
     new_monomers = named_idx(
-        "listeners__monomer_counts", new_gene_monomer_ids, new_gene_monomer_indexes
+        "listeners__monomer_counts", new_gene_monomer_ids, [new_gene_monomer_indexes]
     )
     new_mRNAs = named_idx(
-        "listeners__rna_counts__mRNA_counts", new_gene_mRNA_ids, new_gene_mRNA_indexes
+        "listeners__rna_counts__mRNA_counts", new_gene_mRNA_ids, [new_gene_mRNA_indexes]
     )
     new_gene_data = read_stacked_columns(
         history_sql,
