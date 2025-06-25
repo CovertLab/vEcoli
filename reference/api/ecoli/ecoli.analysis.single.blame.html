@@ -1,0 +1,335 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.single.blame &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ecoli.analysis.single.mass_fraction_summary" href="ecoli.analysis.single.mass_fraction_summary.html" />
+    <link rel="prev" title="ecoli.analysis.single" href="ecoli.analysis.single.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.antibiotics_colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.antibiotics_colony</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.causality_network.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.causality_network</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.colony</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multidaughter.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multidaughter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multiexperiment.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multiexperiment</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multigeneration.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multigeneration</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multiseed.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multiseed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multivariant.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multivariant</span></code></a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="ecoli.analysis.single.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.single</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.composites.html"><code class="docutils literal notranslate"><span class="pre">ecoli.composites</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.experiments.html"><code class="docutils literal notranslate"><span class="pre">ecoli.experiments</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.library.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.processes.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.variants.html"><code class="docutils literal notranslate"><span class="pre">ecoli.variants</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../runscripts/runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.analysis.single.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.single</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.single.blame</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/ecoli/ecoli.analysis.single.blame.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-ecoli.analysis.single.blame">
+<span id="ecoli-analysis-single-blame"></span><h1><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.single.blame</span></code><a class="headerlink" href="#module-ecoli.analysis.single.blame" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.DivergingNormalize">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">DivergingNormalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform_log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">within</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#DivergingNormalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.DivergingNormalize" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.Normalize.html#matplotlib.colors.Normalize" title="(in Matplotlib v3.10.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Normalize</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.SignNormalize">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">SignNormalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#SignNormalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.SignNormalize" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.Normalize.html#matplotlib.colors.Normalize" title="(in Matplotlib v3.10.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Normalize</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vmin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> or </em><em>None</em>) – Values within the range <code class="docutils literal notranslate"><span class="pre">[vmin,</span> <span class="pre">vmax]</span></code> from the input data will be
+linearly mapped to <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>. If either <em>vmin</em> or <em>vmax</em> is not
+provided, they default to the minimum and maximum values of the input,
+respectively.</p></li>
+<li><p><strong>vmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> or </em><em>None</em>) – Values within the range <code class="docutils literal notranslate"><span class="pre">[vmin,</span> <span class="pre">vmax]</span></code> from the input data will be
+linearly mapped to <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>. If either <em>vmin</em> or <em>vmax</em> is not
+provided, they default to the minimum and maximum values of the input,
+respectively.</p></li>
+<li><p><strong>clip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>default: False</em>) – <p>Determines the behavior for mapping values outside the range
+<code class="docutils literal notranslate"><span class="pre">[vmin,</span> <span class="pre">vmax]</span></code>.</p>
+<p>If clipping is off, values outside the range <code class="docutils literal notranslate"><span class="pre">[vmin,</span> <span class="pre">vmax]</span></code> are
+also transformed, resulting in values outside <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.  This
+behavior is usually desirable, as colormaps can mark these <em>under</em>
+and <em>over</em> values with specific colors.</p>
+<p>If clipping is on, values below <em>vmin</em> are mapped to 0 and values
+above <em>vmax</em> are mapped to 1. Such values become indistinguishable
+from regular boundary values, which may cause misinterpretation of
+the data.</p>
+</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">vmin</span> <span class="pre">==</span> <span class="pre">vmax</span></code>, input data will be mapped to 0.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.blame_plot">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">blame_plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bulk_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'out/ecoli_sim/blame.png'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_molecules</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_processes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlight_molecules</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'n'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#blame_plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.blame_plot" title="Link to this definition"></a></dt>
+<dd><p>Given data from a simulation with logged updates (e.g. by running from CLI with –log_updates flag set),
+generates a heatmap where the columns are processes, rows are molecules, and
+cell colors reflect the average rate of change in a molecule over the whole simulation
+due to a particular process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Data from a logged ecoli simulation.</p></li>
+<li><p><strong>topology</strong> – Topology of logged ecoli simulation (e.g. sim.ecoli_experiment.topology).</p></li>
+<li><p><strong>bulk_ids</strong> – Array of bulk IDs in correct order (can get from initial_state).</p></li>
+<li><p><strong>filename</strong> – The file to save the plot to. To skip writing to file, set this to None.</p></li>
+<li><p><strong>selected_molecules</strong> – if not None, restricts to the specified molecules.</p></li>
+<li><p><strong>selected_processes</strong> – if not None, restricts to the specified processes.</p></li>
+<li><p><strong>highlight_molecules</strong> – A collection of molecules to highlight in red (or None).</p></li>
+<li><p><strong>label_values</strong> – Whether to numerically label the heatmap cells with their values.</p></li>
+<li><p><strong>color_normalize</strong> – whether to normalize values within (p)rocesses, (m)olecules, or (n)either.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>matplotlib axes and figure.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.blame_timeseries">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">blame_timeseries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bulk_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">molecules</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yscale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'linear'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#blame_timeseries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.blame_timeseries" title="Link to this definition"></a></dt>
+<dd><p>Generates timeseries blame plots for the selected bulk molecules assuming
+that bulk data is an array of counts ordered by bulk_ids and saves to the
+specified output file. Timeseries blame plots show the change in molecule
+counts due to each process at each timestep. For convenience, exact count
+plots are included to the side.</p>
+<p>Example usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span> <span class="o">=</span> <span class="n">EcoliSim</span><span class="o">.</span><span class="n">from_file</span><span class="p">()</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">build_ecoli</span><span class="p">()</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
+<span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">val</span><span class="p">[</span><span class="s1">&#39;agents&#39;</span><span class="p">][</span><span class="s1">&#39;0&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<span class="n">store_configs</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">ecoli_experiment</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
+<span class="n">bulk_ids</span> <span class="o">=</span> <span class="n">store_configs</span><span class="p">[</span><span class="s1">&#39;agents&#39;</span><span class="p">][</span><span class="s1">&#39;0&#39;</span><span class="p">][</span><span class="s1">&#39;bulk&#39;</span><span class="p">][</span><span class="s1">&#39;_properties&#39;</span><span class="p">][</span><span class="s1">&#39;metadata&#39;</span><span class="p">]</span>
+<span class="n">blame_timeseries</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sim</span><span class="o">.</span><span class="n">topology</span><span class="p">,</span> <span class="n">bulk_ids</span>
+                <span class="p">[</span><span class="s1">&#39;WATER[c]&#39;</span><span class="p">,</span> <span class="s1">&#39;APORNAP-CPLX[c]&#39;</span><span class="p">,</span> <span class="s1">&#39;TRP[c]&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;out/ecoli_master/test_blame_timeseries.png&#39;</span><span class="p">,</span>
+                <span class="n">yscale</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Data from an experiment (for experiments with cell
+division, ensure that <code class="docutils literal notranslate"><span class="pre">bulk</span></code> is a top-level field in the
+sub-dictionaries for each time point)</p></li>
+<li><p><strong>topology</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Experiment topology (used to determine which processes
+are connected to <code class="docutils literal notranslate"><span class="pre">bulk</span></code> and how)</p></li>
+<li><p><strong>bulk_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – List (or array) of bulk molecule names in the order
+they appear in the structured bulk Numpy array (see <a class="reference internal" href="../../../stores.html#bulk"><span class="std std-ref">Bulk Molecules</span></a>).
+Typically retrieved from simulation config metadata.</p></li>
+<li><p><strong>molecules</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – List of bulk molecule names to plot data for</p></li>
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>None</em>) – Path to save plot to (optional)</p></li>
+<li><p><strong>yscale</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – See <a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.yscale.html#matplotlib.pyplot.yscale" title="(in Matplotlib v3.10.3)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.yscale()</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Axes and figure</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a>[<a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html#matplotlib.axes.Axes" title="(in Matplotlib v3.10.3)"><em>Axes</em></a>, <a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure" title="(in Matplotlib v3.10.3)"><em>Figure</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.extract_bulk">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">extract_bulk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bulk_processes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bulk_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#extract_bulk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.extract_bulk" title="Link to this definition"></a></dt>
+<dd><p>Returns bulk updates in form of the array collected_data
+with dimensions (n_bulk_mols x n_processes), where n_processes
+is given by the keys that are shared by bulk_processes and
+data[‘log_update’]. Shared processes are also returned in order.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.get_bulk_processes">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">get_bulk_processes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topology</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#get_bulk_processes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.get_bulk_processes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.idx_array_from">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">idx_array_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#idx_array_from"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.idx_array_from" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.plot">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history_sql</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_sql</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">success_sql</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_data_paths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_data_paths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.plot" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em>)</p></li>
+<li><p><strong>conn</strong> (<em>DuckDBPyConnection</em>)</p></li>
+<li><p><strong>history_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>config_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>success_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>sim_data_paths</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em><em>]</em>)</p></li>
+<li><p><strong>validation_data_paths</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>)</p></li>
+<li><p><strong>outdir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>variant_metadata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em><em>]</em>)</p></li>
+<li><p><strong>variant_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.preprocess_data">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">preprocess_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bulk_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bulk_processes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">molecules</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#preprocess_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.preprocess_data" title="Link to this definition"></a></dt>
+<dd><p>Prepares raw data for blame-timeseries plot.
+Returns data in the form time, process, values_array
+where time is a numpy array of times, process is a list of
+process names, and values_array is a numpy array of the form
+(molecule x time x process).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.reposition_ticks">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">reposition_ticks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'bottom'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'left'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#reposition_ticks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.reposition_ticks" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.sign_str">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">sign_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#sign_str"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.sign_str" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.single.blame.signed_stacked_bar">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.single.blame.</span></span><span class="sig-name descname"><span class="pre">signed_stacked_bar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bar_labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/single/blame.html#signed_stacked_bar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.single.blame.signed_stacked_bar" title="Link to this definition"></a></dt>
+<dd><p>ax: Axes object
+x: x values (1d array)
+y: y-values (len(x) columns by # stacked bars rows)</p>
+<p>Creates a stacked bar chart in the specified Axes, where
+y’s with negative values represent bars below y=0, and
+y’s with positive values represent bars above y=0.</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ecoli.analysis.single.html" class="btn btn-neutral float-left" title="ecoli.analysis.single" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ecoli.analysis.single.mass_fraction_summary.html" class="btn btn-neutral float-right" title="ecoli.analysis.single.mass_fraction_summary" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

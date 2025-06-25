@@ -1,0 +1,243 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.variants.new_gene_internal_shift &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ecoli.variants.variant_test" href="ecoli.variants.variant_test.html" />
+    <link rel="prev" title="ecoli.variants.condition" href="ecoli.variants.condition.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.composites.html"><code class="docutils literal notranslate"><span class="pre">ecoli.composites</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.experiments.html"><code class="docutils literal notranslate"><span class="pre">ecoli.experiments</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.library.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.processes.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="ecoli.variants.html"><code class="docutils literal notranslate"><span class="pre">ecoli.variants</span></code></a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="ecoli.variants.condition.html"><code class="docutils literal notranslate"><span class="pre">ecoli.variants.condition</span></code></a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">ecoli.variants.new_gene_internal_shift</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.variants.variant_test.html"><code class="docutils literal notranslate"><span class="pre">ecoli.variants.variant_test</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../runscripts/runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.variants.html"><code class="docutils literal notranslate"><span class="pre">ecoli.variants</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">ecoli.variants.new_gene_internal_shift</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/ecoli/ecoli.variants.new_gene_internal_shift.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-ecoli.variants.new_gene_internal_shift">
+<span id="ecoli-variants-new-gene-internal-shift"></span><h1><code class="docutils literal notranslate"><span class="pre">ecoli.variants.new_gene_internal_shift</span></code><a class="headerlink" href="#module-ecoli.variants.new_gene_internal_shift" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.variants.new_gene_internal_shift.apply_variant">
+<span class="sig-prename descclassname"><span class="pre">ecoli.variants.new_gene_internal_shift.</span></span><span class="sig-name descname"><span class="pre">apply_variant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/variants/new_gene_internal_shift.html#apply_variant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.variants.new_gene_internal_shift.apply_variant" title="Link to this definition"></a></dt>
+<dd><p>Modify sim_data so new gene expression and translation efficiency
+are modified for certain generation ranges.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sim_data</strong> (<a class="reference internal" href="../reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><em>SimulationDataEcoli</em></a>) – Simulation data to modify</p></li>
+<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em>) – <p>Parameter dictionary of the following format:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="c1"># Generation to induce new gene expression</span>
+    <span class="s2">&quot;induction_gen&quot;</span><span class="p">:</span> <span class="n">Optional</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+    <span class="s2">&quot;exp_trl_eff&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="c1"># Factor by which to multiply new gene expression once induced</span>
+        <span class="s2">&quot;exp&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="c1"># Translation efficiency for new gene once induced</span>
+        <span class="s2">&quot;trl_eff&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="c1"># Generation to knock out new gene expression (&gt; induction gen)</span>
+    <span class="s2">&quot;knockout_gen&quot;</span><span class="p">:</span> <span class="n">Optional</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+    <span class="c1"># Environmental condition: &quot;basal&quot;, &quot;with_aa&quot;, &quot;acetate&quot;,</span>
+    <span class="c1"># &quot;succinate&quot;, &quot;no_oxygen&quot;</span>
+    <span class="s2">&quot;condition&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>Simulation data with the following attributes modified:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sim_data</span><span class="o">.</span><span class="n">condition</span>
+<span class="n">sim_data</span><span class="o">.</span><span class="n">external_state</span><span class="o">.</span><span class="n">current_timeline_id</span>
+<span class="c1"># Mapping of generation number to function that takes sim_data</span>
+<span class="c1"># as first argument and optional extra arguments contained in a</span>
+<span class="c1"># tuple that will be star expanded. Here, modify_new_gene_exp_trl</span>
+<span class="c1"># takes two extra arguments: expression and translation_efficiency.</span>
+<span class="n">sim_data</span><span class="o">.</span><span class="n">internal_shift_dict</span>
+</pre></div>
+</div>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli">SimulationDataEcoli</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.variants.new_gene_internal_shift.get_new_gene_ids_and_indices">
+<span class="sig-prename descclassname"><span class="pre">ecoli.variants.new_gene_internal_shift.</span></span><span class="sig-name descname"><span class="pre">get_new_gene_ids_and_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/variants/new_gene_internal_shift.html#get_new_gene_ids_and_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.variants.new_gene_internal_shift.get_new_gene_ids_and_indices" title="Link to this definition"></a></dt>
+<dd><p>Determines the indices of new gene cistrons and proteins using the new
+gene flag in sim_data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><p>4-element tuple containing</p>
+<ul class="simple">
+<li><p><strong>new_gene_cistron_ids</strong>: names of new gene cistrons</p></li>
+<li><p><strong>new_gene_indices</strong>: indices in rna_data table for new gene cistrons</p></li>
+<li><p><strong>new_monomer_ids</strong>: names of new gene monomers</p></li>
+<li><p><strong>new_monomer_indices</strong>: indices in monomer_data table for new monomers</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>sim_data</strong> (<a class="reference internal" href="../reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><em>SimulationDataEcoli</em></a>)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>], <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>], <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>], <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.variants.new_gene_internal_shift.modify_new_gene_exp_trl">
+<span class="sig-prename descclassname"><span class="pre">ecoli.variants.new_gene_internal_shift.</span></span><span class="sig-name descname"><span class="pre">modify_new_gene_exp_trl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expression</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">translation_efficiency</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/variants/new_gene_internal_shift.html#modify_new_gene_exp_trl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.variants.new_gene_internal_shift.modify_new_gene_exp_trl" title="Link to this definition"></a></dt>
+<dd><p>Sets expression and translation effiencies of new genes. Modifies:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_synth_prob</span>
+<span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_expression</span>
+<span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">exp_free</span>
+<span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">exp_ppgpp</span>
+<span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">attenuation_basal_prob_adjustments</span>
+<span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription_regulation</span><span class="o">.</span><span class="n">basal_prob</span>
+<span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription_regulation</span><span class="o">.</span><span class="n">delta_prob</span>
+<span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">translation_efficiencies_by_monomer</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sim_data</strong> (<a class="reference internal" href="../reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><em>SimulationDataEcoli</em></a>) – Simulation data</p></li>
+<li><p><strong>expression</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Factor by which to adjust new gene expression levels</p></li>
+<li><p><strong>translation_efficiency</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Translation efficiency for new genes</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ecoli.variants.condition.html" class="btn btn-neutral float-left" title="ecoli.variants.condition" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ecoli.variants.variant_test.html" class="btn btn-neutral float-right" title="ecoli.variants.variant_test" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

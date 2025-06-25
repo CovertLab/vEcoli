@@ -1,0 +1,302 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.processes.transcript_elongation &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ecoli.processes.transcript_initiation" href="ecoli.processes.transcript_initiation.html" />
+    <link rel="prev" title="ecoli.processes.tf_unbinding" href="ecoli.processes.tf_unbinding.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.composites.html"><code class="docutils literal notranslate"><span class="pre">ecoli.composites</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.experiments.html"><code class="docutils literal notranslate"><span class="pre">ecoli.experiments</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.library.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="ecoli.processes.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes</span></code></a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.chemotaxis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.chemotaxis</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.environment.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.environment</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.listeners.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.listeners</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.membrane.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.membrane</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.spatiality.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.spatiality</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.stubs.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.stubs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.allocator.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.allocator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.bulk_timeline.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.bulk_timeline</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.cell_division.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.cell_division</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.chemostat.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.chemostat</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.chromosome_replication.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.chromosome_replication</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.chromosome_structure.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.chromosome_structure</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.complexation.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.complexation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.concentrations_deriver.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.concentrations_deriver</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.division_detector.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.division_detector</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.engine_process.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.engine_process</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.enzyme_kinetics.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.enzyme_kinetics</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.equilibrium.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.equilibrium</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.global_clock.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.global_clock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.metabolism.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.metabolism</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.metabolism_redux.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.metabolism_redux</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.metabolism_redux_classic.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.metabolism_redux_classic</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.partition.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.partition</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.polypeptide_elongation.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.polypeptide_elongation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.polypeptide_initiation.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.polypeptide_initiation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.protein_degradation.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.protein_degradation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.registries.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.registries</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.rna_degradation.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.rna_degradation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.rna_interference.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.rna_interference</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.rna_maturation.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.rna_maturation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.shape.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.shape</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.tf_binding.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.tf_binding</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.tf_unbinding.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.tf_unbinding</span></code></a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.transcript_elongation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.transcript_initiation.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.transcript_initiation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.two_component_system.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.two_component_system</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.processes.unique_update.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.unique_update</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.variants.html"><code class="docutils literal notranslate"><span class="pre">ecoli.variants</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../runscripts/runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.processes.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">ecoli.processes.transcript_elongation</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/ecoli/ecoli.processes.transcript_elongation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-ecoli.processes.transcript_elongation">
+<span id="ecoli-processes-transcript-elongation"></span><h1><code class="docutils literal notranslate"><span class="pre">ecoli.processes.transcript_elongation</span></code><a class="headerlink" href="#module-ecoli.processes.transcript_elongation" title="Link to this heading"></a></h1>
+<section id="transcript-elongation">
+<h2>Transcript Elongation<a class="headerlink" href="#transcript-elongation" title="Link to this heading"></a></h2>
+<p>This process models nucleotide polymerization into RNA molecules
+by RNA polymerases. Polymerization occurs across all polymerases
+simultaneously and resources are allocated to maximize the progress
+of all polymerases up to the limit of the expected polymerase elongation
+rate and available nucleotides. The termination of RNA elongation occurs
+once a RNA polymerase has reached the end of the annotated gene.</p>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.TranscriptElongation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ecoli.processes.transcript_elongation.</span></span><span class="sig-name descname"><span class="pre">TranscriptElongation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/processes/transcript_elongation.html#TranscriptElongation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.processes.transcript_elongation.TranscriptElongation" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess" title="ecoli.processes.partition.PartitionedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">PartitionedProcess</span></code></a></p>
+<p>Transcript Elongation PartitionedProcess</p>
+<dl class="simple">
+<dt>defaults:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>rnaPolymeraseElongationRateDict (dict): Array with elongation rate</dt><dd><p>set points for different media environments.</p>
+</dd>
+</dl>
+</li>
+<li><p>rnaIds (array[str]) : array of names for each TU</p></li>
+<li><dl class="simple">
+<dt>rnaLengths (array[int])<span class="classifier">array of lengths for each TU</span></dt><dd><p>(in nucleotides?)</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>rnaSequences (2D array[int])<span class="classifier">Array with the nucleotide sequences</span></dt><dd><p>of each TU. This is in the form of a 2D array where each row is a
+TU, and each column is a position in the TU’s sequence. Nucleotides
+are stored as an index {0, 1, 2, 3}, and the row is padded with
+-1’s on the right to indicate where the sequence ends.</p>
+</dd>
+</dl>
+</li>
+<li><p>ntWeights (array[float]): Array of nucleotide weights</p></li>
+<li><p>endWeight (array[float]): ???,</p></li>
+<li><dl class="simple">
+<dt>replichore_lengths (array[int]): lengths of replichores</dt><dd><p>(in nucleotides?),</p>
+</dd>
+</dl>
+</li>
+<li><p>is_mRNA (array[bool]): Mask for mRNAs</p></li>
+<li><p>ppi (str): ID of PPI</p></li>
+<li><p>inactive_RNAP (str): ID of inactive RNAP</p></li>
+<li><p>ntp_ids list[str]: IDs of ntp’s (A, C, G, U)</p></li>
+<li><dl class="simple">
+<dt>variable_elongation (bool): Whether to use variable elongation.</dt><dd><p>False by default.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>make_elongation_rates: Function to make elongation rates, of the</dt><dd><p>form: lambda random, rates, timestep, variable: rates</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.TranscriptElongation.calculate_request">
+<span class="sig-name descname"><span class="pre">calculate_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestep</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">states</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/processes/transcript_elongation.html#TranscriptElongation.calculate_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.processes.transcript_elongation.TranscriptElongation.calculate_request" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.TranscriptElongation.defaults">
+<span class="sig-name descname"><span class="pre">defaults</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'attenuated_rna_indices':</span> <span class="pre">array([],</span> <span class="pre">dtype=int64),</span> <span class="pre">'cell_density':</span> <span class="pre">1100.0</span> <span class="pre">[g/L],</span> <span class="pre">'charged_trnas':</span> <span class="pre">[],</span> <span class="pre">'emit_unique':</span> <span class="pre">False,</span> <span class="pre">'endWeight':</span> <span class="pre">array([],</span> <span class="pre">dtype=float64),</span> <span class="pre">'fragmentBases':</span> <span class="pre">[],</span> <span class="pre">'get_attenuation_stop_probabilities':</span> <span class="pre">&lt;function</span> <span class="pre">get_attenuation_stop_probabilities&gt;,</span> <span class="pre">'inactive_RNAP':</span> <span class="pre">'',</span> <span class="pre">'is_mRNA':</span> <span class="pre">array([],</span> <span class="pre">dtype=float64),</span> <span class="pre">'location_lookup':</span> <span class="pre">{},</span> <span class="pre">'make_elongation_rates':</span> <span class="pre">&lt;function</span> <span class="pre">make_elongation_rates&gt;,</span> <span class="pre">'n_avogadro':</span> <span class="pre">6.02214076e+23</span> <span class="pre">[1/mol],</span> <span class="pre">'n_fragment_bases':</span> <span class="pre">0,</span> <span class="pre">'ntWeights':</span> <span class="pre">array([],</span> <span class="pre">dtype=float64),</span> <span class="pre">'ntp_ids':</span> <span class="pre">[],</span> <span class="pre">'polymerized_ntps':</span> <span class="pre">[],</span> <span class="pre">'ppi':</span> <span class="pre">'',</span> <span class="pre">'recycle_stalled_elongation':</span> <span class="pre">False,</span> <span class="pre">'replichore_lengths':</span> <span class="pre">array([],</span> <span class="pre">dtype=float64),</span> <span class="pre">'rnaIds':</span> <span class="pre">[],</span> <span class="pre">'rnaLengths':</span> <span class="pre">array([],</span> <span class="pre">dtype=float64),</span> <span class="pre">'rnaPolymeraseElongationRateDict':</span> <span class="pre">{},</span> <span class="pre">'rnaSequences':</span> <span class="pre">array([],</span> <span class="pre">shape=(1,</span> <span class="pre">0),</span> <span class="pre">dtype=float64),</span> <span class="pre">'seed':</span> <span class="pre">0,</span> <span class="pre">'submass_indices':</span> <span class="pre">{},</span> <span class="pre">'time_step':</span> <span class="pre">1,</span> <span class="pre">'trna_attenuation':</span> <span class="pre">False,</span> <span class="pre">'variable_elongation':</span> <span class="pre">False}</span></em><a class="headerlink" href="#ecoli.processes.transcript_elongation.TranscriptElongation.defaults" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.TranscriptElongation.evolve_state">
+<span class="sig-name descname"><span class="pre">evolve_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestep</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">states</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/processes/transcript_elongation.html#TranscriptElongation.evolve_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.processes.transcript_elongation.TranscriptElongation.evolve_state" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.TranscriptElongation.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'ecoli-transcript-elongation'</span></em><a class="headerlink" href="#ecoli.processes.transcript_elongation.TranscriptElongation.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.TranscriptElongation.ports_schema">
+<span class="sig-name descname"><span class="pre">ports_schema</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/processes/transcript_elongation.html#TranscriptElongation.ports_schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.processes.transcript_elongation.TranscriptElongation.ports_schema" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.TranscriptElongation.topology">
+<span class="sig-name descname"><span class="pre">topology</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'RNAs':</span> <span class="pre">('unique',</span> <span class="pre">'RNA'),</span> <span class="pre">'active_RNAPs':</span> <span class="pre">('unique',</span> <span class="pre">'active_RNAP'),</span> <span class="pre">'bulk':</span> <span class="pre">('bulk',),</span> <span class="pre">'bulk_total':</span> <span class="pre">('bulk',),</span> <span class="pre">'environment':</span> <span class="pre">('environment',),</span> <span class="pre">'listeners':</span> <span class="pre">('listeners',),</span> <span class="pre">'timestep':</span> <span class="pre">('timestep',)}</span></em><a class="headerlink" href="#ecoli.processes.transcript_elongation.TranscriptElongation.topology" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.assertions">
+<span class="sig-prename descclassname"><span class="pre">ecoli.processes.transcript_elongation.</span></span><span class="sig-name descname"><span class="pre">assertions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actual_update</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/processes/transcript_elongation.html#assertions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.processes.transcript_elongation.assertions" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.format_data">
+<span class="sig-prename descclassname"><span class="pre">ecoli.processes.transcript_elongation.</span></span><span class="sig-name descname"><span class="pre">format_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bulk_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rna_dtypes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rnap_dtypes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">submass_dtypes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/processes/transcript_elongation.html#format_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.processes.transcript_elongation.format_data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.get_attenuation_stop_probabilities">
+<span class="sig-prename descclassname"><span class="pre">ecoli.processes.transcript_elongation.</span></span><span class="sig-name descname"><span class="pre">get_attenuation_stop_probabilities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trna_conc</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/processes/transcript_elongation.html#get_attenuation_stop_probabilities"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.processes.transcript_elongation.get_attenuation_stop_probabilities" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.get_mapping_arrays">
+<span class="sig-prename descclassname"><span class="pre">ecoli.processes.transcript_elongation.</span></span><span class="sig-name descname"><span class="pre">get_mapping_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/processes/transcript_elongation.html#get_mapping_arrays"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.processes.transcript_elongation.get_mapping_arrays" title="Link to this definition"></a></dt>
+<dd><p>Returns the array of indexes of each element of array x in array y, and
+vice versa. Assumes that the elements of x and y are unique, and
+set(x) == set(y).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.make_elongation_rates">
+<span class="sig-prename descclassname"><span class="pre">ecoli.processes.transcript_elongation.</span></span><span class="sig-name descname"><span class="pre">make_elongation_rates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">random</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestep</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/processes/transcript_elongation.html#make_elongation_rates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.processes.transcript_elongation.make_elongation_rates" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.processes.transcript_elongation.plots">
+<span class="sig-prename descclassname"><span class="pre">ecoli.processes.transcript_elongation.</span></span><span class="sig-name descname"><span class="pre">plots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actual_update</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'transcript_elongation_toymodel.png'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/processes/transcript_elongation.html#plots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.processes.transcript_elongation.plots" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ecoli.processes.tf_unbinding.html" class="btn btn-neutral float-left" title="ecoli.processes.tf_unbinding" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ecoli.processes.transcript_initiation.html" class="btn btn-neutral float-right" title="ecoli.processes.transcript_initiation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
