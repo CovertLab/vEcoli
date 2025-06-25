@@ -640,10 +640,7 @@ the output directory specified via ``out_dir`` or ``out_uri`` under the
 
         - ``main.nf``: Nextflow workflow script.
         - ``nextflow.config``: Nextflow workflow configuration.
-        - ``{experiment ID}_report.html``: Contains detailed information about workflow
-          run. Also serves to prevent users from accidentally running another workflow
-          with the same experiment ID and overwriting data. If a user wishes to do so,
-          they must first rename, move, or delete this file.
+        - ``{experiment ID}_report.html``: Detailed information about workflow run.
         - ``workflow_config.json``: Configuration JSON passed to
           :py:mod:`runscripts.workflow`.
         - ``nextflow_workdirs``: Contains all working directories for Nextflow jobs.

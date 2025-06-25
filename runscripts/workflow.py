@@ -430,9 +430,19 @@ def main():
     local_outdir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
     os.makedirs(local_outdir, exist_ok=True)
     if filesystem is None:
-        os.makedirs(outdir, exist_ok=True)
+        if os.path.exists(outdir):
+            raise RuntimeError(
+                f"Output directory {outdir} already exists. "
+                "Please choose a different experiment ID or delete/move the existing directory."
+            )
+        os.makedirs(outdir)
     else:
-        filesystem.makedirs(outdir, exist_ok=True)
+        if filesystem.exists(outdir):
+            raise RuntimeError(
+                f"Output directory {outdir} already exists. "
+                "Please choose a different experiment ID or delete/move the existing directory."
+            )
+        filesystem.makedirs(outdir)
     temp_config_path = f"{local_outdir}/workflow_config.json"
     final_config_path = os.path.join(outdir, "workflow_config.json")
     final_config_uri = os.path.join(out_uri, "workflow_config.json")
