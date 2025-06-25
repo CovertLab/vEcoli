@@ -430,19 +430,9 @@ def main():
     local_outdir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
     os.makedirs(local_outdir, exist_ok=True)
     if filesystem is None:
-        if os.path.exists(outdir):
-            raise RuntimeError(
-                f"Output directory {outdir} already exists. "
-                "Please choose a different experiment ID or delete/move the existing directory."
-            )
-        os.makedirs(outdir)
+        os.makedirs(outdir, exist_ok=args.resume)
     else:
-        if filesystem.exists(outdir):
-            raise RuntimeError(
-                f"Output directory {outdir} already exists. "
-                "Please choose a different experiment ID or delete/move the existing directory."
-            )
-        filesystem.makedirs(outdir)
+        filesystem.makedirs(outdir, exist_ok=args.resume)
     temp_config_path = f"{local_outdir}/workflow_config.json"
     final_config_path = os.path.join(outdir, "workflow_config.json")
     final_config_uri = os.path.join(out_uri, "workflow_config.json")
@@ -564,7 +554,7 @@ def main():
     # Start nextflow workflow
     report_path = os.path.join(
         out_uri,
-        f"{experiment_id}_report.html",
+        f"{experiment_id}{'_resume' if args.resume else ''}_report.html",
     )
     workdir = os.path.join(out_uri, "nextflow_workdirs")
     if nf_profile == "standard" or nf_profile == "gcloud":
