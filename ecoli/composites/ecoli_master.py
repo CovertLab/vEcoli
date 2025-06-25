@@ -655,7 +655,7 @@ class Ecoli(Composer):
 
 def run_ecoli(
     filename: str = "default",
-    total_time: int = 10,
+    max_duration: int = 10,
     divide: bool = False,
     progress_bar: bool = True,
     log_updates: bool = False,
@@ -665,7 +665,7 @@ def run_ecoli(
     """Run E. coli simulations.
 
     Args:
-        total_time: the total runtime of the experiment
+        max_duration: the maximum runtime of the experiment
         divide: whether to incorporate division
         progress_bar: whether to show a progress bar
         log_updates: whether to save updates from each process (refer to
@@ -690,7 +690,7 @@ def run_ecoli(
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
-    sim.total_time = total_time
+    sim.max_duration = max_duration
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates

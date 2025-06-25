@@ -187,7 +187,7 @@ def test_equilibrium_listener():
     from ecoli.experiments.ecoli_master_sim import EcoliSim
 
     sim = EcoliSim.from_file()
-    sim.total_time = 2
+    sim.max_duration = 2
     sim.raw_output = False
     sim.build_ecoli()
     sim.run()

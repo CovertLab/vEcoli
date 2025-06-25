@@ -1,6 +1,6 @@
 {
     "inherit_from": ["spatial.json"],
-    "total_time": 23100,
+    "max_duration": 23100.0,
     "divide": true,
     "emitter" : "database",
     "emitter_arg": {

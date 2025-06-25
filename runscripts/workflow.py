@@ -1,13 +1,11 @@
 import argparse
 import json
 import os
-import sys
 import pathlib
 import random
 import shutil
 import subprocess
 import time
-import tempfile
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -430,9 +428,9 @@ def main():
     local_outdir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
     os.makedirs(local_outdir, exist_ok=True)
     if filesystem is None:
-        os.makedirs(outdir, exist_ok=True)
+        os.makedirs(outdir, exist_ok=args.resume)
     else:
-        filesystem.makedirs(outdir, exist_ok=True)
+        filesystem.makedirs(outdir, exist_ok=args.resume)
     temp_config_path = f"{local_outdir}/workflow_config.json"
     final_config_path = os.path.join(outdir, "workflow_config.json")
     final_config_uri = os.path.join(out_uri, "workflow_config.json")
@@ -556,53 +554,37 @@ def main():
         out_uri,
         f"{experiment_id}_report.html",
     )
+    if filesystem is None:
+        if os.path.exists(report_path):
+            raise RuntimeError(
+                f"Report file already exists: {report_path}. "
+                "Please move, delete, or rename it, then run with --resume again."
+            )
+    else:
+        if filesystem.exists(report_path):
+            raise RuntimeError(
+                f"Report file already exists: {report_path}. "
+                "Please move, delete, or rename it, then run with --resume again."
+            )
     workdir = os.path.join(out_uri, "nextflow_workdirs")
     if nf_profile == "standard" or nf_profile == "gcloud":
-        # Create a temporary file to capture stderr
-        with tempfile.NamedTemporaryFile(mode="w+") as tmp_stderr:
-            # Run process with stderr going to both terminal and temp file
-            process = subprocess.Popen(
-                [
-                    "nextflow",
-                    "-C",
-                    local_config,
-                    "run",
-                    local_workflow,
-                    "-profile",
-                    nf_profile,
-                    "-with-report",
-                    report_path,
-                    "-work-dir",
-                    workdir,
-                    "-resume" if args.resume is not None else "",
-                ],
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-            )
-            # Stream stderr to both terminal and file in real-time
-            for line in process.stderr:
-                sys.stderr.write(line)  # Show in terminal
-                tmp_stderr.write(line)  # Save to file
-            # Wait for process to complete
-            returncode = process.wait()
-            # Check if process failed
-            if returncode != 0:
-                # Go back to start of file to read content
-                tmp_stderr.seek(0)
-                stderr_content = tmp_stderr.read()
-                # Check for specific error string
-                if "Report file already exists:" in stderr_content:
-                    raise RuntimeError(
-                        "You are about to run a workflow with the same experiment ID "
-                        "and output directory as a previously completed workflow. "
-                        "If you are resuming a workflow, delete the HTML report file "
-                        "in the upstream error message and try again. If you are starting "
-                        "a new workflow, either change the experiment ID, change the output "
-                        "directory, or completely delete the existing output directory "
-                        "to avoid mixing output from multiple workflows."
-                    )
-                # Otherwise, raise generic subprocess error
-                raise subprocess.CalledProcessError(returncode, process.args)
+        subprocess.run(
+            [
+                "nextflow",
+                "-C",
+                local_config,
+                "run",
+                local_workflow,
+                "-profile",
+                nf_profile,
+                "-with-report",
+                report_path,
+                "-work-dir",
+                workdir,
+                "-resume" if args.resume is not None else "",
+            ],
+            check=True,
+        )
     elif nf_profile == "sherlock":
         batch_script = os.path.join(local_outdir, "nextflow_job.sh")
         hyperqueue_init = ""

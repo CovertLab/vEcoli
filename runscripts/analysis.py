@@ -28,12 +28,15 @@ import warnings  # noqa: E402
 from urllib import parse  # noqa: E402
 from typing import Any  # noqa: E402
 
-import duckdb  # noqa: E402
-from fsspec import filesystem, url_to_fs  # noqa: E402
+from fsspec import url_to_fs  # noqa: E402
 
 from configs import CONFIG_DIR_PATH  # noqa: E402
 from ecoli.experiments.ecoli_master_sim import SimConfig  # noqa: E402
-from ecoli.library.parquet_emitter import dataset_sql, open_output_file  # noqa: E402
+from ecoli.library.parquet_emitter import (  # noqa: E402
+    dataset_sql,
+    create_duckdb_conn,
+    open_output_file,
+)
 
 FILTERS = {
     "experiment_id": str,
@@ -100,23 +103,6 @@ def parse_variant_data_dir(
             if os.path.splitext(data_path)[1] == ".cPickle"
         }
     return variant_metadata, sim_data_dict, variant_names
-
-
-def create_duckdb_conn(out_uri, gcs_bucket, cpus=None):
-    conn = duckdb.connect()
-    out_path = out_uri
-    if gcs_bucket:
-        conn.register_filesystem(filesystem("gcs"))
-    # Temp directory so DuckDB can spill to disk when data larger than RAM
-    conn.execute(f"SET temp_directory = '{out_path}'")
-    # Turning this off reduces RAM usage
-    conn.execute("SET preserve_insertion_order = false")
-    # Cache Parquet metadata so only needs to be scanned once
-    conn.execute("SET enable_object_cache = true")
-    # Set number of threads for DuckDB
-    if cpus is not None:
-        conn.execute(f"SET threads = {cpus}")
-    return conn
 
 
 def main():
@@ -325,7 +311,6 @@ def main():
         # Figure out what Hive partition in main output directory
         # to store outputs for analyses run on this cell subset
         curr_outdir = os.path.abspath(config["outdir"])
-        # config_outdir = curr_outdir
         if len(cols) > 0:
             joined_cols = ", ".join(cols)
             data_ids = conn.sql(
@@ -347,10 +332,10 @@ def main():
                     f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
                 )
         else:
-            query_strings[data_filters] = (
+            query_strings[duckdb_filter] = (
                 f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
-                f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
+                f"SELECT * FROM ({success_sql}) WHERE {duckdb_filter}",
             )
         os.makedirs(curr_outdir, exist_ok=True)
         for analysis_name in config[analysis_type]:
@@ -376,10 +361,9 @@ def main():
     os.makedirs(top_outdir, exist_ok=True)
 
     # Save copy of config JSON with parameters for plots
-    # with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
-    #     json.dump(config, f)
-
-    with open(os.path.join(top_outdir, "metadata.json"), "w") as f:
+    with open(
+        os.path.join(os.path.abspath(config["outdir"]), "metadata.json"), "w"
+    ) as f:
         json.dump(config, f)
 
 

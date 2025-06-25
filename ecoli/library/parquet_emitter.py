@@ -8,7 +8,7 @@ import duckdb
 import numpy as np
 import polars as pl
 from polars.datatypes import DataTypeClass
-from fsspec.core import url_to_fs, OpenFile
+from fsspec.core import filesystem, url_to_fs, OpenFile
 from fsspec.spec import AbstractFileSystem
 from tqdm import tqdm
 from vivarium.core.emitter import Emitter
@@ -103,6 +103,32 @@ def union_by_name(query_sql: str) -> str:
     return query_sql.replace(
         "hive_partitioning = true,", "hive_partitioning = true, union_by_name = true,"
     )
+
+
+def create_duckdb_conn(
+    temp_dir: str = "/tmp", gcs: bool = False, cpus: Optional[int] = None
+) -> duckdb.DuckDBPyConnection:
+    """
+    Create a DuckDB connection.
+
+    Args:
+        temp_dir: Temporary directory for spilling to disk.
+        gcs: Set to True if reading from Google Cloud Storage.
+        cpus: Number of cores to use (by default, use all detected cores).
+    """
+    conn = duckdb.connect()
+    if gcs:
+        conn.register_filesystem(filesystem("gcs"))
+    # Temp directory so DuckDB can spill to disk when data larger than RAM
+    conn.execute(f"SET temp_directory = '{temp_dir}'")
+    # Turning this off reduces RAM usage
+    conn.execute("SET preserve_insertion_order = false")
+    # Cache Parquet metadata so only needs to be scanned once
+    conn.execute("SET enable_object_cache = true")
+    # Set number of threads for DuckDB
+    if cpus is not None:
+        conn.execute(f"SET threads = {cpus}")
+    return conn
 
 
 def dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, str]:
@@ -236,6 +262,8 @@ def ndidx_to_duckdb_expr(
     and getting ``name_arr[idx]``. ``idx`` can contain 1D lists of integers,
     boolean masks, or ``":"`` (no 2D+ indices like ``x[[[1,2]]]``). See also
     :py:func:`~named_idx` if pulling out a relatively small set of indices.
+    Automatically quotes column names to handle special characters. Do NOT
+    use double quotes in ``name``.
 
     .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
         supplied integer index!
@@ -255,47 +283,53 @@ def ndidx_to_duckdb_expr(
                 [[0, 1], ":", [0, 1]]
 
     """
+    quoted_name = f'"{name}"'
     idx = idx.copy()
     idx.reverse()
     # Construct expression from inside out (deepest to shallowest axis)
     first_idx = idx.pop(0)
     if isinstance(first_idx, list):
-        if isinstance(first_idx[0], int):
+        # Python bools are instances of int so check bool first
+        if isinstance(first_idx[0], bool):
+            select_expr = f"list_where(x_0, {first_idx})"
+        elif isinstance(first_idx[0], int):
             one_indexed_idx = ", ".join(str(i + 1) for i in first_idx)
             select_expr = f"list_select(x_0, [{one_indexed_idx}])"
-        elif isinstance(first_idx[0], bool):
-            select_expr = f"list_where(x_0, {first_idx})"
         else:
             raise TypeError("Indices must be integers or boolean masks.")
     elif first_idx == ":":
         select_expr = "x_0"
     elif isinstance(first_idx, int):
-        select_expr = f"x_0[{int(first_idx) + 1}]"
+        select_expr = f"list_select(x_0, [{int(first_idx) + 1}])"
     else:
         raise TypeError("All indices must be lists, ints, or ':'.")
     i = -1
     for i, indices in enumerate(idx):
         if isinstance(indices, list):
-            if isinstance(indices[0], int):
+            if isinstance(indices[0], bool):
+                select_expr = f"list_transform(list_where(x_{i + 1}, {indices}), lambda x_{i} : {select_expr})"
+            elif isinstance(indices[0], int):
                 one_indexed_idx = ", ".join(str(i + 1) for i in indices)
-                select_expr = f"list_transform(list_select(x_{i + 1}, [{one_indexed_idx}]), x_{i} -> {select_expr})"
-            elif isinstance(indices[0], bool):
-                select_expr = f"list_transform(list_where(x_{i + 1}, {indices}), x_{i} -> {select_expr})"
+                select_expr = f"list_transform(list_select(x_{i + 1}, [{one_indexed_idx}]), lambda x_{i} : {select_expr})"
             else:
                 raise TypeError("Indices must be integers or boolean masks.")
         elif indices == ":":
-            select_expr = f"list_transform(x_{i + 1}, x_{i} -> {select_expr})"
+            select_expr = f"list_transform(x_{i + 1}, lambda x_{i} : {select_expr})"
         elif isinstance(indices, int):
-            select_expr = (
-                f"list_transform(x_{i + 1}[{int(indices) + 1}], x_{i} -> {select_expr})"
-            )
+            select_expr = f"list_transform(list_select(x_{i + 1}, [{int(indices) + 1}]), lambda x_{i} : {select_expr})"
         else:
             raise TypeError("All indices must be lists, ints, or ':'.")
-    select_expr = select_expr.replace(f"x_{i + 1}", name)
-    return select_expr + f" AS {name}"
+    select_expr = select_expr.replace(f"x_{i + 1}", quoted_name)
+    return select_expr + f" AS {quoted_name}"
 
 
-def named_idx(col: str, names: list[str], idx: list[int]) -> str:
+def named_idx(
+    col: str,
+    names: list[str],
+    idx: list[list[int]],
+    zero_to_null: bool = False,
+    _quote_col: bool = True,
+) -> str:
     """
     Create DuckDB expressions for given indices from a list column. Can be
     used in ``projection`` kwarg of :py:func:`~.read_stacked_columns`. Since
@@ -303,20 +337,56 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> str:
     aggregations like averages, etc. Only use this if the number of indices
     is relatively small (<100) and the list column is 1-dimensional. For 2+
     dimensions or >100 indices, see :py:func:`~.ndidx_to_duckdb_expr`.
+    Automatically quotes column names to handle special characters.
+    Do NOT use double quotes in ``names`` or ``col``.
 
     .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every
         supplied index!
 
     Args:
         col: Name of list column.
-        names: New column names, one for each index.
-        idx: Indices to retrieve from ``col``
+        names: List of names for the new columns. Length must match the
+            number of index combinations in ``idx`` (4 for example below).
+        idx: Integer indices to retrieve from each dimension of ``col``.
+            For example, ``[[0, 1], [2, 3]]`` will retrieve the third and
+            fourth elements of the second dimension for the first and second
+            elements of the first dimension.
+        zero_to_null: Whether to turn 0s into nulls. This is useful when
+            dividing by the values in this column, as most DuckDB aggregation
+            functions (e.g. ``avg``, ``max``) propagate NaNs but ignore nulls.
+        _quote_col: Private argument to ensure ``col`` is quoted properly.
 
     Returns:
         DuckDB SQL expression for a set of named columns corresponding to
         the values at given indices of a list column
     """
-    return ", ".join(f'{col}[{i + 1}] AS "{n}"' for n, i in zip(names, idx))
+    assert isinstance(idx[0], list), "idx must be a list of lists."
+    # Quote column name on initial call
+    if _quote_col:
+        col = f'"{col}"'
+    col_exprs = []
+    if len(idx) == 1:
+        for num, i in enumerate(idx[0]):
+            quoted_name = f'"{names[num]}"'
+            if zero_to_null:
+                col_exprs.append(
+                    f"CASE WHEN {col}[{i + 1}] = 0 THEN NULL ELSE {col}[{i + 1}] END AS {quoted_name}"
+                )
+            else:
+                col_exprs.append(f"{col}[{i + 1}] AS {quoted_name}")
+    else:
+        col_counter = 0
+        for i in idx[0]:
+            sub_col_exprs = named_idx(
+                f"{col}[{i + 1}]",
+                names[col_counter:],
+                idx[1:],
+                zero_to_null,
+                _quote_col=False,
+            )
+            col_counter += sub_col_exprs.count(", ") + 1
+            col_exprs.append(sub_col_exprs)
+    return ", ".join(col_exprs)
 
 
 def field_metadata(
@@ -325,7 +395,8 @@ def field_metadata(
     """
     Gets the saved metadata (see
     :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata`)
-    for a given field as a list.
+    for a given field as a list. Automatically quotes the field name to
+    handle special characters. Do NOT use double quotes in ``field``.
 
     Args:
         conn: DuckDB connection
@@ -349,7 +420,8 @@ def config_value(
     """
     Gets the saved configuration option (anything in config JSON, with
     double underscore concatenation for nested fields due to
-    :py:func:`~.flatten_dict`).
+    :py:func:`~.flatten_dict`). Automatically quotes the field name to
+    handle special characters. Do NOT use double quotes in ``field``.
 
     Args:
         conn: DuckDB connection
@@ -453,6 +525,11 @@ def read_stacked_columns(
     also include the ``experiment_id``, ``variant``, ``lineage_seed``,
     ``generation``, ``agent_id``, and ``time`` columns.
 
+    .. warning:: If the column expressions in ``columns`` are not from
+        :py:func:`~named_idx` or :py:func:`~ndidx_to_duckdb_expr`,
+        they may need to be enclosed in double quotes to handle
+        special characters (e.g. ``"col-with-hyphens"``).
+
     For example, to get the average total concentration of three bulk molecules
     with indices 100, 1000, and 10000 per cell::
 
@@ -528,8 +605,8 @@ def read_stacked_columns(
             If provided, will be used to filter out unsuccessful sims.
     """
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
-    columns = ", ".join(columns)
-    sql_query = f"SELECT {columns}, {id_cols} FROM ({history_sql})"
+    columns_str = ", ".join(columns)
+    sql_query = f"SELECT {columns_str}, {id_cols} FROM ({history_sql})"
     # Use a semi join to filter out unsuccessful sims
     if success_sql is not None:
         sql_query = f"""
@@ -562,16 +639,14 @@ def read_stacked_columns(
         for experiment_id, variant, lineage_seed, generation, agent_id in tqdm(
             cell_ids
         ):
-            cell_joined = f"""SELECT * FROM ({sql_query})
-                WHERE experiment_id = '{experiment_id}' AND
-                    variant = {variant} AND
-                    lineage_seed = {lineage_seed} AND
-                    generation = {generation} AND
-                    agent_id = '{agent_id}'
-                ORDER BY time
-                """
+            # Explicitly specify Hive partition because DuckDB
+            # will otherwise spend a lot of time scanning all files
+            cell_sql = sql_query.replace(
+                "history/*/*/*/*/*",
+                f"history/experiment_id={experiment_id}/variant={variant}/lineage_seed={lineage_seed}/generation={generation}/agent_id={agent_id}",
+            )
             # Apply func to data for each cell
-            all_cell_tbls.append(func(conn.sql(cell_joined).pl()))
+            all_cell_tbls.append(func(conn.sql(cell_sql).pl()))
         return pl.concat(all_cell_tbls)
     if order_results:
         query = f"SELECT * FROM ({sql_query}) ORDER BY {id_cols}"

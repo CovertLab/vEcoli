@@ -33,7 +33,7 @@ class LoadSimData:
         self,
         sim_data_path: str,
         seed: int = 0,
-        total_time: int = 10,
+        max_duration: int = 10,
         fixed_media: Optional[str] = None,
         media_timeline: tuple[tuple[int, str]] = (
             (0, "minimal"),
@@ -73,7 +73,7 @@ class LoadSimData:
             seed: Used to deterministically seed all random number
                 generators. Simulations with the same seed will yield
                 the same output.
-            total_time: Time to simulate (seconds)
+            max_duration: Maximum duration of single cell simulation (seconds)
             media_timeline: Iterable of tuples where the first element of
                 each tuple is the time to start using a certain media and the
                 second element is a string corresponding to one of the media
@@ -136,7 +136,7 @@ class LoadSimData:
                 when ``trna_charging`` is ``True``
         """
         self.seed = seed
-        self.total_time = total_time
+        self.max_duration = max_duration
         self.random_state = np.random.RandomState(seed=seed)
         # Iterable of tuples with the format (time, media_id)
         if condition is not None:
@@ -1150,7 +1150,7 @@ class LoadSimData:
 
         # Setup for variant that has a fixed change in ppGpp until a concentration is reached
         if hasattr(self.sim_data, "ppgpp_ramp"):
-            self.sim_data.ppgpp_ramp.set_time(self.total_time)
+            self.sim_data.ppgpp_ramp.set_time(self.max_duration)
             self.sim_data.growth_rate_parameters.get_ppGpp_conc = (
                 self.sim_data.ppgpp_ramp.get_ppGpp_conc
             )
@@ -1257,7 +1257,7 @@ class LoadSimData:
 
         # Setup for variant that has a fixed change in ppGpp until a concentration is reached
         if hasattr(self.sim_data, "ppgpp_ramp"):
-            self.sim_data.ppgpp_ramp.set_time(self.total_time)
+            self.sim_data.ppgpp_ramp.set_time(self.max_duration)
             self.sim_data.growth_rate_parameters.get_ppGpp_conc = (
                 self.sim_data.ppgpp_ramp.get_ppGpp_conc
             )

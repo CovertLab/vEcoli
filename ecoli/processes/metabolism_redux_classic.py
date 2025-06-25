@@ -268,7 +268,7 @@ class MetabolismReduxClassic(Step):
             },
             "polypeptide_elongation": {
                 "aa_count_diff": {
-                    "_default": {},
+                    "_default": [0.0] * len(self.aa_names),
                     "_emit": True,
                     "_divider": "empty_dict",
                 },
