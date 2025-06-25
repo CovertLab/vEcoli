@@ -4,7 +4,7 @@
   ],
 
   "emitter": "database",
-  "total_time": 2678.0,
+  "max_duration": 2678.0,
 
   "topology": {
     "ecoli-shape": {

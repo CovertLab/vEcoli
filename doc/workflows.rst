@@ -498,7 +498,7 @@ set to 10, ``single_daughters`` set to True, and ``variant_options``
 configured to create 4 different variant simulation data objects (5 including
 baseline, unmodified ``0.cPickle``, see :ref:`variant_output`),
 ``4 * 10 * 1 * 5 = 200`` total simulations will run. This is assuming no lineages fail
-before reaching 10 generations due to ``fail_at_total_time`` (see :ref:`json_config`)
+before reaching 10 generations due to ``fail_at_max_duration`` (see :ref:`json_config`)
 or some other uncaught exception.
 
 Unlike when running :py:mod:`runscripts.analysis` manually, the configuration JSON
@@ -640,10 +640,7 @@ the output directory specified via ``out_dir`` or ``out_uri`` under the
 
         - ``main.nf``: Nextflow workflow script.
         - ``nextflow.config``: Nextflow workflow configuration.
-        - ``{experiment ID}_report.html``: Contains detailed information about workflow
-          run. Also serves to prevent users from accidentally running another workflow
-          with the same experiment ID and overwriting data. If a user wishes to do so,
-          they must first rename, move, or delete this file.
+        - ``{experiment ID}_report.html``: Detailed information about workflow run.
         - ``workflow_config.json``: Configuration JSON passed to
           :py:mod:`runscripts.workflow`.
         - ``nextflow_workdirs``: Contains all working directories for Nextflow jobs.

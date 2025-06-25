@@ -241,10 +241,9 @@ def colony_save_states(engine, config):
     option and ``seed_{seed}_colony_t{save time}.json`` if not.
     """
     for time in config["save_times"]:
-        if time > config["total_time"]:
+        if time > config["max_duration"]:
             raise ValueError(
-                f"Config contains save_time ({time}) > total "
-                f"time ({config['total_time']})"
+                f"Config contains save_time ({time}) > max_duration ({config['max_duration']})"
             )
 
     for i in range(len(config["save_times"])):
@@ -305,7 +304,7 @@ def colony_save_states(engine, config):
         print("Finished saving the state at t = " + str(time_elapsed))
         gc.collect()
     # Finish running the simulation
-    time_remaining = config["total_time"] - config["save_times"][-1]
+    time_remaining = config["max_duration"] - config["save_times"][-1]
     if time_remaining:
         engine.update(time_remaining)
 
@@ -484,7 +483,7 @@ def run_simulation(config):
     if config["save"]:
         colony_save_states(engine, config)
     else:
-        engine.update(config["total_time"])
+        engine.update(config["max_duration"])
     engine.end()
 
     if config["profile"]:
@@ -500,7 +499,7 @@ def test_run_simulation():
     config.update_from_json(spatial_config_path)
     config.update_from_dict(
         {
-            "total_time": 30,
+            "max_duration": 30,
             "divide": True,
             "emitter": "shared_ram",
             "parallel": False,

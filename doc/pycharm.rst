@@ -12,7 +12,8 @@ To tell PyCharm to use the uv environment in the cloned repository:
    to configure an existing uv environment. 
 
 #. Click the folder icon next to ``Uv env use`` to select the Python interpreter located
-   at ``.venv/bin/python`` inside the cloned repository.
+   at ``.venv/bin/python`` inside the cloned repository. On macOS, press ``Cmd + Shift + .``
+   to show hidden files (filenames that start with ``.``) in the file dialog.
 
 ---------------------
 Environment Variables
@@ -27,4 +28,5 @@ in the cloned repository:
 
 #. For each of the above configuration templates, click the folder icon
    next to ``Paths to .env files`` and select the ``.env`` file in the cloned repository.
-   On macOS, press ``Cmd + Shift + .`` to show hidden files in the file dialog.
+   On macOS, press ``Cmd + Shift + .`` to show hidden files (filenames that start with
+   ``.``) in the file dialog.
