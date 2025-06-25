@@ -284,10 +284,7 @@ to read data using DuckDB. These include:
 .. warning::
   Column names that contain special characters (e.g. spaces, dashes, etc.) must be
   enclosed in double quotes when used in DuckDB SQL queries. This is automatically
-  handled by :py:func:`~ecoli.library.parquet_emitter.ndidx_to_duckdb_expr`,
-  :py:func:`~ecoli.library.parquet_emitter.named_idx`,
-  :py:func:`~ecoli.library.parquet_emitter.field_metadata`,
-  and :py:func:`~ecoli.library.parquet_emitter.config_value`, but NOT
+  handled by most of the helper functions above with the notable exception of
   :py:func:`~ecoli.library.parquet_emitter.read_stacked_columns`.
 
 .. warning::
