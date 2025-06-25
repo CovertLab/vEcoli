@@ -1,0 +1,20 @@
+{
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "experiment_id": ["multivariant"],
+        "variant": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+        "lineage_seed": [0],
+        "generation": [1, 2],
+        "agent_id": ["0"],
+        "validation_data_path": ["out/multivariant/parca/kb/validationData.cPickle"],
+        "variant_data_dir": ["out/multivariant/variant_sim_data"],
+        "outdir": "out/multivariant/analyses",
+        "cpus": 4,
+
+        "multivariant": {
+            "average_monomer_counts": {}
+        }
+    }
+}

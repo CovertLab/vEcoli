@@ -353,6 +353,7 @@ class SimConfig:
                 type=float,
                 action="store",
                 help="Initial time in context of whole lineage.",
+                default=0.0,
             )
             self.parser.add_argument(
                 "--fail_at_total_time",
