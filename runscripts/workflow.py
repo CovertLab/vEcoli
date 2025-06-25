@@ -554,8 +554,20 @@ def main():
     # Start nextflow workflow
     report_path = os.path.join(
         out_uri,
-        f"{experiment_id}{'_resume' if args.resume else ''}_report.html",
+        f"{experiment_id}_report.html",
     )
+    if filesystem is None:
+        if os.path.exists(report_path):
+            raise RuntimeError(
+                f"Report file already exists: {report_path}. "
+                "Please move, delete, or rename it, then run with --resume again."
+            )
+    else:
+        if filesystem.exists(report_path):
+            raise RuntimeError(
+                f"Report file already exists: {report_path}. "
+                "Please move, delete, or rename it, then run with --resume again."
+            )
     workdir = os.path.join(out_uri, "nextflow_workdirs")
     if nf_profile == "standard" or nf_profile == "gcloud":
         # Create a temporary file to capture stderr
