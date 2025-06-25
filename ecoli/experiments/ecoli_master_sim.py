@@ -48,8 +48,8 @@ from runscripts.workflow import LIST_KEYS_TO_MERGE
 
 
 class TimeLimitError(RuntimeError):
-    """Error raised when ``fail_at_total_time`` is True and simulation
-    reaches ``total_time``."""
+    """Error raised when ``fail_at_max_duration`` is True and simulation
+    reaches ``max_duration``."""
 
     pass
 
@@ -283,7 +283,7 @@ class SimConfig:
                 "--seed", action="store", type=int, help="Random seed."
             )
             self.parser.add_argument(
-                "--total_time",
+                "--max_duration",
                 action="store",
                 type=float,
                 help="Time to run the simulation for.",
@@ -356,9 +356,9 @@ class SimConfig:
                 default=0.0,
             )
             self.parser.add_argument(
-                "--fail_at_total_time",
+                "--fail_at_max_duration",
                 action=argparse.BooleanOptionalAction,
-                help="Simulation will raise TimeLimitException upon reaching total_time.",
+                help="Simulation will raise TimeLimitException upon reaching max_duration.",
             )
 
     @staticmethod
@@ -449,8 +449,8 @@ class EcoliSim:
         :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` object
         in one of two ways.
 
-        1. ``sim.total_time = 100``
-        2. ``sim.config['total_time'] = 100``
+        1. ``sim.max_duration = 100``
+        2. ``sim.config['max_duration'] = 100``
 
         Args:
             config: Automatically generated from
@@ -491,12 +491,12 @@ class EcoliSim:
         # For example:
         #
         # >> sim = EcoliSim.from_file()
-        # >> sim.total_time
+        # >> sim.max_duration
         #    10
-        # >> sim.config['total_time']
+        # >> sim.config['max_duration']
         #    10
-        # >> sim.total_time = 100
-        # >> sim.config['total_time']
+        # >> sim.max_duration = 100
+        # >> sim.config['max_duration']
         #    100
 
         class ConfigEntry:
@@ -749,10 +749,10 @@ class EcoliSim:
                 together by passing saved daughter states to new processes.
         """
         for time in self.save_times:
-            if time > self.total_time:
+            if time > self.max_duration:
                 raise ValueError(
                     f"Config contains save_time ({time}) > total "
-                    f"time ({self.total_time})"
+                    f"time ({self.max_duration})"
                 )
 
         for i in range(len(self.save_times)):
@@ -790,7 +790,7 @@ class EcoliSim:
                 prepare_save_state(state)
             write_json("data/vivecoli_t" + str(time_elapsed) + ".json", state)
             print("Finished saving the state at t = " + str(time_elapsed))
-        time_remaining = self.total_time - self.save_times[-1]
+        time_remaining = self.max_duration - self.save_times[-1]
         if time_remaining:
             self.ecoli_experiment.update(time_remaining)
 
@@ -894,7 +894,7 @@ class EcoliSim:
             self.save_states(self.daughter_outdir)
         else:
             try:
-                self.ecoli_experiment.update(self.total_time)
+                self.ecoli_experiment.update(self.max_duration)
             except DivisionDetected:
                 state = self.ecoli_experiment.state.get_value(condition=not_a_process)
                 assert len(state["agents"]) == 2
@@ -917,8 +917,10 @@ class EcoliSim:
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
-        if self.fail_at_total_time:
-            raise TimeLimitError(f"Exceeded maximum simulation time: {self.total_time}")
+        if self.fail_at_max_duration:
+            raise TimeLimitError(
+                f"Exceeded maximum simulation time: {self.max_duration}"
+            )
 
     def query(self, query: Optional[list[tuple[str]]] = None):
         """

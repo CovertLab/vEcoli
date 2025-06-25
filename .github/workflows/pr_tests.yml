@@ -44,12 +44,12 @@ jobs:
         uv run --env-file .env ecoli/experiments/ecoli_master_sim.py \
             --generations 1 --emitter parquet --emitter_arg out_dir='out' \
             --experiment_id "parca_1" --daughter_outdir "out/parca_1" \
-            --sim_data_path "out/parca_1/kb/simData.cPickle" --fail_at_total_time &
+            --sim_data_path "out/parca_1/kb/simData.cPickle" --fail_at_max_duration &
         SIM1_PID=$!
         uv run --env-file .env ecoli/experiments/ecoli_master_sim.py \
             --generations 1 --emitter parquet --emitter_arg out_dir='out' \
             --experiment_id "parca_2" --daughter_outdir "out/parca_2" \
-            --sim_data_path "out/parca_2/kb/simData.cPickle" --fail_at_total_time
+            --sim_data_path "out/parca_2/kb/simData.cPickle" --fail_at_max_duration
         # Wait for the first simulation to complete if it's still running
         if ps -p $SIM1_PID > /dev/null; then
           echo "Waiting for first simulation (PID: $SIM1_PID) to complete..."

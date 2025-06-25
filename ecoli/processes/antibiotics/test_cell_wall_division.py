@@ -13,12 +13,12 @@ def run_experiment():
     # a one timestep gap in accurate cell wall data. This problem goes
     # away when running in an EngineProcess, where the MureinDivision and
     # PBPBinding Steps immediately update all the relevant stores.
-    total_time = 10
+    max_duration = 10
 
     ecoli = EcoliSim.from_file(
         os.path.join(CONFIG_DIR_PATH, "test_configs/cell_wall_division.json")
     )
-    ecoli.total_time = total_time
+    ecoli.max_duration = max_duration
     ecoli.build_ecoli()
 
     # Save list of bulk indices to index bulk emits
