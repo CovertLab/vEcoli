@@ -304,6 +304,7 @@ def main():
         variant_names = {config["experiment_id"][0]: variant_name}
 
     # Establish DuckDB connection
+    # print(f"[DEBUG] The out_uri for analyses is: {out_uri}")
     conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("cpus"))
     history_sql, config_sql, success_sql = dataset_sql(out_uri, config["experiment_id"])
     # If no explicit analysis type given, run all types in config JSON
@@ -324,7 +325,7 @@ def main():
         # Figure out what Hive partition in main output directory
         # to store outputs for analyses run on this cell subset
         curr_outdir = os.path.abspath(config["outdir"])
-        config_outdir = curr_outdir
+        # config_outdir = curr_outdir
         if len(cols) > 0:
             joined_cols = ", ".join(cols)
             data_ids = conn.sql(
@@ -371,8 +372,14 @@ def main():
                     variant_names,
                 )
 
+    top_outdir = os.path.abspath(config["outdir"])
+    os.makedirs(top_outdir, exist_ok=True)
+
     # Save copy of config JSON with parameters for plots
-    with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
+    # with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
+    #     json.dump(config, f)
+
+    with open(os.path.join(top_outdir, "metadata.json"), "w") as f:
         json.dump(config, f)
 
 
