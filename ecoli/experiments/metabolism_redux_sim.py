@@ -61,7 +61,7 @@ def run_ecoli_with_metabolism_redux_classic(
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries',
-    name="NEW",
+    name="NEW_MOSEK",
     raw_output=False,
     save=True,
     save_times=[1, 10, 50, 100, 200, 400],

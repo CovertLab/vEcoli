@@ -4670,7 +4670,7 @@ G7871,b4216,ytfJ,mRNA,Unknown function,FALSE,FALSE,,
 G7872,b4217,ytfK,mRNA,Unknown function,FALSE,FALSE,,
 G7876,b4222,ytfP,mRNA,Unknown function,FALSE,FALSE,,
 EG12517,b4227,ytfQ,mRNA,Metabolism,FALSE,TRUE,,
-EG12518,b4228,ytfR,mRNA,Unknown function,FALSE,TRUE,,
+EG12518,b4228,ytfR,mRNA,Metabolism,FALSE,TRUE,,Reassigned to metabolism (Heena)
 EG12520,b4230,ytfT,mRNA,Metabolism,FALSE,TRUE,,
 G0-17046,b4800,ytgA,mRNA,Uncategorized,FALSE,FALSE,,
 G0-17096,b4822,ytgB,mRNA,Uncategorized,FALSE,FALSE,,

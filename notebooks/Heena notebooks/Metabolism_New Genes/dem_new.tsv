@@ -1,166 +1,166 @@
-	CATEGORY	REACTION	ENZYME	NO_	Notes
-CPD-582[c]		RXN0-262	EG11829-MONOMER	consumption	
-CcmE-Proteins[c]		RXN-21424	EG12053-MONOMER	consumption	
-ADENOSYLCOBALAMIN[c]		"[RXN-8770, RXN-19366]"	"[RIBAZOLEPHOSPHAT-MONOMER, [] ]"	consumption	
-D-Fructopyranose[p]		TRANS-RXN0-618-PTSI-PHOSPHORYLATED/D-Fructopyranose//PTSI-MONOMER/D-fructopyranose-1-phosphate.80.	CPLX-158	production	
-Carboxylates[c]	generic	"[ACYL-COA-HYDROLASE-RXN, ALDEHYDE-DEHYDROGENASE-NADP+-RXN, CARBOXYLESTERASE-RXN]"	"[[""THIOESTERII-CPLX"", ""EG11121-MONOMER"", ""EG11467-MONOMER""], [], [""CPLX0-8214"", ""EG10122-MONOMER""]]"	consumption	
-CPD0-2229[c]	reverse	TRANS-RXN-295-CPD0-2229//CPD0-2229.21.	EG12455-MONOMER	consumption	transport
-CPD-25891[c]		ABC-11-RXN-ATP/CPD-25891/WATER//ADP/CPD-25891/Pi/PROTON.45.	ABC-11-CPLX	consumption	transport
-CPD0-1118[c]		"[RXN-19950-DISULFOXRED-MONOMER/CPD0-1118//MONOMER0-4152/CPD0-2061.55., RXN-19950-Reduced-Disulfide-Carrier-Proteins/CPD0-1118//Oxidized-Disulfide-Carrier-Proteins/CPD0-2061.92., RXN0-7319-CPD-381/CPD0-1118//2-KETOGLUTARATE/CPD0-2061.45., RXN0-7385-CPD0-1118/NADPH/PROTON//CPD0-2061/NADP.39., RXN0-7386-CPD0-1118/NADH/PROTON//CPD0-2061/NAD.37., RXN0-7386-CPD0-1118/NADPH/PROTON//CPD0-2061/NADP.39.]"	A lot	production	used in 6 reactions but no production
-CPD0-2207[c]	reverse	TRANS-RXN-295-CPD0-2207//CPD0-2207.21.	EG12455-MONOMER	consumption	transport
-Alpha-D-aldose-1-phosphates[c]		ADPSUGPPHOSPHAT-RXN	"[""CPLX0-1221"", ""CPLX0-3721""]"	consumption	
-2-DEHYDRO-3-DEOXY-D-GLUCONATE[p]		TRANS-RXN-113	"[""KDGT-MONOMER""]"	production	transport
-Carboxylates[p]	generic	"[LYSOPHOSPHOLIPASE-RXN, RXN-16225, RXN-19311]"	"[[""CPLX0-7630""], [], [""EG10739-MONOMER"", ""CPLX0-7944""]]"		
-ASCORBATE[p]		RXN0-2461	"[""EIISGA""]"	production	
-MONOMETHYL-ESTER-OF-TRANS-ACONITATE[c]		RXN0-2441	"[""G6806-MONOMER""]"	consumption	
-CPD-18719[p]		TRANS-RXN0-501	"[""UHPT-MONOMER""]"	production	transport
-REDUCED-MENAQUINONE[c]		a lot	 a lot	consumption	"8 reactions producing, but not used"
-CPD-15978[c]		6-PHOSPHO-BETA-GLUCOSIDASE-RXN + sub rxns	"[""CPLX0-7979"", ""EG10114-MONOMER"", ""EG10085-MONOMER""]"	production	"9 reactions using, but no production"
-CPD0-2173[p]	reverse	TRANS-RXN-295-CPD0-2173//CPD0-2173.21.	EG12455-MONOMER	consumption	transport
-T2-C4-DECADIENYL-COA[c]		DIENOYLCOAREDUCT-RXN	"[""DIENOYLCOAREDUCT-MONOMER""]"	consumption	
-CPD-9646[p]		RXN0-2001	"[""G7170-MONOMER""]"	consumption	
-CPD-3766[c]		"[NADH-DEHYDROGENASE-QUINONE-RXN, RXN0-7385-CPD-3766/NADPH/PROTON//MENADIOL/NADP.37., RXN0-7386-CPD-3766/NADPH/PROTON//MENADIOL/NADP.37.]"	"[[""NQOR-CPLX"", ""DIHYDROPTERIREDUCT-CPLX""], [""CPLX0-244"", ""DIHYDROPTERIREDUCT-CPLX""]]"		
-ENTB-CPLX[c]		RXN0-7105	"[""CPLX0-7766""]"	consumption	
-ALPHA-RIBAZOLE[c]		RXN-16788	"[""RIBAZOLEPHOSPHAT-MONOMER""]"	consumption	
-CPD-9956[c]		a lot	A lot	consumption	"8 reactions producing, but not used"
-CPD0-2207[p]	reverse	TRANS-RXN-295-CPD0-2207//CPD0-2207.21.	EG12455-MONOMER	consumption	transport
-CPD-264[c]		RXN0-7046	"[""CPLX0-7766""]"	production	
-FERRIC-CITRATE-COMPLEX[e]	"weird, maybe remove"	RXN0-1684	"[""CPLX0-1943""]"	misc	transport
-CPD-20756[p]		RXN-19256	"[""CPLX0-8254""]"	production	
-CPD-3801[p]		RXN-17755	"[""MELB-MONOMER"", ""LACY-MONOMER""]"	production	transport
-3-KETOBUTYRATE[p]		TRANS-RXN0-281	"[""EG11671-MONOMER""]"	production	transport
-CPD-13853[c]		RXN-12816	"[""EG10626-MONOMER""]"	production	
-CPD-7836[p]		"[RXN-19312-CPD0-2147/WATER//CPD-7836/L-1-GLYCEROPHOSPHORYLETHANOL-AMINE/PROTON.68., RXN0-1802-CPD-7836//CPD-7836.19., THIOESTER-RXN-TETRADECANOYL-COA/WATER//CPD-7836/CO-A/PROTON.46.]"	"[[""EG10739-MONOMER"", ""CPLX0-7944""], [""EG10280-MONOMER""], [""CPLX0-7630""]]"	consumption	
-Amino-Acids-20[c]		a lot	A lot	consumption	"7 reactions producing, but not used"
-CPD0-2061[c]		a lot	a lot	consumption	"6 reactions producing, but not used"
-MALTOSE[e]		RXN0-1741-MALTOSE//MALTOSE.17.	"[""CPLX0-7655"", ""CPLX0-7534"", ""CPLX0-7533"", ""CPLX0-7530""]"	production	transport
-Ox-Hybrid-Cluster-Proteins[c]		RXN0-307	"[""G6456-MONOMER""]"	consumption	
-CPD-17986[p]		"[RXN0-3461, RXN-16687, RXN-17392]"	a lot	consumption	
-CPD0-2114[p]		ABC-11-RXN-ATP/CPD0-2114/WATER//ADP/CPD0-2114/Pi/PROTON.45.	"[""ABC-11-CPLX""]"	production	transport
-UBIQUINONE-8[c]		a lot	a lot	production	"7 reactions using, but not produced"
-CPD0-2147[p]					
-CPD-8353[p]					
-CPD-15972[p]					
-CPD0-2241[c]					
-Alcohols[c]					
-D-Ribofuranose[c]					
-Donor-H1[i]					
-CPD0-2485[c]					
-CPD-23445[c]					
-CPD-13852[c]					
-Cytochromes-c[c]					
-CPD0-1185[p]					
-CPD-12587[c]					
-FRU[p]					
-CcmCDE-Complex[i]					
-CcmE-Protein-Heme-Ox[p]					
-CPD0-2173[c]	reverse	TRANS-RXN-295-CPD0-2173//CPD0-2173.21.	EG12455-MONOMER	consumption	transport
-GDP-D-GLUCOSE[c]					
-CPD-12365[c]					
-CcmCDE-Complex-Heme[p]					
-CcmCDE-Complex-Heme[c]					
-CPD-6602[c]					
-MANNOSE[c]					
-Charged-SEC-tRNAs[c]					
-ADP-SUGARS[c]					
-CPD0-2559[c]					
-STEARIC_ACID[p]					
-CANAVANINE[c]					
-CPD-18719[c]		"[TRANS-RXN-158A, TRANS-RXN-158A-BETA-D-FRUCTOSE/PTSH-PHOSPHORYLATED//CPD-18719/PTSH-MONOMER.60., TRANS-RXN-158A-CPD-10723/PTSH-PHOSPHORYLATED//CPD-18719/PTSH-MONOMER.54., TRANS-RXN-158A-Fructofuranose/PTSH-PHOSPHORYLATED//CPD-18719/PTSH-MONOMER.59., TRANS-RXN0-501]"	a lot	consumption	transport. 5 reactions transporting  it but not used. 
-Aminopeptidase-Substrates[c]					
-L-1-PHOSPHATIDYL-ETHANOLAMINE[p]					
-CPD-14101[c]					
-CPD-25891[p]		ABC-11-RXN-ATP/CPD-25891/WATER//ADP/CPD-25891/Pi/PROTON.45.	ABC-11-CPLX	production	transport
-Alkyl-Hydro-Peroxides[c]					
-HCN[c]					
-CPD0-2148[p]					
-CPD-13315[c]					
-Fructofuranose[p]					
-D-GALACTOSAMINE-6-PHOSPHATE[c]					
-CPD0-621[c]					
-CPD-7249[c]					
-CPD-20757[p]					
-CPD0-1101[p]					
-D-fructofuranose-1-phosphate[c]					
-Donor-H1[p]					
-Beta-D-Glucuronides[c]					
-CPD-12818[p]					
-BUTYL-HYDROPEROXIDE[c]					
-CPLX0-7849[c]					
-CPD0-2114[c]		ABC-11-RXN-ATP/CPD0-2114/WATER//ADP/CPD0-2114/Pi/PROTON.45.	"[""ABC-11-CPLX""]"	consumption	transport
-Peptide-Holder-Alternative[c]					
-L-DI-GMP[c]					
-CcmE-Protein-Heme[p]					
-DEMETHYLMENAQUINONE[c]					
-CPD0-621[e]					
-APO-CITRATE-LYASE[c]					
-L-seryl-SEC-tRNAs[c]					
-CPD-3611[c]					
-A-PEPTIDOGLYCAN-MDAP-TRIPEPTIDE[p]					
-PQQ[p]					
-CPD-1843[c]					
-CPD-6746[c]					
-METHYL-BETA-D-GALACTOSIDE[c]					
-CPD-22332[c]					
-CPD-4544[p]					
-CPD0-2241[e]					
-CPD-3565[c]					
-CPD-15979[p]					
-CPD0-2134[p]					
-ACYL-COA[c]					
-Red-Hybrid-Cluster-Proteins[c]					
-Red-Prx-Disulfide-Reductases[c]					
-CPD-9728[c]					
-Fatty-Acids[p]					
-HCN[p]					
-HYDROQUINONE[c]					
-CPD-8363[p]					
-CPD-9115[p]					
-CPD-18260[c]					
-MYO-INOSITOL[c]					
-CcmAB-Complex[c]					
-CPD-389[c]					
-3-HYDROXYBENZOATE[c]					
-N-acetyl-D-glucosamine[p]					
-CPD-8550[p]					
-CPD-26488[c]					
-CPD-19237[c]					
-BUTANOL[c]					
-CIT[p]					
-ETHYLACETATE[c]					
-D-fructopyranose-1-phosphate[c]					
-CPD-7248[c]					
-PQQ[e]					
-2-DEOXY-D-GLUCOSE[c]					
-FERRIC-CITRATE-COMPLEX[c]					
-5-DEHYDROGLUCONATE[p]					
-CPD-12367[c]					
-CPD-8363[c]					
-COB-I-ALAMIN[e]					
-PANTOTHENATE[p]					
-CPD-335[c]					
-a-murein-lipoprotein[o]					
-CPD0-882[p]					
-CPD0-2486[c]					
-NICOTINAMIDE_RIBOSE[p]					
-CPD-536[c]					
-CPD-16154[c]					
-CPD-15158[c]					
-NITROUS-OXIDE[c]					
-D-MYO-INOSITOL-1-MONOPHOSPHATE[c]					
-Acceptor[i]					
-CPD0-1202[c]					
-CPD-24859[p]					
-CL-[c]					
-CPD0-2229[p]	reverse	TRANS-RXN-295-CPD0-2229//CPD0-2229.21.	EG12455-MONOMER	consumption	transport
-23-Diaminopropanoate[c]					
-CPD-173[c]					
-CPD-17927[p]					
-CcmABCD-Complex[c]					
-MENADIOL[c]					
-PALMITATE[p]					
-CPD0-2134[c]	reverse	RXN-295-CPD0-2134//CPD0-2134.21.	EG12455-MONOMER	consumption	transport
-CPD-334[p]					
-Ox-Prx-Disulfide-Reductases[c]					
-AG+[c]					
-D-glucopyranose-6-phosphate[p]					
+	CATEGORY	REACTION	ENZYME	no_	notes	todo
+CPD-582[c]	transport	RXN0-262	EG11829-MONOMER	production	"[p] <-> [e] exist, but no [p] <-> [c] "	1. maybe add a transport term [p] <-> [c]
+CcmE-Proteins[c]		RXN-21424	EG12053-MONOMER	consumption		
+ADENOSYLCOBALAMIN[c]		"[RXN-8770, RXN-19366]"	"[RIBAZOLEPHOSPHAT-MONOMER, [] ]"	consumption		
+D-Fructopyranose[p]		TRANS-RXN0-618-PTSI-PHOSPHORYLATED/D-Fructopyranose//PTSI-MONOMER/D-fructopyranose-1-phosphate.80.	CPLX-158	production		
+Carboxylates[c]	generic	"[ACYL-COA-HYDROLASE-RXN, ALDEHYDE-DEHYDROGENASE-NADP+-RXN, CARBOXYLESTERASE-RXN]"	"[[""THIOESTERII-CPLX"", ""EG11121-MONOMER"", ""EG11467-MONOMER""], [], [""CPLX0-8214"", ""EG10122-MONOMER""]]"	consumption		
+CPD0-2229[c]	reverse	TRANS-RXN-295-CPD0-2229//CPD0-2229.21.	EG12455-MONOMER	consumption	transport	
+CPD-25891[c]		ABC-11-RXN-ATP/CPD-25891/WATER//ADP/CPD-25891/Pi/PROTON.45.	ABC-11-CPLX	consumption	transport	
+CPD0-1118[c]		"[RXN-19950-DISULFOXRED-MONOMER/CPD0-1118//MONOMER0-4152/CPD0-2061.55., RXN-19950-Reduced-Disulfide-Carrier-Proteins/CPD0-1118//Oxidized-Disulfide-Carrier-Proteins/CPD0-2061.92., RXN0-7319-CPD-381/CPD0-1118//2-KETOGLUTARATE/CPD0-2061.45., RXN0-7385-CPD0-1118/NADPH/PROTON//CPD0-2061/NADP.39., RXN0-7386-CPD0-1118/NADH/PROTON//CPD0-2061/NAD.37., RXN0-7386-CPD0-1118/NADPH/PROTON//CPD0-2061/NADP.39.]"	A lot	production	used in 6 reactions but no production	
+CPD0-2207[c]	reverse	TRANS-RXN-295-CPD0-2207//CPD0-2207.21.	EG12455-MONOMER	consumption	transport	
+Alpha-D-aldose-1-phosphates[c]		ADPSUGPPHOSPHAT-RXN	"[""CPLX0-1221"", ""CPLX0-3721""]"	consumption		
+2-DEHYDRO-3-DEOXY-D-GLUCONATE[p]		TRANS-RXN-113	"[""KDGT-MONOMER""]"	production	transport	
+Carboxylates[p]	generic	"[LYSOPHOSPHOLIPASE-RXN, RXN-16225, RXN-19311]"	"[[""CPLX0-7630""], [], [""EG10739-MONOMER"", ""CPLX0-7944""]]"			
+ASCORBATE[p]		RXN0-2461	"[""EIISGA""]"	production		
+MONOMETHYL-ESTER-OF-TRANS-ACONITATE[c]		RXN0-2441	"[""G6806-MONOMER""]"	consumption		
+CPD-18719[p]		TRANS-RXN0-501	"[""UHPT-MONOMER""]"	production	transport	
+REDUCED-MENAQUINONE[c]		a lot	 a lot	consumption	"8 reactions producing, but not used"	
+CPD-15978[c]		6-PHOSPHO-BETA-GLUCOSIDASE-RXN + sub rxns	"[""CPLX0-7979"", ""EG10114-MONOMER"", ""EG10085-MONOMER""]"	production	"9 reactions using, but no production"	
+CPD0-2173[p]	reverse	TRANS-RXN-295-CPD0-2173//CPD0-2173.21.	EG12455-MONOMER	consumption	transport	
+T2-C4-DECADIENYL-COA[c]		DIENOYLCOAREDUCT-RXN	"[""DIENOYLCOAREDUCT-MONOMER""]"	consumption		
+CPD-9646[p]		RXN0-2001	"[""G7170-MONOMER""]"	consumption		
+CPD-3766[c]		"[NADH-DEHYDROGENASE-QUINONE-RXN, RXN0-7385-CPD-3766/NADPH/PROTON//MENADIOL/NADP.37., RXN0-7386-CPD-3766/NADPH/PROTON//MENADIOL/NADP.37.]"	"[[""NQOR-CPLX"", ""DIHYDROPTERIREDUCT-CPLX""], [""CPLX0-244"", ""DIHYDROPTERIREDUCT-CPLX""]]"			
+ENTB-CPLX[c]		RXN0-7105	"[""CPLX0-7766""]"	consumption		
+ALPHA-RIBAZOLE[c]		RXN-16788	"[""RIBAZOLEPHOSPHAT-MONOMER""]"	consumption		
+CPD-9956[c]		a lot	A lot	consumption	"8 reactions producing, but not used"	
+CPD0-2207[p]	reverse	TRANS-RXN-295-CPD0-2207//CPD0-2207.21.	EG12455-MONOMER	consumption	transport	
+CPD-264[c]		RXN0-7046	"[""CPLX0-7766""]"	production		
+FERRIC-CITRATE-COMPLEX[e]	"weird, maybe remove"	RXN0-1684	"[""CPLX0-1943""]"	misc	transport	
+CPD-20756[p]		RXN-19256	"[""CPLX0-8254""]"	production		
+CPD-3801[p]		RXN-17755	"[""MELB-MONOMER"", ""LACY-MONOMER""]"	production	transport	
+3-KETOBUTYRATE[p]		TRANS-RXN0-281	"[""EG11671-MONOMER""]"	production	transport	
+CPD-13853[c]		RXN-12816	"[""EG10626-MONOMER""]"	production		
+CPD-7836[p]		"[RXN-19312-CPD0-2147/WATER//CPD-7836/L-1-GLYCEROPHOSPHORYLETHANOL-AMINE/PROTON.68., RXN0-1802-CPD-7836//CPD-7836.19., THIOESTER-RXN-TETRADECANOYL-COA/WATER//CPD-7836/CO-A/PROTON.46.]"	"[[""EG10739-MONOMER"", ""CPLX0-7944""], [""EG10280-MONOMER""], [""CPLX0-7630""]]"	consumption		
+Amino-Acids-20[c]		a lot	A lot	consumption	"7 reactions producing, but not used"	
+CPD0-2061[c]		a lot	a lot	consumption	"6 reactions producing, but not used"	
+MALTOSE[e]		RXN0-1741-MALTOSE//MALTOSE.17.	"[""CPLX0-7655"", ""CPLX0-7534"", ""CPLX0-7533"", ""CPLX0-7530""]"	production	transport	
+Ox-Hybrid-Cluster-Proteins[c]		RXN0-307	"[""G6456-MONOMER""]"	consumption		
+CPD-17986[p]		"[RXN0-3461, RXN-16687, RXN-17392]"	a lot	consumption		
+CPD0-2114[p]		ABC-11-RXN-ATP/CPD0-2114/WATER//ADP/CPD0-2114/Pi/PROTON.45.	"[""ABC-11-CPLX""]"	production	transport	
+UBIQUINONE-8[c]		a lot	a lot	production	"7 reactions using, but not produced"	
+CPD0-2147[p]						
+CPD-8353[p]						
+CPD-15972[p]						
+CPD0-2241[c]						
+Alcohols[c]						
+D-Ribofuranose[c]						
+Donor-H1[i]						
+CPD0-2485[c]						
+CPD-23445[c]						
+CPD-13852[c]						
+Cytochromes-c[c]						
+CPD0-1185[p]						
+CPD-12587[c]						
+FRU[p]						
+CcmCDE-Complex[i]						
+CcmE-Protein-Heme-Ox[p]						
+CPD0-2173[c]	reverse	TRANS-RXN-295-CPD0-2173//CPD0-2173.21.	EG12455-MONOMER	consumption	transport	
+GDP-D-GLUCOSE[c]						
+CPD-12365[c]						
+CcmCDE-Complex-Heme[p]						
+CcmCDE-Complex-Heme[c]						
+CPD-6602[c]						
+MANNOSE[c]						
+Charged-SEC-tRNAs[c]						
+ADP-SUGARS[c]						
+CPD0-2559[c]						
+STEARIC_ACID[p]						
+CANAVANINE[c]						
+CPD-18719[c]		"[TRANS-RXN-158A, TRANS-RXN-158A-BETA-D-FRUCTOSE/PTSH-PHOSPHORYLATED//CPD-18719/PTSH-MONOMER.60., TRANS-RXN-158A-CPD-10723/PTSH-PHOSPHORYLATED//CPD-18719/PTSH-MONOMER.54., TRANS-RXN-158A-Fructofuranose/PTSH-PHOSPHORYLATED//CPD-18719/PTSH-MONOMER.59., TRANS-RXN0-501]"	a lot	consumption	transport. 5 reactions transporting  it but not used. 	
+Aminopeptidase-Substrates[c]						
+L-1-PHOSPHATIDYL-ETHANOLAMINE[p]						
+CPD-14101[c]						
+CPD-25891[p]		ABC-11-RXN-ATP/CPD-25891/WATER//ADP/CPD-25891/Pi/PROTON.45.	ABC-11-CPLX	production	transport	
+Alkyl-Hydro-Peroxides[c]						
+HCN[c]						
+CPD0-2148[p]						
+CPD-13315[c]						
+Fructofuranose[p]						
+D-GALACTOSAMINE-6-PHOSPHATE[c]						
+CPD0-621[c]						
+CPD-7249[c]						
+CPD-20757[p]						
+CPD0-1101[p]						
+D-fructofuranose-1-phosphate[c]						
+Donor-H1[p]						
+Beta-D-Glucuronides[c]						
+CPD-12818[p]						
+BUTYL-HYDROPEROXIDE[c]						
+CPLX0-7849[c]						
+CPD0-2114[c]		ABC-11-RXN-ATP/CPD0-2114/WATER//ADP/CPD0-2114/Pi/PROTON.45.	"[""ABC-11-CPLX""]"	consumption	transport	
+Peptide-Holder-Alternative[c]						
+L-DI-GMP[c]						
+CcmE-Protein-Heme[p]						
+DEMETHYLMENAQUINONE[c]						
+CPD0-621[e]						
+APO-CITRATE-LYASE[c]						
+L-seryl-SEC-tRNAs[c]						
+CPD-3611[c]						
+A-PEPTIDOGLYCAN-MDAP-TRIPEPTIDE[p]						
+PQQ[p]						
+CPD-1843[c]						
+CPD-6746[c]						
+METHYL-BETA-D-GALACTOSIDE[c]						
+CPD-22332[c]						
+CPD-4544[p]						
+CPD0-2241[e]						
+CPD-3565[c]						
+CPD-15979[p]						
+CPD0-2134[p]						
+ACYL-COA[c]						
+Red-Hybrid-Cluster-Proteins[c]						
+Red-Prx-Disulfide-Reductases[c]						
+CPD-9728[c]						
+Fatty-Acids[p]						
+HCN[p]						
+HYDROQUINONE[c]						
+CPD-8363[p]						
+CPD-9115[p]						
+CPD-18260[c]						
+MYO-INOSITOL[c]						
+CcmAB-Complex[c]						
+CPD-389[c]						
+3-HYDROXYBENZOATE[c]						
+N-acetyl-D-glucosamine[p]						
+CPD-8550[p]						
+CPD-26488[c]						
+CPD-19237[c]						
+BUTANOL[c]						
+CIT[p]						
+ETHYLACETATE[c]						
+D-fructopyranose-1-phosphate[c]						
+CPD-7248[c]						
+PQQ[e]						
+2-DEOXY-D-GLUCOSE[c]						
+FERRIC-CITRATE-COMPLEX[c]						
+5-DEHYDROGLUCONATE[p]						
+CPD-12367[c]						
+CPD-8363[c]						
+COB-I-ALAMIN[e]						
+PANTOTHENATE[p]						
+CPD-335[c]						
+a-murein-lipoprotein[o]						
+CPD0-882[p]						
+CPD0-2486[c]						
+NICOTINAMIDE_RIBOSE[p]						
+CPD-536[c]						
+CPD-16154[c]						
+CPD-15158[c]						
+NITROUS-OXIDE[c]						
+D-MYO-INOSITOL-1-MONOPHOSPHATE[c]						
+Acceptor[i]						
+CPD0-1202[c]						
+CPD-24859[p]						
+CL-[c]						
+CPD0-2229[p]	reverse	TRANS-RXN-295-CPD0-2229//CPD0-2229.21.	EG12455-MONOMER	consumption	transport	
+23-Diaminopropanoate[c]						
+CPD-173[c]						
+CPD-17927[p]						
+CcmABCD-Complex[c]						
+MENADIOL[c]						
+PALMITATE[p]						
+CPD0-2134[c]	reverse	RXN-295-CPD0-2134//CPD0-2134.21.	EG12455-MONOMER	consumption	transport	
+CPD-334[p]						
+Ox-Prx-Disulfide-Reductases[c]						
+AG+[c]						
+D-glucopyranose-6-phosphate[p]						
