@@ -27,72 +27,125 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
+    """Create comprehensive replication visualization plots for E. coli simulation data."""
     # Load sim_data to get genome length
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
     genome_length = len(sim_data.process.replication.genome_sequence)
 
-    # Load all the required data
-    data_columns = [
-        "time",
-        "listenersreplication_datanumberOfOric",
-        "listenersreplication_datacriticalInitiationMass",
-        "listenersreplication_datacriticalMassPerOriC",
-        "listenersreplication_datafork_coordinates",
-        "listenersmassdrymass",
-        "listenersmasscellmass",
-    ]
+    # Discover available columns
+    result = conn.sql(f"DESCRIBE ({history_sql})").pl()
+    available_columns = result["column_name"].to_list()
 
-    plot_data = read_stacked_columns(
-        history_sql,
-        data_columns,
-        conn=conn,
+    # Filter for relevant columns
+    replication_columns = [
+        col for col in available_columns if "replication" in col.lower()
+    ]
+    mass_columns = [col for col in available_columns if "mass" in col.lower()]
+
+    print(
+        f"Found {len(replication_columns)} replication columns and {len(mass_columns)} mass columns"
     )
+
+    # Define required columns mapping
+    column_mapping = {
+        "number_of_oric": next(
+            (col for col in available_columns if "number_of_oric" in col), None
+        ),
+        "fork_coordinates": next(
+            (col for col in available_columns if "fork_coordinates" in col), None
+        ),
+        "cell_mass": next(
+            (
+                col
+                for col in available_columns
+                if "cell_mass" in col and "fold_change" not in col
+            ),
+            None,
+        ),
+        "dry_mass": next(
+            (
+                col
+                for col in available_columns
+                if "dry_mass" in col and "fold_change" not in col
+            ),
+            None,
+        ),
+        "critical_initiation_mass": next(
+            (col for col in available_columns if "critical_initiation_mass" in col),
+            None,
+        ),
+        "critical_mass_per_oric": next(
+            (col for col in available_columns if "critical_mass_per_oric" in col), None
+        ),
+    }
+
+    # Build list of columns to load
+    data_columns = ["time"]
+    for key, col_name in column_mapping.items():
+        if col_name:
+            data_columns.append(col_name)
+            print(f"Using {col_name} for {key}")
+
+    # Load data
+    plot_data = read_stacked_columns(history_sql, data_columns, conn=conn)
 
     # Convert to DataFrame and add time in hours
     df = pl.DataFrame(plot_data).with_columns(
-        **{"Time (hr)": pl.col("time") / 3600}  # Convert seconds to hours
+        pl.col("time").truediv(3600).alias("Time (hr)")
     )
 
-    # Calculate pairs of forks from fork coordinates
-    # Fork coordinates is a 2D array, count non-NaN values and divide by 2
-    fork_coords = df["listenersreplication_datafork_coordinates"].to_numpy()
-    pairs_of_forks = []
-    for coord_array in fork_coords:
-        if coord_array is not None and len(coord_array) > 0:
-            pairs_of_forks.append(np.sum(~np.isnan(coord_array)) / 2)
-        else:
-            pairs_of_forks.append(0)
+    print(f"Loaded data: {df.shape[0]} rows, {df.shape[1]} columns")
 
-    df = df.with_columns(pl.Series("pairs_of_forks", pairs_of_forks))
+    # Process fork coordinates and calculate pairs of forks
+    if column_mapping["fork_coordinates"]:
+        fork_coords_col = column_mapping["fork_coordinates"]
+        pairs_of_forks = []
+
+        for coord_array in df[fork_coords_col].to_numpy():
+            if coord_array is not None and len(coord_array) > 0:
+                # Count non-NaN coordinates and divide by 2 for pairs
+                pairs_of_forks.append(np.sum(~np.isnan(coord_array)) / 2)
+            else:
+                pairs_of_forks.append(0)
+
+        df = df.with_columns(pl.Series("pairs_of_forks", pairs_of_forks))
 
     # Calculate critical mass equivalents
-    df = df.with_columns(
-        (
-            pl.col("listenersmasscellmass")
-            / pl.col("listenersreplication_datacriticalInitiationMass")
-        ).alias("critical_mass_equivalents")
-    )
+    if column_mapping["cell_mass"] and column_mapping["critical_initiation_mass"]:
+        df = df.with_columns(
+            (
+                pl.col(column_mapping["cell_mass"])
+                / pl.col(column_mapping["critical_initiation_mass"])
+            ).alias("critical_mass_equivalents")
+        )
 
-    # Create individual plots
+    # Create visualization functions
+    def create_fork_positions_plot():
+        """Create DNA polymerase positions scatter plot."""
+        if not column_mapping["fork_coordinates"]:
+            return None
 
-    # 1. Fork positions plot - this is complex due to the 2D nature, we'll create a simplified version
-    fork_positions_data = []
-    for i, (time_val, coords) in enumerate(zip(df["Time (hr)"], fork_coords)):
-        if coords is not None and len(coords) > 0:
-            for coord in coords:
-                if not np.isnan(coord):
-                    fork_positions_data.append(
-                        {"Time (hr)": time_val, "Position": coord}
-                    )
+        fork_positions_data = []
+        fork_coords_col = column_mapping["fork_coordinates"]
 
-    if fork_positions_data:
+        for time_val, coords in zip(df["Time (hr)"], df[fork_coords_col]):
+            if coords is not None and len(coords) > 0:
+                for coord in coords:
+                    if not np.isnan(coord):
+                        fork_positions_data.append(
+                            {"Time (hr)": time_val, "Position": coord}
+                        )
+
+        if not fork_positions_data:
+            return None
+
         fork_df = pl.DataFrame(fork_positions_data)
-        fork_plot = (
+        return (
             alt.Chart(fork_df)
-            .mark_circle(size=5)
+            .mark_circle(size=5, opacity=0.7)
             .encode(
-                x=alt.X("Time (hr):Q"),
+                x=alt.X("Time (hr):Q", title="Time (hr)"),
                 y=alt.Y(
                     "Position:Q",
                     scale=alt.Scale(domain=[-genome_length / 2, genome_length / 2]),
@@ -103,76 +156,140 @@ def plot(
                     title="DNA polymerase position (nt)",
                 ),
             )
-            .properties(title="DNA Polymerase Positions", width=600, height=100)
+            .properties(title="DNA Polymerase Positions", width=600, height=120)
         )
+
+    def create_pairs_of_forks_plot():
+        """Create pairs of replication forks line plot."""
+        if "pairs_of_forks" not in df.columns:
+            return None
+
+        return (
+            alt.Chart(df.to_pandas())
+            .mark_line(strokeWidth=2)
+            .encode(
+                x=alt.X("Time (hr):Q", title="Time (hr)"),
+                y=alt.Y(
+                    "pairs_of_forks:Q",
+                    scale=alt.Scale(domain=[0, 6]),
+                    title="Pairs of forks",
+                ),
+            )
+            .properties(title="Pairs of Replication Forks", width=600, height=100)
+        )
+
+    def create_critical_mass_plot():
+        """Create critical mass equivalents plot with reference lines."""
+        if "critical_mass_equivalents" not in df.columns:
+            return None
+
+        # Main line plot
+        base_plot = (
+            alt.Chart(df.to_pandas())
+            .mark_line(strokeWidth=2)
+            .encode(
+                x=alt.X("Time (hr):Q", title="Time (hr)"),
+                y=alt.Y(
+                    "critical_mass_equivalents:Q",
+                    title="Factors of critical initiation mass",
+                ),
+            )
+        )
+
+        # Reference lines for critical N values
+        reference_data = pl.DataFrame(
+            {"y": CRITICAL_N, "label": [f"N={n}" for n in CRITICAL_N]}
+        )
+
+        reference_lines = (
+            alt.Chart(reference_data.to_pandas())
+            .mark_rule(strokeDash=[5, 5], color="gray", opacity=0.7)
+            .encode(y="y:Q")
+        )
+
+        # Text labels for reference lines
+        reference_labels = (
+            alt.Chart(reference_data.to_pandas())
+            .mark_text(align="left", dx=5, fontSize=10, color="gray")
+            .encode(y="y:Q", text="label:N")
+            .transform_calculate(x="0")
+            .encode(x=alt.X("x:Q"))
+        )
+
+        return (base_plot + reference_lines + reference_labels).properties(
+            title="Factors of Critical Initiation Mass", width=600, height=100
+        )
+
+    def create_mass_plot(column_key: str, title: str, y_title: str):
+        """Create a generic mass plot."""
+        if not column_mapping[column_key]:
+            return None
+
+        return (
+            alt.Chart(df.to_pandas())
+            .mark_line(strokeWidth=2)
+            .encode(
+                x=alt.X("Time (hr):Q", title="Time (hr)"),
+                y=alt.Y(f"{column_mapping[column_key]}:Q", title=y_title),
+            )
+            .properties(title=title, width=600, height=100)
+        )
+
+    # Generate all plots
+    plots = []
+
+    # 1. Fork positions
+    fork_plot = create_fork_positions_plot()
+    if fork_plot:
+        plots.append(fork_plot)
+
+    # 2. Pairs of forks
+    pairs_plot = create_pairs_of_forks_plot()
+    if pairs_plot:
+        plots.append(pairs_plot)
+
+    # 3. Critical mass equivalents
+    critical_plot = create_critical_mass_plot()
+    if critical_plot:
+        plots.append(critical_plot)
+
+    # 4. Dry mass
+    dry_mass_plot = create_mass_plot("dry_mass", "Dry Mass", "Dry mass (fg)")
+    if dry_mass_plot:
+        plots.append(dry_mass_plot)
+
+    # 5. Number of oriC
+    oric_plot = create_mass_plot("number_of_oric", "Number of oriC", "Number of oriC")
+    if oric_plot:
+        plots.append(oric_plot)
+
+    # 6. Critical mass per oriC
+    mass_per_oric_plot = create_mass_plot(
+        "critical_mass_per_oric", "Critical Mass per oriC", "Critical mass per oriC"
+    )
+    if mass_per_oric_plot:
+        plots.append(mass_per_oric_plot)
+
+    # Combine plots or create fallback
+    if plots:
+        combined_plot = alt.vconcat(*plots).resolve_scale(x="shared")
+        print(f"Created visualization with {len(plots)} subplots")
     else:
-        # Create empty plot if no fork data
-        fork_plot = (
-            alt.Chart(pl.DataFrame({"x": [0], "y": [0]}))
-            .mark_text(text="No fork data available")
-            .encode(x="x:Q", y="y:Q")
-            .properties(width=600, height=100)
+        # Fallback plot if no data available
+        fallback_data = pl.DataFrame(
+            {"x": [0], "y": [0], "text": ["No data available for plotting"]}
         )
-
-    # 2. Pairs of forks plot
-    pairs_plot = df.plot.line(
-        x="Time (hr)",
-        y=alt.Y(
-            "pairs_of_forks", scale=alt.Scale(domain=[0, 6]), title="Pairs of forks"
-        ),
-    ).properties(title="Pairs of Replication Forks", width=600, height=100)
-
-    # 3. Critical mass equivalents plot with reference lines
-    base_critical_plot = df.plot.line(
-        x="Time (hr)",
-        y=alt.Y(
-            "critical_mass_equivalents", title="Factors of critical initiation mass"
-        ),
-    )
-
-    # Add reference lines for critical N values
-    reference_lines = (
-        alt.Chart(
-            pl.DataFrame({"y": CRITICAL_N, "label": [f"N={n}" for n in CRITICAL_N]})
+        combined_plot = (
+            alt.Chart(fallback_data.to_pandas())
+            .mark_text(fontSize=20, color="red")
+            .encode(x=alt.X("x:Q", axis=None), y=alt.Y("y:Q", axis=None), text="text:N")
+            .properties(width=600, height=400, title="Replication Data Visualization")
         )
-        .mark_rule(strokeDash=[5, 5], color="black")
-        .encode(y="y:Q")
-    )
-
-    critical_plot = (base_critical_plot + reference_lines).properties(
-        title="Factors of Critical Initiation Mass", width=600, height=100
-    )
-
-    # 4. Dry mass plot
-    dry_mass_plot = df.plot.line(
-        x="Time (hr)",
-        y=alt.Y("listenersmassdryMass", title="Dry mass (fg)"),
-    ).properties(title="Dry Mass", width=600, height=100)
-
-    # 5. Number of oriC plot
-    oric_plot = df.plot.line(
-        x="Time (hr)",
-        y=alt.Y("listenersreplication_datanumberOfOric", title="Number of oriC"),
-    ).properties(title="Number of oriC", width=600, height=100)
-
-    # 6. Critical mass per oriC plot
-    mass_per_oric_plot = df.plot.line(
-        x="Time (hr)",
-        y=alt.Y(
-            "listenersreplication_datacriticalMassPerOriC",
-            title="Critical mass per oriC",
-        ),
-    ).properties(title="Critical Mass per oriC", width=600, height=100)
-
-    # Combine all plots vertically
-    combined_plot = alt.vconcat(
-        fork_plot,
-        pairs_plot,
-        critical_plot,
-        dry_mass_plot,
-        oric_plot,
-        mass_per_oric_plot,
-    ).resolve_scale(x="shared")
+        print("No plottable data found - created fallback message")
 
     # Save the plot
-    combined_plot.save(os.path.join(outdir, "replication.html"))
+    output_path = os.path.join(outdir, "replication_report.html")
+    combined_plot.save(output_path)
+    print(f"Saved visualization to: {output_path}")
+
+    return combined_plot
