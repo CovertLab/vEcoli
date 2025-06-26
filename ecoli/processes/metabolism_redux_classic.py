@@ -457,7 +457,7 @@ class MetabolismReduxClassic(Step):
 
         homeostatic_metabolite_concentrations = (
             homeostatic_metabolite_counts * self.counts_to_molar.asNumber()
-        )
+        ) #heena's comment: this is the actual concentration of homeostatic metabolites in the sim
         target_homeostatic_dmdt = (
             self.homeostatic_concs - homeostatic_metabolite_concentrations
         ) / self.timestep
@@ -491,7 +491,7 @@ class MetabolismReduxClassic(Step):
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
-            solver=cp.GLOP,
+            solver=cp.MOSEK,
         )
 
         self.reaction_fluxes = solution.velocities
@@ -690,7 +690,7 @@ class NetworkFlowModel:
             constr.append(v[binary_kinetic_idx] == 0)
         # If want to force flow through reactions, constrain rxn flux to 1 by idx
         if force_flow_idx is not None:
-            constr.append(v[force_flow_idx] == 1)
+            constr.append(v[force_flow_idx] >= 100)
 
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
@@ -763,7 +763,7 @@ def test_network_flow_model():
         homeostatic_targets=list(homeostatic_metabolites.values()),
         objective_weights={"secretion": 0.01, "efficiency": 0.0001},
         upper_flux_bound=100,
-        solver=cp.GLOP,
+        solver=cp.MOSEK,
     )
 
     assert np.isclose(
