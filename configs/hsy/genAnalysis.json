@@ -1,0 +1,20 @@
+{
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "experiment_id": ["multigen"],
+        "variant": [0],
+        "lineage_seed": [0],
+        "generation": [1, 2, 3, 4, 5],
+        "agent_id": ["0"],
+        "variant_data_dir": ["out/multigen/variant_sim_data"],
+        "validation_data_path": ["out/multigen/parca/kb/validationData.cPickle"],
+        "outdir": "out/multigen/analyses",
+        "cpus": 4,
+
+        "multigeneration": {
+            "ribosome_components": {}
+        }
+    }
+}
