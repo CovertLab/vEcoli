@@ -1,11 +1,10 @@
 import altair as alt
 import os
-from typing import Any
+from typing import Any, Dict
 
 from duckdb import DuckDBPyConnection
 import pickle
 import polars as pl
-import numpy as np
 
 from ecoli.library.parquet_emitter import (
     field_metadata,
@@ -16,266 +15,145 @@ from ecoli.library.parquet_emitter import (
 
 
 def plot(
-    params: dict[str, Any],
+    params: Dict[str, Any],
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
     success_sql: str,
-    sim_data_dict: dict[str, dict[int, str]],
+    sim_data_dict: Dict[str, Dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
-    variant_metadata: dict[str, dict[int, Any]],
-    variant_names: dict[str, str],
+    variant_metadata: Dict[str, Dict[int, Any]],
+    variant_names: Dict[str, str],
 ):
-    """
-    Plots the timetrace of counts for each of the components of the ribosomal
-    subunits (rRNAs and ribosomal proteins).
-    """
-
-    # Load sim_data
+    # Load simulation data
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
 
-    # Load IDs of ribosome components from sim_data
+    # Extract molecule IDs for ribosomal subunits
     s30_protein_ids = sim_data.molecule_groups.s30_proteins
     s30_16s_rRNA_ids = sim_data.molecule_groups.s30_16s_rRNA
-    s30_full_complex_id = [sim_data.molecule_ids.s30_full_complex]
+    s30_full_complex_id = sim_data.molecule_ids.s30_full_complex
     s50_protein_ids = sim_data.molecule_groups.s50_proteins
     s50_23s_rRNA_ids = sim_data.molecule_groups.s50_23s_rRNA
     s50_5s_rRNA_ids = sim_data.molecule_groups.s50_5s_rRNA
-    s50_full_complex_id = [sim_data.molecule_ids.s50_full_complex]
+    s50_full_complex_id = sim_data.molecule_ids.s50_full_complex
 
-    # Get complexation stoichiometries of ribosomal proteins
+    # Retrieve stoichiometry for each protein subunit
     complexation = sim_data.process.complexation
-    s30_monomers = complexation.get_monomers(s30_full_complex_id[0])
-    s50_monomers = complexation.get_monomers(s50_full_complex_id[0])
-    s30_subunit_id_to_stoich = {
-        subunit_id: stoich
-        for (subunit_id, stoich) in zip(
-            s30_monomers["subunitIds"], s30_monomers["subunitStoich"]
-        )
-    }
-    s50_subunit_id_to_stoich = {
-        subunit_id: stoich
-        for (subunit_id, stoich) in zip(
-            s50_monomers["subunitIds"], s50_monomers["subunitStoich"]
-        )
-    }
-    s30_protein_stoich = np.array(
-        [s30_subunit_id_to_stoich[subunit_id] for subunit_id in s30_protein_ids]
-    )
-    s50_protein_stoich = np.array(
-        [s50_subunit_id_to_stoich[subunit_id] for subunit_id in s50_protein_ids]
-    )
+    s30_info = complexation.get_monomers(s30_full_complex_id)
+    s50_info = complexation.get_monomers(s50_full_complex_id)
+    s30_stoich = dict(zip(s30_info["subunitIds"], s30_info["subunitStoich"]))
+    s50_stoich = dict(zip(s50_info["subunitIds"], s50_info["subunitStoich"]))
 
-    # Get metadata for extracting indexes
-    unique_molecule_metadata = field_metadata(
-        conn, config_sql, "listeners__unique_molecule_counts"
-    )
-    monomer_metadata = field_metadata(conn, config_sql, "listeners__monomer_counts")
+    # Map bulk IDs to SQL column indices
+    bulk_ids = field_metadata(conn, config_sql, "bulk")
+    bulk_index = {mid: idx for idx, mid in enumerate(bulk_ids)}
 
-    # Extract indexes
-    active_ribosome_index = unique_molecule_metadata.index("active_ribosome")
+    # Determine column indexes in SQL for rRNAs and complexes
+    s30_16s_idx = [bulk_index[i] for i in s30_16s_rRNA_ids if i in bulk_index]
+    s50_23s_idx = [bulk_index[i] for i in s50_23s_rRNA_ids if i in bulk_index]
+    s50_5s_idx = [bulk_index[i] for i in s50_5s_rRNA_ids if i in bulk_index]
+    s30_complex_idx = bulk_index[s30_full_complex_id]
+    s50_complex_idx = bulk_index[s50_full_complex_id]
 
-    monomer_id_to_index = {
-        monomer_id: i for (i, monomer_id) in enumerate(monomer_metadata)
-    }
-    s30_protein_indexes = [
-        monomer_id_to_index[protein_id] for protein_id in s30_protein_ids
+    # Map monomer counts IDs to SQL column indices
+    mono_ids = field_metadata(conn, config_sql, "listeners__monomer_counts")
+    mono_index = {mid: idx for idx, mid in enumerate(mono_ids)}
+    s30_protein_idx = [mono_index[i] for i in s30_protein_ids if i in mono_index]
+    s50_protein_idx = [mono_index[i] for i in s50_protein_ids if i in mono_index]
+
+    # Build named_idx spec for reading
+    bulk_cols = [
+        named_idx("bulk", s30_16s_rRNA_ids, [s30_16s_idx]),
+        named_idx("bulk", s50_23s_rRNA_ids, [s50_23s_idx]),
+        named_idx("bulk", s50_5s_rRNA_ids, [s50_5s_idx]),
+        named_idx("bulk", [s30_full_complex_id], [[s30_complex_idx]]),
+        named_idx("bulk", [s50_full_complex_id], [[s50_complex_idx]]),
     ]
-    s50_protein_indexes = [
-        monomer_id_to_index[protein_id] for protein_id in s50_protein_ids
+    protein_cols = [
+        named_idx("listeners__monomer_counts", [pid], [[idx]])
+        for pid, idx in zip(
+            s30_protein_ids + s50_protein_ids, s30_protein_idx + s50_protein_idx
+        )
     ]
+    additional = ["listeners__unique_molecule_counts__active_ribosome", "time"]
+    cols = bulk_cols + protein_cols + additional
 
-    # Define named indexes for bulk molecules
-    s30_16s_rRNAs = named_idx(
-        "listeners__bulk_molecules",
-        s30_16s_rRNA_ids,
-        list(range(len(s30_16s_rRNA_ids))),  # Will be resolved by named_idx
-    )
-    s50_23s_rRNAs = named_idx(
-        "listeners__bulk_molecules",
-        s50_23s_rRNA_ids,
-        list(range(len(s50_23s_rRNA_ids))),
-    )
-    s50_5s_rRNAs = named_idx(
-        "listeners__bulk_molecules", s50_5s_rRNA_ids, list(range(len(s50_5s_rRNA_ids)))
-    )
-    s30_full_complex = named_idx("listeners__bulk_molecules", s30_full_complex_id, [0])
-    s50_full_complex = named_idx("listeners__bulk_molecules", s50_full_complex_id, [0])
+    # Read time-series data
+    data = read_stacked_columns(history_sql, cols, conn=conn)
+    df = pl.DataFrame(data).with_columns(Time_min=pl.col("time") / 60)
 
-    # Named indexes for monomer counts
-    s30_proteins = named_idx(
-        "listeners__monomer_counts", s30_protein_ids, s30_protein_indexes
-    )
-    s50_proteins = named_idx(
-        "listeners__monomer_counts", s50_protein_ids, s50_protein_indexes
-    )
+    # Sum rRNA counts horizontally
+    s30_16s = pl.sum_horizontal([pl.col(i) for i in s30_16s_rRNA_ids])
+    s50_23s = pl.sum_horizontal([pl.col(i) for i in s50_23s_rRNA_ids])
+    s50_5s = pl.sum_horizontal([pl.col(i) for i in s50_5s_rRNA_ids])
 
-    # Named index for active ribosomes
-    active_ribosomes = named_idx(
-        "listeners__unique_molecule_counts",
-        ["active_ribosome"],
-        [active_ribosome_index],
-    )
+    # Extract complex and active ribosome counts
+    s30_complex = pl.col(s30_full_complex_id)
+    s50_complex = pl.col(s50_full_complex_id)
+    active_ribo = pl.col("listeners__unique_molecule_counts__active_ribosome")
 
-    # Load data
-    ribosome_data = read_stacked_columns(
-        history_sql,
-        [
-            s30_16s_rRNAs,
-            s50_23s_rRNAs,
-            s50_5s_rRNAs,
-            s30_full_complex,
-            s50_full_complex,
-            s30_proteins,
-            s50_proteins,
-            active_ribosomes,
-        ],
-        conn=conn,
-    )
+    # Adjust protein counts by stoichiometry
+    for pid in s30_protein_ids:
+        df = df.with_columns(**{f"adj_s30_{pid}": pl.col(pid) / s30_stoich[pid]})
+    for pid in s50_protein_ids:
+        df = df.with_columns(**{f"adj_s50_{pid}": pl.col(pid) / s50_stoich[pid]})
 
-    # Convert to DataFrame and add time column
-    df = pl.DataFrame(ribosome_data).with_columns(**{"Time (min)": pl.col("time") / 60})
+    # Determine limiting protein across subunits
+    s30_lim = pl.min_horizontal([pl.col(f"adj_s30_{pid}") for pid in s30_protein_ids])
+    s50_lim = pl.min_horizontal([pl.col(f"adj_s50_{pid}") for pid in s50_protein_ids])
 
-    # Calculate protein counts divided by stoichiometry
-    s30_protein_counts_cols = []
-    for i, protein_id in enumerate(s30_protein_ids):
-        col_name = f"s30_protein_{i}_normalized"
-        df = df.with_columns(
-            (pl.col(protein_id) / s30_protein_stoich[i]).alias(col_name)
-        )
-        s30_protein_counts_cols.append(col_name)
-
-    s50_protein_counts_cols = []
-    for i, protein_id in enumerate(s50_protein_ids):
-        col_name = f"s50_protein_{i}_normalized"
-        df = df.with_columns(
-            (pl.col(protein_id) / s50_protein_stoich[i]).alias(col_name)
-        )
-        s50_protein_counts_cols.append(col_name)
-
-    # Calculate limiting protein counts and total counts
+    # Calculate total rRNA including complexes and active ribosomes
     df = df.with_columns(
-        [
-            # S30 calculations
-            pl.min_horizontal(s30_protein_counts_cols).alias(
-                "s30_limiting_protein_counts"
-            ),
-            (
-                pl.sum_horizontal(s30_16s_rRNA_ids)
-                + pl.col(s30_full_complex_id[0])
-                + pl.col("active_ribosome")
-            ).alias("s30_16s_rRNA_total_counts"),
-            (pl.col(s30_full_complex_id[0]) + pl.col("active_ribosome")).alias(
-                "s30_total_counts"
-            ),
-            # S50 calculations
-            pl.min_horizontal(s50_protein_counts_cols).alias(
-                "s50_limiting_protein_counts"
-            ),
-            (
-                pl.sum_horizontal(s50_23s_rRNA_ids)
-                + pl.col(s50_full_complex_id[0])
-                + pl.col("active_ribosome")
-            ).alias("s50_23s_rRNA_total_counts"),
-            (
-                pl.sum_horizontal(s50_5s_rRNA_ids)
-                + pl.col(s50_full_complex_id[0])
-                + pl.col("active_ribosome")
-            ).alias("s50_5s_rRNA_total_counts"),
-            (pl.col(s50_full_complex_id[0]) + pl.col("active_ribosome")).alias(
-                "s50_total_counts"
-            ),
-        ]
+        s30_16s_total=s30_16s + s30_complex + active_ribo,
+        s50_23s_total=s50_23s + s50_complex + active_ribo,
+        s50_5s_total=s50_5s + s50_complex + active_ribo,
+        s30_limiting=s30_lim,
+        s50_limiting=s50_lim,
+        s30_total=s30_complex + active_ribo,
+        s50_total=s50_complex + active_ribo,
     )
 
-    # Create plots
-    # 30S components plot
-    s30_plot = (
-        alt.Chart(df)
+    # Prepare data for plotting by melting into long format
+    plot_cols_30 = ["s30_limiting", "s30_16s_total", "s30_total"]
+    plot_cols_50 = ["s50_limiting", "s50_23s_total", "s50_5s_total", "s50_total"]
+
+    melt_30 = df.select(["Time_min"] + plot_cols_30).melt(
+        id_vars="Time_min", variable_name="component", value_name="count"
+    )
+    melt_50 = df.select(["Time_min"] + plot_cols_50).melt(
+        id_vars="Time_min", variable_name="component", value_name="count"
+    )
+
+    # Create 30S components chart with legend
+    chart_30 = (
+        alt.Chart(melt_30)
         .mark_line()
         .encode(
-            x=alt.X("Time (min):Q").title("Time (min)"),
-            y=alt.Y("value:Q").title("30S component counts").scale(domain=[0, 60000]),
-            color=alt.Color("variable:N").title("Component"),
-            strokeDash=alt.StrokeDash("variable:N").scale(
-                domain=[
-                    "s30_limiting_protein_counts",
-                    "s30_16s_rRNA_total_counts",
-                    "s30_total_counts",
-                ],
-                range=[[5, 5], [0], [3, 3]],
-            ),
+            x="Time_min",
+            y="count",
+            color=alt.Color("component", title="30S Components"),
         )
-        .transform_fold(
-            [
-                "s30_limiting_protein_counts",
-                "s30_16s_rRNA_total_counts",
-                "s30_total_counts",
-            ],
-            as_=["variable", "value"],
-        )
-        .transform_calculate(
-            variable_label="datum.variable === 's30_limiting_protein_counts' ? 'limiting r-protein' : "
-            "datum.variable === 's30_16s_rRNA_total_counts' ? '16S rRNA' : '30S subunit'"
-        )
-        .encode(
-            color=alt.Color("variable_label:N")
-            .title("Component")
-            .scale(
-                domain=["limiting r-protein", "16S rRNA", "30S subunit"],
-                range=["#cccccc", "#1f77b4", "#000000"],
-            )
-        )
-        .properties(title="30S Ribosomal Subunit Components", width=600, height=200)
+        .properties(title="30S Component Counts", width=600)
     )
 
-    # 50S components plot
-    s50_plot = (
-        alt.Chart(df)
+    # Create 50S components chart with legend
+    chart_50 = (
+        alt.Chart(melt_50)
         .mark_line()
         .encode(
-            x=alt.X("Time (min):Q").title("Time (min)"),
-            y=alt.Y("value:Q").title("50S component counts").scale(domain=[0, 60000]),
-            color=alt.Color("variable:N").title("Component"),
-            strokeDash=alt.StrokeDash("variable:N").scale(
-                domain=[
-                    "s50_limiting_protein_counts",
-                    "s50_23s_rRNA_total_counts",
-                    "s50_5s_rRNA_total_counts",
-                    "s50_total_counts",
-                ],
-                range=[[5, 5], [0], [0], [3, 3]],
-            ),
+            x="Time_min",
+            y="count",
+            color=alt.Color("component", title="50S Components"),
         )
-        .transform_fold(
-            [
-                "s50_limiting_protein_counts",
-                "s50_23s_rRNA_total_counts",
-                "s50_5s_rRNA_total_counts",
-                "s50_total_counts",
-            ],
-            as_=["variable", "value"],
-        )
-        .transform_calculate(
-            variable_label="datum.variable === 's50_limiting_protein_counts' ? 'limiting r-protein' : "
-            "datum.variable === 's50_23s_rRNA_total_counts' ? '23S rRNA' : "
-            "datum.variable === 's50_5s_rRNA_total_counts' ? '5S rRNA' : '50S subunit'"
-        )
-        .encode(
-            color=alt.Color("variable_label:N")
-            .title("Component")
-            .scale(
-                domain=["limiting r-protein", "23S rRNA", "5S rRNA", "50S subunit"],
-                range=["#cccccc", "#ff7f0e", "#2ca02c", "#000000"],
-            )
-        )
-        .properties(title="50S Ribosomal Subunit Components", width=600, height=200)
+        .properties(title="50S Component Counts", width=600)
     )
 
-    # Combine plots vertically
-    combined_plot = alt.vconcat(s30_plot, s50_plot).resolve_scale(color="independent")
-
-    # Save the plot
-    combined_plot.save(os.path.join(outdir, "ribosome_components.html"))
+    # Combine and save charts
+    combined = (
+        alt.vconcat(chart_30, chart_50)
+        .resolve_scale(color="independent")
+        .resolve_legend(color="independent")
+    )
+    combined.save(os.path.join(outdir, "ribosome_components.html"))
