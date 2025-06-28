@@ -1,4 +1,3 @@
-import atexit
 import os
 import re
 import tempfile
