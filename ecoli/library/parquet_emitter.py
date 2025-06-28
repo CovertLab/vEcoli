@@ -1,4 +1,3 @@
-import atexit
 import os
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable, cast, Mapping, Optional
