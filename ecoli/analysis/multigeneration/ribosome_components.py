@@ -1,3 +1,7 @@
+"""
+Record the 30S and 50S component count vs time
+"""
+
 import altair as alt
 import os
 from typing import Any, Dict
@@ -12,6 +16,8 @@ from ecoli.library.parquet_emitter import (
     named_idx,
     read_stacked_columns,
 )
+
+# ----------------------------------------- #
 
 
 def plot(
@@ -115,7 +121,8 @@ def plot(
         s50_total=s50_complex + active_ribo,
     )
 
-    # Prepare data for plotting by melting into long format
+    # ----------------------------------------- #
+
     plot_cols_30 = ["s30_limiting", "s30_16s_total", "s30_total"]
     plot_cols_50 = ["s50_limiting", "s50_23s_total", "s50_5s_total", "s50_total"]
 
@@ -126,7 +133,6 @@ def plot(
         id_vars="Time_min", variable_name="component", value_name="count"
     )
 
-    # Create 30S components chart with legend
     chart_30 = (
         alt.Chart(melt_30)
         .mark_line()
@@ -138,7 +144,6 @@ def plot(
         .properties(title="30S Component Counts", width=600)
     )
 
-    # Create 50S components chart with legend
     chart_50 = (
         alt.Chart(melt_50)
         .mark_line()
@@ -150,7 +155,6 @@ def plot(
         .properties(title="50S Component Counts", width=600)
     )
 
-    # Combine and save charts
     combined = (
         alt.vconcat(chart_30, chart_50)
         .resolve_scale(color="independent")
