@@ -123,21 +123,28 @@ right service account and project. Next, install Git and clone the vEcoli reposi
 
 .. code-block:: bash
 
-  sudo apt update && sudo apt install git
-  git clone https://github.com/CovertLab/vEcoli.git
+  # zip and unzip necessary to install SDKMAN to get Java for nextflow
+  sudo apt update && sudo apt install -y git zip unzip
+  git clone https://github.com/CovertLab/vEcoli.git --filter=blob:none
+  cd vEcoli
 
-Now follow the installation instructions from the README starting with
-installing ``uv`` and finishing with installing Nextflow.
+`Install uv <https://docs.astral.sh/uv/getting-started/installation/>`_, then
+create a new virtual environment and install GCSFS:
 
-.. note::
-  Technically, the only requirements to run :mod:`runscripts.workflow` on Google Cloud
-  are Nextflow, Python 3.9+, and `GCSFS <https://gcsfs.readthedocs.io/en/latest/>`_.
-  The workflow steps will be run inside Docker containers (see
-  :ref:`docker-images`). The other Python requirements can be
-  omitted for a more minimal installation. You will need to use
-  :ref:`interactive containers <interactive-containers>` to run the model using
-  any interface other than :mod:`runscripts.workflow`, but this may be a good
-  thing for maximum reproducibility.
+.. code-block:: bash
+
+  source ~/.bashrc
+  uv venv
+  uv pip install gcsfs
+
+Run the following to automatically activate the virtual environment:
+
+.. code-block:: bash
+
+  echo "source ~/vEcoli/.venv/bin/activate" >> ~/.bashrc
+  source ~/.bashrc
+
+Finally, `install Nextflow <https://www.nextflow.io/docs/latest/install.html>`_.
 
 ------------------
 Create Your Bucket
