@@ -409,7 +409,7 @@ def main():
     else:
         out_uri = config["emitter_arg"]["out_uri"]
         parsed_uri = parse.urlparse(out_uri)
-        if parsed_uri.schema not in ("local", "file") and not FSSPEC_AVAILABLE:
+        if parsed_uri.scheme not in ("local", "file") and not FSSPEC_AVAILABLE:
             raise RuntimeError(
                 f"URI '{out_uri}' specified but fsspec is not available. "
                 "Install fsspec or provide a local URI/out directory."
