@@ -1,6 +1,5 @@
 import atexit
 import os
-import sys
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable, cast, Mapping, Optional
 from urllib import parse
@@ -8,9 +7,9 @@ from urllib import parse
 import duckdb
 import numpy as np
 import polars as pl
-from pyarrow import fs
 from polars.datatypes import DataTypeClass
 from fsspec.core import filesystem, url_to_fs, OpenFile
+from fsspec.spec import AbstractFileSystem
 from tqdm import tqdm
 from vivarium.core.emitter import Emitter
 
@@ -66,7 +65,7 @@ def json_to_parquet(
     emit_dict: dict[str, np.ndarray | list[pl.Series]],
     outfile: str,
     schema: dict[str, Any],
-    filesystem: fs.FileSystem,
+    filesystem: AbstractFileSystem,
 ):
     """Convert dictionary to Parquet.
 
@@ -75,7 +74,7 @@ def json_to_parquet(
             or lists of Polars Series (variable-shape).
         outfile: Path to output Parquet file. Can be local path or URI.
         schema: Full mapping of column names to Polars dtypes.
-        filesystem: On local filesystem, PyArrow filesystem needed to
+        filesystem: On local filesystem, fsspec filesystem needed to
             write Parquet file atomically.
     """
     tbl = pl.DataFrame(emit_dict, schema={k: schema[k] for k in emit_dict})
@@ -83,13 +82,11 @@ def json_to_parquet(
     # trying to read partially written Parquet files. Get around this by writing
     # to a temporary file and then renaming it to the final output file.
     temp_outfile = outfile
-    parsed_outfile = parse.urlparse(outfile)
-    if parsed_outfile.scheme in ("", "file", "local"):
-        outfile = os.path.join(parsed_outfile.netloc, parsed_outfile.path)
+    if parse.urlparse(outfile).scheme in ("", "file", "local"):
         temp_outfile = outfile + ".tmp"
     tbl.write_parquet(temp_outfile, statistics=False)
     if temp_outfile != outfile:
-        filesystem.move(temp_outfile, outfile)
+        filesystem.mv(temp_outfile, outfile)
 
 
 def union_by_name(query_sql: str) -> str:
@@ -813,7 +810,12 @@ class BlockingExecutor:
 
 class ParquetEmitter(Emitter):
     """
-    Emit data to a Parquet dataset.
+    Emit data to a Parquet dataset. Note that :py:meth:`~.finalize`
+    must be explicitly called in a ``try...finally`` block around the call to
+    :py:meth:`vivarium.core.engine.Engine.update` to ensure that all buffered
+    emits are written to Parquet files when the simulation ends for any reason.
+    This is handled automatically in :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
+    and :py:class:`~ecoli.processes.engine_process.EngineProcess`
     """
 
     def __init__(self, config: dict[str, Any]) -> None:
@@ -838,7 +840,8 @@ class ParquetEmitter(Emitter):
             self.out_uri = os.path.abspath(config["out_dir"])
         else:
             self.out_uri = config["out_uri"]
-        self.filesystem, self.out_dir = fs.FileSystem.from_uri(self.out_uri)
+        self.filesystem: AbstractFileSystem
+        self.filesystem, _ = url_to_fs(self.out_uri)
         self.batch_size = config.get("batch_size", 400)
         self.threaded = config.get("threaded", True)
         if self.threaded:
@@ -860,62 +863,48 @@ class ParquetEmitter(Emitter):
         self.last_batch_future.set_result(None)
         # Set either by EcoliSim or by EngineProcess if sim reaches division
         self.success = False
-        atexit.register(self._finalize)
 
-    def _finalize(self):
+    def finalize(self):
         """Convert remaining batched emits to Parquet at sim shutdown
         and mark sim as successful if ``success`` flag was set. In vEcoli,
         this is done by :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
         upon reaching division.
         """
-        try:
-            # Wait for last batch to finish writing
-            self.last_batch_future.result()
-            # Flush any remaining buffered emits to Parquet
-            outfile = os.path.join(
+        # Wait for last batch to finish writing
+        self.last_batch_future.result()
+        # Flush any remaining buffered emits to Parquet
+        outfile = os.path.join(
+            self.out_uri,
+            self.experiment_id,
+            "history",
+            self.partitioning_path,
+            f"{self.num_emits}.pq",
+        )
+        self.filesystem.makedirs(os.path.dirname(outfile), exist_ok=True)
+        if not self.filesystem.exists(outfile):
+            for k, v in self.buffered_emits.items():
+                self.buffered_emits[k] = v[: self.num_emits % self.batch_size]
+            json_to_parquet(
+                self.buffered_emits, outfile, self.pl_types, self.filesystem
+            )
+        # Hive-partitioned directory that only contains successful sims
+        if self.success:
+            success_file = os.path.join(
                 self.out_uri,
                 self.experiment_id,
-                "history",
+                "success",
                 self.partitioning_path,
-                f"{self.num_emits}.pq",
+                "s.pq",
             )
-            # PyArrow filesystem requires path, not URI
-            self.filesystem.create_dir(
-                self.out_dir + os.path.dirname(outfile)[len(self.out_uri) :]
+            try:
+                self.filesystem.delete(os.path.dirname(success_file), recursive=True)
+            except (FileNotFoundError, OSError):
+                pass
+            self.filesystem.makedirs(os.path.dirname(success_file))
+            pl.DataFrame({"success": [True]}).write_parquet(
+                success_file,
+                statistics=False,
             )
-            # Write remaining buffered emits
-            if self.num_emits % self.batch_size != 0:
-                for k, v in self.buffered_emits.items():
-                    self.buffered_emits[k] = v[: self.num_emits % self.batch_size]
-                json_to_parquet(
-                    self.buffered_emits, outfile, self.pl_types, self.filesystem
-                )
-            # Hive-partitioned directory that only contains successful sims
-            if self.success:
-                success_file = os.path.join(
-                    self.out_uri,
-                    self.experiment_id,
-                    "success",
-                    self.partitioning_path,
-                    "s.pq",
-                )
-                success_dir = (
-                    self.out_dir + os.path.dirname(success_file)[len(self.out_uri) :]
-                )
-                try:
-                    self.filesystem.delete_dir(success_dir)
-                except (FileNotFoundError, OSError):
-                    pass
-                self.filesystem.create_dir(success_dir)
-                pl.DataFrame({"success": [True]}).write_parquet(
-                    success_file,
-                    statistics=False,
-                )
-        except Exception as e:
-            # Since Python ignores exceptions in atexit callbacks,
-            # we need to explicitly set the exit code
-            print(f"Error during ParquetEmitter finalization: {e}", file=sys.stderr)
-            os._exit(1)
 
     def emit(self, data: dict[str, Any]):
         """
@@ -986,14 +975,13 @@ class ParquetEmitter(Emitter):
                 self.partitioning_path,
                 "config.pq",
             )
-            config_dir = self.out_dir + os.path.dirname(outfile)[len(self.out_uri) :]
             # Cleanup any existing output files from previous runs then
             # create new folder for config / simulation output
             try:
-                self.filesystem.delete_dir(config_dir)
+                self.filesystem.delete(os.path.dirname(outfile), recursive=True)
             except (FileNotFoundError, OSError):
                 pass
-            self.filesystem.create_dir(config_dir)
+            self.filesystem.makedirs(os.path.dirname(outfile))
             self.last_batch_future = self.executor.submit(
                 json_to_parquet,
                 config_emit,
@@ -1003,13 +991,13 @@ class ParquetEmitter(Emitter):
             )
             # Delete any sim output files in final filesystem
             history_outdir = os.path.join(
-                self.out_dir, self.experiment_id, "history", self.partitioning_path
+                self.out_uri, self.experiment_id, "history", self.partitioning_path
             )
             try:
-                self.filesystem.delete_dir(history_outdir)
+                self.filesystem.delete(history_outdir, recursive=True)
             except (FileNotFoundError, OSError):
                 pass
-            self.filesystem.create_dir(history_outdir)
+            self.filesystem.makedirs(history_outdir)
             return
         # Each Engine that uses this emitter should only simulate a single cell
         # In lineage simulations, StopAfterDivision Step will terminate
