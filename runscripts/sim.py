@@ -1,4 +1,5 @@
 import os
+import signal
 import sys
 import subprocess
 
@@ -16,8 +17,15 @@ def main():
     # Forward all arguments
     cmd = [sys.executable, script_path] + sys.argv[1:]
     # Execute and forward exit code
-    result = subprocess.run(cmd)
-    return result.returncode
+    proc = subprocess.Popen(cmd)
+    try:
+        proc.wait()
+    # Give subprocess chance to finish cleanly
+    except Exception as e:
+        proc.send_signal(signal.SIGINT)
+        proc.wait()
+        raise e
+    return proc.returncode
 
 
 if __name__ == "__main__":
