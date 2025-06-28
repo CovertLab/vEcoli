@@ -1,16 +1,93 @@
+"""
+Record several things:
+1. cell volume over time
+2. total / active ribosome count and concentration
+3. active ribosome molar / mass fraction
+4. Ribosome activation / deactivation count
+5. # of AA. be translated
+6. the effective ribosome elongation rate
+"""
+
 import altair as alt
 import os
 from typing import Any
-
-from duckdb import DuckDBPyConnection
 import pickle
+
 import polars as pl
+import numpy as np
+from duckdb import DuckDBPyConnection
+import pandas as pd
 
 from ecoli.library.parquet_emitter import (
-    field_metadata,
     open_arbitrary_sim_data,
-    read_stacked_columns,
 )
+
+# ----------------------------------------- #
+
+
+def make_get_bulk_counts(sim_data):
+    """
+    Create a function to extract counts of specified bulk molecules using sim_data indices.
+
+    Args:
+        sim_data: Simulation data object containing molecule IDs and related information.
+
+    Returns:
+        A function that takes a DataFrame and list of molecule IDs and returns their total counts.
+    """
+    # Get Molecular ID from bulk_molecules
+    try:
+        molecule_ids_list = sim_data.internal_state.bulk_molecules.bulk_data[
+            "id"
+        ].tolist()
+    except AttributeError:
+        raise ValueError("[ERROR] Check the structure of `sim_data`")
+
+    mol_id_to_index = {mol_id: idx for idx, mol_id in enumerate(molecule_ids_list)}
+
+    def get_bulk_counts(df, molecule_ids):
+        """
+        Extract total counts of specified molecule IDs from the 'bulk' column.
+
+        Args:
+            df: Polars DataFrame with a 'bulk' column containing Series of counts.
+            molecule_ids: List of molecule IDs to sum.
+
+        Returns:
+            Polars Series with total counts for each row.
+        """
+        indices = []
+        for mol_id in molecule_ids:
+            if mol_id in mol_id_to_index:
+                indices.append(mol_id_to_index[mol_id])
+            else:
+                print(f"warning: molecular ID '{mol_id}' is missing")
+
+        return (
+            df["bulk"]
+            .map_elements(
+                lambda counts_series: (
+                    sum(counts_series[i] for i in indices if i < len(counts_series))
+                    if isinstance(counts_series, pl.Series)
+                    else 0
+                ),
+                return_dtype=pl.Float64,
+            )
+            .fill_null(0)
+        )
+
+    return get_bulk_counts
+
+
+def get_unique_counts(df, molecule_type):
+    """Get counts of unique molecules from listeners."""
+    col_name = f"listeners__unique_molecule_counts__{molecule_type}"
+    if col_name in df.columns:
+        return df[col_name].fill_null(0)
+    return pl.Series(np.zeros(len(df), dtype=np.int64))
+
+
+# ----------------------------------------- #
 
 
 def plot(
@@ -25,340 +102,412 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    # Get sim data from pickle file
+    """Visualize ribosome usage statistics for E. coli simulation."""
+    # ----------------------------------------- #
+
+    fg = 1e-15
+    fl = 1e-15
+
+    # ----------------------------------------- #
+    # Load sim_data
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
 
-    # Get ids for 30S and 50S subunits
-    complexIds30S = [sim_data.molecule_ids.s30_full_complex]
-    complexIds50S = [sim_data.molecule_ids.s50_full_complex]
+    required_columns = [
+        "time",
+        "variant",
+        "generation",
+        "agent_id",
+        "experiment_id",
+        "lineage_seed",
+        "listeners__mass__instantaneous_growth_rate",
+        "listeners__mass__cell_mass",
+        "listeners__mass__volume",
+        "listeners__ribosome_data__did_initialize",
+        "listeners__ribosome_data__actual_elongations",
+        "listeners__ribosome_data__did_terminate",
+        "listeners__ribosome_data__effective_elongation_rate",
+        "listeners__unique_molecule_counts__active_ribosome",
+        "bulk",
+    ]
 
-    # Get molecular weights for 30S and 50S subunits, and add these two for 70S
-    nAvogadro = sim_data.constants.n_avogadro
-    mw30S = sim_data.getter.get_masses(complexIds30S)
-    mw50S = sim_data.getter.get_masses(complexIds50S)
-    mw70S = mw30S + mw50S
+    # Get molecular IDs for ribosome subunits
+    complex_ids_30s = [sim_data.molecule_ids.s30_full_complex]
+    complex_ids_50s = [sim_data.molecule_ids.s50_full_complex]
 
-    # Load data
-    bulk_molecule_data = read_stacked_columns(
-        history_sql,
-        [
-            "listeners__bulk_molecules__counts",
-            "listeners__unique_molecule_counts__unique_molecule_counts",
-            "listeners__ribosome_data__did_initialize",
-            "listeners__ribosome_data__actual_elongations",
-            "listeners__ribosome_data__did_terminate",
-            "listeners__ribosome_data__effective_elongation_rate",
-            "listeners__mass__cell_mass",
-            "time",
-            "time_step_sec",
-        ],
-        conn=conn,
+    # Get molecular weights
+    n_avogadro = sim_data.constants.n_avogadro
+    mw_30s = sim_data.getter.get_masses(complex_ids_30s)
+    mw_50s = sim_data.getter.get_masses(complex_ids_50s)
+    mw_70s = mw_30s + mw_50s
+
+    # Check available columns
+    available_columns = (
+        conn.sql(f"DESCRIBE ({history_sql})").pl()["column_name"].to_list()
     )
+    data_columns = [col for col in required_columns if col in available_columns]
 
-    # Convert to DataFrame
-    df = pl.DataFrame(bulk_molecule_data).with_columns(
-        **{
-            "Time (min)": pl.col("time") / 60,
-            "Cell Volume (L)": (pl.col("listeners__mass__cell_mass") * 1e-15)
-            / sim_data.constants.cell_density,
-        }
-    )
+    print(f"[INFO] Loading {len(data_columns)} columns for ribosome usage analysis")
 
-    # Get indexes for 30S and 50S subunits based on ids
-    bulk_molecule_ids = field_metadata(
-        conn, config_sql, "listeners__bulk_molecules__counts"
-    )
-    complexIndexes30S = [bulk_molecule_ids.index(comp) for comp in complexIds30S]
-    complexIndexes50S = [bulk_molecule_ids.index(comp) for comp in complexIds50S]
+    df = conn.sql(f"""
+        SELECT {", ".join(data_columns)}
+        FROM ({history_sql})
+        WHERE agent_id = 0
+        ORDER BY variant, generation, time
+    """).pl()
+    df = df.rename({"variant": "variant_id", "generation": "generation_index"})
 
-    # Get indexes for active ribosomes
-    unique_molecule_ids = field_metadata(
-        conn, config_sql, "listeners__unique_molecule_counts__unique_molecule_counts"
-    )
-    ribosomeIndex = unique_molecule_ids.index("active_ribosome")
+    # Convert time from seconds to minutes
+    df = df.with_columns((pl.col("time") / 60).alias("time_min"))
 
-    # Extract specific columns from arrays
+    # Create get_bulk_counts function with sim_data
+    get_bulk_counts_func = make_get_bulk_counts(sim_data)
+
+    # Calculate ribosome subunit counts
     df = df.with_columns(
         [
-            pl.col("listeners__bulk_molecules__counts")
-            .list.get(complexIndexes30S[0])
-            .alias("counts_30S"),
-            pl.col("listeners__bulk_molecules__counts")
-            .list.get(complexIndexes50S[0])
-            .alias("counts_50S"),
-            pl.col("listeners__unique_molecule_counts__unique_molecule_counts")
-            .list.get(ribosomeIndex)
-            .alias("active_ribosome_counts"),
+            get_bulk_counts_func(df, complex_ids_30s).alias("counts_30s"),
+            get_bulk_counts_func(df, complex_ids_50s).alias("counts_50s"),
+            get_unique_counts(df, "active_ribosome").alias("active_ribosome_counts"),
         ]
     )
 
-    # Calculate ribosome statistics
+    # Calculate total ribosome counts and fractions
     df = df.with_columns(
         [
-            # Total ribosome counts
             (
                 pl.col("active_ribosome_counts")
-                + pl.min_horizontal([pl.col("counts_30S"), pl.col("counts_50S")])
+                + pl.min_horizontal(pl.col("counts_30s"), pl.col("counts_50s"))
             ).alias("total_ribosome_counts"),
-            # Concentrations
-            (
-                (1 / nAvogadro)
-                * pl.col("active_ribosome_counts")
-                / pl.col("Cell Volume (L)")
-            ).alias("active_ribosome_concentration_M"),
-            # Masses
-            ((1 / nAvogadro) * pl.col("counts_30S") * mw30S).alias("mass_30S"),
-            ((1 / nAvogadro) * pl.col("counts_50S") * mw50S).alias("mass_50S"),
-            ((1 / nAvogadro) * pl.col("active_ribosome_counts") * mw70S).alias(
-                "active_ribosome_mass"
-            ),
-            # Rates per time*volume
-            (
-                pl.col("listeners__ribosome_data__did_initialize")
-                / (pl.col("time_step_sec") * pl.col("Cell Volume (L)"))
-            ).alias("activations_per_time_volume"),
-            (
-                pl.col("listeners__ribosome_data__did_terminate")
-                / (pl.col("time_step_sec") * pl.col("Cell Volume (L)"))
-            ).alias("deactivations_per_time_volume"),
-        ]
-    )
-
-    # Calculate additional derived columns
-    df = df.with_columns(
-        [
-            # Total ribosome concentration
-            (
-                (1 / nAvogadro)
-                * pl.col("total_ribosome_counts")
-                / pl.col("Cell Volume (L)")
-            ).alias("total_ribosome_concentration_M"),
-            # Molar fraction active
             (
                 pl.col("active_ribosome_counts").cast(pl.Float64)
-                / pl.col("total_ribosome_counts")
+                / (
+                    pl.col("active_ribosome_counts")
+                    + pl.min_horizontal(pl.col("counts_30s"), pl.col("counts_50s"))
+                )
             ).alias("molar_fraction_active"),
-            # Total ribosome mass and mass fraction
+        ]
+    )
+
+    if "listeners__mass__cell_mass" in df.columns:
+        cell_density = sim_data.constants.cell_density.asNumber()
+        df = df.with_columns(
+            (fg * pl.col("listeners__mass__cell_mass") / cell_density).alias(
+                "cell_volume"
+            )
+        )
+
+    # Calculate concentrations
+    df = df.with_columns(
+        [
             (
-                pl.col("active_ribosome_mass") + pl.col("mass_30S") + pl.col("mass_50S")
+                pl.col("total_ribosome_counts")
+                / n_avogadro.asNumber()
+                / pl.col("cell_volume")
+            ).alias("total_ribosome_concentration_mM"),
+            (
+                pl.col("active_ribosome_counts")
+                / n_avogadro.asNumber()
+                / pl.col("cell_volume")
+            ).alias("active_ribosome_concentration_mM"),
+        ]
+    )
+
+    # Calculate masses
+    mw_30s_value = mw_30s.asNumber() if hasattr(mw_30s, "asNumber") else float(mw_30s)
+    mw_50s_value = mw_50s.asNumber() if hasattr(mw_50s, "asNumber") else float(mw_50s)
+    mw_70s_value = mw_70s.asNumber() if hasattr(mw_70s, "asNumber") else float(mw_70s)
+
+    df = df.with_columns(
+        [
+            (pl.col("counts_30s") / n_avogadro.asNumber() * mw_30s_value).alias(
+                "mass_30s"
+            ),
+            (pl.col("counts_50s") / n_avogadro.asNumber() * mw_50s_value).alias(
+                "mass_50s"
+            ),
+            (
+                pl.col("active_ribosome_counts") / n_avogadro.asNumber() * mw_70s_value
+            ).alias("active_ribosome_mass"),
+        ]
+    )
+
+    df = df.with_columns(
+        [
+            (
+                pl.col("active_ribosome_mass") + pl.col("mass_30s") + pl.col("mass_50s")
             ).alias("total_ribosome_mass"),
+            (
+                pl.col("active_ribosome_mass")
+                / (
+                    pl.col("active_ribosome_mass")
+                    + pl.col("mass_30s")
+                    + pl.col("mass_50s")
+                )
+            ).alias("mass_fraction_active"),
         ]
     )
 
-    # Calculate mass fraction active
-    df = df.with_columns(
-        [
-            (pl.col("active_ribosome_mass") / pl.col("total_ribosome_mass")).alias(
-                "mass_fraction_active"
-            ),
-        ]
-    )
+    if "time" in df.columns:
+        df = df.with_columns([(pl.col("time") + 1).alias("time_step_sec")])
 
-    # Convert concentrations to mM
-    df = df.with_columns(
-        [
-            (pl.col("active_ribosome_concentration_M") * 1000).alias(
-                "active_ribosome_concentration_mM"
-            ),
-            (pl.col("total_ribosome_concentration_M") * 1000).alias(
-                "total_ribosome_concentration_mM"
-            ),
-        ]
-    )
+    # Calculate rates per time and volume
+    # if "time_step_sec" in df.columns and "cell_volume" in df.columns:
+    #     df = df.with_columns([
+    #         (pl.col("listeners__ribosome_data__did_initialize") /
+    #          (pl.col("time_step_sec") * pl.col("cell_volume"))).alias("activations_per_time_volume"),
+    #         (pl.col("listeners__ribosome_data__did_terminate") /
+    #          (pl.col("time_step_sec") * pl.col("cell_volume"))).alias("deactivations_per_time_volume")
+    #     ])
 
-    # Create individual plots
+    if "time_step_sec" in df.columns and "cell_volume" in df.columns:
+        df = df.with_columns(
+            [
+                (
+                    pl.col("listeners__ribosome_data__did_initialize")
+                    / (pl.col("cell_volume") / fl)
+                ).alias("activations_per_volume"),
+                (
+                    pl.col("listeners__ribosome_data__did_terminate")
+                    / (pl.col("cell_volume") / fl)
+                ).alias("deactivations_per_volume"),
+            ]
+        )
+
+    # Select columns for plotting
+    plot_columns = ["time_min", "variant_id", "generation_index"]
+
+    # Add other columns that exist
+    for col in [
+        "time_step_sec",
+        "cell_volume",
+        "total_ribosome_counts",
+        "total_ribosome_concentration_mM",
+        "active_ribosome_counts",
+        "active_ribosome_concentration_mM",
+        "molar_fraction_active",
+        "mass_fraction_active",
+        "listeners__ribosome_data__did_initialize",
+        "listeners__ribosome_data__did_terminate",
+        "activations_per_volume",
+        "deactivations_per_volume",
+        "listeners__ribosome_data__actual_elongations",
+        "listeners__ribosome_data__effective_elongation_rate",
+    ]:
+        if col in df.columns:
+            plot_columns.append(col)
+
+    plot_df = df.select(plot_columns)
+
+    # ----------------------------------------- #
+
+    def create_line_chart(y_field, title, y_title, skip_first_point=False):
+        """Create line chart with optional skipping of first data point."""
+        data = plot_df.to_pandas()
+        if skip_first_point:
+            # Group by variant and generation, skip first point of each group
+            filtered_data = []
+            for (variant_id, generation_index), group in data.groupby(
+                ["variant_id", "generation_index"]
+            ):
+                if len(group) > 1:
+                    filtered_data.append(group.iloc[1:])
+                else:
+                    filtered_data.append(group)
+            data = (
+                pd.concat(filtered_data, ignore_index=True) if filtered_data else data
+            )
+
+        chart = (
+            alt.Chart(data)
+            .mark_line()
+            .encode(
+                x=alt.X("time_min:Q", title="Time (min)"),
+                y=alt.Y(f"{y_field}:Q", title=y_title),
+                color=alt.Color("variant_id:N", legend=alt.Legend(title="Variant")),
+            )
+            .properties(title=title, width=600, height=120)
+        )
+
+        return chart
+
+    # ----------------------------------------- #
     plots = []
 
-    # Time step plot
-    timestep_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y("time_step_sec:Q", title="Length of time step (s)"),
+    # Create all 14 plots following the original order
+    if "time_step_sec" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "time_step_sec", "Length of Time Step", "Length of time step (s)"
+            )
         )
-        .properties(title="Time Step", width=300, height=150)
-    )
-    plots.append(timestep_plot)
 
-    # Cell volume plot
-    volume_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y("Cell Volume (L):Q", title="Cell volume (L)"),
+    if "cell_volume" in plot_df.columns:
+        plots.append(create_line_chart("cell_volume", "Cell Volume", "Cell volume (L)"))
+
+    if "total_ribosome_counts" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "total_ribosome_counts", "Total Ribosome Count", "Total ribosome count"
+            )
         )
-        .properties(title="Cell Volume", width=300, height=150)
-    )
-    plots.append(volume_plot)
 
-    # Total ribosome counts
-    total_counts_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y("total_ribosome_counts:Q", title="Total ribosome count"),
+    if "total_ribosome_concentration_mM" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "total_ribosome_concentration_mM",
+                "Total Ribosome Concentration",
+                "[Total ribosome] (mM)",
+            )
         )
-        .properties(title="Total Ribosome Count", width=300, height=150)
-    )
-    plots.append(total_counts_plot)
 
-    # Total ribosome concentration
-    total_conc_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y("total_ribosome_concentration_mM:Q", title="[Total ribosome] (mM)"),
+    if "active_ribosome_counts" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "active_ribosome_counts",
+                "Active Ribosome Count",
+                "Active ribosome count",
+                skip_first_point=True,
+            )
         )
-        .properties(title="Total Ribosome Concentration", width=300, height=150)
-    )
-    plots.append(total_conc_plot)
 
-    # Active ribosome counts
-    active_counts_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y("active_ribosome_counts:Q", title="Active ribosome count"),
+    if "active_ribosome_concentration_mM" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "active_ribosome_concentration_mM",
+                "Active Ribosome Concentration",
+                "[Active ribosome] (mM)",
+                skip_first_point=True,
+            )
         )
-        .properties(title="Active Ribosome Count", width=300, height=150)
-    )
-    plots.append(active_counts_plot)
 
-    # Active ribosome concentration
-    active_conc_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y(
-                "active_ribosome_concentration_mM:Q", title="[Active ribosome] (mM)"
-            ),
+    if "molar_fraction_active" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "molar_fraction_active",
+                "Molar Fraction Active Ribosomes",
+                "Molar fraction active ribosomes",
+                skip_first_point=True,
+            )
         )
-        .properties(title="Active Ribosome Concentration", width=300, height=150)
-    )
-    plots.append(active_conc_plot)
 
-    # Molar fraction active
-    molar_fraction_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y("molar_fraction_active:Q", title="Molar fraction active ribosomes"),
+    if "mass_fraction_active" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "mass_fraction_active",
+                "Mass Fraction Active Ribosomes",
+                "Mass fraction active ribosomes",
+                skip_first_point=True,
+            )
         )
-        .properties(title="Molar Fraction Active Ribosomes", width=300, height=150)
-    )
-    plots.append(molar_fraction_plot)
 
-    # Mass fraction active
-    mass_fraction_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y("mass_fraction_active:Q", title="Mass fraction active ribosomes"),
+    if "listeners__ribosome_data__did_initialize" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "listeners__ribosome_data__did_initialize",
+                "Ribosome Activations",
+                "Activations per timestep",
+            )
         )
-        .properties(title="Mass Fraction Active Ribosomes", width=300, height=150)
-    )
-    plots.append(mass_fraction_plot)
 
-    # Activations per timestep
-    activations_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y(
-                "listeners__ribosome_data__did_initialize:Q",
-                title="Activations per timestep",
-            ),
+    if "listeners__ribosome_data__did_terminate" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "listeners__ribosome_data__did_terminate",
+                "Ribosome Deactivations",
+                "Deactivations per timestep",
+            )
         )
-        .properties(title="Activations per Timestep", width=300, height=150)
-    )
-    plots.append(activations_plot)
 
-    # Deactivations per timestep
-    deactivations_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y(
-                "listeners__ribosome_data__did_terminate:Q",
-                title="Deactivations per timestep",
-            ),
+    if "activations_per_volume" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "activations_per_volume",
+                "Activations per Volume (fL)",
+                "Activations per Volume (fL)",
+            )
         )
-        .properties(title="Deactivations per Timestep", width=300, height=150)
-    )
-    plots.append(deactivations_plot)
 
-    # Activations per time*volume
-    activations_tv_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y(
-                "activations_per_time_volume:Q", title="Activations per time*volume"
-            ),
+    if "deactivations_per_volume" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "deactivations_per_volume",
+                "Deactivations per Volume (fL)",
+                "Deactivations per Volume (fL)",
+            )
         )
-        .properties(title="Activations per Time*Volume", width=300, height=150)
-    )
-    plots.append(activations_tv_plot)
 
-    # Deactivations per time*volume
-    deactivations_tv_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y(
-                "deactivations_per_time_volume:Q", title="Deactivations per time*volume"
-            ),
+    if "listeners__ribosome_data__actual_elongations" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "listeners__ribosome_data__actual_elongations",
+                "Amino Acids Translated",
+                "AA translated",
+            )
         )
-        .properties(title="Deactivations per Time*Volume", width=300, height=150)
-    )
-    plots.append(deactivations_tv_plot)
 
-    # AA translated
-    aa_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y(
-                "listeners__ribosome_data__actual_elongations:Q", title="AA translated"
-            ),
+    if "listeners__ribosome_data__effective_elongation_rate" in plot_df.columns:
+        plots.append(
+            create_line_chart(
+                "listeners__ribosome_data__effective_elongation_rate",
+                "Effective Ribosome Elongation Rate",
+                "Effective elongation rate",
+            )
         )
-        .properties(title="Amino Acids Translated", width=300, height=150)
-    )
-    plots.append(aa_plot)
 
-    # Effective elongation rate
-    elongation_plot = (
-        alt.Chart(df.to_pandas())
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q", title="Time (min)"),
-            y=alt.Y(
-                "listeners__ribosome_data__effective_elongation_rate:Q",
-                title="Effective elongation rate",
-            ),
+    if not plots:
+        fallback_df = pl.DataFrame(
+            {
+                "message": ["No data available for ribosome usage visualization"],
+                "x": [0],
+                "y": [0],
+            }
         )
-        .properties(title="Effective Elongation Rate", width=300, height=150)
+        fallback_plot = (
+            alt.Chart(fallback_df.to_pandas())
+            .mark_text(size=20, color="red")
+            .encode(x="x:Q", y="y:Q", text="message:N")
+            .properties(
+                width=600,
+                height=400,
+                title="Ribosome Usage Statistics - No Data Available",
+            )
+        )
+        plots.append(fallback_plot)
+
+    # Arrange plots in 2 columns as in original
+    left_plots = plots[::2]  # Even indices (0, 2, 4, ...)
+    right_plots = plots[1::2]  # Odd indices (1, 3, 5, ...)
+
+    # Ensure both columns have same length by adding empty chart if needed
+    if len(left_plots) > len(right_plots):
+        empty_chart = (
+            alt.Chart(pl.DataFrame({"x": [0], "y": [0]}).to_pandas())
+            .mark_point(opacity=0)
+            .encode(x="x:Q", y="y:Q")
+            .properties(width=600, height=120)
+        )
+        right_plots.append(empty_chart)
+    elif len(right_plots) > len(left_plots):
+        empty_chart = (
+            alt.Chart(pl.DataFrame({"x": [0], "y": [0]}).to_pandas())
+            .mark_point(opacity=0)
+            .encode(x="x:Q", y="y:Q")
+            .properties(width=600, height=120)
+        )
+        left_plots.append(empty_chart)
+
+    # Create two column layout
+    left_column = alt.vconcat(*left_plots)
+    right_column = alt.vconcat(*right_plots)
+    combined_plot = (
+        alt.hconcat(left_column, right_column)
+        .resolve_scale(x="shared", y="independent")
+        .properties(title="Ribosome Usage Statistics")
     )
-    plots.append(elongation_plot)
 
-    # Combine all plots in a grid layout (7 rows, 2 columns)
-    left_column = alt.vconcat(*plots[:7])
-    right_column = alt.vconcat(*plots[7:])
-    combined_plot = alt.hconcat(left_column, right_column)
+    output_path = os.path.join(outdir, "ribosome_usage_report.html")
+    combined_plot.save(output_path)
+    print(f"Saved visualization to: {output_path}")
 
-    # Save the plot
-    combined_plot.save(os.path.join(outdir, "ribosome_usage.html"))
+    return combined_plot

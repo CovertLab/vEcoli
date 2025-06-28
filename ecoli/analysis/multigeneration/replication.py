@@ -1,3 +1,11 @@
+"""
+The multigeneration aanlysis method `replication`
+1. Record the DNA polymerase position vs time
+2. Record # of pairs of replication forks
+3. Record the factors of critical initial mass and dry mass
+4. Record # of oriC
+"""
+
 import altair as alt
 import os
 from typing import Any
@@ -13,6 +21,8 @@ from ecoli.library.parquet_emitter import (
 )
 
 CRITICAL_N = [1, 2, 4, 8]
+
+# ----------------------------------------- #
 
 
 def plot(
