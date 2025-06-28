@@ -435,6 +435,7 @@ def main():
                 "Please use a different experiment ID or output directory. "
                 "Alternatively, move, delete, or rename the existing directory."
             )
+        os.makedirs(outdir, exist_ok=True)
     else:
         if filesystem.exists(exp_outdir) and not args.resume:
             raise RuntimeError(
@@ -442,6 +443,7 @@ def main():
                 "Please use a different experiment ID or output directory. "
                 "Alternatively, move, delete, or rename the existing directory."
             )
+        filesystem.makedirs(outdir, exist_ok=True)
     temp_config_path = f"{local_outdir}/workflow_config.json"
     final_config_path = os.path.join(outdir, "workflow_config.json")
     final_config_uri = os.path.join(out_uri, "workflow_config.json")
