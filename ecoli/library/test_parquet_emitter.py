@@ -292,10 +292,6 @@ class TestParquetEmitter:
         emitter.partitioning_path = "path/to/output"
         assert emitter.out_uri == "gs://bucket/path"
         assert emitter.batch_size == 100
-        # GCSFS uses asyncio and cannot schedule futures after interpreter shutdown
-        # so _finalize hook with raise an error that is ignored. Here we just
-        # unregister the hook to avoid cluttering the pytest log
-        atexit.unregister(emitter._finalize)
 
     def test_emit_configuration(self, temp_dir):
         """Test emitting configuration data."""
@@ -707,7 +703,7 @@ class TestParquetEmitter:
             )
 
     def test_finalize(self, temp_dir):
-        """Test _finalize method that handles remaining data."""
+        """Test finalize method that handles remaining data."""
         emitter = ParquetEmitter({"out_dir": temp_dir})
         emitter.experiment_id = "test_exp"
         emitter.partitioning_path = "path/to/output"
@@ -729,8 +725,8 @@ class TestParquetEmitter:
         with patch(
             "ecoli.library.parquet_emitter.json_to_parquet"
         ) as mock_json_to_parquet:
-            # Test _finalize
-            emitter._finalize()
+            # Test finalize
+            emitter.finalize()
 
             # Verify json_to_parquet was called with truncated data
             mock_json_to_parquet.assert_called_once()
@@ -741,7 +737,7 @@ class TestParquetEmitter:
 
         # Test success flag
         emitter.success = True
-        emitter._finalize()
+        emitter.finalize()
         assert os.path.exists(
             os.path.join(
                 emitter.out_uri,
@@ -939,8 +935,7 @@ class TestParquetEmitterEdgeCases:
 
         # Changed type for field2 to list so should fail
         with pytest.raises(pl.exceptions.InvalidOperationError):
-            emitter._finalize()
-        atexit.unregister(emitter._finalize)
+            emitter.finalize()
         # Cleanup the real executor
         real_executor.shutdown()
 
