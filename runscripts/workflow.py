@@ -423,14 +423,25 @@ def main():
         config["lineage_seed"] = random.randint(0, 2**31 - 1)
     filesystem, outdir = parse_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
+    exp_outdir = os.path.join(outdir, experiment_id)
     out_uri = os.path.join(out_uri, experiment_id, "nextflow")
     repo_dir = os.path.dirname(os.path.dirname(__file__))
     local_outdir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
     os.makedirs(local_outdir, exist_ok=True)
     if filesystem is None:
-        os.makedirs(outdir, exist_ok=args.resume)
+        if os.path.exists(exp_outdir) and not args.resume:
+            raise RuntimeError(
+                f"Output directory already exists: {exp_outdir}. "
+                "Please use a different experiment ID or output directory. "
+                "Alternatively, move, delete, or rename the existing directory."
+            )
     else:
-        filesystem.makedirs(outdir, exist_ok=args.resume)
+        if filesystem.exists(exp_outdir) and not args.resume:
+            raise RuntimeError(
+                f"Output directory already exists: {exp_outdir}. "
+                "Please use a different experiment ID or output directory. "
+                "Alternatively, move, delete, or rename the existing directory."
+            )
     temp_config_path = f"{local_outdir}/workflow_config.json"
     final_config_path = os.path.join(outdir, "workflow_config.json")
     final_config_uri = os.path.join(out_uri, "workflow_config.json")
