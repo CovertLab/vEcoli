@@ -423,7 +423,7 @@ def main():
         config["lineage_seed"] = random.randint(0, 2**31 - 1)
     filesystem, outdir = parse_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
-    exp_outdir = os.path.join(outdir, experiment_id)
+    exp_outdir = os.path.dirname(outdir)
     out_uri = os.path.join(out_uri, experiment_id, "nextflow")
     repo_dir = os.path.dirname(os.path.dirname(__file__))
     local_outdir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
