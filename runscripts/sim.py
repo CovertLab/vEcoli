@@ -20,11 +20,10 @@ def main():
     proc = subprocess.Popen(cmd)
     try:
         proc.wait()
-    # Give subprocess chance to finish cleanly
-    except Exception:
+    # Ensure emits are finalized even if wrapper is interrupted
+    finally:
         proc.send_signal(signal.SIGINT)
         proc.wait()
-        raise
     return proc.returncode
 
 
