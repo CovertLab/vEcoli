@@ -737,10 +737,10 @@ class EcoliSim:
         Runs the E. coli simulation for a specified amount of time. If the
         simulation reaches a division event and ``config['generations']`` is set,
         it will save the daughter cell states to JSON files in the directory
-        specified by ``config['daughter_outdir']``. If the simulation reaches
-        the maximum duration specified by ``config['max_duration']``, it will
-        raise a :py:class:`~ecoli.experiments.ecoli_master_sim.TimeLimitError`
-        if ``config['fail_at_max_duration']`` is ``True``.
+        specified by ``config['daughter_outdir']``. Also creates a file
+        ``division_time.sh`` that, when executed, sets the environment variable
+        ``division_time`` to the time at which division occurred (used in
+        Nextflow workflow runs).
         """
         try:
             self.ecoli_experiment.update(time_to_update)
@@ -754,7 +754,7 @@ class EcoliSim:
                 )
                 write_json(daughter_path, agent_state)
             print(
-                f"Divided at t = {self.ecoli_experiment.global_time} after"
+                f"Divided at t = {self.ecoli_experiment.global_time} after "
                 f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
             )
             with open("division_time.sh", "w") as f:
@@ -763,8 +763,10 @@ class EcoliSim:
             if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
                 self.ecoli_experiment.emitter.success = True
                 self.ecoli_experiment.emitter.finalize()
+            # Exit so that EcoliSim.run() does not raise TimeLimitError
             sys.exit()
         finally:
+            # Finish writing any buffered emits to Parquet files
             if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
                 self.ecoli_experiment.emitter.finalize()
 
@@ -804,7 +806,10 @@ class EcoliSim:
             self.update_experiment(time_remaining)
 
     def run(self):
-        """Create and run an EcoliSim experiment.
+        """Create and run an EcoliSim experiment. If the simulation reaches
+        the maximum duration specified by ``config['max_duration']``, it will
+        raise a :py:class:`~ecoli.experiments.ecoli_master_sim.TimeLimitError`
+        if ``config['fail_at_max_duration']`` is ``True``.
 
         .. WARNING::
             Run :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.build_ecoli`
