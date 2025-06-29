@@ -1,21 +1,6 @@
-"""
-Plot dynamic traces of genes with high expression (> 20 counts of mRNA)
-
-EG10367_RNA	24.8	gapA	Glyceraldehyde 3-phosphate dehydrogenase
-EG11036_RNA	25.2	tufA	Elongation factor Tu
-EG50002_RNA	26.2	rpmA	50S Ribosomal subunit protein L27
-EG10671_RNA	30.1	ompF	Outer membrane protein F
-EG50003_RNA	38.7	acpP	Apo-[acyl carrier protein]
-EG10669_RNA	41.1	ompA	Outer membrane protein A
-EG10873_RNA	44.7	rplL	50S Ribosomal subunit protein L7/L12 dimer
-EG12179_RNA	46.2	cspE	Transcription antiterminator and regulator of RNA stability
-EG10321_RNA	53.2	fliC	Flagellin
-EG10544_RNA	97.5	lpp		Murein lipoprotein
-"""
-
 import altair as alt
 import os
-from typing import Any, cast
+from typing import Any
 import pickle
 import polars as pl
 import numpy as np
@@ -41,13 +26,15 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    # Load sim_data
+    # Load sim_data for expected cistron order and degradation rates
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
+    cistron_array = sim_data.process.transcription.cistron_data.struct_array
+    all_ids = list(cistron_array["id"])
+    deg_rates = {row["id"]: row["deg_rate"] for row in cistron_array}
 
-    all_cistron_ids = sim_data.process.transcription.cistron_data["id"].tolist()
-
-    cistron_ids = [
+    # Define high-expression cistrons
+    target_ids = [
         "EG10367_RNA",
         "EG11036_RNA",
         "EG50002_RNA",
@@ -59,198 +46,116 @@ def plot(
         "EG10321_RNA",
         "EG10544_RNA",
     ]
-
-    names = [
-        "gapA - Glyceraldehyde 3-phosphate dehydrogenase",
-        "tufA - Elongation factor Tu",
-        "rpmA - 50S Ribosomal subunit protein L27",
-        "ompF - Outer membrane protein F",
-        "acpP - Apo-[acyl carrier protein]",
-        "ompA - Outer membrane protein A",
-        "rplL - 50S Ribosomal subunit protein L7/L12 dimer",
-        "cspE - Transcription antiterminator and regulator of RNA stability",
-        "fliC - Flagellin",
-        "lpp - Murein lipoprotein",
-    ]
-
-    cistron_idxs = [all_cistron_ids.index(x) for x in cistron_ids]
-    deg_rates = sim_data.process.transcription.cistron_data["deg_rate"][cistron_idxs]
-
-    # Get indexes for the specific cistrons we want to track
-    rna_degradation_idx_dict = {
-        cistron: i
-        for i, cistron in enumerate(
-            field_metadata(
-                conn,
-                config_sql,
-                "listenersrna_degradation__count_RNA_degraded_per_cistron",
-            )
-        )
-    }
-
-    rna_counts_idx_dict = {
-        cistron: i
-        for i, cistron in enumerate(
-            field_metadata(conn, config_sql, "listenersrna_counts__mRNA_cistron_counts")
-        )
-    }
-
-    cistron_degradation_indexes = [
-        cast(int, rna_degradation_idx_dict.get(cistron_id))
-        for cistron_id in cistron_ids
-    ]
-
-    cistron_counts_indexes = [
-        cast(int, rna_counts_idx_dict.get(cistron_id)) for cistron_id in cistron_ids
-    ]
-
-    # Load data using vEcoli pattern
-    degradation_columns = named_idx(
-        "listenersrna_degradation__count_RNA_degraded_per_cistron",
-        cistron_ids,
-        cistron_degradation_indexes,
-    )
-
-    counts_columns = named_idx(
-        "listenersrna_counts__mRNA_cistron_counts", cistron_ids, cistron_counts_indexes
-    )
-
-    # Read data
-    data = read_stacked_columns(
-        history_sql,
-        [degradation_columns, counts_columns, "time", "timeStepSec"],
-        conn=conn,
-    )
-
-    df = pl.DataFrame(data)
-
-    # Convert to numpy arrays for processing (similar to original logic)
-    N = 100  # smoothing window
-
-    # Group by simulation and process each separately
-    processed_data = []
-
-    for sim_data_group in df.group_by(["variant", "seed", "generation"]):
-        sim_df = sim_data_group[1].sort("time")
-
-        # Extract arrays for this simulation
-        dt = sim_df["timeStepSec"].to_numpy()
-
-        # Process degradation counts
-        degraded_counts = np.column_stack(
-            [
-                sim_df[
-                    f"listenersrna_degradation__count_RNA_degraded_per_cistron__{cistron_id}"
-                ].to_numpy()
-                for cistron_id in cistron_ids
-            ]
-        )
-
-        # Process RNA counts
-        rna_counts = np.column_stack(
-            [
-                sim_df[
-                    f"listenersrna_counts__mRNA_cistron_counts__{cistron_id}"
-                ].to_numpy()
-                for cistron_id in cistron_ids
-            ]
-        )
-
-        # Apply smoothing (similar to original)
-        if len(dt) > 2 * N:
-            degraded_smoothed = np.nan * np.ones_like(degraded_counts)
-            counts_smoothed = np.nan * np.ones_like(rna_counts)
-
-            for col_idx in range(degraded_counts.shape[1]):
-                # Smooth degradation rates
-                degraded_smoothed[:, col_idx] = np.convolve(
-                    degraded_counts[:, col_idx] / dt, np.ones(N) / N, mode="same"
-                )
-                # Smooth counts
-                counts_smoothed[:, col_idx] = np.convolve(
-                    rna_counts[:, col_idx], np.ones(N) / N, mode="same"
-                )
-
-            # Trim edges
-            degraded_trimmed = degraded_smoothed[N:-N, :]
-            counts_trimmed = counts_smoothed[N:-N, :]
-
-            processed_data.append(
-                {
-                    "degraded": degraded_trimmed,
-                    "counts": counts_trimmed,
-                    "variant": sim_data_group[1]["variant"].iloc[0],
-                    "seed": sim_data_group[1]["seed"].iloc[0],
-                    "generation": sim_data_group[1]["generation"].iloc[0],
-                }
-            )
-
-    if not processed_data:
-        print("No data available for processing")
+    valid_ids = [cid for cid in target_ids if cid in all_ids]
+    if not valid_ids:
+        print("[ERROR] No matching cistrons in sim_data")
         return
 
-    # Combine all processed data
-    all_degraded = np.vstack([d["degraded"] for d in processed_data])
-    all_counts = np.vstack([d["counts"] for d in processed_data])
+    # Retrieve metadata for degradation and counts
+    deg_field = "listeners__rna_degradation_listener__count_RNA_degraded_per_cistron"
+    cnt_field = "listeners__rna_counts__mRNA_cistron_counts"
+    try:
+        deg_meta = field_metadata(conn, config_sql, deg_field)
+        cnt_meta = field_metadata(conn, config_sql, cnt_field)
+    except Exception as e:
+        print(f"[ERROR] field_metadata failed: {e}")
+        return
 
-    # Create subplot charts using Altair
+    # Find indices for valid cistrons
+    deg_indices = [deg_meta.index(cid) for cid in valid_ids]
+    cnt_indices = [cnt_meta.index(cid) for cid in valid_ids]
+
+    # Build named_idx structures
+    deg_named = named_idx(deg_field, valid_ids, [deg_indices])
+    cnt_named = named_idx(cnt_field, valid_ids, [cnt_indices])
+
+    # Read stacked columns
+    try:
+        data_dict = read_stacked_columns(
+            history_sql,
+            [deg_named, cnt_named],
+            conn=conn,
+        )
+    except Exception as e:
+        print(f"[ERROR] read_stacked_columns failed: {e}")
+        return
+
+    # Convert to Polars DataFrame
+    df = pl.DataFrame(data_dict)
+    # Rename time and convert to minutes
+    if "time" in df.columns:
+        df = df.with_columns((pl.col("time") / 60).alias("time_min"))
+
+    # Melt degradation and counts
+    deg_cols = valid_ids
+    cnt_cols = valid_ids
+    deg_df = df.select(["time_min"] + deg_cols).melt(
+        "time_min", variable_name="cistron", value_name="degraded"
+    )
+    cnt_df = df.select(["time_min"] + cnt_cols).melt(
+        "time_min", variable_name="cistron", value_name="counts"
+    )
+    joined = deg_df.join(cnt_df, on=["time_min", "cistron"])
+
+    # Smooth and fit per cistron
     charts = []
-
-    for subplot_idx in range(
-        min(9, len(cistron_ids))
-    ):  # Limit to 9 subplots like original
-        if subplot_idx >= len(cistron_ids):
-            break
-
-        y = all_degraded[:, subplot_idx]
-        A = all_counts[:, subplot_idx]
-
-        try:
-            # Calculate degradation rate using least squares
-            kdeg, _, _, _ = np.linalg.lstsq(A[:, np.newaxis], y, rcond=None)
-            kdeg = kdeg[0]
-        except (ValueError, np.linalg.LinAlgError):
-            print(f"Skipping subplot {subplot_idx} because not enough data")
+    window = 100
+    for cid in valid_ids[:9]:  # up to 9 plots
+        sub = joined.filter(pl.col("cistron") == cid).sort("time_min")
+        if sub.height < 2 * window:
             continue
+        counts = sub["counts"].to_numpy()
+        degraded = sub["degraded"].to_numpy()
+        # smoothing
+        smooth_c = np.convolve(counts, np.ones(window) / window, mode="same")
+        dt = np.gradient(sub["time_min"].to_numpy() * 60)
+        rate = degraded / np.maximum(dt, 1e-10)
+        smooth_r = np.convolve(rate, np.ones(window) / window, mode="same")
+        mask = (
+            np.isfinite(smooth_c)
+            & (smooth_c > 0)
+            & np.isfinite(smooth_r)
+            & (smooth_r >= 0)
+        )
+        A = smooth_c[mask]
+        y = smooth_r[mask]
+        if len(A) < 10:
+            continue
+        kdeg = np.linalg.lstsq(A[:, None], y, rcond=None)[0][0]
 
-        # Subsample data for plotting (similar to original ::N)
-        plot_data = pl.DataFrame({"RNA_counts": A[::N], "RNA_degraded": y[::N]})
+        # Prepare data for plotting
+        plot_df = pl.DataFrame({"RNA_counts": A, "RNA_degraded": y})
+        # Regression line data
+        line_x = np.linspace(A.min(), A.max(), 100)
+        line_y = kdeg * line_x
 
-        chart = (
-            alt.Chart(plot_data)
-            .mark_circle()
-            .encode(
-                x=alt.X("RNA_counts:Q", title="RNA (counts)"),
-                y=alt.Y("RNA_degraded:Q", title="RNA degraded (counts)"),
-            )
-            .properties(
-                title=f"{names[subplot_idx].split(' - ')[0]}\n"
-                f"kdeg meas: {kdeg:.1e}\n"
-                f"kdeg exp: {deg_rates[subplot_idx]:.1e}",
-                width=250,
-                height=200,
-            )
+        # Scatter with blue points
+        scatter = (
+            alt.Chart(plot_df)
+            .mark_circle(size=20, opacity=0.6, color="blue")
+            .encode(x="RNA_counts:Q", y="RNA_degraded:Q")
+        )
+        # Regression line with light yellow color
+        line = (
+            alt.Chart(pl.DataFrame({"RNA_counts": line_x, "RNA_degraded": line_y}))
+            .mark_line(color="red", strokeWidth=0.5)
+            .encode(x="RNA_counts:Q", y="RNA_degraded:Q")
         )
 
-        charts.append(chart)
+        # Combine and style
+        title = f"{cid} kdeg meas: {kdeg:.1e} s⁻¹ | kdeg exp: {deg_rates[cid]:.1e} s⁻¹"
+        charts.append((scatter + line).properties(title=title, width=250, height=200))
 
-    # Arrange charts in 3x3 grid
     if charts:
-        # Group charts into rows of 3
-        rows = []
-        for i in range(0, len(charts), 3):
-            row_charts = charts[i : i + 3]
-            if len(row_charts) == 1:
-                rows.append(row_charts[0])
-            else:
-                rows.append(alt.hconcat(*row_charts))
-
-        # Combine rows vertically
-        if len(rows) == 1:
-            combined_plot = rows[0]
-        else:
-            combined_plot = alt.vconcat(*rows)
-
-        combined_plot.save(os.path.join(outdir, "rna_decay_03_high.html"))
+        # Arrange charts in 3x3 grid
+        rows = [alt.hconcat(*charts[i : i + 3]) for i in range(0, len(charts), 3)]
+        combined = alt.vconcat(*rows).properties(
+            title="RNA Decay - High Expression Genes"
+        )
+        output = os.path.join(outdir, "rna_decay_03_high.html")
+        combined.save(output)
+        print(f"[INFO] Saved visualization to: {output}")
+        return combined
     else:
-        print("No charts were generated due to insufficient data")
+        print("[ERROR] No charts generated")
+        return None
