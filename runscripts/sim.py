@@ -21,10 +21,10 @@ def main():
     try:
         proc.wait()
     # Give subprocess chance to finish cleanly
-    except Exception as e:
+    except Exception:
         proc.send_signal(signal.SIGINT)
         proc.wait()
-        raise e
+        raise
     return proc.returncode
 
 

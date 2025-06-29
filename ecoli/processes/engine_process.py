@@ -511,7 +511,6 @@ class EngineProcess(Process):
                 self.sim.complete()
         except Exception:
             if isinstance(self.emitter, ParquetEmitter):
-                self.emitter.success = True
                 self.emitter.finalize()
             raise
 
