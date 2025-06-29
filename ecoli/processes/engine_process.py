@@ -509,7 +509,7 @@ class EngineProcess(Process):
             self.sim.run_for(timestep)
             if force_complete:
                 self.sim.complete()
-        except Exception:
+        except (Exception, KeyboardInterrupt):
             if isinstance(self.emitter, ParquetEmitter):
                 self.emitter.finalize()
             raise
