@@ -1,4 +1,3 @@
-import atexit
 import os
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable, cast, Mapping, Optional
@@ -810,7 +809,12 @@ class BlockingExecutor:
 
 class ParquetEmitter(Emitter):
     """
-    Emit data to a Parquet dataset.
+    Emit data to a Parquet dataset. Note that :py:meth:`~.finalize`
+    must be explicitly called in a ``try...finally`` block around the call to
+    :py:meth:`vivarium.core.engine.Engine.update` to ensure that all buffered
+    emits are written to Parquet files when the simulation ends for any reason.
+    This is handled automatically in :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
+    and :py:class:`~ecoli.processes.engine_process.EngineProcess`
     """
 
     def __init__(self, config: dict[str, Any]) -> None:
@@ -858,9 +862,8 @@ class ParquetEmitter(Emitter):
         self.last_batch_future.set_result(None)
         # Set either by EcoliSim or by EngineProcess if sim reaches division
         self.success = False
-        atexit.register(self._finalize)
 
-    def _finalize(self):
+    def finalize(self):
         """Convert remaining batched emits to Parquet at sim shutdown
         and mark sim as successful if ``success`` flag was set. In vEcoli,
         this is done by :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`

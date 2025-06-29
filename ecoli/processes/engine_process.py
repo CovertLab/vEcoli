@@ -505,9 +505,14 @@ class EngineProcess(Process):
         self.emitter.emit(emit_config)
 
         # Run inner simulation for timestep.
-        self.sim.run_for(timestep)
-        if force_complete:
-            self.sim.complete()
+        try:
+            self.sim.run_for(timestep)
+            if force_complete:
+                self.sim.complete()
+        except (Exception, KeyboardInterrupt):
+            if isinstance(self.emitter, ParquetEmitter):
+                self.emitter.finalize()
+            raise
 
         update = {}
 
@@ -520,7 +525,7 @@ class EngineProcess(Process):
             # Finalize emits before division
             if isinstance(self.emitter, ParquetEmitter):
                 self.emitter.success = True
-                self.emitter._finalize()
+                self.emitter.finalize()
             # Perform division.
             daughters = []
             daughter_states = self.sim.state.divide_value()

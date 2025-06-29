@@ -14,8 +14,11 @@ RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
     && echo "alias ll='ls -l'" >> ~/.bashrc \
     && cp ~/.bashrc /
 
+# gcc necessary for compiling C extensions in some Python packages.
 # procps necessary for `ps` command used by Nextflow to track processes.
-RUN apt-get update && apt-get install -y gcc procps nano
+# nano is a text editor for convenience.
+# curl is necessary for authentication on Google Cloud VMs
+RUN apt-get update && apt-get install -y gcc procps nano curl
 
 # Install the project into `/vEcoli`
 WORKDIR /vEcoli
