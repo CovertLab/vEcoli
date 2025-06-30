@@ -117,10 +117,16 @@ def get_git_diff() -> str:
     Raises an error if both methods fail.
     """
     # Try to run git command
+    # try:
+    #     return (
+    #         subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "diff", "HEAD"])
+    #         .decode("ascii")
+    #         .strip()
+    #     )
     try:
         return (
             subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "diff", "HEAD"])
-            .decode("ascii")
+            .decode("utf-8")
             .strip()
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
