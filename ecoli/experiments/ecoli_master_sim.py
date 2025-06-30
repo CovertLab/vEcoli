@@ -117,10 +117,16 @@ def get_git_diff() -> str:
     Raises an error if both methods fail.
     """
     # Try to run git command
+    # try:
+    #     return (
+    #         subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "diff", "HEAD"])
+    #         .decode("ascii")
+    #         .strip()
+    #     )
     try:
         return (
             subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "diff", "HEAD"])
-            .decode("ascii")
+            .decode("utf-8")
             .strip()
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -353,6 +359,7 @@ class SimConfig:
                 type=float,
                 action="store",
                 help="Initial time in context of whole lineage.",
+                default=0.0,
             )
             self.parser.add_argument(
                 "--fail_at_max_duration",
