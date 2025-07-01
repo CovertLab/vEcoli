@@ -260,6 +260,7 @@ def plot(
                     scale=alt.Scale(
                         domain=["target", "actual"], range=[[1, 0], [5, 5]]
                     ),
+                    legend=None,
                 ),
                 tooltip=[
                     alt.Tooltip("Time_min:Q", title="Time (min)", format=".2f"),
