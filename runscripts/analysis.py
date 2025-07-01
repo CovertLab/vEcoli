@@ -293,7 +293,6 @@ def main():
         variant_names = {config["experiment_id"][0]: variant_name}
 
     # Establish DuckDB connection
-    # print(f"[DEBUG] The out_uri for analyses is: {out_uri}")
     conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("cpus"))
     history_sql, config_sql, success_sql = dataset_sql(out_uri, config["experiment_id"])
     # If no explicit analysis type given, run all types in config JSON
@@ -340,6 +339,8 @@ def main():
                     curr_outdir,
                 )
         else:
+            curr_outdir = os.path.abspath(config["outdir"])
+            os.makedirs(curr_outdir, exist_ok=True)
             query_strings[duckdb_filter] = (
                 f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
@@ -369,9 +370,6 @@ def main():
                     variant_metadata,
                     variant_names,
                 )
-
-    top_outdir = os.path.abspath(config["outdir"])
-    os.makedirs(top_outdir, exist_ok=True)
 
     # Save copy of config JSON with parameters for plots
     with open(
