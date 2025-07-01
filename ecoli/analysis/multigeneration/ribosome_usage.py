@@ -16,6 +16,7 @@ import pickle
 import polars as pl
 from duckdb import DuckDBPyConnection
 import pandas as pd
+import numpy as np
 
 from ecoli.library.parquet_emitter import (
     open_arbitrary_sim_data,
@@ -48,8 +49,12 @@ def plot(
     bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data["id"].tolist()
 
     # precompute indices as Python ints (following ribosome_production.py pattern)
-    idx_30s = [int(i) for i in bulk_name_to_idx(complex_ids_30s, bulk_ids)]
-    idx_50s = [int(i) for i in bulk_name_to_idx(complex_ids_50s, bulk_ids)]
+    idx_30s = [
+        int(i) for i in np.atleast_1d(bulk_name_to_idx(complex_ids_30s, bulk_ids))
+    ]
+    idx_50s = [
+        int(i) for i in np.atleast_1d(bulk_name_to_idx(complex_ids_50s, bulk_ids))
+    ]
 
     # Get molecular weights
     n_avogadro = sim_data.constants.n_avogadro
