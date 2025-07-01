@@ -65,9 +65,9 @@ def plot(
     bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data["id"].tolist()
 
     # precompute indices as Python ints
-    idx_16s = [int(i) for i in bulk_name_to_idx(s30_16s, bulk_ids)]
-    idx_23s = [int(i) for i in bulk_name_to_idx(s50_23s, bulk_ids)]
-    idx_5s = [int(i) for i in bulk_name_to_idx(s50_5s, bulk_ids)]
+    idx_16s = [int(i) for i in np.atleast_1d(bulk_name_to_idx(s30_16s, bulk_ids))]
+    idx_23s = [int(i) for i in np.atleast_1d(bulk_name_to_idx(s50_23s, bulk_ids))]
+    idx_5s = [int(i) for i in np.atleast_1d(bulk_name_to_idx(s50_5s, bulk_ids))]
 
     required_columns = [
         "time",
