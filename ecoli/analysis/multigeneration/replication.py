@@ -1,5 +1,5 @@
 """
-The multigeneration aanlysis method `replication`
+The multigeneration analysis method `replication`
 1. Record the DNA polymerase position vs time
 2. Record # of pairs of replication forks
 3. Record the factors of critical initial mass and dry mass
@@ -13,7 +13,6 @@ import pickle
 
 from duckdb import DuckDBPyConnection
 import polars as pl
-import numpy as np
 
 from ecoli.library.parquet_emitter import (
     open_arbitrary_sim_data,
@@ -43,114 +42,57 @@ def plot(
         sim_data = pickle.load(f)
     genome_length = len(sim_data.process.replication.genome_sequence)
 
-    # Discover available columns
-    result = conn.sql(f"DESCRIBE ({history_sql})").pl()
-    available_columns = result["column_name"].to_list()
-
-    # Filter for relevant columns
-    replication_columns = [
-        col for col in available_columns if "replication" in col.lower()
+    # Define data columns with proper listener names and aliases
+    data_columns = [
+        'time / 3600 AS "Time (hr)"',
+        "listeners__replication_data__fork_coordinates AS fork_coordinates",
+        "listeners__replication_data__number_of_oric AS number_of_oric",
+        "listeners__mass__cell_mass AS cell_mass",
+        "listeners__mass__dry_mass AS dry_mass",
+        "listeners__replication_data__critical_initiation_mass AS critical_initiation_mass",
+        "listeners__replication_data__critical_mass_per_oric AS critical_mass_per_oric",
     ]
-    mass_columns = [col for col in available_columns if "mass" in col.lower()]
-
-    print(
-        f"Found {len(replication_columns)} replication columns and {len(mass_columns)} mass columns"
-    )
-
-    # Define required columns mapping
-    column_mapping = {
-        "number_of_oric": next(
-            (col for col in available_columns if "number_of_oric" in col), None
-        ),
-        "fork_coordinates": next(
-            (col for col in available_columns if "fork_coordinates" in col), None
-        ),
-        "cell_mass": next(
-            (
-                col
-                for col in available_columns
-                if "cell_mass" in col and "fold_change" not in col
-            ),
-            None,
-        ),
-        "dry_mass": next(
-            (
-                col
-                for col in available_columns
-                if "dry_mass" in col and "fold_change" not in col
-            ),
-            None,
-        ),
-        "critical_initiation_mass": next(
-            (col for col in available_columns if "critical_initiation_mass" in col),
-            None,
-        ),
-        "critical_mass_per_oric": next(
-            (col for col in available_columns if "critical_mass_per_oric" in col), None
-        ),
-    }
-
-    # Build list of columns to load
-    data_columns = ["time"]
-    for key, col_name in column_mapping.items():
-        if col_name:
-            data_columns.append(col_name)
-            print(f"Using {col_name} for {key}")
 
     # Load data
     plot_data = read_stacked_columns(history_sql, data_columns, conn=conn)
 
-    # Convert to DataFrame and add time in hours
-    df = pl.DataFrame(plot_data).with_columns(
-        pl.col("time").truediv(3600).alias("Time (hr)")
-    )
+    # Convert to DataFrame
+    df = pl.DataFrame(plot_data)
 
-    print(f"Loaded data: {df.shape[0]} rows, {df.shape[1]} columns")
-
-    # Process fork coordinates and calculate pairs of forks
-    if column_mapping["fork_coordinates"]:
-        fork_coords_col = column_mapping["fork_coordinates"]
-        pairs_of_forks = []
-
-        for coord_array in df[fork_coords_col].to_numpy():
-            if coord_array is not None and len(coord_array) > 0:
-                # Count non-NaN coordinates and divide by 2 for pairs
-                pairs_of_forks.append(np.sum(~np.isnan(coord_array)) / 2)
-            else:
-                pairs_of_forks.append(0)
-
-        df = df.with_columns(pl.Series("pairs_of_forks", pairs_of_forks))
-
-    # Calculate critical mass equivalents
-    if column_mapping["cell_mass"] and column_mapping["critical_initiation_mass"]:
+    # Process fork coordinates and calculate pairs of forks using Polars
+    if "fork_coordinates" in df.columns:
         df = df.with_columns(
-            (
-                pl.col(column_mapping["cell_mass"])
-                / pl.col(column_mapping["critical_initiation_mass"])
-            ).alias("critical_mass_equivalents")
+            pairs_of_forks=pl.col("fork_coordinates")
+            .list.eval(~pl.element().is_nan())
+            .list.sum()
+            / 2
         )
 
+    # Calculate critical mass equivalents
+    if "cell_mass" in df.columns and "critical_initiation_mass" in df.columns:
+        df = df.with_columns(
+            critical_mass_equivalents=(
+                pl.col("cell_mass") / pl.col("critical_initiation_mass")
+            )
+        )
+
+    # ----------------------------------------- #
     # Create visualization functions
     def create_fork_positions_plot():
         """Create DNA polymerase positions scatter plot."""
-        if not column_mapping["fork_coordinates"]:
+        if "fork_coordinates" not in df.columns:
             return None
 
-        fork_positions_data = []
-        fork_coords_col = column_mapping["fork_coordinates"]
+        # Explode fork coordinates and filter out NaN values
+        fork_df = (
+            df.select(["Time (hr)", "fork_coordinates"])
+            .explode("fork_coordinates")
+            .filter(~pl.col("fork_coordinates").is_nan())
+            .rename({"fork_coordinates": "Position"})
+        )
 
-        for time_val, coords in zip(df["Time (hr)"], df[fork_coords_col]):
-            if coords is not None and len(coords) > 0:
-                for coord in coords:
-                    if not np.isnan(coord):
-                        fork_positions_data.append(
-                            {"Time (hr)": time_val, "Position": coord}
-                        )
-
-        if not fork_positions_data:
+        if fork_df.height == 0:
             return None
-
-        fork_df = pl.DataFrame(fork_positions_data)
         return (
             alt.Chart(fork_df)
             .mark_circle(size=5, opacity=0.7)
@@ -175,7 +117,7 @@ def plot(
             return None
 
         return (
-            alt.Chart(df.to_pandas())
+            alt.Chart(df)
             .mark_line(strokeWidth=2)
             .encode(
                 x=alt.X("Time (hr):Q", title="Time (hr)"),
@@ -195,7 +137,7 @@ def plot(
 
         # Main line plot
         base_plot = (
-            alt.Chart(df.to_pandas())
+            alt.Chart(df)
             .mark_line(strokeWidth=2)
             .encode(
                 x=alt.X("Time (hr):Q", title="Time (hr)"),
@@ -212,14 +154,14 @@ def plot(
         )
 
         reference_lines = (
-            alt.Chart(reference_data.to_pandas())
+            alt.Chart(reference_data)
             .mark_rule(strokeDash=[5, 5], color="gray", opacity=0.7)
             .encode(y="y:Q")
         )
 
         # Text labels for reference lines
         reference_labels = (
-            alt.Chart(reference_data.to_pandas())
+            alt.Chart(reference_data)
             .mark_text(align="left", dx=5, fontSize=10, color="gray")
             .encode(y="y:Q", text="label:N")
             .transform_calculate(x="0")
@@ -230,21 +172,22 @@ def plot(
             title="Factors of Critical Initiation Mass", width=600, height=100
         )
 
-    def create_mass_plot(column_key: str, title: str, y_title: str):
+    def create_mass_plot(column_name: str, title: str, y_title: str):
         """Create a generic mass plot."""
-        if not column_mapping[column_key]:
+        if column_name not in df.columns:
             return None
 
         return (
-            alt.Chart(df.to_pandas())
+            alt.Chart(df)
             .mark_line(strokeWidth=2)
             .encode(
                 x=alt.X("Time (hr):Q", title="Time (hr)"),
-                y=alt.Y(f"{column_mapping[column_key]}:Q", title=y_title),
+                y=alt.Y(f"{column_name}:Q", title=y_title),
             )
             .properties(title=title, width=600, height=100)
         )
 
+    # ----------------------------------------- #
     # Generate all plots
     plots = []
 
@@ -290,7 +233,7 @@ def plot(
             {"x": [0], "y": [0], "text": ["No data available for plotting"]}
         )
         combined_plot = (
-            alt.Chart(fallback_data.to_pandas())
+            alt.Chart(fallback_data)
             .mark_text(fontSize=20, color="red")
             .encode(x=alt.X("x:Q", axis=None), y=alt.Y("y:Q", axis=None), text="text:N")
             .properties(width=600, height=400, title="Replication Data Visualization")
