@@ -40,7 +40,7 @@ If your system has git, curl (or wget), and a C compiler
 
 On Ubuntu/Debian, apt can be used to install all three prerequisites:
 
-    sudo -s eval 'apt update && apt install git curl clang'
+    sudo -s eval 'apt update && apt install -y git curl clang'
 
 On MacOS, curl is preinstalled and git and clang come with the Xcode Command Line Tools:
 
@@ -68,7 +68,7 @@ git clone https://github.com/CovertLab/vEcoli.git
 > a new directory called `vEcoli` in your current directory. To speed up
 > the clone and save disk space, add `--filter=blob:none` to the command.
 
-2. [Follow these instructions](https://docs.astral.sh/uv/getting-started/installation/)
+2. [Follow these "Standalone installer" instructions](https://docs.astral.sh/uv/getting-started/installation/)
 to install `uv`, our Python package and project manager of choice.
    
 3. Close and reopen your terminal.

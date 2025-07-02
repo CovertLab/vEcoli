@@ -732,7 +732,45 @@ class EcoliSim:
                 self.generated_initial_state, initial_environment
             )
 
-    def save_states(self, daughter_outdir: str = ""):
+    def update_experiment(self, time_to_update: float = 0.0):
+        """
+        Runs the E. coli simulation for a specified amount of time. If the
+        simulation reaches a division event and ``config['generations']`` is set,
+        it will save the daughter cell states to JSON files in the directory
+        specified by ``config['daughter_outdir']``. Also creates a file
+        ``division_time.sh`` that, when executed, sets the environment variable
+        ``division_time`` to the time at which division occurred (used in
+        Nextflow workflow runs).
+        """
+        try:
+            self.ecoli_experiment.update(time_to_update)
+        except DivisionDetected:
+            state = self.ecoli_experiment.state.get_value(condition=not_a_process)
+            assert len(state["agents"]) == 2
+            for i, agent_state in enumerate(state["agents"].values()):
+                prepare_save_state(agent_state)
+                daughter_path = os.path.join(
+                    self.daughter_outdir, f"daughter_state_{i}.json"
+                )
+                write_json(daughter_path, agent_state)
+            print(
+                f"Divided at t = {self.ecoli_experiment.global_time} after "
+                f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
+            )
+            with open("division_time.sh", "w") as f:
+                f.write(f"export division_time={self.ecoli_experiment.global_time}")
+            # Tell Parquet emitter that simulation was successful
+            if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
+                self.ecoli_experiment.emitter.success = True
+                self.ecoli_experiment.emitter.finalize()
+            # Exit so that EcoliSim.run() does not raise TimeLimitError
+            sys.exit()
+        finally:
+            # Finish writing any buffered emits to Parquet files
+            if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
+                self.ecoli_experiment.emitter.finalize()
+
+    def save_states(self):
         """
         Runs the simulation while saving the states of specific
         timesteps to files named ``data/vivecoli_t{time}.json``. Invoked by
@@ -740,12 +778,6 @@ class EcoliSim:
         if ``config['save'] == True``. State is saved as a JSON that
         can be reloaded into a simulation as described in
         :py:meth:`~ecoli.composites.ecoli_master.Ecoli.initial_state`.
-
-        Args:
-            daughter_outdir: Location to write JSON files for daughter cell(s).
-                Only used if ``config`` contains ``generations`` key specifying
-                number of generations to simulate. Nextflow chains simulations
-                together by passing saved daughter states to new processes.
         """
         for time in self.save_times:
             if time > self.max_duration:
@@ -759,27 +791,7 @@ class EcoliSim:
                 time_to_next_save = self.save_times[i]
             else:
                 time_to_next_save = self.save_times[i] - self.save_times[i - 1]
-            try:
-                self.ecoli_experiment.update(time_to_next_save)
-            except DivisionDetected:
-                state = self.ecoli_experiment.state.get_value(condition=not_a_process)
-                assert len(state["agents"]) == 2
-                for i, agent_state in enumerate(state["agents"].values()):
-                    prepare_save_state(agent_state)
-                    daughter_path = os.path.join(
-                        daughter_outdir, f"daughter_state_{i}.json"
-                    )
-                    write_json(daughter_path, agent_state)
-                print(
-                    f"Divided at t = {self.ecoli_experiment.global_time} after"
-                    f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
-                )
-                with open("division_time.sh", "w") as f:
-                    f.write(f"export division_time={self.ecoli_experiment.global_time}")
-                # Tell Parquet emitter that simulation was successful
-                if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
-                    self.ecoli_experiment.emitter.success = True
-                sys.exit()
+            self.update_experiment(time_to_next_save)
             time_elapsed = self.save_times[i]
             state = self.ecoli_experiment.state.get_value(condition=not_a_process)
             if self.divide:
@@ -791,10 +803,13 @@ class EcoliSim:
             print("Finished saving the state at t = " + str(time_elapsed))
         time_remaining = self.max_duration - self.save_times[-1]
         if time_remaining:
-            self.ecoli_experiment.update(time_remaining)
+            self.update_experiment(time_remaining)
 
     def run(self):
-        """Create and run an EcoliSim experiment.
+        """Create and run an EcoliSim experiment. If the simulation reaches
+        the maximum duration specified by ``config['max_duration']``, it will
+        raise a :py:class:`~ecoli.experiments.ecoli_master_sim.TimeLimitError`
+        if ``config['fail_at_max_duration']`` is ``True``.
 
         .. WARNING::
             Run :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.build_ecoli`
@@ -890,29 +905,9 @@ class EcoliSim:
 
         # run the experiment
         if self.save:
-            self.save_states(self.daughter_outdir)
+            self.save_states()
         else:
-            try:
-                self.ecoli_experiment.update(self.max_duration)
-            except DivisionDetected:
-                state = self.ecoli_experiment.state.get_value(condition=not_a_process)
-                assert len(state["agents"]) == 2
-                for i, agent_state in enumerate(state["agents"].values()):
-                    prepare_save_state(agent_state)
-                    daughter_path = os.path.join(
-                        self.daughter_outdir, f"daughter_state_{i}.json"
-                    )
-                    write_json(daughter_path, agent_state)
-                print(
-                    f"Divided at t = {self.ecoli_experiment.global_time} after"
-                    f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
-                )
-                with open("division_time.sh", "w") as f:
-                    f.write(f"export division_time={self.ecoli_experiment.global_time}")
-                # Tell Parquet emitter that simulation was successful
-                if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
-                    self.ecoli_experiment.emitter.success = True
-                sys.exit()
+            self.update_experiment(self.max_duration)
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
