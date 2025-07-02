@@ -84,6 +84,10 @@ uv sync --frozen --extra dev
 uv run pre-commit install
 ```
 
+> **Tip:** If uv is not connecting to the venv correctly, or you are running into an error with the 
+> `uv run pre-commit install` step, try running `rm -rf .venv` to remove the venv, then run 
+> `uv sync --frozen --extra dev` followed by `uv run pre-commit install` to reinstall the venv.
+
 5. Install `nextflow` [following these instructions](https://www.nextflow.io/docs/latest/install.html).
 If your system has `wget` but not `curl`, replace `curl` in the commands
 with `wget -qO-`. If you choose to install Java with SDKMAN!, after
