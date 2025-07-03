@@ -1,0 +1,278 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.variants.new_gene_internal_shift &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.variants.new_gene_internal_shift</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.variants.new_gene_internal_shift</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.variants.condition</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_variant</span> <span class="k">as</span> <span class="n">condition_variant</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">reconstruction.ecoli.simulation_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulationDataEcoli</span>
+
+
+<div class="viewcode-block" id="get_new_gene_ids_and_indices">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.variants.new_gene_internal_shift.html#ecoli.variants.new_gene_internal_shift.get_new_gene_ids_and_indices">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_new_gene_ids_and_indices</span><span class="p">(</span>
+    <span class="n">sim_data</span><span class="p">:</span> <span class="s2">&quot;SimulationDataEcoli&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determines the indices of new gene cistrons and proteins using the new</span>
+<span class="sd">    gene flag in sim_data.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        4-element tuple containing</span>
+
+<span class="sd">        - **new_gene_cistron_ids**: names of new gene cistrons</span>
+<span class="sd">        - **new_gene_indices**: indices in rna_data table for new gene cistrons</span>
+<span class="sd">        - **new_monomer_ids**: names of new gene monomers</span>
+<span class="sd">        - **new_monomer_indices**: indices in monomer_data table for new monomers</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cistron_sim_data</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="o">.</span><span class="n">struct_array</span>
+    <span class="n">monomer_sim_data</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">monomer_data</span><span class="o">.</span><span class="n">struct_array</span>
+    <span class="n">new_gene_cistron_ids</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+        <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">cistron_sim_data</span><span class="p">[</span><span class="n">cistron_sim_data</span><span class="p">[</span><span class="s2">&quot;is_new_gene&quot;</span><span class="p">]][</span><span class="s2">&quot;id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">cistron_monomer_id_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="nb">zip</span><span class="p">(</span><span class="n">monomer_sim_data</span><span class="p">[</span><span class="s2">&quot;cistron_id&quot;</span><span class="p">],</span> <span class="n">monomer_sim_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+    <span class="p">)</span>
+    <span class="n">new_monomer_ids</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">cistron_monomer_id_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cistron_id</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">cistron_id</span> <span class="ow">in</span> <span class="n">new_gene_cistron_ids</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_gene_cistron_ids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+            <span class="s2">&quot;This variant  is intended to be run on simulations &quot;</span>
+            <span class="s2">&quot;where the new gene option was enabled, but no new gene cistrons were &quot;</span>
+            <span class="s2">&quot;found.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_monomer_ids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+            <span class="s2">&quot;This variant is intended to be run on simulations where&quot;</span>
+            <span class="s2">&quot; the new gene option was enabled, but no new gene proteins &quot;</span>
+            <span class="s2">&quot;were found.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_monomer_ids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_gene_cistron_ids</span><span class="p">),</span> <span class="p">(</span>
+        <span class="s2">&quot;number of new gene monomers and cistrons should be equal&quot;</span>
+    <span class="p">)</span>
+    <span class="n">rna_data</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span>
+    <span class="n">cistron_idx_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">rna</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">rna</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rna_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])}</span>
+    <span class="n">new_gene_indices</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">cistron_idx_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cistron_id</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">cistron_id</span> <span class="ow">in</span> <span class="n">new_gene_cistron_ids</span>
+    <span class="p">]</span>
+    <span class="n">monomer_idx_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">monomer</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">monomer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">monomer_sim_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])}</span>
+    <span class="n">new_monomer_indices</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">monomer_idx_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">monomer_id</span><span class="p">))</span> <span class="k">for</span> <span class="n">monomer_id</span> <span class="ow">in</span> <span class="n">new_monomer_ids</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">new_gene_cistron_ids</span><span class="p">,</span> <span class="n">new_gene_indices</span><span class="p">,</span> <span class="n">new_monomer_ids</span><span class="p">,</span> <span class="n">new_monomer_indices</span></div>
+
+
+
+<div class="viewcode-block" id="modify_new_gene_exp_trl">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.variants.new_gene_internal_shift.html#ecoli.variants.new_gene_internal_shift.modify_new_gene_exp_trl">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">modify_new_gene_exp_trl</span><span class="p">(</span>
+    <span class="n">sim_data</span><span class="p">:</span> <span class="s2">&quot;SimulationDataEcoli&quot;</span><span class="p">,</span> <span class="n">expression</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">translation_efficiency</span><span class="p">:</span> <span class="nb">float</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sets expression and translation effiencies of new genes. Modifies::</span>
+
+<span class="sd">        sim_data.process.transcription.rna_synth_prob</span>
+<span class="sd">        sim_data.process.transcription.rna_expression</span>
+<span class="sd">        sim_data.process.transcription.exp_free</span>
+<span class="sd">        sim_data.process.transcription.exp_ppgpp</span>
+<span class="sd">        sim_data.process.transcription.attenuation_basal_prob_adjustments</span>
+<span class="sd">        sim_data.process.transcription_regulation.basal_prob</span>
+<span class="sd">        sim_data.process.transcription_regulation.delta_prob</span>
+<span class="sd">        sim_data.process.translation.translation_efficiencies_by_monomer</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sim_data: Simulation data</span>
+<span class="sd">        expression: Factor by which to adjust new gene expression levels</span>
+<span class="sd">        translation_efficiency: Translation efficiency for new genes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Determine ids and indices of new genes</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">new_gene_indices</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">new_monomer_indices</span> <span class="o">=</span> <span class="n">get_new_gene_ids_and_indices</span><span class="p">(</span><span class="n">sim_data</span><span class="p">)</span>
+
+    <span class="c1"># Modify expression and translation efficiency for new genes</span>
+    <span class="k">for</span> <span class="n">gene_idx</span><span class="p">,</span> <span class="n">monomer_idx</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">new_gene_indices</span><span class="p">,</span> <span class="n">new_monomer_indices</span><span class="p">):</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">adjust_new_gene_final_expression</span><span class="p">([</span><span class="n">gene_idx</span><span class="p">],</span> <span class="p">[</span><span class="n">expression</span><span class="p">])</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">translation_efficiencies_by_monomer</span><span class="p">[</span>
+            <span class="n">monomer_idx</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">translation_efficiency</span></div>
+
+
+
+<div class="viewcode-block" id="apply_variant">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.variants.new_gene_internal_shift.html#ecoli.variants.new_gene_internal_shift.apply_variant">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_variant</span><span class="p">(</span>
+    <span class="n">sim_data</span><span class="p">:</span> <span class="s2">&quot;SimulationDataEcoli&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;SimulationDataEcoli&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Modify sim_data so new gene expression and translation efficiency</span>
+<span class="sd">    are modified for certain generation ranges.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sim_data: Simulation data to modify</span>
+<span class="sd">        params: Parameter dictionary of the following format::</span>
+
+<span class="sd">            {</span>
+<span class="sd">                # Generation to induce new gene expression</span>
+<span class="sd">                &quot;induction_gen&quot;: Optional(int),</span>
+<span class="sd">                &quot;exp_trl_eff&quot;: {</span>
+<span class="sd">                    # Factor by which to multiply new gene expression once induced</span>
+<span class="sd">                    &quot;exp&quot;: float,</span>
+<span class="sd">                    # Translation efficiency for new gene once induced</span>
+<span class="sd">                    &quot;trl_eff&quot;: float,</span>
+<span class="sd">                }</span>
+<span class="sd">                # Generation to knock out new gene expression (&gt; induction gen)</span>
+<span class="sd">                &quot;knockout_gen&quot;: Optional(int),</span>
+<span class="sd">                # Environmental condition: &quot;basal&quot;, &quot;with_aa&quot;, &quot;acetate&quot;,</span>
+<span class="sd">                # &quot;succinate&quot;, &quot;no_oxygen&quot;</span>
+<span class="sd">                &quot;condition&quot;: str,</span>
+<span class="sd">            }</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Simulation data with the following attributes modified::</span>
+
+<span class="sd">            sim_data.condition</span>
+<span class="sd">            sim_data.external_state.current_timeline_id</span>
+<span class="sd">            # Mapping of generation number to function that takes sim_data</span>
+<span class="sd">            # as first argument and optional extra arguments contained in a</span>
+<span class="sd">            # tuple that will be star expanded. Here, modify_new_gene_exp_trl</span>
+<span class="sd">            # takes two extra arguments: expression and translation_efficiency.</span>
+<span class="sd">            sim_data.internal_shift_dict</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Set media condition</span>
+    <span class="n">sim_data</span> <span class="o">=</span> <span class="n">condition_variant</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+    <span class="c1"># Initialize internal shift dictionary</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">internal_shift_dict</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># type: ignore[attr-defined]</span>
+
+    <span class="c1"># Add the new gene induction to the internal_shift instructions</span>
+    <span class="n">induction_gen</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;induction_gen&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">internal_shift_dict</span><span class="p">[</span><span class="n">induction_gen</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+        <span class="n">modify_new_gene_exp_trl</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;exp_trl_eff&quot;</span><span class="p">][</span><span class="s2">&quot;exp&quot;</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;exp_trl_eff&quot;</span><span class="p">][</span><span class="s2">&quot;trl_eff&quot;</span><span class="p">]),</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;knockout_gen&quot;</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;knockout_gen&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">induction_gen</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;knockout_gen must be after induction_gen&quot;</span>
+        <span class="p">)</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">internal_shift_dict</span><span class="p">[</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;knockout_gen&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+            <span class="n">modify_new_gene_exp_trl</span><span class="p">,</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;exp_trl_eff&quot;</span><span class="p">][</span><span class="s2">&quot;trl_eff&quot;</span><span class="p">]),</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">sim_data</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

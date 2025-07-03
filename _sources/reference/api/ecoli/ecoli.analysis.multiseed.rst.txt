@@ -1,0 +1,16 @@
+``ecoli.analysis.multiseed``
+============================
+.. automodule:: ecoli.analysis.multiseed
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   ecoli.analysis.multiseed.ecocyc_table
+   ecoli.analysis.multiseed.protein_counts_validation
+   ecoli.analysis.multiseed.ribosome_spacing
+   ecoli.analysis.multiseed.subgenerational_expression_table

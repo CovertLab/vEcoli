@@ -1,0 +1,381 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.causality_network.build_network &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ecoli.analysis.causality_network.network_components" href="ecoli.analysis.causality_network.network_components.html" />
+    <link rel="prev" title="ecoli.analysis.causality_network.buildCausalityNetwork" href="ecoli.analysis.causality_network.buildCausalityNetwork.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.antibiotics_colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.antibiotics_colony</span></code></a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="ecoli.analysis.causality_network.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.causality_network</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.colony</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multidaughter.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multidaughter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multiexperiment.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multiexperiment</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multigeneration.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multigeneration</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multiseed.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multiseed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multivariant.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multivariant</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.single.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.single</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.composites.html"><code class="docutils literal notranslate"><span class="pre">ecoli.composites</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.experiments.html"><code class="docutils literal notranslate"><span class="pre">ecoli.experiments</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.library.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.processes.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.variants.html"><code class="docutils literal notranslate"><span class="pre">ecoli.variants</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../runscripts/runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.analysis.causality_network.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.causality_network</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.causality_network.build_network</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/ecoli/ecoli.analysis.causality_network.build_network.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-ecoli.analysis.causality_network.build_network">
+<span id="ecoli-analysis-causality-network-build-network"></span><h1><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.causality_network.build_network</span></code><a class="headerlink" href="#module-ecoli.analysis.causality_network.build_network" title="Link to this heading"></a></h1>
+<section id="buildnetwork">
+<h2>BuildNetwork<a class="headerlink" href="#buildnetwork" title="Link to this heading"></a></h2>
+<p>Constructs a network representations of simulation components from sim_data,
+and generates files for node lists and edge lists.</p>
+<section id="adding-new-nodes-to-the-network">
+<h3>Adding new nodes to the network:<a class="headerlink" href="#adding-new-nodes-to-the-network" title="Link to this heading"></a></h3>
+<p>To add a new type of nodes to the network (either a state or process), you need
+to write a new function within this file (build_network.py), which goes through
+all of the instances of the new node type, and for each instance creates a
+node:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">new_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>adds attributes (<code class="docutils literal notranslate"><span class="pre">**attr</span></code>), which include “node_class”, “node_type”, “node_id”,
+“name”, and “synonyms”:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">new_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>and appends the node to the node list:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_node</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The relevant edges that connect the new node to other nodes also need to be
+specified:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">new_edge</span> <span class="o">=</span> <span class="n">Edge</span><span class="p">(</span><span class="s2">&quot;Edge Type&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The source and destination ids for that edge are added with an attribute:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;src_id&#39;</span><span class="p">:</span> <span class="n">source_id</span><span class="p">,</span>
+        <span class="s1">&#39;dst_id&#39;</span><span class="p">:</span> <span class="n">destination_id</span><span class="p">,</span>
+        <span class="p">}</span>
+
+<span class="n">new_edge</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>and the edge is then added to the edge list:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">edge_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_edge</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>With a complete node and edge list, you are ready to add dynamics data to each
+node. This is done in read_dynamics.py. You first need to choose appropriate
+dynamics data to represents that node’s activity, and make sure it is saved in
+a listener. read_dynamics.py uses saved listener output to load dynamics into
+each node.</p>
+<p>read_dynamics.py might require a new function to the dynamics data if it is of
+a new node type, specified in the TYPE_TO_READER_FUNCTION dictionary. When the
+node list is read, nodes of the new type will be passed into the new function,
+which assigns that node dynamics from listener output:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ecoli.analysis.causality_network.build_network.</span></span><span class="sig-name descname"><span class="pre">BuildNetwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_data_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_sanity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Constructs a causality network of simulation components, namely states and
+processes, of a whole-cell simulation using sim_data. Writes two files
+(node list and edge list) that are subsequently used by the dynamics reader
+to extract simulation results, and for the visual representation of the
+network.</p>
+<p>TODO: have check_sanity looks for disconnected nodes, and edges
+with non-existent nodes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sim_data_file</strong> – path to the variant sim_data pickle file used for
+building the network.</p></li>
+<li><p><strong>output_dir</strong> – output directory for the node list and edge list files.</p></li>
+<li><p><strong>check_sanity</strong> – if set to True, checks if there are any nodes with
+duplicate IDs in the network.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._add_complexation_and_complexes">
+<span class="sig-name descname"><span class="pre">_add_complexation_and_complexes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._add_complexation_and_complexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._add_complexation_and_complexes" title="Link to this definition"></a></dt>
+<dd><p>Add complexation process nodes and complex state nodes to the node
+list, and edges connected to the complexation nodes to the edge
+list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._add_equilibrium">
+<span class="sig-name descname"><span class="pre">_add_equilibrium</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._add_equilibrium"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._add_equilibrium" title="Link to this definition"></a></dt>
+<dd><p>Add equilibrium nodes to the node list, and add edges connected to the
+equilibrium nodes to the edge list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._add_genes">
+<span class="sig-name descname"><span class="pre">_add_genes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._add_genes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._add_genes" title="Link to this definition"></a></dt>
+<dd><p>Add gene state nodes to the node list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._add_global_nodes">
+<span class="sig-name descname"><span class="pre">_add_global_nodes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._add_global_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._add_global_nodes" title="Link to this definition"></a></dt>
+<dd><p>Add global state nodes to the node list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._add_metabolism_and_metabolites">
+<span class="sig-name descname"><span class="pre">_add_metabolism_and_metabolites</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._add_metabolism_and_metabolites"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._add_metabolism_and_metabolites" title="Link to this definition"></a></dt>
+<dd><p>Add metabolism process nodes and metabolite state nodes to the node
+list, add edges connected to the metabolism nodes to the edge list.
+Note: forward and reverse reactions are represented as separate nodes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._add_regulation">
+<span class="sig-name descname"><span class="pre">_add_regulation</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._add_regulation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._add_regulation" title="Link to this definition"></a></dt>
+<dd><p>Add regulation nodes with to the node list, and add edges connected to
+the regulation nodes to the edge list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._add_rna_maturation_and_mature_transcripts">
+<span class="sig-name descname"><span class="pre">_add_rna_maturation_and_mature_transcripts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._add_rna_maturation_and_mature_transcripts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._add_rna_maturation_and_mature_transcripts" title="Link to this definition"></a></dt>
+<dd><p>Add RNA maturation process nodes and mature transcript state nodes to
+the node list, and edges connected to these nodes to the edge list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._add_transcription_and_transcripts">
+<span class="sig-name descname"><span class="pre">_add_transcription_and_transcripts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._add_transcription_and_transcripts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._add_transcription_and_transcripts" title="Link to this definition"></a></dt>
+<dd><p>Add transcription process nodes and transcript state nodes to the node
+list, and edges connected to the transcription nodes to the edge list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._add_translation_and_monomers">
+<span class="sig-name descname"><span class="pre">_add_translation_and_monomers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._add_translation_and_monomers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._add_translation_and_monomers" title="Link to this definition"></a></dt>
+<dd><p>Add translation process nodes and protein (monomer) state nodes to the
+node list, and edges connected to the translation nodes to the edge
+list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._append_edge">
+<span class="sig-name descname"><span class="pre">_append_edge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stoichiometry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._append_edge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._append_edge" title="Link to this definition"></a></dt>
+<dd><p>Helper function for appending new nodes to the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>type_</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>src</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>dst</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>stoichiometry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._build_network">
+<span class="sig-name descname"><span class="pre">_build_network</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._build_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._build_network" title="Link to this definition"></a></dt>
+<dd><p>Add nodes and edges to the node/edge lists, and check for network
+sanity (optional).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._edge_list">
+<span class="sig-name descname"><span class="pre">_edge_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._edge_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._edge_list" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._find_duplicate_nodes">
+<span class="sig-name descname"><span class="pre">_find_duplicate_nodes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._find_duplicate_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._find_duplicate_nodes" title="Link to this definition"></a></dt>
+<dd><p>Identify nodes that have duplicate IDs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._node_list">
+<span class="sig-name descname"><span class="pre">_node_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._node_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._node_list" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._remove_hanging_edges">
+<span class="sig-name descname"><span class="pre">_remove_hanging_edges</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._remove_hanging_edges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._remove_hanging_edges" title="Link to this definition"></a></dt>
+<dd><p>Remove edges that are not connected to existing nodes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._write_files">
+<span class="sig-name descname"><span class="pre">_write_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._write_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._write_files" title="Link to this definition"></a></dt>
+<dd><p>Write node/edge list as separate .tsv files.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork._write_json">
+<span class="sig-name descname"><span class="pre">_write_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork._write_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork._write_json" title="Link to this definition"></a></dt>
+<dd><p>Write node and edge lists as json files.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork.build_nodes_and_edges">
+<span class="sig-name descname"><span class="pre">build_nodes_and_edges</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork.build_nodes_and_edges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork.build_nodes_and_edges" title="Link to this definition"></a></dt>
+<dd><p>Build the network and return the node and edge lists.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.BuildNetwork.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#BuildNetwork.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.BuildNetwork.run" title="Link to this definition"></a></dt>
+<dd><p>Build the network and write node/edge list files.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.URL_TEMPLATE_COMPOUND">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.causality_network.build_network.</span></span><span class="sig-name descname"><span class="pre">URL_TEMPLATE_COMPOUND</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'https://ecocyc.org/compound?orgid=ECOLI&amp;id={0}'</span></em><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.URL_TEMPLATE_COMPOUND" title="Link to this definition"></a></dt>
+<dd><p>The following groups of molecules participate in multiple processes and are
+thus identified here to prevent the addition of duplicate nodes.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Identifying multi-process participatory molecules in this way is not
+required because –check_sanity checks for duplicate nodes. However,
+identifying such molecules here can streamline network building by
+eliminating the need to search through nodes that were added previously.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.causality_network.build_network.molecule_compartment">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.causality_network.build_network.</span></span><span class="sig-name descname"><span class="pre">molecule_compartment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">molecule</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/causality_network/build_network.html#molecule_compartment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.causality_network.build_network.molecule_compartment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ecoli.analysis.causality_network.buildCausalityNetwork.html" class="btn btn-neutral float-left" title="ecoli.analysis.causality_network.buildCausalityNetwork" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ecoli.analysis.causality_network.network_components.html" class="btn btn-neutral float-right" title="ecoli.analysis.causality_network.network_components" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,279 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.multigeneration.ribosome_components &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.multigeneration.ribosome_components</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.multigeneration.ribosome_components</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Record the 30S and 50S component count vs time</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">altair</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">alt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">field_metadata</span><span class="p">,</span>
+    <span class="n">open_arbitrary_sim_data</span><span class="p">,</span>
+    <span class="n">named_idx</span><span class="p">,</span>
+    <span class="n">read_stacked_columns</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># ----------------------------------------- #</span>
+
+
+<div class="viewcode-block" id="plot">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.multigeneration.ribosome_components.html#ecoli.analysis.multigeneration.ribosome_components.plot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">DuckDBPyConnection</span><span class="p">,</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sim_data_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">validation_data_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">variant_metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">variant_names</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
+    <span class="c1"># Load simulation data</span>
+    <span class="k">with</span> <span class="n">open_arbitrary_sim_data</span><span class="p">(</span><span class="n">sim_data_dict</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">sim_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="c1"># Extract molecule IDs for ribosomal subunits</span>
+    <span class="n">s30_protein_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s30_proteins</span>
+    <span class="n">s30_16s_rRNA_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s30_16s_rRNA</span>
+    <span class="n">s30_full_complex_id</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">s30_full_complex</span>
+    <span class="n">s50_protein_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s50_proteins</span>
+    <span class="n">s50_23s_rRNA_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s50_23s_rRNA</span>
+    <span class="n">s50_5s_rRNA_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s50_5s_rRNA</span>
+    <span class="n">s50_full_complex_id</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">s50_full_complex</span>
+
+    <span class="c1"># Retrieve stoichiometry for each protein subunit</span>
+    <span class="n">complexation</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">complexation</span>
+    <span class="n">s30_info</span> <span class="o">=</span> <span class="n">complexation</span><span class="o">.</span><span class="n">get_monomers</span><span class="p">(</span><span class="n">s30_full_complex_id</span><span class="p">)</span>
+    <span class="n">s50_info</span> <span class="o">=</span> <span class="n">complexation</span><span class="o">.</span><span class="n">get_monomers</span><span class="p">(</span><span class="n">s50_full_complex_id</span><span class="p">)</span>
+    <span class="n">s30_stoich</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">s30_info</span><span class="p">[</span><span class="s2">&quot;subunitIds&quot;</span><span class="p">],</span> <span class="n">s30_info</span><span class="p">[</span><span class="s2">&quot;subunitStoich&quot;</span><span class="p">]))</span>
+    <span class="n">s50_stoich</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">s50_info</span><span class="p">[</span><span class="s2">&quot;subunitIds&quot;</span><span class="p">],</span> <span class="n">s50_info</span><span class="p">[</span><span class="s2">&quot;subunitStoich&quot;</span><span class="p">]))</span>
+
+    <span class="c1"># Map bulk IDs to SQL column indices</span>
+    <span class="n">bulk_ids</span> <span class="o">=</span> <span class="n">field_metadata</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;bulk&quot;</span><span class="p">)</span>
+    <span class="n">bulk_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">mid</span><span class="p">:</span> <span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">mid</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bulk_ids</span><span class="p">)}</span>
+
+    <span class="c1"># Determine column indexes in SQL for rRNAs and complexes</span>
+    <span class="n">s30_16s_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">bulk_index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s30_16s_rRNA_ids</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">bulk_index</span><span class="p">]</span>
+    <span class="n">s50_23s_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">bulk_index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s50_23s_rRNA_ids</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">bulk_index</span><span class="p">]</span>
+    <span class="n">s50_5s_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">bulk_index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s50_5s_rRNA_ids</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">bulk_index</span><span class="p">]</span>
+    <span class="n">s30_complex_idx</span> <span class="o">=</span> <span class="n">bulk_index</span><span class="p">[</span><span class="n">s30_full_complex_id</span><span class="p">]</span>
+    <span class="n">s50_complex_idx</span> <span class="o">=</span> <span class="n">bulk_index</span><span class="p">[</span><span class="n">s50_full_complex_id</span><span class="p">]</span>
+
+    <span class="c1"># Map monomer counts IDs to SQL column indices</span>
+    <span class="n">mono_ids</span> <span class="o">=</span> <span class="n">field_metadata</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;listeners__monomer_counts&quot;</span><span class="p">)</span>
+    <span class="n">mono_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">mid</span><span class="p">:</span> <span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">mid</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">mono_ids</span><span class="p">)}</span>
+    <span class="n">s30_protein_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">mono_index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s30_protein_ids</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">mono_index</span><span class="p">]</span>
+    <span class="n">s50_protein_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">mono_index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s50_protein_ids</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">mono_index</span><span class="p">]</span>
+
+    <span class="c1"># Build named_idx spec for reading</span>
+    <span class="n">bulk_cols</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">named_idx</span><span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="n">s30_16s_rRNA_ids</span><span class="p">,</span> <span class="p">[</span><span class="n">s30_16s_idx</span><span class="p">]),</span>
+        <span class="n">named_idx</span><span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="n">s50_23s_rRNA_ids</span><span class="p">,</span> <span class="p">[</span><span class="n">s50_23s_idx</span><span class="p">]),</span>
+        <span class="n">named_idx</span><span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="n">s50_5s_rRNA_ids</span><span class="p">,</span> <span class="p">[</span><span class="n">s50_5s_idx</span><span class="p">]),</span>
+        <span class="n">named_idx</span><span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">s30_full_complex_id</span><span class="p">],</span> <span class="p">[[</span><span class="n">s30_complex_idx</span><span class="p">]]),</span>
+        <span class="n">named_idx</span><span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">s50_full_complex_id</span><span class="p">],</span> <span class="p">[[</span><span class="n">s50_complex_idx</span><span class="p">]]),</span>
+    <span class="p">]</span>
+    <span class="n">protein_cols</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">named_idx</span><span class="p">(</span><span class="s2">&quot;listeners__monomer_counts&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">pid</span><span class="p">],</span> <span class="p">[[</span><span class="n">idx</span><span class="p">]])</span>
+        <span class="k">for</span> <span class="n">pid</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">s30_protein_ids</span> <span class="o">+</span> <span class="n">s50_protein_ids</span><span class="p">,</span> <span class="n">s30_protein_idx</span> <span class="o">+</span> <span class="n">s50_protein_idx</span>
+        <span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">additional</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;listeners__unique_molecule_counts__active_ribosome&quot;</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">]</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">bulk_cols</span> <span class="o">+</span> <span class="n">protein_cols</span> <span class="o">+</span> <span class="n">additional</span>
+
+    <span class="c1"># Read time-series data</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span><span class="n">history_sql</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">Time_min</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span>
+
+    <span class="c1"># Sum rRNA counts horizontally</span>
+    <span class="n">s30_16s</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">sum_horizontal</span><span class="p">([</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s30_16s_rRNA_ids</span><span class="p">])</span>
+    <span class="n">s50_23s</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">sum_horizontal</span><span class="p">([</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s50_23s_rRNA_ids</span><span class="p">])</span>
+    <span class="n">s50_5s</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">sum_horizontal</span><span class="p">([</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s50_5s_rRNA_ids</span><span class="p">])</span>
+
+    <span class="c1"># Extract complex and active ribosome counts</span>
+    <span class="n">s30_complex</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">s30_full_complex_id</span><span class="p">)</span>
+    <span class="n">s50_complex</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">s50_full_complex_id</span><span class="p">)</span>
+    <span class="n">active_ribo</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;listeners__unique_molecule_counts__active_ribosome&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Adjust protein counts by stoichiometry</span>
+    <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">s30_protein_ids</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="sa">f</span><span class="s2">&quot;adj_s30_</span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span> <span class="o">/</span> <span class="n">s30_stoich</span><span class="p">[</span><span class="n">pid</span><span class="p">]})</span>
+    <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">s50_protein_ids</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="sa">f</span><span class="s2">&quot;adj_s50_</span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span> <span class="o">/</span> <span class="n">s50_stoich</span><span class="p">[</span><span class="n">pid</span><span class="p">]})</span>
+
+    <span class="c1"># Determine limiting protein across subunits</span>
+    <span class="n">s30_lim</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">min_horizontal</span><span class="p">([</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;adj_s30_</span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">s30_protein_ids</span><span class="p">])</span>
+    <span class="n">s50_lim</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">min_horizontal</span><span class="p">([</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;adj_s50_</span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">s50_protein_ids</span><span class="p">])</span>
+
+    <span class="c1"># Calculate total rRNA including complexes and active ribosomes</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="n">s30_16s_total</span><span class="o">=</span><span class="n">s30_16s</span> <span class="o">+</span> <span class="n">s30_complex</span> <span class="o">+</span> <span class="n">active_ribo</span><span class="p">,</span>
+        <span class="n">s50_23s_total</span><span class="o">=</span><span class="n">s50_23s</span> <span class="o">+</span> <span class="n">s50_complex</span> <span class="o">+</span> <span class="n">active_ribo</span><span class="p">,</span>
+        <span class="n">s50_5s_total</span><span class="o">=</span><span class="n">s50_5s</span> <span class="o">+</span> <span class="n">s50_complex</span> <span class="o">+</span> <span class="n">active_ribo</span><span class="p">,</span>
+        <span class="n">s30_limiting</span><span class="o">=</span><span class="n">s30_lim</span><span class="p">,</span>
+        <span class="n">s50_limiting</span><span class="o">=</span><span class="n">s50_lim</span><span class="p">,</span>
+        <span class="n">s30_total</span><span class="o">=</span><span class="n">s30_complex</span> <span class="o">+</span> <span class="n">active_ribo</span><span class="p">,</span>
+        <span class="n">s50_total</span><span class="o">=</span><span class="n">s50_complex</span> <span class="o">+</span> <span class="n">active_ribo</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># ----------------------------------------- #</span>
+
+    <span class="n">plot_cols_30</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;s30_limiting&quot;</span><span class="p">,</span> <span class="s2">&quot;s30_16s_total&quot;</span><span class="p">,</span> <span class="s2">&quot;s30_total&quot;</span><span class="p">]</span>
+    <span class="n">plot_cols_50</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;s50_limiting&quot;</span><span class="p">,</span> <span class="s2">&quot;s50_23s_total&quot;</span><span class="p">,</span> <span class="s2">&quot;s50_5s_total&quot;</span><span class="p">,</span> <span class="s2">&quot;s50_total&quot;</span><span class="p">]</span>
+
+    <span class="n">melt_30</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">([</span><span class="s2">&quot;Time_min&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">plot_cols_30</span><span class="p">)</span><span class="o">.</span><span class="n">melt</span><span class="p">(</span>
+        <span class="n">id_vars</span><span class="o">=</span><span class="s2">&quot;Time_min&quot;</span><span class="p">,</span> <span class="n">variable_name</span><span class="o">=</span><span class="s2">&quot;component&quot;</span><span class="p">,</span> <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;count&quot;</span>
+    <span class="p">)</span>
+    <span class="n">melt_50</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">([</span><span class="s2">&quot;Time_min&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">plot_cols_50</span><span class="p">)</span><span class="o">.</span><span class="n">melt</span><span class="p">(</span>
+        <span class="n">id_vars</span><span class="o">=</span><span class="s2">&quot;Time_min&quot;</span><span class="p">,</span> <span class="n">variable_name</span><span class="o">=</span><span class="s2">&quot;component&quot;</span><span class="p">,</span> <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;count&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">chart_30</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">melt_30</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">mark_line</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="s2">&quot;Time_min&quot;</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="s2">&quot;count&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="s2">&quot;component&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;30S Components&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">properties</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;30S Component Counts&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">600</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">chart_50</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">melt_50</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">mark_line</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="s2">&quot;Time_min&quot;</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="s2">&quot;count&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="s2">&quot;component&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;50S Components&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">properties</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;50S Component Counts&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">600</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">combined</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">alt</span><span class="o">.</span><span class="n">vconcat</span><span class="p">(</span><span class="n">chart_30</span><span class="p">,</span> <span class="n">chart_50</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">resolve_scale</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;independent&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">resolve_legend</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;independent&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">combined</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;ribosome_components.html&quot;</span><span class="p">))</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

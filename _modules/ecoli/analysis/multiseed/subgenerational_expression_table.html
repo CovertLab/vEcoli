@@ -1,0 +1,274 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.multiseed.subgenerational_expression_table &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.multiseed.subgenerational_expression_table</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.multiseed.subgenerational_expression_table</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Generates a table of genes that are subgenerationally expressed, with their</span>
+<span class="sd">expression frequencies and average/maximum mRNA/protein counts.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="c1"># noinspection PyUnresolvedReferences</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">field_metadata</span><span class="p">,</span>
+    <span class="n">ndidx_to_duckdb_expr</span><span class="p">,</span>
+    <span class="n">num_cells</span><span class="p">,</span>
+    <span class="n">open_arbitrary_sim_data</span><span class="p">,</span>
+    <span class="n">read_stacked_columns</span><span class="p">,</span>
+    <span class="n">skip_n_gens</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="n">IGNORE_FIRST_N_GENS</span> <span class="o">=</span> <span class="mi">8</span>
+
+
+<div class="viewcode-block" id="plot">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.multiseed.subgenerational_expression_table.html#ecoli.analysis.multiseed.subgenerational_expression_table.plot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">DuckDBPyConnection</span><span class="p">,</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sim_data_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">validation_data_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">variant_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">variant_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
+    <span class="k">with</span> <span class="n">open_arbitrary_sim_data</span><span class="p">(</span><span class="n">sim_data_dict</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">sim_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="n">ignore_first_n_gens</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ignore_first_n_gens&quot;</span><span class="p">,</span> <span class="n">IGNORE_FIRST_N_GENS</span><span class="p">)</span>
+
+    <span class="c1"># Ignore first N generations</span>
+    <span class="n">history_sql</span> <span class="o">=</span> <span class="n">skip_n_gens</span><span class="p">(</span><span class="n">history_sql</span><span class="p">,</span> <span class="n">ignore_first_n_gens</span><span class="p">)</span>
+    <span class="n">config_sql</span> <span class="o">=</span> <span class="n">skip_n_gens</span><span class="p">(</span><span class="n">config_sql</span><span class="p">,</span> <span class="n">ignore_first_n_gens</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">num_cells</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Skipping analysis - not enough generations run.&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Get list of cistron IDs from sim_data</span>
+    <span class="n">cistron_data</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span>
+    <span class="n">cistron_ids</span> <span class="o">=</span> <span class="n">cistron_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+
+    <span class="c1"># Filter list for cistron IDs with associated protein ids</span>
+    <span class="n">cistron_id_to_protein_id</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">protein</span><span class="p">[</span><span class="s2">&quot;cistron_id&quot;</span><span class="p">]:</span> <span class="n">protein</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">protein</span> <span class="ow">in</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">monomer_data</span>
+    <span class="p">}</span>
+    <span class="n">mRNA_cistron_ids</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">cistron_id</span>
+        <span class="k">for</span> <span class="n">cistron_id</span> <span class="ow">in</span> <span class="n">cistron_ids</span>
+        <span class="k">if</span> <span class="n">cistron_id</span> <span class="ow">in</span> <span class="n">cistron_id_to_protein_id</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Get IDs of associated monomers and genes</span>
+    <span class="n">monomer_ids</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">cistron_id_to_protein_id</span><span class="p">[</span><span class="n">cistron_id</span><span class="p">]</span> <span class="k">for</span> <span class="n">cistron_id</span> <span class="ow">in</span> <span class="n">mRNA_cistron_ids</span>
+    <span class="p">]</span>
+    <span class="n">cistron_id_to_gene_id</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">cistron</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]:</span> <span class="n">cistron</span><span class="p">[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">cistron</span> <span class="ow">in</span> <span class="n">cistron_data</span>
+    <span class="p">}</span>
+    <span class="n">gene_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">cistron_id_to_gene_id</span><span class="p">[</span><span class="n">cistron_id</span><span class="p">]</span> <span class="k">for</span> <span class="n">cistron_id</span> <span class="ow">in</span> <span class="n">mRNA_cistron_ids</span><span class="p">]</span>
+
+    <span class="c1"># Get subcolumn for mRNA cistron IDs in RNA counts table</span>
+    <span class="n">mRNA_cistron_ids_rna_counts_table</span> <span class="o">=</span> <span class="n">field_metadata</span><span class="p">(</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;listeners__rna_counts__mRNA_cistron_counts&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Get indexes of mRNA cistrons in this subcolums (DuckDB lists are 1-indexed)</span>
+    <span class="n">mRNA_cistron_id_to_index</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">cistron_id</span><span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">cistron_id</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">mRNA_cistron_ids_rna_counts_table</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="n">mRNA_cistron_indexes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">mRNA_cistron_id_to_index</span><span class="p">[</span><span class="n">cistron_id</span><span class="p">]</span> <span class="k">for</span> <span class="n">cistron_id</span> <span class="ow">in</span> <span class="n">mRNA_cistron_ids</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Get subcolumn for monomer IDs in monomer counts table</span>
+    <span class="n">monomer_ids_monomer_counts_table</span> <span class="o">=</span> <span class="n">field_metadata</span><span class="p">(</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;listeners__monomer_counts&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Get indexes of monomers in this subcolumn (DuckDB lists are 1-indexed)</span>
+    <span class="n">monomer_id_to_index</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">monomer_id</span><span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">monomer_id</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">monomer_ids_monomer_counts_table</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="n">monomer_indexes</span> <span class="o">=</span> <span class="p">[</span><span class="n">monomer_id_to_index</span><span class="p">[</span><span class="n">monomer_id</span><span class="p">]</span> <span class="k">for</span> <span class="n">monomer_id</span> <span class="ow">in</span> <span class="n">monomer_ids</span><span class="p">]</span>
+
+    <span class="n">monomer_expr</span> <span class="o">=</span> <span class="n">ndidx_to_duckdb_expr</span><span class="p">(</span><span class="s2">&quot;listeners__monomer_counts&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">monomer_indexes</span><span class="p">])</span>
+    <span class="n">cistron_expr</span> <span class="o">=</span> <span class="n">ndidx_to_duckdb_expr</span><span class="p">(</span>
+        <span class="s2">&quot;listeners__rna_counts__mRNA_cistron_counts&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">mRNA_cistron_indexes</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">subquery</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span>
+        <span class="n">history_sql</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">monomer_expr</span><span class="p">,</span> <span class="n">cistron_expr</span><span class="p">],</span>
+        <span class="n">order_results</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">out_df</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        -- Unnest monomer and mRNA count columns, labelling with</span>
+<span class="s2">        -- index so we can later calculate per-cistron aggregates</span>
+<span class="s2">        WITH unnested_counts AS (</span>
+<span class="s2">            SELECT lineage_seed, generation, agent_id,</span>
+<span class="s2">                unnest(listeners__monomer_counts) AS monomer_counts,</span>
+<span class="s2">                unnest(listeners__rna_counts__mRNA_cistron_counts) AS mrna_counts,</span>
+<span class="s2">                generate_subscripts(listeners__monomer_counts, 1) AS cistron_idx</span>
+<span class="s2">            FROM (</span><span class="si">{</span><span class="n">subquery</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">        ),</span>
+<span class="s2">        -- Group by cell and cistron to get existence of each mRNA per cell</span>
+<span class="s2">        cell_aggregate AS (</span>
+<span class="s2">            SELECT</span>
+<span class="s2">                SUM(mrna_counts) &gt; 0 AS exists,</span>
+<span class="s2">                MAX(monomer_counts) AS max_monomer_counts,</span>
+<span class="s2">                MAX(mrna_counts) AS max_mRNA_counts,</span>
+<span class="s2">                cistron_idx</span>
+<span class="s2">            FROM unnested_counts</span>
+<span class="s2">            GROUP BY lineage_seed, generation, agent_id, cistron_idx</span>
+<span class="s2">        ),</span>
+<span class="s2">        full_aggregate AS (</span>
+<span class="s2">            SELECT</span>
+<span class="s2">                -- Calculate probability that mRNA exists per cell cycle</span>
+<span class="s2">                AVG(exists::INTEGER) AS p_expressed,</span>
+<span class="s2">                -- Get maximum mRNA and monomer counts across all cells and times</span>
+<span class="s2">                MAX(max_monomer_counts) AS max_monomer_counts,</span>
+<span class="s2">                MAX(max_mRNA_counts) AS max_mRNA_counts,</span>
+<span class="s2">                cistron_idx</span>
+<span class="s2">            FROM cell_aggregate</span>
+<span class="s2">            GROUP BY cistron_idx</span>
+<span class="s2">        )</span>
+<span class="s2">        SELECT * FROM full_aggregate</span>
+<span class="s2">        -- Filter to only include sub-generational genes</span>
+<span class="s2">        WHERE p_expressed &gt; 0 AND p_expressed &lt; 1</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()</span>
+
+    <span class="c1"># Add gene, cistron, and protein names (DuckDB lists are 1-indexed so</span>
+    <span class="c1"># must subtract one before using to index Numpy arrays)</span>
+    <span class="n">out_df</span> <span class="o">=</span> <span class="n">out_df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="n">gene_name</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">gene_ids</span><span class="p">)[</span><span class="n">out_df</span><span class="p">[</span><span class="s2">&quot;cistron_idx&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">cistron_name</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">mRNA_cistron_ids</span><span class="p">)[</span><span class="n">out_df</span><span class="p">[</span><span class="s2">&quot;cistron_idx&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">protein_name</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">i</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">monomer_ids</span><span class="p">])[</span>
+            <span class="n">out_df</span><span class="p">[</span><span class="s2">&quot;cistron_idx&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">out_df</span><span class="o">.</span><span class="n">write_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;subgen.tsv&quot;</span><span class="p">),</span> <span class="n">separator</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,217 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Composites &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Experiments" href="experiments.html" />
+    <link rel="prev" title="Processes" href="processes.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processes.html">Processes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Composites</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#partitioning-modifications">Partitioning Modifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#division-modifications">Division Modifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#log-updates">Log Updates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#initial-state">Initial State</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Composites</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/composites.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="composites">
+<h1>Composites<a class="headerlink" href="#composites" title="Link to this heading"></a></h1>
+<p><a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli" title="ecoli.composites.ecoli_master.Ecoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ecoli</span></code></a> is a so-called composer
+that is responsible for aggregating Processes, Steps, topologies,
+and the flow for the Steps into a unified “composite” model that vivarium-core
+is able to run. Unlike a typical Vivarium composer which simply collects all
+these pieces, the <a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli" title="ecoli.composites.ecoli_master.Ecoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">ecoli.composites.ecoli_master.Ecoli</span></code></a> composer
+automatically makes several modifications to these components in order to
+support features unique to our model.</p>
+<section id="partitioning-modifications">
+<span id="composite-partitioning"></span><h2>Partitioning Modifications<a class="headerlink" href="#partitioning-modifications" title="Link to this heading"></a></h2>
+<p>As described in <a class="reference internal" href="stores.html#partitioning"><span class="std std-ref">Partitioning</span></a>, our model contains many processes that inherit
+from <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess" title="ecoli.processes.partition.PartitionedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">PartitionedProcess</span></code></a> because they require
+special handling to avoid overdrafting bulk molecules. These processes are not directly
+included in the final composite but instead used to parameterize two Steps
+that are included and run with the final model: a
+<a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.Requester" title="ecoli.processes.partition.Requester"><code class="xref py py-class docutils literal notranslate"><span class="pre">Requester</span></code></a> and an
+<a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.Evolver" title="ecoli.processes.partition.Evolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">Evolver</span></code></a>.</p>
+<p>The <a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps" title="ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps"><code class="xref py py-meth docutils literal notranslate"><span class="pre">generate_processes_and_steps()</span></code></a>
+method of the <a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli" title="ecoli.composites.ecoli_master.Ecoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ecoli</span></code></a> composer is responsible
+for creating these two Steps, the <a class="reference internal" href="reference/api/ecoli/ecoli.processes.allocator.html#ecoli.processes.allocator.Allocator" title="ecoli.processes.allocator.Allocator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Allocator</span></code></a> steps
+sandwiched between them in each execution layer, and the
+<a class="reference internal" href="reference/api/ecoli/ecoli.processes.unique_update.html#ecoli.processes.unique_update.UniqueUpdate" title="ecoli.processes.unique_update.UniqueUpdate"><code class="xref py py-class docutils literal notranslate"><span class="pre">UniqueUpdate</span></code></a> Steps that run at the very end
+of each execution layer. It is also responsible for updating the flow to arrange
+these Steps in the order described in <a class="reference internal" href="stores.html#implementation"><span class="std std-ref">Implementation</span></a>. As an end-user, all you
+have to do to add a new partitioned process is ensure that it inherits from
+<a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess" title="ecoli.processes.partition.PartitionedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">PartitionedProcess</span></code></a> and is included in the flow
+supplied to <a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli" title="ecoli.composites.ecoli_master.Ecoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ecoli</span></code></a> (see <a class="reference internal" href="experiments.html"><span class="std std-ref">Experiments</span></a>
+for a description of the interface for specifying simulation options).</p>
+<p>The <a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli.generate_topology" title="ecoli.composites.ecoli_master.Ecoli.generate_topology"><code class="xref py py-meth docutils literal notranslate"><span class="pre">generate_topology()</span></code></a> method is responsible
+for creating the topologies for each Requester and Evolver. It does so by first copying the
+topology of the corresponding <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess" title="ecoli.processes.partition.PartitionedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">PartitionedProcess</span></code></a> then
+adding and wiring the following additional ports:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">process</span></code>: Wired to store located at <code class="docutils literal notranslate"><span class="pre">(&quot;process&quot;,</span> <span class="pre">&quot;process_name&quot;)</span></code>. Contains the
+instance of <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess" title="ecoli.processes.partition.PartitionedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">PartitionedProcess</span></code></a> that is shared
+by both the Requester and the Evolver. Stored as a single-element tuple because
+vivarium-core has special handling for stores containing naked processes that is not
+applicable here.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">request</span></code> (<a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.Requester" title="ecoli.processes.partition.Requester"><code class="xref py py-class docutils literal notranslate"><span class="pre">Requester</span></code></a> only): Wired to store
+located at <code class="docutils literal notranslate"><span class="pre">(&quot;request&quot;,</span> <span class="pre">&quot;process_name&quot;)</span></code>. Contains a single sub-store called <code class="docutils literal notranslate"><span class="pre">bulk</span></code>
+that is updated every time the Requester runs with a list of tuples
+<code class="docutils literal notranslate"><span class="pre">(Index</span> <span class="pre">of</span> <span class="pre">bulk</span> <span class="pre">molecule</span> <span class="pre">in</span> <span class="pre">structured</span> <span class="pre">Numpy</span> <span class="pre">array,</span> <span class="pre">count</span> <span class="pre">requested)</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">allocate</span></code> (<a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.Evolver" title="ecoli.processes.partition.Evolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">Evolver</span></code></a> only): Wired to store
+located at <code class="docutils literal notranslate"><span class="pre">(&quot;allocate&quot;,</span> <span class="pre">&quot;process_name&quot;)</span></code>. Contains a single sub-store called <code class="docutils literal notranslate"><span class="pre">bulk</span></code>
+that is updated every time the <a class="reference internal" href="reference/api/ecoli/ecoli.processes.allocator.html#ecoli.processes.allocator.Allocator" title="ecoli.processes.allocator.Allocator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Allocator</span></code></a> for the
+corresponding execution layer is run with a 1D array of partitioned bulk counts.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">global_time</span></code>, <code class="docutils literal notranslate"><span class="pre">timestep</span></code>, <code class="docutils literal notranslate"><span class="pre">next_update_time</span></code>: See <a class="reference internal" href="processes.html#timesteps"><span class="std std-ref">Time Steps</span></a>.</p></li>
+</ul>
+</section>
+<section id="division-modifications">
+<h2>Division Modifications<a class="headerlink" href="#division-modifications" title="Link to this heading"></a></h2>
+<p>vEcoli has a variety of options related to cell division that, if enabled,
+prompt <a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps" title="ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps"><code class="xref py py-meth docutils literal notranslate"><span class="pre">generate_processes_and_steps()</span></code></a>
+to add certain Steps and
+<a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli.generate_topology" title="ecoli.composites.ecoli_master.Ecoli.generate_topology"><code class="xref py py-meth docutils literal notranslate"><span class="pre">generate_topology()</span></code></a> to add
+their corresponding topologies to the final composite model.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">divide</span></code>: Adds <a class="reference internal" href="reference/api/ecoli/ecoli.processes.cell_division.html#ecoli.processes.cell_division.Division" title="ecoli.processes.cell_division.Division"><code class="xref py py-class docutils literal notranslate"><span class="pre">Division</span></code></a> when <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">d_period</span></code>: Adds <a class="reference internal" href="reference/api/ecoli/ecoli.processes.cell_division.html#ecoli.processes.cell_division.MarkDPeriod" title="ecoli.processes.cell_division.MarkDPeriod"><code class="xref py py-class docutils literal notranslate"><span class="pre">MarkDPeriod</span></code></a> when <code class="docutils literal notranslate"><span class="pre">True</span></code>
+but only if <code class="docutils literal notranslate"><span class="pre">divide</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">generations</span></code>: Adds <a class="reference internal" href="reference/api/ecoli/ecoli.processes.cell_division.html#ecoli.processes.cell_division.StopAfterDivision" title="ecoli.processes.cell_division.StopAfterDivision"><code class="xref py py-class docutils literal notranslate"><span class="pre">StopAfterDivision</span></code></a>
+when <code class="docutils literal notranslate"><span class="pre">True</span></code> but only if <code class="docutils literal notranslate"><span class="pre">divide</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
+</ul>
+</section>
+<section id="log-updates">
+<h2>Log Updates<a class="headerlink" href="#log-updates" title="Link to this heading"></a></h2>
+<p>For debugging purposes, it may be useful to know exactly what updates are returned
+by each Process/Step in the model at every timestep. The <code class="docutils literal notranslate"><span class="pre">log_updates</span></code> boolean
+configuration option adds a <code class="docutils literal notranslate"><span class="pre">log_update</span></code> port to each process wired to a store
+located at <code class="docutils literal notranslate"><span class="pre">(&quot;log_update&quot;,</span> <span class="pre">&quot;process_name&quot;)</span></code> (see
+<a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli.generate_topology" title="ecoli.composites.ecoli_master.Ecoli.generate_topology"><code class="xref py py-meth docutils literal notranslate"><span class="pre">generate_topology()</span></code></a>). It also wraps
+each process using
+<a class="reference internal" href="reference/api/ecoli/ecoli.library.logging_tools.html#ecoli.library.logging_tools.make_logging_process" title="ecoli.library.logging_tools.make_logging_process"><code class="xref py py-func docutils literal notranslate"><span class="pre">make_logging_process()</span></code></a> to make it write the
+contents of its update to this log update store (see
+<a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps" title="ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps"><code class="xref py py-meth docutils literal notranslate"><span class="pre">generate_processes_and_steps()</span></code></a>).</p>
+<p>The analysis plots located in <a class="reference internal" href="reference/api/ecoli/ecoli.analysis.single.blame.html#module-ecoli.analysis.single.blame" title="ecoli.analysis.single.blame"><code class="xref py py-mod docutils literal notranslate"><span class="pre">blame</span></code></a> can be used
+to visualize these updates.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This feature should only be turned for debugging purposes and
+only when using the in-memory emitter (see <a class="reference internal" href="output.html#ram-emitter"><span class="std std-ref">In-Memory Emitter</span></a>).</p>
+</div>
+</section>
+<section id="initial-state">
+<h2>Initial State<a class="headerlink" href="#initial-state" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli.initial_state" title="ecoli.composites.ecoli_master.Ecoli.initial_state"><code class="xref py py-meth docutils literal notranslate"><span class="pre">initial_state()</span></code></a> method is responsible
+for generating the initial state used to populate many of the stores in the simulation
+(see the “Initialization” sub-headings in <a class="reference internal" href="stores.html"><span class="std std-ref">Stores</span></a>).</p>
+<p>It also allows users to manually override initial state values and populates the
+<code class="docutils literal notranslate"><span class="pre">(&quot;process&quot;,</span> <span class="pre">&quot;process_name&quot;)</span></code> stores mentioned in <a class="reference internal" href="#composite-partitioning"><span class="std std-ref">Partitioning Modifications</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="processes.html" class="btn btn-neutral float-left" title="Processes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="experiments.html" class="btn btn-neutral float-right" title="Experiments" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
