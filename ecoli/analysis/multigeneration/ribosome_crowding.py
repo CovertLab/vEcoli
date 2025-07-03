@@ -91,19 +91,36 @@ def plot(
         print("[INFO] No overcrowded monomers found.")
         return
 
-    print(f"[INFO] Found {len(overcrowded_indices)} overcrowded monomers")
+    n_overcrowded_monomers = len(overcrowded_indices)
+    n_overcrowded_monomers_to_plot = min(
+        n_overcrowded_monomers, MAX_NUMBER_OF_MONOMERS_TO_PLOT
+    )
+
+    print(f"[INFO] Found {n_overcrowded_monomers} overcrowded monomers")
 
     # Second pass: Get data for overcrowded monomers only
+    actual_columns = []
+    target_columns = []
+
+    for i, idx in enumerate(overcrowded_indices):
+        if i >= n_overcrowded_monomers_to_plot:
+            break
+        if idx < len(field_names):
+            monomer_id = field_names[idx]
+            gene_id = monomer_to_gene.get(monomer_id, "Unknown")
+            actual_columns.append(f"actual__{gene_id}")
+            target_columns.append(f"target__{gene_id}")
+
     actual_expr = named_idx(
         "listeners__ribosome_data__actual_prob_translation_per_transcript",
-        [f"actual_{i}" for i in range(len(overcrowded_indices))],
-        [overcrowded_indices],
+        actual_columns,
+        [overcrowded_indices[: len(actual_columns)]],
     )
 
     target_expr = named_idx(
         "listeners__ribosome_data__target_prob_translation_per_transcript",
-        [f"target_{i}" for i in range(len(overcrowded_indices))],
-        [overcrowded_indices],
+        target_columns,
+        [overcrowded_indices[: len(target_columns)]],
     )
 
     data_query = f"SELECT {actual_expr}, {target_expr}, time FROM ({history_sql})"
@@ -111,50 +128,53 @@ def plot(
 
     # ----------------------------------------- #
     # Prepare plot data following original format
-    plot_data = []
-    n_overcrowded_monomers = len(overcrowded_indices)
-    n_overcrowded_monomers_to_plot = min(
-        n_overcrowded_monomers, MAX_NUMBER_OF_MONOMERS_TO_PLOT
+    pl_df = pl.DataFrame(df)
+
+    # Get all probability columns (both actual and target)
+    prob_columns = actual_columns + target_columns
+
+    # Unpivot the data
+    plot_df = (
+        pl_df.unpivot(
+            index=["time"],
+            on=prob_columns,
+            variable_name="variable",
+            value_name="Translation_Probability",
+        )
+        .with_columns(
+            [
+                # Split variable name into probability type and gene ID
+                pl.col("variable")
+                .str.split_exact("__", 1)
+                .struct.rename_fields(["Probability_Type", "Gene_ID"]),
+                (pl.col("time") / 60).alias("Time_min"),
+            ]
+        )
+        .unnest("variable")
+        .with_columns(
+            [
+                # Add plot order for consistent ordering
+                pl.col("Gene_ID")
+                .map_elements(
+                    lambda x: next(
+                        (
+                            i
+                            for i, idx in enumerate(
+                                overcrowded_indices[: len(actual_columns)]
+                            )
+                            if idx < len(field_names)
+                            and monomer_to_gene.get(field_names[idx], "Unknown") == x
+                        ),
+                        0,
+                    ),
+                    return_dtype=pl.Int32,
+                )
+                .alias("Plot_Order")
+            ]
+        )
     )
 
-    for i, idx in enumerate(overcrowded_indices):
-        if i >= MAX_NUMBER_OF_MONOMERS_TO_PLOT:
-            break
-
-        if idx < len(field_names):
-            monomer_id = field_names[idx]
-            gene_id = monomer_to_gene.get(monomer_id, "Unknown")
-
-            # Add target probabilities
-            for _, row in df.iterrows():
-                plot_data.append(
-                    {
-                        "Time_min": float(row["time"]),
-                        "Gene_ID": str(gene_id),
-                        "Probability_Type": "target",
-                        "Translation_Probability": float(row[f"target_{i}"]),
-                        "Plot_Order": i,
-                    }
-                )
-
-            # Add actual probabilities
-            for _, row in df.iterrows():
-                plot_data.append(
-                    {
-                        "Time_min": float(row["time"]),
-                        "Gene_ID": str(gene_id),
-                        "Probability_Type": "actual",
-                        "Translation_Probability": float(row[f"actual_{i}"]),
-                        "Plot_Order": i,
-                    }
-                )
-
-    if not plot_data:
-        print("[INFO] No data prepared for plotting")
-        return
-
-    plot_df = pl.DataFrame(plot_data)
-
+    # ----------------------------------------- #
     # Create individual plots for each overcrowded gene
     charts = []
     for i in range(n_overcrowded_monomers_to_plot):
