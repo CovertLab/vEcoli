@@ -18,9 +18,7 @@ from duckdb import DuckDBPyConnection
 import pandas as pd
 import numpy as np
 
-from ecoli.library.parquet_emitter import (
-    open_arbitrary_sim_data,
-)
+from ecoli.library.parquet_emitter import open_arbitrary_sim_data, named_idx
 from ecoli.library.schema import bulk_name_to_idx
 
 # ----------------------------------------- #
@@ -77,23 +75,24 @@ def plot(
         "listeners__ribosome_data__did_terminate",
         "listeners__ribosome_data__effective_elongation_rate",
         "listeners__unique_molecule_counts__active_ribosome",
-        "bulk",
     ]
 
-    # Check available columns
-    available_columns = (
-        conn.sql(f"DESCRIBE ({history_sql})").pl()["column_name"].to_list()
-    )
-    data_columns = [col for col in required_columns if col in available_columns]
+    # Create the bulk index expressions
+    expr_30s = named_idx("bulk", [f"bulk_30s_{i}" for i in idx_30s], [idx_30s])
+    expr_50s = named_idx("bulk", [f"bulk_50s_{i}" for i in idx_50s], [idx_50s])
 
-    print(f"[INFO] Loading {len(data_columns)} columns for ribosome usage analysis")
+    # load data
+    sql = f"""
+    SELECT
+        {", ".join(required_columns)},
+        {expr_30s},
+        {expr_50s}
+    FROM ({history_sql})
+    WHERE agent_id = 0
+    ORDER BY generation, time
+    """
 
-    df = conn.sql(f"""
-        SELECT {", ".join(data_columns)}
-        FROM ({history_sql})
-        WHERE agent_id = 0
-        ORDER BY variant, generation, time
-    """).pl()
+    df = conn.sql(sql).pl()
 
     # Convert time
     if "time" in df.columns:
@@ -101,23 +100,13 @@ def plot(
         df = df.with_columns([(pl.col("time") + 1).alias("time_step_sec")])
 
     # Calculate ribosome subunit counts
+    cols_30s = [c for c in df.columns if c.startswith("bulk_30s_")]
+    cols_50s = [c for c in df.columns if c.startswith("bulk_50s_")]
     df = df.with_columns(
         [
             # compute bulk ribosome subunit counts
-            pl.col("bulk")
-            .map_elements(
-                lambda arr: sum(arr[i] for i in idx_30s if i < len(arr)),
-                return_dtype=pl.Float64,
-            )
-            .fill_null(0)
-            .alias("counts_30s"),
-            pl.col("bulk")
-            .map_elements(
-                lambda arr: sum(arr[i] for i in idx_50s if i < len(arr)),
-                return_dtype=pl.Float64,
-            )
-            .fill_null(0)
-            .alias("counts_50s"),
+            pl.sum_horizontal(cols_30s).alias("counts_30s"),
+            pl.sum_horizontal(cols_50s).alias("counts_50s"),
             # compute unique ribosomes
             pl.col("listeners__unique_molecule_counts__active_ribosome")
             .fill_null(0)
@@ -245,7 +234,7 @@ def plot(
 
     def create_line_chart(y_field, title, y_title, skip_first_point=False):
         """Create line chart with optional skipping of first data point."""
-        data = plot_df
+        data = plot_df.to_pandas()
         if skip_first_point:
             # Group by variant and generation, skip first point of each group
             filtered_data = []
