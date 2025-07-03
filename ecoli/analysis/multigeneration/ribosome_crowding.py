@@ -5,23 +5,19 @@ Record the translation probability comparison on Gene EG10184
 import altair as alt
 import os
 from typing import Any
-
-from duckdb import DuckDBPyConnection
 import pickle
 import polars as pl
-import numpy as np
+from duckdb import DuckDBPyConnection
 
 from ecoli.library.parquet_emitter import (
     field_metadata,
     open_arbitrary_sim_data,
     named_idx,
-    read_stacked_columns,
 )
 
-# ----------------------------------------- #
-
-# Set this to ensure maximum figure size is not exceeded
 MAX_NUMBER_OF_MONOMERS_TO_PLOT = 300
+
+# ----------------------------------------- #
 
 
 def plot(
@@ -37,192 +33,124 @@ def plot(
     variant_names: dict[str, str],
 ):
     """
-    Comparison of target translation probabilities vs actual translation
-    probabilities for mRNAs whose translation probabilities exceeded the limit
-    set by the physical size and the elongation rates of ribosomes.
+    Comparison of target vs actual translation probabilities for overcrowded mRNAs.
     """
 
-    # Load sim_data to get monomer information
+    # Load sim_data for monomer mappings
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
 
-    # Get monomer IDs and mappings
-    mRNA_sim_data = sim_data.process.transcription.cistron_data.struct_array
-    monomer_sim_data = sim_data.process.translation.monomer_data.struct_array
-    monomer_ids = monomer_sim_data["id"].tolist()
+    # Get monomer and gene mappings
+    mRNA_data = sim_data.process.transcription.cistron_data.struct_array
+    monomer_data = sim_data.process.translation.monomer_data.struct_array
 
-    # Build mappings: monomer_id -> mRNA_id -> gene_id
-    monomer_to_mRNA_id_dict = dict(
-        zip(monomer_sim_data["id"], monomer_sim_data["cistron_id"])
-    )
-    mRNA_to_gene_id_dict = dict(zip(mRNA_sim_data["id"], mRNA_sim_data["gene_id"]))
+    monomer_to_gene = {}
+    for mono_id, cistron_id in zip(monomer_data["id"], monomer_data["cistron_id"]):
+        gene_id = next(
+            (
+                g
+                for c, g in zip(mRNA_data["id"], mRNA_data["gene_id"])
+                if c == cistron_id
+            ),
+            "Unknown",
+        )
+        monomer_to_gene[mono_id] = gene_id
 
-    # Get field metadata for ribosome data
+    # Get field metadata
     try:
-        target_field_names = field_metadata(
+        field_names = field_metadata(
             conn,
             config_sql,
             "listeners__ribosome_data__target_prob_translation_per_transcript",
         )
-        actual_field_names = field_metadata(
-            conn,
-            config_sql,
-            "listeners__ribosome_data__actual_prob_translation_per_transcript",
-        )
     except Exception as e:
-        print(f"Error getting field metadata: {e}")
-        print("Trying alternative listener names...")
-        try:
-            target_field_names = field_metadata(
-                conn, config_sql, "listeners__ribosome_data"
-            )
-            actual_field_names = target_field_names  # Assume same structure
-        except Exception as e2:
-            print(f"Alternative approach also failed: {e2}")
-            return
-
-    # Find indices for each monomer in the field metadata
-    target_monomer_indices = []
-    actual_monomer_indices = []
-    valid_monomer_ids = []
-
-    for i, monomer_id in enumerate(monomer_ids):
-        if monomer_id in target_field_names and monomer_id in actual_field_names:
-            target_idx = target_field_names.index(monomer_id)
-            actual_idx = actual_field_names.index(monomer_id)
-            target_monomer_indices.append(target_idx)
-            actual_monomer_indices.append(actual_idx)
-            valid_monomer_ids.append(monomer_id)
-
-    if not valid_monomer_ids:
-        print("No valid monomer IDs found in ribosome data fields.")
+        print(f"[ERROR] Error getting field metadata: {e}")
         return
 
-    print(f"[INFO] Found {len(valid_monomer_ids)} valid monomer IDs")
-
-    # Create named indices for data reading
-    target_named = named_idx(
-        "listeners__ribosome_data__target_prob_translation_per_transcript",
-        valid_monomer_ids,
-        [target_monomer_indices],
+    # First pass: Find overcrowded monomer indices
+    overcrowded_query = f"""
+    WITH unnested AS (
+        SELECT 
+            unnest(listeners__ribosome_data__actual_prob_translation_per_transcript) as actual,
+            unnest(listeners__ribosome_data__target_prob_translation_per_transcript) as target,
+            generate_subscripts(listeners__ribosome_data__target_prob_translation_per_transcript, 1) as idx
+        FROM ({history_sql})
     )
-    actual_named = named_idx(
+    SELECT DISTINCT idx
+    FROM unnested
+    WHERE target > actual
+    ORDER BY idx
+    LIMIT {MAX_NUMBER_OF_MONOMERS_TO_PLOT}
+    """
+
+    overcrowded_indices = [
+        row[0] - 1 for row in conn.execute(overcrowded_query).fetchall()
+    ]  # Convert to 0-based
+
+    if not overcrowded_indices:
+        print("[INFO] No overcrowded monomers found.")
+        return
+
+    print(f"[INFO] Found {len(overcrowded_indices)} overcrowded monomers")
+
+    # Second pass: Get data for overcrowded monomers only
+    actual_expr = named_idx(
         "listeners__ribosome_data__actual_prob_translation_per_transcript",
-        valid_monomer_ids,
-        [actual_monomer_indices],
+        [f"actual_{i}" for i in range(len(overcrowded_indices))],
+        [overcrowded_indices],
     )
 
-    # Read target and actual data separately to ensure proper structure
-    try:
-        # Read target data
-        target_data = read_stacked_columns(
-            history_sql,
-            [target_named],
-            conn=conn,
-        )
-        target_df = pl.DataFrame(target_data).with_columns(
-            **{"Time (min)": pl.col("time") / 60}
-        )
+    target_expr = named_idx(
+        "listeners__ribosome_data__target_prob_translation_per_transcript",
+        [f"target_{i}" for i in range(len(overcrowded_indices))],
+        [overcrowded_indices],
+    )
 
-        # Read actual data
-        actual_data = read_stacked_columns(
-            history_sql,
-            [actual_named],
-            conn=conn,
-        )
-        actual_df = pl.DataFrame(actual_data).with_columns(
-            **{"Time (min)": pl.col("time") / 60}
-        )
+    data_query = f"SELECT {actual_expr}, {target_expr}, time FROM ({history_sql})"
+    df = conn.execute(data_query).fetchdf()
 
-        # Get the probability columns
-        target_prob_cols = [
-            col for col in target_df.columns if col in valid_monomer_ids
-        ]
-        actual_prob_cols = [
-            col for col in actual_df.columns if col in valid_monomer_ids
-        ]
-
-        if not target_prob_cols or not actual_prob_cols:
-            print("Could not find probability columns in datasets")
-            return
-
-        # Create arrays for calculation
-        target_prob_array = target_df.select(target_prob_cols).to_numpy()
-        actual_prob_array = actual_df.select(actual_prob_cols).to_numpy()
-        time_min = target_df["Time (min)"].to_numpy()
-
-        print("[INFO] Successfully read target and actual data")
-        print(
-            f"[INFO] Target shape: {target_prob_array.shape}, Actual shape: {actual_prob_array.shape}"
-        )
-
-    except Exception as e:
-        print(f"Failed to read separate datasets: {e}")
-        return
-
-    # Calculate differences to find overcrowded mRNAs
-    prob_differences = target_prob_array - actual_prob_array
-    overcrowded_monomer_indexes = np.where(prob_differences.max(axis=0) > 0)[0]
-    n_overcrowded_monomers = len(overcrowded_monomer_indexes)
-
-    print(f"[INFO] Found {n_overcrowded_monomers} overcrowded monomers")
-
-    if n_overcrowded_monomers == 0:
-        print("No overcrowded mRNAs found in the simulation.")
-        return
-
-    # Get gene IDs for overcrowded monomers
-    overcrowded_monomer_ids = [
-        valid_monomer_ids[i] for i in overcrowded_monomer_indexes
-    ]
-    overcrowded_gene_ids = [
-        mRNA_to_gene_id_dict.get(monomer_to_mRNA_id_dict.get(monomer_id), "unknown")
-        for monomer_id in overcrowded_monomer_ids
-    ]
-
+    # ----------------------------------------- #
+    # Prepare plot data following original format
+    plot_data = []
+    n_overcrowded_monomers = len(overcrowded_indices)
     n_overcrowded_monomers_to_plot = min(
         n_overcrowded_monomers, MAX_NUMBER_OF_MONOMERS_TO_PLOT
     )
 
-    # ----------------------------------------- #
-
-    plot_data = []
-    for i, monomer_index in enumerate(overcrowded_monomer_indexes):
+    for i, idx in enumerate(overcrowded_indices):
         if i >= MAX_NUMBER_OF_MONOMERS_TO_PLOT:
             break
 
-        gene_id = overcrowded_gene_ids[i]
+        if idx < len(field_names):
+            monomer_id = field_names[idx]
+            gene_id = monomer_to_gene.get(monomer_id, "Unknown")
 
-        # Get the data for this monomer
-        target_probs = target_prob_array[:, monomer_index]
-        actual_probs = actual_prob_array[:, monomer_index]
+            # Add target probabilities
+            for _, row in df.iterrows():
+                plot_data.append(
+                    {
+                        "Time_min": float(row["time"]),
+                        "Gene_ID": str(gene_id),
+                        "Probability_Type": "target",
+                        "Translation_Probability": float(row[f"target_{i}"]),
+                        "Plot_Order": i,
+                    }
+                )
 
-        # Add target probabilities
-        for j, time_val in enumerate(time_min):
-            plot_data.append(
-                {
-                    "Time_min": float(time_val),
-                    "Gene_ID": str(gene_id),
-                    "Probability_Type": "target",
-                    "Translation_Probability": float(target_probs[j]),
-                    "Plot_Order": i,
-                }
-            )
-
-        # Add actual probabilities
-        for j, time_val in enumerate(time_min):
-            plot_data.append(
-                {
-                    "Time_min": float(time_val),
-                    "Gene_ID": str(gene_id),
-                    "Probability_Type": "actual",
-                    "Translation_Probability": float(actual_probs[j]),
-                    "Plot_Order": i,
-                }
-            )
+            # Add actual probabilities
+            for _, row in df.iterrows():
+                plot_data.append(
+                    {
+                        "Time_min": float(row["time"]),
+                        "Gene_ID": str(gene_id),
+                        "Probability_Type": "actual",
+                        "Translation_Probability": float(row[f"actual_{i}"]),
+                        "Plot_Order": i,
+                    }
+                )
 
     if not plot_data:
-        print("No data prepared for plotting")
+        print("[INFO] No data prepared for plotting")
         return
 
     plot_df = pl.DataFrame(plot_data)
