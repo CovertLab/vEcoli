@@ -23,9 +23,10 @@ from urllib import parse
 
 import numpy as np
 from vivarium.core.engine import Engine
+from vivarium.core.composer import deep_merge
 from vivarium.core.process import Process
 from vivarium.core.serialize import deserialize_value, serialize_value
-from vivarium.library.dict_utils import deep_merge, deep_merge_check
+from vivarium.library.dict_utils import deep_merge_check
 from vivarium.library.topology import inverse_topology
 from vivarium.library.topology import assoc_path
 from ecoli.library.logging_tools import write_json
@@ -116,11 +117,10 @@ def get_git_diff() -> str:
     If that fails, tries to read the diff from source-info/git-diff.txt file.
     Raises an error if both methods fail.
     """
-    # Try to run git command
     try:
         return (
             subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "diff", "HEAD"])
-            .decode("ascii")
+            .decode("utf-8")
             .strip()
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
