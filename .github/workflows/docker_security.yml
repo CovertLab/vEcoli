@@ -4,11 +4,14 @@ permissions:
   contents: read
   security-events: write
   pull-requests: write
+  actions: read
 
 on:
   push:
     branches:
       - master
+  pull_request:
+    branches: [master]
   schedule:
     - cron: "0 0 * * *" # Runs daily at midnight UTC
 
