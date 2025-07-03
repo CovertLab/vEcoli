@@ -22,7 +22,7 @@ def calc_rna_doubling_time(
     """
     production_rate = pl.col(produced_col) / pl.col("time_step_sec")
     growth_rate = production_rate / pl.col(count_col)
-    dt_min = np.log(2) / growth_rate / 60
+    dt_min = float(np.log(2)) / growth_rate / 60
     valid = (
         (pl.col(produced_col) >= 0)
         & (pl.col(count_col) > 0)
@@ -84,36 +84,30 @@ def plot(
         "listeners__ribosome_data__rRNA5S_init_prob",
         "listeners__ribosome_data__effective_elongation_rate",
         "listeners__unique_molecule_counts__active_ribosome",
-        "bulk",
     ]
 
     # load data
-    # Extract each bulk index into its own column using named_idx(), then sum per rRNA species
-    idx_groups = {"bulk_16s": idx_16s, "bulk_23s": idx_23s, "bulk_5s": idx_5s}
-    projections = (
-        required_columns
-        + [
-            named_idx(col="bulk", names=[f"{grp}_{i}"], idx=[[i]], zero_to_null=True)
-            for grp, idxs in idx_groups.items()
-            for i in idxs
-        ]
-        + [
-            f"({' + '.join(f'{grp}_{i}' for i in idxs)}) AS {grp}_count"
-            for grp, idxs in idx_groups.items()
-        ]
-    )
+    # Create the bulk index expressions
+    bulk_16s_expr = named_idx("bulk", [f"bulk_{i}" for i in idx_16s], [idx_16s])
+    bulk_23s_expr = named_idx("bulk", [f"bulk_{i}" for i in idx_23s], [idx_23s])
+    bulk_5s_expr = named_idx("bulk", [f"bulk_{i}" for i in idx_5s], [idx_5s])
 
+    # Combine all columns and expressions
+    all_columns = ", ".join(required_columns)
+    bulk_expressions = ", ".join([bulk_16s_expr, bulk_23s_expr, bulk_5s_expr])
+
+    # Build the SQL query
     sql = f"""
-    SELECT {", ".join(projections)}
+    SELECT {all_columns}, {bulk_expressions}
     FROM ({history_sql})
     WHERE agent_id = 0
     ORDER BY generation, time
     """
+
     df = conn.sql(sql).pl()
 
     # time
     df = df.with_columns((pl.col("time") / 60).alias("time_min"))
-
     df = df.with_columns(
         pl.col("time")
         .diff()
@@ -128,7 +122,9 @@ def plot(
 
     # cell doubling time
     if "listeners__mass__instantaneous_growth_rate" in df.columns:
-        val = np.log(2) / pl.col("listeners__mass__instantaneous_growth_rate") / 60
+        val = (
+            float(np.log(2)) / pl.col("listeners__mass__instantaneous_growth_rate") / 60
+        )
         df = df.with_columns(
             pl.when(val.is_between(0, 2 * sim_doubling_time, closed="both"))
             .then(val)
@@ -138,29 +134,15 @@ def plot(
 
     df = df.with_columns(
         [
-            # compute bulk rRNA counts
-            pl.col("bulk")
-            .map_elements(
-                lambda arr: sum(arr[i] for i in idx_16s if i < len(arr)),
-                return_dtype=pl.Float64,
-            )
-            .fill_null(0)
-            .alias("bulk_16s_count"),
-            pl.col("bulk")
-            .map_elements(
-                lambda arr: sum(arr[i] for i in idx_23s if i < len(arr)),
-                return_dtype=pl.Float64,
-            )
-            .fill_null(0)
-            .alias("bulk_23s_count"),
-            pl.col("bulk")
-            .map_elements(
-                lambda arr: sum(arr[i] for i in idx_5s if i < len(arr)),
-                return_dtype=pl.Float64,
-            )
-            .fill_null(0)
-            .alias("bulk_5s_count"),
-            # compute unique ribosomes
+            pl.sum_horizontal([pl.col(f"bulk_{i}") for i in idx_16s]).alias(
+                "bulk_16s_count"
+            ),
+            pl.sum_horizontal([pl.col(f"bulk_{i}") for i in idx_23s]).alias(
+                "bulk_23s_count"
+            ),
+            pl.sum_horizontal([pl.col(f"bulk_{i}") for i in idx_5s]).alias(
+                "bulk_5s_count"
+            ),
             pl.col("listeners__unique_molecule_counts__active_ribosome")
             .fill_null(0)
             .alias("ribosome_count"),
