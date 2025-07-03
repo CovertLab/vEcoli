@@ -151,34 +151,16 @@ def plot(
             ]
         )
         .unnest("variable")
-        .with_columns(
-            [
-                # Add plot order for consistent ordering
-                pl.col("Gene_ID")
-                .map_elements(
-                    lambda x: next(
-                        (
-                            i
-                            for i, idx in enumerate(
-                                overcrowded_indices[: len(actual_columns)]
-                            )
-                            if idx < len(field_names)
-                            and monomer_to_gene.get(field_names[idx], "Unknown") == x
-                        ),
-                        0,
-                    ),
-                    return_dtype=pl.Int32,
-                )
-                .alias("Plot_Order")
-            ]
-        )
     )
+
+    # Get unique gene IDs in the order they appear in the data
+    unique_genes = plot_df["Gene_ID"].unique().to_list()
 
     # ----------------------------------------- #
     # Create individual plots for each overcrowded gene
     charts = []
-    for i in range(n_overcrowded_monomers_to_plot):
-        gene_data = plot_df.filter(pl.col("Plot_Order") == i)
+    for i, gene_id in enumerate(unique_genes[:n_overcrowded_monomers_to_plot]):
+        gene_data = plot_df.filter(pl.col("Gene_ID") == gene_id)
 
         if gene_data.height == 0:
             continue
