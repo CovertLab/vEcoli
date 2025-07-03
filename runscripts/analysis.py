@@ -339,6 +339,8 @@ def main():
                     curr_outdir,
                 )
         else:
+            curr_outdir = os.path.abspath(config["outdir"])
+            os.makedirs(curr_outdir, exist_ok=True)
             query_strings[duckdb_filter] = (
                 f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
