@@ -409,7 +409,7 @@ def main():
     else:
         out_uri = config["emitter_arg"]["out_uri"]
         parsed_uri = parse.urlparse(out_uri)
-        if parsed_uri.schema not in ("local", "file") and not FSSPEC_AVAILABLE:
+        if parsed_uri.scheme not in ("local", "file") and not FSSPEC_AVAILABLE:
             raise RuntimeError(
                 f"URI '{out_uri}' specified but fsspec is not available. "
                 "Install fsspec or provide a local URI/out directory."
@@ -423,14 +423,27 @@ def main():
         config["lineage_seed"] = random.randint(0, 2**31 - 1)
     filesystem, outdir = parse_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
+    exp_outdir = os.path.dirname(outdir)
     out_uri = os.path.join(out_uri, experiment_id, "nextflow")
     repo_dir = os.path.dirname(os.path.dirname(__file__))
     local_outdir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
     os.makedirs(local_outdir, exist_ok=True)
     if filesystem is None:
-        os.makedirs(outdir, exist_ok=args.resume)
+        if os.path.exists(exp_outdir) and not args.resume:
+            raise RuntimeError(
+                f"Output directory already exists: {exp_outdir}. "
+                "Please use a different experiment ID or output directory. "
+                "Alternatively, move, delete, or rename the existing directory."
+            )
+        os.makedirs(outdir, exist_ok=True)
     else:
-        filesystem.makedirs(outdir, exist_ok=args.resume)
+        if filesystem.exists(exp_outdir) and not args.resume:
+            raise RuntimeError(
+                f"Output directory already exists: {exp_outdir}. "
+                "Please use a different experiment ID or output directory. "
+                "Alternatively, move, delete, or rename the existing directory."
+            )
+        filesystem.makedirs(outdir, exist_ok=True)
     temp_config_path = f"{local_outdir}/workflow_config.json"
     final_config_path = os.path.join(outdir, "workflow_config.json")
     final_config_uri = os.path.join(out_uri, "workflow_config.json")
