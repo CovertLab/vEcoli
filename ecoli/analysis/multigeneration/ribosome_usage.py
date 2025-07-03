@@ -245,7 +245,7 @@ def plot(
 
     def create_line_chart(y_field, title, y_title, skip_first_point=False):
         """Create line chart with optional skipping of first data point."""
-        data = plot_df.to_pandas()
+        data = plot_df
         if skip_first_point:
             # Group by variant and generation, skip first point of each group
             filtered_data = []
@@ -404,7 +404,7 @@ def plot(
             }
         )
         fallback_plot = (
-            alt.Chart(fallback_df.to_pandas())
+            alt.Chart(fallback_df)
             .mark_text(size=20, color="red")
             .encode(x="x:Q", y="y:Q", text="message:N")
             .properties(
@@ -422,7 +422,7 @@ def plot(
     # Ensure both columns have same length by adding empty chart if needed
     if len(left_plots) > len(right_plots):
         empty_chart = (
-            alt.Chart(pl.DataFrame({"x": [0], "y": [0]}).to_pandas())
+            alt.Chart(pl.DataFrame({"x": [0], "y": [0]}))
             .mark_point(opacity=0)
             .encode(x="x:Q", y="y:Q")
             .properties(width=600, height=120)
@@ -430,7 +430,7 @@ def plot(
         right_plots.append(empty_chart)
     elif len(right_plots) > len(left_plots):
         empty_chart = (
-            alt.Chart(pl.DataFrame({"x": [0], "y": [0]}).to_pandas())
+            alt.Chart(pl.DataFrame({"x": [0], "y": [0]}))
             .mark_point(opacity=0)
             .encode(x="x:Q", y="y:Q")
             .properties(width=600, height=120)

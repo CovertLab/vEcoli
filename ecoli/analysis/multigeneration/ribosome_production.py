@@ -372,7 +372,7 @@ def plot(
     if not plots:
         fallback = pl.DataFrame({"message": ["No data available"], "x": [0], "y": [0]})
         plots.append(
-            alt.Chart(fallback.to_pandas())
+            alt.Chart(fallback)
             .mark_text(size=20, color="red")
             .encode(x="x:Q", y="y:Q", text="message:N")
             .properties(width=600, height=400, title="No Data")
