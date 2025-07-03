@@ -68,6 +68,7 @@ def plot(
         return
 
     # First pass: Find overcrowded monomer indices
+    # If gene X's target > actual at any timepoint t, it'll be marked as overcrowded.
     overcrowded_query = f"""
     WITH unnested AS (
         SELECT 
@@ -181,16 +182,11 @@ def plot(
                 color=alt.Color(
                     "Probability_Type:N",
                     scale=alt.Scale(
-                        domain=["target", "actual"], range=["#1f77b4", "#ff7f0e"]
+                        # actually, the blue target line will cover the orange actual line if they are the same
+                        domain=["target", "actual"],
+                        range=["#1f77b4", "#ff7f0e"],
                     ),
                     legend=alt.Legend(title="Type") if i == 0 else None,
-                ),
-                strokeDash=alt.StrokeDash(
-                    "Probability_Type:N",
-                    scale=alt.Scale(
-                        domain=["target", "actual"], range=[[1, 0], [5, 5]]
-                    ),
-                    legend=None,
                 ),
                 tooltip=[
                     alt.Tooltip("Time_min:Q", title="Time (min)", format=".2f"),
