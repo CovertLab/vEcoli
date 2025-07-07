@@ -7,7 +7,7 @@ It can also be used at multigeneration analysis.
 """
 
 import os
-from typing import Any
+from typing import Any, Dict, List
 import altair as alt
 import polars as pl
 import pandas as pd
@@ -84,7 +84,7 @@ def plot(
         )
 
         # Base encoding
-        base_encode = {
+        base_encode: Dict[str, List[str]] = {
             "x": alt.X("time_min:Q", title="Time (min)", scale=alt.Scale(nice=False)),
             "color": alt.Color(
                 "generation:N",
