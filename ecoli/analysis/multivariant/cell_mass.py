@@ -7,7 +7,7 @@ It can also be used at multigeneration analysis.
 """
 
 import os
-from typing import Any, Dict, List
+from typing import Any
 import altair as alt
 import polars as pl
 import pandas as pd
@@ -84,14 +84,15 @@ def plot(
         )
 
         # Base encoding
-        base_encode: Dict[str, List[str]] = {
+        tooltip_fields: list[str] = ["time_min:Q", "generation:N"]
+        base_encode = {
             "x": alt.X("time_min:Q", title="Time (min)", scale=alt.Scale(nice=False)),
             "color": alt.Color(
                 "generation:N",
                 legend=alt.Legend(title="Generation"),
                 scale=alt.Scale(scheme="category10"),
             ),
-            "tooltip": ["time_min:Q", "generation:N"],
+            "tooltip": tooltip_fields,
         }
 
         # Absolute dry mass plot
