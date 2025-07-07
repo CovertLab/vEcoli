@@ -92,20 +92,20 @@ def plot(
                 legend=alt.Legend(title="Generation"),
                 scale=alt.Scale(scheme="category10"),
             ),
-            "tooltip": tooltip_fields,
         }
 
         # Absolute dry mass plot
         mass_plot = (
             base.mark_line(strokeWidth=2.5)
             .encode(
+                x=base_encode["x"],
+                color=base_encode["color"],
+                tooltip=tooltip_fields + ["listeners__mass__dry_mass:Q"],
                 y=alt.Y(
                     "listeners__mass__dry_mass:Q",
                     title="Dry Mass (fg)",
                     scale=alt.Scale(nice=False),
                 ),
-                tooltip=base_encode["tooltip"] + ["listeners__mass__dry_mass:Q"],
-                **{k: v for k, v in base_encode.items() if k != "tooltip"},
             )
             .properties(
                 width=400, height=200, title=f"{variant_name} - Absolute Dry Mass"
@@ -116,13 +116,14 @@ def plot(
         norm_mass_plot = (
             base.mark_line(strokeWidth=2.5)
             .encode(
+                x=base_encode["x"],
+                color=base_encode["color"],
+                tooltip=tooltip_fields + ["listeners__mass__dry_mass:Q"],
                 y=alt.Y(
                     "dry_mass_normalized:Q",
                     title="Normalized Dry Mass",
                     scale=alt.Scale(nice=False),
                 ),
-                tooltip=base_encode["tooltip"] + ["dry_mass_normalized:Q"],
-                **{k: v for k, v in base_encode.items() if k != "tooltip"},
             )
             .properties(
                 width=400, height=200, title=f"{variant_name} - Normalized Dry Mass"
