@@ -253,7 +253,7 @@ def plot(
             .encode(
                 x=alt.X("time_min:Q", title="Time (min)"),
                 y=alt.Y(f"{y_field}:Q", title=y_title),
-                color=alt.Color("generation:N", legend=alt.Legend(title="Variant")),
+                color=alt.Color("generation:N", legend=alt.Legend(title="Generation")),
             )
             .properties(title=title, width=600, height=120)
         )
