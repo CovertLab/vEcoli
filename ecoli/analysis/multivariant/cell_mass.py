@@ -30,41 +30,25 @@ def plot(
     required_columns = [
         "time",
         "variant",
+        "lineage_seed",
         "generation",
         "agent_id",
         "listeners__mass__dry_mass",
+        "listeners__mass__dry_mass_fold_change",
     ]
 
     sql = f"""
     SELECT {", ".join(required_columns)}
     FROM ({history_sql})
-    WHERE agent_id = 0
-    ORDER BY variant, generation, time
+    ORDER BY variant, lineage_seed, generation, time
     """
 
     df = conn.sql(sql).pl()
 
-    # Process time and mass data
+    # Process time
     df = df.with_columns(
         [
             (pl.col("time") / 60).alias("time_min"),
-        ]
-    )
-
-    # Calculate initial mass for each generation for normalization
-    generation_stats = df.group_by(["variant", "generation"]).agg(
-        [pl.col("listeners__mass__dry_mass").min().alias("initial_mass")]
-    )
-
-    # Join back to main dataframe and calculate normalized mass
-    df = df.join(generation_stats, on=["variant", "generation"], how="left")
-
-    # Calculate normalized mass
-    df = df.with_columns(
-        [
-            (pl.col("listeners__mass__dry_mass") / pl.col("initial_mass")).alias(
-                "dry_mass_normalized"
-            )
         ]
     )
 
@@ -74,6 +58,7 @@ def plot(
     # ----------------------------------------#
     plots = []
 
+    # Create subplot for each variant
     for variant in variants:
         variant_df = df.filter(pl.col("variant") == variant).to_pandas()
         variant_name = variant_names.get(variant, f"Variant {variant}")
@@ -87,6 +72,8 @@ def plot(
         tooltip_fields: list[str] = ["time_min:Q", "generation:N"]
         base_encode = {
             "x": alt.X("time_min:Q", title="Time (min)", scale=alt.Scale(nice=False)),
+            # Different generations with different colors
+            # Within same generation, color is the same
             "color": alt.Color(
                 "generation:N",
                 legend=alt.Legend(title="Generation"),
@@ -101,6 +88,7 @@ def plot(
                 x=base_encode["x"],
                 color=base_encode["color"],
                 tooltip=tooltip_fields + ["listeners__mass__dry_mass:Q"],
+                detail="lineage_seed:N",
                 y=alt.Y(
                     "listeners__mass__dry_mass:Q",
                     title="Dry Mass (fg)",
@@ -118,9 +106,10 @@ def plot(
             .encode(
                 x=base_encode["x"],
                 color=base_encode["color"],
-                tooltip=tooltip_fields + ["listeners__mass__dry_mass:Q"],
+                tooltip=tooltip_fields + ["listeners__mass__dry_mass_fold_change:Q"],
+                detail="lineage_seed:N",
                 y=alt.Y(
-                    "dry_mass_normalized:Q",
+                    "listeners__mass__dry_mass_fold_change:Q",
                     title="Normalized Dry Mass",
                     scale=alt.Scale(nice=False),
                 ),
