@@ -50,6 +50,8 @@ dependencies = [
     "stochastic-arrow",
     "autograd",
     "xmltodict",
+    # Required to save Altair charts as PNG
+    "vl-convert-python",
 ]
 
 [project.optional-dependencies]
