@@ -73,6 +73,8 @@ To run scripts on Sherlock through a SLURM batch script, see :ref:`sherlock-noni
     1. Nextflow: ``NXF_EDGE=1 nextflow self-update``
     2. HyperQueue: See :ref:`hq-info`.
 
+    Then, reset the permissions of the updated binaries with ``chmod 777 *``.
+
 .. _sherlock-config:
 
 Configuration
