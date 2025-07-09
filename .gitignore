@@ -64,3 +64,5 @@ trace-*
 .venv/
 
 /scripts
+/configs/debug
+/reconstruction/sim_data
