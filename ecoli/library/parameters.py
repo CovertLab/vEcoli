@@ -685,8 +685,9 @@ def main():
             value_str = "{:.2e}".format(row.param.value.to(row.units).magnitude)
             if "e" in value_str:
                 base, exponent = value_str.split("e")
-                exponent = exponent.strip("+-0")
-                base = base.strip("0")
+                exponent = int(exponent)
+                if "." in base:
+                    base = base.rstrip("0").rstrip(".")
                 if exponent:
                     value_str = "%s \\times 10^{%s}" % (base, exponent)
                 else:
