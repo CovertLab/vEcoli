@@ -45,6 +45,10 @@ def plot(
 
     exp_id = list(sim_data_paths.keys())[0]
 
+    wd_top = os.getcwd().split("/out/")[0]
+
+    wd_raw = os.path.join(wd_top, "reconstruction", "ecoli", "flat")
+
     sim_data_path = list(sim_data_paths[exp_id].values())[0]
 
     sim_data = LoadSimData(sim_data_path).sim_data
@@ -79,11 +83,25 @@ def plot(
 
     tp_columns = ["t" + str(i) for i in range(len(tps))]
 
+    tu_id_mapping = pd.read_csv(
+        os.path.join(wd_raw, "transcription_units.tsv"), sep="\t", header=5, index_col=0
+    )
+    tu_id_mapping = tu_id_mapping["common_name"]
+
+    mrna_names = []
+
+    for i in range(len(mrna_ids)):
+        try:
+            mrna_name = tu_id_mapping[mrna_ids[i]]
+            if isinstance(mrna_name, float):
+                mrna_name = mrna_ids[i]
+        except KeyError:
+            mrna_name = mrna_ids[i]
+        mrna_names.append(mrna_name)
+
     ptools_rna = pd.DataFrame(
-        data=mrna_summed.transpose(), columns=tp_columns, index=mrna_ids
+        data=mrna_summed.transpose(), columns=tp_columns, index=mrna_names
     )
     ptools_rna.to_csv(
         os.path.join(outdir, "ptools_rna.txt"), sep="\t", index=True, header=True
     )
-    # rna_data = sim_data.process.transcription.rna_data
-    # mrna_id = rna_data['id'][rna_data['is_mRNA']]
