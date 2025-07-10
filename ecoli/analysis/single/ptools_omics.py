@@ -3,6 +3,10 @@ from typing import Any
 
 from duckdb import DuckDBPyConnection
 import numpy as np
+import pandas as pd
+
+from ecoli.library.sim_data import LoadSimData
+
 
 COLORS_256 = [  # From colorbrewer2.org, qualitative 8-class set 1
     [228, 26, 28],
@@ -30,8 +34,26 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    # with open(os.path.join(outdir, "history_sql.txt"), "w") as f:
-    #     f.write(history_sql)
+    with open(os.path.join(outdir, "history_sql.txt"), "w") as f:
+        f.write(f"\nwd={os.getcwd()}\n")
+        f.write(f"\nwd_top={os.getcwd().split('/out/')[0]}\n")
+        f.write(f"\nsim_data_paths={sim_data_paths}\n")
+        f.write(f"\nvariant_metadata={variant_metadata}\n")
+        f.write(f"\nvariant_names={variant_names}\n")
+        f.write(f"\nparams={params}\n")
+        f.write(history_sql)
+
+    exp_id = list(sim_data_paths.keys())[0]
+
+    sim_data_path = list(sim_data_paths[exp_id].values())[0]
+
+    sim_data = LoadSimData(sim_data_path).sim_data
+
+    rna_data = sim_data.process.transcription.rna_data
+
+    mrna_ids = rna_data["id"][rna_data["is_mRNA"]]
+
+    mrna_ids = [id[:-3] for id in mrna_ids]
 
     query_sql = f"""
         SELECT listeners__rna_counts__full_mRNA_counts, time FROM ({history_sql})
@@ -43,3 +65,25 @@ def plot(
         output["listeners__rna_counts__full_mRNA_counts"].values
     ).astype(int)
     np.savetxt(os.path.join(outdir, "mrna_mtx.txt"), mrna_mtx, delimiter="\t", fmt="%d")
+
+    tps = np.linspace(0, np.shape(mrna_mtx)[0], 6, dtype=int)
+
+    # Sum over each block
+    block_sums = [
+        mrna_mtx[tps[i] : tps[i + 1]].sum(axis=0) for i in range(len(tps) - 1)
+    ]
+
+    # Stack into final result
+    mrna_summed = np.stack(block_sums, axis=0)
+    mrna_summed = np.insert(mrna_summed, 0, mrna_mtx[0], axis=0)
+
+    tp_columns = ["t" + str(i) for i in range(len(tps))]
+
+    ptools_rna = pd.DataFrame(
+        data=mrna_summed.transpose(), columns=tp_columns, index=mrna_ids
+    )
+    ptools_rna.to_csv(
+        os.path.join(outdir, "ptools_rna.txt"), sep="\t", index=True, header=True
+    )
+    # rna_data = sim_data.process.transcription.rna_data
+    # mrna_id = rna_data['id'][rna_data['is_mRNA']]
