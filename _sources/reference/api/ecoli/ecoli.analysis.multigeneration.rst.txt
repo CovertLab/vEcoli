@@ -1,0 +1,19 @@
+``ecoli.analysis.multigeneration``
+==================================
+.. automodule:: ecoli.analysis.multigeneration
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   ecoli.analysis.multigeneration.new_gene_counts
+   ecoli.analysis.multigeneration.replication
+   ecoli.analysis.multigeneration.ribosome_components
+   ecoli.analysis.multigeneration.ribosome_crowding
+   ecoli.analysis.multigeneration.ribosome_production
+   ecoli.analysis.multigeneration.ribosome_usage
+   ecoli.analysis.multigeneration.rna_decay_03_high

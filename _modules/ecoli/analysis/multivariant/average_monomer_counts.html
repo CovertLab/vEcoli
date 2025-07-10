@@ -1,0 +1,274 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.multivariant.average_monomer_counts &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.multivariant.average_monomer_counts</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.multivariant.average_monomer_counts</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Anaylsis Script for saving all protein counts impacted by new genes. Note that</span>
+<span class="sd">this file only works for saving data for simulations that contain at least two</span>
+<span class="sd">variants (one control and one experimental variant).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">csv</span>
+
+<span class="c1"># noinspection PyUnresolvedReferences</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">read_stacked_columns</span><span class="p">,</span>
+    <span class="n">ndlist_to_ndarray</span><span class="p">,</span>
+    <span class="n">open_arbitrary_sim_data</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">reconstruction.ecoli.fit_sim_data_1</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulationDataEcoli</span>
+
+<span class="n">IGNORE_FIRST_N_GENS</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Indicate which generation the data should start being collected from (sometimes </span>
+<span class="sd">this number should be greater than 0 because the first few generations may not </span>
+<span class="sd">be representative of the true dynamics occuring in the cell).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="save_file">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.multivariant.average_monomer_counts.html#ecoli.analysis.multivariant.average_monomer_counts.save_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_file</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+    <span class="n">output_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving data to </span><span class="si">{</span><span class="n">output_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="c1"># Header for columns</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+        <span class="c1"># Data rows</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:])</span></div>
+
+
+
+<div class="viewcode-block" id="plot">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.multivariant.average_monomer_counts.html#ecoli.analysis.multivariant.average_monomer_counts.plot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">DuckDBPyConnection</span><span class="p">,</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sim_data_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">validation_data_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">variant_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">variant_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates average monomer counts per variant and saves them as separate</span>
+<span class="sd">    files under ``{outdir}/saved_data/unfiltered_data``. Filters data to only</span>
+<span class="sd">    include monomers whose counts are greater than ``params[&quot;filter_num&quot;]``</span>
+<span class="sd">    (default 0) and saves under ``{outdir}/saved_data/filtered_data``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Create saving paths</span>
+    <span class="n">save_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;saved_data&quot;</span><span class="p">)</span>
+    <span class="n">unfiltered_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">save_dir</span><span class="p">,</span> <span class="s2">&quot;unfiltered_data&quot;</span><span class="p">)</span>
+    <span class="n">filtered_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">save_dir</span><span class="p">,</span> <span class="s2">&quot;filtered_data&quot;</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">unfiltered_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">filtered_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">open_arbitrary_sim_data</span><span class="p">(</span><span class="n">sim_data_dict</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">sim_data</span><span class="p">:</span> <span class="s2">&quot;SimulationDataEcoli&quot;</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="n">mRNA_sim_data</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="o">.</span><span class="n">struct_array</span>
+    <span class="n">monomer_sim_data</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">monomer_data</span><span class="o">.</span><span class="n">struct_array</span>
+    <span class="n">new_gene_mRNA_ids</span> <span class="o">=</span> <span class="n">mRNA_sim_data</span><span class="p">[</span><span class="n">mRNA_sim_data</span><span class="p">[</span><span class="s2">&quot;is_new_gene&quot;</span><span class="p">]][</span><span class="s2">&quot;id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">mRNA_monomer_id_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="nb">zip</span><span class="p">(</span><span class="n">monomer_sim_data</span><span class="p">[</span><span class="s2">&quot;cistron_id&quot;</span><span class="p">],</span> <span class="n">monomer_sim_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+    <span class="p">)</span>
+    <span class="n">new_gene_monomer_ids</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">mRNA_monomer_id_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">mRNA_id</span><span class="p">))</span> <span class="k">for</span> <span class="n">mRNA_id</span> <span class="ow">in</span> <span class="n">new_gene_mRNA_ids</span>
+    <span class="p">]</span>
+    <span class="n">all_monomer_ids</span> <span class="o">=</span> <span class="n">monomer_sim_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+    <span class="n">original_monomer_ids</span> <span class="o">=</span> <span class="n">all_monomer_ids</span><span class="p">[</span>
+        <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">all_monomer_ids</span><span class="p">,</span> <span class="n">new_gene_monomer_ids</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">monomer_idx_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">monomer</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">monomer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">all_monomer_ids</span><span class="p">)}</span>
+    <span class="n">original_monomer_idx</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">monomer_idx_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">monomer_id</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">monomer_id</span> <span class="ow">in</span> <span class="n">original_monomer_ids</span>
+    <span class="p">]</span>
+
+    <span class="n">subquery</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span>
+        <span class="n">history_sql</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;listeners__monomer_counts&quot;</span><span class="p">],</span> <span class="n">order_results</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+    <span class="n">avg_monomer_per_variant</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        WITH unnested_counts AS (</span>
+<span class="s2">            SELECT unnest(listeners__monomer_counts) AS monomer_counts,</span>
+<span class="s2">                generate_subscripts(listeners__monomer_counts, 1)</span>
+<span class="s2">                    AS monomer_idx, variant</span>
+<span class="s2">            FROM (</span><span class="si">{</span><span class="n">subquery</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">        ),</span>
+<span class="s2">        -- Get average counts per monomer per variant</span>
+<span class="s2">        average_counts AS (</span>
+<span class="s2">            SELECT avg(monomer_counts) AS avg_counts, variant, monomer_idx</span>
+<span class="s2">            FROM unnested_counts</span>
+<span class="s2">            GROUP BY variant, monomer_idx</span>
+<span class="s2">        )</span>
+<span class="s2">        -- Organize average counts into lists, one row per variant</span>
+<span class="s2">        SELECT list(avg_counts ORDER BY monomer_idx)</span>
+<span class="s2">            AS avg_monomer_counts, variant</span>
+<span class="s2">        FROM average_counts</span>
+<span class="s2">        GROUP BY variant</span>
+<span class="s2">        ORDER BY variant</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()</span>
+
+    <span class="c1"># Extract average counts that are greater than some threshold (default: 0)</span>
+    <span class="n">filter_num</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filter_num&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">control_variant</span> <span class="o">=</span> <span class="n">avg_monomer_per_variant</span><span class="p">[</span><span class="s2">&quot;variant&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># For each non-baseline variant, save two CSV files, each with three columns:</span>
+    <span class="c1"># monomer IDs, baseline average monomer count, variant average monomer count.</span>
+    <span class="c1"># First CSV file includes all monomers. Second removes new genes and filters</span>
+    <span class="c1"># out monomers whose average count &lt; params[&quot;filter_num&quot;] in either variant.</span>
+    <span class="k">for</span> <span class="n">exp_variant</span> <span class="ow">in</span> <span class="n">avg_monomer_per_variant</span><span class="p">[</span><span class="s2">&quot;variant&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">file_suffix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;var_</span><span class="si">{</span><span class="n">exp_variant</span><span class="si">}</span><span class="s2">_startGen_</span><span class="si">{</span><span class="n">IGNORE_FIRST_N_GENS</span><span class="si">}</span><span class="s2">.csv&quot;</span>
+        <span class="n">variant_pair</span> <span class="o">=</span> <span class="n">avg_monomer_per_variant</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variant&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">is_in</span><span class="p">([</span><span class="n">control_variant</span><span class="p">,</span> <span class="n">exp_variant</span><span class="p">])</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;variant&quot;</span><span class="p">)</span>
+        <span class="n">avg_monomer_counts</span> <span class="o">=</span> <span class="n">ndlist_to_ndarray</span><span class="p">(</span><span class="n">variant_pair</span><span class="p">[</span><span class="s2">&quot;avg_monomer_counts&quot;</span><span class="p">])</span>
+        <span class="c1"># Save unfiltered data</span>
+        <span class="n">col_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;all_monomer_ids&quot;</span><span class="p">,</span> <span class="s2">&quot;var_0_avg_PCs&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;var_</span><span class="si">{</span><span class="n">exp_variant</span><span class="si">}</span><span class="s2">_avg_PCs&quot;</span><span class="p">]</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">all_monomer_ids</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">avg_monomer_counts</span><span class="o">.</span><span class="n">T</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">save_file</span><span class="p">(</span>
+            <span class="n">unfiltered_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;wcm_full_monomers_</span><span class="si">{</span><span class="n">file_suffix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">col_labels</span><span class="p">,</span> <span class="n">values</span>
+        <span class="p">)</span>
+        <span class="c1"># Do not include new genes in filtered counts</span>
+        <span class="n">avg_monomer_counts</span> <span class="o">=</span> <span class="n">avg_monomer_counts</span><span class="p">[:,</span> <span class="n">original_monomer_idx</span><span class="p">]</span>
+        <span class="n">var0_filter_PCs_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">avg_monomer_counts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">filter_num</span><span class="p">)</span>
+        <span class="n">var1_filter_PCs_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">avg_monomer_counts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">filter_num</span><span class="p">)</span>
+        <span class="n">shared_filtered_PC_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">intersect1d</span><span class="p">(</span>
+            <span class="n">var0_filter_PCs_idxs</span><span class="p">,</span> <span class="n">var1_filter_PCs_idxs</span>
+        <span class="p">)</span>
+        <span class="n">avg_monomer_counts</span> <span class="o">=</span> <span class="n">avg_monomer_counts</span><span class="p">[:,</span> <span class="n">shared_filtered_PC_idxs</span><span class="p">]</span>
+        <span class="n">filtered_ids</span> <span class="o">=</span> <span class="n">original_monomer_ids</span><span class="p">[</span><span class="n">shared_filtered_PC_idxs</span><span class="p">]</span>
+        <span class="c1"># Save filtered data</span>
+        <span class="n">col_labels</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;filtered_monomer_ids&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;var_0_avg_PCs&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;var_</span><span class="si">{</span><span class="n">exp_variant</span><span class="si">}</span><span class="s2">_avg_PCs&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">filtered_ids</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">avg_monomer_counts</span><span class="o">.</span><span class="n">T</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">save_file</span><span class="p">(</span>
+            <span class="n">filtered_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;wcm_filter_monomers_</span><span class="si">{</span><span class="n">file_suffix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">col_labels</span><span class="p">,</span> <span class="n">values</span>
+        <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,444 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorial &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Documentation" href="docs.html" />
+    <link rel="prev" title="Output" href="output.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#new-process">New Process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#new-variant">New Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#new-analysis">New Analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-workflow">Run Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Tutorial</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/tutorial.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tutorial">
+<h1>Tutorial<a class="headerlink" href="#tutorial" title="Link to this heading"></a></h1>
+<p>This guide will walk through the following steps in a typical model development cycle:</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#new-process"><span class="std std-ref">Add a new simulation process</span></a></p></li>
+<li><p><a class="reference internal" href="#new-variant"><span class="std std-ref">Add a new simulation variant</span></a></p></li>
+<li><p><a class="reference internal" href="#new-analysis"><span class="std std-ref">Add a new analysis script</span></a></p></li>
+<li><p><a class="reference internal" href="#run-workflow"><span class="std std-ref">Run workflow with new additions</span></a></p></li>
+</ol>
+<section id="new-process">
+<span id="id1"></span><h2>New Process<a class="headerlink" href="#new-process" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="processes.html"><span class="std std-ref">Processes</span></a> are self-contained sub-models that simulate
+a biological mechanism. To add a new process, start by creating a new Python
+file in the <code class="docutils literal notranslate"><span class="pre">ecoli/processes</span></code> folder. Here is an annotated example of a
+process that checks the count of a certain bulk molecule (see
+<a class="reference internal" href="stores.html#bulk"><span class="std std-ref">Bulk Molecules</span></a>) and halts the simulation if a threshold is reached.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import base class that process inherits from. See the</span>
+<span class="c1"># &quot;Processes&quot; documentation for more options and details.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.processes.partition</span><span class="w"> </span><span class="kn">import</span> <span class="n">PartitionedProcess</span>
+<span class="c1"># Import a fancy dictionary that we use to store process</span>
+<span class="c1"># topologies for automatic retrieval by our simulation</span>
+<span class="c1"># runscript (ecoli/experiments/ecoli_master_sim.py).</span>
+<span class="c1"># See the &quot;Workflows&quot; documentation for more details.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.processes.registries</span><span class="w"> </span><span class="kn">import</span> <span class="n">topology_registry</span>
+<span class="c1"># Import some helper functions that allow us to read and</span>
+<span class="c1"># access the bulk counts that we desire from the bulk store.</span>
+<span class="c1"># Refer to the &quot;Stores&quot; documentation for more details.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">bulk_name_to_idx</span><span class="p">,</span> <span class="n">counts</span><span class="p">,</span> <span class="n">numpy_schema</span>
+
+<span class="c1"># Give a unique string name to the process</span>
+<span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;death_threshold&quot;</span>
+<span class="c1"># Define the stores that each port in the process connects to</span>
+<span class="n">TOPOLOGY</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># There is a port called bulk connected to a store located</span>
+    <span class="c1"># at a top-level store in the simulation state also called bulk</span>
+    <span class="s2">&quot;bulk&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,)</span>
+    <span class="c1"># Topologies make our processes modular. If we wish to wire</span>
+    <span class="c1"># the process differently, all we have to do is change</span>
+    <span class="c1"># the topology. For example, changing the above to</span>
+    <span class="c1"># &quot;bulk&quot;: (&quot;new_bulk&quot;, &quot;sub_bulk&quot;) would connect the bulk</span>
+    <span class="c1"># port of the process to a different store called sub_bulk</span>
+    <span class="c1"># that is located inside the top-level new_bulk store. It is up</span>
+    <span class="c1"># to you to ensure that whatever store the port is connected to</span>
+    <span class="c1"># contains data in a format that the process expects from that</span>
+    <span class="c1"># port and has an updater that can handle the updates that the</span>
+    <span class="c1"># process passes through  that port.</span>
+
+    <span class="c1"># Most of our current processes are required to run with the same</span>
+    <span class="c1"># timestep (see &quot;Partitioning&quot; heading in &quot;Stores&quot; documentation).</span>
+    <span class="c1"># As such, most processes connect their timestep ports to the</span>
+    <span class="c1"># same top-level timestep store using &quot;timestep&quot;: (&quot;timestep&quot;,).</span>
+    <span class="c1"># However, if we wish to run a process with its own timestep,</span>
+    <span class="c1"># we could connect it to a separate dedicated store as follows.</span>
+    <span class="s2">&quot;timestep&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;death_threshold&quot;</span><span class="p">,</span> <span class="s2">&quot;timestep&quot;</span><span class="p">),</span>
+    <span class="c1"># Time stepping for PartitionedProcesses and most Steps in our</span>
+    <span class="c1"># model requires the process to have a port to the global time store.</span>
+    <span class="c1"># See the &quot;Time Steps&quot; sub-heading in the &quot;Processes&quot; documentation.</span>
+    <span class="s2">&quot;global_time&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;global_time&quot;</span><span class="p">,)</span>
+<span class="p">}</span>
+<span class="n">topology_registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">NAME</span><span class="p">,</span> <span class="n">TOPOLOGY</span><span class="p">)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DeathThreshold</span><span class="p">(</span><span class="n">PartitionedProcess</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check the count of a molecule and stop the simulation</span>
+<span class="sd">    upon reaching a certain threshold.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Can optionally define default parameters for process. These will</span>
+    <span class="c1"># be merged with any user-provided parameter dictionary and passed</span>
+    <span class="c1"># to the __init__ method of the process. The `time_step` parameter</span>
+    <span class="c1"># is a special one that, in the absence of a custom `calculate_timestep`</span>
+    <span class="c1"># method, determines how often to run the process (once every X seconds).</span>
+    <span class="n">defaults</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;time_step&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;molecule_id&quot;</span><span class="p">:</span> <span class="s2">&quot;WATER[c]&quot;</span><span class="p">,</span> <span class="s2">&quot;threshold&quot;</span><span class="p">:</span> <span class="mf">1e10</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Run __init__ of base Process class to save all parameters as</span>
+        <span class="c1"># instance variable self.parameters</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="c1"># Can extract and perform calculations on other values in ``parameters``</span>
+        <span class="c1"># here to prepare process parameters.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">molecule_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;molecule_id&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;threshold&quot;</span><span class="p">]</span>
+        <span class="c1"># Cache indices into bulk array for molecules of interest by creating</span>
+        <span class="c1"># instance variable with initial value of None. This will be populated</span>
+        <span class="c1"># the first time the Requester runs calculate_request.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mol_idx</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">ports_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Ports must match the ports connected to stores by the topology. Here</span>
+        <span class="c1"># we make use of the ``numpy_schema`` helper function to standardize</span>
+        <span class="c1"># the creation of schemas for ports connected to the bulk store. Since</span>
+        <span class="c1"># ports connected to the same store must have non-conflicting (values</span>
+        <span class="c1"># for shared keys must be the same) schemas, if you know you are connecting</span>
+        <span class="c1"># to a store that already exists (already has a schema from a port from</span>
+        <span class="c1"># in another process), you can just leave the schema as an empty dictionary</span>
+        <span class="c1"># as we do for the global_time port here.</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;bulk&quot;</span><span class="p">:</span> <span class="n">numpy_schema</span><span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;global_time&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s2">&quot;timestep&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;_default&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;time_step&quot;</span><span class="p">]},</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestep</span><span class="p">,</span> <span class="n">states</span><span class="p">):</span>
+        <span class="c1"># Since this is a PartitionedProcess, it will be turned into two Steps:</span>
+        <span class="c1"># a Requester and an Evolver. The Requester Step will call calculate_request.</span>
+
+        <span class="c1"># Cache molecule index so that Requester and Evolver can use it</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mol_idx</span> <span class="o">=</span> <span class="n">bulk_name_to_idx</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">molecule_id</span><span class="p">,</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;bulk&quot;</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+        <span class="c1"># Request all counts of given bulk molecule. Updates to bulk store are</span>
+        <span class="c1"># lists of 2-element tuples ``(index, count)``</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;bulk&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">mol_idx</span><span class="p">,</span> <span class="n">counts</span><span class="p">(</span><span class="n">states</span><span class="p">[</span><span class="s2">&quot;bulk&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol_idx</span><span class="p">))]}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">evolve_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestep</span><span class="p">,</span> <span class="n">states</span><span class="p">):</span>
+        <span class="c1"># The Evolver Step will call evolve_state after the Requesters in the execution</span>
+        <span class="c1"># layer have called calculate_request and the Allocator has allocated counts</span>
+        <span class="c1"># to processes</span>
+        <span class="n">mol_counts</span> <span class="o">=</span> <span class="n">counts</span><span class="p">(</span><span class="n">states</span><span class="p">[</span><span class="s2">&quot;bulk&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol_idx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mol_counts</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Count threshold for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">molecule_id</span><span class="si">}</span><span class="s2"> exceeded: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mol_counts</span><span class="si">}</span><span class="s2"> &gt; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The main steps to add a new process are:</p>
+<ol class="arabic simple">
+<li><p>Create a file in the <a class="reference internal" href="reference/api/ecoli/ecoli.processes.html#module-ecoli.processes" title="ecoli.processes"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli.processes</span></code></a> folder with the process
+definition (should inherit from either <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Process</span></code></a>
+or <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Step" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a>). The remainder of this Tutorial
+assumes you placed the above process file in <code class="docutils literal notranslate"><span class="pre">ecoli/processes/death_threshold.py</span></code>.</p></li>
+<li><p>Decide upon a string name for the process under which it is registered
+in <code class="docutils literal notranslate"><span class="pre">ecoli/processes/__init__.py</span></code> and its topology is registered in
+<a class="reference internal" href="reference/api/ecoli/ecoli.processes.registries.html#ecoli.processes.registries.topology_registry" title="ecoli.processes.registries.topology_registry"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ecoli.processes.registries.topology_registry</span></code></a>. This was done by
+importing the topology registry and registering the topology in the process file.</p></li>
+<li><p>Add the process name to the list of process names under the <code class="docutils literal notranslate"><span class="pre">processes</span></code>
+key in either the default JSON configuration file or your own JSON
+configuration file. For processes that inherit from <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Step" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a>
+or <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess" title="ecoli.processes.partition.PartitionedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">PartitionedProcess</span></code></a>, the process
+must also be added to the <code class="docutils literal notranslate"><span class="pre">flow</span></code>.</p></li>
+<li><p>For processes whose execution order matters, inherit from
+<a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Step" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a> instead of <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Process</span></code></a>
+and add the process along with its dependencies to the <code class="docutils literal notranslate"><span class="pre">flow</span></code> option.</p></li>
+<li><p>For partitioned processes, inherit from <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess" title="ecoli.processes.partition.PartitionedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">PartitionedProcess</span></code></a>
+and implement the <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess.calculate_request" title="ecoli.processes.partition.PartitionedProcess.calculate_request"><code class="xref py py-meth docutils literal notranslate"><span class="pre">calculate_request()</span></code></a>
+and <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess.evolve_state" title="ecoli.processes.partition.PartitionedProcess.evolve_state"><code class="xref py py-meth docutils literal notranslate"><span class="pre">evolve_state()</span></code></a> methods instead
+of <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process.next_update" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">next_update()</span></code></a> and
+add the process along with its dependencies to the <code class="docutils literal notranslate"><span class="pre">flow</span></code> option.</p></li>
+</ol>
+<p>For example, if we want to run the example process above after all other Steps have run in a
+timestep, we can add the following key-value pair to the <code class="docutils literal notranslate"><span class="pre">flow</span></code>:
+<code class="docutils literal notranslate"><span class="pre">&quot;death_threshold&quot;:</span> <span class="pre">[(&quot;ribosome_data_listener&quot;,)]</span></code> because <code class="docutils literal notranslate"><span class="pre">ribosome_data_listener</span></code>
+is currently in the last execution layer (see <a class="reference internal" href="stores.html#partitioning"><span class="std std-ref">Partitioning</span></a>).</p>
+</section>
+<section id="new-variant">
+<span id="id2"></span><h2>New Variant<a class="headerlink" href="#new-variant" title="Link to this heading"></a></h2>
+<p>Variants are Python files containing an <code class="docutils literal notranslate"><span class="pre">apply_variant</span></code> function that
+is used to generate modified versions of the
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulationDataEcoli</span></code></a>
+object (holds most model parameters). They can be used to generate a large
+amount of variant simulation data objects using the <a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a>
+interface as described in <a class="reference internal" href="workflows.html#variants"><span class="std std-ref">Variants</span></a>.
+Here is an annotated example of a variant:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">reconstruction.ecoli.simulation_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulationDataEcoli</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_variant</span><span class="p">(</span>
+    <span class="n">sim_data</span><span class="p">:</span> <span class="s2">&quot;SimulationDataEcoli&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;SimulationDataEcoli&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Modify sim_data to environmental condition from condition_defs.tsv.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sim_data: Simulation data to modify</span>
+<span class="sd">        params: Parameter dictionary of the following format::</span>
+
+<span class="sd">            {</span>
+<span class="sd">                # Environmental condition: &quot;basal&quot;, &quot;with_aa&quot;, &quot;acetate&quot;,</span>
+<span class="sd">                # &quot;succinate&quot;, &quot;no_oxygen&quot;</span>
+<span class="sd">                &quot;condition&quot;: str,</span>
+<span class="sd">            }</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Simulation data with the following attributes modified::</span>
+
+<span class="sd">            sim_data.condition</span>
+<span class="sd">            sim_data.external_state.current_timeline_id</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Set media condition by changing attributes of sim_data in accordance</span>
+    <span class="c1"># with value of ``condition`` key in ``params``</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">condition</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">external_state</span><span class="o">.</span><span class="n">current_timeline_id</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">external_state</span><span class="o">.</span><span class="n">saved_timelines</span><span class="p">[</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">conditions</span><span class="p">[</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]][</span><span class="s2">&quot;nutrients&quot;</span><span class="p">])</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">sim_data</span>
+</pre></div>
+</div>
+<p>To add a new variant:</p>
+<ul class="simple">
+<li><p>Add Python file containing <code class="docutils literal notranslate"><span class="pre">apply_variant</span></code> function with the same signature
+as above in the <code class="docutils literal notranslate"><span class="pre">ecoli/variants</span></code> folder</p></li>
+<li><p>Add the name of the variant (name of Python file without <code class="docutils literal notranslate"><span class="pre">.py</span></code>) to <code class="docutils literal notranslate"><span class="pre">variants</span></code>
+key in the configuration JSON</p></li>
+</ul>
+</section>
+<section id="new-analysis">
+<span id="id3"></span><h2>New Analysis<a class="headerlink" href="#new-analysis" title="Link to this heading"></a></h2>
+<p>Analysis scripts are Python files that contain a <code class="docutils literal notranslate"><span class="pre">plot</span></code> function which uses
+DuckDB to read Hive-partitioned Parquet files containing simulation output
+(see <a class="reference internal" href="output.html"><span class="std std-ref">Output</span></a>) and calculates aggregates / makes plots. Here is an
+annotated example of an analysis script:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+<span class="c1"># Can use polars to perform calculations on tabular data</span>
+<span class="c1"># returned by DuckDB.</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+
+<span class="c1"># Import helper functions to read data (see &quot;Output&quot; documentation).</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="n">num_cells</span><span class="p">,</span> <span class="n">read_stacked_columns</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="s2">&quot;DuckDBPyConnection&quot;</span><span class="p">,</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sim_data_paths</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">validation_data_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">variant_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">variant_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
+    <span class="c1"># See &quot;Analysis&quot; sub-heading in &quot;Workflows&quot; documentation for description</span>
+    <span class="c1"># of arguments for ``plot``</span>
+
+    <span class="c1"># Use helper function to get number of cells in filtered data set</span>
+    <span class="c1"># contained within DuckDB SQL query</span>
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="n">num_cells</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="p">),</span> <span class="s2">&quot;Mass fraction summary plot requires single-cell data.&quot;</span>
+
+    <span class="n">mass_columns</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Protein&quot;</span><span class="p">:</span> <span class="s2">&quot;listeners__mass__protein_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;tRNA&quot;</span><span class="p">:</span> <span class="s2">&quot;listeners__mass__tRna_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rRNA&quot;</span><span class="p">:</span> <span class="s2">&quot;listeners__mass__rRna_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mRNA&quot;</span><span class="p">:</span> <span class="s2">&quot;listeners__mass__mRna_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;DNA&quot;</span><span class="p">:</span> <span class="s2">&quot;listeners__mass__dna_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Small Mol.s&quot;</span><span class="p">:</span> <span class="s2">&quot;listeners__mass__smallMolecule_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Dry&quot;</span><span class="p">:</span> <span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="c1"># Use helper function to read simulation output data from</span>
+    <span class="c1"># specified columns. Column names are derived by concatenating</span>
+    <span class="c1"># the string keys that comprise the path of the store containing</span>
+    <span class="c1"># the data stored in each column.</span>
+    <span class="n">mass_data</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span>
+        <span class="n">history_sql</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">mass_columns</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">conn</span><span class="o">=</span><span class="n">conn</span>
+    <span class="p">)</span>
+    <span class="n">fractions</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="n">mass_data</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">/</span> <span class="n">mass_data</span><span class="p">[</span><span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">mass_columns</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="n">new_columns</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Time (min)&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">mass_data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">mass_data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">/</span> <span class="mi">60</span><span class="p">,</span>
+        <span class="o">**</span><span class="p">{</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">fractions</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">:</span> <span class="n">mass_data</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">/</span> <span class="n">mass_data</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">mass_columns</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+    <span class="c1"># Convert Polars DataFrame to use their API</span>
+    <span class="n">mass_fold_change_df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">new_columns</span><span class="p">)</span>
+
+    <span class="c1"># Altair requires long form data (also no periods in column names)</span>
+    <span class="n">melted_df</span> <span class="o">=</span> <span class="n">mass_fold_change_df</span><span class="o">.</span><span class="n">melt</span><span class="p">(</span>
+        <span class="n">id_vars</span><span class="o">=</span><span class="s2">&quot;Time (min)&quot;</span><span class="p">,</span>
+        <span class="n">variable_name</span><span class="o">=</span><span class="s2">&quot;Submass&quot;</span><span class="p">,</span>
+        <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;Mass (normalized by t = 0 min)&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">chart</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">melted_df</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">mark_line</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;Time (min):Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Time (min)&quot;</span><span class="p">),</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span><span class="s2">&quot;Mass (normalized by t = 0 min):Q&quot;</span><span class="p">),</span>
+            <span class="n">color</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="s2">&quot;Submass:N&quot;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Scale</span><span class="p">(</span><span class="nb">range</span><span class="o">=</span><span class="n">COLORS</span><span class="p">)),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">properties</span><span class="p">(</span>
+            <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Biomass components (average fraction of total dry mass in parentheses)&quot;</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">chart</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;mass_fraction_summary.html&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>In order to be run as part of a workflow with <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>,
+analysis scripts must write at least one file to <code class="docutils literal notranslate"><span class="pre">outdir</span></code>.</p>
+</div>
+<p>To add a new analysis script:</p>
+<ul class="simple">
+<li><p>Add Python file containing analysis script containing <code class="docutils literal notranslate"><span class="pre">plot</span></code> function
+in <code class="docutils literal notranslate"><span class="pre">ecoli/analysis/{analysis_type}</span></code> folder</p></li>
+<li><p>Add analysis name (file name minus <code class="docutils literal notranslate"><span class="pre">.py</span></code>) to appropriate analysis type
+key (e.g. <code class="docutils literal notranslate"><span class="pre">single</span></code>, <code class="docutils literal notranslate"><span class="pre">multidaughter</span></code>, etc) under <code class="docutils literal notranslate"><span class="pre">analysis_options</span></code>
+in the configuration JSON</p></li>
+</ul>
+</section>
+<section id="run-workflow">
+<span id="id4"></span><h2>Run Workflow<a class="headerlink" href="#run-workflow" title="Link to this heading"></a></h2>
+<p>Once you have finished adding new components to the model, you can run a
+workflow containing all those changes by simply invoking <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>
+with a configuration JSON modified as described in the above sections.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="output.html" class="btn btn-neutral float-left" title="Output" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="docs.html" class="btn btn-neutral float-right" title="Documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

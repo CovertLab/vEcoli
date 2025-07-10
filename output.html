@@ -1,0 +1,465 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Output &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorial" href="tutorial.html" />
+    <link rel="prev" title="Workflows" href="workflows.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Output</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#stores-to-emit">Stores to Emit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#serializing-emits">Serializing Emits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#in-memory-emitter">In-Memory Emitter</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#querying">Querying</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#parquet-emitter">Parquet Emitter</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#hive-partitioning">Hive Partitioning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parquet-files">Parquet Files</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#configuration"><code class="docutils literal notranslate"><span class="pre">configuration</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#history"><code class="docutils literal notranslate"><span class="pre">history</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#duckdb">DuckDB</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#construct-sql-queries">Construct SQL Queries</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#other-workflow-output">Other Workflow Output</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Output</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/output.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="output">
+<h1>Output<a class="headerlink" href="#output" title="Link to this heading"></a></h1>
+<p>Simulation output can come in one of two different formats and contain data
+from as many or few stores as you desire.</p>
+<section id="stores-to-emit">
+<span id="emit-stores"></span><h2>Stores to Emit<a class="headerlink" href="#stores-to-emit" title="Link to this heading"></a></h2>
+<p>To indicate that you want to save the data in a simulation store for later,
+set the <code class="docutils literal notranslate"><span class="pre">_emit</span></code> key to True in the port schema for all ports connecting
+to that store. By default, we always emit data for:</p>
+<ul class="simple">
+<li><p>Bulk molecules store located at <code class="docutils literal notranslate"><span class="pre">(&quot;bulk&quot;,)</span></code>: The
+<a class="reference internal" href="reference/api/ecoli/ecoli.library.schema.html#ecoli.library.schema.numpy_schema" title="ecoli.library.schema.numpy_schema"><code class="xref py py-func docutils literal notranslate"><span class="pre">numpy_schema()</span></code></a> helper function that we use
+to create the schema for ports to the bulk store automatically
+sets <code class="docutils literal notranslate"><span class="pre">_emit</span></code> to True when the <code class="docutils literal notranslate"><span class="pre">name</span></code> argument is <code class="docutils literal notranslate"><span class="pre">bulk</span></code>.</p></li>
+<li><p>Listeners located at <code class="docutils literal notranslate"><span class="pre">(&quot;listeners&quot;,)</span></code>: The
+<a class="reference internal" href="reference/api/ecoli/ecoli.library.schema.html#ecoli.library.schema.listener_schema" title="ecoli.library.schema.listener_schema"><code class="xref py py-func docutils literal notranslate"><span class="pre">listener_schema()</span></code></a> helper function that we use
+to create the schema for ports to stores located somewhere in the hierarchy
+under the <code class="docutils literal notranslate"><span class="pre">listener</span></code> store automatically sets <code class="docutils literal notranslate"><span class="pre">_emit</span></code> to True</p></li>
+</ul>
+</section>
+<section id="serializing-emits">
+<span id="id1"></span><h2>Serializing Emits<a class="headerlink" href="#serializing-emits" title="Link to this heading"></a></h2>
+<p>Serialization is the process of converting data into a format that can be stored
+or transmitted then later reconstructed back into its original format. By default, both of
+the two available data output formats in vEcoli serialize
+data by first converting the store hierarchy to save (<a class="reference internal" href="#emit-stores"><span class="std std-ref">Stores to Emit</span></a>) to JSON using
+<a class="reference external" href="https://github.com/ijl/orjson">orjson</a>, which natively serializes Python’s built-in types
+as well as basic 1D Numpy arrays. For stores containing data that is not one of these types,
+vivarium-core allows users to specify custom serializers either on a per-store basis using the
+<code class="docutils literal notranslate"><span class="pre">_serialize</span></code> schema key or for all stores of a given type using the
+<a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.registry.html#vivarium.core.registry.Serializer" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Serializer</span></code></a> API (see
+<a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.registry.html?highlight=serializer">vivarium-core documentation</a>).</p>
+<p>For details about reading data back after it has been saved, refer to
+<a class="reference internal" href="#ram-read"><span class="std std-ref">Querying</span></a> for the in-memory data format and <a class="reference internal" href="#parquet-read"><span class="std std-ref">DuckDB</span></a>
+for the persistent storage format.</p>
+</section>
+<section id="in-memory-emitter">
+<span id="ram-emitter"></span><h2>In-Memory Emitter<a class="headerlink" href="#in-memory-emitter" title="Link to this heading"></a></h2>
+<p>When <code class="docutils literal notranslate"><span class="pre">timeseries</span></code> is specified using the <code class="docutils literal notranslate"><span class="pre">emitter</span></code> option in a configuration JSON,
+simulation output is stored transiently in-memory in a dictionary keyed by time that
+looks like the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="c1"># Data for time = 0</span>
+    <span class="mf">0.0</span><span class="p">:</span> <span class="p">{</span>
+        <span class="c1"># Store hierarchy as nested dictionary containing all stores and sub-stores</span>
+        <span class="c1"># where ``_emit`` is True</span>
+        <span class="s2">&quot;store_1&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
+        <span class="s2">&quot;store_2&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;inner_store_1&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
+            <span class="o">...</span>
+        <span class="p">},</span>
+        <span class="o">...</span>
+    <span class="p">},</span>
+    <span class="c1"># Data for time = 1</span>
+    <span class="mf">1.0</span><span class="p">:</span> <span class="p">{</span><span class="o">...</span><span class="p">},</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This data format is mainly intended for ad-hoc analysis scripts (e.g. Jupyter
+notebooks) where a single-cell simulation is run and probed for model development.
+Importantly, the data saved by this emitter is lost when the Python program
+used to run the cell simulation terminates.</p>
+<section id="querying">
+<span id="ram-read"></span><h3>Querying<a class="headerlink" href="#querying" title="Link to this heading"></a></h3>
+<p>Data can be read from the RAM emitter by calling
+<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim.query" title="ecoli.experiments.ecoli_master_sim.EcoliSim.query"><code class="xref py py-meth docutils literal notranslate"><span class="pre">query()</span></code></a>
+on the <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim" title="ecoli.experiments.ecoli_master_sim.EcoliSim"><code class="xref py py-class docutils literal notranslate"><span class="pre">EcoliSim</span></code></a> object used to run
+the simulation. To deserialize data (reconstitute it after serialization),
+the <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.serialize.html#vivarium.core.serialize.deserialize_value" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-func docutils literal notranslate"><span class="pre">deserialize_value()</span></code></a> function is called, which
+calls the <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.registry.html#vivarium.core.registry.Serializer.deserialize" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deserialize()</span></code></a> method
+of the <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.registry.html#vivarium.core.registry.Serializer" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Serializer</span></code></a> instance whose
+<a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.registry.html#vivarium.core.registry.Serializer.can_deserialize" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">can_deserialize()</span></code></a> method returns
+True on the data to deserialize.</p>
+</section>
+</section>
+<section id="parquet-emitter">
+<span id="id2"></span><h2>Parquet Emitter<a class="headerlink" href="#parquet-emitter" title="Link to this heading"></a></h2>
+<p>When <code class="docutils literal notranslate"><span class="pre">parquet</span></code> is specified using the <code class="docutils literal notranslate"><span class="pre">emitter</span></code> option in a configuration JSON,
+simulation output is stored in a tabular file format called Parquet inside a nested
+directory structure called Hive partitioning.  For details on the available JSON
+configuration options, see <a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.ParquetEmitter" title="ecoli.library.parquet_emitter.ParquetEmitter"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParquetEmitter</span></code></a>.</p>
+<section id="hive-partitioning">
+<h3>Hive Partitioning<a class="headerlink" href="#hive-partitioning" title="Link to this heading"></a></h3>
+<p>In Hive partitioning, certain keys in data are used to partition the data into folders:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">key_1</span><span class="o">=</span><span class="n">value_1</span><span class="o">/</span><span class="n">key_2</span><span class="o">=</span><span class="n">value_2</span><span class="o">/...</span>
+</pre></div>
+</div>
+<p>In the vEcoli Parquet emitter, the keys used for this purpose are the experiment ID,
+variant index, lineage seed (initial seed for cell lineage), generation, and agent ID.
+These keys uniquely identify a single cell simulation, meaning each simulation process
+will write data to its own folder in the final output with a path like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">experiment_id</span><span class="o">=</span><span class="p">{}</span><span class="o">/</span><span class="n">variant</span><span class="o">=</span><span class="p">{}</span><span class="o">/</span><span class="n">lineage_seed</span><span class="o">=</span><span class="p">{}</span><span class="o">/</span><span class="n">generation</span><span class="o">=</span><span class="p">{}</span><span class="o">/</span><span class="n">agent_id</span><span class="o">=</span><span class="p">{}</span>
+</pre></div>
+</div>
+<p>This allows workflows that run simulations with many variant simulation data objects,
+lineage seeds, generations, and agent IDs to all write data to the same main output
+folder without simulations overwriting one another.</p>
+</section>
+<section id="parquet-files">
+<h3>Parquet Files<a class="headerlink" href="#parquet-files" title="Link to this heading"></a></h3>
+<p>Because Parquet is a tabular file format (think in terms of columns like a Pandas
+DataFrame), additional serialization steps must be taken after the emit data
+has been converted to JSON format in accordance with <a class="reference internal" href="#serializing-emits"><span class="std std-ref">Serializing Emits</span></a>.
+The Parquet emitter (<a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.ParquetEmitter" title="ecoli.library.parquet_emitter.ParquetEmitter"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParquetEmitter</span></code></a>)
+first calls <a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.flatten_dict" title="ecoli.library.parquet_emitter.flatten_dict"><code class="xref py py-func docutils literal notranslate"><span class="pre">flatten_dict()</span></code></a> in order to
+flatten the nested store hierarchy into unnested key-value pairs where keys
+are paths to leaf values concatenated with double underscores and values are
+leaf values. For example, take the following nested dictionary:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;d&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s2">&quot;e&quot;</span><span class="p">:</span> <span class="mi">3</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="mi">4</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;g&quot;</span><span class="p">:</span> <span class="mi">5</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This is flattened to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;a__b&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;a__c__d&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s2">&quot;a__c__e&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s2">&quot;a__f&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="s2">&quot;g&quot;</span><span class="p">:</span> <span class="mi">5</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Then, <a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.np_dtype" title="ecoli.library.parquet_emitter.np_dtype"><code class="xref py py-func docutils literal notranslate"><span class="pre">np_dtype()</span></code></a> is used to get the
+the type of the Parquet column that will be created for each key-value pair in
+the flattened dictionary, where each key is the column name and each value is one
+entry in the column. Parquet files are strongly typed, so emitted store data
+must always be serialized to the same type as they were in the first time step
+(default or initial value). The exception to this rule are columns that can contain
+null values or nested types containing null values (e.g. empty list). For these columns,
+all values except the null entries must be the same type (e.g. column with lists
+of integers where some entries are empty lists).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The Parquet emitter is poorly suited for storing large listeners that have more
+than a single dimension per time step. We recommend splitting these listeners up
+if possible, especially if you plan to read specific indices along those dimensions.</p>
+</div>
+<p>The Parquet emitter saves the serialized tabular data to two Hive-partitioned
+directories in the output folder (<code class="docutils literal notranslate"><span class="pre">out_dir</span></code> or <code class="docutils literal notranslate"><span class="pre">out_uri</span></code> option under
+<code class="docutils literal notranslate"><span class="pre">emitter_arg</span></code> in <a class="reference internal" href="experiments.html#json-config"><span class="std std-ref">JSON Config Files</span></a>):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">configuration</span></code>: Copy of all configuration options (e.g. from JSON, CLI) that
+were used to run the simulation as well as store-specific metadata</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">history</span></code>: Actual saved simulation output</p></li>
+</ul>
+<section id="configuration">
+<span id="configuration-parquet"></span><h4><code class="docutils literal notranslate"><span class="pre">configuration</span></code><a class="headerlink" href="#configuration" title="Link to this heading"></a></h4>
+<p>Each simulation will save a single Parquet file named <code class="docutils literal notranslate"><span class="pre">config.pq</span></code> inside
+its corresponding Hive partition under the <code class="docutils literal notranslate"><span class="pre">configuration</span></code> folder.
+Many of the columns inside this Parquet file come from flattening the configuration
+JSON used to run the simulation and can be read back in analysis scripts (see
+<a class="reference internal" href="workflows.html#analysis-scripts"><span class="std std-ref">Analyses</span></a>) using the helper function
+<a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.config_value" title="ecoli.library.parquet_emitter.config_value"><code class="xref py py-func docutils literal notranslate"><span class="pre">config_value()</span></code></a>.</p>
+<p>Additionally, this file can contain metadata for each store to emit. This metadata
+can be specified under the <code class="docutils literal notranslate"><span class="pre">_properties</span></code> key in a port schema as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;_properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="n">Put</span> <span class="n">anything</span> <span class="n">here</span><span class="o">.</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Schemas constructed with the <a class="reference internal" href="reference/api/ecoli/ecoli.library.schema.html#ecoli.library.schema.listener_schema" title="ecoli.library.schema.listener_schema"><code class="xref py py-func docutils literal notranslate"><span class="pre">listener_schema()</span></code></a> helper
+function can populate this metdata concisely. These metadata values are compiled for
+all stores in the simulation state hierarchy by
+<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata" title="ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata"><code class="xref py py-meth docutils literal notranslate"><span class="pre">output_metadata()</span></code></a>. In the
+saved configuration Parquet file, the metadata values will be located in
+columns with names equal to the double-underscore concatenated store path
+prefixed by <code class="docutils literal notranslate"><span class="pre">output_metadata__</span></code>. For convenience, the
+<a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.field_metadata" title="ecoli.library.parquet_emitter.field_metadata"><code class="xref py py-func docutils literal notranslate"><span class="pre">field_metadata()</span></code></a> can be used in
+analysis scripts to read this metadata.</p>
+</section>
+<section id="history">
+<h4><code class="docutils literal notranslate"><span class="pre">history</span></code><a class="headerlink" href="#history" title="Link to this heading"></a></h4>
+<p>Each simulation will save Parquet files containing serialized simulation output data
+inside its corresponding Hive partition under the <code class="docutils literal notranslate"><span class="pre">history</span></code> folder. The columns in
+these Parquet files come from flattening the hierarchy of emitted stores. To leverage
+Parquet’s columnar compression and efficient reading, we batch many time steps worth
+of emits into either NumPy arrays (constant dimensions) or lists of Polars Series (variable
+dimensions). These batched emits are efficiently converted into a Polars DataFrame and
+written to a Parquet file named <code class="docutils literal notranslate"><span class="pre">{batch</span> <span class="pre">size</span> <span class="pre">*</span> <span class="pre">number</span> <span class="pre">of</span> <span class="pre">batches}.pq</span></code> (e.g.
+<code class="docutils literal notranslate"><span class="pre">400.pq</span></code>, <code class="docutils literal notranslate"><span class="pre">800.pq</span></code>, etc. for a batch size of 400). The default batch size of
+400 has been tuned for our current model but can be adjusted via <code class="docutils literal notranslate"><span class="pre">batch_size</span></code>
+under the <code class="docutils literal notranslate"><span class="pre">emitter_arg</span></code> option in a configuration JSON.</p>
+</section>
+</section>
+<section id="duckdb">
+<span id="parquet-read"></span><h3>DuckDB<a class="headerlink" href="#duckdb" title="Link to this heading"></a></h3>
+<p><a class="reference external" href="https://duckdb.org">DuckDB</a> is the main library that we use to read and query Parquet files.
+It offers class-leading performance and a fairly user-friendly SQL dialect for constructing
+complex queries. Refer to the <a class="reference external" href="https://duckdb.org/docs/">DuckDB documentation</a> to learn more.</p>
+<p>We provide a variety of helper functions in <a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#module-ecoli.library.parquet_emitter" title="ecoli.library.parquet_emitter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli.library.parquet_emitter</span></code></a>
+to read data using DuckDB. These include:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.dataset_sql" title="ecoli.library.parquet_emitter.dataset_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataset_sql()</span></code></a>: Construct basic
+SQL queries to read data from <code class="docutils literal notranslate"><span class="pre">history</span></code> and <code class="docutils literal notranslate"><span class="pre">configuration</span></code> folders. This
+is mainly intended for ad-hoc Parquet reading (e.g. in a Jupyter notebook).
+Analysis scripts (see <a class="reference internal" href="workflows.html#analysis-scripts"><span class="std std-ref">Analyses</span></a>) receive a <code class="docutils literal notranslate"><span class="pre">history_sql</span></code> and
+<code class="docutils literal notranslate"><span class="pre">config_sql</span></code> that reads data from Parquet files with filters applied when
+run using <a class="reference internal" href="reference/api/runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a>.</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.union_by_name" title="ecoli.library.parquet_emitter.union_by_name"><code class="xref py py-func docutils literal notranslate"><span class="pre">union_by_name()</span></code></a>: Modify SQL query
+from <a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.dataset_sql" title="ecoli.library.parquet_emitter.dataset_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataset_sql()</span></code></a> to
+use DuckDB’s <a class="reference external" href="https://duckdb.org/docs/stable/data/multiple_files/combining_schemas.html#union-by-name">union_by_name</a>.
+This is useful when reading data from simulations with different columns.</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.num_cells" title="ecoli.library.parquet_emitter.num_cells"><code class="xref py py-func docutils literal notranslate"><span class="pre">num_cells()</span></code></a>: Quickly get a count of
+the number of cells whose data is included in a SQL query</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.skip_n_gens" title="ecoli.library.parquet_emitter.skip_n_gens"><code class="xref py py-func docutils literal notranslate"><span class="pre">skip_n_gens()</span></code></a>: Add a filter to an SQL
+query to skip the first N generations worth of data</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.ndlist_to_ndarray" title="ecoli.library.parquet_emitter.ndlist_to_ndarray"><code class="xref py py-func docutils literal notranslate"><span class="pre">ndlist_to_ndarray()</span></code></a>: Convert a
+column of nested lists read from Parquet into an N-D Numpy array (use
+<code class="docutils literal notranslate"><span class="pre">polars.Series</span></code> to do opposite conversion)</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.ndidx_to_duckdb_expr" title="ecoli.library.parquet_emitter.ndidx_to_duckdb_expr"><code class="xref py py-func docutils literal notranslate"><span class="pre">ndidx_to_duckdb_expr()</span></code></a>: Get a DuckDB SQL
+expression which can be included in a <code class="docutils literal notranslate"><span class="pre">SELECT</span></code> statement that uses Numpy-style
+indexing to retrieve values from a nested list Parquet column</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.named_idx" title="ecoli.library.parquet_emitter.named_idx"><code class="xref py py-func docutils literal notranslate"><span class="pre">named_idx()</span></code></a>: Get a DuckDB SQL expression
+which can be included in a <code class="docutils literal notranslate"><span class="pre">SELECT</span></code> statement that extracts values at certain indices
+from each row of a nested list Parquet column and returns them as individually named columns</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.field_metadata" title="ecoli.library.parquet_emitter.field_metadata"><code class="xref py py-func docutils literal notranslate"><span class="pre">field_metadata()</span></code></a>: Read saved store
+metadata (see <a class="reference internal" href="#configuration-parquet"><span class="std std-ref">configuration</span></a>)</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.config_value" title="ecoli.library.parquet_emitter.config_value"><code class="xref py py-func docutils literal notranslate"><span class="pre">config_value()</span></code></a>: Read option from
+configuration JSON used to run simulation</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.read_stacked_columns" title="ecoli.library.parquet_emitter.read_stacked_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_stacked_columns()</span></code></a>: Main interface
+for reading simulation output from <code class="docutils literal notranslate"><span class="pre">history</span></code> folder. Can either immediately read
+all data in specified columns into memory by supplying <code class="docutils literal notranslate"><span class="pre">conn</span></code> argument or
+return a DuckDB SQL query that can be iteratively built upon (useful when data
+too large to read into memory all at once).</p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Column names that contain special characters (e.g. spaces, dashes, etc.) must be
+enclosed in double quotes when used in DuckDB SQL queries. This is automatically
+handled by most of the helper functions above with the notable exception of
+<a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.read_stacked_columns" title="ecoli.library.parquet_emitter.read_stacked_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_stacked_columns()</span></code></a>.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Parquet lists are 1-indexed. <a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.ndidx_to_duckdb_expr" title="ecoli.library.parquet_emitter.ndidx_to_duckdb_expr"><code class="xref py py-func docutils literal notranslate"><span class="pre">ndidx_to_duckdb_expr()</span></code></a>
+and <a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.named_idx" title="ecoli.library.parquet_emitter.named_idx"><code class="xref py py-func docutils literal notranslate"><span class="pre">named_idx()</span></code></a> automatically add 1 to
+user-supplied indices.</p>
+</div>
+<section id="construct-sql-queries">
+<h4>Construct SQL Queries<a class="headerlink" href="#construct-sql-queries" title="Link to this heading"></a></h4>
+<p>The true power of DuckDB is unlocked when SQL queries are iteratively constructed. This can be
+accomplished in one of two ways:</p>
+<ul>
+<li><p>For simpler queries, you can wrap a complete DuckDB SQL expression in parentheses to use as
+the input table to another query. For example, to calculate the average cell and dry mass for
+over all time steps for all cells accessible to an analysis script:</p>
+<blockquote>
+<div><div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">SELECT</span><span class="w"> </span><span class="k">avg</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span><span class="w"> </span><span class="n">listeners__mass__dry_mass</span><span class="p">,</span><span class="w"> </span><span class="n">listeners__mass__cell_mass</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="p">(</span>
+<span class="w">        </span><span class="n">history_sql</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">history_sql</span></code> can be slotted in programmatically using an f-string.</p>
+</li>
+<li><p>For more advanced, multi-step queries, you can use
+<a class="reference external" href="https://duckdb.org/docs/sql/query_syntax/with.html">common table expressions</a> (CTEs).
+For example, to run the same query above but first averaging over all time steps
+for each cell before averaging the averages over all cells:</p>
+<blockquote>
+<div><div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">WITH</span><span class="w"> </span><span class="n">cell_avgs</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span><span class="w"> </span><span class="k">avg</span><span class="p">(</span><span class="n">listeners__mass__dry_mass</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">avg_dry_mass</span><span class="p">,</span>
+<span class="w">        </span><span class="k">avg</span><span class="p">(</span><span class="n">listeners__mass__cell_mass</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">avg_cell_mass</span>
+<span class="w">    </span><span class="k">FROM</span><span class="w"> </span><span class="p">(</span><span class="n">history_sql</span><span class="p">)</span>
+<span class="w">    </span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">experiment_id</span><span class="p">,</span><span class="w"> </span><span class="n">variant</span><span class="p">,</span><span class="w"> </span><span class="n">lineage_seed</span><span class="p">,</span><span class="w"> </span><span class="n">generation</span><span class="p">,</span><span class="w"> </span><span class="n">agent_id</span>
+<span class="p">)</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">avg</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">cell_avgs</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>DuckDB will efficiently read only the rows and columns necessary to complete your query.
+However, if you are reading a column of lists (e.g. bulk molecule counts every time step)
+or nested lists, DuckDB reads the entire nested value for every relevant row in that column,
+even if you only care about a small subset of indices. To avoid repeatedly incurring this
+cost, we recommend using <a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.named_idx" title="ecoli.library.parquet_emitter.named_idx"><code class="xref py py-func docutils literal notranslate"><span class="pre">named_idx()</span></code></a> to select all
+indices of interest to be read in one go. As long as the final result fits in RAM, this
+should be much faster than reading each index individually.</p>
+</div>
+<p>See <a class="reference internal" href="reference/api/ecoli/ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.html#module-ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps" title="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps"><code class="xref py py-mod docutils literal notranslate"><span class="pre">new_gene_translation_efficiency_heatmaps</span></code></a>
+for examples of complex queries, as well as helper functions to create SQL expressions
+for common query patterns. These include:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.html#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_ratio_of_1d_arrays_sql" title="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_ratio_of_1d_arrays_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">avg_ratio_of_1d_arrays_sql()</span></code></a></p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.html#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_1d_array_sql" title="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_1d_array_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">avg_1d_array_sql()</span></code></a></p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.html#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_sum_1d_array_sql" title="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_sum_1d_array_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">avg_sum_1d_array_sql()</span></code></a></p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.html#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_1d_array_over_scalar_sql" title="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_1d_array_over_scalar_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">avg_1d_array_over_scalar_sql()</span></code></a></p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.html#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_sum_1d_array_over_scalar_sql" title="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_sum_1d_array_over_scalar_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">avg_sum_1d_array_over_scalar_sql()</span></code></a></p></li>
+</ul>
+</section>
+</section>
+</section>
+<section id="other-workflow-output">
+<h2>Other Workflow Output<a class="headerlink" href="#other-workflow-output" title="Link to this heading"></a></h2>
+<p>We provide helper functions in <a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#module-ecoli.library.parquet_emitter" title="ecoli.library.parquet_emitter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli.library.parquet_emitter</span></code></a> to read other
+workflow output.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.open_arbitrary_sim_data" title="ecoli.library.parquet_emitter.open_arbitrary_sim_data"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_arbitrary_sim_data()</span></code></a>: Intended for use
+in analysis scripts. Accepts the <code class="docutils literal notranslate"><span class="pre">sim_data_paths</span></code> dictionary given as input to
+analysis scripts by <a class="reference internal" href="reference/api/runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a> and picks a single arbitrary
+path in that dictionary to read and unpickle.</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.open_output_file" title="ecoli.library.parquet_emitter.open_output_file"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_output_file()</span></code></a>: When opening any
+workflow output file in a Python script, use this function instead of the built-in
+<code class="docutils literal notranslate"><span class="pre">open</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">open_output_file({path},</span> <span class="pre">&quot;r&quot;)</span> <span class="pre">as</span> <span class="pre">f:</span></code>). This is mainly
+intended to future-proof analysis scripts for Google Cloud support.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="workflows.html" class="btn btn-neutral float-left" title="Workflows" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorial.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

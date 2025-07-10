@@ -1,0 +1,838 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workflows &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Output" href="output.html" />
+    <link rel="prev" title="Experiments" href="experiments.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiments.html">Experiments</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Workflows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#parca">ParCa</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#configuration">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#variants">Variants</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#template">Template</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output">Output</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#simulations">Simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#analyses">Analyses</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#analysis-config">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#analysis-template">Template</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id6">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#progress">Progress</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fault-tolerance">Fault Tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id9">Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#html-report">HTML Report</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cli">CLI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#make-and-test-fixes">Make and Test Fixes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Workflows</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/workflows.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="workflows">
+<h1>Workflows<a class="headerlink" href="#workflows" title="Link to this heading"></a></h1>
+<p>A typical simulation workflow has four main steps:</p>
+<ol class="arabic simple">
+<li><p>Run the parameter calculator (<a class="reference internal" href="reference/api/runscripts/runscripts.parca.html#module-runscripts.parca" title="runscripts.parca"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.parca</span></code></a>) to generate simulation parameters from raw data.</p></li>
+<li><p>Create one or more variants (<a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a>) of the simulation parameters.</p></li>
+<li><p>Simulate cells (<a class="reference internal" href="reference/api/runscripts/runscripts.sim.html#module-runscripts.sim" title="runscripts.sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.sim</span></code></a> wraps <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#module-ecoli.experiments.ecoli_master_sim" title="ecoli.experiments.ecoli_master_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli.experiments.ecoli_master_sim</span></code></a>).</p></li>
+<li><p>Aggregate simulation results with analysis scripts (<a class="reference internal" href="reference/api/runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a>).</p></li>
+</ol>
+<p>While each of these steps can be run manually by invoking their associated scripts,
+it is common to run them in an automatically coordinated Nextflow workflow
+using <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>.</p>
+<p>As mentioned in <a class="reference internal" href="experiments.html#json-config"><span class="std std-ref">JSON Config Files</span></a>, the preferred method for supplying configuration
+options to runscripts is via a JSON configuration file specified using the <code class="docutils literal notranslate"><span class="pre">--config</span></code>
+command-line option. Please check the configuration JSON located at
+<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path" title="ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path"><code class="xref py py-attr docutils literal notranslate"><span class="pre">default_config_path</span></code></a>
+for the most up-to-date default configuration options.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Template configuration JSON files for running <a class="reference internal" href="reference/api/runscripts/runscripts.parca.html#module-runscripts.parca" title="runscripts.parca"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.parca</span></code></a>,
+<a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a>, and <a class="reference internal" href="reference/api/runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a>
+standalone are located in <code class="docutils literal notranslate"><span class="pre">configs/templates</span></code>. See <code class="docutils literal notranslate"><span class="pre">configs/default.json</span></code>
+for a template <a class="reference internal" href="reference/api/runscripts/runscripts.sim.html#module-runscripts.sim" title="runscripts.sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.sim</span></code></a>/<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#module-ecoli.experiments.ecoli_master_sim" title="ecoli.experiments.ecoli_master_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli.experiments.ecoli_master_sim</span></code></a>
+configuration JSON.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Remember that when creating your own JSON configuration
+file, you only need to include the configuration options whose values are
+different from the defaults.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">~</span></code> and environment variables like <code class="docutils literal notranslate"><span class="pre">$HOME</span></code> are not expanded in the
+configuration JSON. Use <code class="docutils literal notranslate"><span class="pre">echo</span> <span class="pre">your_path</span></code> to get a full path that you can
+use in the JSON. For example, <code class="docutils literal notranslate"><span class="pre">echo</span> <span class="pre">~/out</span></code> or <code class="docutils literal notranslate"><span class="pre">echo</span> <span class="pre">$HOME/test</span></code>.</p>
+</div>
+<p>Below, we explore each runscript in further detail, including the
+configuration options unique to each.</p>
+<section id="parca">
+<h2>ParCa<a class="headerlink" href="#parca" title="Link to this heading"></a></h2>
+<p>The parameter calculator (or ParCa) is a Python script that performs certain computations
+on raw, curated experimental data (located in the <code class="docutils literal notranslate"><span class="pre">reconstruction/ecoli/flat</span></code> folder)
+to generate the parameters expected by processes in our model. It packages these parameters
+in a pickled <a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulationDataEcoli</span></code></a> object
+whose path must be given via the <code class="docutils literal notranslate"><span class="pre">sim_data_path</span></code> configuration option to all runscripts
+in <code class="docutils literal notranslate"><span class="pre">runscripts/</span></code> and to experiment modules in <code class="docutils literal notranslate"><span class="pre">ecoli/experiments</span></code> (default used by
+<a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a> is <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#module-ecoli.experiments.ecoli_master_sim" title="ecoli.experiments.ecoli_master_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_master_sim</span></code></a>).</p>
+<p>The code responsible for loading data from the raw flat files is contained in
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.knowledge_base_raw.html#reconstruction.ecoli.knowledge_base_raw.KnowledgeBaseEcoli" title="reconstruction.ecoli.knowledge_base_raw.KnowledgeBaseEcoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">KnowledgeBaseEcoli</span></code></a>. The actual logic
+of the ParCa is mostly contained within a single file: <a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.fit_sim_data_1.html#module-reconstruction.ecoli.fit_sim_data_1" title="reconstruction.ecoli.fit_sim_data_1"><code class="xref py py-mod docutils literal notranslate"><span class="pre">fit_sim_data_1</span></code></a>.
+The main interface for running the ParCa is <a class="reference internal" href="reference/api/runscripts/runscripts.parca.html#module-runscripts.parca" title="runscripts.parca"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.parca</span></code></a>.</p>
+<section id="configuration">
+<h3>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h3>
+<p>Configuration options for the ParCa are all located in a dictionary under the
+<code class="docutils literal notranslate"><span class="pre">parca_options</span></code> key inside a JSON configuration file. They include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cpus</span></code>: Number of CPU cores to parallelize parts of the ParCa over</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">outdir</span></code>: Path to directory (local or absolute) for output pickle files</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">operons</span></code>: If True, calculate parameters with operon gene structure</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ribosome_fitting</span></code>: If False, ribosome expression is not fit to protein synthesis demands</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rnapoly_fitting</span></code>: If False, RNA polymerase expression is not fit to protein synthesis demands</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">remove_rrna_operons</span></code>: If True, do not include rRNAs in operon gene structures.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">remove_rrff</span></code>: If True, remove rrfF gene that encodes for the extra 5S rRNA in the rrnD operon</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stable_rrna</span></code>: If True, set degradation rates of mature rRNAs
+to the values calculated from the half-life in sim_data.constants. If False,
+set degradation rates of mature rRNAs to the average reported degradation rates of mRNAs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">new_genes</span></code>: String folder name in <code class="docutils literal notranslate"><span class="pre">reconstruction/ecoli/flat/new_gene_data</span></code>
+containing necessary flat files to add new gene(s) to the model (see templates in
+<code class="docutils literal notranslate"><span class="pre">reconstruction/ecoli/flat/new_gene_data/template</span></code>). By default, <code class="docutils literal notranslate"><span class="pre">off</span></code> does
+nothing (no new genes).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">debug_parca</span></code>: If True, fit only one arbitrarily-chosen transcription
+factor in order to speed up a debug cycle.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">save_intermediates</span></code>: Save intermediate pickle files for each major
+step of the ParCa (<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.fit_sim_data_1.html#reconstruction.ecoli.fit_sim_data_1.initialize" title="reconstruction.ecoli.fit_sim_data_1.initialize"><code class="xref py py-func docutils literal notranslate"><span class="pre">initialize()</span></code></a>,
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.fit_sim_data_1.html#reconstruction.ecoli.fit_sim_data_1.input_adjustments" title="reconstruction.ecoli.fit_sim_data_1.input_adjustments"><code class="xref py py-func docutils literal notranslate"><span class="pre">input_adjustments()</span></code></a>,
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.fit_sim_data_1.html#reconstruction.ecoli.fit_sim_data_1.basal_specs" title="reconstruction.ecoli.fit_sim_data_1.basal_specs"><code class="xref py py-func docutils literal notranslate"><span class="pre">basal_specs()</span></code></a>,
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.fit_sim_data_1.html#reconstruction.ecoli.fit_sim_data_1.tf_condition_specs" title="reconstruction.ecoli.fit_sim_data_1.tf_condition_specs"><code class="xref py py-func docutils literal notranslate"><span class="pre">tf_condition_specs()</span></code></a>,
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.fit_sim_data_1.html#reconstruction.ecoli.fit_sim_data_1.fit_condition" title="reconstruction.ecoli.fit_sim_data_1.fit_condition"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_condition()</span></code></a>,
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.fit_sim_data_1.html#reconstruction.ecoli.fit_sim_data_1.promoter_binding" title="reconstruction.ecoli.fit_sim_data_1.promoter_binding"><code class="xref py py-func docutils literal notranslate"><span class="pre">promoter_binding()</span></code></a>,
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.fit_sim_data_1.html#reconstruction.ecoli.fit_sim_data_1.adjust_promoters" title="reconstruction.ecoli.fit_sim_data_1.adjust_promoters"><code class="xref py py-func docutils literal notranslate"><span class="pre">adjust_promoters()</span></code></a>,
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.fit_sim_data_1.html#reconstruction.ecoli.fit_sim_data_1.set_conditions" title="reconstruction.ecoli.fit_sim_data_1.set_conditions"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_conditions()</span></code></a>,
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.fit_sim_data_1.html#reconstruction.ecoli.fit_sim_data_1.final_adjustments" title="reconstruction.ecoli.fit_sim_data_1.final_adjustments"><code class="xref py py-func docutils literal notranslate"><span class="pre">final_adjustments()</span></code></a>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">intermediates_directory</span></code>: Path to folder where intermediate pickle files
+should be saved or loaded.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">load_intermediate</span></code>: The function name of the ParCa step to load
+sim_data and cell_specs from; functions prior to and including this one
+will be skipped but all subsequent functions will run. Can only be used
+if all ParCa steps up to and including named step were previously run
+successfully with <code class="docutils literal notranslate"><span class="pre">save_intermediates</span></code> set to True.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variable_elongation_transcription</span></code>: If True, enable variable elongation
+for transcription.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variable_elongation_translation</span></code>: If True, enable variable elongation
+for translation.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the top-level <code class="docutils literal notranslate"><span class="pre">sim_data_path</span></code> option is not null, the ParCa is skipped
+in favor of the pickled simulation data at the specified path. This applies
+regardless of whether running with <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a> or
+<a class="reference internal" href="reference/api/runscripts/runscripts.parca.html#module-runscripts.parca" title="runscripts.parca"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.parca</span></code></a>.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If running <a class="reference internal" href="reference/api/runscripts/runscripts.parca.html#module-runscripts.parca" title="runscripts.parca"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.parca</span></code></a> and <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#module-ecoli.experiments.ecoli_master_sim" title="ecoli.experiments.ecoli_master_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli.experiments.ecoli_master_sim</span></code></a>
+manually instead of using <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>, you must create two config JSON
+files: one for the ParCa with a null <code class="docutils literal notranslate"><span class="pre">sim_data_path</span></code> and an <code class="docutils literal notranslate"><span class="pre">outdir</span></code>
+as described above and one for the simulation with
+<code class="docutils literal notranslate"><span class="pre">sim_data_path</span></code> set to <code class="docutils literal notranslate"><span class="pre">{outdir}/kb/simData.cPickle</span></code>. This is intentional to
+reduce the chance that the incorrect simulation data is used.</p>
+</div>
+</section>
+</section>
+<section id="variants">
+<span id="id1"></span><h2>Variants<a class="headerlink" href="#variants" title="Link to this heading"></a></h2>
+<p>In many cases, we would like to use the model to answer biological questions that
+require running the model with different parameters. For example, we may want to
+see how a cell responds differently when grown in different media conditions.
+Since most process parameters in our model come from the pickled
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulationDataEcoli</span></code></a> generated by
+the ParCa, we need an easy way to modify this object. The
+<a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a> script was designed for this purpose.</p>
+<section id="template">
+<h3>Template<a class="headerlink" href="#template" title="Link to this heading"></a></h3>
+<p>In essence, this script runs a “variant function” with one or more input
+parameter combinations, with each invocation independently modifying the
+baseline <a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulationDataEcoli</span></code></a>
+object in some way. Variant functions are contained within Python files
+located in the <code class="docutils literal notranslate"><span class="pre">ecoli.variants</span></code> folder. They all have an <code class="docutils literal notranslate"><span class="pre">apply_variant</span></code>
+function that follows the following template:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="c1"># This if statement prevents Python from unnecessarily importing this</span>
+<span class="c1"># object when it is only needed for type hinting</span>
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">reconstruction.ecoli.simulation_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulationDataEcoli</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_variant</span><span class="p">(</span>
+    <span class="n">sim_data</span><span class="p">:</span> <span class="s2">&quot;SimulationDataEcoli&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;SimulationDataEcoli&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Modify sim_data using parameters from params dictionary.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sim_data: Simulation data to modify</span>
+<span class="sd">        params: Parameter dictionary of the following format::</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &quot;{name of parameter}&quot;: {type of parameter},</span>
+<span class="sd">                ...</span>
+<span class="sd">            }</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Simulation data with the following attributes modified::</span>
+
+<span class="sd">            {attributes of sim_data that this function changes}</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Modify sim_data as you see fit using params. Following is example</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">attribute</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;param_1&quot;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">sim_data</span>
+</pre></div>
+</div>
+</section>
+<section id="id2">
+<h3>Configuration<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<p>When running <a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a>, users must specify the
+variant function to use under the <code class="docutils literal notranslate"><span class="pre">variants</span></code> key in the configuration JSON
+following the general template:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;variants&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;{name of variant function}&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="p">{</span><span class="n">variant</span> <span class="n">function</span> <span class="n">parameters</span><span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The name of each variant function is the name of the file containing its
+<code class="docutils literal notranslate"><span class="pre">apply_variant</span></code> function. For example, to use the variant function
+<a class="reference internal" href="reference/api/ecoli/ecoli.variants.new_gene_internal_shift.html#module-ecoli.variants.new_gene_internal_shift" title="ecoli.variants.new_gene_internal_shift"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli.variants.new_gene_internal_shift</span></code></a>, provide the name
+<code class="docutils literal notranslate"><span class="pre">new_gene_internal_shift</span></code>. If the <code class="docutils literal notranslate"><span class="pre">variants</span></code> key points to an
+empty dictionary (no variants), then only the only “variant” saved
+by <a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a> is the unmodified simulation
+data object. Thus, when running a workflow with <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>,
+at least one lineage of cells will always be run with the baseline
+<code class="docutils literal notranslate"><span class="pre">sim_data</span></code>. To avoid this (e.g. when running many batches of simulations
+with the same variant function), set the top-level <code class="docutils literal notranslate"><span class="pre">skip_baseline</span></code> option
+to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Only one variant function is supported at a time.</p>
+</div>
+<p>If you would like to modify the simulation data object using multiple
+variant functions, create a new variant function that invokes the desired
+combination of <code class="docutils literal notranslate"><span class="pre">apply_variants</span></code> methods from other variant functions.</p>
+<p>The format of the variant function parameters is described in
+<a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#runscripts.create_variants.parse_variants" title="runscripts.create_variants.parse_variants"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_variants()</span></code></a>. By using the
+<code class="docutils literal notranslate"><span class="pre">op</span></code> key, you can concisely generate a large array of parameter
+combinations, each of which results in the creation of a variant of the
+<a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulationDataEcoli</span></code></a>
+object.</p>
+<p>When manually running <a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a> (as opposed to
+running <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>), the configuration file must also include:</p>
+<ul class="simple">
+<li><p>Top-level (not under <code class="docutils literal notranslate"><span class="pre">variants</span></code> key) <code class="docutils literal notranslate"><span class="pre">outdir</span></code> option: path to directory
+in which to save variant simulation data objects as pickle files</p></li>
+<li><p>Top-level (not under <code class="docutils literal notranslate"><span class="pre">variants</span></code> key) <code class="docutils literal notranslate"><span class="pre">kb</span></code> option: path to directory
+containing ParCa output pickle files</p></li>
+</ul>
+</section>
+<section id="output">
+<span id="variant-output"></span><h3>Output<a class="headerlink" href="#output" title="Link to this heading"></a></h3>
+<p>The generated variant simulation data objects are pickled and saved in the
+directory given in the <code class="docutils literal notranslate"><span class="pre">outdir</span></code> key of the configuration JSON.
+They all have file names of the format <code class="docutils literal notranslate"><span class="pre">{index}.cPickle</span></code>, where
+index is an integer. If the top-level <code class="docutils literal notranslate"><span class="pre">skip_baseline</span></code> option is not set
+to <code class="docutils literal notranslate"><span class="pre">True</span></code>, the unmodified simulation data object is always
+saved as <code class="docutils literal notranslate"><span class="pre">0.cPickle</span></code>. Otherwise, the 0 index is skipped. The identity of
+the other indices can be determined by referencing the <code class="docutils literal notranslate"><span class="pre">metadata.json</span></code>
+file that is also saved in <code class="docutils literal notranslate"><span class="pre">outdir</span></code>. This JSON maps the variant function
+name to a mapping from each index to the exact parameter
+dictionary passed to the variant function to create the
+variant simulation data saved with that index as its file name. See
+<a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#runscripts.create_variants.apply_and_save_variants" title="runscripts.create_variants.apply_and_save_variants"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_and_save_variants()</span></code></a> for
+more details.</p>
+</section>
+</section>
+<section id="simulations">
+<h2>Simulations<a class="headerlink" href="#simulations" title="Link to this heading"></a></h2>
+<p>Refer to <a class="reference internal" href="experiments.html"><span class="std std-ref">Experiments</span></a> for more information about the main
+script for running single-cell simulations,
+<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#module-ecoli.experiments.ecoli_master_sim" title="ecoli.experiments.ecoli_master_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_master_sim</span></code></a>.</p>
+</section>
+<section id="analyses">
+<span id="analysis-scripts"></span><h2>Analyses<a class="headerlink" href="#analyses" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="reference/api/runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a> script is the main interface for running
+analyses on simulation output data. Importantly, to use this interface,
+simulations must be run (whether with <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#module-ecoli.experiments.ecoli_master_sim" title="ecoli.experiments.ecoli_master_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_master_sim</span></code></a>
+or <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>) with the <code class="docutils literal notranslate"><span class="pre">emitter</span></code> option set to <code class="docutils literal notranslate"><span class="pre">parquet</span></code>
+and an output directory set using the <code class="docutils literal notranslate"><span class="pre">out_dir</span></code> or <code class="docutils literal notranslate"><span class="pre">out_uri</span></code> key under the
+<code class="docutils literal notranslate"><span class="pre">emitter_arg</span></code> option (see <a class="reference internal" href="experiments.html#json-config"><span class="std std-ref">JSON Config Files</span></a>). This tells vivarium-core to use
+<a class="reference internal" href="reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.ParquetEmitter" title="ecoli.library.parquet_emitter.ParquetEmitter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ParquetEmitter</span></code></a> to save the simulation
+output as Hive partitioned Parquet files. See <a class="reference internal" href="output.html"><span class="std std-ref">Output</span></a> for more
+details on Parquet and DuckDB, the primary library used to interact with the
+saved files.</p>
+<p>Analysis scripts must be one of the following types and placed into the
+corresponding folder:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.analysis.single.html#module-ecoli.analysis.single" title="ecoli.analysis.single"><code class="xref py py-mod docutils literal notranslate"><span class="pre">single</span></code></a>: Limited to data for a single simulated cell</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.analysis.multidaughter.html#module-ecoli.analysis.multidaughter" title="ecoli.analysis.multidaughter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">multidaughter</span></code></a>: Limited to data for daughter cell(s)
+of a single mother cell</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.analysis.multigeneration.html#module-ecoli.analysis.multigeneration" title="ecoli.analysis.multigeneration"><code class="xref py py-mod docutils literal notranslate"><span class="pre">multigeneration</span></code></a>: Limited to data for all cells across
+many generations for a given initial seed, variant simulation data object, and
+workflow run (same experiment ID, see <a class="reference internal" href="experiments.html"><span class="std std-ref">Experiments</span></a>)</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.analysis.multiseed.html#module-ecoli.analysis.multiseed" title="ecoli.analysis.multiseed"><code class="xref py py-mod docutils literal notranslate"><span class="pre">multiseed</span></code></a>: Limited to data for all cells across many
+generations and initial seeds for a given variant simulation data object and
+workflow run</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.analysis.multivariant.html#module-ecoli.analysis.multivariant" title="ecoli.analysis.multivariant"><code class="xref py py-mod docutils literal notranslate"><span class="pre">multivariant</span></code></a>: Limited to data for all cells across
+many generations, initial seeds, and variant simulation data objects for a given
+workflow run</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.analysis.multiexperiment.html#module-ecoli.analysis.multiexperiment" title="ecoli.analysis.multiexperiment"><code class="xref py py-mod docutils literal notranslate"><span class="pre">multiexperiment</span></code></a>: Limited to data for all cells across
+many generations, initial seeds, variant simulation data objects, and workflow runs</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These categories represent upper bounds on the data that can be accessed.</p>
+</div>
+<p>A <code class="docutils literal notranslate"><span class="pre">multiseed</span></code> analysis, for example, can choose to only read data
+from cells between generations 4 and 8 from the cells with the same
+experiment ID, variant simulation data object, and initial seed that
+it has access to.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If you would like to use an analysis script with many different scopes,
+instead of duplicating the entire script in each analysis type
+folder, you can just create stub files in the appropriate folders
+that simply import the <code class="docutils literal notranslate"><span class="pre">plot</span></code> function from a primary analysis script.</p>
+</div>
+<section id="analysis-config">
+<span id="id3"></span><h3>Configuration<a class="headerlink" href="#analysis-config" title="Link to this heading"></a></h3>
+<p>The <a class="reference internal" href="reference/api/runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a> script accepts the following configuration
+options under the <code class="docutils literal notranslate"><span class="pre">analysis_options</span></code> key:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">single</span></code>, <code class="docutils literal notranslate"><span class="pre">multidaughter</span></code>, <code class="docutils literal notranslate"><span class="pre">multigeneration</span></code>, <code class="docutils literal notranslate"><span class="pre">multiseed</span></code>, <code class="docutils literal notranslate"><span class="pre">multivariant</span></code>
+<code class="docutils literal notranslate"><span class="pre">multiexperiment</span></code>: Can pick one or more analysis types to run. Under each analysis
+type is a sub-dictionary of the following format:</p>
+<blockquote>
+<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;{analysis name}&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">optional</span> <span class="n">dictionary</span> <span class="n">of</span> <span class="n">analysis</span> <span class="n">parameters</span><span class="p">},</span>
+    <span class="c1"># Example:</span>
+    <span class="s2">&quot;mass_fraction_summary&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;font_size&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>The name of an analysis is simply its file name without the <code class="docutils literal notranslate"><span class="pre">.py</span></code> extension.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_id</span></code>, <code class="docutils literal notranslate"><span class="pre">variant</span></code>, <code class="docutils literal notranslate"><span class="pre">lineage_seed</span></code>, <code class="docutils literal notranslate"><span class="pre">generation</span></code>, <code class="docutils literal notranslate"><span class="pre">agent_id</span></code>:
+List of experiment IDs, variant indices, etc. to filter data to before running
+analyses. Note that experiment IDs and agent IDs are strings while the rest are
+integers. <code class="docutils literal notranslate"><span class="pre">experiment_id</span></code> is required while the others are optional. If not
+provided, <a class="reference internal" href="reference/api/runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a> simply does not filter data by variant
+indices, initial seeds, etc. before running analyses.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variant_range</span></code>, <code class="docutils literal notranslate"><span class="pre">lineage_seed_range</span></code>, <code class="docutils literal notranslate"><span class="pre">generation_range</span></code>: List of length
+2 where the first element is the start and the second element is the end (exclusive)
+of a range of variant indices, initial seeds, or generations to filter data to
+before running analyses. Overrides corresponding non-range options.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sim_data_path</span></code>: List of string paths to simulation data pickle files. If multiple
+variants are given via <code class="docutils literal notranslate"><span class="pre">variant</span></code> or <code class="docutils literal notranslate"><span class="pre">variant_range</span></code>, you must provide same number
+of paths in the same order using this option. This option is mainly meant for internal use.
+For a simpler alternative that also works if multiple experiment IDs are given with
+<code class="docutils literal notranslate"><span class="pre">experiment_id</span></code> (variant indices may correspond to completely different variant
+simulation data objects in different workflow runs), see <code class="docutils literal notranslate"><span class="pre">variant_data_dir</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variant_metadata_path</span></code>: String path to <code class="docutils literal notranslate"><span class="pre">metadata.json</span></code> file saved by
+<a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a> (see <a class="reference internal" href="#variant-output"><span class="std std-ref">Output</span></a>). This option is mainly
+intended for internal use. For a simpler alternative that also works if multiple
+experiment IDs are given via <code class="docutils literal notranslate"><span class="pre">experiment_id</span></code>, see <code class="docutils literal notranslate"><span class="pre">variant_data_dir</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variant_data_dir</span></code>: List of string paths to one or more directories containing
+variant simulation data pickles and metadata saved by <a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a>.
+Must provide one path for each experiment ID in <code class="docutils literal notranslate"><span class="pre">experiment_ID</span></code> and in the
+same order.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">validation_data_path</span></code>: List of string paths to validation data pickle files
+(generated by ParCa). Can pass any number of paths in any order and they will be
+passed as is to analysis script <code class="docutils literal notranslate"><span class="pre">plot</span></code> functions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">outdir</span></code>: Local (relative or absolute) path to directory that serves as a prefix
+to the <code class="docutils literal notranslate"><span class="pre">outdir</span></code> argument for analysis script <code class="docutils literal notranslate"><span class="pre">plot</span></code> functions
+(see <a class="reference internal" href="#analysis-template"><span class="std std-ref">Template</span></a>). A copy of the configuration options
+used to run <a class="reference internal" href="reference/api/runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a> is saved as <code class="docutils literal notranslate"><span class="pre">outdir/metadata.json</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpus</span></code>: Number of CPU cores to let DuckDB use. DuckDB generally scales well
+with more cores at the cost of proportionally increased RAM usage (default: 1)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">analysis_types</span></code>: List of analysis types to run. By default (if this option
+is not used), all analyses provided under all the analysis type keys are run
+on all possible subsets of the data after applying the data filters given using
+<code class="docutils literal notranslate"><span class="pre">experiment_id</span></code>, <code class="docutils literal notranslate"><span class="pre">variant</span></code>, etc. For example, say 2 experiment IDs are
+given with <code class="docutils literal notranslate"><span class="pre">experiment_id</span></code>, 2 variants with <code class="docutils literal notranslate"><span class="pre">variant</span></code>, 2 seeds with <code class="docutils literal notranslate"><span class="pre">lineage_seed</span></code>,
+and 2 generations with <code class="docutils literal notranslate"><span class="pre">generation</span></code>. Assuming no simulations failed and <code class="docutils literal notranslate"><span class="pre">single_daughter</span></code>
+was set to True, analyses under the <code class="docutils literal notranslate"><span class="pre">multiexperiment</span></code> key (if any) will each run once
+with all data passing this filter. <code class="docutils literal notranslate"><span class="pre">multivariant</span></code> analyses will each run twice, first
+with filtered data for one experiment ID then with filtered data for the other. <code class="docutils literal notranslate"><span class="pre">multiseed</span></code>
+analyses will each run 4 times (2 exp IDs * 2 variants), <code class="docutils literal notranslate"><span class="pre">multigeneration</span></code> analyses
+8 times (4 * 2 seeds), <code class="docutils literal notranslate"><span class="pre">multidaughter</span></code> analyses 16 times (8 * 2 generations), and
+<code class="docutils literal notranslate"><span class="pre">single</span></code> analyses 16 times. If you only want to run the <code class="docutils literal notranslate"><span class="pre">single</span></code> and <code class="docutils literal notranslate"><span class="pre">multivariant</span></code>
+analyses, specify <code class="docutils literal notranslate"><span class="pre">[&quot;single&quot;,</span> <span class="pre">&quot;multivariant&quot;]</span></code> using this option.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must also have the <code class="docutils literal notranslate"><span class="pre">emitter_arg</span></code> key in your config JSON with a <code class="docutils literal notranslate"><span class="pre">out_dir</span></code> or
+<code class="docutils literal notranslate"><span class="pre">out_uri</span></code> set to the location where the analysis script will look for simulation
+data output.</p>
+</div>
+</section>
+<section id="analysis-template">
+<span id="id4"></span><h3>Template<a class="headerlink" href="#analysis-template" title="Link to this heading"></a></h3>
+<p>All analysis scripts must contain a <code class="docutils literal notranslate"><span class="pre">plot</span></code> function with the following signature:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="s2">&quot;DuckDBPyConnection&quot;</span><span class="p">,</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sim_data_paths</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">validation_data_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">variant_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">variant_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        params: Dictionary of parameters given under analysis</span>
+<span class="sd">            name in configuration JSON.</span>
+<span class="sd">        conn: DuckDB database connection, automatically created</span>
+<span class="sd">            by runscripts/analysis.py with appropriate settings.</span>
+<span class="sd">        history_sql: DuckDB SQL query that filters simulation</span>
+<span class="sd">            output data to subset appropriate for analysis type</span>
+<span class="sd">            (e.g. single cell for ``single`` analyses).</span>
+<span class="sd">        config_sql: DuckDB SQL query that filters simulation</span>
+<span class="sd">            config data to subset appropriate for analyis type.</span>
+<span class="sd">        success_sql: DuckDB SQL query to Hive-partitioned</span>
+<span class="sd">            Parquet dataset which only contains successful sims.</span>
+<span class="sd">        sim_data_paths: Mapping from experiment IDs to mapping</span>
+<span class="sd">            from variant indices to variant simulation data</span>
+<span class="sd">            pickle paths. Generated by runscripts/analysis.py</span>
+<span class="sd">            either using:</span>
+
+<span class="sd">                - Combination of  ``sim_data_path``, ``variant``,</span>
+<span class="sd">                  ``variant_metadata_path``, and ``experiment_id``</span>
+<span class="sd">                  configuration options</span>
+<span class="sd">                - Traversing directories in ``variant_data_dir`` and</span>
+<span class="sd">                  matching discovered variants with experiment IDs</span>
+<span class="sd">                  given in ``experiment_id`` (preferred route for</span>
+<span class="sd">                  most use cases)</span>
+
+<span class="sd">        validation_data_paths: List of validation data pickle</span>
+<span class="sd">            paths taken directly from ``validation_data_path``</span>
+<span class="sd">            configuration option.</span>
+<span class="sd">        outdir: String path equal to ``outdir`` configuration option</span>
+<span class="sd">            prepended to Hive partitioned directory representing data</span>
+<span class="sd">            filters applied to ``history_sql``. For example, a ``single``</span>
+<span class="sd">            analysis script run on data for experiment ID &quot;test&quot;,</span>
+<span class="sd">            variant index 1, lineage seed 3, generation 2, and agent ID</span>
+<span class="sd">            &quot;00&quot; will get: ``{outdir}/experiment_id=test/variant=1/</span>
+<span class="sd">            lineage_seed=3/generation=2/agent_id=00``. By convention,</span>
+<span class="sd">            analysis scripts should save their outputs in this folder.</span>
+<span class="sd">        variant_metadata: Mapping from experiment IDs to mapping</span>
+<span class="sd">            from variant indices to parameters used to create variant</span>
+<span class="sd">            simulation data object. Generated by runscripts/analysis.py</span>
+<span class="sd">            in one of the same two methods used for sim_data_paths.</span>
+<span class="sd">        variant_names: Mapping from experiment IDs to name of variant</span>
+<span class="sd">            function used to generate variant simulation data objects</span>
+<span class="sd">            for workflow run. Generated by runscripts/analysis.py</span>
+<span class="sd">            in one of the same two methods used for sim_data_paths.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+</pre></div>
+</div>
+<p>Refer to <a class="reference internal" href="output.html"><span class="std std-ref">Output</span></a> for more information about how
+to use DuckDB to read and analyze simulation output inside
+analysis scripts.</p>
+</section>
+</section>
+<section id="id5">
+<h2>Workflows<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p><a class="reference external" href="https://www.nextflow.io">Nextflow</a> is a piece of software that abstracts the
+complexity of orchestrating complex workflows on a variety of supported
+platforms, including personal computers, computing clusters, and even cloud
+computing services. <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a> uses the template Nextflow
+workflow scripts located in the <code class="docutils literal notranslate"><span class="pre">runscripts/nextflow</span></code> folder along with
+an input configuration JSON to create and run a complete workflow with all of
+the steps described above.</p>
+<section id="id6">
+<h3>Configuration<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p>All the previously covered configuration options also apply to the configuration
+JSON supplied to <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>. Those options govern the behavior
+of the corresponding step in the workflow. For example, running
+<a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a> with <code class="docutils literal notranslate"><span class="pre">cpus</span></code> under <code class="docutils literal notranslate"><span class="pre">parca_options</span></code>
+set to 4 will start the workflow by running the ParCa with 4 CPUs.</p>
+<p>After creating some number of variant simulation data objects with
+<a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a>, the workflow automatically
+starts at least one cell simulation for each variant using
+<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#module-ecoli.experiments.ecoli_master_sim" title="ecoli.experiments.ecoli_master_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_master_sim</span></code></a>. The exact number
+of simulations started per variant is configured by the following
+top-level configuration options:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">n_init_sims</span></code>: Number of replicate simulations to run for each variant,
+where replicates differ in the initial seed used to initialize them</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lineage_seed</span></code>: Each integer in the half-open interval
+<code class="docutils literal notranslate"><span class="pre">[lineage_seed,</span> <span class="pre">lineage_seed</span> <span class="pre">+</span> <span class="pre">n_init_sims)</span></code> is used to initialize
+the first generation of a lineage, where a lineage is defined
+as a group of cell simulations with the same first generation initial
+seed (called a lineage seed) and variant simulation data object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">generations</span></code>: Integer number of generations to run each cell lineage</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">single_daughters</span></code>: If False, simulates both daughter cells (append <code class="docutils literal notranslate"><span class="pre">0</span></code>
+to mother agent ID to get one daughter agent ID and <code class="docutils literal notranslate"><span class="pre">1</span></code> to get other) after
+cell division. Otherwise, continue lineage with one arbitrary daughter cell
+state (append <code class="docutils literal notranslate"><span class="pre">0</span></code> to mother agent ID to get daughter agent ID)</p></li>
+</ul>
+<p>This means that if a workflow is run with <code class="docutils literal notranslate"><span class="pre">n_init_sims</span></code> set to 4, <code class="docutils literal notranslate"><span class="pre">generations</span></code>
+set to 10, <code class="docutils literal notranslate"><span class="pre">single_daughters</span></code> set to True, and <code class="docutils literal notranslate"><span class="pre">variant_options</span></code>
+configured to create 4 different variant simulation data objects (5 including
+baseline, unmodified <code class="docutils literal notranslate"><span class="pre">0.cPickle</span></code>, see <a class="reference internal" href="#variant-output"><span class="std std-ref">Output</span></a>),
+<code class="docutils literal notranslate"><span class="pre">4</span> <span class="pre">*</span> <span class="pre">10</span> <span class="pre">*</span> <span class="pre">1</span> <span class="pre">*</span> <span class="pre">5</span> <span class="pre">=</span> <span class="pre">200</span></code> total simulations will run. This is assuming no lineages fail
+before reaching 10 generations due to <code class="docutils literal notranslate"><span class="pre">fail_at_max_duration</span></code> (see <a class="reference internal" href="experiments.html#json-config"><span class="std std-ref">JSON Config Files</span></a>)
+or some other uncaught exception.</p>
+<p>Unlike when running <a class="reference internal" href="reference/api/runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a> manually, the configuration JSON
+supplied to <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a> only needs to provide the names and
+parameters for analysis scripts to run using the analysis type options (e.g.
+<code class="docutils literal notranslate"><span class="pre">single</span></code>, <code class="docutils literal notranslate"><span class="pre">multivariant</span></code>, etc.) and can omit the other options documented
+in <a class="reference internal" href="#analysis-config"><span class="std std-ref">Configuration</span></a>. This is because the Nextflow workflow is configured
+to automatically pass the other required parameters like the paths to the variant
+simulation data pickles created by <a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a> earlier
+in the worklow.</p>
+</section>
+</section>
+<section id="progress">
+<span id="id7"></span><h2>Progress<a class="headerlink" href="#progress" title="Link to this heading"></a></h2>
+<p>There are three main ways to monitor a workflow’s progress.</p>
+<ol class="arabic simple">
+<li><p>Check the command-line output of the Nextflow orchestrator. On a
+personal computer, Nextflow will periodically print its progress
+to the command line. On Sherlock, this output is written to the
+<code class="docutils literal notranslate"><span class="pre">slurm-{job</span> <span class="pre">ID}.out</span></code> file in the directory you started the workflow from.</p></li>
+<li><p>Open the file named <code class="docutils literal notranslate"><span class="pre">trace--{experiment</span> <span class="pre">ID}--{timestamp}.csv</span></code>
+in the directory you started the workflow from. This file contains
+information about completed processes as they complete. Note that
+<code class="docutils literal notranslate"><span class="pre">submit,start,complete,duration,realtime</span></code> are reported in ms and
+<code class="docutils literal notranslate"><span class="pre">rss,peak_rss</span></code> are reported in bytes.</p></li>
+<li><p>Open the file named <code class="docutils literal notranslate"><span class="pre">.nextflow.log</span></code> in the directory you started the
+workflow from. This is a fairly verbose and technical log
+that may be useful for debugging purposes.</p></li>
+</ol>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Any changes that are made to the cloned repository while a workflow is running
+<strong>on a local computer</strong> will immediately affect workflow jobs submitted after
+the change. For example, modifying <code class="docutils literal notranslate"><span class="pre">runscripts/analysis.py</span></code> will affect all
+subsequent analysis jobs in a running workflow. This does not apply to workflows
+run on <a class="reference internal" href="gcloud.html"><span class="doc">Google Cloud</span></a> or <a class="reference internal" href="hpc.html"><span class="doc">Sherlock</span></a>, where
+a snapshot of the repository is packaged into the container image used to
+run the workflow.</p>
+</div>
+<p>The warning above only applies to files in the repository that are actively executed or
+used during a workflow (ParCa, variant creation, simulation, analysis). Notably,
+you can freely create, modify, and delete configuration JSON files in the cloned
+repository and use them to launch concurrent workflows.</p>
+<p>If this is not sufficient, you can create additional clones of the repository
+under different directory names, modify them, and use them to launch workflows.
+To reduce the size of each clone, use <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">--filter=blob:none</span> <span class="pre">{URL}</span> <span class="pre">{output</span> <span class="pre">path}</span></code>
+to create a blobless clone, which downloads file contents only for the latest
+commit. File contents (blobs) for other commits are downloaded on-demand upon
+checkout.</p>
+</section>
+<section id="fault-tolerance">
+<span id="id8"></span><h2>Fault Tolerance<a class="headerlink" href="#fault-tolerance" title="Link to this heading"></a></h2>
+<p>Nextflow workflows can be configured to be highly fault tolerant. The following
+is a list workflow behaviors enabled in our model to handle unexpected errors.</p>
+<ul class="simple">
+<li><p>When running on Sherlock, jobs that fail with exit codes 137 or 140 (job
+limits for RAM or runtime) or 143 (job was preempted by another user)
+are automatically retried up to a maximum of 3 times. For the resource
+limit exit codes, Nextflow will automatically request more RAM
+and a higher runtime limit with each attempt: <code class="docutils literal notranslate"><span class="pre">4</span> <span class="pre">*</span> <span class="pre">{attempt</span> <span class="pre">num}</span></code>
+GB of memory and <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">*</span> <span class="pre">{attempt</span> <span class="pre">num}</span></code> hours of runtime. See the
+<code class="docutils literal notranslate"><span class="pre">sherlock</span></code> profile in <code class="docutils literal notranslate"><span class="pre">runscripts/nextflow/config.template</span></code>.</p></li>
+<li><p>Additionally, some jobs may fail on Sherlock due to issues submitting
+them to the SLURM scheduler. Nextflow was configured to limit the rate
+of job sumission and job queue polling to keep these failures to a
+minimum. Furthermore, jobs that fail to submit are automatically
+retried with a relatively long 5 minute delay to hopefully avoid
+any transient scheduler issues.</p></li>
+<li><p>Jobs that fail for any reason other than the Sherlock reasons described
+above are ignored. This is mainly to allow a workflow to finish running
+all programmed cell simulations even if some cells fail, terminating their
+corresponding lineages. For example, if generation 6 for a given initial
+seed and variant simulation data failed, then generation 7+ for that lineage
+cannot run but the lineages for different initial seeds and/or variant
+simulation data can still continue to run.</p></li>
+<li><p>If you realize that a code issue is the cause of job failure(s), stop
+the workflow run if it is not already (e.g. <code class="docutils literal notranslate"><span class="pre">control</span> <span class="pre">+</span> <span class="pre">c</span></code>, <code class="docutils literal notranslate"><span class="pre">scancel</span></code>,
+etc.), make the necessary code fixes, and rerun <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>
+with the same configuration JSON and the <code class="docutils literal notranslate"><span class="pre">--resume</span></code> command-line argument,
+supplying the experiment ID (with time suffix if using <code class="docutils literal notranslate"><span class="pre">suffix_time</span></code> option).
+Nextflow will intelligently resume workflow execution from the last successful
+job in each chain of job dependencies (e.g. generation 7 of a cell lineage
+depends on generation 6, <a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a> depends on
+<a class="reference internal" href="reference/api/runscripts/runscripts.parca.html#module-runscripts.parca" title="runscripts.parca"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.parca</span></code></a>, etc).</p></li>
+</ul>
+</section>
+<section id="id9">
+<span id="id10"></span><h2>Output<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<p>A completed workflow will have the following directory structure underneath
+the output directory specified via <code class="docutils literal notranslate"><span class="pre">out_dir</span></code> or <code class="docutils literal notranslate"><span class="pre">out_uri</span></code> under the
+<code class="docutils literal notranslate"><span class="pre">emitter_arg</span></code> option in the configuration JSON (see <a class="reference internal" href="experiments.html#json-config"><span class="std std-ref">JSON Config Files</span></a>):</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">{experiment</span> <span class="pre">ID}</span></code>: Folder in output directory named the experiment ID
+for the workflow. Allows many workflows to use the same output directory
+without overwriting data as long as they have different experiment IDs.</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">history</span></code>: Hive-partitioned Parquet files of
+simulation output. See <a class="reference internal" href="output.html"><span class="std std-ref">Output</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">configuration</span></code>: Hive-partitioned Parquet files
+of simulation configs. See <a class="reference internal" href="output.html"><span class="std std-ref">Output</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">success</span></code>: Hive-partitioned Parquet files that
+only exist for successful simulations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">parca</span></code>: Pickle files saved by <a class="reference internal" href="reference/api/runscripts/runscripts.parca.html#module-runscripts.parca" title="runscripts.parca"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.parca</span></code></a>.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">simData.cPickle</span></code>: <a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulationDataEcoli</span></code></a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">validationData.cPickle</span></code>: <a class="reference internal" href="reference/api/validation/validation.ecoli.validation_data.html#validation.ecoli.validation_data.ValidationDataEcoli" title="validation.ecoli.validation_data.ValidationDataEcoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValidationDataEcoli</span></code></a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rawData.cPickle</span></code>: <a class="reference internal" href="reference/api/reconstruction/reconstruction.ecoli.knowledge_base_raw.html#reconstruction.ecoli.knowledge_base_raw.KnowledgeBaseEcoli" title="reconstruction.ecoli.knowledge_base_raw.KnowledgeBaseEcoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">KnowledgeBaseEcoli</span></code></a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rawValidationData.cPickle</span></code>: <a class="reference internal" href="reference/api/validation/validation.ecoli.validation_data_raw.html#validation.ecoli.validation_data_raw.ValidationDataRawEcoli" title="validation.ecoli.validation_data_raw.ValidationDataRawEcoli"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValidationDataRawEcoli</span></code></a></p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variant_sim_data</span></code>: Output of <a class="reference internal" href="reference/api/runscripts/runscripts.create_variants.html#module-runscripts.create_variants" title="runscripts.create_variants"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a>.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">0.cPickle</span></code>: Unmodified, baseline simulation data object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">metadata.json</span></code>: Mapping from variant function name to mapping from variant
+indices to parameter dictionaries used to create them.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1.cPickle</span></code>, <code class="docutils literal notranslate"><span class="pre">2.cPickle</span></code>, etc: Variant simulation data objects, if any.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">daughter_states</span></code>: Hive-partitioned (with experiment ID partition omitted
+because all files are for the same experiment ID) directory structure containing
+daughter cell initial states as JSON files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">analysis</span></code>: Hive-partitioned (with experiment ID partition omitted because
+all files are for the same experiment ID) directory structure containing
+output of analysis scripts in folder named <code class="docutils literal notranslate"><span class="pre">plot</span></code> at the level corresponding
+to the analysis type (e.g. <code class="docutils literal notranslate"><span class="pre">multigeneration</span></code> analysis output will be
+in sub-folders of the format <code class="docutils literal notranslate"><span class="pre">variant={}/lineage_seed={}/plot</span></code>). Each <code class="docutils literal notranslate"><span class="pre">plot</span></code>
+folder also contains a <code class="docutils literal notranslate"><span class="pre">metadata.json</span></code> file with the configuration.
+options passed to <a class="reference internal" href="reference/api/runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a> for the output in that folder.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nextflow</span></code>: Nextflow-related files.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">main.nf</span></code>: Nextflow workflow script.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nextflow.config</span></code>: Nextflow workflow configuration.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">{experiment</span> <span class="pre">ID}_report.html</span></code>: Detailed information about workflow run.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">workflow_config.json</span></code>: Configuration JSON passed to
+<a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nextflow_workdirs</span></code>: Contains all working directories for Nextflow jobs.
+Required for resume functionality described in <a class="reference internal" href="#fault-tolerance"><span class="std std-ref">Fault Tolerance</span></a>. Can
+also go to work directory for a job (consult files described in <a class="reference internal" href="#progress"><span class="std std-ref">Progress</span></a>
+or <code class="docutils literal notranslate"><span class="pre">{experiment</span> <span class="pre">ID}_report.html</span></code>) for debugging. See <a class="reference internal" href="#make-and-test"><span class="std std-ref">Make and Test Fixes</span></a>
+for more information.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>To save space, you can safely delete <code class="docutils literal notranslate"><span class="pre">nextflow_workdirs</span></code> after you are finished
+troubleshooting a particular workflow.</p>
+</div>
+</section>
+<section id="troubleshooting">
+<span id="id11"></span><h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
+<p>To troubleshoot a workflow that was run with <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>, you can
+either inspect the HTML execution report <code class="docutils literal notranslate"><span class="pre">{experiment</span> <span class="pre">ID}_report.html</span></code> described
+in <a class="reference internal" href="#id9"><span class="std std-ref">Output</span></a> (nice summary and UI) or use the <code class="docutils literal notranslate"><span class="pre">nextflow</span> <span class="pre">log</span></code> command
+(more flexible and efficient).</p>
+<section id="html-report">
+<h3>HTML Report<a class="headerlink" href="#html-report" title="Link to this heading"></a></h3>
+<p>Click “Tasks” in the top bar or scroll to the bottom of the page. Filter for failed
+jobs by putting “failed” into the search bar. Find the work directory (<code class="docutils literal notranslate"><span class="pre">workdir</span></code> column)
+for each job. Navigate to the work directory for each failed job and
+inspect <code class="docutils literal notranslate"><span class="pre">.command.out</span></code> (<code class="docutils literal notranslate"><span class="pre">STDOUT</span></code>), <code class="docutils literal notranslate"><span class="pre">.command.err</span></code> (<code class="docutils literal notranslate"><span class="pre">STDERR</span></code>), and
+<code class="docutils literal notranslate"><span class="pre">.command.log</span></code> (both) files.</p>
+</section>
+<section id="cli">
+<h3>CLI<a class="headerlink" href="#cli" title="Link to this heading"></a></h3>
+<p>Run <code class="docutils literal notranslate"><span class="pre">nextflow</span> <span class="pre">log</span></code> in the same directory in which you launched
+the workflow to get the workflow name (should be of the form
+<code class="docutils literal notranslate"><span class="pre">{adjective}_{famous</span> <span class="pre">last</span> <span class="pre">name}</span></code>). Use the <code class="docutils literal notranslate"><span class="pre">-f</span></code> and <code class="docutils literal notranslate"><span class="pre">-F</span></code>
+flags of <code class="docutils literal notranslate"><span class="pre">nextflow</span> <span class="pre">log</span></code> to show and filter the information that
+you would like to see (<code class="docutils literal notranslate"><span class="pre">nextflow</span> <span class="pre">log</span> <span class="pre">-help</span></code> for more info).</p>
+<p>Among the fields that can be shown with <code class="docutils literal notranslate"><span class="pre">-f</span></code> are the <code class="docutils literal notranslate"><span class="pre">stderr</span></code>,
+<code class="docutils literal notranslate"><span class="pre">stdout</span></code>, and <code class="docutils literal notranslate"><span class="pre">log</span></code>. This allows you to automatically retrieve
+relevant output for all failed jobs in one go instead of manually
+navigating to work directories and opening the relevant text files.</p>
+<p>For more information about <code class="docutils literal notranslate"><span class="pre">nextflow</span> <span class="pre">log</span></code>, see the
+<a class="reference external" href="https://www.nextflow.io/docs/latest/reports.html#reports">official documentation</a>.
+For a description of some fields (non-exhaustive) that can be specified with
+<code class="docutils literal notranslate"><span class="pre">-f</span></code>, refer to <a class="reference external" href="https://www.nextflow.io/docs/latest/reports.html#trace-fields">this section</a>
+of the official documentation.</p>
+<p>As an example, to see the name, stderr, and workdir for all failed jobs
+in a workflow called <code class="docutils literal notranslate"><span class="pre">agitated_mendel</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nextflow<span class="w"> </span>log<span class="w"> </span>agitated_mendel<span class="w"> </span>-f<span class="w"> </span>name,stderr,workdir<span class="w"> </span>-F<span class="w"> </span><span class="s2">&quot;status == &#39;FAILED&#39;&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="make-and-test-fixes">
+<span id="make-and-test"></span><h3>Make and Test Fixes<a class="headerlink" href="#make-and-test-fixes" title="Link to this heading"></a></h3>
+<p>If you need to further investigate an issue, the exact steps differ depending
+on where you are debugging.</p>
+<ul class="simple">
+<li><p>Google Cloud: See <a class="reference internal" href="gcloud.html#interactive-containers"><span class="std std-ref">instructions here</span></a></p></li>
+<li><p>Sherlock: See <a class="reference internal" href="hpc.html#sherlock-interactive"><span class="std std-ref">instructions here</span></a></p></li>
+<li><p>Local machine: Continue below</p></li>
+</ul>
+<p>Add breakpoints to any Python file with the following line:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">ipdb</span><span class="p">;</span> <span class="n">ipdb</span><span class="o">.</span><span class="n">set_trace</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Figure out the working directory (see <a class="reference internal" href="#troubleshooting"><span class="std std-ref">Troubleshooting</span></a>) for a
+failing process. Navigate to the working directory and run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uvenv<span class="w"> </span>bash<span class="w"> </span>.command.sh
+</pre></div>
+</div>
+<p>This should re-run the job and pause upon reaching the breakpoints you
+set. You should now be in an ipdb shell which you can use to examine
+variable values or step through the code.</p>
+<p>After fixing the issue, you can resume the workflow (avoid re-running
+already successful jobs) by navigating back to the directory in which you
+originally started the workflow and running <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>
+with the <code class="docutils literal notranslate"><span class="pre">--resume</span></code> option (see <a class="reference internal" href="#fault-tolerance"><span class="std std-ref">Fault Tolerance</span></a>).</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="experiments.html" class="btn btn-neutral float-left" title="Experiments" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="output.html" class="btn btn-neutral float-right" title="Output" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

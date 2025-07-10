@@ -1,0 +1,321 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>runscripts.parca &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">runscripts.parca</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for runscripts.parca</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">CONFIG_DIR_PATH</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.experiments.ecoli_master_sim</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">reconstruction.ecoli.knowledge_base_raw</span><span class="w"> </span><span class="kn">import</span> <span class="n">KnowledgeBaseEcoli</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">reconstruction.ecoli.fit_sim_data_1</span><span class="w"> </span><span class="kn">import</span> <span class="n">fitSimData_1</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">validation.ecoli.validation_data_raw</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationDataRawEcoli</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">validation.ecoli.validation_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationDataEcoli</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">wholecell.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">constants</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">wholecell.utils.filepath</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">fp</span>
+
+
+<div class="viewcode-block" id="run_parca">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.parca.html#runscripts.parca.run_parca">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_parca</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
+    <span class="c1"># Make output directory</span>
+    <span class="n">kb_directory</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;outdir&quot;</span><span class="p">],</span> <span class="n">constants</span><span class="o">.</span><span class="n">KB_DIR</span><span class="p">)</span>
+
+    <span class="n">raw_data_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">kb_directory</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">SERIALIZED_RAW_DATA</span><span class="p">)</span>
+    <span class="n">sim_data_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">kb_directory</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">SERIALIZED_SIM_DATA_FILENAME</span><span class="p">)</span>
+    <span class="n">raw_validation_data_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">kb_directory</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">SERIALIZED_RAW_VALIDATION_DATA</span>
+    <span class="p">)</span>
+    <span class="n">validation_data_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">kb_directory</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">SERIALIZED_VALIDATION_DATA</span>
+    <span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span><span class="si">}</span><span class="s2">: Instantiating raw_data with operons=</span><span class="si">{</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;operons&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">raw_data</span> <span class="o">=</span> <span class="n">KnowledgeBaseEcoli</span><span class="p">(</span>
+        <span class="n">operons_on</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;operons&quot;</span><span class="p">],</span>
+        <span class="n">remove_rrna_operons</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;remove_rrna_operons&quot;</span><span class="p">],</span>
+        <span class="n">remove_rrff</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;remove_rrff&quot;</span><span class="p">],</span>
+        <span class="n">stable_rrna</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;stable_rrna&quot;</span><span class="p">],</span>
+        <span class="n">new_genes_option</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;new_genes&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span><span class="si">}</span><span class="s2">: Saving raw_data&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">raw_data_file</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">raw_data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span><span class="si">}</span><span class="s2">: Instantiating sim_data with operons=</span><span class="si">{</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;operons&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">sim_data</span> <span class="o">=</span> <span class="n">fitSimData_1</span><span class="p">(</span>
+        <span class="n">raw_data</span><span class="o">=</span><span class="n">raw_data</span><span class="p">,</span>
+        <span class="n">cpus</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;cpus&quot;</span><span class="p">],</span>
+        <span class="n">debug</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;debug_parca&quot;</span><span class="p">],</span>
+        <span class="n">load_intermediate</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;load_intermediate&quot;</span><span class="p">],</span>
+        <span class="n">save_intermediates</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;save_intermediates&quot;</span><span class="p">],</span>
+        <span class="n">intermediates_directory</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;intermediates_directory&quot;</span><span class="p">],</span>
+        <span class="n">variable_elongation_transcription</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;variable_elongation_transcription&quot;</span><span class="p">],</span>
+        <span class="n">variable_elongation_translation</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;variable_elongation_translation&quot;</span><span class="p">],</span>
+        <span class="n">disable_ribosome_capacity_fitting</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;ribosome_fitting&quot;</span><span class="p">]),</span>
+        <span class="n">disable_rnapoly_capacity_fitting</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;rnapoly_fitting&quot;</span><span class="p">]),</span>
+        <span class="n">cache_dir</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;cache_dir&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span><span class="si">}</span><span class="s2">: Saving sim_data&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">sim_data_file</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span><span class="si">}</span><span class="s2">: Instantiating raw_validation_data&quot;</span><span class="p">)</span>
+    <span class="n">raw_validation_data</span> <span class="o">=</span> <span class="n">ValidationDataRawEcoli</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span><span class="si">}</span><span class="s2">: Saving raw_validation_data&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">raw_validation_data_file</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">raw_validation_data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span><span class="si">}</span><span class="s2">: Instantiating validation_data&quot;</span><span class="p">)</span>
+    <span class="n">validation_data</span> <span class="o">=</span> <span class="n">ValidationDataEcoli</span><span class="p">()</span>
+    <span class="n">validation_data</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">raw_validation_data</span><span class="p">,</span> <span class="n">raw_data</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span><span class="si">}</span><span class="s2">: Saving validation_data&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">validation_data_file</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">validation_data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.parca.html#runscripts.parca.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;run_parca&quot;</span><span class="p">)</span>
+    <span class="n">default_config</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CONFIG_DIR_PATH</span><span class="p">,</span> <span class="s2">&quot;default.json&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--config&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">default_config</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Path to configuration file for the simulation. &quot;</span>
+            <span class="s2">&quot;All key-value pairs in this file will be applied on top &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;of the options defined in </span><span class="si">{</span><span class="n">default_config</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-c&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--cpus&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The number of CPU processes to use. Default = 1.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-o&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--outdir&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Directory to hold ParCa output kb folder. &quot;</span>
+        <span class="s2">&quot;Default = reconstruction/sim_data&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--operons&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">BooleanOptionalAction</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Turn operons on (polycistronic).&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--ribosome-fitting&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">BooleanOptionalAction</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fit ribosome expression to protein synthesis demands.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--rnapoly-fitting&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">BooleanOptionalAction</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fit RNA polymerase expression to protein synthesis demands.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--remove-rrna-operons&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">BooleanOptionalAction</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Remove the seven rRNA operons. Does not have any effect if&quot;</span>
+        <span class="s2">&quot; --no-operons specified.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--remove-rrff&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">BooleanOptionalAction</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Remove the rrfF gene. If operons are enabled,&quot;</span>
+        <span class="s2">&quot; removes the rrfF gene from the rrnD operon.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--debug-parca&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">BooleanOptionalAction</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Make Parca calculate only one arbitrarily-chosen transcription&quot;</span>
+        <span class="s2">&quot; factor condition when adjusting gene expression levels, leaving&quot;</span>
+        <span class="s2">&quot; the other TFs at their input levels for faster Parca debugging.&quot;</span>
+        <span class="s2">&quot; DO NOT USE THIS FOR A MEANINGFUL SIMULATION.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--load-intermediate&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The function in the parca to load (skips functions that would&quot;</span>
+        <span class="s2">&quot; have run before the function). Must run with --save-intermediates&quot;</span>
+        <span class="s2">&quot; first.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--save-intermediates&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">BooleanOptionalAction</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If set, saves sim_data and cell_specs at intermediate&quot;</span>
+        <span class="s2">&quot; function calls in the parca.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--intermediates-directory&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Directory to save or load intermediate sim_data and cell_specs&quot;</span>
+        <span class="s2">&quot; results from if --load-intermediate or --save-intermediates&quot;</span>
+        <span class="s2">&quot; are set.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--variable-elongation-transcription&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">BooleanOptionalAction</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use a different elongation rate for different transcripts&quot;</span>
+        <span class="s2">&quot; (currently increases rates for rRNA). Usually set this&quot;</span>
+        <span class="s2">&quot; consistently between runParca and runSim.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--variable-elongation-translation&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">BooleanOptionalAction</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use a different elongation rate for different polypeptides&quot;</span>
+        <span class="s2">&quot; (currently increases rates for ribosomal proteins).&quot;</span>
+        <span class="s2">&quot; Usually set this consistently between runParca and runSim.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CONFIG_DIR_PATH</span><span class="p">,</span> <span class="s2">&quot;default.json&quot;</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">config_file</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">config</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">config</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">SimConfig</span><span class="o">.</span><span class="n">merge_config_dicts</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+    <span class="c1"># ParCa options are defined under `parca_options` key in config JSON</span>
+    <span class="c1"># Merge these with CLI arguments, which take precedence</span>
+    <span class="n">parca_options</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;parca_options&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parca_options</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="c1"># Expand outdir to absolute path</span>
+    <span class="n">parca_options</span><span class="p">[</span><span class="s2">&quot;outdir&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">parca_options</span><span class="p">[</span><span class="s2">&quot;outdir&quot;</span><span class="p">])</span>
+    <span class="c1"># Set cache directory for ParCa to outdir/cache</span>
+    <span class="n">parca_options</span><span class="p">[</span><span class="s2">&quot;cache_dir&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parca_options</span><span class="p">[</span><span class="s2">&quot;outdir&quot;</span><span class="p">],</span> <span class="s2">&quot;cache&quot;</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">parca_options</span><span class="p">[</span><span class="s2">&quot;cache_dir&quot;</span><span class="p">],</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># If config defines a sim_data_path, skip ParCa</span>
+    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sim_data_path&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">out_kb</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parca_options</span><span class="p">[</span><span class="s2">&quot;outdir&quot;</span><span class="p">],</span> <span class="s2">&quot;kb&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">out_kb</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">out_kb</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span><span class="si">}</span><span class="s2">: Skipping ParCa. Using </span><span class="si">{</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;sim_data_path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;sim_data_path&quot;</span><span class="p">],</span> <span class="n">out_kb</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">run_parca</span><span class="p">(</span><span class="n">parca_options</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

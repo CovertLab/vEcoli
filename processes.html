@@ -1,0 +1,265 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Processes &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Composites" href="composites.html" />
+    <link rel="prev" title="Stores" href="stores.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="stores.html">Stores</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Processes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#registration">Registration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#parameters">Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#partitioned-processes">Partitioned Processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#connecting-to-stores">Connecting to Stores</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#time-steps">Time Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Processes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/processes.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="processes">
+<h1>Processes<a class="headerlink" href="#processes" title="Link to this heading"></a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This document assumes that you are familiar with the basic concepts
+underlying Vivarium processes as outlined in the
+<a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/guides/processes.html">vivarium-core documentation</a>.
+Please read the linked page in full before continuing.</p>
+</div>
+<p>The vEcoli model consists of many sub-models that each represent a biological mechanism.
+We refer to these sub-models as <strong>processes</strong>. At their core, processes are Python classes that inherit from either
+<a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Process</span></code></a>
+or <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Step" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a>.
+For now, we will ignore the differences
+between these two base classes and refer to both as processes.</p>
+<section id="registration">
+<h2>Registration<a class="headerlink" href="#registration" title="Link to this heading"></a></h2>
+<p>In order for a process to be recognized by our main simulation runscript
+(<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#module-ecoli.experiments.ecoli_master_sim" title="ecoli.experiments.ecoli_master_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_master_sim</span></code></a>) by name, it must be registered
+in a few key places. First, a process must be registered in the
+<a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.registry.html#vivarium.core.registry.process_registry" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-data docutils literal notranslate"><span class="pre">process_registry</span></code></a> in the <code class="docutils literal notranslate"><span class="pre">ecoli/processes/__init__.py</span></code>
+file.</p>
+<p>Second, its topology must be registered in <a class="reference internal" href="reference/api/ecoli/ecoli.processes.registries.html#ecoli.processes.registries.topology_registry" title="ecoli.processes.registries.topology_registry"><code class="xref py py-data docutils literal notranslate"><span class="pre">topology_registry</span></code></a>.
+This is usally accomplished by having the following lines at the top of the
+process file:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.processes.registries</span><span class="w"> </span><span class="kn">import</span> <span class="n">topology_registry</span>
+<span class="n">topology_registry</span><span class="o">.</span><span class="n">register</span><span class="p">({</span><span class="n">process</span> <span class="n">name</span><span class="p">},</span> <span class="p">{</span><span class="n">process</span> <span class="n">topology</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>This second condition is not strictly necessary as topologies for
+processes can be manually supplied at runtime using the <code class="docutils literal notranslate"><span class="pre">topology</span></code>
+configuration key (see <a class="reference internal" href="experiments.html#sim-config"><span class="std std-ref">Configuration</span></a>). The topologies specified
+using this configuration option always take precedence over any
+topologies registered for a given process in the topology registry.
+The topology registry is mainly a convenience designed to keep all
+code for a process inside the process file (as oppsed to having the
+topologies for processes in the configuration JSON files).</p>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<p>Nearly all processes in our model require parameters calculated from raw
+experimental data via the parameter calculator or ParCa in order to function.
+Refer to <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim.build_ecoli" title="ecoli.experiments.ecoli_master_sim.EcoliSim.build_ecoli"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build_ecoli()</span></code></a> and
+<a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps" title="ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps"><code class="xref py py-meth docutils literal notranslate"><span class="pre">generate_processes_and_steps()</span></code></a>
+for details on how process parameters are loaded from ParCa output (and elsewhere)
+to configure the processes.</p>
+</section>
+<section id="partitioned-processes">
+<h2>Partitioned Processes<a class="headerlink" href="#partitioned-processes" title="Link to this heading"></a></h2>
+<p>While Vivarium processes are required to implement the
+<a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process.next_update" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">next_update()</span></code></a> method, you may notice that many
+processes in <a class="reference internal" href="reference/api/ecoli/ecoli.processes.html#module-ecoli.processes" title="ecoli.processes"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli.processes</span></code></a> do not have this method and inherit
+from the <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess" title="ecoli.processes.partition.PartitionedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">PartitionedProcess</span></code></a> base class
+instead of <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Process</span></code></a> or <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Step" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a>.
+During sim initialization, <a class="reference internal" href="reference/api/ecoli/ecoli.composites.ecoli_master.html#ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps" title="ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps"><code class="xref py py-meth docutils literal notranslate"><span class="pre">generate_processes_and_steps()</span></code></a>
+uses each <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess" title="ecoli.processes.partition.PartitionedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">PartitionedProcess</span></code></a> to create two
+processes that inherit from <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Step" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a> and have the required
+<a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process.next_update" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">next_update()</span></code></a> method: a
+<a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.Requester" title="ecoli.processes.partition.Requester"><code class="xref py py-class docutils literal notranslate"><span class="pre">Requester</span></code></a> and an
+<a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.Evolver" title="ecoli.processes.partition.Evolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">Evolver</span></code></a>. These processes share an initialized
+<a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess" title="ecoli.processes.partition.PartitionedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">PartitionedProcess</span></code></a> instance, meaning
+both have access to all the same parameters that the partitioned process was
+instantiated with and any changes made to instance variables are seen by both.
+Refer to <a class="reference internal" href="stores.html#partitioning"><span class="std std-ref">Partitioning</span></a> for more details.</p>
+</section>
+<section id="connecting-to-stores">
+<h2>Connecting to Stores<a class="headerlink" href="#connecting-to-stores" title="Link to this heading"></a></h2>
+<p>To be integrated into the broader model, all processes are required to implement
+the <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process.ports_schema" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ports_schema()</span></code></a> method and define
+a topology dictionary. The vEcoli model includes two convenience features
+to help with this.</p>
+<ul class="simple">
+<li><p>Nearly all processes import the <a class="reference internal" href="reference/api/ecoli/ecoli.processes.registries.html#ecoli.processes.registries.topology_registry" title="ecoli.processes.registries.topology_registry"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ecoli.processes.registries.topology_registry</span></code></a>
+and register their topologies under their unique string name, allowing
+<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim._retrieve_topology" title="ecoli.experiments.ecoli_master_sim.EcoliSim._retrieve_topology"><code class="xref py py-meth docutils literal notranslate"><span class="pre">_retrieve_topology()</span></code></a>
+to automatically retrieve topologies for each process at runtime
+(called by <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim.build_ecoli" title="ecoli.experiments.ecoli_master_sim.EcoliSim.build_ecoli"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build_ecoli()</span></code></a>).</p></li>
+<li><p>The three main types of stores in vEcoli (bulk molecules, unique molecules,
+and listeners) all have helper functions to concisely generate schemas
+for use in the <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process.ports_schema" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ports_schema()</span></code></a> methods
+of processes (see <a class="reference internal" href="stores.html"><span class="std std-ref">Stores</span></a>).</p></li>
+</ul>
+</section>
+<section id="time-steps">
+<span id="timesteps"></span><h2>Time Steps<a class="headerlink" href="#time-steps" title="Link to this heading"></a></h2>
+<p>Processes that inherit from <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Process</span></code></a> are
+automatically able to run with a time step that the user can supply using
+the <code class="docutils literal notranslate"><span class="pre">time_step</span></code> key in the parameter dictionary. However, most processes
+in vEcoli inherit from <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Step" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a> and not
+<a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Process</span></code></a>. Instead of running with a
+certain time step, Steps, by default, are run at the end of every time
+step where at least one <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Process</span></code></a> ran.</p>
+<p>To change this to allow our Steps to run with a time step like a
+Process, we:</p>
+<ol class="arabic simple">
+<li><p>Added a top-level store to hold the global simulation time step at <code class="docutils literal notranslate"><span class="pre">(&quot;timestep&quot;,)</span></code>.</p></li>
+<li><p>Added a top-level store to hold the global time at <code class="docutils literal notranslate"><span class="pre">(&quot;global_time&quot;,)</span></code> with a
+default value of 0.</p></li>
+<li><p>Added a store for each process located at <code class="docutils literal notranslate"><span class="pre">(&quot;next_update_time&quot;,</span> <span class="pre">&quot;process_name&quot;)</span></code>
+which has a default value of <code class="docutils literal notranslate"><span class="pre">(&quot;timestep&quot;,)</span></code>.</p></li>
+<li><p>Added logic to the <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process.next_update" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">next_update()</span></code></a>
+methods (<a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess.evolve_state" title="ecoli.processes.partition.PartitionedProcess.evolve_state"><code class="xref py py-meth docutils literal notranslate"><span class="pre">evolve_state()</span></code></a>
+for partitioned processes) to increment <code class="docutils literal notranslate"><span class="pre">(&quot;next_update_time&quot;,</span> <span class="pre">&quot;process_name&quot;)</span></code>
+by <code class="docutils literal notranslate"><span class="pre">(&quot;timestep&quot;,)</span></code> every time the Step is run.</p></li>
+<li><p>Added a <a class="reference internal" href="reference/api/ecoli/ecoli.processes.global_clock.html#ecoli.processes.global_clock.GlobalClock" title="ecoli.processes.global_clock.GlobalClock"><code class="xref py py-class docutils literal notranslate"><span class="pre">GlobalClock</span></code></a> process
+that calculates the smallest difference between the current <code class="docutils literal notranslate"><span class="pre">(&quot;global_time&quot;,)</span></code>
+and each Step’s <code class="docutils literal notranslate"><span class="pre">(&quot;next_update_time&quot;,</span> <span class="pre">&quot;process_name&quot;)</span></code>. This process has a
+custom <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process.calculate_timestep" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">calculate_timestep()</span></code></a> method
+to tell vivarium-core to only run this process after its internal simulation
+clock reaches the soonest update time for another process. At that
+time, this process advances <code class="docutils literal notranslate"><span class="pre">(&quot;global_time&quot;,)</span></code> to match the internal clock.
+Taken together, these actions guarantee that we never accidentally
+skip over a Step’s scheduled update time and also that our manual
+time stepping scheme stays perfectly in sync with vivarium-core’s built-in
+time stepping.</p></li>
+<li><p>Added a custom <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.process.html#vivarium.core.process.Process.update_condition" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_condition()</span></code></a>
+method to most Steps which tells vivarium-core to only run a given Step
+when <code class="docutils literal notranslate"><span class="pre">(&quot;next_update_time&quot;,</span> <span class="pre">&quot;process_name&quot;)</span></code> is less than or equal to
+<code class="docutils literal notranslate"><span class="pre">(&quot;global_time&quot;,)</span></code>.</p></li>
+</ol>
+<p>This manual time stepping scheme highlights a guiding philosophy of models built
+with vivarium-core: storing simulation values in stores wherever possible.
+This is what makes our processes modular while still facilitating communication
+between processes. For example, say we wanted to dynamically modulate the time
+step over the course of a simulation. By storing the time step for all the relevant
+Steps in the same <code class="docutils literal notranslate"><span class="pre">(&quot;timestep&quot;,)</span></code> store, a Process or Step only needs to modify
+this store for all Steps to register this change. Conversely, say we wanted to have
+each Step run with its own time step instead of a global time step.
+We could implement this by simply changing the topologies of each Step to connect
+to a dedicated time step store <code class="docutils literal notranslate"><span class="pre">(&quot;timestep&quot;,</span> <span class="pre">&quot;process_name&quot;)</span></code>, unlinking the time steps
+for each Step.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The above scheme is automatically implemented for processes that inherit
+from <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.PartitionedProcess" title="ecoli.processes.partition.PartitionedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">PartitionedProcess</span></code></a> when they
+are used to create <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.Requester" title="ecoli.processes.partition.Requester"><code class="xref py py-class docutils literal notranslate"><span class="pre">Requester</span></code></a>
+and <a class="reference internal" href="reference/api/ecoli/ecoli.processes.partition.html#ecoli.processes.partition.Evolver" title="ecoli.processes.partition.Evolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">Evolver</span></code></a> Steps.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="stores.html" class="btn btn-neutral float-left" title="Stores" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="composites.html" class="btn btn-neutral float-right" title="Composites" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,341 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>runscripts.debug.compare_pickles &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="runscripts.debug.diff_simouts" href="runscripts.debug.diff_simouts.html" />
+    <link rel="prev" title="runscripts.debug" href="runscripts.debug.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ecoli/ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="runscripts.debug.html"><code class="docutils literal notranslate"><span class="pre">runscripts.debug</span></code></a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">runscripts.debug.compare_pickles</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="runscripts.debug.diff_simouts.html"><code class="docutils literal notranslate"><span class="pre">runscripts.debug.diff_simouts</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="runscripts.debug.process_vulnerabilities.html"><code class="docutils literal notranslate"><span class="pre">runscripts.debug.process_vulnerabilities</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.analysis.html"><code class="docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.create_variants.html"><code class="docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.parca.html"><code class="docutils literal notranslate"><span class="pre">runscripts.parca</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.sim.html"><code class="docutils literal notranslate"><span class="pre">runscripts.sim</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.workflow.html"><code class="docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+          <li class="breadcrumb-item"><a href="runscripts.debug.html"><code class="docutils literal notranslate"><span class="pre">runscripts.debug</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">runscripts.debug.compare_pickles</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/runscripts/runscripts.debug.compare_pickles.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-runscripts.debug.compare_pickles">
+<span id="runscripts-debug-compare-pickles"></span><h1><code class="docutils literal notranslate"><span class="pre">runscripts.debug.compare_pickles</span></code><a class="headerlink" href="#module-runscripts.debug.compare_pickles" title="Link to this heading"></a></h1>
+<p>Compare two .cPickle files or all the .cPickle files in a pair of directories.
+Show the differences or optionally just a count of difference lines.</p>
+<dl class="simple">
+<dt>Usage (PATH is a path like ‘out/manual/intermediates’):</dt><dd><p>runscripts/debug/comparePickles.py PATH1 PATH2</p>
+</dd>
+</dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.Repr">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">Repr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">repr_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#Repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.Repr" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A Repr has the given repr() string without quotes and != any other value.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles._are_instances_of">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">_are_instances_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#_are_instances_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles._are_instances_of" title="Link to this definition"></a></dt>
+<dd><p>Return True if <cite>a</cite> and <cite>b</cite> are both instances of the given type (or tuple
+of types).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.all_vars">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">all_vars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#all_vars"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.all_vars" title="Link to this definition"></a></dt>
+<dd><p>Returns a dict of all the object’s instance variables stored in ordinary
+fields and in compact slots. This expands on the built-in function <cite>vars()</cite>.
+If the object implements the pickling method <cite>__getstate__</cite>, call that
+instead to get its defining state.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.compare_floats">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">compare_floats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#compare_floats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.compare_floats" title="Link to this definition"></a></dt>
+<dd><p>Compare two floats, allowing some tolerance, NaN, and Inf values. This
+considers all types of NaN to match.
+Return 0.0 (which is falsey) if they match, else (f1, f2).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.compare_ndarrays">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">compare_ndarrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">array2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#compare_ndarrays"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.compare_ndarrays" title="Link to this definition"></a></dt>
+<dd><p>Compare two ndarrays, checking the shape and all elements, allowing for
+NaN values and non-numeric values. Return () if they match, else a tuple of
+diff info or just a diff description.</p>
+<dl class="simple">
+<dt>TODO(jerry): Allow tolerance for float elements of structured arrays and</dt><dd><p>handle NaN and Inf values.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.diff_dirs">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">diff_dirs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dir1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_diff_lines</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#diff_dirs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.diff_dirs" title="Link to this definition"></a></dt>
+<dd><p>Diff the pickle files in the pair of named directories. Return the total
+diff line count.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dir1</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>dir2</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>print_diff_lines</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.diff_files">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">diff_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_diff_lines</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#diff_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.diff_files" title="Link to this definition"></a></dt>
+<dd><p>Diff the pair of named pickle files. Return the diff line count.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path1</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>path2</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>print_diff_lines</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.diff_trees">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">diff_trees</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#diff_trees"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.diff_trees" title="Link to this definition"></a></dt>
+<dd><p>Find the differences between two trees or leaf nodes a and b. Return a
+falsey value if the inputs match OR a truthy value that explains or
+summarizes their differences, where each point in the tree where the inputs
+differ will be a tuple (a’s value, b’s value, optional description).</p>
+<p>Floating point numbers are compared with the tolerance set by the constant
+NULP (Number of Units in the Last Place), allowing for NaN and infinite
+values. (Adjust the tolerance level NULP if needed.)</p>
+<p>This operation is symmetrical.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.elide">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">elide</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#elide"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.elide" title="Link to this definition"></a></dt>
+<dd><p>Return a value with the same repr but elided if it’d be longer than max.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.has_python_vars">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">has_python_vars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#has_python_vars"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.has_python_vars" title="Link to this definition"></a></dt>
+<dd><p>Returns true if the given object has any Python instance variables, that is
+ordinary fields or compact slots. If not, it’s presumably a built-in type
+or extension type implemented entirely in C and Cython.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.is_leaf">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">is_leaf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">leaves=(&lt;class</span> <span class="pre">'unum.Unum'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'Bio.Seq.Seq'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'sympy.core.basic.Basic'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'numbers.Number'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'functools.partial'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'function'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'sympy.matrices.dense.MutableDenseMatrix'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'wholecell.utils.unit_struct_array.UnitStructArray'&gt;)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#is_leaf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.is_leaf" title="Link to this definition"></a></dt>
+<dd><p>Predicate to determine if we have reached the end of how deep we want to traverse
+through the object tree.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.list_pickles">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">list_pickles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#list_pickles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.list_pickles" title="Link to this definition"></a></dt>
+<dd><p>Return a map of .cPickle file names to paths in the given directory
+sorted by file modification time then by filename.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>directory</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><em>Dict</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.load_fit_tree">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">load_fit_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">out_subdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#load_fit_tree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.load_fit_tree" title="Link to this definition"></a></dt>
+<dd><p>Load the parameter calculator’s (Parca’s) output as an object_tree.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.load_tree">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">load_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#load_tree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.load_tree" title="Link to this definition"></a></dt>
+<dd><p>Load a .cPickle file as an object_tree.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.object_tree">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">object_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#object_tree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.object_tree" title="Link to this definition"></a></dt>
+<dd><p>Diagnostic tool to inspect a complex data structure.</p>
+<p>Given an object, exhaustively traverse down all attributes it contains until leaves
+are reached, and convert everything found into a dictionary or a list. The resulting
+dictionary will mirror the structure of the original object, but instead of
+attributes with values it will be a dictionary where the keys are the attribute
+names. The type of the dictionarified object will be encoded under the key <cite>!type</cite>
+which is assumed to not be in conflict with any other attributes. The result should
+aid in serialization and deserialization of the object and is intended to be a
+translation of a pickled object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><em>object</em></a>) – The object to inspect.</p></li>
+<li><p><strong>path</strong> (<em>optional str</em>) – The root path of this object tree. This will be built upon
+for each child of the current object found and reported in a value is
+provided for <cite>debug</cite>.</p></li>
+<li><p><strong>debug</strong> (<em>optional str</em>) – If provided, prints paths of the attributes encountered.
+If the value is ‘ALL’, it will print every path. If the value is ‘CALLABLE’,
+it will only print methods and functions it finds.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.pprint_diffs">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">pprint_diffs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">diffs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">160</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_diff_lines</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#pprint_diffs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.pprint_diffs" title="Link to this definition"></a></dt>
+<dd><p>Pretty-print the diff info: optionally print the detailed diff lines,
+optionally print the diff line count as a single figure of merit; then
+return the line count.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.simplify_error_message">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">simplify_error_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#simplify_error_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.simplify_error_message" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.debug.compare_pickles.size_tree">
+<span class="sig-prename descclassname"><span class="pre">runscripts.debug.compare_pickles.</span></span><span class="sig-name descname"><span class="pre">size_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/debug/compare_pickles.html#size_tree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.debug.compare_pickles.size_tree" title="Link to this definition"></a></dt>
+<dd><p>Find the size of attributes in an object tree. Sizes greater than the cutoff
+(in MB) will be returned for displaying. Sizes include all values contained
+within an attribute (eg. a Dict will be represented by the size of all keys
+and values in addition to the Dict size itself).</p>
+<p>TODO: double check total size vs disk size - might be missing some types</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="runscripts.debug.html" class="btn btn-neutral float-left" title="runscripts.debug" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="runscripts.debug.diff_simouts.html" class="btn btn-neutral float-right" title="runscripts.debug.diff_simouts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,689 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ecoli.analysis.single" href="ecoli.analysis.single.html" />
+    <link rel="prev" title="ecoli.analysis.multivariant.dummy" href="ecoli.analysis.multivariant.dummy.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.antibiotics_colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.antibiotics_colony</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.causality_network.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.causality_network</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.colony.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.colony</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multidaughter.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multidaughter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multiexperiment.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multiexperiment</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multigeneration.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multigeneration</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.multiseed.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multiseed</span></code></a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="ecoli.analysis.multivariant.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multivariant</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.analysis.single.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.single</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.composites.html"><code class="docutils literal notranslate"><span class="pre">ecoli.composites</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.experiments.html"><code class="docutils literal notranslate"><span class="pre">ecoli.experiments</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.library.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.processes.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.variants.html"><code class="docutils literal notranslate"><span class="pre">ecoli.variants</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../runscripts/runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.analysis.multivariant.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multivariant</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/ecoli/ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps">
+<span id="ecoli-analysis-multivariant-new-gene-translation-efficiency-heatmaps"></span><h1><code class="docutils literal notranslate"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps</span></code><a class="headerlink" href="#module-ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps" title="Link to this heading"></a></h1>
+<p>Plot one value per index via heatmap for
+new_gene_expression_and_translation_efficiency variant.</p>
+<p>Possible Plots:</p>
+<ul class="simple">
+<li><p>Percent of sims that successfully reached a given generation number</p></li>
+<li><p>Average doubling time</p></li>
+<li><p>Average cell volume, mass, dry cell mass, mRNA mass, protein mass</p></li>
+<li><p>Average translation efficiency, weighted by cistron count</p></li>
+<li><p>Average mRNA count, monomer count, mRNA mass fraction, protein mass fraction,
+RNAP portion, and ribosome portion for a capacity gene to measure burden on
+overall host expression</p></li>
+<li><p>Average new gene copy number</p></li>
+<li><p>Average new gene mRNA count</p></li>
+<li><p>Average new gene mRNA mass fraction</p></li>
+<li><p>Average new gene mRNA counts fraction</p></li>
+<li><p>Average new gene NTP mass fraction</p></li>
+<li><p>Average new gene protein count</p></li>
+<li><p>Average new gene protein mass fraction</p></li>
+<li><p>Average new gene protein counts fraction</p></li>
+<li><p>Average new gene initialization rate for RNAP and ribosomes</p></li>
+<li><p>Average new gene initialization probabilities for RNAP and ribosomes</p></li>
+<li><p>Average count and portion of new gene ribosome initialization events per time
+step</p></li>
+<li><p>Average number and proportion of RNAP on new genes at a given time step</p></li>
+<li><p>Average number and proportion of ribosomes on new gene mRNAs at a given time
+step</p></li>
+<li><p>Average number and proportion of RNAP making rRNAs at a given time step</p></li>
+<li><p>Average number and proportion of RNAP and ribosomes making RNAP subunits at
+a given time step</p></li>
+<li><p>Average number and proportion of RNAP and ribosomes making ribosomal proteins
+at a given time step</p></li>
+<li><p>Average fraction of time new gene is overcrowded by RNAP and Ribosomes</p></li>
+<li><p>Average overcrowding probability ratio for new gene RNA synthesis and
+polypeptide initiation</p></li>
+<li><p>Average max_p probabilities for RNA synthesis and polypeptide initiation</p></li>
+<li><p>Average number of overcrowded genes for RNAP and Ribosomes</p></li>
+<li><p>Average number of total, active, and free ribosomes</p></li>
+<li><p>Average number of ribosomes initialized at each time step</p></li>
+<li><p>Average number of total active, and free RNA polymerases</p></li>
+<li><p>Average ppGpp concentration</p></li>
+<li><p>Average rate of glucose consumption</p></li>
+<li><p>Average new gene monomer yields - per hour and per fg of glucose</p></li>
+</ul>
+<dl class="py data">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.COUNT_INDEX">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">COUNT_INDEX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">32</span></em><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.COUNT_INDEX" title="Link to this definition"></a></dt>
+<dd><p>Plot data from generations [MIN_CELL_INDEX, MAX_CELL_INDEX)
+Note that early generations may not be representative of dynamics
+due to how they are initialized</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.DASHBOARD_FLAG">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">DASHBOARD_FLAG</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.DASHBOARD_FLAG" title="Link to this definition"></a></dt>
+<dd><p>Standard Deviations Flag</p>
+<ul class="simple">
+<li><p>True: Plot an additional copy of all plots with standard deviation displayed
+insted of the average</p></li>
+<li><p>False: Plot no additional plots</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.FONT_SIZE">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">FONT_SIZE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">9</span></em><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.FONT_SIZE" title="Link to this definition"></a></dt>
+<dd><p>Dashboard Flag</p>
+<ul class="simple">
+<li><p>0: Separate Only (Each plot is its own file)</p></li>
+<li><p>1: Dashboard Only (One file with all plots)</p></li>
+<li><p>2: Both Dashboard and Separate</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.GENE_COUNTS_SQL">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">GENE_COUNTS_SQL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'\n</span>&#160;&#160;&#160; <span class="pre">WITH</span> <span class="pre">unnested_counts</span> <span class="pre">AS</span> <span class="pre">(\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">SELECT</span> <span class="pre">unnest(gene_counts)</span> <span class="pre">AS</span> <span class="pre">gene_counts,\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">generate_subscripts(gene_counts,</span> <span class="pre">1)\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">AS</span> <span class="pre">gene_idx,</span> <span class="pre">experiment_id,</span> <span class="pre">variant,</span> <span class="pre">lineage_seed,</span> <span class="pre">generation,\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">agent_id\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">FROM</span> <span class="pre">({subquery})\n</span>&#160;&#160;&#160; <span class="pre">),\n</span>&#160;&#160;&#160; <span class="pre">avg_per_cell</span> <span class="pre">AS</span> <span class="pre">(\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">SELECT</span> <span class="pre">avg(gene_counts)</span> <span class="pre">AS</span> <span class="pre">avg_count,\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">experiment_id,</span> <span class="pre">variant,</span> <span class="pre">gene_idx\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">FROM</span> <span class="pre">unnested_counts\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">GROUP</span> <span class="pre">BY</span> <span class="pre">experiment_id,</span> <span class="pre">variant,</span> <span class="pre">lineage_seed,\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">generation,</span> <span class="pre">agent_id,</span> <span class="pre">gene_idx\n</span>&#160;&#160;&#160; <span class="pre">),\n</span>&#160;&#160;&#160; <span class="pre">avg_per_variant</span> <span class="pre">AS</span> <span class="pre">(\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">SELECT</span> <span class="pre">log10(avg(avg_count)</span> <span class="pre">+</span> <span class="pre">1)</span> <span class="pre">AS</span> <span class="pre">avg_count,\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">log10(stddev(avg_count)</span> <span class="pre">+</span> <span class="pre">1)</span> <span class="pre">AS</span> <span class="pre">std_count,\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">experiment_id,</span> <span class="pre">variant,</span> <span class="pre">gene_idx\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">FROM</span> <span class="pre">avg_per_cell\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">GROUP</span> <span class="pre">BY</span> <span class="pre">experiment_id,</span> <span class="pre">variant,</span> <span class="pre">gene_idx\n</span>&#160;&#160;&#160; <span class="pre">)\n</span>&#160;&#160;&#160; <span class="pre">SELECT</span> <span class="pre">variant,</span> <span class="pre">list(avg_count</span> <span class="pre">ORDER</span> <span class="pre">BY</span> <span class="pre">gene_idx)</span> <span class="pre">AS</span> <span class="pre">mean,\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">list(std_count</span> <span class="pre">ORDER</span> <span class="pre">BY</span> <span class="pre">gene_idx)</span> <span class="pre">AS</span> <span class="pre">std,\n</span>&#160;&#160;&#160; <span class="pre">FROM</span> <span class="pre">avg_per_variant\n</span>&#160;&#160;&#160; <span class="pre">GROUP</span> <span class="pre">BY</span> <span class="pre">experiment_id,</span> <span class="pre">variant\n</span>&#160;&#160;&#160; <span class="pre">'</span></em><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.GENE_COUNTS_SQL" title="Link to this definition"></a></dt>
+<dd><p>Generic SQL query for calculating average of a 1D-array column
+per cell, aggregates that per variant into <code class="docutils literal notranslate"><span class="pre">log10(mean</span> <span class="pre">+</span> <span class="pre">1)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">log10(std</span> <span class="pre">+</span> <span class="pre">1)</span></code> columns.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.MAX_CELL_INDEX">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">MAX_CELL_INDEX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">33</span></em><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.MAX_CELL_INDEX" title="Link to this definition"></a></dt>
+<dd><p>Specify which subset of heatmaps should be made
+Completed_gens heatmap is always made, because it is used to
+create the other heatmaps, and should not be included here.
+The order listed here will be the order of the heatmaps in the
+dashboard plot.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.STD_DEV_FLAG">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">STD_DEV_FLAG</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.STD_DEV_FLAG" title="Link to this definition"></a></dt>
+<dd><p>Count number of sims that reach this generation (remember index 7
+corresponds to generation 8)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_1d_array_over_scalar_sql">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">avg_1d_array_over_scalar_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array_column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scalar_column</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#avg_1d_array_over_scalar_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_1d_array_over_scalar_sql" title="Link to this definition"></a></dt>
+<dd><p>Create generic SQL query that calculates the average per cell of
+each element in a 1D array column divided by a scalar column, and
+aggregates those ratios per variant into mean and std columns.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Time steps with 0 in the scalar column are assigned a ratio of 0.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>array_column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of 1D list column to aggregate</p></li>
+<li><p><strong>scalar_column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of scalar column to divide <code class="docutils literal notranslate"><span class="pre">array_column</span></code>
+cell averages by</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_1d_array_sql">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">avg_1d_array_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#avg_1d_array_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_1d_array_sql" title="Link to this definition"></a></dt>
+<dd><p>Create generic SQL query that calculates the average per cell of
+each element in a 1D array column and aggregates that per variant
+into mean and std columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of 1D list column to aggregate</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_ratio_of_1d_arrays_sql">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">avg_ratio_of_1d_arrays_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">numerator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">denominator</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#avg_ratio_of_1d_arrays_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_ratio_of_1d_arrays_sql" title="Link to this definition"></a></dt>
+<dd><p>Create generic SQL query that calculates the average per cell of each
+element in two 1D list columns divided elementwise and aggregates those
+ratios per variant into mean and std columns.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Time steps with 0 in the denominator are assigned a ratio of 0.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>numerator</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of 1D list column that will be numerator in ratio</p></li>
+<li><p><strong>denominator</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of 1D list column that will be denominator in ratio</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_sum_1d_array_over_scalar_sql">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">avg_sum_1d_array_over_scalar_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array_column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scalar_column</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#avg_sum_1d_array_over_scalar_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_sum_1d_array_over_scalar_sql" title="Link to this definition"></a></dt>
+<dd><p>Create generic SQL query that calculates the average per cell of
+the sum of elements in a 1D array column divided by a scalar column, and
+aggregates those ratios per variant as mean and std columns.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Time steps with 0 in the scalar column are assigned a ratio of 0.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>array_column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of 1D list column to aggregate</p></li>
+<li><p><strong>scalar_column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of scalar column to divide <code class="docutils literal notranslate"><span class="pre">array_column</span></code>
+cell averages by</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_sum_1d_array_sql">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">avg_sum_1d_array_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#avg_sum_1d_array_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.avg_sum_1d_array_sql" title="Link to this definition"></a></dt>
+<dd><p>Create generic SQL query that calculates the average per cell of
+the sum of elements in a 1D array column and
+aggregates that per variant into mean and std columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of 1D list column to aggregate</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_gene_count_fraction_sql">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">get_gene_count_fraction_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gene_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#get_gene_count_fraction_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_gene_count_fraction_sql" title="Link to this definition"></a></dt>
+<dd><p>Construct generic SQL query that gets the average per cell of a select
+set of indices from a 1D list column divided by the total of all elements
+per row of that list column, and aggregates those ratios per variant
+into mean and std columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gene_indices</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em><em>]</em>) – Indices to extract from 1D list column to get ratios for</p></li>
+<li><p><strong>column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of 1D list column</p></li>
+<li><p><strong>index_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Can either be <code class="docutils literal notranslate"><span class="pre">monomer</span></code> or <code class="docutils literal notranslate"><span class="pre">mRNA</span></code>. For <code class="docutils literal notranslate"><span class="pre">monomer</span></code>,
+function works exactly as described above. For <code class="docutils literal notranslate"><span class="pre">mRNA</span></code>,
+<code class="docutils literal notranslate"><span class="pre">gene_indices</span></code> will be a list of lists of mRNA indices. This is
+because one gene can have to multiple mRNAs (transcription units).
+Therefore, we sum the elements corresponding to each gene before
+proceeding (see <a class="reference internal" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_rnas_combined_as_genes_projection" title="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_rnas_combined_as_genes_projection"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_rnas_combined_as_genes_projection()</span></code></a>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_gene_mass_prod_func">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">get_gene_mass_prod_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gene_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#get_gene_mass_prod_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_gene_mass_prod_func" title="Link to this definition"></a></dt>
+<dd><p>Create a function to be passed as the <code class="docutils literal notranslate"><span class="pre">post_func</span></code> argument to
+<a class="reference internal" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_mean_and_std_matrices" title="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_mean_and_std_matrices"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_mean_and_std_matrices()</span></code></a> which multiplies the
+average and standard deviation 1D array columns by the mass of
+the gene ID for each element.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sim_data</strong> (<a class="reference internal" href="../reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><em>SimulationDataEcoli</em></a>) – Simulation data</p></li>
+<li><p><strong>index_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Either <code class="docutils literal notranslate"><span class="pre">mRNA</span></code> or <code class="docutils literal notranslate"><span class="pre">monomer</span></code>. If <code class="docutils literal notranslate"><span class="pre">mRNA</span></code>,
+<code class="docutils literal notranslate"><span class="pre">gene_ids</span></code> is list of lists of mRNA IDs, where inner
+lists correspond to mRNAs for each gene. Therefore,
+we sum the masses for the mRNAs of each inner list
+and multiply the input mean and std by this sum per gene.</p></li>
+<li><p><strong>gene_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em><em>]</em>) – IDs of genes in the order they appear in the
+1D arrays of the query result</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.13)"><em>Callable</em></a>[[<em>DataFrame</em>], <em>DataFrame</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_indexes">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">get_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_sql</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#get_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_indexes" title="Link to this definition"></a></dt>
+<dd><p>Retrieve DuckDB indices of a given type for a set of IDs. Note that
+DuckDB lists are 1-indexed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conn</strong> (<em>DuckDBPyConnection</em>) – DuckDB database connection</p></li>
+<li><p><strong>config_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – DuckDB SQL query for sim config data (see
+<a class="reference internal" href="ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.dataset_sql" title="ecoli.library.parquet_emitter.dataset_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataset_sql()</span></code></a>)</p></li>
+<li><p><strong>index_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Type of indices to return (one of <code class="docutils literal notranslate"><span class="pre">cistron</span></code>,
+<code class="docutils literal notranslate"><span class="pre">RNA</span></code>, <code class="docutils literal notranslate"><span class="pre">mRNA</span></code>, or <code class="docutils literal notranslate"><span class="pre">monomer</span></code>)</p></li>
+<li><p><strong>ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em><em>]</em>) – List of IDs to get indices for (must be monomer IDs
+if <code class="docutils literal notranslate"><span class="pre">index_type</span></code> is <code class="docutils literal notranslate"><span class="pre">monomer</span></code>, else mRNA IDs)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of requested indexes</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a> | None] | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a> | None]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_mRNA_ids_from_monomer_ids">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">get_mRNA_ids_from_monomer_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_monomer_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#get_mRNA_ids_from_monomer_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_mRNA_ids_from_monomer_ids" title="Link to this definition"></a></dt>
+<dd><p>Map monomer IDs back to the mRNA IDs that they were translated from.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_monomer_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – IDs of the monomers to map to mRNA IDs</p></li>
+<li><p><strong>sim_data</strong> (<a class="reference internal" href="../reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><em>SimulationDataEcoli</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of mRNA ID lists, one for each monomer ID</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_mean_and_std_matrices">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">get_mean_and_std_matrices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_mapping</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_matrix_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history_sql</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order_results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">success_sql</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_sql</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_digits_rounding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#get_mean_and_std_matrices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_mean_and_std_matrices" title="Link to this definition"></a></dt>
+<dd><p>Reads one or more columns and calculates mean and std. dev. for each
+variant. If no custom SQL query is provided, this defaults to averaging
+per cell, then calculating the averages and standard deviations of all
+cells per variant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conn</strong> (<em>DuckDBPyConnection</em>) – DuckDB connection</p></li>
+<li><p><strong>variant_mapping</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em><em>]</em>) – Mapping of variant IDs to row and column in matrix
+of new gene translation efficiency and expression factor variants</p></li>
+<li><p><strong>variant_matrix_shape</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em>) – Number of rows and columns in variant matrix</p></li>
+<li><p><strong>history_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – SQL subquery from <a class="reference internal" href="ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.dataset_sql" title="ecoli.library.parquet_emitter.dataset_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">ecoli.library.parquet_emitter.dataset_sql()</span></code></a></p></li>
+<li><p><strong>columns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – See
+<a class="reference internal" href="ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.read_stacked_columns" title="ecoli.library.parquet_emitter.read_stacked_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">ecoli.library.parquet_emitter.read_stacked_columns()</span></code></a></p></li>
+<li><p><strong>remove_first</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – See
+<a class="reference internal" href="ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.read_stacked_columns" title="ecoli.library.parquet_emitter.read_stacked_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">ecoli.library.parquet_emitter.read_stacked_columns()</span></code></a></p></li>
+<li><p><strong>func</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.13)"><em>Callable</em></a><em> | </em><em>None</em>) – See
+<a class="reference internal" href="ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.read_stacked_columns" title="ecoli.library.parquet_emitter.read_stacked_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">ecoli.library.parquet_emitter.read_stacked_columns()</span></code></a></p></li>
+<li><p><strong>order_results</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – See
+<a class="reference internal" href="ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.read_stacked_columns" title="ecoli.library.parquet_emitter.read_stacked_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">ecoli.library.parquet_emitter.read_stacked_columns()</span></code></a></p></li>
+<li><p><strong>success_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>None</em>) – See
+<a class="reference internal" href="ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.read_stacked_columns" title="ecoli.library.parquet_emitter.read_stacked_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">ecoli.library.parquet_emitter.read_stacked_columns()</span></code></a></p></li>
+<li><p><strong>custom_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>None</em>) – SQL string containing a placeholder with name <code class="docutils literal notranslate"><span class="pre">subquery</span></code>
+where the result of read_stacked_columns will be placed. Final query
+result must only have two columns in order: <code class="docutils literal notranslate"><span class="pre">variant</span></code> and a value
+for each variant. If not provided, defaults to average of averages</p></li>
+<li><p><strong>post_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.13)"><em>Callable</em></a><em> | </em><em>None</em>) – Function that is called on Polars DataFrame resulting from query.
+Should return a Polars DataFrame with exactly three columns: <code class="docutils literal notranslate"><span class="pre">variant</span></code>
+for the variant IDs, <code class="docutils literal notranslate"><span class="pre">mean</span></code> for some mean aggregate value (can be
+N-D list column), and <code class="docutils literal notranslate"><span class="pre">std</span></code> for some standard deviation aggregate.</p></li>
+<li><p><strong>num_digits_rounding</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> | </em><em>None</em>) – Number of decimal places to round to</p></li>
+<li><p><strong>default_value</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em> | </em><em>None</em>) – Default value to put in output variant matrices if
+variant ID not included in query result (e.g. if variant failed in
+first generation and had no completed sims)</p></li>
+<li><p><strong>new_gene_NTP_fraction</strong> – Set to True for NTP fraction heatmap so query output
+is properly handled</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of Numpy matrices with first two dimensions <code class="docutils literal notranslate"><span class="pre">variant_matrix_shape</span></code>.
+Each cell in first matrix has the mean for that variant. Each cell in the
+second matrix has the std. dev. for that variant. These values can be Numpy
+arrays instead of scalar values (e.g. when calculating aggregates for many
+genes at once), in which case the matrices have shapes
+<code class="docutils literal notranslate"><span class="pre">variant_matrix_shape</span> <span class="pre">+</span> <span class="pre">(num_genes,)</span></code></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><em>ndarray</em></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><em>ndarray</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_new_gene_mRNA_NTP_fraction_sql">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">get_new_gene_mRNA_NTP_fraction_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_gene_mRNA_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ntp_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#get_new_gene_mRNA_NTP_fraction_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_new_gene_mRNA_NTP_fraction_sql" title="Link to this definition"></a></dt>
+<dd><p>Construct SQL query that gets, for each NTP, the fraction used by
+the mRNAs of each new gene, averages that per cell, and aggregate
+those fractions per variant into mean and std columns where each
+row is a 2D list with shape <code class="docutils literal notranslate"><span class="pre">(#</span> <span class="pre">NTPs,</span> <span class="pre">#</span> <span class="pre">new</span> <span class="pre">genes)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sim_data</strong> (<a class="reference internal" href="../reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><em>SimulationDataEcoli</em></a>) – Simulation data</p></li>
+<li><p><strong>new_gene_mRNA_idx</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em><em>]</em>) – List of lists of mRNA indices for each new gene</p></li>
+<li><p><strong>ntp_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – IDs for NTPs in same order that they appear in
+<code class="docutils literal notranslate"><span class="pre">sim_data.process.transcription.rna_data[&quot;counts_ACGU&quot;]</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_overcrowding_sql">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">get_overcrowding_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actual_col</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#get_overcrowding_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_overcrowding_sql" title="Link to this definition"></a></dt>
+<dd><p>Create generic SQL query that calculates for average number of genes
+that are overcrowded per time step for each cell, then aggregates that
+per variant into mean and std columns.</p>
+<p>At every time step, if the element in <code class="docutils literal notranslate"><span class="pre">target_col</span></code> is greater than the
+corresponding element in <code class="docutils literal notranslate"><span class="pre">actual_col</span></code>, we say that the gene for that
+element is overcrowded. We average the number of overcrowded genes over
+all the time steps for each cell. Then, we average the per-cell averages
+over all cells in each variant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of 1D list column with target values</p></li>
+<li><p><strong>actual_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of 1D list column with actual values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_ribosome_counts_projection">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">get_ribosome_counts_projection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bulk_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#get_ribosome_counts_projection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_ribosome_counts_projection" title="Link to this definition"></a></dt>
+<dd><p>Return SQL projection to selectively read bulk inactive ribosome count
+(defined as minimum of free 30S and 50S subunits at any given moment)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sim_data</strong> (<a class="reference internal" href="../reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><em>SimulationDataEcoli</em></a>) – Simulation data</p></li>
+<li><p><strong>bulk_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – List of all bulk IDs in order</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_rnap_counts_projection">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">get_rnap_counts_projection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bulk_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#get_rnap_counts_projection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_rnap_counts_projection" title="Link to this definition"></a></dt>
+<dd><p>Return SQL projection to selectively read bulk inactive RNAP count.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sim_data</strong> (<a class="reference internal" href="../reconstruction/reconstruction.ecoli.simulation_data.html#reconstruction.ecoli.simulation_data.SimulationDataEcoli" title="reconstruction.ecoli.simulation_data.SimulationDataEcoli"><em>SimulationDataEcoli</em></a>) – Simulation data</p></li>
+<li><p><strong>bulk_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – List of all bulk IDs in order</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_rnas_combined_as_genes_projection">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">get_rnas_combined_as_genes_projection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rna_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cast_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#get_rnas_combined_as_genes_projection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_rnas_combined_as_genes_projection" title="Link to this definition"></a></dt>
+<dd><p>Create generic SQL projection that evaluates to a list column
+where each element is the sum of a subset of elements from the
+original list column. This is mainly used to sum up all RNA
+data that corresponds to a single gene / cistron / monomer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>column</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>rna_idx</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em><em>]</em>)</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>cast_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_variant_mask">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">get_variant_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_sql</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_to_row_col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_matrix_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#get_variant_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.get_variant_mask" title="Link to this definition"></a></dt>
+<dd><p>Get a boolean matrix where the rows represent the different
+translation efficiencies and the columns represent the different
+expression factors that were used to create variants. The matrix
+is True for each combination that was actually simulated and
+False otherwise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conn</strong> (<em>DuckDBPyConnection</em>)</p></li>
+<li><p><strong>config_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>variant_to_row_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em><em>]</em>)</p></li>
+<li><p><strong>variant_matrix_shape</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><em>ndarray</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>, …], <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.3)"><em>dtype</em></a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="(in NumPy v2.3)"><em>bool</em></a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.plot">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history_sql</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_sql</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">success_sql</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_data_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_data_paths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_names</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.plot" title="Link to this definition"></a></dt>
+<dd><p>Create either a single multi-heatmap plot or 1+ separate heatmaps of data
+for a grid of new gene variant simulations with varying expression and
+translation efficiencies.</p>
+<dl class="simple">
+<dt>Params (override corresponding hard-coded global variables):</dt><dd><p>font_size, dashboard_flag, std_dev_flag, count_index, min_cell_index,
+max_cell_index</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em>)</p></li>
+<li><p><strong>conn</strong> (<em>DuckDBPyConnection</em>)</p></li>
+<li><p><strong>history_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>config_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>success_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>sim_data_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em><em>]</em>)</p></li>
+<li><p><strong>validation_data_paths</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>)</p></li>
+<li><p><strong>outdir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>variant_metadata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em><em>]</em>)</p></li>
+<li><p><strong>variant_names</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.plot_heatmaps">
+<span class="sig-prename descclassname"><span class="pre">ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.</span></span><span class="sig-name descname"><span class="pre">plot_heatmaps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">heatmap_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heatmap_details</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_gene_cistron_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ntp_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity_gene_common_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_heatmaps_to_make</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_dashboard</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heatmap_x_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heatmap_y_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_gene_expression_factors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_gene_translation_efficiency_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary_statistic</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plotOutDir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_suffix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/analysis/multivariant/new_gene_translation_efficiency_heatmaps.html#plot_heatmaps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.analysis.multivariant.new_gene_translation_efficiency_heatmaps.plot_heatmaps" title="Link to this definition"></a></dt>
+<dd><p>Plots all heatmaps in order given by HEATMAPS_TO_MAKE_LIST.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>is_dashboard</strong> – Boolean flag for whether we are creating a dashboard
+of heatmaps or a number of individual heatmaps</p></li>
+<li><p><strong>variant_mask</strong> – np.array of dimension
+(len(new_gene_translation_efficiency_values),
+len(new_gene_expression_factors)) with entries set to True if
+variant was run, False otherwise.</p></li>
+<li><p><strong>heatmap_x_label</strong> – Label for x axis of heatmap</p></li>
+<li><p><strong>heatmap_y_label</strong> – Label for y axis of heatmap</p></li>
+<li><p><strong>new_gene_expression_factors</strong> – New gene expression factors used in
+these variants</p></li>
+<li><p><strong>new_gene_translation_efficiency_values</strong> – New gene translation
+efficiency values used in these variants</p></li>
+<li><p><strong>summary_statistic</strong> – Specifies whether average (mean) or
+standard deviation (std_dev) should be displayed on the
+heatmaps</p></li>
+<li><p><strong>figsize_x</strong> – Horizontal size of each heatmap</p></li>
+<li><p><strong>figsize_y</strong> – Vertical size of each heatmap</p></li>
+<li><p><strong>plotOutDir</strong> – Output directory for plots</p></li>
+<li><p><strong>plot_suffix</strong> – Suffix to add to plot file names, usually specifying
+which generations were plotted</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ecoli.analysis.multivariant.dummy.html" class="btn btn-neutral float-left" title="ecoli.analysis.multivariant.dummy" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ecoli.analysis.single.html" class="btn btn-neutral float-right" title="ecoli.analysis.single" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
