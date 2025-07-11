@@ -134,8 +134,14 @@ def plot(
         genes_tu_idx = [i for i, val in enumerate(genes_tu_all) if val in genes_tu]
         tu_gene_mtx[tu_idx, genes_tu_idx] = 1
 
+    mrna_omics = np.matmul(mrna_summed, tu_gene_mtx)
+
+    # ptools_rna = pd.DataFrame(
+    #     data=mrna_summed.transpose(), columns=tp_columns, index=mrna_names
+    # )
+
     ptools_rna = pd.DataFrame(
-        data=mrna_summed.transpose(), columns=tp_columns, index=mrna_names
+        data=mrna_omics.transpose(), columns=tp_columns, index=genes_tu_all
     )
     ptools_rna.to_csv(
         os.path.join(outdir, "ptools_rna.txt"), sep="\t", index=True, header=True
