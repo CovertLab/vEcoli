@@ -82,7 +82,7 @@ def plot(
     mrna_summed = np.insert(mrna_summed, 0, mrna_mtx[0], axis=0)
 
     tp_columns = ["t" + str(i) for i in range(len(tps))]
-
+    ### temp
     tu_id_mapping = pd.read_csv(
         os.path.join(wd_raw, "transcription_units.tsv"), sep="\t", header=5, index_col=0
     )
@@ -98,6 +98,41 @@ def plot(
         except KeyError:
             mrna_name = mrna_ids[i]
         mrna_names.append(mrna_name)
+
+    ###
+
+    tu_id_source_1 = pd.read_csv(
+        os.path.join(wd_raw, "transcription_units.tsv"), sep="\t", header=5, index_col=0
+    )
+    tu_id_sourse_2 = pd.read_csv(
+        os.path.join(wd_raw, "transcription_units_added.tsv"),
+        sep="\t",
+        header=0,
+        index_col=0,
+    )
+    tu_id_source_2 = tu_id_sourse_2.drop("_comments", axis=1)
+    tu_id_source = pd.concat([tu_id_source_1, tu_id_source_2], axis=0)
+
+    tu_id2genes = []
+    for i in range(len(mrna_ids)):
+        try:
+            tu_id_genes = tu_id_source["genes"][mrna_ids[i]]
+        except KeyError:
+            tu_id_genes = f"[{mrna_ids[i].replace('_RNA', '')}]"
+
+        tu_id_genes = tu_id_genes[1:-1].replace('"', "").split(", ")
+        tu_id2genes.append(tu_id_genes)
+
+    tu_id2genes = dict(zip(mrna_ids, tu_id2genes))
+
+    genes_tu_all = [gene for genes in list(tu_id2genes.values()) for gene in genes]
+
+    tu_gene_mtx = np.zeros([len(tu_id2genes), len(genes_tu_all)])
+
+    for tu_idx, key in enumerate(tu_id2genes.keys()):
+        genes_tu = tu_id2genes[key]
+        genes_tu_idx = [i for i, val in enumerate(genes_tu_all) if val in genes_tu]
+        tu_gene_mtx[tu_idx, genes_tu_idx] = 1
 
     ptools_rna = pd.DataFrame(
         data=mrna_summed.transpose(), columns=tp_columns, index=mrna_names
