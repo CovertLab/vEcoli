@@ -125,7 +125,9 @@ def plot(
 
     tu_id2genes = dict(zip(mrna_ids, tu_id2genes))
 
-    genes_tu_all = [gene for genes in list(tu_id2genes.values()) for gene in genes]
+    genes_tu_all = list(
+        np.unique([gene for genes in list(tu_id2genes.values()) for gene in genes])
+    )
 
     tu_gene_mtx = np.zeros([len(tu_id2genes), len(genes_tu_all)])
 
