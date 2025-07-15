@@ -34,15 +34,6 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    with open(os.path.join(outdir, "history_sql.txt"), "w") as f:
-        f.write(f"\nwd={os.getcwd()}\n")
-        f.write(f"\nwd_top={os.getcwd().split('/out/')[0]}\n")
-        f.write(f"\nsim_data_paths={sim_data_paths}\n")
-        f.write(f"\nvariant_metadata={variant_metadata}\n")
-        f.write(f"\nvariant_names={variant_names}\n")
-        f.write(f"\nparams={params}\n")
-        f.write(history_sql)
-
     exp_id = list(sim_data_paths.keys())[0]
 
     wd_top = os.getcwd().split("/out/")[0]
@@ -68,7 +59,6 @@ def plot(
     mrna_mtx = np.stack(
         output["listeners__rna_counts__full_mRNA_counts"].values
     ).astype(int)
-    np.savetxt(os.path.join(outdir, "mrna_mtx.txt"), mrna_mtx, delimiter="\t", fmt="%d")
 
     tps = np.linspace(0, np.shape(mrna_mtx)[0], 6, dtype=int)
 
@@ -137,10 +127,6 @@ def plot(
         tu_gene_mtx[tu_idx, genes_tu_idx] = 1
 
     mrna_omics = np.matmul(mrna_summed, tu_gene_mtx)
-
-    # ptools_rna = pd.DataFrame(
-    #     data=mrna_summed.transpose(), columns=tp_columns, index=mrna_names
-    # )
 
     ptools_rna = pd.DataFrame(
         data=mrna_omics.transpose(), columns=tp_columns, index=genes_tu_all
