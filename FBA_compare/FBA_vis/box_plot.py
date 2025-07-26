@@ -18,7 +18,7 @@ prefer_data = pd.read_csv("prefer_FBA_rnx.csv")
 fba_data = fba_data[fba_data.iloc[:, 0] != 0]
 
 # Normalize FBA data using reference reaction - ONLY for preferred reactions
-reference_rxn = "2.7.3.9-RXN"
+reference_rxn = "TRANS-RXN-157"
 
 
 def normalize_preferred_fba_data(fba_data, prefer_data, reference_rxn):
