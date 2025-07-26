@@ -122,6 +122,46 @@ Then, in a terminal inside your cloned repository, run:
 git remote set-url origin git@github.com:CovertLab/vEcoli
 ```
 
+### Docker setup
+
+You can also use `Docker` to build the amd64 image to run `vEcoli`.
+
+1. Build the amd64 image:
+
+```bash
+# On M1/M2 machines, no extra QEMU setup is needed for the amd64
+docker build \
+  --platform linux/amd64 \
+  --build-arg PLATFORM=linux/amd64 \
+  -t my-vecoli:amd64 \
+  .
+
+# On Linux x86_64 you can omit --platform since amd64 is the default:
+docker build -t my-vecoli:amd64 .
+```
+
+2. Run the container and mount your code directory:
+
+```bash
+docker run --rm -it \
+  -v $(pwd):/app \
+  -w /app \
+  my-vecoli:amd64 \
+  bash
+
+# if you are running on Windows, use following instead
+docker run --rm -it -v ${pwd}:/app -w /app my-vecoli:amd64 bash
+```
+
+3. Test the installation inside the container:
+
+```bash
+uvenv runscripts/workflow.py --config configs/test_installation.json
+```
+
+4. Exit the container: Inside the interactive shell, type `exit` or press `Ctrl`+`D` to terminate the container session.
+
+
 ## Test Installation
 
 From the top-level of the cloned repository, run:
