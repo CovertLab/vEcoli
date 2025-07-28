@@ -1,5 +1,14 @@
 """
 Plot absolue / normalized cell mass over time for multivariant simulation in vEcoli, and:
+0. you can specify variants and generations to analyze, like:
+        \"multivariant\": {
+            ......
+            \"cell_mass\": {
+                \"variant\": [0, 1, ...],
+                \"generation\": [1, 2, ....]
+                }
+            ......
+            }
 1. each variant has its own plot;
 2. at each subplot, time is divided by generation id;
 
@@ -32,7 +41,6 @@ def plot(
         "variant",
         "lineage_seed",
         "generation",
-        "agent_id",
         "listeners__mass__dry_mass",
         "listeners__mass__dry_mass_fold_change",
     ]
@@ -51,6 +59,20 @@ def plot(
             (pl.col("time") / 60).alias("time_min"),
         ]
     )
+
+    # Configuration parameters for filtering
+    target_variants = params.get("variant", None)  # List of variant IDs or None for all
+    target_generations = params.get(
+        "generation", None
+    )  # List of generation IDs or None for all
+
+    # Filter by specified variants and generations
+    if target_variants is not None:
+        print(f"[INFO] Target variants: {target_variants}")
+        df = df.filter(pl.col("variant").is_in(target_variants))
+    if target_generations is not None:
+        print(f"[INFO] Target generations: {target_generations}")
+        df = df.filter(pl.col("generation").is_in(target_generations))
 
     # Get variants and create plots
     variants = df.select("variant").unique().to_series().to_list()
