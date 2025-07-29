@@ -5,7 +5,8 @@ Plot cell growth rate (1/hour) over time for multivariant simulation in vEcoli, 
             ......
             \"cell_growth_rate\": {
                 \"variant\": [0, 1, ...],
-                \"generation\": [1, 2, ....]
+                \"generation\": [1, 2, ....],
+                \"show_reference\": true/false
                 }
             ......
             }
@@ -25,6 +26,194 @@ from duckdb import DuckDBPyConnection
 import pandas as pd
 
 from ecoli.library.parquet_emitter import open_arbitrary_sim_data
+
+
+# ------------------------------------- #
+def calculate_average_growth_rates(df, variant_names, group_by_generation=False):
+    """
+    Calculate average cell growth rate for each variant, optionally grouped by generation.
+
+    Args:
+        df: Polars DataFrame with processed growth rate data
+        variant_names: Dictionary mapping variant IDs to names
+        group_by_generation: If True, group by both variant and generation;
+                           if False, group by variant only
+
+    Returns:
+        Polars DataFrame with average growth rates
+    """
+
+    # Determine grouping columns
+    group_cols = ["variant"]
+    sort_cols = ["variant"]
+
+    if group_by_generation:
+        group_cols.append("generation")
+        sort_cols.append("generation")
+
+    # Calculate average growth rate
+    avg_growth_df = (
+        df.filter(pl.col("growth_rate_per_hour").is_not_null())
+        .group_by(group_cols)
+        .agg(
+            [
+                pl.col("growth_rate_per_hour").mean().alias("avg_growth_rate"),
+                pl.col("growth_rate_per_hour").std().alias("std_growth_rate"),
+                pl.col("growth_rate_per_hour").count().alias("data_points"),
+                pl.col("growth_rate_per_hour").min().alias("min_growth_rate"),
+                pl.col("growth_rate_per_hour").max().alias("max_growth_rate"),
+            ]
+        )
+        .sort(sort_cols)
+    )
+
+    # Add variant names
+    avg_growth_df = avg_growth_df.with_columns(
+        pl.col("variant")
+        .map_elements(
+            lambda x: variant_names.get(str(x), f"Variant {x}"), return_dtype=pl.Utf8
+        )
+        .alias("variant_name")
+    )
+
+    return avg_growth_df
+
+
+def create_growth_rate_comparison_chart(
+    avg_by_variant, avg_by_variant_gen, ref_growth_rate, show_reference=True
+):
+    """Create charts comparing average growth rates across variants and generations."""
+
+    # Chart 1: Average by variant only
+    avg_variant_df = avg_by_variant.to_pandas()
+
+    variant_bars = (
+        alt.Chart(avg_variant_df)
+        .mark_bar()
+        .encode(
+            x=alt.X("variant_name:N", title="Variant"),
+            y=alt.Y("avg_growth_rate:Q", title="Average Growth Rate (1/hour)"),
+            color=alt.Color(
+                "variant_name:N", legend=None, scale=alt.Scale(scheme="category10")
+            ),
+            tooltip=[
+                "variant_name:N",
+                "avg_growth_rate:Q",
+                "std_growth_rate:Q",
+                "data_points:Q",
+            ],
+        )
+    )
+
+    variant_error_bars = (
+        alt.Chart(avg_variant_df)
+        .mark_errorbar()
+        .encode(x="variant_name:N", y="avg_growth_rate:Q", yError="std_growth_rate:Q")
+    )
+
+    variant_chart_layers = [variant_bars, variant_error_bars]
+    if show_reference:
+        variant_ref_line = (
+            alt.Chart(pd.DataFrame({"ref_rate": [ref_growth_rate]}))
+            .mark_rule(strokeDash=[5, 5], strokeWidth=2, color="red")
+            .encode(
+                y="ref_rate:Q",
+                tooltip=alt.value(f"Reference: {ref_growth_rate:.3f} /hour"),
+            )
+        )
+        variant_chart_layers.append(variant_ref_line)
+
+    variant_chart = (
+        alt.layer(*variant_chart_layers)
+        .properties(title="Average Growth Rate by Variant", width=350, height=300)
+        .resolve_scale(color="independent")
+    )
+
+    # Chart 2: Average by variant and generation
+    avg_gen_df = avg_by_variant_gen.to_pandas()
+
+    # Create a combined label for x-axis
+    avg_gen_df["variant_gen_label"] = (
+        avg_gen_df["variant_name"] + " G" + avg_gen_df["generation"].astype(str)
+    )
+
+    gen_bars = (
+        alt.Chart(avg_gen_df)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "variant_gen_label:N",
+                title="Variant - Generation",
+                sort=alt.Sort(["variant", "generation"]),
+            ),
+            y=alt.Y("avg_growth_rate:Q", title="Average Growth Rate (1/hour)"),
+            color=alt.Color(
+                "variant_name:N",
+                legend=alt.Legend(title="Variant"),
+                scale=alt.Scale(scheme="category10"),
+            ),
+            tooltip=[
+                "variant_name:N",
+                "generation:O",
+                "avg_growth_rate:Q",
+                "std_growth_rate:Q",
+                "data_points:Q",
+            ],
+        )
+    )
+
+    gen_error_bars = (
+        alt.Chart(avg_gen_df)
+        .mark_errorbar()
+        .encode(
+            x="variant_gen_label:N", y="avg_growth_rate:Q", yError="std_growth_rate:Q"
+        )
+    )
+
+    # Conditional reference line for generation chart
+    generation_chart_layers = [gen_bars, gen_error_bars]
+    if show_reference:
+        gen_ref_line = (
+            alt.Chart(
+                pd.DataFrame(
+                    {
+                        "ref_rate": [ref_growth_rate],
+                        "legend_label": ["Reference Simulation Growth Rate"],
+                    }
+                )
+            )
+            .mark_rule(strokeDash=[5, 5], strokeWidth=2)
+            .encode(
+                y="ref_rate:Q",
+                color=alt.Color(
+                    "legend_label:N",
+                    scale=alt.Scale(range=["red"]),
+                    legend=alt.Legend(title="Reference"),
+                ),
+                tooltip=alt.value(f"Reference: {ref_growth_rate:.3f} /hour"),
+            )
+        )
+        generation_chart_layers.append(gen_ref_line)
+
+    generation_chart = (
+        alt.layer(*generation_chart_layers)
+        .properties(
+            title="Average Growth Rate by Variant and Generation", width=500, height=300
+        )
+        .resolve_scale(color="independent")
+    )
+
+    # Combine both charts horizontally
+    combined_chart = (
+        alt.hconcat(variant_chart, generation_chart)
+        .resolve_scale(color="shared", y="shared")
+        .properties(title="Cell Growth Rate Analysis - Comprehensive Comparison")
+    )
+
+    return combined_chart
+
+
+# ------------------------------------- #
 
 
 def plot(
@@ -72,6 +261,10 @@ def plot(
     target_generations = params.get(
         "generation", None
     )  # List of generation IDs or None for all
+    show_reference = params.get(
+        "show_reference", True
+    )  # Whether to show reference line
+    print(f"[INFO] Show reference line: {show_reference}")
 
     # Filter by specified variants and generations
     if target_variants is not None:
@@ -148,20 +341,36 @@ def plot(
             ),
             tooltip=["time_min:Q", "growth_rate_per_hour:Q", "generation:N"],
         )
+        # Create chart layers list
+        chart_layers = [growth_line]
 
-        # Reference growth rate line
-        ref_line = (
-            alt.Chart(pd.DataFrame({"ref_rate": [ref_growth_rate]}))
-            .mark_rule(color="red", strokeDash=[5, 5], strokeWidth=2)
-            .encode(
-                y="ref_rate:Q",
-                tooltip=alt.value(f"Reference rate: {ref_growth_rate:.3f} /hour"),
+        # Conditionally add reference growth rate line
+        if show_reference:
+            ref_line = (
+                alt.Chart(
+                    pd.DataFrame(
+                        {
+                            "ref_rate": [ref_growth_rate],
+                            "legend_label": ["Reference Simulation Growth Rate"],
+                        }
+                    )
+                )
+                .mark_rule(strokeDash=[5, 5], strokeWidth=2)
+                .encode(
+                    y="ref_rate:Q",
+                    color=alt.Color(
+                        "legend_label:N",
+                        scale=alt.Scale(range=["red"]),
+                        legend=alt.Legend(title="Reference"),
+                    ),
+                    tooltip=alt.value(f"Reference rate: {ref_growth_rate:.3f} /hour"),
+                )
             )
-        )
+            chart_layers.append(ref_line)
 
-        # Combine lines
+        # Combine layers
         variant_chart = (
-            (growth_line + ref_line)
+            alt.layer(*chart_layers)
             .properties(
                 title=f"{variant_name} - Cell Growth Rate", width=500, height=300
             )
@@ -197,5 +406,29 @@ def plot(
     out_path = os.path.join(outdir, "multivariant_cell_growth_rate_report.html")
     final_chart.save(out_path)
     print(f"Saved cell growth rate visualization to: {out_path}")
+
+    # Calculate averages
+    avg_by_variant = calculate_average_growth_rates(
+        df, variant_names, group_by_generation=False
+    )
+    avg_by_variant_gen = calculate_average_growth_rates(
+        df, variant_names, group_by_generation=True
+    )
+
+    # Optional: Save results to CSV
+    avg_by_variant.write_csv(
+        os.path.join(outdir, "average_growth_rates_by_variant.csv")
+    )
+    avg_by_variant_gen.write_csv(
+        os.path.join(outdir, "average_growth_rates_by_variant_generation.csv")
+    )
+
+    # Create and save comprehensive comparison chart
+    comprehensive_chart = create_growth_rate_comparison_chart(
+        avg_by_variant, avg_by_variant_gen, ref_growth_rate, show_reference
+    )
+    comparison_path = os.path.join(outdir, "average_growth_rate_comparison.html")
+    comprehensive_chart.save(comparison_path)
+    print(f"Saved comprehensive growth rate comparison to: {comparison_path}")
 
     return final_chart
