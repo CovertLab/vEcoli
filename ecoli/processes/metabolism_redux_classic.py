@@ -65,10 +65,10 @@ BAD_RXNS = [
     "RXN-22463",
     "PYRROLINECARBDEHYDROG-RXN",
     "RXN0-7008-PRO/UBIQUINONE-8//L-DELTA1-PYRROLINE_5-CARBOXYLATE/CPD-9956/PROTON.67.",
-    "GLUCOKIN-RXN-GLC/ATP//ALPHA-GLC-6-P/ADP/PROTON.34.", # gets confused with PTS
-    "PRPPSYN-RXN-CPD-15318/ATP//PRPP/AMP/PROTON.31.", # duplicate
-    "TRANS-RXN0-574-GLC//GLC.9.", # duplicate
-    "GLUCOKIN-RXN-GLC/ATP//D-glucopyranose-6-phosphate/ADP/PROTON.48.", # duplicate
+    "GLUCOKIN-RXN-GLC/ATP//ALPHA-GLC-6-P/ADP/PROTON.34.",  # gets confused with PTS
+    "PRPPSYN-RXN-CPD-15318/ATP//PRPP/AMP/PROTON.31.",  # duplicate
+    "TRANS-RXN0-574-GLC//GLC.9.",  # duplicate
+    "GLUCOKIN-RXN-GLC/ATP//D-glucopyranose-6-phosphate/ADP/PROTON.48.",  # duplicate
 ]
 
 # not key central carbon met
@@ -123,7 +123,6 @@ FREE_RXNS = [
     "TRANS-RXN0-474",
     "ATPSYN-RXN (reverse)",
 ]
-
 
 
 class MetabolismReduxClassic(Step):
@@ -436,9 +435,11 @@ class MetabolismReduxClassic(Step):
         # Get reaction indices whose reaction is new (added in 2022)
         # append reaction indices to binary_kinetic_idx
         include_new = 1
-        if not include_new: #set binary idx if we don't want to include new rxns
+        if not include_new:  # set binary idx if we don't want to include new rxns
             fba_new_reaction_ids = self.parameters["fba_new_reaction_ids"]
-            fba_reaction_ids_to_base_reaction_ids = self.parameters["fba_reaction_ids_to_base_reaction_ids"]
+            # fba_reaction_ids_to_base_reaction_ids = self.parameters[
+            #     "fba_reaction_ids_to_base_reaction_ids"
+            # ]
 
             binary_reaction_idx = []
             for reaction_id in fba_new_reaction_ids:
@@ -457,7 +458,7 @@ class MetabolismReduxClassic(Step):
 
         homeostatic_metabolite_concentrations = (
             homeostatic_metabolite_counts * self.counts_to_molar.asNumber()
-        ) #heena's comment: this is the actual concentration of homeostatic metabolites in the sim
+        )  # heena's comment: this is the actual concentration of homeostatic metabolites in the sim
         target_homeostatic_dmdt = (
             self.homeostatic_concs - homeostatic_metabolite_concentrations
         ) / self.timestep
@@ -481,8 +482,8 @@ class MetabolismReduxClassic(Step):
         # TODO (Cyrus) solve network flow problem to get fluxes
         objective_weights = {
             "secretion": 0.01,
-            "efficiency": 0.000001, # decrease efficiency
-            "kinetics": 0.0000001, #TODO Heena: increase for closer estimation for kinetically constrained rxn and decrease efficiency
+            "efficiency": 0.000001,  # decrease efficiency
+            "kinetics": 0.0000001,  # TODO Heena: increase for closer estimation for kinetically constrained rxn and decrease efficiency
         }
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
@@ -491,7 +492,7 @@ class MetabolismReduxClassic(Step):
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
-            solver=cp.MOSEK,
+            solver=cp.GLOP,
         )
 
         self.reaction_fluxes = solution.velocities
