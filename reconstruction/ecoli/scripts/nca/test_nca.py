@@ -99,7 +99,7 @@ if __name__ == "__main__":
         print("- TF activity does not match expectations (mostly second row in P)")
         print(f"A =\n{Ae}")
         print(f"P =\n{Pe}")
-        print(f"error: {np.linalg.norm(2**TEST_EXPRESSION - 2**(Ae.dot(Pe))):.3f}")
+        print(f"error: {np.linalg.norm(2**TEST_EXPRESSION - 2 ** (Ae.dot(Pe))):.3f}")
 
     ## No general expression column with linear expression input
     E = 2**TEST_EXPRESSION
@@ -137,7 +137,7 @@ if __name__ == "__main__":
         print(f"A =\n{Ae}")
         print(f"P =\n{Pe}")
         print(
-            f"error: {np.linalg.norm(2**TEST_EXPRESSION - 2**(Ae.dot(Pe) + TEST_EXPRESSION.mean(1))):.3f}"
+            f"error: {np.linalg.norm(2**TEST_EXPRESSION - 2 ** (Ae.dot(Pe) + TEST_EXPRESSION.mean(1))):.3f}"
         )
 
     ## Added general expression column (all 1s) with log2 expression input
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         print("- best error and consistency")
         print(f"A =\n{Ae}")
         print(f"P =\n{Pe}")
-        print(f"error: {np.linalg.norm(2**TEST_EXPRESSION - 2**(Ae.dot(Pe))):.3f}")
+        print(f"error: {np.linalg.norm(2**TEST_EXPRESSION - 2 ** (Ae.dot(Pe))):.3f}")
 
     # Test all methods on example data from Chang to compare output plots to paper
     print("\nTesting all methods on Chang data")

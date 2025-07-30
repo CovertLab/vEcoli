@@ -336,7 +336,7 @@ def robust_nca(
         )  # filter to remove inf and nan when expression has been adjusted to 0 in ISNCA
         error = np.sqrt(np.mean((B[mask] / E[mask]) ** 2))
         if (old_error - error) / error < error_tolerance:
-            print(f"Completed after {it+1} iterations")
+            print(f"Completed after {it + 1} iterations")
             break
 
         # Print progress update for certain iterations
@@ -540,8 +540,8 @@ def iterative_sub_nca(
         List[np.ndarray],
         List[np.ndarray],
         List[np.ndarray],
-        List[Set[int]],
-        List[Set[int]],
+        List[Set[np.signedinteger]],
+        List[Set[np.signedinteger]],
     ]:
         """
         Divide the network into subnetworks with unique and common TFs (eq. 3 and 4).
@@ -642,8 +642,8 @@ def iterative_sub_nca(
         n_tfs: int,
         A_hat: List[np.ndarray],
         P_hat: List[np.ndarray],
-        common_genes: List[Set[int]],
-        unique_genes: List[Set[int]],
+        common_genes: List[Set[np.signedinteger]],
+        unique_genes: List[Set[np.signedinteger]],
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Assemble subnetwork solutions into combined A and P solutions (eq. 8).
@@ -680,8 +680,8 @@ def iterative_sub_nca(
         E: np.ndarray,
         A_hat: List[np.ndarray],
         P_hat: List[np.ndarray],
-        common_genes: List[Set[int]],
-        unique_genes: List[Set[int]],
+        common_genes: List[Set[np.signedinteger]],
+        unique_genes: List[Set[np.signedinteger]],
         attenuation: float,
     ) -> List[np.ndarray]:
         """

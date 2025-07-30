@@ -43,7 +43,6 @@ LIST_OF_DICT_FILENAMES = [
     "genes.tsv",
     "growth_rate_dependent_parameters.tsv",
     "linked_metabolites.tsv",
-    "metabolic_gene_annotation.tsv",
     "metabolic_reactions.tsv",
     "metabolic_reactions_added.tsv",
     "metabolic_reactions_modified.tsv",
@@ -73,6 +72,7 @@ LIST_OF_DICT_FILENAMES = [
     # "transcription_units.tsv",  # special cased in the constructor
     "transcription_units_added.tsv",
     "transcription_units_removed.tsv",
+    "transcription_units_modified.tsv",
     "transcriptional_attenuation.tsv",
     "transcriptional_attenuation_removed.tsv",
     "tf_one_component_bound.tsv",
@@ -237,6 +237,11 @@ class KnowledgeBaseEcoli(object):
                         "transcription_units": "transcription_units_added",
                     }
                 )
+                self.modified_data.update(
+                    {
+                        "transcription_units": "transcription_units_modified",
+                    }
+                )
 
         if remove_rrff:
             self.list_of_parameter_filenames.append(
@@ -338,10 +343,7 @@ class KnowledgeBaseEcoli(object):
                 + insertion_sequence
                 + self.genome_sequence[insert_pos:]
             )
-            assert (
-                self.genome_sequence[insert_pos : (insert_end + 1)]
-                == insertion_sequence
-            )
+            assert self.genome_sequence[insert_pos:insert_end] == insertion_sequence
 
             self.added_data = self.new_gene_added_data
             self._join_data()
@@ -643,7 +645,7 @@ class KnowledgeBaseEcoli(object):
             ), "gaps in new gene insertions are not supported at this time"
 
         insert_end = new_genes_data[-1]["right_end_pos"] + insert_pos
-        insert_len = insert_end - insert_pos + 1
+        insert_len = insert_end - insert_pos
 
         # Update global positions of original genes
         self._update_global_coordinates(genes_data, insert_pos, insert_len)
@@ -682,8 +684,8 @@ class KnowledgeBaseEcoli(object):
         insertion_seq = Seq.Seq("")
         new_genes_data = sorted(new_genes_data, key=lambda d: d["left_end_pos"])
         assert (
-            new_genes_data[0]["left_end_pos"] == 0
-        ), "first gene in new sequence must start at relative coordinate 0"
+            new_genes_data[0]["left_end_pos"] == 1
+        ), "first gene in new sequence must start at relative coordinate 1"
 
         for gene in new_genes_data:
             if gene["direction"] == "+":
