@@ -2077,7 +2077,7 @@ class Transcription(object):
         delta_with_ppgpp = delta_prob_with_ppgpp @ p_promoter_bound
 
         # Calculate the required probability to match expression without ppGpp
-        new_prob = normalize(
+        new_prob = (
             normalize(self.rna_expression[condition] * factor) + delta_no_ppgpp
         ) / (1 + delta_with_ppgpp)
         new_prob[new_prob < 0] = old_prob[new_prob < 0]

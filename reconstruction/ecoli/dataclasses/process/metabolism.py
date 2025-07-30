@@ -563,7 +563,6 @@ class Metabolism(object):
                 - :py:attr:`~.constraints_to_disable`
                 - :py:attr:`~.base_reaction_ids`
                 - :py:attr:`~.reaction_id_to_base_reaction_id`
-                - :py:attr:`~.new_reaction_ids`
                 - :py:attr:`~.amino_acid_export_kms`
         """
         (
@@ -572,7 +571,6 @@ class Metabolism(object):
             reversible_reactions,
             catalysts,
             rxn_id_to_base_rxn_id,
-            new_rxn_ids,
         ) = self.extract_reactions(raw_data, sim_data)
 
         # Load kinetic reaction constraints from raw_data
@@ -592,14 +590,12 @@ class Metabolism(object):
             catalysts,
             reversible_reactions,
             rxn_id_to_base_rxn_id,
-            new_rxn_ids
         ) = self._replace_enzyme_reactions(
             raw_constraints,
             reaction_stoich,
             catalysts,
             reversible_reactions,
             rxn_id_to_base_rxn_id,
-            new_rxn_ids
         )
 
         # Create symbolic kinetic equations
@@ -704,7 +700,6 @@ class Metabolism(object):
         # Properties for conversion of fluxes to those for base reaction IDs
         self.base_reaction_ids = base_rxn_ids
         self.reaction_id_to_base_reaction_id = rxn_id_to_base_rxn_id
-        self.new_reaction_ids = new_rxn_ids
 
         self.amino_acid_export_kms = raw_data.amino_acid_export_kms
 
@@ -2023,7 +2018,6 @@ class Metabolism(object):
         list[str],
         dict[str, list[str]],
         dict[str, str],
-        list[str],
     ]:
         """
         Extracts reaction data from raw_data to build metabolism reaction
@@ -2034,7 +2028,7 @@ class Metabolism(object):
                 sim_data: simulation data
 
         Returns:
-                6-element tuple containing
+                5-element tuple containing
 
                         - base_rxn_ids: list of base reaction IDs from which reaction
                           IDs were derived from
@@ -2053,7 +2047,6 @@ class Metabolism(object):
                           the base reactions they were derived from::
 
                                 {reaction ID: base ID}
-                        - new_rxn_ids: new metabolic reaction id. i.e. added in 2022
         """
         compartment_ids_to_abbreviations = {
             comp["id"]: comp["abbrev"] for comp in raw_data.compartments
@@ -2121,14 +2114,12 @@ class Metabolism(object):
         reversible_reactions = []
         reaction_catalysts = {}
         rxn_id_to_base_rxn_id = {}
-        new_rxn_ids = []
 
         # Load and parse reaction information from raw_data
         for reaction in cast(Any, raw_data).metabolic_reactions:
             reaction_id = reaction["id"]
             stoich = reaction["stoichiometry"]
             direction = reaction["direction"]
-            is_new_reaction = reaction["is_new"]
 
             if len(stoich) <= 1:
                 raise Exception(
@@ -2208,8 +2199,6 @@ class Metabolism(object):
                 if len(catalysts_for_this_rxn) > 0:
                     reaction_catalysts[reaction_id] = catalysts_for_this_rxn
                 rxn_id_to_base_rxn_id[reaction_id] = base_reaction_id
-                if is_new_reaction:
-                    new_rxn_ids.append(reaction_id)
 
             if reverse:
                 reverse_reaction_id = REVERSE_REACTION_ID.format(reaction_id)
@@ -2222,8 +2211,6 @@ class Metabolism(object):
                         catalysts_for_this_rxn
                     )
                 rxn_id_to_base_rxn_id[reverse_reaction_id] = base_reaction_id
-                if is_new_reaction:
-                    new_rxn_ids.append(reverse_reaction_id)
 
             if forward and reverse:
                 reversible_reactions.append(reaction_id)
@@ -2239,7 +2226,6 @@ class Metabolism(object):
             reversible_reactions,
             reaction_catalysts,
             rxn_id_to_base_rxn_id,
-            new_rxn_ids,
         )
 
     @staticmethod
@@ -2620,7 +2606,7 @@ class Metabolism(object):
 
         # Load data for optional args if needed
         if stoich is None or catalysts is None:
-            _, loaded_stoich, _, loaded_catalysts, _, _ = Metabolism.extract_reactions(
+            _, loaded_stoich, _, loaded_catalysts, _ = Metabolism.extract_reactions(
                 raw_data, sim_data
             )
 
@@ -2728,14 +2714,12 @@ class Metabolism(object):
         rxn_catalysts: dict[str, list[str]],
         reversible_rxns: list[str],
         rxn_id_to_compiled_id: dict[str, str],
-        new_rxn_id: list[str],
     ) -> tuple[
         dict[str, Any],
         dict[str, dict[str, int]],
         dict[str, list[str]],
         list[str],
         dict[str, str],
-        list[str],
     ]:
         """
         Modifies reaction IDs in data structures to duplicate reactions with
@@ -2793,8 +2777,6 @@ class Metabolism(object):
                         - rxn_id_to_compiled_id: mapping from reaction IDs to the IDs
                           of the original reactions they were derived from, with updated
                           reactions for enzyme catalyzed kinetic reactions
-                        - new_rxn_ids: new metabolic reactions id (i.e. added 2020) that
-                          are modified by the kinetic constraints
         """
 
         new_constraints = {}
@@ -2818,8 +2800,6 @@ class Metabolism(object):
                 rxn_catalysts[new_rxn] = [enzyme]
                 if rxn in reversible_rxns:
                     reversible_rxns.append(new_rxn)
-                if rxn in new_rxn_id:
-                    new_rxn_id.append(new_rxn)
 
                 # Remove enzyme from old reaction and remove old reaction if no
                 # more enzyme catalysts
@@ -2830,8 +2810,6 @@ class Metabolism(object):
                     rxn_catalysts.pop(rxn)
                     if rxn in reversible_rxns:
                         reversible_rxns.pop(reversible_rxns.index(rxn))
-                    if rxn in new_rxn_id:
-                        new_rxn_id.pop(new_rxn_id.index(rxn))
             else:
                 new_rxn = rxn
 
@@ -2846,7 +2824,6 @@ class Metabolism(object):
             rxn_catalysts,
             reversible_rxns,
             rxn_id_to_compiled_id,
-            new_rxn_id,
         )
 
     @staticmethod
