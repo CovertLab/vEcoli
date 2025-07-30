@@ -57,16 +57,16 @@ def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic",
     total_time=400,
     divide=True,
-    initial_state_file='wcecoli_t0', # 'met_division_test_state',
+    initial_state_file="wcecoli_t0",  # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries',
-    name="NEW_MOSEK",
+    name="NEW",
     raw_output=False,
     save=True,
     save_times=[1, 10, 50, 100, 200, 400],
-    condition="with_aa",  # basal, with_aa, acetate
-    fixed_media="minimal_plus_amino_acids",  # minimal, minimal_plus_amino_acids, minimal_acetate
+    condition="basal",  # basal, with_aa, acetate
+    fixed_media="minimal",  # minimal, minimal_plus_amino_acids, minimal_acetate
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
