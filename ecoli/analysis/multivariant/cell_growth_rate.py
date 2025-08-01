@@ -4,6 +4,8 @@ Plot cell growth rate (1/hour) over time for multivariant simulation in vEcoli, 
         \"multivariant\": {
             ......
             \"cell_growth_rate\": {
+                # Optional: specify variants and generations to visualize
+                # If not specified, all will be used
                 \"variant\": [0, 1, ...],
                 \"generation\": [1, 2, ....],
                 \"show_reference\": true/false

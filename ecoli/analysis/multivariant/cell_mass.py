@@ -4,6 +4,8 @@ Plot absolue / normalized cell mass over time for multivariant simulation in vEc
         \"multivariant\": {
             ......
             \"cell_mass\": {
+                # Optional: specify variants and generations to visualize
+                # If not specified, all will be used
                 \"variant\": [0, 1, ...],
                 \"generation\": [1, 2, ....]
                 }
