@@ -43,40 +43,53 @@ def find_matching_reactions(reaction_ids, reaction_name, reverse_flag=False):
     Args:
         reaction_ids (list): List of all reaction IDs in the model
         reaction_name (str): Root reaction name to search for
-        reverse_flag (bool): If True, only search for reactions with '(reverse)';
-                           If False, exclude reactions with '(reverse)'
+        reverse_flag (bool): If True, search for reverse reactions;
+                           If False, search for forward reactions
 
     Returns:
         list: List of matching reaction IDs and their indices
     """
 
-    def is_valid_reaction(rxn_name):
-        """Check if reaction name is valid based on reverse_flag"""
-        has_reverse = "(reverse)" in rxn_name
-        if reverse_flag:
-            return has_reverse
-        else:
-            return not has_reverse
-
     matching_reactions = []
 
-    # Step 1: Try to find exact root name
-    if reaction_name in reaction_ids and is_valid_reaction(reaction_name):
-        idx = reaction_ids.index(reaction_name)
-        matching_reactions.append((reaction_name, idx))
+    if reverse_flag:
+        # For reverse reactions, we look for reactions with "(reverse)" suffix
+        # Step 1: Try to find exact reverse name
+        reverse_name = reaction_name + " (reverse)"
+        if reverse_name in reaction_ids:
+            idx = reaction_ids.index(reverse_name)
+            matching_reactions.append((reverse_name, idx))
 
-    # Step 2: Search for extended names with delimiters
-    delimiters = ["_", "[", "-", "/"]
+        # Step 2: Search for extended reverse names with delimiters
+        delimiters = ["_", "[", "-", "/"]
+        for delimiter in delimiters:
+            extend_name = reaction_name + delimiter
+            for idx, reaction_id in enumerate(reaction_ids):
+                if (
+                    extend_name in reaction_id
+                    and "(reverse)" in reaction_id
+                    and reaction_id not in [r[0] for r in matching_reactions]
+                ):
+                    matching_reactions.append((reaction_id, idx))
 
-    for delimiter in delimiters:
-        extend_name = reaction_name + delimiter
-        for idx, reaction_id in enumerate(reaction_ids):
-            if (
-                extend_name in reaction_id
-                and is_valid_reaction(reaction_id)
-                and reaction_id not in [r[0] for r in matching_reactions]
-            ):
-                matching_reactions.append((reaction_id, idx))
+    else:
+        # For forward reactions, we look for reactions WITHOUT "(reverse)" suffix
+        # Step 1: Try to find exact root name (forward)
+        if reaction_name in reaction_ids and "(reverse)" not in reaction_name:
+            idx = reaction_ids.index(reaction_name)
+            matching_reactions.append((reaction_name, idx))
+
+        # Step 2: Search for extended forward names with delimiters
+        delimiters = ["_", "[", "-", "/"]
+        for delimiter in delimiters:
+            extend_name = reaction_name + delimiter
+            for idx, reaction_id in enumerate(reaction_ids):
+                if (
+                    extend_name in reaction_id
+                    and "(reverse)" not in reaction_id
+                    and reaction_id not in [r[0] for r in matching_reactions]
+                ):
+                    matching_reactions.append((reaction_id, idx))
 
     return matching_reactions
 
@@ -155,6 +168,11 @@ def calculate_net_flux_vectorized(flux_df, reaction_mappings):
     for biocyc_id, mappings in reaction_mappings.items():
         forward_indices = mappings["forward_indices"]
         reverse_indices = mappings["reverse_indices"]
+
+        # Skip if no reactions found
+        if not forward_indices and not reverse_indices:
+            print(f"[WARNING] No reactions found for {biocyc_id}, skipping...")
+            continue
 
         # Calculate forward flux sum
         if forward_indices:
