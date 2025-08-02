@@ -134,7 +134,13 @@ documented in :ref:`/workflows.rst`.
         # simulations run using ecoli/experiments/ecoli_master_sim.py. Workflows
         # run with runscripts/workflow.py generate initial seeds using the value
         # of a different configuration option named "lineage_seed".
+        # Both seed and lineage_seed are supposed to be integers.
         "seed": 0,
+        # Number of initial simulations for each specific seed.
+        # Specifically, For example, if you pass in seed = 100 and n_init_sims = 5, 
+        # then Nextflow channel will receive [100, 101, 102, 103, 104],
+        # and you can view each channel as a separate lineage.
+        "n_init_sims": 1,
         # Special flags to enable mechanisms related to antibiotic resistance.
         # See API documentation for ecoli.library.sim_data.LoadSimData for more
         # information.
