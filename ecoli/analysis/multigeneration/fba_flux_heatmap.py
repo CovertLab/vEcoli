@@ -31,7 +31,7 @@ import pandas as pd
 from ecoli.library.parquet_emitter import field_metadata
 
 # ----------------------------------------- #
-# Helper functions
+# Helper functions (reused from previous scripts)
 
 
 def find_matching_reactions(reaction_ids, reaction_name, reverse_flag=False):
@@ -442,13 +442,11 @@ def plot(
 
     # Use diverging color scheme if data crosses zero, sequential otherwise
     if flux_min < 0 and flux_max > 0:
-        color_scheme = "redblue"
         color_scale = alt.Scale(
-            scheme=color_scheme, domain=[-flux_abs_max, flux_abs_max], type="linear"
+            scheme="redblue", domain=[-flux_abs_max, flux_abs_max], type="linear"
         )
     else:
-        color_scheme = "viridis"
-        color_scale = alt.Scale(scheme=color_scheme, type="linear")
+        color_scale = alt.Scale(scheme="viridis", type="linear")
 
     # Create heatmap
     flux_title = (
@@ -489,7 +487,6 @@ def plot(
             tooltip=tooltip_list,
         )
         .properties(
-            # Square size grid cells
             width=len(valid_biocyc_ids) * 50,
             height=len(unique_generations) * 50,
             title=alt.TitleParams(text=chart_title, fontSize=14, anchor="start"),
