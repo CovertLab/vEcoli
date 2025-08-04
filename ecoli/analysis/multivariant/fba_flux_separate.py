@@ -513,39 +513,4 @@ def plot(
     combined_plot.save(output_path)
     print(f"[INFO] Saved visualization to: {output_path}")
 
-    # Save summary CSV with average net fluxes
-    summary_data = []
-    for biocyc_id in valid_biocyc_ids:
-        mappings = reaction_mappings[biocyc_id]
-
-        # Get averages for this reaction across all variants and generations
-        reaction_avgs = avg_df.filter(pl.col("biocyc_id") == biocyc_id)
-
-        for row in reaction_avgs.iter_rows(named=True):
-            summary_data.append(
-                {
-                    "BioCyc_ID": biocyc_id,
-                    "Variant": row["variant"],
-                    "Generation": row["generation"],
-                    "Average_Net_Flux": row["avg_net_flux"],
-                    "Forward_Reactions": "; ".join(mappings["forward_reactions"]),
-                    "Reverse_Reactions": "; ".join(mappings["reverse_reactions"]),
-                    "Num_Forward": len(mappings["forward_reactions"]),
-                    "Num_Reverse": len(mappings["reverse_reactions"]),
-                }
-            )
-
-    summary_df = pl.DataFrame(summary_data)
-    summary_path = os.path.join(outdir, "separate_fba_net_flux_grid_summary.csv")
-    summary_df.write_csv(summary_path)
-    print(f"[INFO] Saved net flux summary to: {summary_path}")
-
-    # Save detailed flux data for further analysis (memory-optimized)
-    net_flux_cols = [f"{biocyc_id}_net_flux" for biocyc_id in valid_biocyc_ids]
-    detailed_columns = ["time_min", "generation", "variant"] + net_flux_cols
-    detailed_df = flux_df.select(detailed_columns)
-    detailed_path = os.path.join(outdir, "separate_fba_net_flux_grid_detailed.csv")
-    detailed_df.write_csv(detailed_path)
-    print(f"[INFO] Saved detailed net flux data to: {detailed_path}")
-
     return combined_plot

@@ -437,36 +437,4 @@ def plot(
     combined_plot.save(output_path)
     print(f"[INFO] Saved visualization to: {output_path}")
 
-    # Save summary CSV with reaction statistics
-    summary_data = []
-    for biocyc_id in valid_biocyc_ids:
-        mappings = reaction_mappings[biocyc_id]
-        stats = flux_stats[biocyc_id]
-        summary_data.append(
-            {
-                "BioCyc_ID": biocyc_id,
-                "Average_Net_Flux": stats["avg"],
-                "Min_Net_Flux": stats["min"],
-                "Max_Net_Flux": stats["max"],
-                "Std_Net_Flux": stats["std"],
-                "Forward_Reactions": "; ".join(mappings["forward_reactions"]),
-                "Reverse_Reactions": "; ".join(mappings["reverse_reactions"]),
-                "Num_Forward": len(mappings["forward_reactions"]),
-                "Num_Reverse": len(mappings["reverse_reactions"]),
-            }
-        )
-
-    summary_df = pl.DataFrame(summary_data)
-    summary_path = os.path.join(outdir, "single_flux_summary.csv")
-    summary_df.write_csv(summary_path)
-    print(f"[INFO] Saved summary to: {summary_path}")
-
-    # Save detailed time series data
-    net_flux_cols = [f"{biocyc_id}_net_flux" for biocyc_id in valid_biocyc_ids]
-    detailed_columns = ["time_min"] + net_flux_cols
-    detailed_df = flux_df.select(detailed_columns)
-    detailed_path = os.path.join(outdir, "single_detailed_flux.csv")
-    detailed_df.write_csv(detailed_path)
-    print(f"[INFO] Saved detailed flux data to: {detailed_path}")
-
     return combined_plot

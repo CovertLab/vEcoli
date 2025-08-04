@@ -520,28 +520,4 @@ def plot(
     final_chart.save(output_path)
     print(f"[INFO] Saved heatmap visualization to: {output_path}")
 
-    # Save heatmap data as CSV
-    heatmap_csv_path = os.path.join(outdir, "fba_flux_heatmap_data.csv")
-    heatmap_df.to_csv(heatmap_csv_path, index=False)
-    print(f"[INFO] Saved heatmap data to: {heatmap_csv_path}")
-
-    # Save reaction mapping summary
-    summary_data = []
-    for biocyc_id in valid_biocyc_ids:
-        mappings = reaction_mappings[biocyc_id]
-        summary_data.append(
-            {
-                "BioCyc_ID": biocyc_id,
-                "Forward_Reactions": "; ".join(mappings["forward_reactions"]),
-                "Reverse_Reactions": "; ".join(mappings["reverse_reactions"]),
-                "Num_Forward": len(mappings["forward_reactions"]),
-                "Num_Reverse": len(mappings["reverse_reactions"]),
-            }
-        )
-
-    summary_df = pd.DataFrame(summary_data)
-    summary_path = os.path.join(outdir, "fba_flux_heatmap_summary.csv")
-    summary_df.to_csv(summary_path, index=False)
-    print(f"[INFO] Saved reaction summary to: {summary_path}")
-
     return final_chart

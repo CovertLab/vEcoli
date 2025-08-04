@@ -537,40 +537,4 @@ def plot(
     combined_plot.save(output_path)
     print(f"[INFO] Saved PCA visualization to: {output_path}")
 
-    # Save PCA results and statistics
-    pca_summary = {
-        "Num_Reactions": len(valid_biocyc_ids),
-        "Num_Timepoints": len(time_points),
-        "PC1_Variance": pca_results["explained_variance"][0],
-        "PC2_Variance": pca_results["explained_variance"][1],
-        "Total_Variance_Explained": pca_results["cumulative_variance"],
-        "Reactions_Analyzed": "; ".join(valid_biocyc_ids),
-    }
-
-    summary_df = pl.DataFrame([pca_summary])
-    summary_path = os.path.join(outdir, "single_fba_pca_summary.csv")
-    summary_df.write_csv(summary_path)
-    print(f"[INFO] Saved PCA summary to: {summary_path}")
-
-    # Save detailed PCA results
-    # Trajectory coordinates
-    trajectory_df = pl.DataFrame(
-        {
-            "Time_min": time_points,
-            "PC1": pca_results["pca_coordinates"][:, 0],
-            "PC2": pca_results["pca_coordinates"][:, 1],
-        }
-    )
-    trajectory_path = os.path.join(outdir, "single_fba_pca_trajectory.csv")
-    trajectory_df.write_csv(trajectory_path)
-
-    # Loadings
-    loadings_df = pl.DataFrame(pca_results["loadings_data"])
-    loadings_path = os.path.join(outdir, "single_fba_pca_loadings.csv")
-    loadings_df.write_csv(loadings_path)
-
-    print(
-        f"[INFO] Saved detailed PCA results to: {trajectory_path} and {loadings_path}"
-    )
-
     return combined_plot
