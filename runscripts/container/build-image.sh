@@ -149,17 +149,6 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
       echo "Warning: .env not found"
   fi
 
-  # Read the Singularity file line by line
-  while IFS= read -r line; do
-    if [[ "$line" == *"DOT_ENV_VARS"* ]]; then
-      echo "$DOT_ENV_VARS" >> "$TEMP_DEF"
-    else
-      # Otherwise just add the line as-is
-      echo "$line" >>"$TEMP_DEF"
-    fi
-  done <runscripts/container/Singularity
-
-  echo "Using temporary definition file: $TEMP_DEF"
   echo "=== Building Apptainer Image: ${IMAGE} ==="
   echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
 
@@ -170,7 +159,8 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
     --build-arg git_hash="${GIT_HASH}" \
     --build-arg git_branch="${GIT_BRANCH}" \
     --build-arg timestamp="${TIMESTAMP}" \
-    "${IMAGE}" "$TEMP_DEF"; do
+    --build-arg dot_env_vars="${DOT_ENV_VARS}" \
+    "${IMAGE}" runscripts/container/Singularity; do
     if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
         echo "ERROR: Apptainer build failed after $MAX_ATTEMPTS attempts."
         exit 1
