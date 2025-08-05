@@ -94,21 +94,19 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
     if [ -f "$ignore_file" ]; then
       echo "Processing patterns from $ignore_file"
       grep -v "^#" "$ignore_file" | grep -v "^$" | grep -v "^!" | while read -r pattern; do
-        # Handle patterns starting with / (root-relative)
-        if [[ "$pattern" == /* ]]; then
-          echo ".${pattern}" >>"$EXCLUDE_PATTERNS"
-          echo ".${pattern}/*" >>"$EXCLUDE_PATTERNS"
-        # Handle directory patterns ending with /
-        elif [[ "$pattern" == */ ]]; then
-          echo "./${pattern}*" >>"$EXCLUDE_PATTERNS"
-          echo "./*/${pattern}*" >>"$EXCLUDE_PATTERNS"
-        # Handle other patterns
-        else
-          echo "./*/${pattern}" >>"$EXCLUDE_PATTERNS"
-          echo "./${pattern}" >>"$EXCLUDE_PATTERNS"
-          echo "./${pattern}/*" >>"$EXCLUDE_PATTERNS"
-          echo "./*/${pattern}/*" >>"$EXCLUDE_PATTERNS"
-        fi
+          # Handle patterns starting with / (root-relative)
+          if [[ "$pattern" == /* ]]; then
+            echo ".${pattern}" >>"$EXCLUDE_PATTERNS"
+            echo ".${pattern}/*" >>"$EXCLUDE_PATTERNS"
+          # Handle directory patterns ending with /
+          elif [[ "$pattern" == */ ]]; then
+            echo "./${pattern}" >>"$EXCLUDE_PATTERNS"
+            echo "./${pattern}*" >>"$EXCLUDE_PATTERNS"
+          # Handle other patterns
+          else
+            echo "./${pattern}" >>"$EXCLUDE_PATTERNS"
+            echo "./${pattern}/*" >>"$EXCLUDE_PATTERNS"
+          fi
       done
     fi
   }
@@ -123,16 +121,13 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
     FIND_CMD="$FIND_CMD ! -path \"$pattern\""
   done <"$EXCLUDE_PATTERNS"
 
-  # Create a temporary file for our list of files
-  TEMP_FILES_LIST=$(mktemp)
-  TEMP_FILES+=("$TEMP_FILES_LIST")
-
   echo "Executing: $FIND_CMD"
   # Execute the dynamically generated find command
-  eval "$FIND_CMD" >"$TEMP_FILES_LIST"
+  eval "$FIND_CMD -print0 | xargs -0 tar -cvf repo.tar"
 
   # Debug output
-  echo "Generated $(wc -l <"$TEMP_FILES_LIST") files to include in the image"
+  echo "Found $(du -sh repo.tar) of files to include in the image"
+  TEMP_FILES+=("repo.tar")
 
   # Initialize environment variables string
   DOT_ENV_VARS=""
@@ -156,12 +151,7 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
 
   # Read the Singularity file line by line
   while IFS= read -r line; do
-    if [[ "$line" == *"FILES_TO_ADD"* ]]; then
-      # For the line containing FILES_TO_ADD, replace with formatted file paths
-      while IFS= read -r file; do
-        echo "    $file /vEcoli/$file" >>"$TEMP_DEF"
-      done <"$TEMP_FILES_LIST"
-    elif [[ "$line" == *"DOT_ENV_VARS"* ]]; then
+    if [[ "$line" == *"DOT_ENV_VARS"* ]]; then
       echo "$DOT_ENV_VARS" >> "$TEMP_DEF"
     else
       # Otherwise just add the line as-is
