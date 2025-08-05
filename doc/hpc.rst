@@ -32,6 +32,72 @@ Setup
 .. note::
     The following setup applies to members of the Covert Lab only.
 
+Request a Sherlock Account
+--------------------------
+
+If you've never had a Sherlock account: Go to https://www.sherlock.stanford.edu/ and click on ``Request an Account``
+
+.. note::
+   Markus will have to approve this.
+
+If you've had a Sherlock account for a previous group: Email srcc-support@stanford.edu and ask them to move your account to mcovert, and CC Markus on the email and in the email body ask for Markus to give approval
+
+Additional Resources: Sherlock Documentation from Stanford
+----------------------------------------------------------
+
+* https://srcc.stanford.edu/workshops/sherlock-boarding-session
+* https://www.sherlock.stanford.edu/docs/
+
+Login to Sherlock
+-----------------
+
+.. code-block:: bash
+
+   ssh <YOUR_SU_NET_ID>@login.sherlock.stanford.edu
+   # Type in Stanford Password
+   # Do the Duo authentication
+   # The following setup steps should be done using the Sherlock terminal 
+   # NOTE that this is a LOGIN node, so no major computing should be done here
+
+   # It is best to use a compute node for things like cloning the repo, running code, resetting lpad, etc
+
+   srun -p mcovert --time=4:00:00 --cpus-per-task=2 --pty bash
+
+   # srun is the command for launching a job step under Slurm
+   # -p or --partition specifies which partition (queue) to use, choose covert :D
+   # --time: sets the job's wall‑clock time limit
+   # --cpus-per-task specifies # CPU cores for each task in this job step
+   # --pty: allocates a pseudo‑terminal (TTY) to run an interactive session
+   # bash: launching a Bash shell
+   # When it finished, usually you can see your JOB ID in your shell
+
+   # You can use scancel to abort your job step
+   scancel <YOUR_JOB_ID>
+
+You can also refer to the Sherlock Documentation: https://www.sherlock.stanford.edu/docs/getting-started/connecting/
+
+Clone the vEcoli Repository
+----------------------------
+
+1. Git clone the vEcoli repo to your Sherlock account:
+
+.. code-block:: bash
+
+   git clone https://github.com/CovertLab/vEcoli.git
+
+If you have already created your branch, you can use:
+
+.. code-block:: bash
+
+   # View all the branches (including remote branch)
+   git branch -a
+
+   # Checkout to your own branch
+   git checkout <your_branch_name>
+
+   # Validate your current branch
+   git branch
+
 After cloning the model repository to your home directory, add the following
 lines to your ``~/.bash_profile``, then close and reopen your SSH connection:
 
@@ -65,6 +131,18 @@ a workflow on Sherlock.
 To run scripts on Sherlock outside a workflow, see :ref:`sherlock-interactive`.
 To run scripts on Sherlock through a SLURM batch script, see :ref:`sherlock-noninteractive`.
 
+.. tip::
+   * You can use ``nano`` as text editor:
+   
+   .. code-block:: bash
+   
+      nano ~/.bash_profile
+      # After writing, you can use Ctrl+O to write out, Enter to confirm, and Ctrl+X to exit
+      
+   * If you choose to use ``vim``, press ``i`` for insert, and press ``Esc``, then type ``:wq`` and Enter for writing out
+   * Before running the ``python3`` to set up the env, ensure you are in the vEcoli repo
+   * It usually takes time to run first job
+
 .. note::
     The above setup is sufficient to run workflows on Sherlock. However, if you
     have a compelling reason to update the shared Nextflow or HyperQueue binaries,
@@ -74,6 +152,15 @@ To run scripts on Sherlock through a SLURM batch script, see :ref:`sherlock-noni
     2. HyperQueue: See :ref:`hq-info`.
 
     Then, reset the permissions of the updated binaries with ``chmod 777 *``.
+
+.. warning::
+
+   Before building your own config file and running an experiment, remember:
+
+   Python scripts (other than runscripts/workflow.py) **WILL NOT** run on Sherlock directly. 
+   This includes the standalone ParCa, simulation, and analysis run scripts. 
+   Instead, these scripts can be run inside an :ref:`sherlock-interactive` (ideal for script development or debugging) 
+   or :ref:`sherlock-noninteractive` (ideal for longer or more resource-intensive scripts that do not require user input).
 
 .. _sherlock-config:
 
@@ -106,8 +193,11 @@ keys in your configuration JSON (note the top-level ``sherlock`` key):
 
 In addition to these options, you **MUST** set the emitter output directory
 (see description of ``emitter_arg`` in :ref:`json_config`) to a path with
-enough space to store your workflow outputs. We recommend setting this to
-a location in your ``$SCRATCH`` directory (e.g. ``/scratch/users/{username}/out``).
+enough space to store your workflow outputs. 
+
+.. important::
+   We recommend setting ``emitter_arg`` to a location in your ``$SCRATCH`` directory (e.g. ``"out_dir": "/scratch/users/{username}/out"``),
+   since ``$HOME`` only has a pretty small storage limit (run ``sh_quota`` to view).
 
 If using the Parquet emitter and ``threaded`` is not set to false under
 ``emitter_arg``, a warning will be printed suggesting that you set ``threaded``
@@ -138,8 +228,9 @@ in the path to your config JSON.
 
 .. warning::
   Remember to use ``python3`` to start workflows instead of ``python``.
+  This command is supposed to run on **login node**, which means there is no need to use ``srun`` to request a **compute node**.
+  If there is trouble with permission denied for nextflow (you can use ``nextflow -version`` to check out), you can try ``chmod a+rwx``
 
-This command should be run on a login node (no need to request a compute node).
 If ``build_image`` is true in your config JSON, the terminal will report that
 a SLURM job was submitted to build the container image. When the image build
 job starts, the terminal will report the build progress.
@@ -151,10 +242,19 @@ job starts, the terminal will report the build progress.
   Do not make any changes to your cloned repository or close your SSH
   connection until the build has finished.
 
-Once the build has finished, the terminal will report that a SLURM job
+Once the build has finished, the terminal will report that a **SLURM job**
 was submitted for the Nextflow workflow orchestrator before exiting
 back to the shell. At this point, you are free to close your connection,
-start additional workflows, etc. Unlike workflows run locally, Sherlock's
+start additional workflows, etc. You can use ``squeue`` to view the status of your SLURM job:
+
+.. code-block:: bash
+
+   # View by job
+   squeue -j <Your_Job_ID>
+   # View by user
+   squeue -u <Your_user_name>
+
+Unlike workflows run locally, Sherlock's
 containerized workflows mean any changes made to the repository after the
 container image has been built will not affect the running workflow.
 
@@ -237,6 +337,8 @@ More specifically, users who wish to debug a failed workflow job should:
   Any changes that you make to ``/vEcoli`` inside the container are discarded
   when the container terminates.
 
+Moreover, if you want to exit the interactive image, just type ``exit`` command.
+
 To start an interactive container that reflects the current state of your
 cloned repository, navigate to your cloned repository and run the above
 command with the ``-d`` flag to start a "development" container:
@@ -288,242 +390,7 @@ to include one of the following directives at the top of your script:
 - ``#SBATCH --partition=owners,normal``: Uses either the ``owners`` or ``normal``
   partition. This is the recommended option for the vast majority of scripts.
 
-Just as with interactive containers, to run scripts directly from your
-cloned repository and not the snapshot, add the ``-d`` flag and drop the
-``/vEcoli/`` prefix from script names. Note that changing files in your
-cloned repository may affect SLURM batch jobs submitted with this flag.
-
-.. _sherlock-Quick-Start:
-
-Quick Start
-===========
-
-Initial Setup
-^^^^^^^^^^^^^
-
-Request a Sherlock Account
---------------------------
-
-If you've never had a Sherlock account: Go to https://www.sherlock.stanford.edu/ and click on ``Request an Account``
-
-.. note::
-   Markus will have to approve this.
-
-If you've had a Sherlock account for a previous group: Email srcc-support@stanford.edu and ask them to move your account to mcovert, and CC Markus on the email and in the email body ask for Markus to give approval
-
-Additional Resources: Sherlock Documentation from Stanford
-----------------------------------------------------------
-
-* https://srcc.stanford.edu/workshops/sherlock-boarding-session
-* https://www.sherlock.stanford.edu/docs/
-
-Login to Sherlock
-^^^^^^^^^^^^^^^^^
-
-.. code-block:: bash
-
-   ssh <YOUR_SU_NET_ID>@login.sherlock.stanford.edu
-   # Type in Stanford Password
-   # Do the Duo authentication
-   # The following setup steps should be done using the Sherlock terminal 
-   # NOTE that this is a LOGIN node, so no major computing should be done here
-
-   # It is best to use a compute node for things like cloning the repo, running code, resetting lpad, etc
-
-   srun -p mcovert --time=4:00:00 --cpus-per-task=2 --pty bash
-
-   # srun is the command for launching a job step under Slurm
-   # -p or --partition specifies which partition (queue) to use, choose covert :D
-   # --time: sets the job's wall‑clock time limit
-   # --cpus-per-task specifies # CPU cores for each task in this job step
-   # --pty: allocates a pseudo‑terminal (TTY) to run an interactive session
-   # bash: launching a Bash shell
-   # When it finished, usually you can see your JOB ID in your shell
-
-   # You can use scancel to abort your job step
-   scancel <YOUR_JOB_ID>
-
-You can also refer to the Sherlock Documentation: https://www.sherlock.stanford.edu/docs/getting-started/connecting/
-
-Clone the vEcoli Repository
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-1. Git clone the vEcoli repo to your Sherlock account:
-
-.. code-block:: bash
-
-   git clone https://github.com/CovertLab/vEcoli.git
-
-If you have already created your branch, you can use:
-
-.. code-block:: bash
-
-   # View all the branches (including remote branch)
-   git branch -a
-
-   # Checkout to your own branch
-   git checkout <your_branch_name>
-
-   # Validate your current branch
-   git branch
-
-2. Set up your ``vEcoli`` based on the detailed tutorial at ``Set Up`` chapter of Sherlock.
-
-.. tip::
-   * You can use ``nano`` as text editor:
-   
-   .. code-block:: bash
-   
-      nano ~/.bash_profile
-      # After writing, you can use Ctrl+O to write out, Enter to confirm, and Ctrl+X to exit
-      
-   * If you choose to use ``vim``, press ``i`` for insert, and press ``Esc``, then type ``:wq`` and Enter for writing out
-   * Before running the ``python3`` to set up the env, ensure you are in the vEcoli repo
-   * It usually takes time to run first job
-
-Submit Your Job
-^^^^^^^^^^^^^^^
-
-Module Loading
---------------
-
-For the time we login Sherlock, first we can use ``module load`` to load crucial tools for experiments:
-
-.. code-block:: bash
-
-   # Load newer Git, Java (for nextflow), and Python
-   module load system git java/21.0.4 python/3.12.1
-   # Include shared Nextflow and HyperQueue installations on PATH
-   export PATH=$PATH:$GROUP_HOME/vEcoli_env
-
-.. note::
-   This only needs to be done once.
-
-Configuration Setup
--------------------
-
-1. Before running your job, you should refer to the tutorial to construct the config for Sherlock
-
-.. important::
-   Since ``$HOME`` only has a pretty small storage limit (run ``sh_quota`` to view), it is **highly recommended** to use ``$SCRATCH`` as your ``emitter_arg`` instead (like: ``"out_dir": "/scratch/users/<User_name>/out"``).
-
-2. With configuration files, a workflow for vEcoli can be started with:
-
-.. code-block:: bash
-
-   python3 runscripts/workflow.py --config <Your_config_file>
-
-If ``build_image`` is true in your config JSON, the terminal will report that a **SLURM job** was submitted to build the container image. 
-When the image build job starts, the terminal will report the build progress.
-
-.. note::
-   * Remember to use ``python3`` instead of ``python``
-   * This command is supposed to run on **login node**, which means there is no need to use ``srun`` to request a **compute node**
-   * If there is trouble with permission denied for nextflow (you can use ``nextflow -version`` to check out), you can try ``chmod a+rwx``
-
-Job Monitoring
---------------
-
-3. Once the build has finished, the terminal will report that a **SLURM job** was submitted for the Nextflow workflow orchestrator before exiting back to the shell. 
-At this point, you are free to close your connection, start additional workflows, etc.
-
-.. note::
-   Unlike workflows run locally, Sherlock's containerized workflows mean any changes made to the repository after the container image has been built will not affect the running workflow.
-
-4. You can use ``squeue`` to view the status of your job:
-
-.. code-block:: bash
-
-   # View by job
-   squeue -j <Your_Job_ID>
-   # View by user
-   squeue -u <Your_user_name>
-
-5. Again, you can start additional, concurrent workflows that each build a new image with different modifications to the cloned repo. 
-By setting ``build_image`` to ``false`` and ``container_image`` to the path of previously saved image, you can save time by reusing a previously built image.
-
-Debug or Perform Analysis
--------------------------
-
-It's recommended to use ``Interactive Container`` 
-(you can view more details in the tutorial at interactive-container).
-
-Before building up any containers, first you should have a basic ``Image`` for vEcoli. 
-
-For example, we can use ``test_sherlock.json`` as config for both checking the project and building up a basic image:
-
-.. code-block:: bash
-
-   # At head node:
-   python3 runscripts/workflow.py --config configs/test_sherlock.json
-
-By default, the image file is at ``vEcoli/test_sherlock/test_image``.
-
-Then, you can use:
-
-.. code-block:: bash
-
-   runscripts/container/interactive.sh -i <Your_image_path> -a
-
-to build an interactive image.
-
-Inside the image, you can just use ``python`` commands rather than ``uv``. 
-For example, you can do further analysis for your simulation results:
-
-.. code-block:: bash
-
-   python3 runscripts/analysis.py --config <Your_config_file_path>
-
-Moreover, if you want to exit the image, just use ``exit`` command.
-
-Interactive vs Non-Interactive Containers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Interactive Container
-----------------------
-
-1. Start an interactive container with your full image path:
-
-.. code-block:: bash
-
-   runscripts/container/interactive.sh -i <Your_image_path> -a
-
-.. note::
-   In this way any changes that you make to ``/vEcoli`` inside the container are **discarded** when the container terminates, 
-   and ``~`` and any environment variables like ``$SCRATCH`` do not work inside the container.
-
-If you want to start an interactive container that **reflects the current state** of your cloned repository, 
-navigate to your cloned repository and run the above command with the ``-d`` flag to start a "development" container:
-
-.. code-block:: bash
-
-   runscripts/container/interactive.sh -i <Your_image_path> -a -d
-
-In this mode, instead of editing source files in ``/vEcoli``, 
-you can directly edit the source files in your cloned repository and have those changes immediately reflected when running those scripts inside the container.
-
-.. note::
-   Any changes you make will **persist** after the container terminates and can be tracked using Git version control.
-
-For more detailed information, please refer to the tutorial interactive-container
-
-Non-Interactive Container
---------------------------
-
-To run any script inside a container with a non-interactive session, use the same command as **Interactive Container** but specify a command using the ``-c`` flag, for example:
-
-.. code-block:: bash
-
-   runscripts/container/interactive.sh -i <Your_image_path> -c "python /vEcoli/runscripts/parca.py --config <Your_config_file>"
-
-Manual Script Execution with sbatch
-------------------------------------
-
-If you want to manually run scripts, you can use ``sbatch``.
-
-1. First, you should write your own Batch scripts: https://www.sherlock.stanford.edu/docs/getting-started/submitting/#batch-scripts
-
-Following is a sample for sbatch scripts:
+Following is a sample of sbatch scripts for requiring more resources to analysis simulation results:
 
 .. code-block:: bash
 
@@ -534,27 +401,36 @@ Following is a sample for sbatch scripts:
    #SBATCH --time=20:00
    #SBATCH --ntasks=1
    #SBATCH --partition=owners,normal
-   #SBATCH --cpus-per-task 4
-   #SBATCH --mem=8GB
+   #SBATCH --cpus-per-task=4
+   #SBATCH --mem=64GB
 
-   python3 runscripts/analysis.py --config <Your_config_path>
+   srun runscripts/container/interactive.sh -i <Your_image_path>  -a -c "python runscripts/analysis.py --config <Your_config_file_path>"
 
-2. Second, use ``sbatch`` to submit the job:
+Then, use ``sbatch`` to submit the job:
 
 .. code-block:: bash
 
    sbatch <Your_Job_Name>.sh
 
-You can use ``squeue`` to check your job status. Moreover, you can list the contents of the output file with the following commands:
+The ``.err`` and ``.out`` files will be created in the same directory as the sbatch script.
 
-.. code-block:: bash
+Just as with interactive containers, to run scripts directly from your
+cloned repository and not the snapshot, add the ``-d`` flag and drop the
+``/vEcoli/`` prefix from script names. Note that changing files in your
+cloned repository may affect SLURM batch jobs submitted with this flag.
 
-   cat slurm-<Your_Job_ID>.out
+.. _Download Results to Local from Sherlock:
 
-Download Results to Local
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Download Results to Local from Sherlock
+====================================
 
-``SCP`` is convenient for downloading files from the cluster. You can simply execute the following on your **local terminal**:
+It's recommended to turn to 
+`Sherlock's Data Transfer documentation <https://www.sherlock.stanford.edu/docs/storage/data-transfer/>`_
+for details on transferring files to and from your local machine.
+
+Following are common methods ``scp`` and ``rsync``:
+
+``scp`` is convenient for downloading files from the cluster. You can simply execute the following on your **local terminal**:
 
 .. code-block:: bash
 
@@ -564,9 +440,8 @@ Download Results to Local
    # If you only want to download single file:
    scp  <Your_SU_ID>@login.sherlock.stanford.edu:/path/to/remote/file  /path/to/local/destination/
 
-This will require your password and Duo validation.
-
-In practice, usually we want to get the analytical results for our simulation. Due to the report files being HTML files typically, we can turn to shell wildcard and use ``rsync`` with ``include/exclude`` filters:
+In practice, usually we want to get the analytical results for our simulation. 
+Due to the report files being HTML files typically, we can turn to shell wildcard and use ``rsync`` with ``include/exclude`` filters:
 
 .. code-block:: bash
 
@@ -584,7 +459,7 @@ In practice, usually we want to get the analytical results for our simulation. D
    # -v: Verbose output
    # --prune-empty-dirs: Avoids creating empty directories on the local machine
 
-This will also require your password and Duo validation.
+Both ``scp`` and ``rsync`` will require your password and Duo validation.
 
 .. _other-cluster:
 
