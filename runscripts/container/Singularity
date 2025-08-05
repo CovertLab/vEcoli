@@ -22,11 +22,12 @@ From: ghcr.io/astral-sh/uv@sha256:1cc0392c8aad8026ef3922e3f997fff0f31e506b0ffe95
     website "https://www.covert.stanford.edu/"
 
 %files
-    # runscripts/container/build-image.sh has some custom logic to replace this
-    # with a set of files that honors .dockerignore
-    FILES_TO_ADD
+    repo.tar /repo.tar
 
 %post
+    mkdir /vEcoli
+    tar -xf /repo.tar -C /vEcoli
+    rm /repo.tar
     apt-get update && apt-get install -y gcc procps nano curl
     cd /vEcoli
     UV_CACHE_DIR="/vEcoli/.uv_cache" UV_COMPILE_BYTECODE=1 uv sync --frozen
