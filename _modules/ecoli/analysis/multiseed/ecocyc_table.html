@@ -1,0 +1,683 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.multiseed.ecocyc_table &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.multiseed.ecocyc_table</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.multiseed.ecocyc_table</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Generates tables of data to share with EcoCyc for display on the &quot;modeling&quot; tab.</span>
+
+<span class="sd">TODO:</span>
+<span class="sd">    other values</span>
+<span class="sd">        weighted average for counts (time step weighted and cell cycle progress weighted)</span>
+<span class="sd">        max/min</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">csv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">pearsonr</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">config_value</span><span class="p">,</span>
+    <span class="n">field_metadata</span><span class="p">,</span>
+    <span class="n">open_arbitrary_sim_data</span><span class="p">,</span>
+    <span class="n">open_output_file</span><span class="p">,</span>
+    <span class="n">num_cells</span><span class="p">,</span>
+    <span class="n">read_stacked_columns</span><span class="p">,</span>
+    <span class="n">skip_n_gens</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.processes.metabolism</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">COUNTS_UNITS</span><span class="p">,</span>
+    <span class="n">MASS_UNITS</span><span class="p">,</span>
+    <span class="n">TIME_UNITS</span><span class="p">,</span>
+    <span class="n">VOLUME_UNITS</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">wholecell.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">units</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">reconstruction.ecoli.simulation_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulationDataEcoli</span>
+
+<span class="n">IGNORE_FIRST_N_GENS</span> <span class="o">=</span> <span class="mi">2</span>
+
+<span class="n">MEDIA_NAME_TO_ID</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;minimal&quot;</span><span class="p">:</span> <span class="s2">&quot;MIX0-57&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;minimal_minus_oxygen&quot;</span><span class="p">:</span> <span class="s2">&quot;MIX0-57-ANAEROBIC&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;minimal_plus_amino_acids&quot;</span><span class="p">:</span> <span class="s2">&quot;MIX0-850&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;minimal_acetate&quot;</span><span class="p">:</span> <span class="s2">&quot;MIX0-58&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;minimal_succinate&quot;</span><span class="p">:</span> <span class="s2">&quot;MIX0-844&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="save_file">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.multiseed.ecocyc_table.html#ecoli.analysis.multiseed.ecocyc_table.save_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_file</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">]):</span>
+    <span class="n">outfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving data to </span><span class="si">{</span><span class="n">outfile</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># Data rows</span>
+    <span class="n">out_df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">s</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">values</span><span class="p">)})</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">,</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="s2">&quot;w+&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">temp_out</span><span class="p">:</span>
+        <span class="n">out_df</span><span class="o">.</span><span class="n">write_csv</span><span class="p">(</span><span class="n">temp_out</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Header for columns</span>
+        <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="s2">&quot;# Column descriptions:&quot;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">desc</span> <span class="ow">in</span> <span class="n">columns</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;# </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">desc</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">temp_out</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="plot">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.multiseed.ecocyc_table.html#ecoli.analysis.multiseed.ecocyc_table.plot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">DuckDBPyConnection</span><span class="p">,</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sim_data_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">validation_data_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">variant_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">variant_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
+    <span class="k">with</span> <span class="n">open_arbitrary_sim_data</span><span class="p">(</span><span class="n">sim_data_dict</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">sim_data</span><span class="p">:</span> <span class="s2">&quot;SimulationDataEcoli&quot;</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">open_output_file</span><span class="p">(</span><span class="n">validation_data_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">validation_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="n">ignore_first_n_gens</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ignore_first_n_gens&quot;</span><span class="p">,</span> <span class="n">IGNORE_FIRST_N_GENS</span><span class="p">)</span>
+
+    <span class="n">media_name</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">conditions</span><span class="p">[</span><span class="n">sim_data</span><span class="o">.</span><span class="n">condition</span><span class="p">][</span><span class="s2">&quot;nutrients&quot;</span><span class="p">]</span>
+    <span class="n">media_id</span> <span class="o">=</span> <span class="n">MEDIA_NAME_TO_ID</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">media_name</span><span class="p">,</span> <span class="n">media_name</span><span class="p">)</span>
+
+    <span class="c1"># Ignore first N generations</span>
+    <span class="n">history_sql</span> <span class="o">=</span> <span class="n">skip_n_gens</span><span class="p">(</span><span class="n">history_sql</span><span class="p">,</span> <span class="n">ignore_first_n_gens</span><span class="p">)</span>
+    <span class="n">config_sql</span> <span class="o">=</span> <span class="n">skip_n_gens</span><span class="p">(</span><span class="n">config_sql</span><span class="p">,</span> <span class="n">ignore_first_n_gens</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">num_cells</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Skipping analysis -- not enough simulations run.&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Load tables and attributes for mRNAs</span>
+    <span class="n">mRNA_ids</span> <span class="o">=</span> <span class="n">field_metadata</span><span class="p">(</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;listeners__rna_counts__mRNA_cistron_counts&quot;</span>
+    <span class="p">)</span>
+    <span class="c1"># mass_unit = field_metadata(config_lf, &#39;listeners__mass__dry_mass&#39;)</span>
+    <span class="c1"># assert mass_unit == &#39;fg&#39;</span>
+
+    <span class="c1"># Load tables and attributes for tRNAs and rRNAs</span>
+    <span class="n">bulk_ids</span> <span class="o">=</span> <span class="n">field_metadata</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;bulk&quot;</span><span class="p">)</span>
+    <span class="n">bulk_id_to_idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">bulk_id</span><span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bulk_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bulk_ids</span><span class="p">)}</span>
+    <span class="n">uncharged_tRNA_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">uncharged_trna_names</span>
+    <span class="n">uncharged_tRNA_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">bulk_id_to_idx</span><span class="p">[</span><span class="n">trna</span><span class="p">]</span> <span class="k">for</span> <span class="n">trna</span> <span class="ow">in</span> <span class="n">uncharged_tRNA_ids</span><span class="p">]</span>
+    <span class="n">charged_tRNA_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">charged_trna_names</span>
+    <span class="n">charged_tRNA_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">bulk_id_to_idx</span><span class="p">[</span><span class="n">trna</span><span class="p">]</span> <span class="k">for</span> <span class="n">trna</span> <span class="ow">in</span> <span class="n">charged_tRNA_ids</span><span class="p">]</span>
+    <span class="n">tRNA_cistron_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">tRNA_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="k">for</span> <span class="n">tRNA_id</span> <span class="ow">in</span> <span class="n">uncharged_tRNA_ids</span><span class="p">]</span>
+    <span class="n">rRNA_ids</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s30_16s_rRNA</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s50_23s_rRNA</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s50_5s_rRNA</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="p">]</span>
+    <span class="n">rRNA_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">bulk_id_to_idx</span><span class="p">[</span><span class="n">trna</span><span class="p">]</span> <span class="k">for</span> <span class="n">trna</span> <span class="ow">in</span> <span class="n">rRNA_ids</span><span class="p">]</span>
+    <span class="n">rRNA_cistron_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">rRNA_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="k">for</span> <span class="n">rRNA_id</span> <span class="ow">in</span> <span class="n">rRNA_ids</span><span class="p">]</span>
+    <span class="n">ribosomal_subunit_ids</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">s30_full_complex</span><span class="p">,</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">s50_full_complex</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">ribo_subunit_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">bulk_id_to_idx</span><span class="p">[</span><span class="n">ribo</span><span class="p">]</span> <span class="k">for</span> <span class="n">ribo</span> <span class="ow">in</span> <span class="n">ribosomal_subunit_ids</span><span class="p">]</span>
+    <span class="c1"># Filter out first timestep for each cell because counts_to_molar is 0</span>
+    <span class="n">rna_subquery</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span>
+        <span class="n">history_sql</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="c1"># Extract only necessary bulk counts to reduce RAM usage</span>
+            <span class="sa">f</span><span class="s2">&quot;list_select(bulk, </span><span class="si">{</span><span class="n">charged_tRNA_idx</span><span class="si">}</span><span class="s2">) AS charged_tRNAs, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;list_select(bulk, </span><span class="si">{</span><span class="n">uncharged_tRNA_idx</span><span class="si">}</span><span class="s2">) AS uncharged_tRNAs, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;list_select(bulk, </span><span class="si">{</span><span class="n">rRNA_idx</span><span class="si">}</span><span class="s2">) AS rRNAs, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;list_select(bulk, </span><span class="si">{</span><span class="n">ribo_subunit_idx</span><span class="si">}</span><span class="s2">) AS ribo_subunits&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;listeners__unique_molecule_counts__active_ribosome&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;listeners__enzyme_kinetics__counts_to_molar&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;listeners__rna_counts__mRNA_cistron_counts&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="n">remove_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">order_results</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">rna_data</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        WITH rna_list AS (</span>
+<span class="s2">            SELECT</span>
+<span class="s2">                -- Create RNA counts list of mRNAs, tRNAs, and rRNAs (in order)</span>
+<span class="s2">                (</span>
+<span class="s2">                    -- mRNA</span>
+<span class="s2">                    listeners__rna_counts__mRNA_cistron_counts +</span>
+<span class="s2">                    -- tRNA = charged + uncharged</span>
+<span class="s2">                    [</span>
+<span class="s2">                        trna[1] + trna[2]</span>
+<span class="s2">                        FOR trna IN list_zip(charged_tRNAs, uncharged_tRNAs)</span>
+<span class="s2">                    ] +</span>
+<span class="s2">                    -- First rRNA = bulk + active ribosome + small subunit</span>
+<span class="s2">                    [</span>
+<span class="s2">                        rRNAs[1] + </span>
+<span class="s2">                        listeners__unique_molecule_counts__active_ribosome +</span>
+<span class="s2">                        ribo_subunits[1]</span>
+<span class="s2">                    ] +</span>
+<span class="s2">                    -- Remaining rRNAs = bulk + active ribosome + large subunit</span>
+<span class="s2">                    [</span>
+<span class="s2">                        rrna_count +</span>
+<span class="s2">                        listeners__unique_molecule_counts__active_ribosome +</span>
+<span class="s2">                        ribo_subunits[2]</span>
+<span class="s2">                        FOR rrna_count IN rRNAs[2:]</span>
+<span class="s2">                    ]</span>
+<span class="s2">                ) AS rna_counts,</span>
+<span class="s2">                listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar,</span>
+<span class="s2">                listeners__mass__dry_mass AS dry_masses</span>
+<span class="s2">            FROM (</span><span class="si">{</span><span class="n">rna_subquery</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">        ),</span>
+<span class="s2">        unnested_counts AS (</span>
+<span class="s2">            SELECT</span>
+<span class="s2">                -- Unnest RNA counts to perform aggregations (e.g. mean, stddev)</span>
+<span class="s2">                unnest(rna_counts) AS rna_counts,</span>
+<span class="s2">                -- Track list index for each unnested row for grouped aggregations</span>
+<span class="s2">                generate_subscripts(rna_counts, 1) AS rna_idx,</span>
+<span class="s2">                counts_to_molar, dry_masses</span>
+<span class="s2">            FROM rna_list</span>
+<span class="s2">        )</span>
+<span class="s2">        SELECT</span>
+<span class="s2">            avg(rna_counts) AS &quot;rna-count-avg&quot;,</span>
+<span class="s2">            stddev(rna_counts) AS &quot;rna-count-std&quot;,</span>
+<span class="s2">            avg(rna_counts * counts_to_molar) AS &quot;rna-concentration-avg&quot;,</span>
+<span class="s2">            stddev(rna_counts * counts_to_molar) AS &quot;rna-concentration-std&quot;,</span>
+<span class="s2">            avg(dry_masses) AS &quot;dry-masses-avg&quot;</span>
+<span class="s2">        FROM unnested_counts</span>
+<span class="s2">        GROUP BY rna_idx</span>
+<span class="s2">        ORDER BY rna_idx</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()</span>
+
+    <span class="c1"># Filter out first timestep for each cell because counts_to_molar is 0</span>
+    <span class="n">gene_copy_num_subquery</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span>
+        <span class="n">history_sql</span><span class="p">,</span>
+        <span class="p">[</span><span class="s2">&quot;listeners__rna_synth_prob__gene_copy_number&quot;</span><span class="p">],</span>
+        <span class="n">remove_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">order_results</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">gene_copy_data</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        WITH unnested_counts AS (</span>
+<span class="s2">            SELECT</span>
+<span class="s2">                -- Unnest gene copy number to perform aggregations (e.g. mean, stddev)</span>
+<span class="s2">                unnest(listeners__rna_synth_prob__gene_copy_number) AS gene_copy_numbers,</span>
+<span class="s2">                -- Track list index for each unnested row for grouped aggregations</span>
+<span class="s2">                generate_subscripts(listeners__rna_synth_prob__gene_copy_number, 1) AS gene_idx</span>
+<span class="s2">            FROM (</span><span class="si">{</span><span class="n">gene_copy_num_subquery</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">        )</span>
+<span class="s2">        SELECT</span>
+<span class="s2">            avg(gene_copy_numbers) AS &quot;gene-copy-number-avg&quot;,</span>
+<span class="s2">            stddev(gene_copy_numbers) AS &quot;gene-copy-number-std&quot;</span>
+<span class="s2">        FROM unnested_counts</span>
+<span class="s2">        GROUP BY gene_idx</span>
+<span class="s2">        ORDER BY gene_idx</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()</span>
+
+    <span class="c1"># Retrieve gene copy numbers in order of RNA counts</span>
+    <span class="n">cistron_id_to_gene_id</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">cistron</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]:</span> <span class="n">cistron</span><span class="p">[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">cistron</span> <span class="ow">in</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span>
+    <span class="p">}</span>
+    <span class="n">gene_ids</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">cistron_id_to_gene_id</span><span class="p">[</span><span class="n">rna_id</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">rna_id</span> <span class="ow">in</span> <span class="n">mRNA_ids</span> <span class="o">+</span> <span class="n">tRNA_cistron_ids</span> <span class="o">+</span> <span class="n">rRNA_cistron_ids</span>
+    <span class="p">]</span>
+    <span class="n">gene_ids_rna_synth_prob</span> <span class="o">=</span> <span class="n">field_metadata</span><span class="p">(</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;listeners__rna_synth_prob__gene_copy_number&quot;</span>
+    <span class="p">)</span>
+    <span class="n">gene_id_to_idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">gene</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">gene</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gene_ids_rna_synth_prob</span><span class="p">)}</span>
+    <span class="n">gene_to_rna_order_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">gene_id_to_idx</span><span class="p">[</span><span class="n">gene</span><span class="p">]</span> <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">gene_ids</span><span class="p">]</span>
+
+    <span class="c1"># Get RNA molecular weights</span>
+    <span class="n">gene_id_to_mw</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">gene_id</span><span class="p">:</span> <span class="n">cistron_mw</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">gene_id</span><span class="p">,</span> <span class="n">cistron_mw</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="p">[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">],</span>
+            <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="p">[</span><span class="s2">&quot;mw&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span>
+                <span class="n">units</span><span class="o">.</span><span class="n">fg</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">count</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">}</span>
+    <span class="n">rna_mw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">gene_id_to_mw</span><span class="p">[</span><span class="n">gene</span><span class="p">]</span> <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">gene_ids</span><span class="p">])</span>
+
+    <span class="c1"># Calculate relative statistics</span>
+    <span class="n">rel_to_type_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rna_data</span><span class="p">))</span>
+    <span class="n">rel_to_type_mass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rna_data</span><span class="p">))</span>
+    <span class="n">start_idx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">add_idx</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">mRNA_ids</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">tRNA_cistron_ids</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">rRNA_cistron_ids</span><span class="p">)]:</span>
+        <span class="n">rna_slice_mw</span> <span class="o">=</span> <span class="n">rna_mw</span><span class="p">[</span><span class="n">start_idx</span> <span class="p">:</span> <span class="n">start_idx</span> <span class="o">+</span> <span class="n">add_idx</span><span class="p">]</span>
+        <span class="n">rel_to_type_count</span><span class="p">[</span><span class="n">start_idx</span> <span class="p">:</span> <span class="n">start_idx</span> <span class="o">+</span> <span class="n">add_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">rna_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">start_idx</span><span class="p">,</span> <span class="n">add_idx</span><span class="p">)</span>
+            <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">start_idx</span><span class="p">,</span> <span class="n">add_idx</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="p">)[</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">]</span>
+        <span class="n">rel_to_type_mass</span><span class="p">[</span><span class="n">start_idx</span> <span class="p">:</span> <span class="n">start_idx</span> <span class="o">+</span> <span class="n">add_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">rna_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">start_idx</span><span class="p">,</span> <span class="n">add_idx</span><span class="p">)</span>
+            <span class="o">*</span> <span class="n">rna_slice_mw</span>
+            <span class="o">/</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">start_idx</span><span class="p">,</span> <span class="n">add_idx</span><span class="p">)</span> <span class="o">*</span> <span class="n">rna_slice_mw</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="p">)[</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">]</span>
+        <span class="n">start_idx</span> <span class="o">+=</span> <span class="n">add_idx</span>
+    <span class="n">rna_data</span> <span class="o">=</span> <span class="n">rna_data</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="o">**</span><span class="p">{</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="s2">&quot;relative-rna-count-to-total-rna-type-counts&quot;</span><span class="p">:</span> <span class="n">rel_to_type_count</span><span class="p">,</span>
+            <span class="s2">&quot;relative-rna-mass-to-total-rna-type-mass&quot;</span><span class="p">:</span> <span class="n">rel_to_type_mass</span><span class="p">,</span>
+            <span class="s2">&quot;relative-rna-count-to-total-rna-counts&quot;</span><span class="p">:</span> <span class="n">rna_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)[</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;relative-rna-mass-to-total-rna-mass&quot;</span><span class="p">:</span> <span class="n">rna_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">)</span>
+                <span class="o">*</span> <span class="n">rna_mw</span>
+                <span class="o">/</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">rna_mw</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)[</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;relative-rna-mass-to-total-cell-dry-mass&quot;</span><span class="p">:</span> <span class="n">rna_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">rna_mw</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;dry-masses-avg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)[</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">gene_ids</span><span class="p">),</span>
+            <span class="s2">&quot;gene-copy-number-avg&quot;</span><span class="p">:</span> <span class="n">gene_copy_data</span><span class="p">[</span><span class="s2">&quot;gene-copy-number-avg&quot;</span><span class="p">][</span>
+                <span class="n">gene_to_rna_order_idx</span>
+            <span class="p">],</span>
+            <span class="s2">&quot;gene-copy-number-std&quot;</span><span class="p">:</span> <span class="n">gene_copy_data</span><span class="p">[</span><span class="s2">&quot;gene-copy-number-std&quot;</span><span class="p">][</span>
+                <span class="n">gene_to_rna_order_idx</span>
+            <span class="p">],</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="n">columns</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;Object ID, according to EcoCyc&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;gene-copy-number-avg&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;gene-copy-number-std&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rna-count-avg&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rna-count-std&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rna-concentration-avg&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number in mM units&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rna-concentration-std&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number in mM units&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;relative-rna-count-to-total-rna-counts&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;relative-rna-count-to-total-rna-type-counts&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;relative-rna-mass-to-total-rna-mass&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;relative-rna-mass-to-total-rna-type-mass&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;relative-rna-mass-to-total-cell-dry-mass&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">rna_data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
+
+    <span class="n">save_file</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;wcm_rnas_</span><span class="si">{</span><span class="n">media_id</span><span class="si">}</span><span class="s2">.tsv&quot;</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+
+    <span class="c1"># Build dictionary for metadata</span>
+    <span class="n">ecocyc_metadata</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;git_hash&quot;</span><span class="p">:</span> <span class="n">config_value</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;git_hash&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;n_ignored_generations&quot;</span><span class="p">:</span> <span class="n">ignore_first_n_gens</span><span class="p">,</span>
+        <span class="s2">&quot;n_total_generations&quot;</span><span class="p">:</span> <span class="n">config_value</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;generations&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;n_seeds&quot;</span><span class="p">:</span> <span class="n">config_value</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;n_init_sims&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;n_cells&quot;</span><span class="p">:</span> <span class="n">num_cells</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">),</span>
+        <span class="s2">&quot;n_timesteps&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">rna_data</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Filter out first timestep for each cell because counts_to_molar is 0</span>
+    <span class="n">monomer_subquery</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span>
+        <span class="n">history_sql</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;listeners__enzyme_kinetics__counts_to_molar&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;listeners__monomer_counts&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="n">remove_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">order_results</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># Load tables and attributes for proteins</span>
+    <span class="n">monomer_data</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        WITH unnested_counts AS (</span>
+<span class="s2">            SELECT</span>
+<span class="s2">                listeners__mass__dry_mass AS dry_masses,</span>
+<span class="s2">                listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar,</span>
+<span class="s2">                -- Unnest monomer counts to calculate aggregations (e.g. mean)</span>
+<span class="s2">                unnest(listeners__monomer_counts) AS monomer_counts,</span>
+<span class="s2">                -- Track list index for each unnested row for grouped aggregations</span>
+<span class="s2">                generate_subscripts(listeners__monomer_counts, 1) AS monomer_idx,</span>
+<span class="s2">            FROM (</span><span class="si">{</span><span class="n">monomer_subquery</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">        )</span>
+<span class="s2">        SELECT</span>
+<span class="s2">            avg(monomer_counts) AS &quot;protein-count-avg&quot;,</span>
+<span class="s2">            stddev(monomer_counts) AS &quot;protein-count-std&quot;,</span>
+<span class="s2">            avg(monomer_counts * counts_to_molar) AS &quot;protein-concentration-avg&quot;,</span>
+<span class="s2">            stddev(monomer_counts * counts_to_molar) AS &quot;protein-concentration-std&quot;,</span>
+<span class="s2">            avg(dry_masses) AS &quot;dry-masses-avg&quot;</span>
+<span class="s2">        FROM unnested_counts</span>
+<span class="s2">        GROUP BY monomer_idx</span>
+<span class="s2">        ORDER BY monomer_idx</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()</span>
+    <span class="n">monomer_ids</span> <span class="o">=</span> <span class="n">field_metadata</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;listeners__monomer_counts&quot;</span><span class="p">)</span>
+    <span class="n">monomer_ecocyc_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">monomer</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="k">for</span> <span class="n">monomer</span> <span class="ow">in</span> <span class="n">monomer_ids</span><span class="p">]</span>  <span class="c1"># strip [*]</span>
+    <span class="n">monomer_mw</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">getter</span><span class="o">.</span><span class="n">get_masses</span><span class="p">(</span><span class="n">monomer_ids</span><span class="p">)</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span>
+        <span class="n">units</span><span class="o">.</span><span class="n">fg</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">count</span>
+    <span class="p">)</span>
+    <span class="n">monomer_sim_data</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">monomer_data</span><span class="o">.</span><span class="n">struct_array</span>
+    <span class="n">monomer_to_gene_id</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">monomer_id</span><span class="p">:</span> <span class="n">cistron_id_to_gene_id</span><span class="p">[</span><span class="n">cistron_id</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">cistron_id</span><span class="p">,</span> <span class="n">monomer_id</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">monomer_sim_data</span><span class="p">[</span><span class="s2">&quot;cistron_id&quot;</span><span class="p">],</span> <span class="n">monomer_sim_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="p">}</span>
+    <span class="c1"># Calculate relative statistics</span>
+    <span class="n">monomer_data</span> <span class="o">=</span> <span class="n">monomer_data</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="o">**</span><span class="p">{</span>
+            <span class="s2">&quot;relative-protein-count-to-total-protein-counts&quot;</span><span class="p">:</span> <span class="n">monomer_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;protein-count-avg&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;protein-count-avg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)[</span><span class="s2">&quot;protein-count-avg&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;relative-protein-mass-to-total-protein-mass&quot;</span><span class="p">:</span> <span class="n">monomer_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;protein-count-avg&quot;</span><span class="p">)</span>
+                <span class="o">*</span> <span class="n">monomer_mw</span>
+                <span class="o">/</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;protein-count-avg&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">monomer_mw</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)[</span><span class="s2">&quot;protein-count-avg&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;relative-protein-mass-to-total-cell-dry-mass&quot;</span><span class="p">:</span> <span class="n">monomer_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;protein-count-avg&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">monomer_mw</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;dry-masses-avg&quot;</span><span class="p">)</span>
+            <span class="p">)[</span><span class="s2">&quot;protein-count-avg&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;gene-id&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">monomer_to_gene_id</span><span class="p">[</span><span class="n">monomer_id</span><span class="p">]</span> <span class="k">for</span> <span class="n">monomer_id</span> <span class="ow">in</span> <span class="n">monomer_ids</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">monomer_ecocyc_ids</span><span class="p">),</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">monomer_data</span> <span class="o">=</span> <span class="n">monomer_data</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">rna_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="s2">&quot;gene-id&quot;</span><span class="p">:</span> <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;rna-count-avg&quot;</span><span class="p">:</span> <span class="s2">&quot;rna-count-avg&quot;</span><span class="p">}),</span>
+        <span class="n">on</span><span class="o">=</span><span class="s2">&quot;gene-id&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">monomer_data</span> <span class="o">=</span> <span class="n">monomer_data</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="o">**</span><span class="p">{</span>
+            <span class="s2">&quot;relative-protein-count-to-protein-rna-counts&quot;</span><span class="p">:</span> <span class="n">monomer_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;protein-count-avg&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;rna-count-avg&quot;</span><span class="p">)</span>
+            <span class="p">)[</span><span class="s2">&quot;protein-count-avg&quot;</span><span class="p">]</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="n">columns</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;Object ID, according to EcoCyc&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;protein-count-avg&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;protein-count-std&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;protein-concentration-avg&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number in mM units&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;protein-concentration-std&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number in mM units&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;relative-protein-count-to-protein-rna-counts&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;relative-protein-mass-to-total-protein-mass&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;relative-protein-mass-to-total-cell-dry-mass&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">monomer_data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
+
+    <span class="c1"># Add validation data if sims used minimal glucose media</span>
+    <span class="k">if</span> <span class="n">media_name</span> <span class="o">==</span> <span class="s2">&quot;minimal&quot;</span><span class="p">:</span>
+        <span class="n">protein_id_to_schmidt_counts</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">validation_data</span><span class="o">.</span><span class="n">protein</span><span class="o">.</span><span class="n">schmidt2015Data</span>
+        <span class="p">}</span>
+        <span class="n">protein_counts_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">protein_id_to_schmidt_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">protein_id</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">protein_id</span> <span class="ow">in</span> <span class="n">monomer_ids</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">columns</span><span class="p">[</span><span class="s2">&quot;validation-count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;A floating point number&quot;</span>
+        <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">protein_counts_val</span><span class="p">))</span>
+
+        <span class="n">protein_val_exists</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">protein_counts_val</span><span class="p">))</span>
+        <span class="n">r</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span>
+            <span class="n">monomer_data</span><span class="p">[</span><span class="s2">&quot;protein-count-avg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">protein_val_exists</span><span class="p">)),</span>
+            <span class="n">protein_counts_val</span><span class="p">[</span><span class="n">protein_val_exists</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="n">ecocyc_metadata</span><span class="p">[</span><span class="s2">&quot;protein_validation_r_squared&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span>
+
+    <span class="n">save_file</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;wcm_monomers_</span><span class="si">{</span><span class="n">media_id</span><span class="si">}</span><span class="s2">.tsv&quot;</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+
+    <span class="c1"># Read data and load attributes for complexes</span>
+    <span class="n">complex_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">complexation</span><span class="o">.</span><span class="n">ids_complexes</span>
+    <span class="n">complex_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">bulk_id_to_idx</span><span class="p">[</span><span class="n">cplx</span><span class="p">]</span> <span class="k">for</span> <span class="n">cplx</span> <span class="ow">in</span> <span class="n">complex_ids</span><span class="p">]</span>
+    <span class="n">complex_subquery</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span>
+        <span class="n">history_sql</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="c1"># Extract only complex bulk counts to reduce RAM usage</span>
+            <span class="sa">f</span><span class="s2">&quot;list_select(bulk, </span><span class="si">{</span><span class="n">complex_idx</span><span class="si">}</span><span class="s2">) AS complex_counts&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;listeners__enzyme_kinetics__counts_to_molar&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="n">remove_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">order_results</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">complex_data</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        WITH unnested_counts AS (</span>
+<span class="s2">            SELECT</span>
+<span class="s2">                -- Unnest complex counts to calculate aggregations (e.g. mean)</span>
+<span class="s2">                unnest(complex_counts) AS complex_counts,</span>
+<span class="s2">                -- Track list index for each unnested row for grouped aggregations</span>
+<span class="s2">                generate_subscripts(complex_counts, 1) AS complex_idx,</span>
+<span class="s2">                listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar,</span>
+<span class="s2">                listeners__mass__dry_mass AS dry_masses,</span>
+<span class="s2">            FROM (</span><span class="si">{</span><span class="n">complex_subquery</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">        )</span>
+<span class="s2">        SELECT</span>
+<span class="s2">            avg(complex_counts) AS &quot;complex-count-avg&quot;,</span>
+<span class="s2">            stddev(complex_counts) AS &quot;complex-count-std&quot;,</span>
+<span class="s2">            avg(complex_counts * counts_to_molar) AS &quot;complex-concentration-avg&quot;,</span>
+<span class="s2">            stddev(complex_counts * counts_to_molar) AS &quot;complex-concentration-std&quot;,</span>
+<span class="s2">            avg(dry_masses) AS &quot;dry-masses-avg&quot;</span>
+<span class="s2">        FROM unnested_counts</span>
+<span class="s2">        GROUP BY complex_idx</span>
+<span class="s2">        ORDER BY complex_idx</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()</span>
+
+    <span class="c1"># Calculate derived protein values</span>
+    <span class="n">complex_mw</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">getter</span><span class="o">.</span><span class="n">get_masses</span><span class="p">(</span><span class="n">complex_ids</span><span class="p">)</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span>
+        <span class="n">units</span><span class="o">.</span><span class="n">fg</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">count</span>
+    <span class="p">)</span>
+    <span class="n">complex_data</span> <span class="o">=</span> <span class="n">complex_data</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="o">**</span><span class="p">{</span>
+            <span class="s2">&quot;relative-complex-mass-to-total-protein-mass&quot;</span><span class="p">:</span> <span class="n">complex_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;complex-count-avg&quot;</span><span class="p">)</span>
+                <span class="o">*</span> <span class="n">complex_mw</span>
+                <span class="o">/</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;complex-count-avg&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">complex_mw</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)[</span><span class="s2">&quot;complex-count-avg&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;relative-complex-mass-to-total-cell-dry-mass&quot;</span><span class="p">:</span> <span class="n">complex_data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;complex-count-avg&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">complex_mw</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;dry-masses-avg&quot;</span><span class="p">)</span>
+            <span class="p">)[</span><span class="s2">&quot;complex-count-avg&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">complex_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="k">for</span> <span class="n">complex_id</span> <span class="ow">in</span> <span class="n">complex_ids</span><span class="p">]</span>
+            <span class="p">),</span>  <span class="c1"># strip [*]</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="c1"># Save complex data in table</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;Object ID, according to EcoCyc&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;complex-count-avg&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;complex-count-std&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;complex-concentration-avg&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number in mM units&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;complex-concentration-std&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number in mM units&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;relative-complex-mass-to-total-protein-mass&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;relative-complex-mass-to-total-cell-dry-mass&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">complex_data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
+
+    <span class="n">save_file</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;wcm_complexes_</span><span class="si">{</span><span class="n">media_id</span><span class="si">}</span><span class="s2">.tsv&quot;</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+
+    <span class="c1"># Load attributes for metabolic fluxes</span>
+    <span class="n">cell_density</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">constants</span><span class="o">.</span><span class="n">cell_density</span>
+    <span class="n">cell_density</span> <span class="o">=</span> <span class="n">cell_density</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">MASS_UNITS</span> <span class="o">/</span> <span class="n">VOLUME_UNITS</span><span class="p">)</span>
+    <span class="n">reaction_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">metabolism</span><span class="o">.</span><span class="n">base_reaction_ids</span>
+
+    <span class="c1"># Read fluxes</span>
+    <span class="n">flux_subquery</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span>
+        <span class="n">history_sql</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;listeners__fba_results__base_reaction_fluxes&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;listeners__mass__cell_mass&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="n">order_results</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">flux_data</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        WITH unnest_fluxes AS (</span>
+<span class="s2">            SELECT listeners__mass__dry_mass / </span>
+<span class="s2">                listeners__mass__cell_mass * </span><span class="si">{</span><span class="n">cell_density</span><span class="si">}</span><span class="s2"> AS conversion_coeffs,</span>
+<span class="s2">                -- Unnest monomer counts to calculate aggregations (e.g. mean)</span>
+<span class="s2">                unnest(listeners__fba_results__base_reaction_fluxes) AS fluxes,</span>
+<span class="s2">                generate_subscripts(listeners__fba_results__base_reaction_fluxes, 1) AS idx,</span>
+<span class="s2">            FROM (</span><span class="si">{</span><span class="n">flux_subquery</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">        )</span>
+<span class="s2">        SELECT </span>
+<span class="s2">            avg(fluxes / conversion_coeffs) AS &quot;flux-avg&quot;,</span>
+<span class="s2">            stddev(fluxes / conversion_coeffs) AS &quot;flux-std&quot;</span>
+<span class="s2">        FROM unnest_fluxes</span>
+<span class="s2">        GROUP BY idx</span>
+<span class="s2">        ORDER BY idx</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()</span>
+
+    <span class="n">flux_data</span> <span class="o">=</span> <span class="n">flux_data</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="o">**</span><span class="p">{</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">reaction_ids</span><span class="p">),</span>
+            <span class="s2">&quot;flux-avg&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">COUNTS_UNITS</span> <span class="o">/</span> <span class="n">MASS_UNITS</span> <span class="o">/</span> <span class="n">TIME_UNITS</span><span class="p">)</span> <span class="o">*</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;flux-avg&quot;</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">mmol</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">h</span><span class="p">),</span>
+            <span class="s2">&quot;flux-std&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">COUNTS_UNITS</span> <span class="o">/</span> <span class="n">MASS_UNITS</span> <span class="o">/</span> <span class="n">TIME_UNITS</span><span class="p">)</span> <span class="o">*</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;flux-std&quot;</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">mmol</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">h</span><span class="p">),</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="n">columns</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;Object ID, according to EcoCyc&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;flux-avg&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number in mmol/g DCW/h units&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;flux-std&quot;</span><span class="p">:</span> <span class="s2">&quot;A floating point number in mmol/g DCW/h units&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">flux_data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
+
+    <span class="n">save_file</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;wcm_metabolic_reactions_</span><span class="si">{</span><span class="n">media_id</span><span class="si">}</span><span class="s2">.tsv&quot;</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+
+    <span class="n">metadata_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;wcm_metadata_</span><span class="si">{</span><span class="n">media_id</span><span class="si">}</span><span class="s2">.json&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">metadata_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving data to </span><span class="si">{</span><span class="n">metadata_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">ecocyc_metadata</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

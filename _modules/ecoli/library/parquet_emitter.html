@@ -1,0 +1,1282 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.library.parquet_emitter &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.library.parquet_emitter</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.library.parquet_emitter</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Future</span><span class="p">,</span> <span class="n">ThreadPoolExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">polars.datatypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataTypeClass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">filesystem</span><span class="p">,</span> <span class="n">url_to_fs</span><span class="p">,</span> <span class="n">OpenFile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">AbstractFileSystem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vivarium.core.emitter</span><span class="w"> </span><span class="kn">import</span> <span class="n">Emitter</span>
+
+<span class="n">METADATA_PREFIX</span> <span class="o">=</span> <span class="s2">&quot;output_metadata__&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">In the config dataset, user-defined metadata for each store</span>
+<span class="sd">(see :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata`)</span>
+<span class="sd">will be contained in columns with this prefix.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">USE_UINT16</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__n_bound_TF_per_TU&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__n_bound_TF_per_cistron&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__rna_init_event_per_cistron&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__gene_copy_number&quot;</span><span class="p">,</span>
+    <span class="c1"># Expected RNA init per cistron is a float64 but adds &gt;10%</span>
+    <span class="c1"># to final output size and is mostly redundant (equal to</span>
+    <span class="c1"># actual_rna_synth_prob_per_cistron * total_rna_init)</span>
+    <span class="c1"># so downcast to uint16 to save space.</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__expected_rna_init_per_cistron&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_degradation_listener__count_RNA_degraded_per_cistron&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_degradation_listener__count_rna_degraded&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__transcript_elongation_listener__count_rna_synthesized&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__rna_init_event&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__promoter_copy_number&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__n_ribosomes_on_each_mRNA&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__mRNA_TU_index&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__complexation_listener__complexation_events&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__active_rnap_n_bound_ribosomes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__active_rnap_domain_indexes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__bound_TF_indexes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__bound_TF_domains&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="sd">&quot;&quot;&quot;uint16 is 4x smaller than int64 for values between 0 - 65,535.&quot;&quot;&quot;</span>
+
+<span class="n">USE_UINT32</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;listeners__ribosome_data__ribosome_init_event_per_monomer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__n_ribosomes_per_transcript&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__partial_mRNA_cistron_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__mRNA_cistron_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__full_mRNA_cistron_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__n_ribosomes_on_partial_mRNA_per_transcript&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__monomer_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__partial_mRNA_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__mRNA_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__full_mRNA_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__catalyst_counts&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="sd">&quot;&quot;&quot;uint32 is 2x smaller than int64 for values between 0 - 4,294,967,295.&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="json_to_parquet">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.json_to_parquet">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">json_to_parquet</span><span class="p">(</span>
+    <span class="n">emit_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">]],</span>
+    <span class="n">outfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">filesystem</span><span class="p">:</span> <span class="n">AbstractFileSystem</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert dictionary to Parquet.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        emit_dict: Mapping from column names to NumPy arrays (fixed-shape)</span>
+<span class="sd">            or lists of Polars Series (variable-shape).</span>
+<span class="sd">        outfile: Path to output Parquet file. Can be local path or URI.</span>
+<span class="sd">        schema: Full mapping of column names to Polars dtypes.</span>
+<span class="sd">        filesystem: On local filesystem, fsspec filesystem needed to</span>
+<span class="sd">            write Parquet file atomically.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tbl</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">emit_dict</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">schema</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">emit_dict</span><span class="p">})</span>
+    <span class="c1"># GCS should have atomic uploads, but on a local filesystem, DuckDB may fail</span>
+    <span class="c1"># trying to read partially written Parquet files. Get around this by writing</span>
+    <span class="c1"># to a temporary file and then renaming it to the final output file.</span>
+    <span class="n">temp_outfile</span> <span class="o">=</span> <span class="n">outfile</span>
+    <span class="k">if</span> <span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">outfile</span><span class="p">)</span><span class="o">.</span><span class="n">scheme</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;file&quot;</span><span class="p">,</span> <span class="s2">&quot;local&quot;</span><span class="p">):</span>
+        <span class="n">temp_outfile</span> <span class="o">=</span> <span class="n">outfile</span> <span class="o">+</span> <span class="s2">&quot;.tmp&quot;</span>
+    <span class="n">tbl</span><span class="o">.</span><span class="n">write_parquet</span><span class="p">(</span><span class="n">temp_outfile</span><span class="p">,</span> <span class="n">statistics</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">temp_outfile</span> <span class="o">!=</span> <span class="n">outfile</span><span class="p">:</span>
+        <span class="n">filesystem</span><span class="o">.</span><span class="n">mv</span><span class="p">(</span><span class="n">temp_outfile</span><span class="p">,</span> <span class="n">outfile</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="union_by_name">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.union_by_name">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">union_by_name</span><span class="p">(</span><span class="n">query_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Modifies SQL query string from :py:func:`~.dataset_sql` to</span>
+<span class="sd">    include ``union_by_name = true`` in the DuckDB ``read_parquet``</span>
+<span class="sd">    function. This allows data to be read from simulations that have</span>
+<span class="sd">    different columns by filling in nulls and casting as necessary.</span>
+<span class="sd">    This comes with a performance penalty and should be avoided if possible.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        query_sql: SQL query string from :py:func:`~.dataset_sql`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">query_sql</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+        <span class="s2">&quot;hive_partitioning = true,&quot;</span><span class="p">,</span> <span class="s2">&quot;hive_partitioning = true, union_by_name = true,&quot;</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="create_duckdb_conn">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.create_duckdb_conn">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_duckdb_conn</span><span class="p">(</span>
+    <span class="n">temp_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;/tmp&quot;</span><span class="p">,</span> <span class="n">gcs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">cpus</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a DuckDB connection.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        temp_dir: Temporary directory for spilling to disk.</span>
+<span class="sd">        gcs: Set to True if reading from Google Cloud Storage.</span>
+<span class="sd">        cpus: Number of cores to use (by default, use all detected cores).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">gcs</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">register_filesystem</span><span class="p">(</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;gcs&quot;</span><span class="p">))</span>
+    <span class="c1"># Temp directory so DuckDB can spill to disk when data larger than RAM</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SET temp_directory = &#39;</span><span class="si">{</span><span class="n">temp_dir</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+    <span class="c1"># Turning this off reduces RAM usage</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SET preserve_insertion_order = false&quot;</span><span class="p">)</span>
+    <span class="c1"># Cache Parquet metadata so only needs to be scanned once</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SET enable_object_cache = true&quot;</span><span class="p">)</span>
+    <span class="c1"># Set number of threads for DuckDB</span>
+    <span class="k">if</span> <span class="n">cpus</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SET threads = </span><span class="si">{</span><span class="n">cpus</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">conn</span></div>
+
+
+
+<div class="viewcode-block" id="dataset_sql">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.dataset_sql">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dataset_sql</span><span class="p">(</span><span class="n">out_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">experiment_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates DuckDB SQL strings for sim outputs, configs, and metadata on which</span>
+<span class="sd">    sims were successful.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        out_dir: Path to output directory for workflows to retrieve data</span>
+<span class="sd">            for (relative or absolute local path OR URI beginning with</span>
+<span class="sd">            ``gcs://`` or ``gs://`` for Google Cloud Storage bucket)</span>
+<span class="sd">        experiment_ids: List of experiment IDs to include in query. To read data</span>
+<span class="sd">            from more than one experiment ID, the listeners in the output of the</span>
+<span class="sd">            first experiment ID in the list must be a strict subset of the listeners</span>
+<span class="sd">            in the output of the subsequent experiment ID(s).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        3-element tuple containing</span>
+
+<span class="sd">        - **history_sql**: SQL query for sim output (see :py:func:`~.read_stacked_columns`),</span>
+<span class="sd">        - **config_sql**: SQL query for sim configs (see :py:func:`~.field_metadata`</span>
+<span class="sd">          and :py:func:`~.config_value`)</span>
+<span class="sd">        - **success_sql**: SQL query for metadata marking successful sims</span>
+<span class="sd">          (see :py:func:`~.read_stacked_columns`)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sql_queries</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">query_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;history&quot;</span><span class="p">,</span> <span class="s2">&quot;configuration&quot;</span><span class="p">,</span> <span class="s2">&quot;success&quot;</span><span class="p">):</span>
+        <span class="n">query_files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">experiment_id</span> <span class="ow">in</span> <span class="n">experiment_ids</span><span class="p">:</span>
+            <span class="n">query_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span><span class="w"> </span><span class="n">experiment_id</span><span class="p">)</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">query_type</span><span class="si">}</span><span class="s2">/*/*/*/*/*/*.pq&#39;&quot;</span>
+            <span class="p">)</span>
+        <span class="n">query_files</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">query_files</span><span class="p">)</span>
+        <span class="n">sql_queries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            FROM read_parquet(</span>
+<span class="s2">                [</span><span class="si">{</span><span class="n">query_files</span><span class="si">}</span><span class="s2">],</span>
+<span class="s2">                hive_partitioning = true,</span>
+<span class="s2">                hive_types = </span><span class="se">{{</span>
+<span class="s2">                    &#39;experiment_id&#39;: VARCHAR,</span>
+<span class="s2">                    &#39;variant&#39;: BIGINT,</span>
+<span class="s2">                    &#39;lineage_seed&#39;: BIGINT,</span>
+<span class="s2">                    &#39;generation&#39;: BIGINT,</span>
+<span class="s2">                    &#39;agent_id&#39;: VARCHAR,</span>
+<span class="s2">                </span><span class="se">}}</span>
+<span class="s2">            )</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">sql_queries</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sql_queries</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">sql_queries</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="num_cells">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.num_cells">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">num_cells</span><span class="p">(</span><span class="n">conn</span><span class="p">:</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">,</span> <span class="n">subquery</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return cell count in DuckDB subquery containing ``experiment_id``,</span>
+<span class="sd">    ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span>
+        <span class="nb">tuple</span><span class="p">,</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;SELECT count(</span>
+<span class="s2">        DISTINCT (experiment_id, variant, lineage_seed, generation, agent_id)</span>
+<span class="s2">        ) FROM (</span><span class="si">{</span><span class="n">subquery</span><span class="si">}</span><span class="s2">)&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">(),</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="skip_n_gens">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.skip_n_gens">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">skip_n_gens</span><span class="p">(</span><span class="n">subquery</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Modifies a DuckDB SQL query to skip the first ``n`` generations of data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;SELECT * FROM (</span><span class="si">{</span><span class="n">subquery</span><span class="si">}</span><span class="s2">) WHERE generation &gt;= </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="ndlist_to_ndarray">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.ndlist_to_ndarray">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ndlist_to_ndarray</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a PyArrow series of nested lists with fixed dimensions into</span>
+<span class="sd">    a Numpy ndarray. This should really only be necessary if you are trying</span>
+<span class="sd">    to perform linear algebra (e.g. matrix multiplication, dot products) inside</span>
+<span class="sd">    a user-defined function (see DuckDB documentation on Python Function API and</span>
+<span class="sd">    ``func`` kwarg for :py:func:`~read_stacked_columns`).</span>
+
+<span class="sd">    For elementwise arithmetic of two nested list columns, this can be used</span>
+<span class="sd">    to define a custom DuckDB function as follows::</span>
+
+<span class="sd">        import duckdb</span>
+<span class="sd">        import polars as pl</span>
+<span class="sd">        from ecoli.library.parquet_emitter import ndlist_to_ndarray</span>
+<span class="sd">        def sum_arrays(col_0, col_1):</span>
+<span class="sd">            return pl.Series(</span>
+<span class="sd">                ndlist_to_ndarray(col_0) +</span>
+<span class="sd">                ndlist_to_ndarray(col_1)</span>
+<span class="sd">            ).to_arrow()</span>
+<span class="sd">        conn = duckdb.connect()</span>
+<span class="sd">        conn.create_function(</span>
+<span class="sd">            &quot;sum_2d_int_arrays&quot;, # Function name for use in SQL (must be unique)</span>
+<span class="sd">            sum_arrays, # Python function that takes and returns PyArrow arrays</span>
+<span class="sd">            [list[list[int]], list[list[int]]], # Input types (2D lists here)</span>
+<span class="sd">            list[list[int]], # Return type (2D list here)</span>
+<span class="sd">            type = &quot;arrow&quot; # Tell DuckDB function operates on Arrow arrays</span>
+<span class="sd">        )</span>
+<span class="sd">        conn.sql(&quot;SELECT sum_2d_int_arrays(int_col_0, int_col_1) from input_table&quot;)</span>
+<span class="sd">        # Note that function must be registered under different name for each</span>
+<span class="sd">        # set of unique input/output types</span>
+<span class="sd">        conn.create_function(</span>
+<span class="sd">            &quot;sum_2d_int_and_float&quot;,</span>
+<span class="sd">            sum_arrays,</span>
+<span class="sd">            [list[list[int]], list[list[float]]], # Second input is 2D float array</span>
+<span class="sd">            list[list[float]], # Adding int to float array gives float in Numpy</span>
+<span class="sd">            type = &quot;arrow&quot;</span>
+<span class="sd">        )</span>
+<span class="sd">        conn.sql(&quot;SELECT sum_2d_int_and_float(int_col_0, float_col_0) from input_table&quot;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inner_s</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">dimensions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">while</span> <span class="n">inner_s</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_nested</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">inner_s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">inner_s</span> <span class="o">=</span> <span class="n">inner_s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">dimensions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inner_s</span><span class="p">))</span>
+    <span class="n">inner_s</span> <span class="o">=</span> <span class="n">inner_s</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">while</span> <span class="n">inner_s</span><span class="o">.</span><span class="n">is_nested</span><span class="p">():</span>
+        <span class="n">inner_s</span> <span class="o">=</span> <span class="n">inner_s</span><span class="o">.</span><span class="n">inner</span>  <span class="c1"># type: ignore[attr-defined]</span>
+        <span class="n">dimensions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">inner_s</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">dimensions</span><span class="p">)))</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="ndidx_to_duckdb_expr">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.ndidx_to_duckdb_expr">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ndidx_to_duckdb_expr</span><span class="p">(</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a DuckDB expression for a column equivalent to converting each row</span>
+<span class="sd">    of ``name`` into an ndarray ``name_arr`` (:py:func:`~.ndlist_to_ndarray`)</span>
+<span class="sd">    and getting ``name_arr[idx]``. ``idx`` can contain 1D lists of integers,</span>
+<span class="sd">    boolean masks, or ``&quot;:&quot;`` (no 2D+ indices like ``x[[[1,2]]]``). See also</span>
+<span class="sd">    :py:func:`~named_idx` if pulling out a relatively small set of indices.</span>
+<span class="sd">    Automatically quotes column names to handle special characters. Do NOT</span>
+<span class="sd">    use double quotes in ``name``.</span>
+
+<span class="sd">    .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every</span>
+<span class="sd">        supplied integer index!</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name: Name of column to recursively index</span>
+<span class="sd">        idx: To get all elements for a dimension, supply the string ``&quot;:&quot;``.</span>
+<span class="sd">            Otherwise, only single integers or 1D integer lists of indices are</span>
+<span class="sd">            allowed for each dimension. Some examples::</span>
+
+<span class="sd">                [0, 1] # First row, second column</span>
+<span class="sd">                [[0, 1], 1] # First and second row, second column</span>
+<span class="sd">                [0, 1, &quot;:&quot;] # First element of axis 1, second of 2, all of 3</span>
+<span class="sd">                # Final example differs between this function and Numpy</span>
+<span class="sd">                # This func: 1st and 2nd of axis 1, all of 2, 1st and 2nd of 3</span>
+<span class="sd">                # Numpy: Complicated, see Numpy docs on advanced indexing</span>
+<span class="sd">                [[0, 1], &quot;:&quot;, [0, 1]]</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">quoted_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">idx</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+    <span class="c1"># Construct expression from inside out (deepest to shallowest axis)</span>
+    <span class="n">first_idx</span> <span class="o">=</span> <span class="n">idx</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first_idx</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="c1"># Python bools are instances of int so check bool first</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
+            <span class="n">select_expr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;list_where(x_0, </span><span class="si">{</span><span class="n">first_idx</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">one_indexed_idx</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">first_idx</span><span class="p">)</span>
+            <span class="n">select_expr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;list_select(x_0, [</span><span class="si">{</span><span class="n">one_indexed_idx</span><span class="si">}</span><span class="s2">])&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Indices must be integers or boolean masks.&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">first_idx</span> <span class="o">==</span> <span class="s2">&quot;:&quot;</span><span class="p">:</span>
+        <span class="n">select_expr</span> <span class="o">=</span> <span class="s2">&quot;x_0&quot;</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first_idx</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">select_expr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;list_select(x_0, [</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">first_idx</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">])&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;All indices must be lists, ints, or &#39;:&#39;.&quot;</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">indices</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="n">select_expr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;list_transform(list_where(x_</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">indices</span><span class="si">}</span><span class="s2">), lambda x_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">select_expr</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">one_indexed_idx</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">)</span>
+                <span class="n">select_expr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;list_transform(list_select(x_</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">, [</span><span class="si">{</span><span class="n">one_indexed_idx</span><span class="si">}</span><span class="s2">]), lambda x_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">select_expr</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Indices must be integers or boolean masks.&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">indices</span> <span class="o">==</span> <span class="s2">&quot;:&quot;</span><span class="p">:</span>
+            <span class="n">select_expr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;list_transform(x_</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">, lambda x_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">select_expr</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">select_expr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;list_transform(list_select(x_</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">, [</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">]), lambda x_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">select_expr</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;All indices must be lists, ints, or &#39;:&#39;.&quot;</span><span class="p">)</span>
+    <span class="n">select_expr</span> <span class="o">=</span> <span class="n">select_expr</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x_</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">quoted_name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">select_expr</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; AS </span><span class="si">{</span><span class="n">quoted_name</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="named_idx">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.named_idx">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">named_idx</span><span class="p">(</span>
+    <span class="n">col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">idx</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span>
+    <span class="n">zero_to_null</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">_quote_col</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create DuckDB expressions for given indices from a list column. Can be</span>
+<span class="sd">    used in ``projection`` kwarg of :py:func:`~.read_stacked_columns`. Since</span>
+<span class="sd">    each index gets pulled out into its own column, this greatly simplifies</span>
+<span class="sd">    aggregations like averages, etc. Only use this if the number of indices</span>
+<span class="sd">    is relatively small (&lt;100) and the list column is 1-dimensional. For 2+</span>
+<span class="sd">    dimensions or &gt;100 indices, see :py:func:`~.ndidx_to_duckdb_expr`.</span>
+<span class="sd">    Automatically quotes column names to handle special characters.</span>
+<span class="sd">    Do NOT use double quotes in ``names`` or ``col``.</span>
+
+<span class="sd">    .. WARNING:: DuckDB arrays are 1-indexed so this function adds 1 to every</span>
+<span class="sd">        supplied index!</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        col: Name of list column.</span>
+<span class="sd">        names: List of names for the new columns. Length must match the</span>
+<span class="sd">            number of index combinations in ``idx`` (4 for example below).</span>
+<span class="sd">        idx: Integer indices to retrieve from each dimension of ``col``.</span>
+<span class="sd">            For example, ``[[0, 1], [2, 3]]`` will retrieve the third and</span>
+<span class="sd">            fourth elements of the second dimension for the first and second</span>
+<span class="sd">            elements of the first dimension.</span>
+<span class="sd">        zero_to_null: Whether to turn 0s into nulls. This is useful when</span>
+<span class="sd">            dividing by the values in this column, as most DuckDB aggregation</span>
+<span class="sd">            functions (e.g. ``avg``, ``max``) propagate NaNs but ignore nulls.</span>
+<span class="sd">        _quote_col: Private argument to ensure ``col`` is quoted properly.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        DuckDB SQL expression for a set of named columns corresponding to</span>
+<span class="sd">        the values at given indices of a list column</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">),</span> <span class="s2">&quot;idx must be a list of lists.&quot;</span>
+    <span class="c1"># Quote column name on initial call</span>
+    <span class="k">if</span> <span class="n">_quote_col</span><span class="p">:</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+    <span class="n">col_exprs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">num</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">quoted_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">names</span><span class="p">[</span><span class="n">num</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+            <span class="k">if</span> <span class="n">zero_to_null</span><span class="p">:</span>
+                <span class="n">col_exprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;CASE WHEN </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">[</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">] = 0 THEN NULL ELSE </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">[</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">] END AS </span><span class="si">{</span><span class="n">quoted_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">col_exprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">[</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">] AS </span><span class="si">{</span><span class="n">quoted_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">col_counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">sub_col_exprs</span> <span class="o">=</span> <span class="n">named_idx</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">[</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">,</span>
+                <span class="n">names</span><span class="p">[</span><span class="n">col_counter</span><span class="p">:],</span>
+                <span class="n">idx</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+                <span class="n">zero_to_null</span><span class="p">,</span>
+                <span class="n">_quote_col</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">col_counter</span> <span class="o">+=</span> <span class="n">sub_col_exprs</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">col_exprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sub_col_exprs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">col_exprs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="field_metadata">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.field_metadata">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">field_metadata</span><span class="p">(</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">,</span> <span class="n">config_subquery</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets the saved metadata (see</span>
+<span class="sd">    :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata`)</span>
+<span class="sd">    for a given field as a list. Automatically quotes the field name to</span>
+<span class="sd">    handle special characters. Do NOT use double quotes in ``field``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        conn: DuckDB connection</span>
+<span class="sd">        config_subquery: DuckDB query containing sim config data</span>
+<span class="sd">        field: Name of field to get metadata for</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+        <span class="nb">tuple</span><span class="p">,</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;SELECT first(&quot;</span><span class="si">{</span><span class="n">METADATA_PREFIX</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">field</span><span class="si">}</span><span class="s1">&quot;) FROM (</span><span class="si">{</span><span class="n">config_subquery</span><span class="si">}</span><span class="s1">)&#39;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">(),</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">metadata</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="config_value">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.config_value">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">config_value</span><span class="p">(</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">,</span> <span class="n">config_subquery</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets the saved configuration option (anything in config JSON, with</span>
+<span class="sd">    double underscore concatenation for nested fields due to</span>
+<span class="sd">    :py:func:`~.flatten_dict`). Automatically quotes the field name to</span>
+<span class="sd">    handle special characters. Do NOT use double quotes in ``field``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        conn: DuckDB connection</span>
+<span class="sd">        config_subquery: DuckDB query containing sim config data</span>
+<span class="sd">        field: Name of configuration option to get value of</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span>
+        <span class="nb">tuple</span><span class="p">,</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;SELECT first(&quot;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s1">&quot;) FROM (</span><span class="si">{</span><span class="n">config_subquery</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">(),</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="plot_metadata">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.plot_metadata">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_metadata</span><span class="p">(</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">,</span> <span class="n">config_subquery</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">variant_name</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets dictionary that can be used as ``metadata`` kwarg to</span>
+<span class="sd">    :py:func:`wholecell.utils.plotting_tools.export_figure`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        conn: DuckDB connection</span>
+<span class="sd">        config_subquery: DuckDB query containing sim config data</span>
+<span class="sd">        variant_name: Name of variant</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;git_hash&quot;</span><span class="p">:</span> <span class="n">config_value</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_subquery</span><span class="p">,</span> <span class="s2">&quot;git_hash&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">config_value</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_subquery</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">config_value</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_subquery</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;variant_function&quot;</span><span class="p">:</span> <span class="n">variant_name</span><span class="p">,</span>
+        <span class="s2">&quot;variant_index&quot;</span><span class="p">:</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT DISTINCT variant FROM (</span><span class="si">{</span><span class="n">config_subquery</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">to_pydict</span><span class="p">()[</span><span class="s2">&quot;variant&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT DISTINCT lineage_seed FROM (</span><span class="si">{</span><span class="n">config_subquery</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">to_pydict</span><span class="p">()[</span><span class="s2">&quot;lineage_seed&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;total_gens&quot;</span><span class="p">:</span> <span class="n">cast</span><span class="p">(</span>
+            <span class="nb">tuple</span><span class="p">,</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;SELECT count(DISTINCT generation) FROM (</span><span class="si">{</span><span class="n">config_subquery</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">(),</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="s2">&quot;total_variants&quot;</span><span class="p">:</span> <span class="n">cast</span><span class="p">(</span>
+            <span class="nb">tuple</span><span class="p">,</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;SELECT count(DISTINCT variant) FROM (</span><span class="si">{</span><span class="n">config_subquery</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">(),</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="open_output_file">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.open_output_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">open_output_file</span><span class="p">(</span><span class="n">outfile</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OpenFile</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Open a file by its path, whether that be a path on local storage or</span>
+<span class="sd">    Google Cloud Storage.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        outfile: Path to file. Must have ``gs://`` or ``gcs://`` prefix if</span>
+<span class="sd">            on Google Cloud Storage. Can be relative or absolute path if</span>
+<span class="sd">            on local storage.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        File object that supports reading, seeking, etc. in bytes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="n">outfile</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">outfile</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="open_arbitrary_sim_data">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.open_arbitrary_sim_data">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">open_arbitrary_sim_data</span><span class="p">(</span><span class="n">sim_data_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">OpenFile</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a mapping from experiment ID(s) to mappings from variant ID(s)</span>
+<span class="sd">    to sim_data path(s), pick an arbitrary sim_data to read.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sim_data_dict: Generated by :py:mod:`runscripts.analysis` and passed to</span>
+<span class="sd">            each analysis script as an argument.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        File object for arbitrarily chosen sim_data to be loaded</span>
+<span class="sd">        with ``pickle.load``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sim_data_path</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">sim_data_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+    <span class="k">return</span> <span class="n">open_output_file</span><span class="p">(</span><span class="n">sim_data_path</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_stacked_columns">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.read_stacked_columns">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_stacked_columns</span><span class="p">(</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">remove_first</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">func</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">order_results</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads columns for many cells. If you would like to perform more advanced</span>
+<span class="sd">    computatations (aggregations, window functions, etc.) using the optimized</span>
+<span class="sd">    DuckDB API, you can omit ``conn``, in which case this function will return</span>
+<span class="sd">    an SQL string that can be used as a subquery. For computations that cannot</span>
+<span class="sd">    be easily performed using the DuckDB API, you can define a custom function</span>
+<span class="sd">    ``func`` that will be called on the data for each cell. By default, the</span>
+<span class="sd">    return value (whether it be the actual data or an SQL subquery) will</span>
+<span class="sd">    also include the ``experiment_id``, ``variant``, ``lineage_seed``,</span>
+<span class="sd">    ``generation``, ``agent_id``, and ``time`` columns.</span>
+
+<span class="sd">    .. warning:: If the column expressions in ``columns`` are not from</span>
+<span class="sd">        :py:func:`~named_idx` or :py:func:`~ndidx_to_duckdb_expr`,</span>
+<span class="sd">        they may need to be enclosed in double quotes to handle</span>
+<span class="sd">        special characters (e.g. ``&quot;col-with-hyphens&quot;``).</span>
+
+<span class="sd">    For example, to get the average total concentration of three bulk molecules</span>
+<span class="sd">    with indices 100, 1000, and 10000 per cell::</span>
+
+<span class="sd">        import duckdb</span>
+<span class="sd">        from ecoli.library.parquet_emitter import (</span>
+<span class="sd">            dataset_sql, read_stacked_columns)</span>
+<span class="sd">        history_sql, config_sql, _ = dataset_sql(&#39;out/&#39;, &#39;exp_id&#39;)</span>
+<span class="sd">        subquery = read_stacked_columns(</span>
+<span class="sd">            history_sql,</span>
+<span class="sd">            # Note DuckDB arrays are 1-indexed</span>
+<span class="sd">            [&quot;bulk[100 + 1] + bulk[1000 + 1] + bulk[10000 + 1] AS bulk_sum&quot;,</span>
+<span class="sd">            &quot;listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar&quot;],</span>
+<span class="sd">            order_results=False,</span>
+<span class="sd">        )</span>
+<span class="sd">        query = &#39;&#39;&#39;</span>
+<span class="sd">            SELECT avg(bulk_sum * counts_to_molar) AS avg_total_conc</span>
+<span class="sd">            FROM ({subquery})</span>
+<span class="sd">            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+<span class="sd">        conn = duckdb.connect()</span>
+<span class="sd">        data = conn.sql(query).pl()</span>
+
+<span class="sd">    Here is a more complicated example that defines a custom function to get</span>
+<span class="sd">    the per-cell average RNA synthesis probability per cistron::</span>
+
+<span class="sd">        import duckdb</span>
+<span class="sd">        import pickle</span>
+<span class="sd">        from ecoli.library.parquet_emitter import (</span>
+<span class="sd">            dataset_sql, ndlist_to_ndarray, read_stacked_columns)</span>
+<span class="sd">        history_sql, config_sql, _ = dataset_sql(&#39;out/&#39;, &#39;exp_id&#39;)</span>
+<span class="sd">        # Load sim data</span>
+<span class="sd">        with open(&quot;reconstruction/sim_data/kb/simData.cPickle&quot;, &quot;rb&quot;) as f:</span>
+<span class="sd">            sim_data = pickle.load(f)</span>
+<span class="sd">        # Get mapping from RNAs (TUs) to cistrons</span>
+<span class="sd">        cistron_tu_mat = sim_data.process.transcription.cistron_tu_mapping_matrix</span>
+<span class="sd">        # Custom aggregation function with Numpy dot product and mean</span>
+<span class="sd">        def avg_rna_synth_prob_per_cistron(rna_synth_prob):</span>
+<span class="sd">            # Convert rna_synth_prob into 2-D Numpy array (time x TU)</span>
+<span class="sd">            rna_synth_prob = ndlist_to_ndarray(rna_synth_prob[</span>
+<span class="sd">                &quot;listeners__rna_synth_prob__actual_rna_synth_prob&quot;])</span>
+<span class="sd">            rna_synth_prob_per_cistron = cistron_tu_mat.dot(rna_synth_prob.T).T</span>
+<span class="sd">            # Return value must be a PyArrow table</span>
+<span class="sd">            return pl.DataFrame({&#39;avg_rna_synth_prob_per_cistron&#39;: [</span>
+<span class="sd">                rna_synth_prob_per_cistron.mean(axis=0)]}).to_arrow()</span>
+<span class="sd">        conn = duckdb.connect()</span>
+<span class="sd">        result = read_stacked_columns(</span>
+<span class="sd">            history_sql,</span>
+<span class="sd">            [&quot;listeners__rna_synth_prob__actual_rna_synth_prob&quot;],</span>
+<span class="sd">            func=avg_rna_synth_prob_per_cistron,</span>
+<span class="sd">            conn=conn,</span>
+<span class="sd">        )</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        history_sql: DuckDB SQL string from :py:func:`~.dataset_sql`,</span>
+<span class="sd">            potentially with filters appended in ``WHERE`` clause</span>
+<span class="sd">        columns: Names of columns to read data for. Alternatively, DuckDB</span>
+<span class="sd">            expressions of columns (e.g. ``avg(listeners__mass__cell_mass) AS avg_mass``</span>
+<span class="sd">            or the output of :py:func:`~.named_idx` or :py:func:`~.ndidx_to_duckdb_expr`).</span>
+<span class="sd">        remove_first: Remove data for first timestep of each cell</span>
+<span class="sd">        func: Function to call on data for each cell, should take and</span>
+<span class="sd">            return a Polars DataFrame with columns equal to ``columns``</span>
+<span class="sd">        conn: DuckDB connection instance with which to run query. Typically</span>
+<span class="sd">            provided by :py:func:`runscripts.analysis.main` to the ``plot``</span>
+<span class="sd">            method of analysis scripts (tweaked some DuckDB settings). Can</span>
+<span class="sd">            be omitted to return SQL query string to be used as subquery</span>
+<span class="sd">            instead of running query immediately and returning result.</span>
+<span class="sd">        order_results: Whether to sort returned table by ``experiment_id``,</span>
+<span class="sd">            ``variant``, ``lineage_seed``, ``generation``, ``agent_id``, and</span>
+<span class="sd">            ``time``. If no ``conn`` is provided, this can usually be disabled</span>
+<span class="sd">            and any sorting can be deferred until the last step in the query with</span>
+<span class="sd">            a manual ``ORDER BY``. Doing this can greatly reduce RAM usage.</span>
+<span class="sd">        success_sql: Final DuckDB SQL string from :py:func:`~.dataset_sql`.</span>
+<span class="sd">            If provided, will be used to filter out unsuccessful sims.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">id_cols</span> <span class="o">=</span> <span class="s2">&quot;experiment_id, variant, lineage_seed, generation, agent_id, time&quot;</span>
+    <span class="n">columns_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+    <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">columns_str</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">id_cols</span><span class="si">}</span><span class="s2"> FROM (</span><span class="si">{</span><span class="n">history_sql</span><span class="si">}</span><span class="s2">)&quot;</span>
+    <span class="c1"># Use a semi join to filter out unsuccessful sims</span>
+    <span class="k">if</span> <span class="n">success_sql</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT * FROM (</span><span class="si">{</span><span class="n">sql_query</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">            SEMI JOIN (</span><span class="si">{</span><span class="n">success_sql</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">            USING (experiment_id, variant, lineage_seed, generation, agent_id)</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+    <span class="c1"># Use an anti join to remove rows for first timestep of each sim</span>
+    <span class="k">if</span> <span class="n">remove_first</span><span class="p">:</span>
+        <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT * FROM (</span><span class="si">{</span><span class="n">sql_query</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">            ANTI JOIN (</span>
+<span class="s2">                SELECT experiment_id, variant, lineage_seed, generation,</span>
+<span class="s2">                    agent_id, MIN(time) AS time</span>
+<span class="s2">                FROM (</span><span class="si">{</span><span class="n">history_sql</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;COLNAMEHERE&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;time&quot;</span><span class="p">)</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                GROUP BY experiment_id, variant, lineage_seed, generation,</span>
+<span class="s2">                    agent_id</span>
+<span class="s2">            ) USING (experiment_id, variant, lineage_seed, generation,</span>
+<span class="s2">                agent_id, time)</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">conn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;`conn` must be provided with `func`.&quot;</span><span class="p">)</span>
+        <span class="c1"># Get all cell identifiers</span>
+        <span class="n">cell_ids</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;SELECT DISTINCT ON(experiment_id, variant,</span>
+<span class="s2">            lineage_seed, generation, agent_id) experiment_id, variant,</span>
+<span class="s2">            lineage_seed, generation, agent_id FROM (</span><span class="si">{</span><span class="n">history_sql</span><span class="si">}</span><span class="s2">) ORDER BY </span><span class="si">{</span><span class="n">id_cols</span><span class="si">}</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="n">all_cell_tbls</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">experiment_id</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">lineage_seed</span><span class="p">,</span> <span class="n">generation</span><span class="p">,</span> <span class="n">agent_id</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span>
+            <span class="n">cell_ids</span>
+        <span class="p">):</span>
+            <span class="c1"># Explicitly specify Hive partition because DuckDB</span>
+            <span class="c1"># will otherwise spend a lot of time scanning all files</span>
+            <span class="n">cell_sql</span> <span class="o">=</span> <span class="n">sql_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="s2">&quot;history/*/*/*/*/*&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;history/experiment_id=</span><span class="si">{</span><span class="n">experiment_id</span><span class="si">}</span><span class="s2">/variant=</span><span class="si">{</span><span class="n">variant</span><span class="si">}</span><span class="s2">/lineage_seed=</span><span class="si">{</span><span class="n">lineage_seed</span><span class="si">}</span><span class="s2">/generation=</span><span class="si">{</span><span class="n">generation</span><span class="si">}</span><span class="s2">/agent_id=</span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># Apply func to data for each cell</span>
+            <span class="n">all_cell_tbls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="n">cell_sql</span><span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="n">pl</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_cell_tbls</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">order_results</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT * FROM (</span><span class="si">{</span><span class="n">sql_query</span><span class="si">}</span><span class="s2">) ORDER BY </span><span class="si">{</span><span class="n">id_cols</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">sql_query</span>
+    <span class="k">if</span> <span class="n">conn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">query</span>
+    <span class="k">return</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="n">query</span><span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="np_dtype">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.np_dtype">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">np_dtype</span><span class="p">(</span><span class="n">val</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get NumPy type for input value. There are a few scenarios</span>
+<span class="sd">    where this function raises an exception intentionally:</span>
+
+<span class="sd">    - An internal value is None or an empty list/tuple: data is</span>
+<span class="sd">      ragged/nullable and needs Polars serialization.</span>
+<span class="sd">    - Python bytes type: NumPy only has fixed-length bytes type</span>
+<span class="sd">      so use Polars serialization to avoid truncation.</span>
+<span class="sd">    - Python datetime types: Simpler and less error-prone to use</span>
+<span class="sd">      Polars serialization instead of converting to NumPy.</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        ``np.bytes_`` values and arrays will get truncated to the</span>
+<span class="sd">        size of the first encountered value. Convert to Python</span>
+<span class="sd">        bytes type to avoid this.</span>
+
+<span class="sd">    The ``try...except`` blocks in :py:meth:`~.ParquetEmitter.emit`</span>
+<span class="sd">    are designed to catch these exceptions and fall back to</span>
+<span class="sd">    Polars serialization.</span>
+
+<span class="sd">    All other exceptions raised by this function indicate that the</span>
+<span class="sd">    value is of an unsupported type for which even the fall back</span>
+<span class="sd">    Polars serialization likely will not work.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">USE_UINT16</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span>
+    <span class="k">elif</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">USE_UINT32</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">uint32</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span>
+    <span class="c1"># Use NumPy variable-length string type</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">StringDType</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">generic</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">inner_val</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">inner_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">np_dtype</span><span class="p">(</span><span class="n">inner_val</span><span class="p">,</span> <span class="n">field_name</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2"> has unsupported type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="union_pl_dtypes">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.union_pl_dtypes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">union_pl_dtypes</span><span class="p">(</span>
+    <span class="n">dt1</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span> <span class="o">|</span> <span class="n">DataTypeClass</span><span class="p">,</span>
+    <span class="n">dt2</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span> <span class="o">|</span> <span class="n">DataTypeClass</span><span class="p">,</span>
+    <span class="n">k</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">force_inner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataType</span> <span class="o">|</span> <span class="n">DataTypeClass</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span> <span class="o">|</span> <span class="n">DataTypeClass</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the more specific data type when combining two Polars datatypes.</span>
+<span class="sd">    Mainly intended to fill out nested List types that contain Nulls.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dt1: First Polars datatype</span>
+<span class="sd">        dt2: Second Polars datatype</span>
+<span class="sd">        k: Name of column being combined (for error messages)</span>
+<span class="sd">        force_inner: Force this inner type when possible</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The resulting datatype</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dt1</span><span class="p">,</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">Array</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dt2</span><span class="p">,</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">Array</span><span class="p">)):</span>
+        <span class="c1"># Recursively find the common type for inner elements</span>
+        <span class="n">inner_type</span> <span class="o">=</span> <span class="n">union_pl_dtypes</span><span class="p">(</span><span class="n">dt1</span><span class="o">.</span><span class="n">inner</span><span class="p">,</span> <span class="n">dt2</span><span class="o">.</span><span class="n">inner</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">force_inner</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">(</span><span class="n">inner_type</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dt1</span> <span class="o">==</span> <span class="n">pl</span><span class="o">.</span><span class="n">Null</span><span class="p">:</span>
+        <span class="c1"># To force a specific inner type, may need to recurse</span>
+        <span class="k">if</span> <span class="n">force_inner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dt2</span><span class="p">,</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">Array</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">(</span><span class="n">union_pl_dtypes</span><span class="p">(</span><span class="n">dt2</span><span class="o">.</span><span class="n">inner</span><span class="p">,</span> <span class="n">dt2</span><span class="o">.</span><span class="n">inner</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">force_inner</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">force_inner</span>
+        <span class="k">return</span> <span class="n">dt2</span>
+    <span class="k">if</span> <span class="n">dt2</span> <span class="o">==</span> <span class="n">pl</span><span class="o">.</span><span class="n">Null</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">force_inner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dt1</span><span class="p">,</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">Array</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">(</span><span class="n">union_pl_dtypes</span><span class="p">(</span><span class="n">dt1</span><span class="o">.</span><span class="n">inner</span><span class="p">,</span> <span class="n">dt1</span><span class="o">.</span><span class="n">inner</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">force_inner</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">force_inner</span>
+        <span class="k">return</span> <span class="n">dt1</span>
+
+    <span class="k">if</span> <span class="n">force_inner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">force_inner</span>
+
+    <span class="k">if</span> <span class="n">dt1</span> <span class="o">==</span> <span class="n">dt2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dt1</span>
+
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Incompatible inner types for field </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">dt1</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">dt2</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="s2">&quot; Please modify the store value to contain a consistent type.&quot;</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="n">_FLAG_FIRST</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="flatten_dict">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.flatten_dict">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">flatten_dict</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Flatten nested dictionary down to key-value pairs where each key</span>
+<span class="sd">    concatenates all the keys needed to reach the corresponding value</span>
+<span class="sd">    in the input. Allows each leaf field in a nested emit to be turned</span>
+<span class="sd">    into a column in a Parquet file for efficient storage and retrieval.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">visit_key</span><span class="p">(</span><span class="n">subdict</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">partialKey</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">subdict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">newKey</span> <span class="o">=</span> <span class="n">k</span> <span class="k">if</span> <span class="n">partialKey</span> <span class="o">==</span> <span class="n">_FLAG_FIRST</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">partialKey</span><span class="si">}</span><span class="s2">__</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+                <span class="n">visit_key</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">newKey</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">newKey</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
+
+    <span class="n">visit_key</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">_FLAG_FIRST</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="pl_dtype_from_ndarray">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.pl_dtype_from_ndarray">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">pl_dtype_from_ndarray</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get Polars data type for a Numpy array, including nested lists.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Must be size 1 in order for np.dtypes.StringDType to</span>
+    <span class="c1"># convert to Polars String type</span>
+    <span class="n">pl_dtype</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">arr</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">ndim</span><span class="p">):</span>
+        <span class="n">pl_dtype</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">List</span><span class="p">(</span><span class="n">pl_dtype</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pl_dtype</span></div>
+
+
+
+<div class="viewcode-block" id="BlockingExecutor">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.BlockingExecutor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BlockingExecutor</span><span class="p">:</span>
+<div class="viewcode-block" id="BlockingExecutor.submit">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.BlockingExecutor.submit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Future</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run function in the current thread and return a Future that</span>
+<span class="sd">        is already done.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">future</span><span class="p">:</span> <span class="n">Future</span> <span class="o">=</span> <span class="n">Future</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">future</span><span class="o">.</span><span class="n">set_result</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">future</span><span class="o">.</span><span class="n">set_exception</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">future</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ParquetEmitter">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.ParquetEmitter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ParquetEmitter</span><span class="p">(</span><span class="n">Emitter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Emit data to a Parquet dataset. Note that :py:meth:`~.finalize`</span>
+<span class="sd">    must be explicitly called in a ``try...finally`` block around the call to</span>
+<span class="sd">    :py:meth:`vivarium.core.engine.Engine.update` to ensure that all buffered</span>
+<span class="sd">    emits are written to Parquet files when the simulation ends for any reason.</span>
+<span class="sd">    This is handled automatically in :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`</span>
+<span class="sd">    and :py:class:`~ecoli.processes.engine_process.EngineProcess`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Configure emitter.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            config: Should be a dictionary with the following keys::</span>
+
+<span class="sd">                {</span>
+<span class="sd">                    &#39;batch_size&#39;: Number of emits per Parquet row</span>
+<span class="sd">                        group (optional, default: 400),</span>
+<span class="sd">                    &#39;threaded&#39;: Whether to write Parquet files</span>
+<span class="sd">                        in a background thread (optional, default: True),</span>
+<span class="sd">                    # One of the following is REQUIRED</span>
+<span class="sd">                    &#39;out_dir&#39;: local output directory (absolute/relative),</span>
+<span class="sd">                    &#39;out_uri&#39;: Google Cloud storage bucket URI</span>
+<span class="sd">                }</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;out_uri&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">out_uri</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;out_dir&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">out_uri</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;out_uri&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="p">:</span> <span class="n">AbstractFileSystem</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">out_uri</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;batch_size&quot;</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">threaded</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;threaded&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">threaded</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">executor</span><span class="p">:</span> <span class="n">ThreadPoolExecutor</span> <span class="o">|</span> <span class="n">BlockingExecutor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">executor</span> <span class="o">=</span> <span class="n">BlockingExecutor</span><span class="p">()</span>
+        <span class="c1"># Buffer emits for each listener in a Numpy array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Remember most specific Polars type for each column</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pl_types</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span> <span class="o">|</span> <span class="n">DataTypeClass</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Remember NumPy type for each column</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">np_types</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Remember which columns required Polars serialization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pl_serialized</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_emits</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># Wait until next batch of emits to check whether last batch</span>
+        <span class="c1"># was successfully written to Parquet in order to avoid blocking</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_batch_future</span><span class="p">:</span> <span class="n">Future</span> <span class="o">=</span> <span class="n">Future</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_batch_future</span><span class="o">.</span><span class="n">set_result</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># Set either by EcoliSim or by EngineProcess if sim reaches division</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">success</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="ParquetEmitter.finalize">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.ParquetEmitter.finalize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert remaining batched emits to Parquet at sim shutdown</span>
+<span class="sd">        and mark sim as successful if ``success`` flag was set. In vEcoli,</span>
+<span class="sd">        this is done by :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`</span>
+<span class="sd">        upon reaching division.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Wait for last batch to finish writing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_batch_future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+        <span class="c1"># Flush any remaining buffered emits to Parquet</span>
+        <span class="n">outfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">out_uri</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">experiment_id</span><span class="p">,</span>
+            <span class="s2">&quot;history&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">partitioning_path</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_emits</span><span class="si">}</span><span class="s2">.pq&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">outfile</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">outfile</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_emits</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">]</span>
+            <span class="n">json_to_parquet</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">,</span> <span class="n">outfile</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pl_types</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span>
+            <span class="p">)</span>
+        <span class="c1"># Hive-partitioned directory that only contains successful sims</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
+            <span class="n">success_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">out_uri</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">experiment_id</span><span class="p">,</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">partitioning_path</span><span class="p">,</span>
+                <span class="s2">&quot;s.pq&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">success_file</span><span class="p">),</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">success_file</span><span class="p">))</span>
+            <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="p">[</span><span class="kc">True</span><span class="p">]})</span><span class="o">.</span><span class="n">write_parquet</span><span class="p">(</span>
+                <span class="n">success_file</span><span class="p">,</span>
+                <span class="n">statistics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ParquetEmitter.emit">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.parquet_emitter.html#ecoli.library.parquet_emitter.ParquetEmitter.emit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Flattens emit dictionary by concatenating nested key names with double</span>
+<span class="sd">        underscores (:py:func:`~.flatten_dict`), buffers it in memory, and writes</span>
+<span class="sd">        to a Parquet file upon buffering a configurable number of emits.</span>
+
+<span class="sd">        The output directory (``config[&quot;out_dir&quot;]`` or ``config[&quot;out_uri&quot;]``) will</span>
+<span class="sd">        have the following structure::</span>
+
+<span class="sd">            {experiment_id}</span>
+<span class="sd">            |-- history</span>
+<span class="sd">            |   |-- experiment_id={experiment_id}</span>
+<span class="sd">            |   |   |-- variant={variant}</span>
+<span class="sd">            |   |   |   |-- lineage_seed={seed}</span>
+<span class="sd">            |   |   |   |   |-- generation={generation}</span>
+<span class="sd">            |   |   |   |   |   |-- agent_id={agent_id}</span>
+<span class="sd">            |   |   |   |   |   |   |-- 400.pq (batched emits)</span>
+<span class="sd">            |   |   |   |   |   |   |-- 800.pq</span>
+<span class="sd">            |   |   |   |   |   |   |-- ..</span>
+<span class="sd">            |-- configuration</span>
+<span class="sd">            |   |-- experiment_id={experiment_id}</span>
+<span class="sd">            |   |   |-- variant={variant}</span>
+<span class="sd">            |   |   |   |-- lineage_seed={seed}</span>
+<span class="sd">            |   |   |   |   |-- generation={generation}</span>
+<span class="sd">            |   |   |   |   |   |-- agent_id={agent_id}</span>
+<span class="sd">            |   |   |   |   |   |   |-- config.pq (sim config data)</span>
+
+<span class="sd">        This Hive-partioned directory structure can be efficiently filtered</span>
+<span class="sd">        and queried using DuckDB (see :py:func:`~.dataset_sql`).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Config will always be first emit</span>
+        <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;configuration&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;metadata&quot;</span><span class="p">,</span> <span class="p">{}),</span> <span class="o">**</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]}</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;initial_global_time&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+            <span class="c1"># Manually create filepaths with hive partitioning</span>
+            <span class="n">agent_id</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;agent_id&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+            <span class="n">quoted_experiment_id</span> <span class="o">=</span> <span class="n">parse</span><span class="o">.</span><span class="n">quote_plus</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">,</span> <span class="s2">&quot;default&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">partitioning_keys</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="n">quoted_experiment_id</span><span class="p">,</span>
+                <span class="s2">&quot;variant&quot;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variant&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s2">&quot;lineage_seed&quot;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;lineage_seed&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s2">&quot;generation&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">agent_id</span><span class="p">),</span>
+                <span class="s2">&quot;agent_id&quot;</span><span class="p">:</span> <span class="n">agent_id</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">experiment_id</span> <span class="o">=</span> <span class="n">quoted_experiment_id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">partitioning_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="o">*</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">partitioning_keys</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+            <span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">flatten_dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">config_emit</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">config_schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np_dtype</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
+                    <span class="n">config_emit</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+                    <span class="n">config_schema</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">pl_dtype_from_ndarray</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">v</span><span class="p">])</span>
+                    <span class="n">config_emit</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+                    <span class="n">config_schema</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="n">outfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">out_uri</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">experiment_id</span><span class="p">,</span>
+                <span class="s2">&quot;configuration&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">partitioning_path</span><span class="p">,</span>
+                <span class="s2">&quot;config.pq&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># Cleanup any existing output files from previous runs then</span>
+            <span class="c1"># create new folder for config / simulation output</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">outfile</span><span class="p">),</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">outfile</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_batch_future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                <span class="n">json_to_parquet</span><span class="p">,</span>
+                <span class="n">config_emit</span><span class="p">,</span>
+                <span class="n">outfile</span><span class="p">,</span>
+                <span class="n">config_schema</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># Delete any sim output files in final filesystem</span>
+            <span class="n">history_outdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">out_uri</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment_id</span><span class="p">,</span> <span class="s2">&quot;history&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">partitioning_path</span>
+            <span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">history_outdir</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">history_outdir</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="c1"># Each Engine that uses this emitter should only simulate a single cell</span>
+        <span class="c1"># In lineage simulations, StopAfterDivision Step will terminate</span>
+        <span class="c1"># Engine in timestep immediately after division (first with 2 cells)</span>
+        <span class="c1"># In colony simulations, EngineProcess will terminate simulation</span>
+        <span class="c1"># immediately upon division (following branch is never invoked)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;agents&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">for</span> <span class="n">agent_data</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;agents&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">agent_data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
+            <span class="n">agent_data</span> <span class="o">=</span> <span class="n">flatten_dict</span><span class="p">(</span><span class="n">agent_data</span><span class="p">)</span>
+            <span class="n">emit_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_emits</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span>
+            <span class="c1"># At every emit, each field can take one of two paths.</span>
+            <span class="c1">#</span>
+            <span class="c1"># The efficient NumPy path converts the field value to a</span>
+            <span class="c1"># NumPy array with a dtype (and Polars/Parquet type)</span>
+            <span class="c1"># determined from the first encountered value of that field.</span>
+            <span class="c1"># These N-D arrays are buffered in a (N+1)-D array,</span>
+            <span class="c1"># where the first dimension is the batch size.</span>
+            <span class="c1">#</span>
+            <span class="c1"># If any step in the NumPy path fails with a ValueError,</span>
+            <span class="c1"># the field will henceforth be serialized using the fallback</span>
+            <span class="c1"># Polars path. This path is mainly intended for fields</span>
+            <span class="c1"># that are ragged (e.g. lists of different lengths) or</span>
+            <span class="c1"># Python bytes/datetime objects. Field values are converted</span>
+            <span class="c1"># to Polars Series and buffered in Python lists with length</span>
+            <span class="c1"># equal to the batch size. The Polars type is reconciled at</span>
+            <span class="c1"># every timestep in order to fill in null levels.</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pl_serialized</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="c1"># Should only need to determine NumPy type once</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">np_types</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">np_types</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np_dtype</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+                        <span class="n">v_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_types</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+                        <span class="c1"># Need to recreate buffer after every batch</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">emit_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,)</span> <span class="o">+</span> <span class="n">v_np</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">v_np</span><span class="o">.</span><span class="n">dtype</span>
+                                <span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> added mid-batch.&quot;</span><span class="p">)</span>
+                        <span class="c1"># Should only need to determine Polars type once</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pl_types</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">pl_types</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">pl_dtype_from_ndarray</span><span class="p">(</span><span class="n">v_np</span><span class="p">)</span>
+                        <span class="c1"># Fall back to Polars serialization if shape mismatch</span>
+                        <span class="k">if</span> <span class="n">v_np</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shape mismatch for </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">emit_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">v_np</span>
+                        <span class="k">continue</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pl_serialized</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                        <span class="c1"># Buffered emits must be converted to Python</span>
+                        <span class="c1"># types for Polars serialization to work</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">[</span><span class="n">k</span><span class="p">][</span>
+                                <span class="p">:</span><span class="n">emit_idx</span>
+                            <span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="o">+</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">-</span> <span class="n">emit_idx</span><span class="p">)</span>
+                <span class="c1"># Fall back Polars serialization</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">v</span><span class="p">])</span>
+                <span class="c1"># Ensure type consistency</span>
+                <span class="n">curr_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pl_types</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">Null</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">curr_type</span><span class="p">:</span>
+                    <span class="n">force_inner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">USE_UINT16</span><span class="p">:</span>
+                        <span class="n">force_inner</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">UInt16</span><span class="p">()</span>
+                    <span class="k">elif</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">USE_UINT32</span><span class="p">:</span>
+                        <span class="n">force_inner</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">UInt32</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pl_types</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">union_pl_dtypes</span><span class="p">(</span>
+                        <span class="n">curr_type</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">force_inner</span>
+                    <span class="p">)</span>
+                <span class="c1"># Need to recreate buffer after every batch</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">emit_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_emits</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_emits</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># If last batch of emits failed, exception should be raised here</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_batch_future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="n">outfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">out_uri</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">experiment_id</span><span class="p">,</span>
+                <span class="s2">&quot;history&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">partitioning_path</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_emits</span><span class="si">}</span><span class="s2">.pq&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_batch_future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                <span class="n">json_to_parquet</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span><span class="p">,</span>
+                <span class="n">outfile</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pl_types</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filesystem</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># Clear buffers because they are mutable and we do not want to</span>
+            <span class="c1"># accidentally modify data as it is being written in the background</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">threaded</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buffered_emits</span> <span class="o">=</span> <span class="p">{}</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+``ecoli.analysis.colony``
+=========================
+.. automodule:: ecoli.analysis.colony
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   ecoli.analysis.colony.snapshots

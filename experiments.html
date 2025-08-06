@@ -1,0 +1,613 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Experiments &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Workflows" href="workflows.html" />
+    <link rel="prev" title="Composites" href="composites.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="composites.html">Composites</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Experiments</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#json-config-files">JSON Config Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output">Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#schema-overrides">Schema Overrides</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#colony-simulations">Colony Simulations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#engine-process">Engine Process</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuring-colony-simulations">Configuring Colony Simulations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#create-your-own">Create Your Own</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Experiments</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/experiments.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="experiments">
+<h1>Experiments<a class="headerlink" href="#experiments" title="Link to this heading"></a></h1>
+<p><a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim" title="ecoli.experiments.ecoli_master_sim.EcoliSim"><code class="xref py py-class docutils literal notranslate"><span class="pre">EcoliSim</span></code></a> is the primary
+interface for configuring and running single-cell simulations. We refer
+to simulations as experiments, and all simulations (or batches
+of simulations run in a single workflow, see <a class="reference internal" href="workflows.html"><span class="std std-ref">Workflows</span></a>) are
+identified via a unique experiment ID.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If data is being persisted to disk (see <a class="reference internal" href="output.html#parquet-emitter"><span class="std std-ref">Parquet Emitter</span></a>), simulations
+or workflows will overwrite data from any past simulations or workflows with
+the same experiment ID.</p>
+</div>
+<p>When running workflows with <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a> (see <a class="reference internal" href="workflows.html"><span class="std std-ref">Workflows</span></a>),
+users are prevented from accidentally overwriting data by a check that ensures
+<code class="docutils literal notranslate"><span class="pre">{out_dir}/{experiment_id}/nextflow</span></code> does not already exist.</p>
+<section id="configuration">
+<span id="sim-config"></span><h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim" title="ecoli.experiments.ecoli_master_sim.EcoliSim"><code class="xref py py-class docutils literal notranslate"><span class="pre">EcoliSim</span></code></a> offers three methods
+for configuring simulations:</p>
+<ol class="arabic simple">
+<li><p>Using a JSON configuration file via the command-line option <code class="docutils literal notranslate"><span class="pre">--config</span></code></p></li>
+<li><p>Using the object-oriented interface</p></li>
+<li><p>Using command-line options</p></li>
+</ol>
+<p>In general, we recommend that you use the JSON configuration interface as much
+as possible. This is because the JSON configuration format is standardized across
+all of the main interfaces for the model (the scripts in <a class="reference internal" href="reference/api/runscripts/runscripts.html#module-runscripts" title="runscripts"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts</span></code></a>
+and <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#module-ecoli.experiments.ecoli_master_sim" title="ecoli.experiments.ecoli_master_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_master_sim</span></code></a>). The object-oriented interface
+allows users to programatically set simulation options and is mainly intended for
+small ad-hoc test simulations or for creating your own experiment file (see
+<a class="reference internal" href="#create-experiment"><span class="std std-ref">Create Your Own</span></a>). The command-line interface is much more limited than
+the other two and only offers access to a few key configuration options. It is
+mainly intended for internal use (e.g. in Nextflow workflow scripts).</p>
+</section>
+<section id="json-config-files">
+<span id="json-config"></span><h2>JSON Config Files<a class="headerlink" href="#json-config-files" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim" title="ecoli.experiments.ecoli_master_sim.EcoliSim"><code class="xref py py-class docutils literal notranslate"><span class="pre">EcoliSim</span></code></a> class relies upon
+the helper <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.SimConfig" title="ecoli.experiments.ecoli_master_sim.SimConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimConfig</span></code></a> class to load
+configuration options from JSON files and merge them with options specified via
+the command line. The configuration options are always loaded in the following order,
+with options loaded later on overriding those from earlier sources:</p>
+<ol class="arabic simple">
+<li><p>The options in the default JSON config file (located at
+<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path" title="ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path"><code class="xref py py-data docutils literal notranslate"><span class="pre">default_config_path</span></code></a>)</p></li>
+<li><p>The options in the JSON config file specified via <code class="docutils literal notranslate"><span class="pre">--config</span></code>
+in the command line.</p></li>
+<li><p>The options specified via the command line.</p></li>
+</ol>
+<p>In most cases, configuration options that appear in more than one
+of the above sources are successively overriden in their entirety. The sole
+exceptions are configuration options listed in
+<a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#runscripts.workflow.LIST_KEYS_TO_MERGE" title="runscripts.workflow.LIST_KEYS_TO_MERGE"><code class="xref py py-attr docutils literal notranslate"><span class="pre">LIST_KEYS_TO_MERGE</span></code></a>. These
+options hold lists of values that are concatenated with one another instead
+of being wholly overriden.</p>
+<p>Notice that the options in the default JSON config file are always loaded
+first. This means that if you would like to run a simulation or workflow
+that leaves some of these options alone, you can simply omit those options
+from the JSON config file that you create and pass to your runscript of choice
+via <code class="docutils literal notranslate"><span class="pre">--config</span></code>.</p>
+<p>Below is an annotated copy of the default simulation-related configuration
+options from the default JSON config file (see the file located at
+<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path" title="ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path"><code class="xref py py-data docutils literal notranslate"><span class="pre">default_config_path</span></code></a>
+for the most up-to-date defaults). Note that JSON configuration files passed
+as input to the scripts in <a class="reference internal" href="reference/api/runscripts/runscripts.html#module-runscripts" title="runscripts"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts</span></code></a> accept additional keys that are
+documented in <a class="reference internal" href="workflows.html"><span class="std std-ref">Workflows</span></a>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="c1"># List of JSON filenames in the &quot;configs&quot; directory (include &quot;.json&quot;).</span>
+    <span class="c1"># These files are loaded in order and merged into this configuration.</span>
+    <span class="c1"># Avoid overly complex inheritance chains if possible.</span>
+    <span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="c1"># String that uniquely identifies simulation (or workflow if passed</span>
+    <span class="c1"># as input to runscripts/workflow.py). Special characters and spaces</span>
+    <span class="c1"># are not allowed (hyphens are OK).</span>
+    <span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="s2">&quot;experiment_id_one&quot;</span>
+    <span class="c1"># Whether to append date and time to experiment ID in the following format</span>
+    <span class="c1"># experiment_id_%Y%m%d-%H%M%S.</span>
+    <span class="s2">&quot;suffix_time&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+    <span class="c1"># Optional string description of simulation</span>
+    <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="c1"># Whether to display vivarium-core progress bar</span>
+    <span class="s2">&quot;progress_bar&quot;</span> <span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+    <span class="c1"># Path to pickle file output from parameter calculator (runscripts/parca.py).</span>
+    <span class="c1"># Only used for single sim run with ecoli/experiments/ecoli_master_sim.py.</span>
+    <span class="c1"># Ignored when run with runscripts/workflow.py because each simulation is</span>
+    <span class="c1"># automatically run with the appropriate variant/baseline simulation data.</span>
+    <span class="s2">&quot;sim_data_path&quot;</span><span class="p">:</span> <span class="s2">&quot;reconstruction/sim_data/kb/simData.cPickle&quot;</span><span class="p">,</span>
+    <span class="c1"># Pick between &quot;timeseries&quot; to save simulation output in-memory (good</span>
+    <span class="c1"># for single-cell ad-hoc analysis) or &quot;parquet&quot; to save output persistently</span>
+    <span class="c1"># to Parquet files on disk (good for workflows and more in-depth analyses)</span>
+    <span class="s2">&quot;emitter&quot;</span> <span class="p">:</span> <span class="s2">&quot;timeseries&quot;</span><span class="p">,</span>
+    <span class="c1"># If choosing &quot;parquet&quot; emitter, must provide &quot;out_dir&quot; with path (relative</span>
+    <span class="c1"># or absolute) to output folder OR &quot;out_uri&quot; with URI for Google Cloud Storage</span>
+    <span class="c1"># bucket. Only provide one of the above. Other Parquet emitter options are</span>
+    <span class="c1"># documented under the Parquet Emitter section in the Output page.</span>
+    <span class="s2">&quot;emitter_arg&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;out_dir&quot;</span><span class="p">:</span> <span class="s2">&quot;out&quot;</span><span class="p">},</span>
+    <span class="c1"># See API documentation on vivarium-core for vivarium.core.engine.Engine.</span>
+    <span class="c1"># Can usually leave as false.</span>
+    <span class="s2">&quot;emit_topology&quot;</span> <span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="s2">&quot;emit_processes&quot;</span> <span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="s2">&quot;emit_config&quot;</span> <span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="c1"># Whether to emit data from all molecules under (&quot;unique&quot;,). Should only be</span>
+    <span class="c1"># used for debugging purposes because this will emit a lot of data. Prefer</span>
+    <span class="c1"># a dedicated listener to extract unique molecule information at simulation</span>
+    <span class="c1"># runtime instead.</span>
+    <span class="s2">&quot;emit_unique&quot;</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="c1"># Whether to save process updates to log_update stores. Should only be used</span>
+    <span class="c1"># if choosing &quot;timeseries&quot; emitter. See &quot;Log Updates&quot; heading in &quot;Composites&quot;</span>
+    <span class="c1"># documentation for more information.</span>
+    <span class="s2">&quot;log_updates&quot;</span> <span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="c1"># Controls output format for ecoli.experiments.ecoli_master_sim.EcoliSim.query.</span>
+    <span class="c1"># Should only be used if choosing &quot;timeseries&quot; emitter. See API documentation</span>
+    <span class="c1"># for the query function for more information.</span>
+    <span class="s2">&quot;raw_output&quot;</span> <span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+    <span class="c1"># Initial seed used to generate the seeds that are used to initialize</span>
+    <span class="c1"># the psuedorandom number generators in the model. Only used for single</span>
+    <span class="c1"># simulations run using ecoli/experiments/ecoli_master_sim.py. Workflows</span>
+    <span class="c1"># run with runscripts/workflow.py generate initial seeds using the value</span>
+    <span class="c1"># of a different configuration option named &quot;lineage_seed&quot;.</span>
+    <span class="c1"># Both seed and lineage_seed are supposed to be integers.</span>
+    <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="c1"># Special flags to enable mechanisms related to antibiotic resistance.</span>
+    <span class="c1"># See API documentation for ecoli.library.sim_data.LoadSimData for more</span>
+    <span class="c1"># information.</span>
+    <span class="s2">&quot;mar_regulon&quot;</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="s2">&quot;amp_lysis&quot;</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="c1"># String name of file inside &quot;data&quot; folder containing saved JSON initial</span>
+    <span class="c1"># state (omit .json extension). See &quot;Initialization&quot; headings in &quot;Store&quot;</span>
+    <span class="c1"># documentation and ecoli.composites.ecoli_master.Ecoli.initial_state</span>
+    <span class="c1"># documentation for more details.</span>
+    <span class="s2">&quot;initial_state_file&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="c1"># List of string file names inside &quot;data&quot; folder (can be nested like</span>
+    <span class="c1"># &quot;data/overrides/*&quot;) containing manual overrides for targeted values</span>
+    <span class="c1"># in initial state (whether that initial state came from &quot;initial_state&quot;</span>
+    <span class="c1"># or &quot;initial_state_file&quot;). Omit .json extension. See API documentation</span>
+    <span class="c1"># for ecoli.composites.ecoli_master.Ecoli.initial_state.</span>
+    <span class="s2">&quot;initial_state_overrides&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="c1"># Dictionary of values to populate initial state with. Supersedes any file</span>
+    <span class="c1"># names specified in &quot;initial_state_file&quot;. See API documentation</span>
+    <span class="c1"># for ecoli.composites.ecoli_master.Ecoli.initial_state for more details,</span>
+    <span class="c1"># including what happens if neither &quot;initial_state&quot; nor &quot;initial_state_file&quot;</span>
+    <span class="c1"># are provided (as is the case here).</span>
+    <span class="s2">&quot;initial_state&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="c1"># Global time step for all simulation processes. See &quot;Time Step&quot; heading</span>
+    <span class="c1"># in &quot;Processes&quot; documentation for more details, including extra steps that</span>
+    <span class="c1"># one must take to add a process with a different time step. MUST BE FLOAT.</span>
+    <span class="s2">&quot;time_step&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="c1"># Maximum time to run simulation for. By default, we only run simulations</span>
+    <span class="c1"># until reaching division with ecoli/experiments/ecoli_master_sim.py</span>
+    <span class="c1"># and runscripts/workflow.py. Most of the time, division occurs well before</span>
+    <span class="c1"># 10800 seconds have elapsed. However, if this is not the case, this time</span>
+    <span class="c1"># sets a hard stopping point for the simulation. MUST BE FLOAT.</span>
+    <span class="s2">&quot;max_duration&quot;</span><span class="p">:</span> <span class="mf">10800.0</span><span class="p">,</span>
+    <span class="c1"># The value to initialize the (&quot;global_time&quot;,) store with. Mainly used for</span>
+    <span class="c1"># simulations run with runscripts/workflow.py, which frequently entail</span>
+    <span class="c1"># simulating daughter cells after a mother cell divides. MUST BE FLOAT.</span>
+    <span class="c1"># Note that the &quot;max_duration&quot; option is applied on top of this value.</span>
+    <span class="c1"># For example, for an &quot;initial_global_time&quot; of 3000.0 and a &quot;max_duration&quot;</span>
+    <span class="c1"># of 10000.0, the simulation will have a hard stopping point at 13000.0 s.</span>
+    <span class="s2">&quot;initial_global_time&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="c1"># Whether to raise ecoli.experiments.ecoli_master_sim.TimeLimitError when</span>
+    <span class="c1"># a simulation reaches the hard stopping point or to gracefully stop with</span>
+    <span class="c1"># no error raised.</span>
+    <span class="s2">&quot;fail_at_max_duration&quot;</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="c1"># String identifier for single cell simulation. For workflows run with</span>
+    <span class="c1"># runscripts/workflow.py, subsequent generations will append &quot;0&quot; and &quot;1&quot;</span>
+    <span class="c1"># to this initial agent ID for each daughter cell (only &quot;0&quot; if not</span>
+    <span class="c1"># simulating both daughter cells, see &quot;Workflow&quot; documentation).</span>
+    <span class="s2">&quot;agent_id&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span>
+    <span class="c1"># Whether to add processes and associated topologies for cell</span>
+    <span class="c1"># division. See &quot;Division Modifications&quot; heading in &quot;Composites&quot; docs.</span>
+    <span class="s2">&quot;divide&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+    <span class="c1"># Local or absolute path to directory where initial states for daughter</span>
+    <span class="c1"># cells are saved as JSONs named ``daughter_state_0.json`` and</span>
+    <span class="c1"># ``daughter_state_1.json``. These can be moved to the ``data``</span>
+    <span class="c1"># folder and passed as ``initial_state_file`` to run simulations</span>
+    <span class="c1"># of the daughter cells.</span>
+    <span class="s2">&quot;daughter_outdir&quot;</span><span class="p">:</span> <span class="s2">&quot;out&quot;</span><span class="p">,</span>
+    <span class="c1"># Whether to add process and associated topology for triggering division</span>
+    <span class="c1"># after a D period has elapsed following the completion of chromosome</span>
+    <span class="c1"># replication. If False, division is triggered when the store located</span>
+    <span class="c1"># at the path for &quot;division_variable&quot; reaches &quot;division_threshold&quot;.</span>
+    <span class="s2">&quot;d_period&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+    <span class="c1"># Threshold that &quot;division_variable&quot; must reach in order for division</span>
+    <span class="c1"># to be triggered. When &quot;d_period&quot; is True, this must be set to True</span>
+    <span class="c1"># and &quot;division_variable&quot; must be set to [&quot;divide&quot;] because the</span>
+    <span class="c1"># ecoli.processes.cell_division.MarkDPeriod process sets the [&quot;divide&quot;]</span>
+    <span class="c1"># store to True one D period after chromosome replication finishes.</span>
+    <span class="c1"># To use a mass doubling threshold, &quot;d_period&quot; must be False,</span>
+    <span class="c1"># &quot;division_variable&quot; must be set to [&quot;listeners&quot;, &quot;mass&quot;, &quot;dry_mass&quot;],</span>
+    <span class="c1"># and &quot;division_threshold&quot; must be set to either a hard-coded float</span>
+    <span class="c1"># (in femtograms) or &quot;mass_distribution&quot;. The latter will trigger division</span>
+    <span class="c1"># after dry mass has increased by an amount dependent on environmental</span>
+    <span class="c1"># conditions (e.g. no oxygen, basal, with AA, etc.) multiplied by a</span>
+    <span class="c1"># Gaussian noise factor N(1, 0.1). See ecoli.processes.cell_division.Division.</span>
+    <span class="s2">&quot;division_threshold&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+    <span class="c1"># Path to store containing value that triggers division upon reaching</span>
+    <span class="c1"># &quot;division_threshold&quot;.</span>
+    <span class="s2">&quot;division_variable&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;divide&quot;</span><span class="p">],</span>
+    <span class="c1"># Path to store containing full chromosome unique molecules. Used by</span>
+    <span class="c1"># division process to ensure that a cell contains two complete</span>
+    <span class="c1"># chromosomes before replicating (can occur when &quot;d_period&quot; is False</span>
+    <span class="c1"># and &quot;division_variable&quot; is cell mass for example). Will wait for</span>
+    <span class="c1"># there to be two complete full chromosomes before dividing even</span>
+    <span class="c1"># if &quot;division_variable&quot; hits &quot;division_threshold&quot;.</span>
+    <span class="s2">&quot;chromosome_path&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;unique&quot;</span><span class="p">,</span> <span class="s2">&quot;full_chromosome&quot;</span><span class="p">],</span>
+    <span class="c1"># Whether to simulate cell inside a binned 2D spatial environment</span>
+    <span class="c1"># with support for reaction diffusion. See API documentation for</span>
+    <span class="c1"># ecoli.composites.environment.lattice.Lattice composite. This is</span>
+    <span class="c1"># mainly useful for colony simulations.</span>
+    <span class="s2">&quot;spatial_environment&quot;</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="c1"># Configuration options for Lattice composite. See the JSON config</span>
+    <span class="c1"># file at configs/spatial.json for an example.</span>
+    <span class="s2">&quot;spatial_environment_config&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="c1"># Whether to serialize the simulation state to JSON and save it to</span>
+    <span class="c1"># files at the times listed in &quot;save_times&quot;. See the API documentation</span>
+    <span class="c1"># for ecoli.experiments.ecoli_master_sim.EcoliSim.save_states. This can</span>
+    <span class="c1"># be useful to save and reload the simulation at a certain time for</span>
+    <span class="c1"># debugging purposes.</span>
+    <span class="s2">&quot;save&quot;</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="s2">&quot;save_times&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="c1"># List of process names to add to model on top of defaults.</span>
+    <span class="s2">&quot;add_processes&quot;</span> <span class="p">:</span> <span class="p">[],</span>
+    <span class="c1"># List of process names to remove from defaults (or processes added</span>
+    <span class="c1"># by other JSONs in the &quot;inherit_from&quot; hierarchy).</span>
+    <span class="s2">&quot;exclude_processes&quot;</span> <span class="p">:</span> <span class="p">[],</span>
+    <span class="c1"># Mapping of process names to names of processes to replace them with.</span>
+    <span class="c1"># For example, {&quot;ecoli-metabolism&quot; : &quot;ecoli-metabolism-redux-classic&quot;}</span>
+    <span class="c1"># replaces the default metabolism process with one registered in</span>
+    <span class="c1"># ecoli/processes/__init__.py as &quot;ecoli-metabolism-redux-classic&quot;</span>
+    <span class="s2">&quot;swap_processes&quot;</span> <span class="p">:</span> <span class="p">{},</span>
+    <span class="c1"># Whether to print profiling statistics for simulation run.</span>
+    <span class="c1"># TODO: Check whether this still works.</span>
+    <span class="s2">&quot;profile&quot;</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="c1"># List of names of processes to include in model. The blank lines between</span>
+    <span class="c1"># process names here indicate the boundaries between successive execution</span>
+    <span class="c1"># layers as described in the &quot;Steps and Flows&quot; sub-heading in the &quot;Stores&quot;</span>
+    <span class="c1"># documentation (with the exception of &quot;global_clock&quot; which inherits from</span>
+    <span class="c1"># Process and not Step). You can verify that this is the case by working</span>
+    <span class="c1"># through the dependencies in the &quot;flow&quot; below.</span>
+    <span class="s2">&quot;processes&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;post-division-mass-listener&quot;</span><span class="p">,</span> <span class="c1"># Run and apply update</span>
+
+        <span class="s2">&quot;bulk-timeline&quot;</span><span class="p">,</span> <span class="c1"># Once layer above finishes, run and</span>
+        <span class="s2">&quot;media_update&quot;</span><span class="p">,</span> <span class="c1"># apply updates in arbitrary order</span>
+        <span class="s2">&quot;exchange_data&quot;</span><span class="p">,</span>
+
+        <span class="s2">&quot;ecoli-tf-unbinding&quot;</span><span class="p">,</span> <span class="c1"># Once layer above finishes, run and update</span>
+
+        <span class="s2">&quot;ecoli-equilibrium&quot;</span><span class="p">,</span> <span class="c1"># Once layer above finishes, run Requesters,</span>
+        <span class="s2">&quot;ecoli-two-component-system&quot;</span><span class="p">,</span> <span class="c1"># then Allocator, then Evolvers,</span>
+        <span class="s2">&quot;ecoli-rna-maturation&quot;</span><span class="p">,</span> <span class="c1"># then UniqueUpdate (see &quot;Partitioning&quot;)</span>
+
+        <span class="s2">&quot;ecoli-tf-binding&quot;</span><span class="p">,</span>
+
+        <span class="s2">&quot;ecoli-transcript-initiation&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ecoli-polypeptide-initiation&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ecoli-chromosome-replication&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ecoli-protein-degradation&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ecoli-rna-degradation&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ecoli-complexation&quot;</span><span class="p">,</span>
+
+        <span class="s2">&quot;ecoli-transcript-elongation&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ecoli-polypeptide-elongation&quot;</span><span class="p">,</span>
+
+        <span class="s2">&quot;ecoli-chromosome-structure&quot;</span><span class="p">,</span>
+
+        <span class="s2">&quot;ecoli-metabolism&quot;</span><span class="p">,</span>
+
+        <span class="s2">&quot;ecoli-mass-listener&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;RNA_counts_listener&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rna_synth_prob_listener&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;monomer_counts_listener&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dna_supercoiling_listener&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;replication_data_listener&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rnap_data_listener&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;unique_molecule_counts&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ribosome_data_listener&quot;</span><span class="p">,</span>
+
+        <span class="s2">&quot;global_clock&quot;</span>
+    <span class="p">],</span>
+    <span class="c1"># Mapping of process names to dictionaries of parameters to override</span>
+    <span class="c1"># defaults with, if any. Processes that do not have a registered</span>
+    <span class="c1"># function in ecoli.library.sim_data.LoadSimData.get_config_by_name</span>
+    <span class="c1"># MUST specify either &quot;default&quot; or a dictionary of parameters here.</span>
+    <span class="c1"># See ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps</span>
+    <span class="c1"># for more details.</span>
+    <span class="s2">&quot;process_configs&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;global_clock&quot;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s2">&quot;replication_data_listener&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;time_step&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+    <span class="p">},</span>
+    <span class="c1"># Mapping of process names to topology dictionaries. Processes that</span>
+    <span class="c1"># did not register their topology in ecoli.processes.registry.topology_registry</span>
+    <span class="c1"># by importing it and calling topology_registry.register(NAME, TOPOLOGY)</span>
+    <span class="c1"># MUST specify a topology dictionary here.</span>
+    <span class="s2">&quot;topology&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;bulk-timeline&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;bulk&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;bulk&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;global&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;timeline&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;media_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;environment&quot;</span><span class="p">,</span> <span class="s2">&quot;media_id&quot;</span><span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;global_clock&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;global_time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;global_time&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;next_update_time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;next_update_time&quot;</span><span class="p">]</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="c1"># Mapping of Step names to paths to Step dependencies. See the</span>
+    <span class="c1"># &quot;Steps and Flows&quot; sub-heading in the &quot;Stores&quot; documentation.</span>
+    <span class="s2">&quot;flow&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;post-division-mass-listener&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;media_update&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;post-division-mass-listener&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;exchange_data&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;media_update&quot;</span><span class="p">]],</span>
+
+        <span class="s2">&quot;ecoli-tf-unbinding&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;media_update&quot;</span><span class="p">]],</span>
+
+        <span class="s2">&quot;ecoli-equilibrium&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-tf-unbinding&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;ecoli-two-component-system&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-tf-unbinding&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;ecoli-rna-maturation&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-tf-unbinding&quot;</span><span class="p">]],</span>
+
+        <span class="s2">&quot;ecoli-tf-binding&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-equilibrium&quot;</span><span class="p">]],</span>
+
+        <span class="s2">&quot;ecoli-transcript-initiation&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-tf-binding&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;ecoli-polypeptide-initiation&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-tf-binding&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;ecoli-chromosome-replication&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-tf-binding&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;ecoli-protein-degradation&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-tf-binding&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;ecoli-rna-degradation&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-tf-binding&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;ecoli-complexation&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-tf-binding&quot;</span><span class="p">]],</span>
+
+        <span class="s2">&quot;ecoli-transcript-elongation&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-complexation&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;ecoli-polypeptide-elongation&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-complexation&quot;</span><span class="p">]],</span>
+
+        <span class="s2">&quot;ecoli-chromosome-structure&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-polypeptide-elongation&quot;</span><span class="p">]],</span>
+
+        <span class="s2">&quot;ecoli-metabolism&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-chromosome-structure&quot;</span><span class="p">]],</span>
+
+        <span class="s2">&quot;ecoli-mass-listener&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-metabolism&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;RNA_counts_listener&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-metabolism&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;rna_synth_prob_listener&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-metabolism&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;monomer_counts_listener&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-metabolism&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;dna_supercoiling_listener&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-metabolism&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;replication_data_listener&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-metabolism&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;rnap_data_listener&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-metabolism&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;unique_molecule_counts&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-metabolism&quot;</span><span class="p">]],</span>
+        <span class="s2">&quot;ribosome_data_listener&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;ecoli-metabolism&quot;</span><span class="p">]]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Here are some general rules to remember when writing your own JSON config files:</p>
+<ul class="simple">
+<li><p>Strings must be enclosed in double quotes (not single quotes)</p></li>
+<li><p>Booleans are lowercase</p></li>
+<li><p>None values are written as (unquoted) <code class="docutils literal notranslate"><span class="pre">null</span></code></p></li>
+<li><p>Trailing commas are not allowed</p></li>
+<li><p>Comments are not allowed</p></li>
+<li><p>Tuples (e.g. in topologies or flows) are written as lists (<code class="docutils literal notranslate"><span class="pre">[&quot;bulk&quot;]</span></code> instead of <code class="docutils literal notranslate"><span class="pre">(&quot;bulk&quot;,)</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">~</span></code> and environment variables like <code class="docutils literal notranslate"><span class="pre">$HOME</span></code> are not expanded (see warning at <a class="reference internal" href="workflows.html"><span class="doc">Workflows</span></a>)</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is strongly recommended that <code class="docutils literal notranslate"><span class="pre">fail_at_max_duration</span></code> be set to <code class="docutils literal notranslate"><span class="pre">True</span></code>
+when running multi-generation workflows. If a simulation reaches max duration
+without dividing, this results in a more informative error message instead
+of a Nextflow error about missing daughter cell states.</p>
+</div>
+</section>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<p>If <code class="docutils literal notranslate"><span class="pre">emitter</span></code> was set to <code class="docutils literal notranslate"><span class="pre">parquet</span></code>, then folders containing the simulation output are
+created as described in <a class="reference internal" href="output.html#parquet-emitter"><span class="std std-ref">Parquet Emitter</span></a>.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">division</span></code> is set to True, <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#module-ecoli.experiments.ecoli_master_sim" title="ecoli.experiments.ecoli_master_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_master_sim</span></code></a> will
+save the initial states of the two daughter cells resulting from cell division
+in <code class="docutils literal notranslate"><span class="pre">daughter_outdir</span></code> as JSON files. These files can be moved to the <code class="docutils literal notranslate"><span class="pre">data</span></code>
+folder and passed as <code class="docutils literal notranslate"><span class="pre">initial_state_file</span></code> to simulate the daughter cells.
+Additionally, the file <code class="docutils literal notranslate"><span class="pre">division_time.sh</span></code> will be created in the folder where
+you started the simulation. This script, when run, sets the environment variable
+<code class="docutils literal notranslate"><span class="pre">division_time</span></code> to the time at which the cell divided. It is intended for internal
+use when running a simulation workflow with <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>, allowing
+Nextflow to correctly set the <code class="docutils literal notranslate"><span class="pre">initial_global_time</span></code> for daughter cell simulations.</p>
+</section>
+<section id="schema-overrides">
+<h2>Schema Overrides<a class="headerlink" href="#schema-overrides" title="Link to this heading"></a></h2>
+<p>One powerful feature of the JSON configuration approach is the ability to override the port schemas
+specified by processes. To do so, one simply adds a <code class="docutils literal notranslate"><span class="pre">_schema</span></code> key to the config for a process
+under the <code class="docutils literal notranslate"><span class="pre">process_configs</span></code> option. In the following example, we have overridden the schema for
+how the <cite>“ecoli-mass-listener”</cite> process divides the cell mass.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;process_configs&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;ecoli-mass-listener&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;_schema&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;listeners&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;mass&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;cell_mass&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;_divider&quot;</span><span class="p">:</span> <span class="s2">&quot;set&quot;</span><span class="p">}}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Another use of schema overrides is to emit data that would normally not be emitted
+by setting <code class="docutils literal notranslate"><span class="pre">_emit</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;process_configs&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;ecoli-mass-listener&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;_schema&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;unique&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;active_ribosome&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;_emit&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Vivarium includes internal checks to ensure that all ports connected to a
+store give the same or compatible (no conflicting keys) schemas for that store.
+This means that if you would like to override the schema for a store with many
+connecting ports, you will need to override the schemas for all the relevant ports.</p>
+</div>
+</section>
+<section id="colony-simulations">
+<h2>Colony Simulations<a class="headerlink" href="#colony-simulations" title="Link to this heading"></a></h2>
+<p>While <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim" title="ecoli.experiments.ecoli_master_sim.EcoliSim"><code class="xref py py-class docutils literal notranslate"><span class="pre">EcoliSim</span></code></a> was only designed
+to handle simulation of single cells in isolation,
+<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_engine_process.html#module-ecoli.experiments.ecoli_engine_process" title="ecoli.experiments.ecoli_engine_process"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_engine_process</span></code></a> was made to simulate
+multi-cell colonies in shared, dynamic spatial environments.</p>
+<section id="engine-process">
+<h3>Engine Process<a class="headerlink" href="#engine-process" title="Link to this heading"></a></h3>
+<p>In simple terms, instances of <a class="reference internal" href="reference/api/ecoli/ecoli.processes.engine_process.html#ecoli.processes.engine_process.EngineProcess" title="ecoli.processes.engine_process.EngineProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">EngineProcess</span></code></a>
+wrap an entire Vivarium simulation as a process that can be incremented time step by
+time step and interact bidirectionally with the outer simulation. Refer to the API
+documentation for <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_engine_process.html#module-ecoli.experiments.ecoli_engine_process" title="ecoli.experiments.ecoli_engine_process"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_engine_process</span></code></a> for more details.</p>
+</section>
+<section id="configuring-colony-simulations">
+<h3>Configuring Colony Simulations<a class="headerlink" href="#configuring-colony-simulations" title="Link to this heading"></a></h3>
+<p>All of the configuration
+options listed above still apply to simulations started with
+<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_engine_process.html#module-ecoli.experiments.ecoli_engine_process" title="ecoli.experiments.ecoli_engine_process"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_engine_process</span></code></a>. There are only three new options:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">engine_process_reports</span></code>: List of paths (e.g. <code class="docutils literal notranslate"><span class="pre">[&quot;bulk&quot;]</span></code> for bulk store) inside
+each cell to save in final colony output.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">emit_paths</span></code>: List of paths in outer simulation (e.g. locations of each cell in
+spatial environment) to save in final colony output.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">parallel</span></code>: In <a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_engine_process.html#module-ecoli.experiments.ecoli_engine_process" title="ecoli.experiments.ecoli_engine_process"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_engine_process</span></code></a>, each simulated
+cell is contained within a single process (specifically, an instance of
+<a class="reference internal" href="reference/api/ecoli/ecoli.processes.engine_process.html#ecoli.processes.engine_process.EngineProcess" title="ecoli.processes.engine_process.EngineProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">EngineProcess</span></code></a>). Therefore, assuming
+cells only need to communicate a tiny amount of information between one another,
+interprocess overhead is low and running these cells in parallel can greatly speed
+up the colony simulation.</p></li>
+</ul>
+<p>In addition to these new configuration options, several previously mentioned options
+become much more useful in the context of colony simulations:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">save</span></code> and <code class="docutils literal notranslate"><span class="pre">save_times</span></code> can be used to create snapshots of the colony state
+to start many colony simulations from, for example, a 16-cell state using
+<code class="docutils literal notranslate"><span class="pre">initial_state_file</span></code> without having to wait for 16 generations every time.
+The names of the files saved can be given an optional prefix configured via the
+<code class="docutils literal notranslate"><span class="pre">colony_save_prefix</span></code> option.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">spatial_environment</span></code> and <code class="docutils literal notranslate"><span class="pre">spatial_environment_config</span></code>: The benefit of running
+simulations inside a shared, dynamic spatial environment is only fully realized when
+many cells are interacting with one another inside this environment.</p></li>
+</ul>
+</section>
+</section>
+<section id="create-your-own">
+<span id="create-experiment"></span><h2>Create Your Own<a class="headerlink" href="#create-your-own" title="Link to this heading"></a></h2>
+<p>For more control over a simulation than what is provided by the default
+<a class="reference internal" href="reference/api/ecoli/ecoli.experiments.ecoli_master_sim.html#module-ecoli.experiments.ecoli_master_sim" title="ecoli.experiments.ecoli_master_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ecoli_master_sim</span></code></a> experiment (as well as the
+workflow runscript <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a>, see <a class="reference internal" href="workflows.html"><span class="std std-ref">Workflows</span></a>),
+you can create your own experiment file. Some examples of custom experiment
+files in the <code class="docutils literal notranslate"><span class="pre">ecoli/experiments</span></code> folder include:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.experiments.tet_amp_sim.html#module-ecoli.experiments.tet_amp_sim" title="ecoli.experiments.tet_amp_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tet_amp_sim</span></code></a>: Modifies the initial state to add
+new bulk molecules (see <a class="reference internal" href="stores.html#bulk"><span class="std std-ref">Bulk Molecules</span></a>) for antibiotics-related molecules and
+adds two transcription factor binding sites to all promoters for MarA and MarR.
+Also adds command-line options for external concentration of tetracycline and
+ampicillin.</p></li>
+<li><p><a class="reference internal" href="reference/api/ecoli/ecoli.experiments.metabolism_redux_sim.html#module-ecoli.experiments.metabolism_redux_sim" title="ecoli.experiments.metabolism_redux_sim"><code class="xref py py-mod docutils literal notranslate"><span class="pre">metabolism_redux_sim</span></code></a>: Replaces the default metabolism
+process (<a class="reference internal" href="reference/api/ecoli/ecoli.processes.metabolism.html#ecoli.processes.metabolism.Metabolism" title="ecoli.processes.metabolism.Metabolism"><code class="xref py py-class docutils literal notranslate"><span class="pre">Metabolism</span></code></a>) with experimental
+alternatives (e.g. <a class="reference internal" href="reference/api/ecoli/ecoli.processes.metabolism_redux_classic.html#ecoli.processes.metabolism_redux_classic.MetabolismReduxClassic" title="ecoli.processes.metabolism_redux_classic.MetabolismReduxClassic"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetabolismReduxClassic</span></code></a>).
+Makes use of the object-oriented interface for sim configuration mentioned
+in <a class="reference internal" href="#sim-config"><span class="std std-ref">Configuration</span></a> (e.g. <code class="docutils literal notranslate"><span class="pre">sim.max_duration</span> <span class="pre">=</span> <span class="pre">100</span></code>).</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="composites.html" class="btn btn-neutral float-left" title="Composites" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="workflows.html" class="btn btn-neutral float-right" title="Workflows" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
