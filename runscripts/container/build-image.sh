@@ -96,11 +96,9 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
       grep -v "^#" "$ignore_file" | grep -v "^$" | grep -v "^!" | while read -r pattern; do
           # Handle patterns starting with / (root-relative)
           if [[ "$pattern" == /* ]]; then
-            echo ".${pattern}" >>"$EXCLUDE_PATTERNS"
             echo ".${pattern}/*" >>"$EXCLUDE_PATTERNS"
           # Handle directory patterns ending with /
           elif [[ "$pattern" == */ ]]; then
-            echo "./${pattern}" >>"$EXCLUDE_PATTERNS"
             echo "./${pattern}*" >>"$EXCLUDE_PATTERNS"
           # Handle other patterns
           else
@@ -123,14 +121,14 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
 
   echo "Executing: $FIND_CMD"
   # Execute the dynamically generated find command
-  eval "$FIND_CMD -print0 | xargs -0 tar -cvf repo.tar"
+  eval "$FIND_CMD -print0 | xargs -0 tar -cf repo.tar"
 
   # Debug output
-  echo "Found $(du -sh repo.tar) of files to include in the image"
+  echo "Found $(du -sh repo.tar | awk '{print $1}') of files to include in the image"
   TEMP_FILES+=("repo.tar")
 
   # Initialize environment variables string
-  DOT_ENV_VARS=""
+  DOT_ENV_VARS="    "
   # Check if .env file exists
   if [ -f ".env" ]; then
       echo "Processing .env for Singularity environment..."
@@ -141,7 +139,7 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
               # Strip any existing 'export ' prefix
               line=${line#export }
               # Add to environment variables string with export prefix
-              DOT_ENV_VARS+="    export $line"$'\n'
+              DOT_ENV_VARS+="export $line; "
           fi
       done < ".env"
       echo "Found $(echo "$DOT_ENV_VARS" | grep -c 'export ') environment variables"
