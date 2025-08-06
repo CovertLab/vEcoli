@@ -25,7 +25,7 @@ From: ghcr.io/astral-sh/uv@sha256:1cc0392c8aad8026ef3922e3f997fff0f31e506b0ffe95
     repo.tar /repo.tar
 
 %post
-    tar -xvf /repo.tar -C /vEcoli
+    tar -xf /repo.tar -C /vEcoli
     rm /repo.tar
     apt-get update && apt-get install -y gcc procps nano curl
     cd /vEcoli
