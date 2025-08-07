@@ -1,0 +1,40 @@
+{
+    "experiment_id": "test_installation",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 4,
+	"new_genes": "gfp"
+    },
+    "fail_at_total_time": true,
+    "sim_data_path": null,
+    "skip_baseline": false,
+    "n_init_sims": 2,
+    "generations": 4,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out/test_installation/nextflow/abby/multivariant_GFP_take2"
+    },
+    "variants": {
+        "new_gene_internal_shift": {
+            "condition": {"value": ["basal", "with_aa"]},
+            "induction_gen": {"value": [1, 2]},
+            "knockout_gen": {"value": [2, 3]},
+            "exp_trl_eff": {
+                "nested" : {
+                    "exp": {
+                        "value": [2,4]
+                    },
+                    "trl_eff": {"value": [2,8]},
+                    "op": "zip"
+                }
+            },
+            "op": "zip"
+        }
+    },
+    "analysis_options": {
+        "multivariant": {"doubling_time_hist": {"skip_n_gens" : 0},
+        "doubling_time_line": {}
+        }
+    }
+}

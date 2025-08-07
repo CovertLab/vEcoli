@@ -52,6 +52,7 @@ dependencies = [
     "xmltodict",
     # Required to save Altair charts as PNG
     "vl-convert-python",
+    "plotly>=6.2.0",
 ]
 
 [project.optional-dependencies]
