@@ -1,4 +1,3 @@
-# "R15-RXN-MET/IMIDAZOLE-PYRUVATE//CPD-479/HIS.9."	{"MET[CCO-CYTOSOL]": -1, "IMIDAZOLE-PYRUVATE[CCO-CYTOSOL]": -1, "CPD-479[CCO-CYTOSOL]": 1, "HIS[CCO-CYTOSOL]": 1}	"R2L"	["CPLX0-8561"]	"A 2-oxo carboxylate is consumed. Analyzing molecular weights and chemical formulas, IMIDAZOLE-PYRUVATE can produce HIS"
 "id"	"stoichiometry"	"direction"	"catalyzed_by"	"is_new"	"_comments"
 "glycogen-monomer-extension"	{"glycogen-monomer[CCO-CYTOSOL]": 1, "ADP-D-GLUCOSE[CCO-CYTOSOL]": -1, "ADP[CCO-CYTOSOL]": 1}	"L2R"	[]	0	"Required to produce glycogen-monomer[c], an essential biomass component"
 "GLURS-RXN-GLT-tRNAs/GLT/ATP/PROTON//Charged-GLT-tRNAs/AMP/PPI.52."	{"GLT-tRNAs[CCO-CYTOSOL]": -1, "GLT[CCO-CYTOSOL]": -1, "AMP[CCO-CYTOSOL]": 1, "PPI[CCO-CYTOSOL]": 1, "ATP[CCO-CYTOSOL]": -1, "Charged-GLT-tRNAs[CCO-CYTOSOL]": 1}	"L2R"	["GLURS-MONOMER"]	0	"Required to produce PROTOHEME[c] and SIROHEME[c], essential biomass components"
