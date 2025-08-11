@@ -505,7 +505,7 @@ def labeled_indexable_hist(
             bins,
             color=color,
             alpha=0.5,
-            label=f"Var {variant}: {mean:.{sf}f} +/- {std:.{sf+1}f}",
+            label=f"Var {variant}: {mean:.{sf}f} +/- {std:.{sf + 1}f}",
         )
         ax.axvline(mean, color=color, linestyle="--", linewidth=1)
 
@@ -578,7 +578,7 @@ def labeled_indexable_scatter(
             variant_ydata,
             color=color,
             alpha=0.5,
-            label=f"Var {variant}: {mean:.{sf}f} +/- {std:.{sf+1}f}",
+            label=f"Var {variant}: {mean:.{sf}f} +/- {std:.{sf + 1}f}",
         )
         ax.scatter(mean_new_gene, mean, color=color, alpha=0.5, marker="x")
 

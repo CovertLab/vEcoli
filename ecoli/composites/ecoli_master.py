@@ -9,7 +9,6 @@ steps, topology, and initial state of the E. coli whole cell model.
 # mypy: disable-error-code=attr-defined
 
 from copy import deepcopy
-import os
 from typing import Any, Optional
 import warnings
 
@@ -27,7 +26,7 @@ from ecoli.library.sim_data import LoadSimData, RAND_MAX
 from ecoli.library.logging_tools import make_logging_process
 
 # vivarium-ecoli processes
-from ecoli.composites.ecoli_configs import (
+from configs import (
     ECOLI_DEFAULT_PROCESSES,
     ECOLI_DEFAULT_TOPOLOGY,
 )
@@ -40,17 +39,7 @@ from ecoli.processes.unique_update import UniqueUpdate
 from ecoli.processes.partition import Requester, Evolver, Step, Process
 from ecoli.library.json_state import get_state_from_file
 
-SIM_DATA_PATH = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "reconstruction",
-        "sim_data",
-        "kb",
-        "simData.cPickle",
-    )
-)
+from reconstruction.ecoli.dataclasses.process.replication import MAX_TIMESTEP
 
 MINIMAL_MEDIA_ID = "minimal"
 AA_MEDIA_ID = "minimal_plus_amino_acids"
@@ -67,7 +56,7 @@ class Ecoli(Composer):
     defaults = {
         "time_step": 2.0,
         "seed": 0,
-        "sim_data_path": SIM_DATA_PATH,
+        "sim_data_path": "",
         "agent_id": "0",
         "division_threshold": 668,  # fg
         "division_variable": ("listeners", "mass", "dry_mass"),
@@ -83,8 +72,7 @@ class Ecoli(Composer):
     purposes (see :py:func:`~ecoli.composites.ecoli_master.ecoli_topology_plot`). 
     For normal users, this composer should only be called indirectly via the 
     :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` interface, whose 
-    defaults are laid out in the JSON file at 
-    ``ecoli/composites/ecoli_configs/default.json``. 
+    defaults are laid out in the JSON file at ``configs/default.json``. 
 
     :meta hide-value:
     """
@@ -307,6 +295,12 @@ class Ecoli(Composer):
             and a flow describing the dependencies between steps.
         """
         time_step = config["time_step"]
+        if time_step > MAX_TIMESTEP:
+            raise ValueError(
+                f"Time step {time_step} is greater than the maximum time step "
+                f"{MAX_TIMESTEP} defined in reconstruction/ecoli/dataclasses/process/replication.py."
+                f"Edit and re-run ParCa with a larger maximum or use a smaller time step."
+            )
         # get the configs from sim_data (except for allocator, built later)
         process_configs = config["process_configs"]
         for process in process_configs.keys():
@@ -661,7 +655,7 @@ class Ecoli(Composer):
 
 def run_ecoli(
     filename: str = "default",
-    total_time: int = 10,
+    max_duration: int = 10,
     divide: bool = False,
     progress_bar: bool = True,
     log_updates: bool = False,
@@ -671,7 +665,7 @@ def run_ecoli(
     """Run E. coli simulations.
 
     Args:
-        total_time: the total runtime of the experiment
+        max_duration: the maximum runtime of the experiment
         divide: whether to incorporate division
         progress_bar: whether to show a progress bar
         log_updates: whether to save updates from each process (refer to
@@ -696,7 +690,7 @@ def run_ecoli(
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
-    sim.total_time = total_time
+    sim.max_duration = max_duration
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
@@ -861,6 +855,6 @@ test_library = {
 }
 
 # run experiments in test_library from the command line with:
-# uv run ecoli/composites/ecoli_master.py -n [experiment id]
+# uvenv ecoli/composites/ecoli_master.py -n [experiment id]
 if __name__ == "__main__":
     run_library_cli(test_library)

@@ -20,6 +20,7 @@ from ecoli.library.schema import (
     counts,
     bulk_name_to_idx,
     listener_schema,
+    zero_listener,
 )
 
 from wholecell.utils import units
@@ -86,9 +87,10 @@ class PolypeptideInitiation(PartitionedProcess):
         ]
         self.tu_ids = self.parameters["tu_ids"]
         self.n_TUs = len(self.tu_ids)
-        self.active_ribosome_footprint_size = self.parameters[
-            "active_ribosome_footprint_size"
-        ]
+        # Convert ribosome footprint size from nucleotides to amino acids
+        self.active_ribosome_footprint_size = (
+            self.parameters["active_ribosome_footprint_size"] / 3
+        )
 
         # Get mapping from cistrons to protein monomers and TUs
         self.cistron_to_monomer_mapping = self.parameters["cistron_to_monomer_mapping"]
@@ -277,9 +279,12 @@ class PolypeptideInitiation(PartitionedProcess):
         n_ribosomes_to_activate = np.int64(activation_prob * inactive_ribosome_count)
 
         if n_ribosomes_to_activate == 0:
-            update = dict(self.empty_update)
-            update["active_ribosome"] = {}
-            return self.empty_update
+            update = {
+                "listeners": {
+                    "ribosome_data": zero_listener(states["listeners"]["ribosome_data"])
+                }
+            }
+            return update
 
         # Cap the initiation probabilities at the maximum level physically
         # allowed from the known ribosome footprint sizes based on the

@@ -14,11 +14,8 @@ identified via a unique experiment ID.
     the same experiment ID.
 
 When running workflows with :py:mod:`runscripts.workflow` (see :ref:`/workflows.rst`),
-users are prevented from accidentally overwriting data by ``nextflow``, the software
-used to run the workflow. Specifically, nextflow generates an HTML execution report
-in the output folder for a given experiment ID (see :ref:`output`)
-and will refuse to run another workflow with the same experiment ID unless
-that execution report is renamed, moved, or deleted.
+users are prevented from accidentally overwriting data by a check that ensures
+``{out_dir}/{experiment_id}/nextflow`` does not already exist.
 
 
 .. _sim_config:
@@ -85,10 +82,9 @@ documented in :ref:`/workflows.rst`.
 .. code-block::
 
     {
-        # List of string filenames in the ecoli/composites/ecoli_configs directory
-        # (include .json extension). These files are loaded in order and merged
-        # into the configuration of this file. Avoid overly complex inheritance
-        # chains if possible.
+        # List of JSON filenames in the "configs" directory (include ".json").
+        # These files are loaded in order and merged into this configuration.
+        # Avoid overly complex inheritance chains if possible.
         "inherit_from": [],
         # String that uniquely identifies simulation (or workflow if passed
         # as input to runscripts/workflow.py). Special characters and spaces
@@ -112,7 +108,8 @@ documented in :ref:`/workflows.rst`.
         "emitter" : "timeseries",
         # If choosing "parquet" emitter, must provide "out_dir" with path (relative
         # or absolute) to output folder OR "out_uri" with URI for Google Cloud Storage
-        # bucket. Only provide one of the above.
+        # bucket. Only provide one of the above. Other Parquet emitter options are
+        # documented under the Parquet Emitter section in the Output page.
         "emitter_arg": {"out_dir": "out"},
         # See API documentation on vivarium-core for vivarium.core.engine.Engine.
         # Can usually leave as false.
@@ -137,6 +134,7 @@ documented in :ref:`/workflows.rst`.
         # simulations run using ecoli/experiments/ecoli_master_sim.py. Workflows
         # run with runscripts/workflow.py generate initial seeds using the value
         # of a different configuration option named "lineage_seed".
+        # Both seed and lineage_seed are supposed to be integers.
         "seed": 0,
         # Special flags to enable mechanisms related to antibiotic resistance.
         # See API documentation for ecoli.library.sim_data.LoadSimData for more
@@ -169,18 +167,18 @@ documented in :ref:`/workflows.rst`.
         # and runscripts/workflow.py. Most of the time, division occurs well before
         # 10800 seconds have elapsed. However, if this is not the case, this time
         # sets a hard stopping point for the simulation. MUST BE FLOAT.
-        "total_time": 10800.0,
+        "max_duration": 10800.0,
         # The value to initialize the ("global_time",) store with. Mainly used for
         # simulations run with runscripts/workflow.py, which frequently entail
         # simulating daughter cells after a mother cell divides. MUST BE FLOAT.
-        # Note that the "total_time" option is applied on top of this value.
-        # For example, for an "initial_global_time" of 3000.0 and a "total_time"
+        # Note that the "max_duration" option is applied on top of this value.
+        # For example, for an "initial_global_time" of 3000.0 and a "max_duration"
         # of 10000.0, the simulation will have a hard stopping point at 13000.0 s.
         "initial_global_time": 0.0,
         # Whether to raise ecoli.experiments.ecoli_master_sim.TimeLimitError when
         # a simulation reaches the hard stopping point or to gracefully stop with
         # no error raised.
-        "fail_at_total_time": false,
+        "fail_at_max_duration": false,
         # String identifier for single cell simulation. For workflows run with
         # runscripts/workflow.py, subsequent generations will append "0" and "1"
         # to this initial agent ID for each daughter cell (only "0" if not
@@ -205,6 +203,13 @@ documented in :ref:`/workflows.rst`.
         # and "division_variable" must be set to ["divide"] because the
         # ecoli.processes.cell_division.MarkDPeriod process sets the ["divide"]
         # store to True one D period after chromosome replication finishes.
+        # To use a mass doubling threshold, "d_period" must be False,
+        # "division_variable" must be set to ["listeners", "mass", "dry_mass"],
+        # and "division_threshold" must be set to either a hard-coded float
+        # (in femtograms) or "mass_distribution". The latter will trigger division
+        # after dry mass has increased by an amount dependent on environmental
+        # conditions (e.g. no oxygen, basal, with AA, etc.) multiplied by a
+        # Gaussian noise factor N(1, 0.1). See ecoli.processes.cell_division.Division.
         "division_threshold": true,
         # Path to store containing value that triggers division upon reaching
         # "division_threshold".
@@ -222,7 +227,7 @@ documented in :ref:`/workflows.rst`.
         # mainly useful for colony simulations.
         "spatial_environment": false,
         # Configuration options for Lattice composite. See the JSON config
-        # file at ecoli/composites/ecoli_configs/spatial.json for an example.
+        # file at configs/spatial.json for an example.
         "spatial_environment_config": {},
         # Whether to serialize the simulation state to JSON and save it to
         # files at the times listed in "save_times". See the API documentation
@@ -365,10 +370,11 @@ Here are some general rules to remember when writing your own JSON config files:
 - Trailing commas are not allowed
 - Comments are not allowed
 - Tuples (e.g. in topologies or flows) are written as lists (``["bulk"]`` instead of ``("bulk",)``)
+- ``~`` and environment variables like ``$HOME`` are not expanded (see warning at :doc:`workflows`)
 
 .. note::
-    It is strongly recommended that ``fail_at_total_time`` be set to ``True``
-    when running multi-generation workflows. If a simulation reaches total time
+    It is strongly recommended that ``fail_at_max_duration`` be set to ``True``
+    when running multi-generation workflows. If a simulation reaches max duration
     without dividing, this results in a more informative error message instead
     of a Nextflow error about missing daughter cell states.
 
@@ -501,4 +507,4 @@ files in the ``ecoli/experiments`` folder include:
   process (:py:class:`~ecoli.processes.metabolism.Metabolism`) with experimental
   alternatives (e.g. :py:class:`~ecoli.processes.metabolism_redux_classic.MetabolismReduxClassic`).
   Makes use of the object-oriented interface for sim configuration mentioned
-  in :ref:`sim_config` (e.g. ``sim.total_time = 100``).
+  in :ref:`sim_config` (e.g. ``sim.max_duration = 100``).

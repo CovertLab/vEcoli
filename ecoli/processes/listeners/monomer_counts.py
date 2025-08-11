@@ -230,7 +230,7 @@ def test_monomer_counts_listener():
     from ecoli.experiments.ecoli_master_sim import EcoliSim
 
     sim = EcoliSim.from_file()
-    sim.total_time = 2
+    sim.max_duration = 2
     sim.raw_output = False
     sim.build_ecoli()
     sim.run()
@@ -239,6 +239,6 @@ def test_monomer_counts_listener():
     assert isinstance(listeners["monomer_counts"][1], list)
 
 
-# uv run ecoli/processes/listeners/monomer_counts.py
+# uvenv ecoli/processes/listeners/monomer_counts.py
 if __name__ == "__main__":
     test_monomer_counts_listener()

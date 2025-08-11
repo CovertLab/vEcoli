@@ -1,0 +1,20 @@
+{
+  "add_processes": [
+    "ecoli-shape"
+  ],
+
+  "emitter": "database",
+  "max_duration": 2678.0,
+
+  "topology": {
+    "ecoli-shape": {
+      "global": {
+        "_path": "boundary",
+        "volume": ["..", "listeners", "mass", "volume"]
+      }
+    }
+  },
+  "process_configs": {
+    "ecoli-shape": {}
+  }
+}

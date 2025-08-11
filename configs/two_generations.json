@@ -1,0 +1,34 @@
+{
+    "experiment_id": "two_generations",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 3
+    },
+    "sim_data_path": null,
+    "fail_at_max_duration": true,
+    "generations": 2,
+    "n_init_sims": 3,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out",
+        "threaded": false
+    },
+    "analysis_options": {
+        "single": {
+            "mass_fraction_summary": {}
+        },
+        "multiseed": {
+            "ecocyc_table": {
+                "ignore_first_n_gens": 0
+            },
+            "protein_counts_validation": {},
+            "subgenerational_expression_table": {
+                "ignore_first_n_gens": 0
+            }
+        },
+        "multivariant": {
+            "dummy": {}
+        }
+    }
+}

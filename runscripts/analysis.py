@@ -1,19 +1,42 @@
-import argparse
-import importlib
-import json
 import os
-import warnings
-from urllib import parse
-from typing import Any
+import argparse
+import json
 
-import duckdb
-from fsspec import filesystem
-import pyarrow as pa
-from pyarrow import fs
 
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
-from ecoli.experiments.ecoli_master_sim import SimConfig
-from ecoli.library.parquet_emitter import get_dataset_sql, open_output_file
+# First, do minimal argument parsing just to get the CPU count
+def parse_cpu_arg():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--cpus", "-n", default=1, type=int)
+    parser.add_argument("--config")
+    # Only arguments necessary to determine CPU count
+    args, _ = parser.parse_known_args()
+    if args.config is None:
+        return args.cpus
+    with open(args.config, "r") as f:
+        config = json.load(f)
+    return config["analysis_options"].get("cpus", args.cpus)
+
+
+# Set Polars thread count before any imports might load it
+cpu_count = parse_cpu_arg()
+if cpu_count is not None:
+    os.environ["POLARS_MAX_THREADS"] = str(cpu_count)
+    print(f"Setting POLARS_MAX_THREADS={cpu_count}")
+
+import importlib  # noqa: E402
+import warnings  # noqa: E402
+from urllib import parse  # noqa: E402
+from typing import Any  # noqa: E402
+
+from fsspec import url_to_fs  # noqa: E402
+
+from configs import CONFIG_DIR_PATH  # noqa: E402
+from ecoli.experiments.ecoli_master_sim import SimConfig  # noqa: E402
+from ecoli.library.parquet_emitter import (  # noqa: E402
+    dataset_sql,
+    create_duckdb_conn,
+    open_output_file,
+)
 
 FILTERS = {
     "experiment_id": str,
@@ -73,30 +96,13 @@ def parse_variant_data_dir(
             }
         if not (v_data_dir.startswith("gs://") or v_data_dir.startswith("gcs://")):
             v_data_dir = os.path.abspath(v_data_dir)
-        filesystem, data_dir = fs.FileSystem.from_uri(v_data_dir)
+        fs, data_dir = url_to_fs(v_data_dir)
         sim_data_dict[e_id] = {
-            int(os.path.basename(os.path.splitext(i.path)[0])): str(i.path)
-            for i in filesystem.get_file_info(fs.FileSelector(data_dir, recursive=True))
-            if os.path.splitext(i.path)[1] == ".cPickle"
+            int(os.path.basename(os.path.splitext(data_path)[0])): str(data_path)
+            for data_path in fs.find(data_dir)
+            if os.path.splitext(data_path)[1] == ".cPickle"
         }
     return variant_metadata, sim_data_dict, variant_names
-
-
-def create_duckdb_conn(out_uri, gcs_bucket, n_cpus=None):
-    conn = duckdb.connect()
-    out_path = out_uri
-    if gcs_bucket:
-        conn.register_filesystem(filesystem("gcs"))
-    # Temp directory so DuckDB can spill to disk when data larger than RAM
-    conn.execute(f"SET temp_directory = '{out_path}'")
-    # Turning this off reduces RAM usage
-    conn.execute("SET preserve_insertion_order = false")
-    # Cache Parquet metadata so only needs to be scanned once
-    conn.execute("SET enable_object_cache = true")
-    # Set number of threads for DuckDB
-    if n_cpus is not None:
-        conn.execute(f"SET threads = {n_cpus}")
-    return conn
 
 
 def main():
@@ -139,10 +145,16 @@ def main():
         help="Path to the validation_data pickle(s) to use.",
     )
     parser.add_argument(
-        "--outdir", "-o", help="Directory that all analysis output is saved to."
+        "--outdir",
+        "-o",
+        help="Directory that all analysis output is saved to."
+        " MUST be a local path, not a Cloud Storage bucket URI.",
     )
     parser.add_argument(
-        "--n_cpus", "-n", type=int, help="Number of CPUs to use for DuckDB and PyArrow."
+        "--cpus",
+        "-n",
+        type=int,
+        help="Number of CPUs to use for DuckDB.",
     )
     parser.add_argument(
         "--variant_metadata_path",
@@ -198,10 +210,6 @@ def main():
         if v is not None:
             config[k] = v
 
-    # Set number of threads for PyArrow
-    if "n_cpus" in config:
-        pa.set_cpu_count(config["n_cpus"])
-
     # Set up DuckDB filters for data
     duckdb_filter = []
     last_analysis_level = -1
@@ -252,19 +260,19 @@ def main():
 
     # Load variant metadata
     if len(config["experiment_id"]) > 1:
-        assert (
-            "variant_data_dir" in config
-        ), "Must provide --variant_data_dir for each experiment ID."
-        assert len(config["variant_data_dir"]) == len(
-            config["experiment_id"]
-        ), "Must provide --variant_data_dir for each experiment ID."
+        assert "variant_data_dir" in config, (
+            "Must provide --variant_data_dir for each experiment ID."
+        )
+        assert len(config["variant_data_dir"]) == len(config["experiment_id"]), (
+            "Must provide --variant_data_dir for each experiment ID."
+        )
     if "variant_data_dir" in config:
         if "variant_metadata_path" in config:
             warnings.warn(
-                "Ignoring --variant_metadata_path in favor of" " --variant_data_dir"
+                "Ignoring --variant_metadata_path in favor of --variant_data_dir"
             )
         if "sim_data_path" in config:
-            warnings.warn("Ignoring --sim_data_path in favor of" " --variant_data_dir")
+            warnings.warn("Ignoring --sim_data_path in favor of --variant_data_dir")
         variant_metadata, sim_data_dict, variant_names = parse_variant_data_dir(
             config["experiment_id"], config["variant_data_dir"]
         )
@@ -284,9 +292,20 @@ def main():
         }
         variant_names = {config["experiment_id"][0]: variant_name}
 
+    # Save copy of config JSON with parameters for plots
+    metadata_path = os.path.join(os.path.abspath(config["outdir"]), "metadata.json")
+    if os.path.exists(metadata_path):
+        raise FileExistsError(
+            f"{metadata_path} already exists, indicating an analysis has "
+            f"been run with output directory {config['outdir']}. Please "
+            "delete/move it or specify a different output directory."
+        )
+    with open(metadata_path, "w") as f:
+        json.dump(config, f)
+
     # Establish DuckDB connection
-    conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("n_cpus"))
-    history_sql, config_sql = get_dataset_sql(out_uri)
+    conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("cpus"))
+    history_sql, config_sql, success_sql = dataset_sql(out_uri, config["experiment_id"])
     # If no explicit analysis type given, run all types in config JSON
     if "analysis_types" not in config:
         config["analysis_types"] = [
@@ -298,59 +317,70 @@ def main():
                 f"Specified {analysis_type} analysis type"
                 " but none provided in analysis_options."
             )
+        elif len(config[analysis_type]) == 0:
+            print(f"Skipping {analysis_type} analysis - none provided in config.")
+            continue
         # Compile collection of history and config SQL queries for each cell
         # subset identified for current analysis type
-        cols = ANALYSIS_TYPES[analysis_type]
+        id_cols = ANALYSIS_TYPES[analysis_type]
         query_strings = {}
         # Figure out what Hive partition in main output directory
         # to store outputs for analyses run on this cell subset
-        curr_outdir = config["outdir"]
-        if len(cols) > 0:
-            joined_cols = ", ".join(cols)
+        if len(id_cols) > 0:
+            joined_cols = ", ".join(id_cols)
             data_ids = conn.sql(
                 f"SELECT DISTINCT ON({joined_cols}) {joined_cols}"
                 f" FROM ({config_sql}) WHERE {duckdb_filter}"
             ).fetchall()
             for data_id in data_ids:
                 data_filters = []
-                for col, col_val in zip(cols, data_id):
+                curr_outdir = os.path.abspath(config["outdir"])
+                for col, col_val in zip(id_cols, data_id):
                     curr_outdir = os.path.join(curr_outdir, f"{col}={col_val}")
                     # Quote string Hive partition values for DuckDB query
                     if FILTERS[col] is str:
                         col_val = f"'{col_val}'"
                     data_filters.append(f"{col}={col_val}")
+                os.makedirs(curr_outdir, exist_ok=True)
                 data_filters = " AND ".join(data_filters)
                 query_strings[data_filters] = (
                     f"SELECT * FROM ({history_sql}) WHERE {data_filters}",
                     f"SELECT * FROM ({config_sql}) WHERE {data_filters}",
+                    f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
+                    curr_outdir,
                 )
         else:
-            query_strings[data_filters] = (
+            curr_outdir = os.path.abspath(config["outdir"])
+            os.makedirs(curr_outdir, exist_ok=True)
+            query_strings[duckdb_filter] = (
                 f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
+                f"SELECT * FROM ({success_sql}) WHERE {duckdb_filter}",
+                os.path.abspath(config["outdir"]),
             )
-        os.makedirs(curr_outdir, exist_ok=True)
         for analysis_name in config[analysis_type]:
             analysis_mod = importlib.import_module(
                 f"ecoli.analysis.{analysis_type}.{analysis_name}"
             )
-            for data_filters, (history_q, config_q) in query_strings.items():
+            for data_filters, (
+                history_q,
+                config_q,
+                success_q,
+                curr_outdir,
+            ) in query_strings.items():
                 print(f"Running {analysis_type} {analysis_name} with {data_filters}.")
                 analysis_mod.plot(
                     config[analysis_type][analysis_name],
                     conn,
                     history_q,
                     config_q,
+                    success_q,
                     sim_data_dict,
                     config["validation_data_path"],
                     curr_outdir,
                     variant_metadata,
                     variant_names,
                 )
-
-    # Save copy of config JSON with parameters for plots
-    with open(os.path.join(config["outdir"], "metadata.json"), "w") as f:
-        json.dump(config, f)
 
 
 if __name__ == "__main__":

@@ -103,7 +103,7 @@ class Multibody(Process):
 
           .. code-block:: console
 
-              $ MPLBACKEND=TKAgg uv run vivarium/processes/snapshots.py
+              $ MPLBACKEND=TKAgg uvenv vivarium/processes/snapshots.py
 
     Notes:
         * rotational diffusion in liquid medium with viscosity = 1 mPa.s: :math:`Dr = 3.5 \\pm0.3 rad^{2}/s`

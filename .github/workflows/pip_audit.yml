@@ -1,0 +1,59 @@
+name: pip-audit
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  schedule:
+    - cron: '00 00 * * *'
+  push:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.7.12"
+
+      - name: Audit dependencies and identify vulnerabilities
+        run: |
+          # Export requirements for pip-audit to analyze
+          uv export --all-extras --format requirements-txt --no-emit-project > requirements.txt
+          
+          # Run pip-audit but don't fail if vulnerabilities are found
+          uvx pip-audit -r requirements.txt --disable-pip --desc off --format json > pip_audit_results.txt || true
+      
+      - name: Process audit information
+        run: |
+          # Avoid downloading and installing entire project and all dependencies
+          uv run --no-sync --isolated --with packaging runscripts/debug/process_vulnerabilities.py pip_audit_results.txt
+
+      - name: Apply package updates
+        run: |
+          ./apply_security_upgrades.sh
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: |
+            fix(security): update package versions
+          sign-commits: true
+          title: |
+            Security updates
+          body-path: vulnerability_report.md
+          delete-branch: true
+          branch: security-updates
+          add-paths: uv.lock
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

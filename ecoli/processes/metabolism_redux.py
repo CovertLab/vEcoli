@@ -351,16 +351,19 @@ class MetabolismRedux(Step):
             "boundary": {"external": {"*": {"_default": 0 * vivunits.mM}}},
             "polypeptide_elongation": {
                 "aa_count_diff": {
-                    "_default": {},
+                    "_default": [0.0] * len(self.aa_names),
                     "_emit": True,
                     "_divider": "empty_dict",
                 },
                 "gtp_to_hydrolyze": {"_default": 0, "_emit": True, "_divider": "zero"},
                 "aa_exchange_rates": {
-                    "_default": 0,
+                    "_default": CONC_UNITS
+                    / TIME_UNITS
+                    * np.zeros(len(self.aa_exchange_names)),
                     "_emit": True,
                     "_updater": "set",
-                    "_divider": "zero",
+                    "_divider": "set",
+                    "_serializer": "<class 'unum.Unum'>",
                 },
             },
             "listeners": {
@@ -533,7 +536,12 @@ class MetabolismRedux(Step):
             conc_updates.update(
                 self.update_amino_acid_targets(
                     self.counts_to_molar,
-                    states["polypeptide_elongation"]["aa_count_diff"],
+                    dict(
+                        zip(
+                            self.aa_names,
+                            states["polypeptide_elongation"]["aa_count_diff"],
+                        )
+                    ),
                     dict(zip(self.aa_names, counts(states["bulk_total"], self.aa_idx))),
                 )
             )
@@ -787,7 +795,7 @@ class NetworkFlowModel:
         active_constraints_mask: Optional[npt.NDArray[np.bool_]] = None,
     ):
         self.S_orig = csr_matrix(stoich_arr.astype(np.int64))
-        self.S_exch = np.zeros(0)
+        self.S_exch = np.zeros((0, 0))
         self.n_mets, self.n_orig_rxns = self.S_orig.shape
         self.mets = metabolites
         self.met_map = {metabolite: i for i, metabolite in enumerate(metabolites)}
@@ -1014,9 +1022,9 @@ def test_network_flow_model():
         upper_flux_bound=100,
     )
 
-    assert np.isclose(
-        solution.velocities, np.array([1, 1, 0])
-    ).all(), "Network flow toy model did not converge to correct solution."
+    assert np.isclose(solution.velocities, np.array([1, 1, 0])).all(), (
+        "Network flow toy model did not converge to correct solution."
+    )
 
 
 # TODO (Cyrus) Add test for entire process

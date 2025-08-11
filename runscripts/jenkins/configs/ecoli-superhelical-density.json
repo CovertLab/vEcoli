@@ -2,18 +2,22 @@
     "experiment_id": "daily-superhelical-density",
     "single_daughters": true,
     "generations": 4,
-    "fail_at_total_time": true,
+    "fail_at_max_duration": true,
     "superhelical_density": true,
     "emitter": "parquet",
     "sim_data_path": null,
     "emitter_arg": {
-        "out_dir": "/scratch/groups/mcovert/vecoli"
+        "out_dir": "/scratch/groups/mcovert/vecoli",
+        "threaded": false
     },
     "analysis_options": {
-        "single": {"mass_fraction_summary": {}}
+        "single": {"mass_fraction_summary": {}},
+        "multiseed": {"protein_counts_validation": {}},
+        "multivariant": {"doubling_time_hist": {"skip_n_gens": 0}, "doubling_time_line": {}}
     },
     "sherlock": {
-        "runtime_image_name": "runtime-image",
+        "container_image": "container-image",
+        "hyperqueue": false,
         "jenkins": true
     },
     "parca_options": {

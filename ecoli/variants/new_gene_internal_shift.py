@@ -45,9 +45,9 @@ def get_new_gene_ids_and_indices(
             " the new gene option was enabled, but no new gene proteins "
             "were found."
         )
-    assert len(new_monomer_ids) == len(
-        new_gene_cistron_ids
-    ), "number of new gene monomers and cistrons should be equal"
+    assert len(new_monomer_ids) == len(new_gene_cistron_ids), (
+        "number of new gene monomers and cistrons should be equal"
+    )
     rna_data = sim_data.process.transcription.rna_data
     cistron_idx_dict = {rna[:-3]: i for i, rna in enumerate(rna_data["id"])}
     new_gene_indices = [
@@ -139,15 +139,14 @@ def apply_variant(
     sim_data.internal_shift_dict = {}  # type: ignore[attr-defined]
 
     # Add the new gene induction to the internal_shift instructions
-    if params["induction_gen"] != -1:
-        sim_data.internal_shift_dict[params["induction_gen"]] = (  # type: ignore[attr-defined]
-            modify_new_gene_exp_trl,
-            (params["exp_trl_eff"]["exp"], params["exp_trl_eff"]["trl_eff"]),
-        )
-    if params["knockout_gen"] != -1:
-        assert params["knockout_gen"] > params["induction_gen"], (
-            "New genes are knocked out by default, so induction should happen"
-            " before knockout."
+    induction_gen = params.get("induction_gen", 1)
+    sim_data.internal_shift_dict[induction_gen] = (  # type: ignore[attr-defined]
+        modify_new_gene_exp_trl,
+        (params["exp_trl_eff"]["exp"], params["exp_trl_eff"]["trl_eff"]),
+    )
+    if "knockout_gen" in params:
+        assert params["knockout_gen"] > induction_gen, (
+            "knockout_gen must be after induction_gen"
         )
         sim_data.internal_shift_dict[params["knockout_gen"]] = (  # type: ignore[attr-defined]
             modify_new_gene_exp_trl,

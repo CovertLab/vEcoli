@@ -7,7 +7,9 @@ For more scientific modeling details, refer to the
 for the original model as well its corresponding publication
 (`10.1126/science.aav3751 <https://www.science.org/doi/10.1126/science.aav3751>`_).
 This website covers how the model was implemented using Vivarium and describes the user interface
-for developing and running the model. We recommend new users read through the sections below in order.
+for developing and running the model. For users unfamiliar with Vivarium and its terminology,
+we recommend reading `the topic guides <https://vivarium-core.readthedocs.io/en/latest/guides/index.html>`_
+in the Vivarium documentation.
 
 ..
    Comment: We need to use text substitution because ReST does not
@@ -43,6 +45,8 @@ for developing and running the model. We recommend new users read through the se
    output
    tutorial
    docs
+   hpc
    gcloud
    ci
+   pycharm
    API Reference <reference/api_ref.rst>

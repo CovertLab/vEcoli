@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 name = "vEcoli"
 version = "1.1.0"
 description = "Whole Cell E. coli Model"
-requires-python = "==3.12.8"
+requires-python = "==3.12.9"
 dependencies = [
     "numpy",
     "scipy",
@@ -20,18 +20,17 @@ dependencies = [
     "cython",
     "dill",
     "duckdb",
-    "ete3",
     "gcsfs",
     "pyarrow",
     "ipdb",
     "ipython",
-    "jupyter",
     "line-profiler",
     "altair",
     "numba",
     "orjson",
     # Constraint can be removed once cvxpy supports newer ortools
-    "ortools<=9.9.3963",
+    # than 9.12, need 9.11 to support newer protobuf (see gh-326)
+    "ortools<9.11",
     "pandas",
     "polars",
     "pymunk",
@@ -43,17 +42,16 @@ dependencies = [
     "tqdm",
     "unum",
     "vivarium-core",
-    "pysal",
-    "opencv-python-headless",
+    "imageio[ffmpeg]",
     "statsmodels",
     "ecos",
-    "nbclassic",
     "matplotlib",
-    "pyqt5",
     "iteround",
-    "wheel",
     "stochastic-arrow",
     "autograd",
+    "xmltodict",
+    # Required to save Altair charts as PNG
+    "vl-convert-python",
 ]
 
 [project.optional-dependencies]
@@ -63,6 +61,8 @@ dev = [
     "mypy",
     "ruff",
     "pre-commit",
+    "jupyter",
+    "marimo[sql,lsp]"
 ]
 docs = [
     "Sphinx",
@@ -72,8 +72,8 @@ docs = [
 
 [tool.setuptools]
 packages = [
+    "configs",
     "ecoli",
-    "migration", 
     "reconstruction",
     "runscripts",
     "validation",

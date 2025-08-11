@@ -1,7 +1,7 @@
 """Test the memory_debug utility.
 
 Running it this way reveals the stdout messages about MemoryDebugNode IDs:
-        uv run python -m wholecell.tests.utils.test_memory_debug
+        uvenv python -m wholecell.tests.utils.test_memory_debug
 
 In any case, you should see GC messages like:
         gc: uncollectable <MemoryDebugNode 0x110118050>

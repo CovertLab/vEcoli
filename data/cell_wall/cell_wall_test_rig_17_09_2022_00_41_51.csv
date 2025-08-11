@@ -1,4 +1,4 @@
-Time,CPD-12261[p],CPLX0-7717[m],CPLX0-3951[i],Volume
+Time,CPD-12261[p],CPLX0-7717[i],CPLX0-3951[i],Volume
 0.0,450000,24,0,!units[1.0574666896678486 femtoliter]
 2.0,450025,24,0,!units[1.0574666896678488 femtoliter]
 4.0,450025,24,0,!units[1.057456329117608 femtoliter]

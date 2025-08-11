@@ -271,11 +271,21 @@ class ChromosomeStructure(Step):
         )
         (origin_domain_indexes,) = attrs(states["oriCs"], ["domain_index"])
         (mother_domain_indexes,) = attrs(states["full_chromosomes"], ["domain_index"])
-        (RNA_TU_indexes, transcript_lengths, RNA_RNAP_indexes, RNA_unique_indexes) = (
-            attrs(
-                states["RNAs"],
-                ["TU_index", "transcript_length", "RNAP_index", "unique_index"],
-            )
+        (
+            RNA_TU_indexes,
+            transcript_lengths,
+            RNA_RNAP_indexes,
+            RNA_full_transcript,
+            RNA_unique_indexes,
+        ) = attrs(
+            states["RNAs"],
+            [
+                "TU_index",
+                "transcript_length",
+                "RNAP_index",
+                "is_full_transcript",
+                "unique_index",
+            ],
         )
         (ribosome_protein_indexes, ribosome_peptide_lengths, ribosome_mRNA_indexes) = (
             attrs(
@@ -698,7 +708,9 @@ class ChromosomeStructure(Step):
 
             # Get sequences of incomplete transcripts
             incomplete_sequence_lengths = transcript_lengths[removed_RNAs_mask]
-            n_initiated_sequences = np.count_nonzero(incomplete_sequence_lengths)
+            # Under resource-limited conditions, some transcripts may be
+            # initiated but not elongated (zero length). Include them in the count.
+            n_initiated_sequences = (~RNA_full_transcript[removed_RNAs_mask]).sum()
             n_ppi_added = n_initiated_sequences
 
             if n_initiated_sequences > 0:
@@ -750,9 +762,6 @@ class ChromosomeStructure(Step):
                         base_counts += np.bincount(
                             seq[:sl], minlength=self.n_fragment_bases
                         )
-                    base_counts += np.bincount(
-                        seq[:sl], minlength=self.n_fragment_bases
-                    )
 
                 # Increment counts of mature RNAs, fragment NTPs and phosphates
                 update["bulk"].append((self.mature_rna_idx, mature_rna_counts))
@@ -958,7 +967,7 @@ class ChromosomeStructure(Step):
         new_molecule_coordinates: npt.NDArray[np.int64],
         spans_oriC: bool,
         spans_terC: bool,
-    ) -> dict[str, npt.NDArray[np.int64]]:
+    ) -> dict[str, npt.NDArray[np.int64 | np.float64]]:
         """
         Calculates the updated attributes of chromosomal segments belonging to
         a specific chromosomal domain, given the previous and current
@@ -1195,7 +1204,7 @@ class ChromosomeStructure(Step):
         # Handle edge case where a domain was just initialized, and two
         # replisomes are bound to the origin
         if len(new_linking_numbers) == 0:
-            new_linking_numbers = [0]
+            new_linking_numbers = [np.float64(0)]
 
         # Build Mx2 array for boundary indexes and coordinates
         new_boundary_molecule_indexes = np.hstack(
@@ -1380,7 +1389,9 @@ def test_superhelical_removal_sim():
             }
 
     composer = TestComposer()
-    template_initial_state = get_state_from_file()
+    template_initial_state = get_state_from_file("data/vivecoli_t2527.json")["agents"][
+        "0"
+    ]
     # Zero out all unique molecules
     for unique_mol in template_initial_state["unique"].values():
         unique_mol.flags.writeable = True

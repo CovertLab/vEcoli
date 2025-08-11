@@ -1,0 +1,9 @@
+{
+    "inherit_from": ["cell_wall.json"],
+    "experiment_id": "cell_wall_division",
+    "emitter": "timeseries",
+    "divide": true,
+    "initial_state_file": "vivecoli_t2527",
+
+    "initial_state_overrides": ["overrides/test_cell_wall_division"]
+}

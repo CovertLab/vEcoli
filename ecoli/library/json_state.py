@@ -74,11 +74,28 @@ def numpy_molecules(states):
                 ),
                 "constrained": {"GLC[p]": 20.0 * units.mmol / (units.g * units.h)},
             }
+        if "process_state" in states:
+            if "polypeptide_elongation" in states["process_state"]:
+                if (
+                    "aa_exchange_rates"
+                    in states["process_state"]["polypeptide_elongation"]
+                ):
+                    states["process_state"]["polypeptide_elongation"][
+                        "aa_exchange_rates"
+                    ] = (
+                        units.mmol
+                        / units.s
+                        * np.array(
+                            states["process_state"]["polypeptide_elongation"][
+                                "aa_exchange_rates"
+                            ]
+                        )
+                    )
     return states
 
 
 def get_state_from_file(
-    path="data/wcecoli_t0.json",
+    path="",
 ):
     serialized_state = load_states(path)
     # Parallelize deserialization of colony states
@@ -98,5 +115,6 @@ def get_state_from_file(
     deserialized_states = deserialize_value(serialized_state)
     states = numpy_molecules(deserialized_states)
     # TODO: Add timeline process to set up media ID
-    states.setdefault("environment", {})["media_id"] = "minimal"
+    environment_subdict = states.setdefault("environment", {})
+    environment_subdict.setdefault("media_id", "minimal")
     return states

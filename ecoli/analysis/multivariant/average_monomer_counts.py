@@ -46,6 +46,7 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
+    success_sql: str,
     sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
@@ -122,12 +123,12 @@ def plot(
         variant_pair = avg_monomer_per_variant.filter(
             pl.col("variant").is_in([control_variant, exp_variant])
         ).sort("variant")
-        avg_monomer_counts = ndlist_to_ndarray(
-            variant_pair["avg_monomer_counts"].to_arrow()
-        )
+        avg_monomer_counts = ndlist_to_ndarray(variant_pair["avg_monomer_counts"])
         # Save unfiltered data
         col_labels = ["all_monomer_ids", "var_0_avg_PCs", f"var_{exp_variant}_avg_PCs"]
-        values = np.concatenate((all_monomer_ids.T, avg_monomer_counts.T), axis=1)
+        values = np.concatenate(
+            (all_monomer_ids[:, np.newaxis], avg_monomer_counts.T), axis=1
+        )
         save_file(
             unfiltered_dir, f"wcm_full_monomers_{file_suffix}", col_labels, values
         )
@@ -146,7 +147,9 @@ def plot(
             "var_0_avg_PCs",
             f"var_{exp_variant}_avg_PCs",
         ]
-        values = np.concatenate((filtered_ids.T, avg_monomer_counts.T), axis=1)
+        values = np.concatenate(
+            (filtered_ids[:, np.newaxis], avg_monomer_counts.T), axis=1
+        )
         save_file(
             filtered_dir, f"wcm_filter_monomers_{file_suffix}", col_labels, values
         )

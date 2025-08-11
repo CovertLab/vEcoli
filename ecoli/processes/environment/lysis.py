@@ -423,6 +423,6 @@ def main():
     )
 
 
-# uv run ecoli/processes/environment/lysis.py
+# uvenv ecoli/processes/environment/lysis.py
 if __name__ == "__main__":
     main()

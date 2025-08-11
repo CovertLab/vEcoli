@@ -12,7 +12,7 @@ from duckdb import DuckDBPyConnection
 import polars as pl
 
 from ecoli.library.parquet_emitter import (
-    get_field_metadata,
+    field_metadata,
     ndidx_to_duckdb_expr,
     num_cells,
     open_arbitrary_sim_data,
@@ -29,6 +29,7 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
+    success_sql: str,
     sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
@@ -38,9 +39,11 @@ def plot(
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
 
+    ignore_first_n_gens = params.get("ignore_first_n_gens", IGNORE_FIRST_N_GENS)
+
     # Ignore first N generations
-    history_sql = skip_n_gens(history_sql, IGNORE_FIRST_N_GENS)
-    config_sql = skip_n_gens(config_sql, IGNORE_FIRST_N_GENS)
+    history_sql = skip_n_gens(history_sql, ignore_first_n_gens)
+    config_sql = skip_n_gens(config_sql, ignore_first_n_gens)
 
     if num_cells(conn, config_sql) == 0:
         print("Skipping analysis - not enough generations run.")
@@ -63,8 +66,7 @@ def plot(
 
     # Get IDs of associated monomers and genes
     monomer_ids = [
-        cistron_id_to_protein_id.get(cistron_id, None)
-        for cistron_id in mRNA_cistron_ids
+        cistron_id_to_protein_id[cistron_id] for cistron_id in mRNA_cistron_ids
     ]
     cistron_id_to_gene_id = {
         cistron["id"]: cistron["gene_id"] for cistron in cistron_data
@@ -72,7 +74,7 @@ def plot(
     gene_ids = [cistron_id_to_gene_id[cistron_id] for cistron_id in mRNA_cistron_ids]
 
     # Get subcolumn for mRNA cistron IDs in RNA counts table
-    mRNA_cistron_ids_rna_counts_table = get_field_metadata(
+    mRNA_cistron_ids_rna_counts_table = field_metadata(
         conn, config_sql, "listeners__rna_counts__mRNA_cistron_counts"
     )
 
@@ -86,7 +88,7 @@ def plot(
     ]
 
     # Get subcolumn for monomer IDs in monomer counts table
-    monomer_ids_monomer_counts_table = get_field_metadata(
+    monomer_ids_monomer_counts_table = field_metadata(
         conn, config_sql, "listeners__monomer_counts"
     )
 
@@ -103,8 +105,7 @@ def plot(
     )
     subquery = read_stacked_columns(
         history_sql,
-        ["listeners__monomer_counts", "listeners__rna_counts__mRNA_cistron_counts"],
-        [f"{monomer_expr} AS monomer_counts", f"{cistron_expr} AS mrna_counts"],
+        [monomer_expr, cistron_expr],
         order_results=False,
     )
     out_df = conn.sql(
@@ -113,10 +114,10 @@ def plot(
         -- index so we can later calculate per-cistron aggregates
         WITH unnested_counts AS (
             SELECT lineage_seed, generation, agent_id,
-                unnest(monomer_counts) AS monomer_counts,
-                unnest(mrna_counts) AS mrna_counts,
-                generate_subscripts(mrna_counts, 1) AS cistron_idx
-            FROM {subquery}
+                unnest(listeners__monomer_counts) AS monomer_counts,
+                unnest(listeners__rna_counts__mRNA_cistron_counts) AS mrna_counts,
+                generate_subscripts(listeners__monomer_counts, 1) AS cistron_idx
+            FROM ({subquery})
         ),
         -- Group by cell and cistron to get existence of each mRNA per cell
         cell_aggregate AS (

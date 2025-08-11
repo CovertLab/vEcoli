@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from ete3 import NodeStyle, TreeNode, TreeStyle
+from typing import Any
 
 from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR, restrict_data
 from ecoli.analysis.antibiotics_colony.timeseries import plot_tag_snapshots
@@ -169,33 +169,157 @@ def plot_exp_growth_rate(data, metadata, highlight_agent_id):
     data = restrict_data(data)
     final_ratios = data.loc[data.Time == 26000, "Doubling rate"] / mean_growth_rate
     print(
-        f"Mean doubling rate at t=26000 of tet. vs glc. sim.: {final_ratios.mean()*100}%"
+        f"Mean doubling rate at t=26000 of tet. vs glc. sim.: {final_ratios.mean() * 100}%"
     )
     print(
-        f"Std. dev. doubling rate at t=26000 of tet. vs glc. sim.: {final_ratios.std()*100}%"
+        f"Std. dev. doubling rate at t=26000 of tet. vs glc. sim.: {final_ratios.std() * 100}%"
     )
 
 
-def make_ete_trees(agent_ids):
+def build_tree_structure(agent_ids: list[str]) -> tuple[dict, dict]:
+    """
+    Build a tree structure from agent IDs.
+
+    Args:
+        agent_ids: List of agent IDs
+
+    Returns:
+        2-element tuple containing
+
+        - **tree**: Tree structure as nested dictionary
+        - **node_depths**: Mapping of phylogeny IDs to their depth and full agent ID
+    """
     stem = os.path.commonprefix(list(agent_ids))
-    id_node_map = dict()
-    sorted_agents = sorted(agent_ids)
-    roots = []
-    for agent_id in sorted_agents:
+    tree: dict[str, Any] = {}
+    node_depths = {}
+
+    # Build tree structure
+    for agent_id in sorted(agent_ids):
         phylogeny_id = agent_id[len(stem) :]
-        parent_phylo_id = phylogeny_id[:-1]
-        if parent_phylo_id in id_node_map:
-            parent = id_node_map[parent_phylo_id]
-            child = parent.add_child(name=agent_id)
-        else:
-            child = TreeNode(name=agent_id)
-            roots.append(child)
-        id_node_map[phylogeny_id] = child
-    return roots
+
+        # Add to tree structure
+        current = tree
+        depth = 0
+        for i in range(len(phylogeny_id)):
+            prefix = phylogeny_id[: i + 1]
+            if prefix not in current:
+                current[prefix] = {}
+            current = current[prefix]
+            depth = i + 1
+
+        # Store the full agent ID with its depth
+        node_depths[phylogeny_id] = {"depth": depth, "name": agent_id}
+
+    return tree, node_depths
+
+
+def count_leaves(tree_part: dict, leaf_counts: dict, prefix: str = "") -> int:
+    """
+    Count the number of leaves for all nodes in the tree. Mutates ``leaf_counts``.
+
+    Args:
+        tree_part: Tree structure
+        leaf_counts: Dictionary to store leaf counts
+        prefix: Current node prefix
+    """
+    if not tree_part:  # Leaf node
+        leaf_counts[prefix] = 1
+        return 1
+
+    count = 0
+    for key, subtree in tree_part.items():
+        count += count_leaves(subtree, leaf_counts, key)
+
+    leaf_counts[prefix] = count
+    return count
+
+
+def calculate_positions(
+    tree_part: dict,
+    start_angle: float,
+    angle_range: float,
+    node_positions: dict[str, tuple[float, float]],
+    leaf_counts: dict[str, int],
+    max_depth: int,
+    prefix: str = "",
+    depth: int = 0,
+):
+    """
+    Calculate r and theta positions for each node in the tree. Mutates ``node_positions``.
+
+    Args:
+        tree_part: Tree structure
+        start_angle: Starting angle for this node
+        angle_range: Angle range for this node
+        node_positions: Dictionary to store node positions
+        leaf_counts: Dictionary of leaf counts
+        max_depth: Maximum depth of the tree
+        prefix: Current node prefix
+        depth: Current depth in the tree
+    """
+    # Position for this node
+    node_positions[prefix] = (depth / max_depth, start_angle + angle_range / 2)
+
+    if not tree_part:  # Leaf node
+        return
+
+    current_angle = start_angle
+    sorted_keys = sorted(tree_part.keys())
+
+    for key in sorted_keys:
+        subtree = tree_part[key]
+        # Calculate angle allocation based on proportion of leaves
+        leaf_count = leaf_counts.get(key, 1)
+        total_leaves = leaf_counts.get(prefix, 1) if prefix else leaf_counts.get("", 1)
+        angle_allocation = angle_range * (leaf_count / total_leaves)
+
+        # Recurse for children
+        calculate_positions(
+            subtree,
+            current_angle,
+            angle_allocation,
+            node_positions,
+            leaf_counts,
+            max_depth,
+            key,
+            depth + 1,
+        )
+        current_angle += angle_allocation
+
+
+def create_newick_string(tree, node_depths, node_id=""):
+    """
+    Create a Newick format string representation of the tree.
+
+    Args:
+        tree (dict): Tree structure
+        node_depths (dict): Node depth information
+        node_id (str): Current node ID
+
+    Returns:
+        str: Newick format string
+    """
+    if not tree:
+        return node_depths.get(node_id, {}).get("name", node_id) + ":1"
+
+    parts = []
+    for key, subtree in sorted(tree.items()):
+        parts.append(create_newick_string(subtree, node_depths, key))
+
+    result = "(" + ",".join(parts) + ")"
+    result += node_depths.get(node_id, {}).get("name", node_id) + ":1"
+
+    return result
 
 
 def plot_ampc_phylo(data):
-    data = restrict_data(data)
+    """
+    Create a circular phylogenetic tree with AmpC concentrations using Matplotlib with polar projection.
+    Children are placed equidistant from their parent's angle.
+
+    Args:
+        data (pd.DataFrame): Input data containing agent information.
+    """
     agent_ids = data.loc[:, "Agent ID"].unique().tolist()
     final_agents = data.loc[data.loc[:, "Time"] == 26000, "Agent ID"].unique()
     dead_agents = [
@@ -203,69 +327,123 @@ def plot_ampc_phylo(data):
         for agent_id in agent_ids
         if (agent_id + "0" not in agent_ids) and (agent_id not in final_agents)
     ]
-    trees = make_ete_trees(agent_ids)
-    assert len(trees) == 1
-    tree = trees[0]
-
-    # Set style for overall figure
-    tstyle = TreeStyle()
-    tstyle.show_scale = False
-    tstyle.show_leaf_name = False
-    tstyle.scale = None
-    tstyle.optimal_scale_level = "full"
-    tstyle.mode = "c"
 
     # Color nodes by AmpC concentration
-    data["AmpC conc"] = (
-        data.loc[:, "AmpC monomer"]
-        / (data.loc[:, "Volume"] * 0.2)
-        * COUNTS_PER_FL_TO_NANOMOLAR
-    )
-    cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
+    data["AmpC conc"] = data.loc[:, "AmpC monomer"] / (data.loc[:, "Volume"] * 0.2)
+    agent_data = data.groupby("Agent ID").mean()
+
+    # Set up colormap and normalization
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
         "blue", [(0, 0, 0), (0, 0.4, 1), (1, 1, 1)]
     )
-    ampc_concs = data[["AmpC conc", "Agent ID"]].groupby("Agent ID").mean().to_numpy()
-    min_conc = ampc_concs.min()
-    max_conc = ampc_concs.max()
-    # norm = matplotlib.colors.LogNorm(vmin=min_conc, vmax=max_conc)
+    min_conc = agent_data["AmpC conc"].min()
+    max_conc = agent_data["AmpC conc"].max()
     norm = matplotlib.colors.Normalize(vmin=min_conc, vmax=max_conc)
-    agent_data = data.groupby("Agent ID").mean()
-    # Set styles for each node
-    for node in tree.traverse():
-        nstyle = NodeStyle()
-        nstyle["size"] = 20
-        nstyle["vt_line_width"] = 3
-        nstyle["hz_line_width"] = 3
-        nstyle["fgcolor"] = matplotlib.colors.to_hex(
-            cmp(norm(agent_data.loc[node.name, "AmpC conc"]))
+
+    # Build tree structure
+    tree, node_depths = build_tree_structure(agent_ids)
+
+    # Count leaf nodes to determine angle allocation
+    leaf_counts = {}
+    count_leaves(tree, leaf_counts)
+    # Assign angles based on leaf counts
+    node_positions = {}
+    max_depth = max(info["depth"] for info in node_depths.values())
+    calculate_positions(tree, 0, 2 * np.pi, node_positions, leaf_counts, max_depth)
+
+    # Create figure with polar projection
+    fig, ax = plt.subplots(figsize=(5, 5), subplot_kw={"projection": "polar"})
+    ax.axis("off")
+
+    # Map node_id to their children
+    children_map = {}
+    for node_id in node_positions:
+        if len(node_id) > 0:
+            parent_id = node_id[:-1]
+            if parent_id not in children_map:
+                children_map[parent_id] = []
+            children_map[parent_id].append(node_id)
+
+    # Draw connections: stem -> arc -> stems
+    stem_length = 0.1  # Length of the radial stems
+
+    for parent_id, children in children_map.items():
+        if parent_id not in node_positions:
+            continue
+
+        # Get parent position
+        parent_r, parent_theta = node_positions[parent_id]
+
+        # Draw parent stem (radially outward)
+        outer_r = parent_r + stem_length
+        ax.plot(
+            [parent_theta, parent_theta],
+            [parent_r, outer_r],
+            color="black",
+            linewidth=0.8,
+            zorder=1,
         )
-        if node.name in dead_agents:
-            nstyle["bgcolor"] = "Gainsboro"
-        node.set_style(nstyle)
-    tstyle.scale = 10
-    tree.render(
-        "out/analysis/paper_figures/ampc_phylo.svg",
-        tree_style=tstyle,
-        units="in",
-        h=1.5,
-        w=1.5,
-    )
-    fig, ax = plt.subplots(figsize=(2, 0.25))
-    fig.subplots_adjust(bottom=0.6)
-    fig.colorbar(
-        matplotlib.cm.ScalarMappable(norm=norm, cmap=cmp),
-        cax=ax,
+
+        child_angles = [node_positions[child][1] for child in children]
+        min_angle, max_angle = min(child_angles), max(child_angles)
+
+        # Draw arc connecting children
+        arc_r = outer_r
+        theta = np.linspace(min_angle, max_angle, 50)
+        ax.plot(theta, [arc_r] * len(theta), color="black", linewidth=0.8, zorder=1)
+
+        # Draw stems from arc to each child
+        for child in children:
+            child_r, child_theta = node_positions[child]
+            ax.plot(
+                [child_theta, child_theta],
+                [arc_r, child_r],
+                color="black",
+                linewidth=0.8,
+                zorder=1,
+            )
+
+    # Draw nodes
+    for node_id, (r, theta) in node_positions.items():
+        full_name = node_depths[node_id]["name"]
+        if full_name in agent_data.index:
+            color = (
+                "lightgray"
+                if full_name in dead_agents
+                else cmap(norm(agent_data.loc[full_name, "AmpC conc"]))
+            )
+            ax.scatter(theta, r, color=color, edgecolor="black", s=50, zorder=2)
+
+    # Add colorbar
+    cbar_ax = fig.add_axes([0.15, 0.05, 0.7, 0.02])
+    cbar = fig.colorbar(
+        matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap),
+        cax=cbar_ax,
         orientation="horizontal",
-        label="AmpC (periplasm, nM)",
     )
+    cbar.set_label("AmpC (periplasm, nM)", size=8)
+    cbar.ax.tick_params(labelsize=7)
+
+    # Adjust ticks on colorbar
     xticks = [int(np.round(min_conc, 1)), int(np.round(max_conc, 1))]
-    ax.set_xticks(xticks, xticks, size=8)
-    ax.set_xlabel(ax.get_xlabel(), size=8, labelpad=-7)
-    fig.savefig("out/analysis/paper_figures/ampc_cbar.svg")
+    cbar.ax.set_xticks(xticks)
+    cbar.ax.set_xticklabels(xticks, size=7)
+
+    # Save figure
+    os.makedirs("out/analysis/paper_figures/", exist_ok=True)
+    fig.savefig(
+        "out/analysis/paper_figures/ampc_phylo.svg", bbox_inches="tight", dpi=300
+    )
     plt.close()
 
-    # Export Newick file for phylogenetic signal analysis
-    tree.write(outfile="out/analysis/paper_figures/amp_tree.nw")
-    agent_data.loc[tree.get_leaf_names(), :].to_csv(
-        "out/analysis/paper_figures/agent_data.csv"
-    )
+    # Export data for downstream analysis
+    newick_str = create_newick_string(tree, node_depths) + ";"
+    with open("out/analysis/paper_figures/amp_tree.nw", "w") as f:
+        f.write(newick_str)
+
+    leaf_names = [
+        info["name"]
+        for info in node_depths.values()
+        if info["name"] in agent_data.index
+    ]
+    agent_data.loc[leaf_names, :].to_csv("out/analysis/paper_figures/agent_data.csv")

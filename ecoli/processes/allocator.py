@@ -167,7 +167,7 @@ class Allocator(Step):
                     "{} in {} ({})".format(
                         self.mol_idx_to_name[molIndex],
                         self.proc_idx_to_name[processIndex],
-                        counts_requested[molIndex, processIndex],
+                        partitioned_counts[molIndex, processIndex],
                     )
                     for molIndex, processIndex in zip(*np.where(partitioned_counts < 0))
                 )

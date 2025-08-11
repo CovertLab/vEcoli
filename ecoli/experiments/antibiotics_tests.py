@@ -14,7 +14,7 @@ from ecoli.analysis.colony.snapshots import plot_snapshots
 def test_antibiotics_tetracycline():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "antibiotics_tetracycline.json")
     sim.emitter = "timeseries"
-    sim.total_time = 2
+    sim.max_duration = 2
     sim.build_ecoli()
     sim.run()
     data = sim.query()
@@ -38,7 +38,7 @@ def remove_empty_values(d):
     return d
 
 
-def test_lysis_rxn_dff_environment(total_time=10):
+def test_lysis_rxn_dff_environment(max_duration=10):
     beta_lactamase = "EG10040-MONOMER[p]"
     beta_lactam = "beta-lactam[p]"
     hydrolyzed_beta_lactam = "hydrolyzed-beta-lactam[p]"
@@ -46,7 +46,7 @@ def test_lysis_rxn_dff_environment(total_time=10):
 
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "lysis_trigger.json")
     sim.emitter = "timeseries"
-    sim.total_time = total_time
+    sim.max_duration = max_duration
 
     # add to the timeline, triggering burst
     sim.process_configs["bulk-timeline"] = {
@@ -126,6 +126,6 @@ library = {
     "2": test_lysis_rxn_dff_environment,
 }
 
-# uv run ecoli/experiments/antibiotics_tests.py -n library_id
+# uvenv ecoli/experiments/antibiotics_tests.py -n library_id
 if __name__ == "__main__":
     run_library_cli(library)

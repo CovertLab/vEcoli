@@ -164,8 +164,7 @@ class Equilibrium(PartitionedProcess):
             rxnFluxes[rev_rxn_idxs] = np.fmin(0, rxnFluxes[rev_rxn_idxs])
         else:
             raise ValueError(
-                "Could not get positive counts in equilibrium with"
-                " allocated molecules."
+                "Could not get positive counts in equilibrium with allocated molecules."
             )
 
         # Increment changes in molecule counts
@@ -188,7 +187,7 @@ def test_equilibrium_listener():
     from ecoli.experiments.ecoli_master_sim import EcoliSim
 
     sim = EcoliSim.from_file()
-    sim.total_time = 2
+    sim.max_duration = 2
     sim.raw_output = False
     sim.build_ecoli()
     sim.run()

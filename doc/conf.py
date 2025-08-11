@@ -70,22 +70,22 @@ nitpick_ignore = [
     ("py:class", "any valid matplotlib color"),
     # Silence warning in ecoli.analysis.single.blame.SignNormalize
     ("py:class", "default: False"),
-    # Numpy, DuckDB, PyArrow, Polars, and Pandas types fail to resolve
+    # Numpy, DuckDB, Polars, and Pandas types fail to resolve
     ("py:class", "numpy.float64"),
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.int32"),
     ("py:class", "numpy.bool_"),
     ("py:class", "duckdb.duckdb.DuckDBPyConnection"),
-    ("py:class", "pyarrow.lib.Schema"),
-    ("py:class", "pyarrow._fs.FileSystem"),
-    ("py:class", "pyarrow.lib.FixedSizeListArray"),
-    ("py:class", "pyarrow.lib.Array"),
-    ("py:class", "pyarrow.lib.NativeFile"),
-    ("py:class", "pyarrow.lib.Table"),
     ("py:class", "pandas.core.frame.DataFrame"),
     ("py:class", "polars.series.series.Series"),
+    ("py:class", "polars.dataframe.frame.DataFrame"),
+    ("py:class", "polars.datatypes.classes.DataTypeClass"),
+    # No docs for fsspec
+    ("py:class", "fsspec.spec.AbstractFileSystem"),
+    ("py:class", "fsspec.core.OpenFile"),
     # Silence warning in ecoli.processes.environment.field_timeline.FieldTimeline
     ("py:class", "vivarium.processes.timeline.TimelineProcess"),
+    ("py:class", "concurrent.futures._base.Future"),
 ]
 
 

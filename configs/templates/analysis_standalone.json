@@ -1,0 +1,23 @@
+{
+    "emitter_arg": {
+        "out_dir": "out_dir/from/simulation/run"
+    },
+    "analysis_options": {
+        "experiment_id": ["exp_id_1", "exp_id_2"],
+        "variant": [0, 1, 2],
+        "lineage_seed": [0, 1, 2],
+        "generation": [1, 2, 3],
+        "agent_id": ["0", "01", "001"],
+        "variant_data_dir": ["out/variant/dir/from/create_variants", "variant_dir/for/exp_id_2"],
+        "validation_data_path": ["out/past_parca_run/kb/validationData.cPickle"],
+        "outdir": "out/analysis_out",
+        "cpus": 1,
+
+        "single": {"mass_fraction_summary": {}},
+        "multidaughter": {},
+        "multigeneration": {},
+        "multiseed": {},
+        "multivariant": {},
+        "multiexperiment": {}
+    }
+}

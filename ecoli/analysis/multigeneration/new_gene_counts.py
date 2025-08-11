@@ -7,7 +7,7 @@ import pickle
 import polars as pl
 
 from ecoli.library.parquet_emitter import (
-    get_field_metadata,
+    field_metadata,
     open_arbitrary_sim_data,
     named_idx,
     read_stacked_columns,
@@ -19,6 +19,7 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
+    success_sql: str,
     sim_data_dict: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,
@@ -57,7 +58,7 @@ def plot(
     mRNA_idx_dict = {
         rna[:-3]: i
         for i, rna in enumerate(
-            get_field_metadata(conn, config_sql, "listeners__rna_counts__mRNA_counts")
+            field_metadata(conn, config_sql, "listeners__rna_counts__mRNA_counts")
         )
     }
     new_gene_mRNA_indexes = [
@@ -68,7 +69,7 @@ def plot(
     monomer_idx_dict = {
         monomer: i
         for i, monomer in enumerate(
-            get_field_metadata(conn, config_sql, "listeners__monomer_counts")
+            field_metadata(conn, config_sql, "listeners__monomer_counts")
         )
     }
     new_gene_monomer_indexes = [
@@ -78,14 +79,13 @@ def plot(
 
     # Load data
     new_monomers = named_idx(
-        "listeners__monomer_counts", new_gene_monomer_ids, new_gene_monomer_indexes
+        "listeners__monomer_counts", new_gene_monomer_ids, [new_gene_monomer_indexes]
     )
     new_mRNAs = named_idx(
-        "listeners__rna_counts__mRNA_counts", new_gene_mRNA_ids, new_gene_mRNA_indexes
+        "listeners__rna_counts__mRNA_counts", new_gene_mRNA_ids, [new_gene_mRNA_indexes]
     )
     new_gene_data = read_stacked_columns(
         history_sql,
-        ["listeners__monomer_counts", "listeners__rna_counts__mRNA_counts"],
         [new_monomers, new_mRNAs],
         conn=conn,
     )

@@ -1,0 +1,11 @@
+{
+    "inherit_from": ["spatial.json"],
+    "max_duration": 23100.0,
+    "divide": true,
+    "emitter" : "database",
+    "emitter_arg": {
+        "host": "10.138.0.75:27017",
+        "emit_limit": 4100000
+    },
+    "parallel": true
+}

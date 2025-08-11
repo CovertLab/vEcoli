@@ -29,77 +29,134 @@ model parameters (e.g. transcription probabilities). These parameters are used t
 > **Note:** The following instructions assume a local Linux or MacOS system. Windows users can
 > attempt to follow the same steps after setting up 
 > [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install). Refer to the following pages for non-local setups:
-> [Sherlock](https://covertlab.github.io/vEcoli/workflows.html#sherlock),
-> [other HPC cluster](https://covertlab.github.io/vEcoli/workflows.html#other-hpc-clusters),
+> [Sherlock](https://covertlab.github.io/vEcoli/hpc.html#sherlock),
+> [other HPC cluster](https://covertlab.github.io/vEcoli/hpc.html#other-clusters),
 > [Google Cloud](https://covertlab.github.io/vEcoli/gcloud.html).
 
 ### Prerequisites
 
-Your system must have git, curl (or wget), and a C compiler.
+If your system has git, curl (or wget), and a C compiler
+(e.g. clang, gcc), proceed to the next section.
 
 On Ubuntu/Debian, apt can be used to install all three prerequisites:
 
-    sudo -s eval 'apt update && apt install git curl clang'
+    sudo -s eval 'apt update && apt install -y git curl clang'
 
 On MacOS, curl is preinstalled and git and clang come with the Xcode Command Line Tools:
 
     xcode-select --install
 
+> **Warning:** If you used Apple's migration wizard to transfer your data from an
+> Intel-based (released pre-2020) to a newer Mac, open "System Information" and
+> click "Applications" in the left side menu. Sort by "Kind" and look for any "Intel"
+> applications. For best performance and compatibility, we recommend uninstalling
+> and reinstalling those apps, if possible. You likely will need to do the same for
+> any installed developer apps like Homebrew, etc. Lastly, if you see a message in
+> your terminal about changing the default shell to zsh, we recommend running the
+> listed command to do so ([detailed instructions](https://support.apple.com/en-us/102360)).
+
 ### Installation
 
-Clone the repository:
+1. Clone the repository:
 
-    git clone https://github.com/CovertLab/vEcoli.git
+```
+git clone https://github.com/CovertLab/vEcoli.git
+```
 
-[Follow these instructions](https://docs.astral.sh/uv/getting-started/installation/)
+> **Tip:** You can specify a directory to clone into after the
+> URL of the repository. Otherwise, the above command will clone into
+> a new directory called `vEcoli` in your current directory. To speed up
+> the clone and save disk space, add `--filter=blob:none` to the command.
+
+2. [Follow these "Standalone installer" instructions](https://docs.astral.sh/uv/getting-started/installation/)
 to install `uv`, our Python package and project manager of choice.
+   
+3. Close and reopen your terminal.
 
-Navigate into the cloned repository and use `uv` to install the model:
+4. Navigate into the cloned repository and use `uv` to install the model:
 
-    cd vEcoli
-    uv sync --frozen
+```
+# Navigate into cloned repository ("vEcoli", by default)
+cd vEcoli
+# Install base and dev dependencies (see pyproject.toml)
+uv sync --frozen --extra dev
+# Install pre-commit hook that runs ruff linter before every commit
+uv run pre-commit install
+```
 
-Finally, install `nextflow` [following these instructions](https://www.nextflow.io/docs/latest/install.html).
-If you choose to install Java with SDKMAN!, after the Java installation
-finishes, close and reopen your terminal before continuing with the
-`nextflow` installation steps.
+> **Tip:** If uv is not connecting to the venv correctly, or you are running into an error with the 
+> `uv run pre-commit install` step, try running `rm -rf .venv` to remove the venv, then run 
+> `uv sync --frozen --extra dev` followed by `uv run pre-commit install` to reinstall the venv.
+
+5. Install `nextflow` [following these instructions](https://www.nextflow.io/docs/latest/install.html).
+If your system has `wget` but not `curl`, replace `curl` in the commands
+with `wget -qO-`. If you choose to install Java with SDKMAN!, after
+the Java installation finishes, close and reopen your terminal before
+continuing with the `nextflow` installation steps.
 
 > **Tip:** If any step in the `nextflow` installation fails,
 > try rerunning a few times to see if that fixes the issue.
 
-If you are installing the model for active development, we strongly
-recommend that you also install the development dependencies using:
+6. Navigate back to the cloned repository and add the `uvenv` alias to your shell configuration:
 
-    uv sync --frozen --extra dev
+```
+# Navigate back to cloned repository ("vEcoli", by default)
+cd vEcoli
+# Add uvenv alias to shell config (e.g. .bashrc, .zshrc, etc.)
+echo -e "\nalias uvenv='uv run --env-file $(pwd)/.env --project $(pwd)'" >> $HOME/.$(basename $SHELL)rc
+```
 
-After that, you can run ``uv run pre-commit install`` to install
-a pre-commit hook that will run the ``ruff`` linter and formatter
-before all of your commits.
+7. Close and reopen your terminal.
 
-The development dependencies also include ``pytest``, which lets
-you run the test suite, and ``mypy``, which can be invoked to
-perform static type checking.
+8. (optional) For PyCharm integration, follow
+[these instructions](https://covertlab.github.io/vEcoli/pycharm.html).
+For VS Code integration, select the interpreter located at `.venv/bin/python`
+inside the cloned repository following
+[these instructions](https://code.visualstudio.com/docs/python/environments#_working-with-python-interpreters).
+
+9. If you are a member of the Covert Lab, ask to be added to the GitHub organization
+and [set up SSH authentication](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
+Then, in a terminal inside your cloned repository, run:
+
+```
+git remote set-url origin git@github.com:CovertLab/vEcoli
+```
 
 ## Test Installation
 
-To test your installation, from the top-level of the cloned repository, invoke:
+From the top-level of the cloned repository, run:
 
-    uv run runscripts/workflow.py --config ecoli/composites/ecoli_configs/test_installation.json
+    uvenv runscripts/workflow.py --config configs/test_installation.json
 
-> **Note:** Start all of your commands to run scripts with `uv run`. Alternatively,
-> you can source the Python virtual environment that `uv` created with
-> `source .venv/bin/activate` and use `python` as normal, though we recommend
-> sticking to `uv run` where possible.
+Ignore the following warning on macOS:
 
-This will run the following basic simulation workflow:
+    WARN: Task runtime metrics are not reported when using macOS without a container engine
+
+> **Note:** Local installations should always use `uvenv` to run scripts instead of `python`. To start
+> a Python shell, use `uvenv python` or `uvenv ipython`.
+
+This will run the following basic simulation workflow, saving all output to `out/test_installation`:
 
 1. Run the [parameter calculator](runscripts/parca.py) to generate simulation data.
-2. Run the [simulation](ecoli/experiments/ecoli_master_sim.py)
-    for a single generation, saving output in `out` folder.
+2. Run the [simulation](ecoli/experiments/ecoli_master_sim.py) for a single generation.
 3. [Analyze simulation output](runscripts/analysis.py) by creating a
-    [mass fraction plot](ecoli/analysis/single/mass_fraction_summary.py).
+[mass fraction plot](ecoli/analysis/single/mass_fraction_summary.py).
 
+The percentage displayed for each step only changes when inidividual tasks in
+that step complete. For example, the parameter calculator step is a single task,
+so its percentage will go from 0 to 100 when it completes.
 
-## Next Steps
-Check out the [user guide](https://covertlab.github.io/vEcoli/) for a high-level
-tutorial of model development, details on key model components, and low-level API documentation.
+The full workflow takes about 10 minutes to run on a MacBook Air (2022, M2). If the
+Nextflow workflow completes with no errors, navigate to the following folder inside
+the cloned repository using a file browser and open `mass_fraction_summary.html` to
+inspect the mass fraction summary plot for the simulation you just ran:
+
+    out/test_installation/analyses/variant=0/lineage_seed=0/generation=1/agent_id=0/plots
+
+## Documentation
+The documentation is located at [https://covertlab.github.io/vEcoli/](https://covertlab.github.io/vEcoli/)
+and contains more information about the model architecture, output,
+and workflow configuration.
+
+If you encounter an issue not addressed by the docs, feel free to create a GitHub issue, and we will
+get back to you as soon as we can.

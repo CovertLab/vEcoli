@@ -1,13 +1,26 @@
 import argparse
 import json
 import os
+import pathlib
+import random
 import shutil
 import subprocess
+import time
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from urllib import parse
+from typing import Optional
 
-from pyarrow import fs
+# Try to import fsspec, but make it optional
+try:
+    from fsspec import url_to_fs
+    from fsspec.spec import AbstractFileSystem
+
+    FSSPEC_AVAILABLE = True
+except ImportError:
+    FSSPEC_AVAILABLE = False
+
 
 LIST_KEYS_TO_MERGE = (
     "save_times",
@@ -25,9 +38,7 @@ user-specified JSON) instead of being directly overriden.
 
 CONFIG_DIR_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "ecoli",
-    "composites",
-    "ecoli_configs",
+    "configs",
 )
 NEXTFLOW_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nextflow")
 
@@ -60,6 +71,22 @@ MULTIVARIANT_CHANNEL = """
         .groupTuple(by: [1])
         .set {{ multiVariantCh }}
 """
+
+
+def parse_uri(uri: str) -> tuple[Optional["AbstractFileSystem"], str]:
+    """
+    Parse URI and return appropriate filesystem and path.
+
+    For cloud/remote URIs (when fsspec is available), returns fsspec filesystem.
+    For local paths, returns None and absolute path.
+    """
+    if not FSSPEC_AVAILABLE:
+        if parse.urlparse(uri).scheme in ("local", "file", ""):
+            return None, os.path.abspath(uri)
+        raise RuntimeError(
+            "fsspec is not available. Please install fsspec to use remote URIs."
+        )
+    return url_to_fs(uri)
 
 
 def merge_dicts(a, b):
@@ -201,7 +228,9 @@ def generate_lineage(
     if analysis_config.get("multidaughter", False) and not single_daughters:
         # Channel that groups sim tasks by variant sim_data, initial seed, and generation
         # When simulating both daughters, will have >1 cell for generation >1
-        gen_size = "[" + ", ".join([f"{g+1}: {2**g}" for g in range(generations)]) + "]"
+        gen_size = (
+            "[" + ", ".join([f"{g + 1}: {2**g}" for g in range(generations)]) + "]"
+        )
         sim_workflow.append(MULTIDAUGHTER_CHANNEL.format(gen_size=gen_size))
         sim_workflow.append(
             "\tanalysisMultiDaughter(params.config, kb, multiDaughterCh, "
@@ -252,48 +281,64 @@ def generate_code(config):
             config.get("analysis_options", {}),
         )
     else:
-        sim_imports, sim_workflow = generate_colony(seed, n_init_sims)
+        sim_imports, sim_workflow = generate_colony(seed)
     return "\n".join(run_parca), "\n".join(sim_imports), "\n".join(sim_workflow)
 
 
-def build_runtime_image(image_name, apptainer=False):
+def build_image_cmd(image_name, apptainer=False) -> list[str]:
     build_script = os.path.join(
-        os.path.dirname(__file__), "container", "build-runtime.sh"
+        os.path.dirname(__file__), "container", "build-image.sh"
     )
-    cmd = [build_script, "-r", image_name]
+    cmd = [build_script, "-i", image_name]
     if apptainer:
         cmd.append("-a")
-    subprocess.run(cmd, check=True)
+    return cmd
 
 
-def build_wcm_image(image_name, runtime_image_name):
-    build_script = os.path.join(os.path.dirname(__file__), "container", "build-wcm.sh")
-    if runtime_image_name is None:
-        warnings.warn(
-            "No runtime image name supplied. By default, "
-            "we build the model image from the runtime "
-            "image with name " + os.environ["USER"] + '-wcm-code." '
-            'If this is correct, add this under "gcloud" > '
-            '"runtime_image_name" in your config JSON.'
-        )
-    cmd = [build_script, "-w", image_name, "-r", runtime_image_name]
-    subprocess.run(cmd, check=True)
-
-
-def copy_to_filesystem(source: str, dest: str, filesystem: fs.FileSystem):
+def copy_to_filesystem(
+    source: str, dest: str, filesystem: Optional["AbstractFileSystem"] = None
+):
     """
-    Robustly copy the contents of a local source file to a destination path on
-    a PyArrow filesystem.
+    Robustly copy the contents of a local source file to a destination path.
 
     Args:
         source: Path to source file on local filesystem
-        dest: Path to destination file on PyArrow filesystem. If Cloud Storage
-            bucket, DO NOT include ``gs://`` or ``gcs://``.
-        filesystem: PyArrow filesystem instantiated from URI of ``dest``
+        dest: Path to destination file on filesystem
+        filesystem: LocalFileSystem or fsspec filesystem
     """
-    with filesystem.open_output_stream(dest) as stream:
+    if filesystem is None:
+        # Simple local file copy
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        shutil.copy2(source, dest)
+        return
+    # fsspec implementation
+    with filesystem.open(dest, mode="wb") as stream:
         with open(source, "rb") as f:
             stream.write(f.read())
+
+
+def stream_log(output_log: str, sleep_time: int = 1):
+    """
+    As long as output_log exists, read and print new content to stdout.
+    """
+    log_path = pathlib.Path(output_log)
+    # Track last position read in output log file
+    last_position = 0
+    while True:
+        # Read any new content from the log file
+        if log_path.exists():
+            with open(output_log, "r") as f:
+                # Move to where we left off
+                f.seek(last_position)
+                # Read and print new content
+                new_content = f.read()
+                if new_content:
+                    print(new_content, end="", flush=True)
+                # Remember where we are now
+                last_position = f.tell()
+        else:
+            break
+        time.sleep(sleep_time)
 
 
 def main():
@@ -357,19 +402,48 @@ def main():
     if "out_uri" not in config["emitter_arg"]:
         out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
         config["emitter_arg"]["out_dir"] = out_uri
+        assert parse.urlparse(out_uri).scheme == "", (
+            "Output directory must be a local path, not a URI. "
+            "Specify URIs using 'out_uri' under 'emitter_arg'."
+        )
     else:
         out_uri = config["emitter_arg"]["out_uri"]
-        out_bucket = out_uri.split("://")[1].split("/")[0]
+        parsed_uri = parse.urlparse(out_uri)
+        if parsed_uri.scheme not in ("local", "file") and not FSSPEC_AVAILABLE:
+            raise RuntimeError(
+                f"URI '{out_uri}' specified but fsspec is not available. "
+                "Install fsspec or provide a local URI/out directory."
+            )
+        out_bucket = parsed_uri.netloc
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
         config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
-    filesystem, outdir = fs.FileSystem.from_uri(out_uri)
+    # Use random seed for Jenkins CI runs
+    if config.get("sherlock", {}).get("jenkins", False):
+        config["lineage_seed"] = random.randint(0, 2**31 - 1)
+    filesystem, outdir = parse_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
+    exp_outdir = os.path.dirname(outdir)
     out_uri = os.path.join(out_uri, experiment_id, "nextflow")
     repo_dir = os.path.dirname(os.path.dirname(__file__))
     local_outdir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
     os.makedirs(local_outdir, exist_ok=True)
-    filesystem.create_dir(outdir)
+    if filesystem is None:
+        if os.path.exists(exp_outdir) and not args.resume:
+            raise RuntimeError(
+                f"Output directory already exists: {exp_outdir}. "
+                "Please use a different experiment ID or output directory. "
+                "Alternatively, move, delete, or rename the existing directory."
+            )
+        os.makedirs(outdir, exist_ok=True)
+    else:
+        if filesystem.exists(exp_outdir) and not args.resume:
+            raise RuntimeError(
+                f"Output directory already exists: {exp_outdir}. "
+                "Please use a different experiment ID or output directory. "
+                "Alternatively, move, delete, or rename the existing directory."
+            )
+        filesystem.makedirs(outdir, exist_ok=True)
     temp_config_path = f"{local_outdir}/workflow_config.json"
     final_config_path = os.path.join(outdir, "workflow_config.json")
     final_config_uri = os.path.join(out_uri, "workflow_config.json")
@@ -406,54 +480,60 @@ def main():
             text=True,
         ).stdout.strip()
         image_prefix = f"{region}-docker.pkg.dev/{project_id}/vecoli/"
-        runtime_image_name = cloud_config.get("runtime_image_name", None)
-        if cloud_config.get("build_runtime_image", False):
-            if runtime_image_name is None:
-                raise RuntimeError("Must supply name for runtime image.")
-            build_runtime_image(runtime_image_name)
-        wcm_image_name = cloud_config.get("wcm_image_name", None)
-        if wcm_image_name is None:
-            raise RuntimeError("Must supply name for WCM image.")
-        if cloud_config.get("build_wcm_image", False):
-            if runtime_image_name is None:
-                raise RuntimeError("Must supply name for runtime image.")
-            build_wcm_image(wcm_image_name, runtime_image_name)
-        nf_config = nf_config.replace("IMAGE_NAME", image_prefix + wcm_image_name)
+        container_image = cloud_config.get("container_image", None)
+        if container_image is None:
+            raise RuntimeError("Must supply name for container image.")
+        if cloud_config.get("build_image", False):
+            image_cmd = build_image_cmd(container_image)
+            subprocess.run(image_cmd, check=True)
+        nf_config = nf_config.replace("IMAGE_NAME", image_prefix + container_image)
     sherlock_config = config.get("sherlock", None)
     if sherlock_config is not None:
         if nf_profile == "gcloud":
             raise RuntimeError(
-                "Cannot set both Sherlock and Google Cloud "
-                "options in the input JSON."
+                "Cannot set both Sherlock and Google Cloud options in the input JSON."
             )
-        runtime_image_name = sherlock_config.get("runtime_image_name", None)
-        if runtime_image_name is None:
-            raise RuntimeError("Must supply name for runtime image.")
-        if sherlock_config.get("build_runtime_image", False):
-            build_runtime_image(runtime_image_name, True)
-        nf_config = nf_config.replace("IMAGE_NAME", runtime_image_name)
-        subprocess.run(
-            [
-                "apptainer",
-                "exec",
-                "-B",
-                f"{repo_dir}:{repo_dir}",
-                "--cwd",
-                repo_dir,
-                "--writable-tmpfs",
-                "-e",
-                runtime_image_name,
-                "uv",
-                "sync",
-                "--frozen",
-                "--no-cache",
-            ]
-        )
-        if sherlock_config.get("jenkins", False):
-            nf_profile = "jenkins"
-        else:
-            nf_profile = "sherlock"
-
+        nf_profile = "sherlock"
+        # Suggest that users turn off background thread for Parquet emitter
+        if config["emitter"] == "parquet" and config["emitter_arg"].get(
+            "threaded", True
+        ):
+            warnings.warn(
+                "Using a background thread in the Parquet emitter may degrade "
+                "performance on Sherlock, where each simulation is allocated a "
+                "single CPU core. Consider setting 'threaded' to False "
+                "under 'emitter_arg'."
+            )
+        # Start a new thread to forward output of submitted jobs to stdout
+        thread_executor = ThreadPoolExecutor(max_workers=1)
+        container_image = sherlock_config.get("container_image", None)
+        if container_image is None:
+            raise RuntimeError("Must supply name for container image.")
+        if sherlock_config.get("build_image", False):
+            image_cmd = " ".join(build_image_cmd(container_image, True))
+            image_build_script = os.path.join(local_outdir, "container.sh")
+            log_file = os.path.join(local_outdir, "build-image.out")
+            with open(image_build_script, "w") as f:
+                f.write(f"""#!/bin/bash
+#SBATCH --job-name="build-image-{experiment_id}"
+#SBATCH --time=30:00
+#SBATCH --cpus-per-task 2
+#SBATCH --mem=8GB
+#SBATCH --partition=owners,normal
+#SBATCH --wait
+#SBATCH --output={log_file}
+{image_cmd}
+""")
+            # Create empty log file for thread to stream from
+            log_path = pathlib.Path(log_file)
+            log_path.touch(exist_ok=True)
+            thread_executor.submit(stream_log, log_file)
+            try:
+                subprocess.run(["sbatch", image_build_script], check=True)
+            finally:
+                # Always delete log file to stop streaming thread
+                log_path.unlink()
+        nf_config = nf_config.replace("IMAGE_NAME", container_image)
     local_config = os.path.join(local_outdir, "nextflow.config")
     with open(local_config, "w") as f:
         f.writelines(nf_config)
@@ -487,6 +567,18 @@ def main():
         out_uri,
         f"{experiment_id}_report.html",
     )
+    if filesystem is None:
+        if os.path.exists(report_path):
+            raise RuntimeError(
+                f"Report file already exists: {report_path}. "
+                "Please move, delete, or rename it, then run with --resume again."
+            )
+    else:
+        if filesystem.exists(report_path):
+            raise RuntimeError(
+                f"Report file already exists: {report_path}. "
+                "Please move, delete, or rename it, then run with --resume again."
+            )
     workdir = os.path.join(out_uri, "nextflow_workdirs")
     if nf_profile == "standard" or nf_profile == "gcloud":
         subprocess.run(
@@ -508,37 +600,54 @@ def main():
         )
     elif nf_profile == "sherlock":
         batch_script = os.path.join(local_outdir, "nextflow_job.sh")
+        hyperqueue_init = ""
+        hyperqueue_exit = ""
+        if sherlock_config.get("hyperqueue", False):
+            nf_profile = "sherlock_hq"
+            hyperqueue_init = f"""
+# Set the directory which HyperQueue will use 
+export HQ_SERVER_DIR={os.path.join(outdir, ".hq-server")}
+mkdir -p ${{HQ_SERVER_DIR}}
+
+# Start the server in the background (&) and wait until it has started
+hq server start --journal {os.path.join(outdir, ".hq-server/journal")} &
+until hq job list &>/dev/null ; do sleep 1 ; done
+
+"""
+            hyperqueue_exit = "hq job wait all; hq worker stop all; hq server stop"
+        nf_slurm_output = os.path.join(outdir, f"{experiment_id}_slurm.out")
         with open(batch_script, "w") as f:
             f.write(f"""#!/bin/bash
-#SBATCH --job-name="nextflow-{experiment_id}"
+#SBATCH --job-name="nf-{experiment_id}"
 #SBATCH --time=7-00:00:00
 #SBATCH --cpus-per-task 1
 #SBATCH --mem=4GB
 #SBATCH --partition=mcovert
+#SBATCH --output={nf_slurm_output}
+{"#SBATCH --wait" if sherlock_config.get("jenkins", False) else ""}
+set -e
+# Ensure HyperQueue shutdown on failure or interruption
+trap 'exitcode=$?; {hyperqueue_exit}' EXIT
+{hyperqueue_init}
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
     -with-report {report_path} -work-dir {workdir} {"-resume" if args.resume is not None else ""}
 """)
         copy_to_filesystem(
             batch_script, os.path.join(outdir, "nextflow_job.sh"), filesystem
         )
-        subprocess.run(["sbatch", batch_script], check=True)
-    elif nf_profile == "jenkins":
-        subprocess.run(
-            [
-                "nextflow",
-                "-C",
-                config_path,
-                "run",
-                workflow_path,
-                "-profile",
-                "sherlock",
-                "-with-report",
-                report_path,
-                "-work-dir",
-                workdir,
-            ],
-            check=True,
-        )
+        # Make stdout of workflow viewable in Jenkins
+        if sherlock_config.get("jenkins", False):
+            # Create empty log file for thread to stream from
+            log_path = pathlib.Path(nf_slurm_output)
+            log_path.touch(exist_ok=True)
+            thread_executor.submit(stream_log, nf_slurm_output)
+            try:
+                subprocess.run(["sbatch", batch_script], check=True)
+            finally:
+                # Always delete log file to stop streaming thread
+                log_path.unlink()
+        else:
+            subprocess.run(["sbatch", batch_script], check=True)
     shutil.rmtree(local_outdir)
 
 

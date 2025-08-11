@@ -73,6 +73,7 @@ LIST_OF_DICT_FILENAMES = [
     # "transcription_units.tsv",  # special cased in the constructor
     "transcription_units_added.tsv",
     "transcription_units_removed.tsv",
+    "transcription_units_modified.tsv",
     "transcriptional_attenuation.tsv",
     "transcriptional_attenuation_removed.tsv",
     "tf_one_component_bound.tsv",
@@ -237,6 +238,11 @@ class KnowledgeBaseEcoli(object):
                         "transcription_units": "transcription_units_added",
                     }
                 )
+                self.modified_data.update(
+                    {
+                        "transcription_units": "transcription_units_modified",
+                    }
+                )
 
         if remove_rrff:
             self.list_of_parameter_filenames.append(
@@ -265,9 +271,9 @@ class KnowledgeBaseEcoli(object):
         if self.new_genes_option != "off":
             new_gene_subdir = new_genes_option
             new_gene_path = os.path.join("new_gene_data", new_gene_subdir)
-            assert os.path.isdir(
-                os.path.join(FLAT_DIR, new_gene_path)
-            ), "This new_genes_data subdirectory is invalid."
+            assert os.path.isdir(os.path.join(FLAT_DIR, new_gene_path)), (
+                "This new_genes_data subdirectory is invalid."
+            )
             nested_attr = "new_gene_data." + new_gene_subdir + "."
 
             # These files do not need to be joined to existing files
@@ -338,10 +344,7 @@ class KnowledgeBaseEcoli(object):
                 + insertion_sequence
                 + self.genome_sequence[insert_pos:]
             )
-            assert (
-                self.genome_sequence[insert_pos : (insert_end + 1)]
-                == insertion_sequence
-            )
+            assert self.genome_sequence[insert_pos:insert_end] == insertion_sequence
 
             self.added_data = self.new_gene_added_data
             self._join_data()
@@ -541,9 +544,9 @@ class KnowledgeBaseEcoli(object):
         for row in new_RNA_data:
             assert row["id"].startswith("NG"), "ids of new gene rnas must start with NG"
         for row in new_protein_data:
-            assert row["id"].startswith(
-                "NG"
-            ), "ids of new gene proteins must start with NG"
+            assert row["id"].startswith("NG"), (
+                "ids of new gene proteins must start with NG"
+            )
         return
 
     def _update_gene_insertion_location(self, nested_attr):
@@ -561,9 +564,9 @@ class KnowledgeBaseEcoli(object):
 
         insert_loc_data = getattr(nested_data, "insertion_location")
 
-        assert (
-            len(insert_loc_data) == 1
-        ), "each noncontiguous insertion should be in its own directory"
+        assert len(insert_loc_data) == 1, (
+            "each noncontiguous insertion should be in its own directory"
+        )
         insert_pos = insert_loc_data[0]["insertion_pos"]
 
         if not tu_data:
@@ -643,7 +646,7 @@ class KnowledgeBaseEcoli(object):
             ), "gaps in new gene insertions are not supported at this time"
 
         insert_end = new_genes_data[-1]["right_end_pos"] + insert_pos
-        insert_len = insert_end - insert_pos + 1
+        insert_len = insert_end - insert_pos
 
         # Update global positions of original genes
         self._update_global_coordinates(genes_data, insert_pos, insert_len)
@@ -681,9 +684,9 @@ class KnowledgeBaseEcoli(object):
 
         insertion_seq = Seq.Seq("")
         new_genes_data = sorted(new_genes_data, key=lambda d: d["left_end_pos"])
-        assert (
-            new_genes_data[0]["left_end_pos"] == 0
-        ), "first gene in new sequence must start at relative coordinate 0"
+        assert new_genes_data[0]["left_end_pos"] == 1, (
+            "first gene in new sequence must start at relative coordinate 1"
+        )
 
         for gene in new_genes_data:
             if gene["direction"] == "+":

@@ -2,11 +2,19 @@
 
 name: QA
 
+permissions:
+  contents: read
+  pull-requests: write
+
 on:
   push:
     branches: [master]
   pull_request:
     branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   Pytest:
@@ -14,37 +22,32 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
-        version: "0.5.21"
+        version: "0.7.12"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
+    - name: Run ParCa
+      run: |
+        uv run --env-file .env runscripts/parca.py \
+          --config configs/gha_pytest.json
+    - name: Extract tetracycline gene regulation parameters
+      run: |
+        uv run --env-file .env data/marA_binding/get_TU_ID.py \
+          -s out/kb/simData.cPickle
     - name: Test with pytest
       run: |
-        uv run pytest --cov-report xml:cov.xml --cov=ecoli --cov=reconstruction --cov=wholecell --cov=runscripts --durations=0
-    - name: Code Coverage Report
-      uses: irongut/CodeCoverageSummary@v1.3.0
-      with:
-        filename: cov.xml
-        format: markdown
-        indicators: true
-        output: both
-    - name: Add Coverage PR Comment
-      uses: marocchino/sticky-pull-request-comment@v2
-      if: github.event_name == 'pull_request'
-      with:
-        recreate: true
-        path: code-coverage-results.md
+        uv run --env-file .env pytest --durations=0
   Mypy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
-        version: "0.5.21"
+        version: "0.7.12"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Mypy
@@ -55,12 +58,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
-        version: "0.5.21"
+        version: "0.7.12"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Ruff
       run: |
-        uv run ruff check doc ecoli migration wholecell runscripts validation reconstruction
+        uv run ruff check doc ecoli wholecell runscripts validation reconstruction

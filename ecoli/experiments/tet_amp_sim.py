@@ -8,8 +8,7 @@ from vivarium.library.units import units
 from ecoli.experiments.ecoli_engine_process import run_simulation
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
 from ecoli.library.parameters import param_store
-from ecoli.library.logging_tools import write_json
-from ecoli.library.json_state import get_state_from_file
+from ecoli.library.sim_data import LoadSimData
 
 AVOGADRO = constants.N_A / units.mol
 
@@ -61,8 +60,10 @@ def run_sim(
     elif initial_state_file:
         config["initial_state_file"] = initial_state_file
     else:
-        make_initial_state(
-            "wcecoli_t0", rnai_data=config["process_configs"]["ecoli-rna-interference"]
+        load_sim_data = LoadSimData(**config)
+        initial_state = load_sim_data.generate_initial_state()
+        config["initial_state"] = make_initial_state(
+            initial_state, rnai_data=config["process_configs"]["ecoli-rna-interference"]
         )
     if baseline:
         print(f"Running baseline sim (seed = {seed}).")
@@ -73,7 +74,7 @@ def run_sim(
             runtime = 26002
             config["save"] = True
             config["save_times"] = [11550, 23100]
-        config["total_time"] = runtime
+        config["max_duration"] = runtime
         # Ensure that sim starts with correctly reduced murein counts
         config["initial_state_overrides"] = ["overrides/reduced_murein"]
     else:
@@ -85,7 +86,7 @@ def run_sim(
             runtime = 14452
             config["save"] = True
             config["save_times"] = [11550]
-        config["total_time"] = runtime
+        config["max_duration"] = runtime
     if cloud:
         config["emitter_arg"] = {"host": "10.138.0.75:27017", "emit_limit": 5000000}
 
@@ -163,10 +164,7 @@ def update_agent(data, rnai_data=None):
     return data
 
 
-def make_initial_state(initial_file, rnai_data=None):
-    initial_state = get_state_from_file(
-        f"data/migration_no_operons/{initial_file}.json"
-    )
+def make_initial_state(initial_state, rnai_data=None):
     # Modify each cell in colony individually
     if "agents" in initial_state:
         for agent_id, agent_data in initial_state["agents"].items():
@@ -182,7 +180,7 @@ def make_initial_state(initial_file, rnai_data=None):
         initial_state["unique_dtypes"] = {}
         for name, mols in initial_state["unique"].items():
             initial_state["unique_dtypes"][name] = str(mols.dtype)
-    write_json(f"data/antibiotics_{initial_file}.json", initial_state)
+    return initial_state
 
 
 def generate_data(

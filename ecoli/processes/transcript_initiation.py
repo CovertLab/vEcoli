@@ -1047,20 +1047,20 @@ def test_transcript_initiation(return_data=False):
     rprotein_inits = inits_by_TU[:, test_config["idx_rprotein"]]
 
     # Sanity checks
-    assert monotonically_decreasing(
-        inactive_RNAP
-    ), "Inactive RNAPs are not monotonically decreasing"
+    assert monotonically_decreasing(inactive_RNAP), (
+        "Inactive RNAPs are not monotonically decreasing"
+    )
     assert all_nonnegative(inactive_RNAP), "Inactive RNAPs fall below zero"
     assert all_nonnegative(inits_by_TU), "Negative initiations (!?)"
-    assert monotonically_decreasing(
-        d_active_RNAP
-    ), "Change in active RNAPs is not monotonically decreasing"
-    assert all_nonnegative(
-        d_active_RNAP
-    ), "One or more timesteps has decrease in active RNAPs"
-    assert np.sum(d_active_RNAP) == np.sum(
-        inits_by_TU
-    ), "# of active RNAPs does not match number of initiations"
+    assert monotonically_decreasing(d_active_RNAP), (
+        "Change in active RNAPs is not monotonically decreasing"
+    )
+    assert all_nonnegative(d_active_RNAP), (
+        "One or more timesteps has decrease in active RNAPs"
+    )
+    assert np.sum(d_active_RNAP) == np.sum(inits_by_TU), (
+        "# of active RNAPs does not match number of initiations"
+    )
 
     # Inactive RNAPs deplete as they are activated
     np.testing.assert_array_equal(

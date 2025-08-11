@@ -3,7 +3,7 @@ process analysisSingle {
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
-    label "short"
+    label "slurm_submit"
 
     input:
     path config
@@ -18,7 +18,7 @@ process analysisSingle {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \\
+    python ${params.projectRoot}/runscripts/analysis.py --config $config \\
         --sim_data_path "$sim_data" \\
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -53,7 +53,7 @@ process analysisMultiDaughter {
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
-    label "short"
+    label "slurm_submit"
 
     input:
     path config
@@ -68,7 +68,7 @@ process analysisMultiDaughter {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \\
+    python ${params.projectRoot}/runscripts/analysis.py --config $config \\
         --sim_data_path "$sim_data" \\
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -101,7 +101,7 @@ process analysisMultiGeneration {
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}"
 
-    label "short"
+    label "slurm_submit"
 
     input:
     path config
@@ -116,7 +116,7 @@ process analysisMultiGeneration {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \\
+    python ${params.projectRoot}/runscripts/analysis.py --config $config \\
         --sim_data_path "$sim_data" \\
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -147,7 +147,7 @@ process analysisMultiSeed {
 
     tag "variant=${variant}"
 
-    label "short"
+    label "slurm_submit"
 
     input:
     path config
@@ -162,7 +162,7 @@ process analysisMultiSeed {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \\
+    python ${params.projectRoot}/runscripts/analysis.py --config $config \\
         --sim_data_path "$sim_data" \\
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
@@ -189,7 +189,7 @@ process analysisMultiSeed {
 process analysisMultiVariant {
     publishDir "${params.publishDir}/${params.experimentId}/analyses", mode: "copy"
 
-    label "short"
+    label "slurm_submit"
 
     input:
     path config
@@ -204,7 +204,7 @@ process analysisMultiVariant {
     script:
     """
     mkdir -p plots
-    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/runscripts/analysis.py --config $config \\
+    python ${params.projectRoot}/runscripts/analysis.py --config $config \\
         --sim_data_path "${sim_data.join("\" \"")}" \\
         --validation_data_path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\

@@ -1,0 +1,20 @@
+{
+    "sim_data_path": null,
+    "parca_options": {
+        "cpus": 1,
+        "outdir": "out",
+        "operons": true,
+        "ribosome_fitting": true,
+        "rnapoly_fitting": true,
+        "remove_rrna_operons": false,
+        "remove_rrff": false,
+        "stable_rrna": false,
+        "new_genes": "off",
+        "debug_parca": false,
+        "load_intermediate": null,
+        "save_intermediates": false,
+        "intermediates_directory": "",
+        "variable_elongation_transcription": true,
+        "variable_elongation_translation": false
+    }
+}

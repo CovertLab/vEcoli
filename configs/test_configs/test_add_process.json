@@ -1,0 +1,23 @@
+{
+    "experiment_id" : "test_add_process",
+    "max_duration" : 2.0,
+    "time_step": 2,
+    "raw_output" : false,
+    "add_processes" : ["clock"],
+    "topology" : {
+        "clock" : {
+            "global_time" : ["global_time"]
+        }
+    },
+    "process_configs" :{
+        "clock" : {
+            "time_step" : 2.0,
+            "test" : "Hello vivarium",
+            "_schema": {
+                "global_time" : {
+                    "_emit" : true
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "experiment_id": "test_sherlock",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 4
+    },
+    "fail_at_max_duration": true,
+    "sim_data_path": null,
+    "generations": 1,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "."
+    },
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}}
+    },
+    "sherlock": {
+        "build_image": true,
+        "container_image": "./test_sherlock/test_image",
+        "hyperqueue": true,
+        "jenkins": false
+    }
+}

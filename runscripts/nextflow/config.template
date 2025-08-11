@@ -5,12 +5,15 @@ params {
     parca_cpus = PARCA_CPUS
     publishDir = 'PUBLISH_DIR'
     container_image = 'IMAGE_NAME'
+    hyperqueue = false
 }
 
-trace {
-    enabled = true
-    fields = 'name,native_id,status,submit,start,complete,duration,realtime,exit,realtime,%cpu,%mem,rss,peak_rss,error_action,attempt,cpu_model,workdir'
-}
+trace.enabled = true
+// Report dates/times in ms and memory in bytes for easier analysis
+trace.raw = true
+trace.sep = ','
+trace.fields = 'name,native_id,status,submit,start,complete,duration,realtime,exit,%cpu,%mem,rss,peak_rss,error_action,attempt,cpu_model,workdir'
+trace.file = "trace--${params.experimentId}--" + new java.text.SimpleDateFormat("yyyy-MM-dd--HH-mm-ss").format(new Date()) + ".csv"
 
 profiles {
     gcloud {
@@ -69,21 +72,23 @@ profiles {
     }
     sherlock {
         process {
-            // Run analyses and create variants locally with
-            // the job used to launch workflow to avoid long queue times
-            withLabel: short {
-                executor = 'local'
-            }
             withLabel: parca {
                 cpus = params.parca_cpus
                 memory = params.parca_cpus * 2.GB
+                time = {
+                    if ( task.exitStatus == 140 ) {
+                        1.h * task.attempt
+                    } else {
+                        1.h
+                    }
+                }
             }
             container = params.container_image
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
-            queue = 'mcovert,owners,dev,normal'
+            queue = 'owners,normal'
+            // Run on newer, faster CPUs
+            clusterOptions = '--prefer="CPU_GEN:GEN|CPU_GEN:SPR" --constraint="CPU_GEN:RME|CPU_GEN:MLN|CPU_GEN:BGM|CPU_GEN:SIE|CPU_GEN:GEN|CPU_GEN:SPR"'
             executor = 'slurm'
-            // Single core sims are slightly slower but can have shorter
-            // queue times and is less damaging to future job priority
             cpus = 1
             memory = {
                 if ( task.exitStatus in [137, 140] ) {
@@ -94,22 +99,22 @@ profiles {
             }
             time = {
                 if ( task.exitStatus == 140 ) {
-                    1.h * task.attempt
+                    4.h * task.attempt
                 } else {
-                    1.h
+                    4.h
                 }
             }
             errorStrategy = {
-                // Codes: 140 (SLURM job limits), 143 (SLURM preemption)
+                // Codes: 137(OOM), 140 (SLURM job limits), 143 (SLURM preemption)
                 // Default value for exitStatus is max integer value, this
                 // is a catch-all for errors that leave no exit code
-                ((task.exitStatus in [140, 143, Integer.MAX_VALUE])
+                ((task.exitStatus in [137, 140, 143, Integer.MAX_VALUE])
                 && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore'
             }
             maxRetries = 3
         }
         apptainer.enabled = true
-        params.projectRoot = "${launchDir}"
+        params.projectRoot = '/vEcoli'
         // Avoid getting queue status too frequently (can cause job status mixups)
         executor.queueStatInterval = '2 min'
         // Check for terminated jobs and submit new ones fairly frequently
@@ -123,8 +128,70 @@ profiles {
         executor.retry.maxDelay = '5 min'
         // Throttle submission rate to avoid overwhelming scheduler
         executor.submitRateLimit = '20/min'
+        // Raise limit to maximum allowed on Sherlock normal partition
+        executor.queueSize = 2000
         // Give NFS time to update and sync before raising errors
         executor.exitReadTimeout = '10 min'
+        workflow.failOnIgnore = true
+    }
+    sherlock_hq {
+        process {
+            // Run ParCa in separate SLURM job to allow >1 CPU
+            withLabel: parca {
+                cpus = params.parca_cpus
+                memory = params.parca_cpus * 2.GB
+                executor = 'slurm'
+                queue = 'owners,normal'
+                // Run on newer, faster CPUs
+                clusterOptions = '--prefer="CPU_GEN:GEN|CPU_GEN:SPR" --constraint="CPU_GEN:RME|CPU_GEN:MLN|CPU_GEN:BGM|CPU_GEN:SIE|CPU_GEN:GEN|CPU_GEN:SPR"'
+                time = {
+                    if ( task.exitStatus == 140 ) {
+                        1.h * task.attempt
+                    } else {
+                        1.h
+                    }
+                }
+            }
+            // Creating variants happens before the HyperQueue workers
+            // are allocated and requires a separate SLURM job
+            // Analyses do not hold up the workflow and can be
+            // scheduled on separate SLURM jobs to keep the HyperQueue
+            // workers fully focused on running simulations
+            withLabel: slurm_submit {
+                executor = 'slurm'
+                queue = 'owners,normal'
+                clusterOptions = ''
+            }
+            container = params.container_image
+            containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
+            // Use Nextflow's retry logic instead of HyperQueue's built-in logic
+            clusterOptions = '--crash-limit=1'
+            cpus = 1
+            memory = {
+                if ( task.exitStatus in [137, 140] ) {
+                    4.GB * task.attempt
+                } else {
+                    4.GB
+                }
+            }
+            time = {
+                if ( task.exitStatus == 140 ) {
+                    4.h * task.attempt
+                } else {
+                    4.h
+                }
+            }
+            errorStrategy = {
+                ((task.exitStatus in [137, 140, 143, Integer.MAX_VALUE])
+                && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore'
+            }
+            maxRetries = 3
+        }
+        params.hyperqueue = true
+        // Raise limit to maximum allowed on Sherlock normal partition
+        executor.queueSize = 2000
+        apptainer.enabled = true
+        params.projectRoot = '/vEcoli'
         workflow.failOnIgnore = true
     }
     standard {

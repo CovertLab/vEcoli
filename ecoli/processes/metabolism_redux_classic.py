@@ -275,7 +275,7 @@ class MetabolismReduxClassic(Step):
             },
             "polypeptide_elongation": {
                 "aa_count_diff": {
-                    "_default": {},
+                    "_default": [0.0] * len(self.aa_names),
                     "_emit": True,
                     "_divider": "empty_dict",
                 },
@@ -782,11 +782,9 @@ def test_network_flow_model():
         solver=cp.MOSEK,
     )
 
-    # print(flux_sum_part_obj.value)
-
-    assert np.isclose(
-        solution.velocities, np.array([1, 1, 0])
-    ).all(), "Network flow toy model did not converge to correct solution."
+    assert np.isclose(solution.velocities, np.array([1, 1, 0])).all(), (
+        "Network flow toy model did not converge to correct solution."
+    )
 
 
 # TODO (Cyrus) Add test for entire process

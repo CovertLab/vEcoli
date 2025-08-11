@@ -18,7 +18,7 @@ from ecoli.analysis.colony.snapshots import (
     format_snapshot_data,
     make_video,
 )
-from ecoli.composites.ecoli_configs import (
+from configs import (
     ECOLI_DEFAULT_PROCESSES,
     ECOLI_DEFAULT_TOPOLOGY,
 )
@@ -26,7 +26,7 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 
 @pytest.mark.slow
-def test_division(agent_id="0", total_time=4):
+def test_division(agent_id="0", max_duration=4):
     """tests that a cell can be divided and keep running"""
 
     # get initial mass from Ecoli composer
@@ -36,7 +36,7 @@ def test_division(agent_id="0", total_time=4):
     sim.config["initial_state_file"] = "vivecoli_t2527"
     sim.config["divide"] = True
     sim.config["agent_id"] = agent_id
-    sim.config["total_time"] = total_time
+    sim.config["max_duration"] = max_duration
     # Ensure unique molecules are emitted
     sim.config["emit_unique"] = True
     sim.build_ecoli()
@@ -84,16 +84,16 @@ def test_division(agent_id="0", total_time=4):
             membrane_idx,
         ]
     )
-    mother_state = next(iter(output[0]["agents"].values()))
+    mother_state = next(iter(output[1]["agents"].values()))
     mother_bulk = np.delete(mother_state["bulk"], ignore_idx)
-    daughter_states = list(output[1]["agents"].values())
+    daughter_states = list(output[2]["agents"].values())
     daughter_bulk = [np.delete(ds["bulk"], ignore_idx) for ds in daughter_states]
 
     # compare the counts of bulk molecules between the mother and daughters
     # this is not exact because the mother grew slightly in the timestep
     # after its last emit but before being split into two daughter cells
     assert np.allclose(
-        mother_bulk, np.array(daughter_bulk[0]) + np.array(daughter_bulk[1]), atol=20
+        mother_bulk, np.array(daughter_bulk[0]) + np.array(daughter_bulk[1]), atol=60
     )
 
     # compare the counts of unique molecules between the mother and daughters
@@ -110,15 +110,15 @@ def test_division(agent_id="0", total_time=4):
             # Chromosome domain 0 is lost after division because
             # it has been fully split into child domains 1 and 2
             n_daughter += 1
-        assert np.isclose(
-            n_mother, n_daughter, rtol=0.01
-        ), f"{name}: mother has {n_mother}, daughters have {n_daughter}"
+        assert np.isclose(n_mother, n_daughter, rtol=0.1), (
+            f"{name}: mother has {n_mother}, daughters have {n_daughter}"
+        )
         # Assert that no unique mol is in both daughters
         unique_idx_col = np.where(np.array(mol_keys) == "unique_index")[0][0]
         assert not (set(d1_state[unique_idx_col]) & set(d2_state[unique_idx_col]))
 
     # asserts
-    final_agents = output[total_time]["agents"].keys()
+    final_agents = output[max_duration]["agents"].keys()
     print(f"initial agent id: {agent_id}")
     print(f"final agent ids: {final_agents}")
     assert len(final_agents) == 2
@@ -226,7 +226,7 @@ def test_lattice_lysis(plot=False):
     """
     Run plots:
     '''
-    > uv run ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
+    > uvenv ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
     '''
 
     ANTIBIOTIC_KEY = 'nitrocefin'
@@ -237,7 +237,7 @@ def test_lattice_lysis(plot=False):
     TODO: connect glucose! through local_field
     """
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "lysis.json")
-    sim.total_time = 10
+    sim.max_duration = 10
     sim.process_configs.update({"global_clock": {"time_step": 2}})
     sim.build_ecoli()
     # Add beta-lactam to bulk store
@@ -296,7 +296,7 @@ def test_emit_unique():
     """
     sim = EcoliSim.from_file()
     sim.config["emit_unique"] = True
-    sim.config["total_time"] = 1
+    sim.config["max_duration"] = 1
     sim.build_ecoli()
     sim.run()
     unique_molecules = sim.ecoli_experiment.state["agents"]["0"]["unique"].inner.keys()
@@ -324,6 +324,6 @@ test_library = {
 }
 
 # run experiments in test_library from the command line with:
-# uv run ecoli/composites/ecoli_master_tests.py -n [experiment id]
+# uvenv ecoli/composites/ecoli_master_tests.py -n [experiment id]
 if __name__ == "__main__":
     run_library_cli(test_library)

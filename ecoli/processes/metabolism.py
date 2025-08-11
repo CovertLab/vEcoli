@@ -348,7 +348,7 @@ class Metabolism(Step):
             },
             "polypeptide_elongation": {
                 "aa_count_diff": {
-                    "_default": {},
+                    "_default": [0.0] * len(self.aa_names),
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "empty_dict",
@@ -360,10 +360,13 @@ class Metabolism(Step):
                     "_divider": "zero",
                 },
                 "aa_exchange_rates": {
-                    "_default": 0.0,
+                    "_default": CONC_UNITS
+                    / TIME_UNITS
+                    * np.zeros(len(self.aa_exchange_names)),
                     "_emit": True,
                     "_updater": "set",
-                    "_divider": "zero",
+                    "_divider": "set",
+                    "_serializer": "<class 'unum.Unum'>",
                 },
             },
             "global_time": {"_default": 0.0},
@@ -464,7 +467,12 @@ class Metabolism(Step):
             conc_updates.update(
                 self.update_amino_acid_targets(
                     counts_to_molar,
-                    states["polypeptide_elongation"]["aa_count_diff"],
+                    dict(
+                        zip(
+                            self.aa_names,
+                            states["polypeptide_elongation"]["aa_count_diff"],
+                        )
+                    ),
                     dict(zip(self.aa_names, counts(states["bulk_total"], self.aa_idx))),
                 )
             )
@@ -1088,7 +1096,7 @@ def test_metabolism_listener():
     from ecoli.experiments.ecoli_master_sim import EcoliSim
 
     sim = EcoliSim.from_file()
-    sim.total_time = 2
+    sim.max_duration = 2
     sim.raw_output = False
     sim.build_ecoli()
     sim.run()

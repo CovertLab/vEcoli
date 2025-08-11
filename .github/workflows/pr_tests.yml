@@ -2,6 +2,18 @@
 
 name: Workflow
 
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [master]
@@ -14,39 +26,47 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
-        version: "0.5.21"
+        version: "0.7.12"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen
     - name: Test ParCa reproducibility
       run: |
-        uv run runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
+        uv run --env-file .env runscripts/parca.py --config configs/run_parca.json \
             -c 3 -o out/parca_1
-        uv run runscripts/parca.py --config ecoli/composites/ecoli_configs/run_parca.json \
+        uv run --env-file .env runscripts/parca.py --config configs/run_parca.json \
             -c 3 -o out/parca_2
-        uv run runscripts/debug/compare_pickles.py out/parca_1/kb out/parca_2/kb
+        uv run --env-file .env runscripts/debug/compare_pickles.py out/parca_1/kb out/parca_2/kb
     - name: Test simulation reproducibility
       run: |
-        uv run ecoli/experiments/ecoli_master_sim.py \
+        uv run --env-file .env ecoli/experiments/ecoli_master_sim.py \
             --generations 1 --emitter parquet --emitter_arg out_dir='out' \
             --experiment_id "parca_1" --daughter_outdir "out/parca_1" \
-            --sim_data_path "out/parca_1/kb/simData.cPickle" --fail_at_total_time &
-        uv run ecoli/experiments/ecoli_master_sim.py \
+            --sim_data_path "out/parca_1/kb/simData.cPickle" --fail_at_max_duration &
+        SIM1_PID=$!
+        uv run --env-file .env ecoli/experiments/ecoli_master_sim.py \
             --generations 1 --emitter parquet --emitter_arg out_dir='out' \
             --experiment_id "parca_2" --daughter_outdir "out/parca_2" \
-            --sim_data_path "out/parca_2/kb/simData.cPickle" --fail_at_total_time
-        uv run runscripts/debug/diff_simouts.py -o "out" "parca_1*" "parca_2*"
+            --sim_data_path "out/parca_2/kb/simData.cPickle" --fail_at_max_duration
+        # Wait for the first simulation to complete if it's still running
+        if ps -p $SIM1_PID > /dev/null; then
+          echo "Waiting for first simulation (PID: $SIM1_PID) to complete..."
+          wait $SIM1_PID
+        else
+          echo "First simulation already completed"
+        fi
+        uv run --env-file .env runscripts/debug/diff_simouts.py -o "out" "parca_1*" "parca_2*"
   Two-gens:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
-        version: "0.5.21"
+        version: "0.7.12"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen
     - name: Install nextflow edge
@@ -57,4 +77,8 @@ jobs:
         NXF_EDGE=1 ./nextflow self-update
     - name: Two generations
       run: |
-        uv run runscripts/workflow.py --config ecoli/composites/ecoli_configs/two_generations.json
+        uv run --env-file .env runscripts/workflow.py --config configs/two_generations.json
+    - name: Show stderr for failed Nextflow tasks
+      if: ${{ failure() }}
+      run: |
+        nextflow log -q | tail -n 1 | awk '{print $1}' | xargs -I {} nextflow log {} -f name,stderr -F "status == 'FAILED'"

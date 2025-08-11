@@ -23,9 +23,10 @@ from urllib import parse
 
 import numpy as np
 from vivarium.core.engine import Engine
+from vivarium.core.composer import deep_merge
 from vivarium.core.process import Process
 from vivarium.core.serialize import deserialize_value, serialize_value
-from vivarium.library.dict_utils import deep_merge, deep_merge_check
+from vivarium.library.dict_utils import deep_merge_check
 from vivarium.library.topology import inverse_topology
 from vivarium.library.topology import assoc_path
 from ecoli.library.logging_tools import write_json
@@ -38,15 +39,18 @@ from ecoli.processes import process_registry
 from ecoli.processes.cell_division import DivisionDetected
 from ecoli.processes.registries import topology_registry
 
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+from configs import CONFIG_DIR_PATH
+from ecoli.library.parquet_emitter import ParquetEmitter
 from ecoli.library.schema import not_a_process
+
+from wholecell.utils.filepath import ROOT_PATH
 
 from runscripts.workflow import LIST_KEYS_TO_MERGE
 
 
 class TimeLimitError(RuntimeError):
-    """Error raised when ``fail_at_total_time`` is True and simulation
-    reaches ``total_time``."""
+    """Error raised when ``fail_at_max_duration`` is True and simulation
+    reaches ``max_duration``."""
 
     pass
 
@@ -76,22 +80,67 @@ def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
 
 def get_git_revision_hash() -> str:
     """Returns current Git hash for model repository to include in metadata
-    that is emitted when starting a simulation."""
-    return (
-        subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"])
-        .decode("ascii")
-        .strip()
+    that is emitted when starting a simulation.
+
+    First tries to run git command if git is installed.
+    If that fails, tries to get the value from IMAGE_GIT_HASH environment variable.
+    Raises an error if both methods fail.
+    """
+    # Try to run git command
+    try:
+        return (
+            subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"])
+            .decode("ascii")
+            .strip()
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass  # Continue to next method if git command fails
+
+    # Try to get from environment variable
+    env_hash = os.environ.get("IMAGE_GIT_HASH")
+    if env_hash:
+        return env_hash.strip()
+
+    # Raise error if both methods fail
+    raise RuntimeError(
+        "Could not determine Git hash: git command failed and IMAGE_GIT_HASH "
+        "environment variable is not set. Either install git, set the environment "
+        "variable, or run from a container with this information."
     )
 
 
-def get_git_status() -> str:
-    """Returns Git status of model repository to include in metadata that is
+def get_git_diff() -> str:
+    """Returns Git diff of model repository to include in metadata that is
     emitted when starting a simulation.
+
+    First tries to run git command if git is installed.
+    If that fails, tries to read the diff from source-info/git-diff.txt file.
+    Raises an error if both methods fail.
     """
-    return (
-        subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "status", "--porcelain"])
-        .decode("ascii")
-        .strip()
+    try:
+        return (
+            subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "diff", "HEAD"])
+            .decode("utf-8")
+            .strip()
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass  # Continue to next method if git command fails
+
+    # Try to read from git-diff.txt file
+    diff_file_path = os.path.join(ROOT_PATH, "source-info", "git_diff.txt")
+    if os.path.exists(diff_file_path):
+        try:
+            with open(diff_file_path, "r") as f:
+                return f.read().strip()
+        except IOError:
+            pass  # Continue to next method if file read fails
+
+    # Raise error if both methods fail
+    raise RuntimeError(
+        "Could not determine Git diff: git command failed and "
+        f"{diff_file_path} does not exist or cannot be read. "
+        "Either install git, create the git-diff.txt file, "
+        "or run from a container with this information."
     )
 
 
@@ -227,15 +276,14 @@ class SimConfig:
                 action="store",
                 nargs="*",
                 help=(
-                    "Key-value pairs, separated by `=`, to include in "
-                    "emitter config."
+                    "Key-value pairs, separated by `=`, to include in emitter config."
                 ),
             )
             self.parser.add_argument(
                 "--seed", action="store", type=int, help="Random seed."
             )
             self.parser.add_argument(
-                "--total_time",
+                "--max_duration",
                 action="store",
                 type=float,
                 help="Time to run the simulation for.",
@@ -248,7 +296,7 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--log_updates",
-                action="store_true",
+                action=argparse.BooleanOptionalAction,
                 help=(
                     "Save updates from each process if this flag is set, "
                     "e.g. for use with blame plot."
@@ -256,7 +304,7 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--raw_output",
-                action="store_true",
+                action=argparse.BooleanOptionalAction,
                 help=(
                     "Whether to return data in raw format (dictionary"
                     " where keys are times, values are states). Requires"
@@ -268,19 +316,16 @@ class SimConfig:
             )
             self.parser.add_argument(
                 "--sim_data_path",
-                default=None,
                 help="Path to the sim_data (pickle from ParCa) to use for this experiment.",
             )
             self.parser.add_argument(
                 "--profile",
-                action="store_true",
-                default=False,
+                action=argparse.BooleanOptionalAction,
                 help="Print profiling information at the end.",
             )
             self.parser.add_argument(
                 "--initial_state_file",
                 action="store",
-                default="",
                 help='Name of initial state file (omit ".json" extension) under data/',
             )
             self.parser.add_argument(
@@ -310,10 +355,9 @@ class SimConfig:
                 help="Initial time in context of whole lineage.",
             )
             self.parser.add_argument(
-                "--fail_at_total_time",
-                action="store_true",
-                default=False,
-                help="Simulation will raise TimeLimitException upon reaching total_time.",
+                "--fail_at_max_duration",
+                action=argparse.BooleanOptionalAction,
+                help="Simulation will raise TimeLimitException upon reaching max_duration.",
             )
 
     @staticmethod
@@ -366,7 +410,9 @@ class SimConfig:
         # Then override the configuration file with any command-line
         # options.
         cli_config = {
-            key: value for key, value in vars(args).items() if value and key != "config"
+            key: value
+            for key, value in vars(args).items()
+            if value is not None and key != "config"
         }
         self.merge_config_dicts(self._config, cli_config)
 
@@ -402,8 +448,8 @@ class EcoliSim:
         :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` object
         in one of two ways.
 
-        1. ``sim.total_time = 100``
-        2. ``sim.config['total_time'] = 100``
+        1. ``sim.max_duration = 100``
+        2. ``sim.config['max_duration'] = 100``
 
         Args:
             config: Automatically generated from
@@ -444,12 +490,12 @@ class EcoliSim:
         # For example:
         #
         # >> sim = EcoliSim.from_file()
-        # >> sim.total_time
+        # >> sim.max_duration
         #    10
-        # >> sim.config['total_time']
+        # >> sim.config['max_duration']
         #    10
-        # >> sim.total_time = 100
-        # >> sim.config['total_time']
+        # >> sim.max_duration = 100
+        # >> sim.config['max_duration']
         #    100
 
         class ConfigEntry:
@@ -631,7 +677,7 @@ class EcoliSim:
         Adds spatial environment if ``config['spatial_environment']`` is
         ``True``. Spatial environment config options are loaded from
         ``config['spatial_environment_config`]``. See
-        ``ecoli/composites/ecoli_configs/spatial.json`` for an example.
+        ``configs/spatial.json`` for an example.
         """
         # build processes, topology, configs
         self.processes = self._retrieve_processes(
@@ -686,7 +732,45 @@ class EcoliSim:
                 self.generated_initial_state, initial_environment
             )
 
-    def save_states(self, daughter_outdir: str = ""):
+    def update_experiment(self, time_to_update: float = 0.0):
+        """
+        Runs the E. coli simulation for a specified amount of time. If the
+        simulation reaches a division event and ``config['generations']`` is set,
+        it will save the daughter cell states to JSON files in the directory
+        specified by ``config['daughter_outdir']``. Also creates a file
+        ``division_time.sh`` that, when executed, sets the environment variable
+        ``division_time`` to the time at which division occurred (used in
+        Nextflow workflow runs).
+        """
+        try:
+            self.ecoli_experiment.update(time_to_update)
+        except DivisionDetected:
+            state = self.ecoli_experiment.state.get_value(condition=not_a_process)
+            assert len(state["agents"]) == 2
+            for i, agent_state in enumerate(state["agents"].values()):
+                prepare_save_state(agent_state)
+                daughter_path = os.path.join(
+                    self.daughter_outdir, f"daughter_state_{i}.json"
+                )
+                write_json(daughter_path, agent_state)
+            print(
+                f"Divided at t = {self.ecoli_experiment.global_time} after "
+                f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
+            )
+            with open("division_time.sh", "w") as f:
+                f.write(f"export division_time={self.ecoli_experiment.global_time}")
+            # Tell Parquet emitter that simulation was successful
+            if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
+                self.ecoli_experiment.emitter.success = True
+                self.ecoli_experiment.emitter.finalize()
+            # Exit so that EcoliSim.run() does not raise TimeLimitError
+            sys.exit()
+        finally:
+            # Finish writing any buffered emits to Parquet files
+            if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
+                self.ecoli_experiment.emitter.finalize()
+
+    def save_states(self):
         """
         Runs the simulation while saving the states of specific
         timesteps to files named ``data/vivecoli_t{time}.json``. Invoked by
@@ -694,18 +778,12 @@ class EcoliSim:
         if ``config['save'] == True``. State is saved as a JSON that
         can be reloaded into a simulation as described in
         :py:meth:`~ecoli.composites.ecoli_master.Ecoli.initial_state`.
-
-        Args:
-            daughter_outdir: Location to write JSON files for daughter cell(s).
-                Only used if ``config`` contains ``generations`` key specifying
-                number of generations to simulate. Nextflow chains simulations
-                together by passing saved daughter states to new processes.
         """
         for time in self.save_times:
-            if time > self.total_time:
+            if time > self.max_duration:
                 raise ValueError(
                     f"Config contains save_time ({time}) > total "
-                    f"time ({self.total_time})"
+                    f"time ({self.max_duration})"
                 )
 
         for i in range(len(self.save_times)):
@@ -713,24 +791,7 @@ class EcoliSim:
                 time_to_next_save = self.save_times[i]
             else:
                 time_to_next_save = self.save_times[i] - self.save_times[i - 1]
-            try:
-                self.ecoli_experiment.update(time_to_next_save)
-            except DivisionDetected:
-                state = self.ecoli_experiment.state.get_value(condition=not_a_process)
-                assert len(state["agents"]) == 2
-                for i, agent_state in enumerate(state["agents"].values()):
-                    prepare_save_state(agent_state)
-                    daughter_path = os.path.join(
-                        daughter_outdir, f"daughter_state_{i}.json"
-                    )
-                    write_json(daughter_path, agent_state)
-                print(
-                    f"Divided at t = {self.ecoli_experiment.global_time} after"
-                    f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
-                )
-                with open("division_time.sh", "w") as f:
-                    f.write(f"export division_time={self.ecoli_experiment.global_time}")
-                sys.exit()
+            self.update_experiment(time_to_next_save)
             time_elapsed = self.save_times[i]
             state = self.ecoli_experiment.state.get_value(condition=not_a_process)
             if self.divide:
@@ -740,12 +801,15 @@ class EcoliSim:
                 prepare_save_state(state)
             write_json("data/vivecoli_t" + str(time_elapsed) + ".json", state)
             print("Finished saving the state at t = " + str(time_elapsed))
-        time_remaining = self.total_time - self.save_times[-1]
+        time_remaining = self.max_duration - self.save_times[-1]
         if time_remaining:
-            self.ecoli_experiment.update(time_remaining)
+            self.update_experiment(time_remaining)
 
     def run(self):
-        """Create and run an EcoliSim experiment.
+        """Create and run an EcoliSim experiment. If the simulation reaches
+        the maximum duration specified by ``config['max_duration']``, it will
+        raise a :py:class:`~ecoli.experiments.ecoli_master_sim.TimeLimitError`
+        if ``config['fail_at_max_duration']`` is ``True``.
 
         .. WARNING::
             Run :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.build_ecoli`
@@ -758,7 +822,7 @@ class EcoliSim:
             )
 
         metadata = self.get_metadata()
-        metadata["output_metadata"] = self.get_output_metadata()
+        metadata["output_metadata"] = self.output_metadata()
         # make the experiment
         if isinstance(self.emitter, str):
             self.emitter_config = {"type": self.emitter}
@@ -841,38 +905,23 @@ class EcoliSim:
 
         # run the experiment
         if self.save:
-            self.save_states(self.daughter_outdir)
+            self.save_states()
         else:
-            try:
-                self.ecoli_experiment.update(self.total_time)
-            except DivisionDetected:
-                state = self.ecoli_experiment.state.get_value(condition=not_a_process)
-                assert len(state["agents"]) == 2
-                for i, agent_state in enumerate(state["agents"].values()):
-                    prepare_save_state(agent_state)
-                    daughter_path = os.path.join(
-                        self.daughter_outdir, f"daughter_state_{i}.json"
-                    )
-                    write_json(daughter_path, agent_state)
-                print(
-                    f"Divided at t = {self.ecoli_experiment.global_time} after"
-                    f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
-                )
-                with open("division_time.sh", "w") as f:
-                    f.write(f"export division_time={self.ecoli_experiment.global_time}")
-                sys.exit()
+            self.update_experiment(self.max_duration)
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
-        if self.fail_at_total_time:
-            raise TimeLimitError(f"Exceeded maximum simulation time: {self.total_time}")
+        if self.fail_at_max_duration:
+            raise TimeLimitError(
+                f"Exceeded maximum simulation time: {self.max_duration}"
+            )
 
     def query(self, query: Optional[list[tuple[str]]] = None):
         """
         Query data that was emitted to RAMEmitter (``config['emitter'] == 'timeseries'``).
         For the Parquet emitter, query sim output with an analysis script run using
         :py:mod:`runscripts.analysis` or with ad-hoc DuckDB SQL queries built using
-        :py:func:`~ecoli.library.parquet_emitter.get_dataset_sql` as a base.
+        :py:func:`~ecoli.library.parquet_emitter.dataset_sql` as a base.
 
         Args:
             query: List of tuple-style paths in the simulation state to
@@ -895,7 +944,7 @@ class EcoliSim:
                 "Query method only works for timeseries emitter."
                 " For Parquet emitter, either write an analysis script to be run"
                 " using runscripts/analysis.py or build off the DuckDB SQL query"
-                " returned by ecoli.library.parquet_emitter.get_dataset_sql."
+                " returned by ecoli.library.parquet_emitter.dataset_sql."
             )
         # Retrieve queried data (all if not specified)
         if self.raw_output:
@@ -923,19 +972,13 @@ class EcoliSim:
         # with an additional key for the current git hash.
         # Goal is to save enough information to reproduce the experiment.
         metadata = dict(self.config)
-        try:
-            metadata["git_hash"] = get_git_revision_hash()
-        except subprocess.CalledProcessError:
-            warnings.warn(
-                "Unable to retrieve current git revision hash. "
-                "Try making a note of this manually if your experiment may "
-                "need to be replicated."
-            )
+        metadata["git_hash"] = get_git_revision_hash()
+        metadata["git_diff"] = get_git_diff()
         metadata["processes"] = [k for k in metadata["processes"].keys()]
         metadata["time"] = datetime.now()
         return metadata
 
-    def get_output_metadata(self) -> dict[str, Any]:
+    def output_metadata(self) -> dict[str, Any]:
         """
         Filters all ports schemas to include only output metadata
         located at the path ``('_properties', 'metadata')`` for each schema by
@@ -945,7 +988,7 @@ class EcoliSim:
         This dictionary of output metadata is flattened (see :py:func:`~ecoli.library.parquet_emitter.flatten_dict`)
         into columns with prefix :py:data:`~ecoli.library.parquet_emitter.METADATA_PREFIX`
         and emitted as part of the simulation config by the Parquet emitter. It can
-        be retrieved later using :py:func:`~ecoli.library.parquet_emitter.get_field_metadata`.
+        be retrieved later using :py:func:`~ecoli.library.parquet_emitter.field_metadata`.
         """
         if self.divide:
             processes_and_steps = self.ecoli.processes["agents"][self.agent_id]

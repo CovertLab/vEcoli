@@ -4,12 +4,12 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim
 
 
 def test_lysis_initiation():
-    from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+    from configs import CONFIG_DIR_PATH
 
     ecoli = EcoliSim.from_file(
         os.path.join(CONFIG_DIR_PATH, "test_configs/test_lysis_initiation.json")
     )
-    ecoli.total_time = 20
+    ecoli.max_duration = 20
     ecoli.build_ecoli()
     agent_data = ecoli.generated_initial_state["agents"]["0"]
     zero_mass = (0,) * 9

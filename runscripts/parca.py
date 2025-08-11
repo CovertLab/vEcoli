@@ -5,7 +5,7 @@ import pickle
 import shutil
 import time
 
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+from configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
 from reconstruction.ecoli.knowledge_base_raw import KnowledgeBaseEcoli
 from reconstruction.ecoli.fit_sim_data_1 import fitSimData_1
@@ -52,6 +52,7 @@ def run_parca(config):
         variable_elongation_translation=config["variable_elongation_translation"],
         disable_ribosome_capacity_fitting=(not config["ribosome_fitting"]),
         disable_rnapoly_capacity_fitting=(not config["rnapoly_fitting"]),
+        cache_dir=config["cache_dir"],
     )
     print(f"{time.ctime()}: Saving sim_data")
     with open(sim_data_file, "wb") as f:
@@ -114,19 +115,19 @@ def main():
     )
     parser.add_argument(
         "--remove-rrna-operons",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="Remove the seven rRNA operons. Does not have any effect if"
         " --no-operons specified.",
     )
     parser.add_argument(
         "--remove-rrff",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="Remove the rrfF gene. If operons are enabled,"
         " removes the rrfF gene from the rrnD operon.",
     )
     parser.add_argument(
         "--debug-parca",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="Make Parca calculate only one arbitrarily-chosen transcription"
         " factor condition when adjusting gene expression levels, leaving"
         " the other TFs at their input levels for faster Parca debugging."
@@ -141,7 +142,7 @@ def main():
     )
     parser.add_argument(
         "--save-intermediates",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         help="If set, saves sim_data and cell_specs at intermediate"
         " function calls in the parca.",
     )
@@ -177,10 +178,15 @@ def main():
             SimConfig.merge_config_dicts(config, json.load(f))
     # ParCa options are defined under `parca_options` key in config JSON
     # Merge these with CLI arguments, which take precedence
-    cli_options = {k: v for k, v in vars(args).items() if v is not None}
-    cli_options.pop("config")
     parca_options = config.pop("parca_options")
-    SimConfig.merge_config_dicts(parca_options, cli_options)
+    for k, v in vars(args).items():
+        if v is not None:
+            parca_options[k] = v
+    # Expand outdir to absolute path
+    parca_options["outdir"] = os.path.abspath(parca_options["outdir"])
+    # Set cache directory for ParCa to outdir/cache
+    parca_options["cache_dir"] = os.path.join(parca_options["outdir"], "cache")
+    os.makedirs(parca_options["cache_dir"], exist_ok=True)
     # If config defines a sim_data_path, skip ParCa
     if config["sim_data_path"] is not None:
         out_kb = os.path.join(parca_options["outdir"], "kb")

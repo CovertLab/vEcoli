@@ -1860,10 +1860,10 @@ class Metabolism(object):
         # Check calculations that could end up negative
         neg_idx = np.where(self.max_specific_import_rates < 0)[0]
         if len(neg_idx):
-            aas = ", ".join([aa_ids[idx] for idx in neg_idx])
+            bad_aas = ", ".join([aa_ids[idx] for idx in neg_idx])
             print(f"{self.max_specific_import_rates = }")
             raise ValueError(
-                f"Import rate was determined to be negative for {aas}."
+                f"Import rate was determined to be negative for {bad_aas}."
                 " Check input parameters like supply and synthesis or enzyme expression."
             )
 
@@ -1977,7 +1977,7 @@ class Metabolism(object):
         dry_mass: units.Unum,
         internal_aa_conc: Union[units.Unum, npt.NDArray[np.float64]],
         aa_transporters_counts: npt.NDArray[np.int64],
-        mechanisitic_uptake: bool,
+        mechanistic_uptake: bool,
     ) -> npt.NDArray[np.float64]:
         """
         Calculate the rate of amino acid uptake.
@@ -1987,7 +1987,7 @@ class Metabolism(object):
                 dry_mass: current dry mass of the cell, with mass units
                 internal_aa_conc: internal concentrations of amino acids
                 aa_transporters_counts: counts of each transporter
-                mechanisitic_uptake: if true, the uptake is calculated based on
+                mechanistic_uptake: if true, the uptake is calculated based on
                         transporters
 
         Returns:
@@ -2004,7 +2004,7 @@ class Metabolism(object):
             dry_mass,
             internal_aa_conc,
             aa_transporters_counts,
-            mechanisitic_uptake,
+            mechanistic_uptake,
             self.aa_import_kis,
             self.aa_to_importers_matrix,
             self.import_kcats_per_aa,
@@ -3121,14 +3121,14 @@ def amino_acid_import_jit(
     dry_mass,
     internal_aa_conc,
     aa_transporters_counts,
-    mechanisitic_uptake,
+    mechanistic_uptake,
     aa_import_kis,
     aa_to_importers_matrix,
     import_kcats_per_aa,
     max_specific_import_rates,
 ):
     saturation = 1 / (1 + internal_aa_conc / aa_import_kis)
-    if mechanisitic_uptake:
+    if mechanistic_uptake:
         # Uptake based on mechanistic model
         counts_per_aa = aa_to_importers_matrix.astype(
             np.float64

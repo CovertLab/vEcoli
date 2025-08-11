@@ -2,7 +2,7 @@ import argparse
 import duckdb
 import numpy as np
 
-from ecoli.library.parquet_emitter import get_dataset_sql, ndlist_to_ndarray
+from ecoli.library.parquet_emitter import dataset_sql, ndlist_to_ndarray
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     exp_id_1, exp_id_2 = args.exp_ids
 
-    history_sql, _ = get_dataset_sql(args.output)
+    history_sql, _, _ = dataset_sql(args.output, list(args.exp_ids))
     id_cols = "experiment_id, variant, lineage_seed, generation, agent_id, time"
     ordered_sql = f"SELECT * FROM ({{sql_query}}) WHERE experiment_id = '{{exp_id}}' ORDER BY {id_cols}"
     data_1 = duckdb.sql(

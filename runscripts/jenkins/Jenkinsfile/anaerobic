@@ -1,0 +1,124 @@
+pipeline {
+    agent any
+    
+    triggers {
+        cron('H H * * *')
+    }
+
+    options {
+        // Configure shallow clone
+        skipDefaultCheckout(true)
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    extensions: [
+                        [$class: 'CloneOption', depth: 1, noTags: false, shallow: true, reference: '']
+                    ],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
+            }
+        }
+
+        stage('Anaerobic') {
+            steps {
+                sh '''
+                TIMEOUT='12h'
+                code=0
+                timeout $TIMEOUT sh runscripts/jenkins/workflow.sh runscripts/jenkins/configs/ecoli-anaerobic.json || code=$?
+                [ $code -eq 124 ] && echo "Jenkins job timeout after $TIMEOUT"
+                exit $code
+                '''
+            }
+        }
+    }
+    
+    post {        
+        success {
+            script {
+                if (hasStatusChanged()) {
+                    slackSend(
+                        color: 'good',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} back to normal after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
+                    )
+                } else {
+                    echo "Job was successful just like last run, not sending Slack notification."
+                }
+            }
+        }
+        
+        failure {
+            script {
+                if (hasStatusChanged()) {
+                    slackSend(
+                        color: 'danger',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} failed after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
+                    )
+                } else {
+                    slackSend(
+                        color: 'danger',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} is still failing after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
+                    )
+                }
+            }
+        }
+        
+        aborted {
+            script {
+                if (hasStatusChanged()) {
+                    slackSend(
+                        color: '#808080',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} aborted after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
+                    )
+                } else {
+                    slackSend(
+                        color: '#808080',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} aborted again after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
+                    )
+                }
+            }
+        }
+
+        unstable {
+            script {
+                if (hasStatusChanged()) {
+                    slackSend(
+                        color: 'warning',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} unstable after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
+                    )
+                } else {
+                    slackSend(
+                        color: 'warning',
+                        channel: '#jenkins',
+                        message: "${env.JOB_NAME} ${env.BUILD_DISPLAY_NAME} is still unstable after ${currentBuild.durationString.minus(' and counting')} (<${env.BUILD_URL}|link>)"
+                    )
+                }
+            }
+        }
+
+        cleanup {
+            cleanWs()
+        }
+    }
+}
+
+def hasStatusChanged() {
+    if (currentBuild.previousBuild == null) {
+        return true
+    }
+    
+    def previousResult = currentBuild.previousBuild.result
+    def currentResult = currentBuild.currentResult
+    
+    return previousResult != currentResult
+}

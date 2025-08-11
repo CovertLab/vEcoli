@@ -182,6 +182,22 @@ def create_unique_indices(
     return unique_indices
 
 
+def zero_listener(listener: dict[str, Any]) -> dict[str, Any]:
+    """
+    Takes a listener dictionary and creates a zeroed version of it.
+    """
+    new_listener = {}
+    for key, value in listener.items():
+        if isinstance(value, dict):
+            new_listener[key] = zero_listener(value)
+        else:
+            zeros = np.zeros_like(value)
+            if zeros.shape == ():
+                zeros = zeros.item()
+            new_listener[key] = zeros
+    return new_listener
+
+
 def not_a_process(value):
     """Returns ``True`` if not a :py:class:`vivarium.core.process.Process` instance."""
     return not (isinstance(value, Store) and value.topology)
@@ -237,12 +253,12 @@ def numpy_schema(name: str, emit: bool = True) -> Dict[str, Any]:
     """Helper function used in ports schemas for bulk and unique molecules
 
     Args:
-        name: `bulk` for bulk molecules or one of the keys in :py:data:`UNIQUE_DIVIDERS`
+        name: ``bulk`` for bulk molecules or one of the keys in :py:data:`UNIQUE_DIVIDERS`
             for unique molecules
-        emit: `True` if should be emitted (default)
+        emit: ``True`` if should be emitted (default)
 
     Returns:
-        Fully configured ports schema for molecules of type `name`
+        Fully configured ports schema for molecules of type ``name``
     """
     schema = {"_default": [], "_emit": emit}
     if name == "bulk":
@@ -383,10 +399,10 @@ class UniqueNumpyUpdater:
     To fix this, this unique molecule updater is a bound method with access
     to instance attributes that allow it to accumulate updates until given
     the signal to apply the accumulated updates in the proper order. The
-    signal to apply these updates is given by a special process (
-    :py:class:`ecoli.processes.unique_update.UniqueUpdate`) that is
+    signal to apply these updates is given by a special process
+    (:py:class:`~ecoli.processes.unique_update.UniqueUpdate`) that is
     automatically added to the simulation by
-    :py:meth:`ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps`
+    :py:meth:`~ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps`.
     """
 
     def __init__(self):
@@ -426,7 +442,7 @@ class UniqueNumpyUpdater:
                     are automatically generated for each new molecule. If
                     you need to reference the unique indices of new molecules in
                     the same process and time step in which you generated them,
-                    you MUST use the :py:func:`ecoli.library.schema.create_unique_indices`
+                    you MUST use :py:func:`~ecoli.library.schema.create_unique_indices`
                     to generate the indices and supply them under the ``unique_index``
                     key of your ``add`` update. Can have multiple such
                     dictionaries in a list to apply multiple ``add`` updates.
@@ -440,9 +456,9 @@ class UniqueNumpyUpdater:
 
                 - ``update``: Boolean
                     Special key that should only be included in the update of
-                    :py:class:`ecoli.processes.unique_update.UniqueUpdate`.
-                    Tells updater to apply all cached updates (e.g. at the
-                    end of an "execution layer"; see :ref:`partitioning`).
+                    :py:class:`~ecoli.processes.unique_update.UniqueUpdate`.
+                    Tells updater to apply all cached updates at the
+                    end of an "execution layer" (see :ref:`partitioning`).
 
         Returns:
             Updated unique molecule structured Numpy array.
@@ -551,11 +567,9 @@ def listener_schema(elements: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
             defaults for each listener. Alternatively, if the value is a
             tuple, assume that the first element is the default and the second
             is metadata that will be emitted at the beginning of a simulation
-            when ``emitter`` is set to ``database`` and ``emit_config`` is
-            set to ``True`` (see :py:mod:`ecoli.experiments.ecoli_master_sim`).
+            (see :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata`).
             This metadata can then be retrieved later to aid in interpreting
-            listener values (see :py:func:`vivarium.core.emitter.data_from_database`
-            for sample code to query experiment configuration collection).
+            listener values (see :py:func:`~ecoli.library.parquet_emitter.field_metadata`).
             As an example, this metadata might be an array of molecule names
             for a listener whose emits are arrays of counts, where the nth
             molecule name in the metadata corresponds to the nth value in the

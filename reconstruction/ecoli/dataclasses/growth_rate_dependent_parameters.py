@@ -771,13 +771,15 @@ def linear_regression(
 
     if result.rvalue < r_tol:
         raise ValueError(
-            "Could not fit linear regression with high enough r"
-            " value: {} < {}".format(result.rvalue, r_tol)
+            "Could not fit linear regression with high enough r value: {} < {}".format(
+                result.rvalue, r_tol
+            )
         )
     if result.pvalue > p_tol:
         raise ValueError(
-            "Could not fit linear regression with low enough p"
-            " value: {} > {}".format(result.pvalue, p_tol)
+            "Could not fit linear regression with low enough p value: {} > {}".format(
+                result.pvalue, p_tol
+            )
         )
 
     return result.slope, result.intercept

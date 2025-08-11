@@ -8,6 +8,10 @@ Forms subunits into complexes using random complexation reaction sampling.
 
 TODO:
 - document algorithm (not terribly complicated)
+
+.. WARNING::
+	If you modify this file, you must trigger a rebuild of the vEcoli package
+	with `uv sync --frozen --extra dev --reinstall-package vEcoli`.
 """
 
 import numpy as np

@@ -187,18 +187,18 @@ def test_protein_degradation(return_data=False):
 
     # Proteins are monotonically decreasing, never <0:
     for i in range(protein_data.shape[1]):
-        assert monotonically_decreasing(
-            protein_data[:, i]
-        ), f"Protein {test_config['protein_ids'][i]} is not monotonically decreasing."
-        assert all_nonnegative(
-            protein_data
-        ), f"Protein {test_config['protein_ids'][i]} falls below 0."
+        assert monotonically_decreasing(protein_data[:, i]), (
+            f"Protein {test_config['protein_ids'][i]} is not monotonically decreasing."
+        )
+        assert all_nonnegative(protein_data), (
+            f"Protein {test_config['protein_ids'][i]} falls below 0."
+        )
 
     # Amino acids are monotonically increasing
     for i in range(aa_data.shape[1]):
-        assert monotonically_increasing(
-            aa_data[:, i]
-        ), f"Amino acid {test_config['amino_acid_ids'][i]} is not monotonically increasing."
+        assert monotonically_increasing(aa_data[:, i]), (
+            f"Amino acid {test_config['amino_acid_ids'][i]} is not monotonically increasing."
+        )
 
     # H2O is monotonically decreasing, never < 0
     assert monotonically_decreasing(h2o_data), "H2O is not monotonically decreasing."

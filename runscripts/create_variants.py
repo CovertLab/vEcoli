@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+from configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
 
 if TYPE_CHECKING:
@@ -62,10 +62,13 @@ def parse_variants(
     # Extract operation if more than one parameter
     operation = None
     if len(variant_config) > 1:
+        assert "op" in variant_config, (
+            "Variant has more than 1 parameter but no op key defined."
+        )
         operation = variant_config.pop("op")
     elif "op" in variant_config:
         raise TypeError(
-            "Variant only has a single parameter " "and should not define op key."
+            "Variant only has a single parameter and should not define op key."
         )
 
     # Perform pre-processing of parameters
@@ -155,7 +158,7 @@ def apply_and_save_variants(
         sim_data_copy = copy.deepcopy(sim_data)
         variant_metadata[i + 1] = params
         variant_sim_data = variant_mod.apply_variant(sim_data_copy, params)
-        outpath = os.path.join(outdir, f"{i+1}.cPickle")
+        outpath = os.path.join(outdir, f"{i + 1}.cPickle")
         with open(outpath, "wb") as f:
             pickle.dump(variant_sim_data, f)
     with open(os.path.join(outdir, "metadata.json"), "w") as f:
@@ -210,7 +213,7 @@ def test_create_variants():
                 "python",
                 "runscripts/create_variants.py",
                 "--config",
-                "ecoli/composites/ecoli_configs/test_variant.json",
+                "configs/test_variant.json",
                 "--kb",
                 "test_create_variants/kb",
                 "-o",
@@ -278,17 +281,20 @@ def main():
     if args.config is not None:
         with open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
-    SimConfig.merge_config_dicts(config, vars(args))
+    for k, v in vars(args).items():
+        if v is not None:
+            config[k] = v
 
     print("Loading sim_data...")
     with open(os.path.join(config["kb"], "simData.cPickle"), "rb") as f:
         sim_data = pickle.load(f)
-    os.makedirs(config["outdir"], exist_ok=True)
+    config_outdir = os.path.abspath(config["outdir"])
+    os.makedirs(config_outdir, exist_ok=True)
     if config["skip_baseline"]:
         print("Skipping baseline sim_data...")
     else:
         print("Saving baseline sim_data...")
-        with open(os.path.join(config["outdir"], "0.cPickle"), "wb") as f:
+        with open(os.path.join(config_outdir, "0.cPickle"), "wb") as f:
             pickle.dump(sim_data, f)
     variant_config = config.get("variants", {})
     if len(variant_config) > 1:
@@ -307,11 +313,11 @@ def main():
             sim_data,
             parsed_params,
             variant_name,
-            config["outdir"],
+            config_outdir,
             config["skip_baseline"],
         )
     else:
-        with open(os.path.join(config["outdir"], "metadata.json"), "w") as f:
+        with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
             json.dump({None: {0: "baseline"}}, f)
     print("Done.")
 

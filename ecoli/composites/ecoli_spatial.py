@@ -83,10 +83,9 @@ from ecoli.processes.spatiality.diffusion_network import (
     DiffusionNetwork,
 )
 
-from ecoli.library.json_state import get_state_from_file
 from ecoli.library.schema import attrs, bulk_name_to_idx
+from ecoli.library.sim_data import LoadSimData
 
-SIM_DATA_PATH = "reconstruction/sim_data/kb/simData.cPickle"
 RIBOSOME_SIZE = 21  # in nm
 
 
@@ -94,7 +93,7 @@ class EcoliSpatial(Composer):
     defaults = {
         "time_step": 2.0,
         "seed": 0,
-        "sim_data_path": SIM_DATA_PATH,
+        "sim_data_path": "out/kb/simData.cPickle",
         "nodes": [],
         "edges": {},
         "mesh_size": 50,  # in nm
@@ -115,35 +114,34 @@ class EcoliSpatial(Composer):
         self.temp = self.config["temp"]
 
         # load sim_data
-        with open(self.sim_data_path, "rb") as sim_data_file:
-            sim_data = pickle.load(sim_data_file)
+        self.load_sim_data = LoadSimData(self.sim_data_path)
 
-        bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data["id"]
+        bulk_ids = self.load_sim_data.sim_data.internal_state.bulk_molecules.bulk_data[
+            "id"
+        ]
 
         # molecular weight is converted to femtograms
         self.bulk_molecular_weights = {
             molecule_id: (
-                sim_data.getter.get_mass(molecule_id) / constants.N_A
+                self.load_sim_data.sim_data.getter.get_mass(molecule_id) / constants.N_A
             ).asNumber(units.fg / units.mol)
             for molecule_id in bulk_ids
         }
 
         # unique molecule masses
         self.unique_masses = {}
-        unique_molecular_masses = (
-            sim_data.internal_state.unique_molecule.unique_molecule_masses
-        )
+        unique_molecular_masses = self.load_sim_data.sim_data.internal_state.unique_molecule.unique_molecule_masses
         for id_, mass in zip(
             unique_molecular_masses["id"], unique_molecular_masses["mass"]
         ):
             self.unique_masses[id_] = sum(
-                (mass / sim_data.constants.n_avogadro).asNumber(units.fg)
+                (mass / self.load_sim_data.sim_data.constants.n_avogadro).asNumber(
+                    units.fg
+                )
             )
 
     def initial_state(self, config):
-        initial_state = get_state_from_file(
-            path="data/wcecoli_t0.json",
-        )
+        initial_state = self.load_sim_data.generate_initial_state()
 
         if config["include_bulk"]:
             bulk = initial_state["bulk"].copy()

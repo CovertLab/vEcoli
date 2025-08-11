@@ -36,7 +36,7 @@ class Requester(Step):
         assert isinstance(parameters["process"], PartitionedProcess)
         if parameters["process"].parallel:
             raise RuntimeError("PartitionedProcess objects cannot be parallelized.")
-        parameters["name"] = f'{parameters["process"].name}_requester'
+        parameters["name"] = f"{parameters['process'].name}_requester"
         super().__init__(parameters)
 
     def update_condition(self, timestep, states):
@@ -85,7 +85,7 @@ class Requester(Step):
             "_emit": False,
         }
         ports["global_time"] = {"_default": 0.0}
-        ports["timestep"] = {"_default": process.parameters["time_step"]}
+        ports["timestep"] = {"_default": process.parameters["timestep"]}
         ports["next_update_time"] = {
             "_default": process.parameters["timestep"],
             "_updater": "set",
@@ -96,7 +96,7 @@ class Requester(Step):
 
     def next_update(self, timestep, states):
         process = states["process"][0]
-        request = process.calculate_request(self.parameters["time_step"], states)
+        request = process.calculate_request(states["timestep"], states)
         process.request_set = True
 
         request["request"] = {}
@@ -127,7 +127,7 @@ class Evolver(Step):
 
     def __init__(self, parameters=None):
         assert isinstance(parameters["process"], PartitionedProcess)
-        parameters["name"] = f'{parameters["process"].name}_evolver'
+        parameters["name"] = f"{parameters['process'].name}_evolver"
         super().__init__(parameters)
 
     def update_condition(self, timestep, states):
@@ -189,7 +189,7 @@ class Evolver(Step):
         if not process.request_set:
             return {}
 
-        update = process.evolve_state(timestep, states)
+        update = process.evolve_state(states["timestep"], states)
         update["process"] = (process,)
         update["next_update_time"] = states["global_time"] + states["timestep"]
         return update

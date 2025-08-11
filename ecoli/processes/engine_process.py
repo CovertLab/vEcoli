@@ -93,6 +93,7 @@ from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in
 
+from ecoli.library.parquet_emitter import ParquetEmitter
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.schema import remove_properties, empty_dict_divider, not_a_process
 from ecoli.library.updaters import inverse_updater_registry
@@ -504,9 +505,14 @@ class EngineProcess(Process):
         self.emitter.emit(emit_config)
 
         # Run inner simulation for timestep.
-        self.sim.run_for(timestep)
-        if force_complete:
-            self.sim.complete()
+        try:
+            self.sim.run_for(timestep)
+            if force_complete:
+                self.sim.complete()
+        except (Exception, KeyboardInterrupt):
+            if isinstance(self.emitter, ParquetEmitter):
+                self.emitter.finalize()
+            raise
 
         update = {}
 
@@ -516,6 +522,10 @@ class EngineProcess(Process):
             self.parameters["division_variable"]
         ).get_value()
         if self.parameters["divide"] and division_variable >= division_threshold:
+            # Finalize emits before division
+            if isinstance(self.emitter, ParquetEmitter):
+                self.emitter.success = True
+                self.emitter.finalize()
             # Perform division.
             daughters = []
             daughter_states = self.sim.state.divide_value()
@@ -599,7 +609,7 @@ def _inverse_update(
         final_state: Final values (potentially nested) in store that we desire
         store: Store (potentially nested) that we are trying to mutate
         updater_registry_reverse: A mapping from updater functions to the string
-            names they are registered as in :py:attr:`~vivarium.core.registry.updater_registry`
+            names they are registered as in :py:data:`~vivarium.core.registry.updater_registry`
 
     Returns:
         Update dictionary that when used to update ``store`` by calling its (or its sub-stores)

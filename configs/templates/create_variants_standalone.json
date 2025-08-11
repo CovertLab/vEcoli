@@ -1,0 +1,12 @@
+{
+    "variants": {
+        "some_variant_module": {
+            "param1": {
+                "value": [1, 2, 3]
+            }
+        }
+    },
+    "skip_baseline": false,
+    "outdir": "out",
+    "kb": "out/past_parca_run/kb"
+}

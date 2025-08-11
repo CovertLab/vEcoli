@@ -6,7 +6,7 @@ import shutil
 import concurrent.futures
 from typing import Any
 
-import cv2
+import imageio.v3 as iio
 from duckdb import DuckDBPyConnection
 import numpy as np
 import matplotlib
@@ -502,9 +502,9 @@ def plot_snapshots(
         bounds = tuple(bound.to(units.um).magnitude for bound in bounds)
     # time steps that will be used
     if agents and fields:
-        assert set(list(agents.keys())) == set(
-            list(fields.keys())
-        ), "agent and field times are different"
+        assert set(list(agents.keys())) == set(list(fields.keys())), (
+            "agent and field times are different"
+        )
         time_vec = list(agents.keys())
     elif agents:
         time_vec = list(agents.keys())
@@ -1137,28 +1137,25 @@ def save_timeseries_figure(t_index, kwargs):
     return fig_path
 
 
-def video_from_images(img_paths, out_file):
-    # make the video
-    img_array = []
-    size = None
-    for img_file in img_paths:
-        img = cv2.imread(img_file)
-        height, width, layers = img.shape
-        if size:
-            if width < size[0]:
-                size[0] = width
-            if height < size[0]:
-                size[1] = height
-        else:
-            size = [width, height]
-        img_array.append(img)
+def video_from_images(img_paths, out_file, fps=15):
+    """
+    Create a video from a list of image paths using imageio.
 
-    out = cv2.VideoWriter(out_file, cv2.VideoWriter_fourcc(*"mp4v"), 15, size)
-    for i in range(len(img_array)):
-        # Crop all images to smallest size to avoid frame skips
-        img_array[i] = img_array[i][0 : size[1], 0 : size[0]]
-        out.write(img_array[i])
-    out.release()
+    Args:
+        img_paths (list): List of file paths to images.
+        out_file (str): Output file path for the video.
+        fps (int): Frames per second for the video.
+    """
+    # Read all images and determine the smallest dimensions
+    images = [iio.imread(img_file) for img_file in img_paths]
+    min_height = min(img.shape[0] for img in images)
+    min_width = min(img.shape[1] for img in images)
+
+    # Crop all images to the smallest dimensions
+    cropped_images = [img[:min_height, :min_width] for img in images]
+
+    # Write the video
+    iio.imwrite(out_file, cropped_images, fps=fps, plugin="ffmpeg")
 
 
 def make_video(
@@ -1291,6 +1288,7 @@ def plot(
     conn: DuckDBPyConnection,
     history_sql: str,
     config_sql: str,
+    success_sql: str,
     sim_data_paths: dict[str, dict[int, str]],
     validation_data_paths: list[str],
     outdir: str,

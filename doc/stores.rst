@@ -148,19 +148,12 @@ will divide the molecules as follows:
 
 Steps and Flows
 ---------------
-In our model, many processes are dependent one another to an even greater extent
-than that imposed by this request/allocate partitioning scheme. For example, since
-molecule binding and complexation events occur on timescales much shorter than the
-default 1 second simulation timestep, :py:class:`~ecoli.processes.equilibrium.Equilibrium`
-and :py:class:`~ecoli.processes.two_component_system.TwoComponentSystem`
-must wait for :py:class:`~ecoli.processes.tf_unbinding.TfUnbinding` to update
-the simulation state by freeing currently bound transcription factors. This gives
-all transcription factors a chance to form complexes
-or participate in other reactions, better reflecting the transient binding dynamics
-of real cells. :py:class:`~ecoli.processes.tf_binding.TfBinding` must wait for these
-new active transcription factor counts,
-:py:class:`~ecoli.processes.transcript_initiation.TranscriptInitiation`
-must wait for the counts of transcription factors bound to promoters, and so on.
+In our model, many processes are dependent on one another even outside this
+request/allocate partitioning scheme. For example, in each simulation time step,
+:py:class:`~ecoli.processes.metabolism.Metabolism` must wait for
+:py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`
+to finish calculating the counts of amino acids, GTP, etc. consumed
+before it can solve the FBA problem to optimize growth.
 
 To allow processes to run in a pre-specified order within 
 each timestep, we can make use of a subclass of the typical Vivarium 
@@ -173,7 +166,9 @@ that is included in the simulation configuration (see
 
 A ``flow`` is a dictionary that specifies the dependencies for each Step. For 
 example, if a user wants Step B to run only after Step A has updated the 
-simulation state, the user can include Step A as a dependency of Step B::
+simulation state, the user can include Step A as a dependency of Step B:
+
+.. code-block::
 
     {
         "Step B": [("Step A",)]
@@ -185,7 +180,9 @@ top-level stores so these paths are usually just ``("process name",)``.
 
 Vivarium will parse the ``flow`` to construct a directed acyclic graph  
 and figure out the order in which to run steps by stratifying them into 
-execution layers. For example, consider the following ``flow``::
+execution layers. For example, consider the following ``flow``:
+
+.. code-block::
 
     {
         "Step B": [("Step A",)],
@@ -211,8 +208,7 @@ All partitioned processes are instances of the
 :py:class:`~ecoli.processes.partition.PartitionedProcess` class. This both 
 serves to identify the processes that require partitioning and also implements 
 a standard ``next_update`` method that allows these processes to be run on 
-their own (as in 
-`migration tests <https://github.com/CovertLab/vivarium-ecoli/tree/master/migration>`_).
+their own.
 
 .. WARNING::
     In instances of :py:class:`~ecoli.processes.partition.PartitionedProcess`, 
