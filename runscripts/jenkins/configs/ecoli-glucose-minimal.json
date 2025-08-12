@@ -12,7 +12,7 @@
     "analysis_options": {
         "single": {"mass_fraction_summary": {}},
         "multiseed": {"protein_counts_validation": {}},
-        "multivariant": {"doubling_time_hist": {"skip_n_gens": 0}, "doubling_time_line": {}},
+        "multivariant": {"doubling_time_hist": {"skip_n_gens": 0}, "doubling_time_line": {}, "cell_mass": {}},
         "multigeneration": {"replication": {}, "ribosome_usage": {}}
     },
     "sherlock": {

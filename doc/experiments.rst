@@ -134,6 +134,7 @@ documented in :ref:`/workflows.rst`.
         # simulations run using ecoli/experiments/ecoli_master_sim.py. Workflows
         # run with runscripts/workflow.py generate initial seeds using the value
         # of a different configuration option named "lineage_seed".
+        # Both seed and lineage_seed are supposed to be integers.
         "seed": 0,
         # Special flags to enable mechanisms related to antibiotic resistance.
         # See API documentation for ecoli.library.sim_data.LoadSimData for more
