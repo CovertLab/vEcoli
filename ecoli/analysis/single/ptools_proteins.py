@@ -8,20 +8,6 @@ import pandas as pd
 from ecoli.library.sim_data import LoadSimData
 
 
-COLORS_256 = [  # From colorbrewer2.org, qualitative 8-class set 1
-    [228, 26, 28],
-    [55, 126, 184],
-    [77, 175, 74],
-    [152, 78, 163],
-    [255, 127, 0],
-    [255, 255, 51],
-    [166, 86, 40],
-    [247, 129, 191],
-]
-
-COLORS = ["#%02x%02x%02x" % (color[0], color[1], color[2]) for color in COLORS_256]
-
-
 def build_query(
     columns, history_sql
 ):  # generates sql query for user specified parquet columns
