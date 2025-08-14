@@ -201,7 +201,7 @@ def plot(
 
     proteomics = np.matmul(bulk_mtx, bulk2protein_monomers)
 
-    n_tp = 6
+    n_tp = int(params["n_tp"])
 
     tp_columns = ["t" + str(i) for i in range(n_tp)]
 

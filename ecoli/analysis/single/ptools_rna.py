@@ -365,7 +365,7 @@ def plot(
 
     rna_counts_gene = np.matmul(tu_counts_mtx, tu_gene_mtx)
 
-    n_tp = 6
+    n_tp = int(params["n_tp"])
 
     rna_counts_gene_blocksum = consolidate_timepoints(
         rna_counts_gene, n_tp, normalized=True
