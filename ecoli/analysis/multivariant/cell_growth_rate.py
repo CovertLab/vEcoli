@@ -299,7 +299,7 @@ def plot(
         )
 
     # Specify variants for subplot creation
-    unique_variants = df.select("variant").unique().sort("variant")["variant"].to_list()
+    unique_variants = df["variant"].unique().sort().to_list()
 
     if not unique_variants:
         # Create fallback chart if no data
