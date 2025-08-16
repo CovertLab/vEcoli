@@ -20,210 +20,80 @@ You can specify the biological process to visualize using parameters in params:
         "generation": [1, 2, 3, ...]
         }
 
-This script will:
-1. Find all reactions matching each specified BioCyc ID (including variants with delimiters)
-2. Calculate net flux for each reaction (forward_flux - reverse_flux)
-3. Sum all net fluxes to get the total biological process flux
-4. Plot total process flux vs time for all variants
+This script uses the base reaction ID to extended reaction mapping to efficiently
+find forward and reverse reactions, then calculates total process flux using SQL for
+optimal memory usage and performance.
 """
 
 import altair as alt
 import os
 from typing import Any
-import numpy as np
 
 import polars as pl
 from duckdb import DuckDBPyConnection
 import pandas as pd
 
 from ecoli.library.parquet_emitter import field_metadata
+from ecoli.analysis.utils import (
+    create_base_to_extended_mapping,
+    build_flux_calculation_sql,
+)
 
-# ----------------------------------------- #
-# Helper functions (reused from your existing code)
 
-
-def find_matching_reactions(reaction_ids, reaction_name, reverse_flag=False):
+def build_process_flux_sql(
+    biocyc_ids, base_to_extended_mapping, all_reaction_ids, history_sql, process_name
+):
     """
-    Find all reaction IDs that match the given reaction name pattern.
-    This is done once per BioCyc ID to avoid repeated string matching.
+    Build SQL query to calculate total biological process flux by summing net fluxes from all reactions.
 
     Args:
-        reaction_ids (list): List of all reaction IDs in the model
-        reaction_name (str): Root reaction name to search for
-        reverse_flag (bool): If True, search for reverse reactions;
-                           If False, search for forward reactions
+        biocyc_ids (list): List of BioCyc IDs (base reaction IDs) for the biological process
+        base_to_extended_mapping (dict): Mapping from base to extended reactions
+        all_reaction_ids (list): List of all reaction IDs from field_metadata
+        history_sql (str): SQL query for historical data
+        process_name (str): Name of the biological process
 
     Returns:
-        list: List of matching reaction IDs and their indices
+        tuple: (sql_query, valid_biocyc_ids, process_flux_column_name)
     """
-
-    matching_reactions = []
-
-    if reverse_flag:
-        # For reverse reactions, we look for reactions with "(reverse)" suffix
-        # Step 1: Try to find exact reverse name
-        reverse_name = reaction_name + " (reverse)"
-        if reverse_name in reaction_ids:
-            idx = reaction_ids.index(reverse_name)
-            matching_reactions.append((reverse_name, idx))
-
-        # Step 2: Search for extended reverse names with delimiters
-        delimiters = ["_", "[", "-", "/"]
-        for delimiter in delimiters:
-            extend_name = reaction_name + delimiter
-            for idx, reaction_id in enumerate(reaction_ids):
-                if (
-                    extend_name in reaction_id
-                    and "(reverse)" in reaction_id
-                    and reaction_id not in [r[0] for r in matching_reactions]
-                ):
-                    matching_reactions.append((reaction_id, idx))
-
-    else:
-        # For forward reactions, we look for reactions WITHOUT "(reverse)" suffix
-        # Step 1: Try to find exact root name (forward)
-        if reaction_name in reaction_ids and "(reverse)" not in reaction_name:
-            idx = reaction_ids.index(reaction_name)
-            matching_reactions.append((reaction_name, idx))
-
-        # Step 2: Search for extended forward names with delimiters
-        delimiters = ["_", "[", "-", "/"]
-        for delimiter in delimiters:
-            extend_name = reaction_name + delimiter
-            for idx, reaction_id in enumerate(reaction_ids):
-                if (
-                    extend_name in reaction_id
-                    and "(reverse)" not in reaction_id
-                    and reaction_id not in [r[0] for r in matching_reactions]
-                ):
-                    matching_reactions.append((reaction_id, idx))
-
-    return matching_reactions
-
-
-def precompute_reaction_mappings(reaction_ids, biocyc_ids):
-    """
-    Precompute all reaction mappings for forward and reverse reactions.
-    This avoids repeated string matching during flux calculation.
-
-    Args:
-        reaction_ids (list): List of all reaction IDs in the model
-        biocyc_ids (list): List of BioCyc IDs to analyze
-
-    Returns:
-        dict: Mapping of BioCyc ID to forward/reverse reaction indices
-    """
-
-    reaction_mappings = {}
-
-    for biocyc_id in biocyc_ids:
-        print(f"[INFO] Preprocessing reaction mappings for {biocyc_id}...")
-
-        # Find forward reactions
-        forward_reactions = find_matching_reactions(
-            reaction_ids, biocyc_id, reverse_flag=False
-        )
-        forward_indices = [idx for _, idx in forward_reactions]
-
-        # Find reverse reactions
-        reverse_reactions = find_matching_reactions(
-            reaction_ids, biocyc_id, reverse_flag=True
-        )
-        reverse_indices = [idx for _, idx in reverse_reactions]
-
-        reaction_mappings[biocyc_id] = {
-            "forward_indices": forward_indices,
-            "reverse_indices": reverse_indices,
-            "forward_reactions": [name for name, _ in forward_reactions],
-            "reverse_reactions": [name for name, _ in reverse_reactions],
-        }
-
-        print(
-            f"[INFO] Found {len(forward_reactions)} forward and {len(reverse_reactions)} reverse reactions for {biocyc_id}"
-        )
-
-        if not forward_reactions and not reverse_reactions:
-            print(f"[WARNING] No reactions found for {biocyc_id}")
-
-    return reaction_mappings
-
-
-def calculate_process_flux_vectorized(flux_df, reaction_mappings, process_name):
-    """
-    Calculate total biological process flux by summing net fluxes from all reactions.
-
-    Args:
-        flux_df: Polars DataFrame with expanded flux columns
-        reaction_mappings: Precomputed reaction mappings for all BioCyc IDs
-        process_name: Name of the biological process
-
-    Returns:
-        Polars DataFrame with process flux column added
-    """
-
-    # Convert flux matrix to numpy array for faster computation
-    flux_matrix = flux_df.select("listeners__fba_results__reaction_fluxes").to_numpy()
-
-    # Stack all flux arrays into a 2D matrix (n_timepoints x n_reactions)
-    flux_array = np.vstack([row[0] for row in flux_matrix])
-
-    print(f"[INFO] Flux array shape: {flux_array.shape}")
-
-    # Initialize total process flux array
-    total_process_flux = np.zeros(flux_array.shape[0])
-
-    # Track individual reaction contributions for detailed analysis
-    reaction_contributions = {}
-
-    # Sum net fluxes from all reactions in the process
-    for biocyc_id, mappings in reaction_mappings.items():
-        forward_indices = mappings["forward_indices"]
-        reverse_indices = mappings["reverse_indices"]
-
-        # Skip if no reactions found
-        if not forward_indices and not reverse_indices:
-            print(f"[WARNING] No reactions found for {biocyc_id}, skipping...")
-            continue
-
-        # Calculate forward flux sum
-        if forward_indices:
-            forward_flux = flux_array[:, forward_indices].sum(axis=1)
-        else:
-            forward_flux = np.zeros(flux_array.shape[0])
-
-        # Calculate reverse flux sum
-        if reverse_indices:
-            reverse_flux = flux_array[:, reverse_indices].sum(axis=1)
-        else:
-            reverse_flux = np.zeros(flux_array.shape[0])
-
-        # Calculate net flux for this BioCyc ID
-        net_flux = forward_flux - reverse_flux
-
-        # Add to total process flux
-        total_process_flux += net_flux
-
-        # Store individual contribution
-        reaction_contributions[biocyc_id] = net_flux
-
-        print(
-            f"[INFO] {biocyc_id} contribution to {process_name}: avg = {net_flux.mean():.6f} mmol/gDW/hr"
-        )
-
-    # Add process flux column to dataframe
-    process_flux_col_name = f"{process_name.replace(' ', '_')}_total_flux"
-    flux_df = flux_df.with_columns(
-        pl.Series(name=process_flux_col_name, values=total_process_flux)
+    # First, use the existing function to get individual reaction flux calculations
+    individual_flux_sql, valid_biocyc_ids = build_flux_calculation_sql(
+        biocyc_ids, base_to_extended_mapping, all_reaction_ids, history_sql
     )
 
-    print(
-        f"[INFO] Total {process_name} flux: avg = {total_process_flux.mean():.6f} mmol/gDW/hr"
+    if not individual_flux_sql or not valid_biocyc_ids:
+        print("[ERROR] Could not build individual flux calculations for process")
+        return None, [], ""
+
+    # Extract just the flux calculations from the individual SQL
+    # Parse the SELECT clause to get individual flux expressions
+    flux_calculations = []
+    for biocyc_id in valid_biocyc_ids:
+        flux_calculations.append(f'"{biocyc_id}_net_flux"')
+
+    # Create safe process column name
+    safe_process_col = f'"{process_name.replace(" ", "_")}_total_flux"'
+
+    # Build the process flux calculation SQL
+    # This sums all individual net fluxes to get total process flux
+    process_flux_expr = f"({' + '.join(flux_calculations)}) AS {safe_process_col}"
+
+    # Build complete SQL query that first calculates individual fluxes, then sums them
+    sql = f"""
+    WITH individual_fluxes AS (
+        {individual_flux_sql}
     )
+    SELECT 
+        time,
+        generation,
+        variant,
+        time_min,
+        {process_flux_expr}
+    FROM individual_fluxes
+    ORDER BY variant, generation, time
+    """
 
-    return flux_df, process_flux_col_name, reaction_contributions
-
-
-# ----------------------------------------- #
+    return sql, valid_biocyc_ids, safe_process_col.strip('"')
 
 
 def plot(
@@ -257,114 +127,83 @@ def plot(
         f"[INFO] Analyzing biological process '{process_name}' with {len(biocyc_ids)} reactions: {biocyc_ids}"
     )
 
-    # Required columns for the query
-    required_columns = [
-        "time",
-        "generation",
-        "variant",
-        "listeners__fba_results__reaction_fluxes",
-    ]
-
-    # Build SQL query
-    sql = f"""
-    SELECT
-        {", ".join(required_columns)}
-    FROM ({history_sql})
-    ORDER BY variant, generation, time
-    """
-
-    # Execute query
-    try:
-        df = conn.sql(sql).pl()
-    except Exception as e:
-        print(f"[ERROR] Error executing SQL query: {e}")
+    # Create base to extended reaction mapping
+    base_to_extended_mapping = create_base_to_extended_mapping(sim_data_dict)
+    if not base_to_extended_mapping:
+        print("[ERROR] Could not create base to extended reaction mapping")
         return None
-
-    if df.is_empty():
-        print("[ERROR] No data found")
-        return None
-
-    # Configuration parameters for filtering
-    target_variants = params.get("variant", None)
-    target_generation = params.get("generation", None)
-
-    # Filter by specified variants and generations
-    if target_variants is not None:
-        print(f"[INFO] Target variants: {target_variants}")
-        df = df.filter(pl.col("variant").is_in(target_variants))
-
-    if target_generation is not None:
-        print(f"[INFO] Target generations: {target_generation}")
-        df = df.filter(pl.col("generation").is_in(target_generation))
-
-    # Convert time to minutes
-    if "time" in df.columns:
-        df = df.with_columns((pl.col("time") / 60).alias("time_min"))
-
-    print(f"[INFO] Loaded data with {df.height} time steps")
-
-    # Print variant information
-    unique_variants = df["variant"].unique().to_list()
-    print(f"[INFO] Found {len(unique_variants)} variants: {unique_variants}")
 
     # Load reaction IDs from config
     try:
-        reaction_ids = field_metadata(
+        all_reaction_ids = field_metadata(
             conn, config_sql, "listeners__fba_results__reaction_fluxes"
         )
-        print(f"[INFO] Total reactions in sim_data: {len(reaction_ids)}")
+        print(f"[INFO] Total reactions in sim_data: {len(all_reaction_ids)}")
     except Exception as e:
         print(f"[ERROR] Error loading reaction IDs: {e}")
         return None
 
-    # Precompute reaction mappings for all BioCyc IDs
-    reaction_mappings = precompute_reaction_mappings(reaction_ids, biocyc_ids)
+    # Build SQL query for efficient process flux calculation
+    process_flux_sql, valid_biocyc_ids, process_flux_col = build_process_flux_sql(
+        biocyc_ids,
+        base_to_extended_mapping,
+        all_reaction_ids,
+        history_sql,
+        process_name,
+    )
 
-    # Filter out BioCyc IDs that have no matching reactions
-    valid_biocyc_ids = [
-        biocyc_id
-        for biocyc_id, mappings in reaction_mappings.items()
-        if mappings["forward_indices"] or mappings["reverse_indices"]
-    ]
-
-    if not valid_biocyc_ids:
-        print("[ERROR] No valid reactions found for any of the specified BioCyc IDs")
+    if not process_flux_sql or not valid_biocyc_ids:
+        print("[ERROR] Could not build process flux calculation SQL")
         return None
 
     print(
         f"[INFO] Processing {len(valid_biocyc_ids)} valid BioCyc IDs for {process_name}"
     )
 
-    # Filter reaction mappings to only include valid BioCyc IDs
-    valid_reaction_mappings = {
-        biocyc_id: reaction_mappings[biocyc_id] for biocyc_id in valid_biocyc_ids
-    }
-
-    # Calculate total process flux
+    # Execute the optimized SQL query
     try:
-        flux_df, process_flux_col, reaction_contributions = (
-            calculate_process_flux_vectorized(df, valid_reaction_mappings, process_name)
-        )
-        print(f"[INFO] Successfully calculated total flux for {process_name}")
+        df = conn.sql(process_flux_sql).pl()
+        print(f"[INFO] Loaded data with {df.height} time steps")
     except Exception as e:
-        print(f"[ERROR] Failed to calculate process flux: {e}")
+        print(f"[ERROR] Error executing process flux calculation SQL: {e}")
         return None
 
+    if df.is_empty():
+        print("[ERROR] No data found")
+        return None
+
+    # Filter by specified variants and generations if provided
+    target_variants = params.get("variant", None)
+    target_generation = params.get("generation", None)
+
+    if target_variants is not None:
+        print(f"[INFO] Filtering for variants: {target_variants}")
+        df = df.filter(pl.col("variant").is_in(target_variants))
+
+    if target_generation is not None:
+        print(f"[INFO] Filtering for generations: {target_generation}")
+        df = df.filter(pl.col("generation").is_in(target_generation))
+
+    # Print variant information
+    unique_variants = df["variant"].unique().to_list()
+    print(f"[INFO] Found {len(unique_variants)} variants: {unique_variants}")
+
     # Calculate average process flux for each variant
-    variant_averages = flux_df.group_by("variant").agg(
+    variant_averages = df.group_by("variant").agg(
         pl.col(process_flux_col).mean().alias("avg_process_flux")
     )
 
-    # ------------------------------------ #
+    print(f"[INFO] Average {process_name} flux by variant:")
+    for row in variant_averages.iter_rows(named=True):
+        print(f"  {row['variant']}: {row['avg_process_flux']:.6f} mmol/gDW/hr")
 
-    # Create the main line chart
+    # --------------------------- #
+    # Create visualization
     def create_process_flux_chart():
         """Create a line chart for the biological process total flux."""
 
         # Select only needed columns
-        chart_data = flux_df.select(
-            ["time_min", "generation", "variant", process_flux_col]
-        )
+        chart_data = df.select(["time_min", "generation", "variant", process_flux_col])
 
         # Remove any null values
         chart_data = chart_data.filter(pl.col(process_flux_col).is_not_null())
@@ -434,7 +273,7 @@ def plot(
 
         return combined_chart
 
-    # ------------------------------------ #
+    # --------------------------- #
 
     # Create the chart
     chart = create_process_flux_chart()

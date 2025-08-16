@@ -16,226 +16,24 @@ You can specify the reactions to visualize using the 'BioCyc_ID' parameter in pa
         "generation": [1, 2, ...]
         }
 
-This script will view each BioCyc_ID as root name,
-and find all reactions matching the specified BioCyc IDs,
-including those with delimiters like '_', '[', '-', '/' after the root name,
-and those with '(reverse)' for reverse reactions.
-It will then calculate the net flux for each reaction as:
-    net_flux = forward_flux - reverse_flux
+This script uses the base reaction ID to extended reaction mapping to efficiently
+find forward and reverse reactions, then calculates net flux using SQL for
+optimal memory usage and performance.
 """
 
 import altair as alt
 import os
 from typing import Any
-import numpy as np
 
 import polars as pl
 from duckdb import DuckDBPyConnection
 import pandas as pd
 
 from ecoli.library.parquet_emitter import field_metadata
-
-# ----------------------------------------- #
-# Optimized helper functions
-
-
-def find_matching_reactions(reaction_ids, reaction_name, reverse_flag=False):
-    """
-    Find all reaction IDs that match the given reaction name pattern.
-    This is done once per BioCyc ID to avoid repeated string matching.
-
-    Args:
-        reaction_ids (list): List of all reaction IDs in the model
-        reaction_name (str): Root reaction name to search for
-        reverse_flag (bool): If True, search for reverse reactions;
-                           If False, search for forward reactions
-
-    Returns:
-        list: List of matching reaction IDs and their indices
-    """
-
-    matching_reactions = []
-
-    if reverse_flag:
-        # For reverse reactions, we look for reactions with "(reverse)" suffix
-        # Step 1: Try to find exact reverse name
-        reverse_name = reaction_name + " (reverse)"
-        if reverse_name in reaction_ids:
-            idx = reaction_ids.index(reverse_name)
-            matching_reactions.append((reverse_name, idx))
-
-        # Step 2: Search for extended reverse names with delimiters
-        delimiters = ["_", "[", "-", "/"]
-        for delimiter in delimiters:
-            extend_name = reaction_name + delimiter
-            for idx, reaction_id in enumerate(reaction_ids):
-                if (
-                    extend_name in reaction_id
-                    and "(reverse)" in reaction_id
-                    and reaction_id not in [r[0] for r in matching_reactions]
-                ):
-                    matching_reactions.append((reaction_id, idx))
-
-    else:
-        # For forward reactions, we look for reactions WITHOUT "(reverse)" suffix
-        # Step 1: Try to find exact root name (forward)
-        if reaction_name in reaction_ids and "(reverse)" not in reaction_name:
-            idx = reaction_ids.index(reaction_name)
-            matching_reactions.append((reaction_name, idx))
-
-        # Step 2: Search for extended forward names with delimiters
-        delimiters = ["_", "[", "-", "/"]
-        for delimiter in delimiters:
-            extend_name = reaction_name + delimiter
-            for idx, reaction_id in enumerate(reaction_ids):
-                if (
-                    extend_name in reaction_id
-                    and "(reverse)" not in reaction_id
-                    and reaction_id not in [r[0] for r in matching_reactions]
-                ):
-                    matching_reactions.append((reaction_id, idx))
-
-    return matching_reactions
-
-
-def precompute_reaction_mappings(reaction_ids, biocyc_ids):
-    """
-    Precompute all reaction mappings for forward and reverse reactions.
-    This avoids repeated string matching during flux calculation.
-
-    Args:
-        reaction_ids (list): List of all reaction IDs in the model
-        biocyc_ids (list): List of BioCyc IDs to analyze
-
-    Returns:
-        dict: Mapping of BioCyc ID to forward/reverse reaction indices
-    """
-
-    reaction_mappings = {}
-
-    for biocyc_id in biocyc_ids:
-        print(f"[INFO] Preprocessing reaction mappings for {biocyc_id}...")
-
-        # Find forward reactions
-        forward_reactions = find_matching_reactions(
-            reaction_ids, biocyc_id, reverse_flag=False
-        )
-        forward_indices = [idx for _, idx in forward_reactions]
-
-        # Find reverse reactions
-        reverse_reactions = find_matching_reactions(
-            reaction_ids, biocyc_id, reverse_flag=True
-        )
-        reverse_indices = [idx for _, idx in reverse_reactions]
-
-        reaction_mappings[biocyc_id] = {
-            "forward_indices": forward_indices,
-            "reverse_indices": reverse_indices,
-            "forward_reactions": [name for name, _ in forward_reactions],
-            "reverse_reactions": [name for name, _ in reverse_reactions],
-        }
-
-        print(
-            f"[INFO] Found {len(forward_reactions)} forward and {len(reverse_reactions)} reverse reactions for {biocyc_id}"
-        )
-
-        if not forward_reactions and not reverse_reactions:
-            print(f"[WARNING] No reactions found for {biocyc_id}")
-
-    return reaction_mappings
-
-
-def calculate_net_flux_optimized(flux_df, reaction_mappings):
-    """
-    Calculate net flux for all BioCyc IDs using optimized operations.
-    Only extracts and processes the reaction columns we actually need.
-
-    Args:
-        flux_df: Polars DataFrame with expanded flux columns
-        reaction_mappings: Precomputed reaction mappings
-
-    Returns:
-        Polars DataFrame with net flux columns added
-    """
-
-    print("[INFO] Starting optimized net flux calculation...")
-
-    # Get all unique reaction indices we need (to minimize memory usage)
-    all_needed_indices = set()
-    for mappings in reaction_mappings.values():
-        all_needed_indices.update(mappings["forward_indices"])
-        all_needed_indices.update(mappings["reverse_indices"])
-
-    needed_indices = sorted(list(all_needed_indices))
-    print(
-        f"[INFO] Only processing {len(needed_indices)} out of {len(flux_df)} total reactions"
-    )
-
-    # Convert flux matrix to numpy array, but only extract needed columns
-    flux_matrix = flux_df.select("listeners__fba_results__reaction_fluxes").to_numpy()
-    flux_array = np.vstack([row[0] for row in flux_matrix])
-
-    # Extract only the columns we need
-    flux_array_subset = flux_array[:, needed_indices]
-
-    # Create mapping from original indices to subset indices
-    index_mapping = {
-        orig_idx: new_idx for new_idx, orig_idx in enumerate(needed_indices)
-    }
-
-    print(f"[INFO] Reduced flux array shape: {flux_array_subset.shape}")
-
-    # Calculate net flux for each BioCyc ID
-    net_flux_data = {}
-
-    for biocyc_id, mappings in reaction_mappings.items():
-        forward_indices = mappings["forward_indices"]
-        reverse_indices = mappings["reverse_indices"]
-
-        # Skip if no reactions found
-        if not forward_indices and not reverse_indices:
-            print(f"[WARNING] No reactions found for {biocyc_id}, skipping...")
-            continue
-
-        # Map original indices to subset indices
-        forward_subset_indices = [
-            index_mapping[idx] for idx in forward_indices if idx in index_mapping
-        ]
-        reverse_subset_indices = [
-            index_mapping[idx] for idx in reverse_indices if idx in index_mapping
-        ]
-
-        # Calculate forward flux sum
-        if forward_subset_indices:
-            forward_flux = flux_array_subset[:, forward_subset_indices].sum(axis=1)
-        else:
-            forward_flux = np.zeros(flux_array_subset.shape[0])
-
-        # Calculate reverse flux sum
-        if reverse_subset_indices:
-            reverse_flux = flux_array_subset[:, reverse_subset_indices].sum(axis=1)
-        else:
-            reverse_flux = np.zeros(flux_array_subset.shape[0])
-
-        # Calculate net flux
-        net_flux = forward_flux - reverse_flux
-        net_flux_data[biocyc_id] = net_flux
-
-        print(
-            f"[INFO] Calculated net flux for {biocyc_id}: avg = {net_flux.mean():.6f} mmol/gDW/hr"
-        )
-
-    # Add all net flux columns to the dataframe at once
-    for biocyc_id, net_flux_values in net_flux_data.items():
-        net_flux_col_name = f"{biocyc_id}_net_flux"
-        flux_df = flux_df.with_columns(
-            pl.Series(name=net_flux_col_name, values=net_flux_values)
-        )
-
-    return flux_df, net_flux_data
-
-
-# ----------------------------------------- #
+from ecoli.analysis.utils import (
+    create_base_to_extended_mapping,
+    build_flux_calculation_sql,
+)
 
 
 def plot(
@@ -250,9 +48,9 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    """Visualize FBA reaction net fluxes: rows=variants, columns=reactions, colors=generations."""
+    """Visualize FBA reaction net fluxes"""
 
-    # Get BioCyc IDs from params
+    # Get parameters
     biocyc_ids = params.get("BioCyc_ID", [])
     if not biocyc_ids:
         print(
@@ -267,52 +65,56 @@ def plot(
         f"[INFO] Visualizing net fluxes for {len(biocyc_ids)} reactions: {biocyc_ids}"
     )
 
-    # Required columns for the query
-    required_columns = [
-        "time",
-        "generation",
-        "variant",
-        "listeners__fba_results__reaction_fluxes",
-    ]
+    # Create base to extended reaction mapping
+    base_to_extended_mapping = create_base_to_extended_mapping(sim_data_dict)
+    if not base_to_extended_mapping:
+        print("[ERROR] Could not create base to extended reaction mapping")
+        return None
 
-    # Build SQL query (ordered by variant first, then generation, then time)
-    sql = f"""
-    SELECT
-        {", ".join(required_columns)}
-    FROM ({history_sql})
-    ORDER BY variant, generation, time
-    """
-
-    # Execute query
+    # Load reaction IDs from config
     try:
-        df = conn.sql(sql).pl()
+        all_reaction_ids = field_metadata(
+            conn, config_sql, "listeners__fba_results__reaction_fluxes"
+        )
+        print(f"[INFO] Total reactions in sim_data: {len(all_reaction_ids)}")
     except Exception as e:
-        print(f"[ERROR] Error executing SQL query: {e}")
+        print(f"[ERROR] Error loading reaction IDs: {e}")
+        return None
+
+    # Build SQL query for efficient flux calculation
+    flux_calculation_sql, valid_biocyc_ids = build_flux_calculation_sql(
+        biocyc_ids, base_to_extended_mapping, all_reaction_ids, history_sql
+    )
+
+    if not flux_calculation_sql or not valid_biocyc_ids:
+        print("[ERROR] Could not build flux calculation SQL")
+        return None
+
+    print(f"[INFO] Processing {len(valid_biocyc_ids)} valid BioCyc IDs")
+
+    # Execute the optimized SQL query
+    try:
+        df = conn.sql(flux_calculation_sql).pl()
+        print(f"[INFO] Loaded data with {df.height} time steps")
+    except Exception as e:
+        print(f"[ERROR] Error executing flux calculation SQL: {e}")
         return None
 
     if df.is_empty():
         print("[ERROR] No data found")
         return None
 
-    # Configuration parameters for filtering
+    # Filter by specified variants and generations if provided
     target_variants = params.get("variant", None)
     target_generations = params.get("generation", None)
 
-    # Filter by specified variants
     if target_variants is not None:
-        print(f"[INFO] Target variants: {target_variants}")
+        print(f"[INFO] Filtering for variants: {target_variants}")
         df = df.filter(pl.col("variant").is_in(target_variants))
 
-    # Filter by specified generations
     if target_generations is not None:
-        print(f"[INFO] Target generations: {target_generations}")
+        print(f"[INFO] Filtering for generations: {target_generations}")
         df = df.filter(pl.col("generation").is_in(target_generations))
-
-    # Convert time to minutes
-    if "time" in df.columns:
-        df = df.with_columns((pl.col("time") / 60).alias("time_min"))
-
-    print(f"[INFO] Loaded data with {df.height} time steps")
 
     # Print variant and generation information
     unique_variants = sorted(df["variant"].unique().to_list())
@@ -320,47 +122,22 @@ def plot(
     print(f"[INFO] Found {len(unique_variants)} variants: {unique_variants}")
     print(f"[INFO] Found {len(unique_generations)} generations: {unique_generations}")
 
-    # Load the reaction IDs from the config
-    try:
-        reaction_ids = field_metadata(
-            conn, config_sql, "listeners__fba_results__reaction_fluxes"
-        )
-        print(f"[INFO] Total reactions in sim_data: {len(reaction_ids)}")
-    except Exception as e:
-        print(f"[ERROR] Error loading reaction IDs: {e}")
-        return None
-
-    # Precompute reaction mappings for all BioCyc IDs
-    reaction_mappings = precompute_reaction_mappings(reaction_ids, biocyc_ids)
-
-    # Filter out BioCyc IDs that have no matching reactions
-    valid_biocyc_ids = [
-        biocyc_id
-        for biocyc_id, mappings in reaction_mappings.items()
-        if mappings["forward_indices"] or mappings["reverse_indices"]
-    ]
-
-    if not valid_biocyc_ids:
-        print("[ERROR] No valid reactions found for any of the specified BioCyc IDs")
-        return None
-
-    print(f"[INFO] Processing {len(valid_biocyc_ids)} valid BioCyc IDs")
-
-    # Calculate net flux using optimized operations
-    try:
-        flux_df, net_flux_data = calculate_net_flux_optimized(df, reaction_mappings)
-        print("[INFO] Successfully calculated all net fluxes")
-    except Exception as e:
-        print(f"[ERROR] Failed to calculate net fluxes: {e}")
-        return None
+    # Print average net flux information
+    for biocyc_id in valid_biocyc_ids:
+        net_flux_col = f"{biocyc_id}_net_flux"
+        if net_flux_col in df.columns:
+            avg_flux = df[net_flux_col].mean()
+            print(
+                f"[INFO] Average net flux for {biocyc_id}: {avg_flux:.6f} mmol/gDW/hr"
+            )
 
     # Calculate average net fluxes for each variant-reaction-generation combination
     avg_data = []
     for biocyc_id in valid_biocyc_ids:
         net_flux_col = f"{biocyc_id}_net_flux"
-        if net_flux_col in flux_df.columns:
+        if net_flux_col in df.columns:
             # Calculate average net flux by variant and generation
-            variant_gen_avgs = flux_df.group_by(["variant", "generation"]).agg(
+            variant_gen_avgs = df.group_by(["variant", "generation"]).agg(
                 pl.col(net_flux_col).mean().alias("avg_net_flux")
             )
 
@@ -376,20 +153,27 @@ def plot(
 
     avg_df = pl.DataFrame(avg_data)
 
-    # ---------------------------------------------- #
+    # --------------------------- #
 
+    # Create visualization functions
     def create_subplot_chart(variant, biocyc_id):
         """Create a single subplot for a specific variant-reaction combination."""
         net_flux_col = f"{biocyc_id}_net_flux"
 
+        # Check if the column exists in dataframe
+        if net_flux_col not in df.columns:
+            print(f"[WARNING] Column {net_flux_col} not found in dataframe")
+            return None
+
         # Filter data for this variant and reaction
         subplot_data = (
-            flux_df.filter(pl.col("variant") == variant)
+            df.filter(pl.col("variant") == variant)
             .select(["time_min", "generation", net_flux_col])
             .filter(pl.col(net_flux_col).is_not_null())
         )
 
         if subplot_data.height == 0:
+            print(f"[WARNING] No data for variant {variant}, reaction {biocyc_id}")
             return None
 
         # Main line chart with generations as different colors
@@ -453,13 +237,19 @@ def plot(
         if variant == unique_variants[0]:
             combined = combined.properties(title=f"{biocyc_id}")
 
-        # Add y-axis label only for leftmost column
-        if biocyc_id == valid_biocyc_ids[0]:
-            combined = combined.properties(width=200, height=150)
-        else:
-            combined = combined.properties(width=200, height=150)
+        combined = combined.properties(width=400, height=300)
 
         return combined
+
+    # --------------------------- #
+
+    def create_empty_subplot():
+        """Create an empty placeholder subplot."""
+        return (
+            alt.Chart(pd.DataFrame({"x": [0], "y": [0]}))
+            .mark_point(opacity=0)
+            .properties(width=200, height=150)
+        )
 
     # Create subplot grid: rows = variants, columns = reactions
     subplot_grid = []
@@ -472,20 +262,17 @@ def plot(
                 variant_row.append(subplot)
             else:
                 # Create empty placeholder if no data
-                empty_chart = alt.Chart(pd.DataFrame({"x": [0], "y": [0]})).mark_point(
-                    opacity=0
-                )
-                variant_row.append(empty_chart)
+                variant_row.append(create_empty_subplot())
 
         if variant_row:
             # Add variant label on the left
             variant_label = (
-                alt.Chart(pd.DataFrame({"label": [f"variant {variant}"]}))
+                alt.Chart(pd.DataFrame({"label": [f"Variant {variant}"]}))
                 .mark_text(
                     align="center", baseline="middle", fontSize=12, fontWeight="bold"
                 )
                 .encode(text="label:N")
-                .properties(width=80, height=150)
+                .properties(width=160, height=300)
             )
 
             # Combine variant label with row of subplots
@@ -509,7 +296,7 @@ def plot(
     ).resolve_scale(color="shared")
 
     # Save the plot
-    output_path = os.path.join(outdir, "separate_fba_net_flux_grid_report.html")
+    output_path = os.path.join(outdir, "fba_net_flux_grid_analysis.html")
     combined_plot.save(output_path)
     print(f"[INFO] Saved visualization to: {output_path}")
 

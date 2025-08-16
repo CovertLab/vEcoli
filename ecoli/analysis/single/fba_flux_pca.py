@@ -1,5 +1,6 @@
 """
 Visualize FBA reaction flux dynamics using PCA trajectory analysis.
+
 You can specify the reactions and time window using parameters:
     "fba_flux_pca": {
         # Required: specify BioCyc IDs of reactions to analyze
@@ -8,6 +9,11 @@ You can specify the reactions and time window using parameters:
         # If not specified, all time points will be used
         "time_window": [start_time, end_time]  # in seconds
         }
+
+This script uses the base reaction ID to extended reaction mapping to efficiently
+find forward and reverse reactions, then calculates net flux using SQL for
+optimal memory usage and performance.
+
 For the specified reactions, each timestep forms a vector of net flux values.
 PCA is applied to reduce dimensionality to 2D and visualize the metabolic trajectory.
 """
@@ -24,195 +30,18 @@ from duckdb import DuckDBPyConnection
 import pandas as pd
 
 from ecoli.library.parquet_emitter import field_metadata
+from ecoli.analysis.utils import (
+    create_base_to_extended_mapping,
+    build_flux_calculation_sql,
+)
 
 
-# ----------------------------------------- #
-# Helper functions
-def find_matching_reactions(reaction_ids, reaction_name, reverse_flag=False):
+def perform_pca_analysis(net_flux_df, valid_biocyc_ids, time_points):
     """
-    Find all reaction IDs that match the given reaction name pattern.
-    This is done once per BioCyc ID to avoid repeated string matching.
+    Perform PCA analysis on the net flux data.
 
     Args:
-        reaction_ids (list): List of all reaction IDs in the model
-        reaction_name (str): Root reaction name to search for
-        reverse_flag (bool): If True, search for reverse reactions;
-                           If False, search for forward reactions
-
-    Returns:
-        list: List of matching reaction IDs and their indices
-    """
-
-    matching_reactions = []
-
-    if reverse_flag:
-        # For reverse reactions, we look for reactions with "(reverse)" suffix
-        # Step 1: Try to find exact reverse name
-        reverse_name = reaction_name + " (reverse)"
-        if reverse_name in reaction_ids:
-            idx = reaction_ids.index(reverse_name)
-            matching_reactions.append((reverse_name, idx))
-
-        # Step 2: Search for extended reverse names with delimiters
-        delimiters = ["_", "[", "-", "/"]
-        for delimiter in delimiters:
-            extend_name = reaction_name + delimiter
-            for idx, reaction_id in enumerate(reaction_ids):
-                if (
-                    extend_name in reaction_id
-                    and "(reverse)" in reaction_id
-                    and reaction_id not in [r[0] for r in matching_reactions]
-                ):
-                    matching_reactions.append((reaction_id, idx))
-
-    else:
-        # For forward reactions, we look for reactions WITHOUT "(reverse)" suffix
-        # Step 1: Try to find exact root name (forward)
-        if reaction_name in reaction_ids and "(reverse)" not in reaction_name:
-            idx = reaction_ids.index(reaction_name)
-            matching_reactions.append((reaction_name, idx))
-
-        # Step 2: Search for extended forward names with delimiters
-        delimiters = ["_", "[", "-", "/"]
-        for delimiter in delimiters:
-            extend_name = reaction_name + delimiter
-            for idx, reaction_id in enumerate(reaction_ids):
-                if (
-                    extend_name in reaction_id
-                    and "(reverse)" not in reaction_id
-                    and reaction_id not in [r[0] for r in matching_reactions]
-                ):
-                    matching_reactions.append((reaction_id, idx))
-
-    return matching_reactions
-
-
-def precompute_reaction_mappings(reaction_ids, biocyc_ids):
-    """
-    Precompute all reaction mappings for forward and reverse reactions.
-    This avoids repeated string matching during flux calculation.
-
-    Args:
-        reaction_ids (list): List of all reaction IDs in the model
-        biocyc_ids (list): List of BioCyc IDs to analyze
-
-    Returns:
-        dict: Mapping of BioCyc ID to forward/reverse reaction indices
-    """
-
-    reaction_mappings = {}
-
-    for biocyc_id in biocyc_ids:
-        print(f"[INFO] Preprocessing reaction mappings for {biocyc_id}...")
-
-        # Find forward reactions
-        forward_reactions = find_matching_reactions(
-            reaction_ids, biocyc_id, reverse_flag=False
-        )
-        forward_indices = [idx for _, idx in forward_reactions]
-
-        # Find reverse reactions
-        reverse_reactions = find_matching_reactions(
-            reaction_ids, biocyc_id, reverse_flag=True
-        )
-        reverse_indices = [idx for _, idx in reverse_reactions]
-
-        reaction_mappings[biocyc_id] = {
-            "forward_indices": forward_indices,
-            "reverse_indices": reverse_indices,
-            "forward_reactions": [name for name, _ in forward_reactions],
-            "reverse_reactions": [name for name, _ in reverse_reactions],
-        }
-
-        print(
-            f"[INFO] Found {len(forward_reactions)} forward and {len(reverse_reactions)} reverse reactions for {biocyc_id}"
-        )
-
-        if not forward_reactions and not reverse_reactions:
-            print(f"[WARNING] No reactions found for {biocyc_id}")
-
-    return reaction_mappings
-
-
-def calculate_net_flux_matrix(flux_df, reaction_mappings, biocyc_ids):
-    """
-    Calculate net flux matrix for PCA analysis.
-    Each row represents a timestep, each column represents a reaction's net flux.
-
-    Args:
-        flux_df: Polars DataFrame with flux data
-        reaction_mappings: Precomputed reaction mappings
-        biocyc_ids: List of BioCyc IDs to include in the matrix
-
-    Returns:
-        numpy.ndarray: Net flux matrix (n_timepoints x n_reactions)
-        list: List of valid BioCyc IDs (columns of the matrix)
-    """
-
-    # Convert flux matrix to numpy array for faster computation
-    flux_matrix = flux_df.select("listeners__fba_results__reaction_fluxes").to_numpy()
-
-    # Stack all flux arrays into a 2D matrix (n_timepoints x n_reactions)
-    flux_array = np.vstack([row[0] for row in flux_matrix])
-
-    print(f"[INFO] Flux array shape: {flux_array.shape}")
-
-    # Calculate net flux for each BioCyc ID
-    net_flux_vectors = []
-    valid_biocyc_ids = []
-
-    for biocyc_id in biocyc_ids:
-        if biocyc_id not in reaction_mappings:
-            continue
-
-        mappings = reaction_mappings[biocyc_id]
-        forward_indices = mappings["forward_indices"]
-        reverse_indices = mappings["reverse_indices"]
-
-        # Skip if no reactions found
-        if not forward_indices and not reverse_indices:
-            print(f"[WARNING] No reactions found for {biocyc_id}, skipping...")
-            continue
-
-        # Calculate forward flux sum
-        if forward_indices:
-            forward_flux = flux_array[:, forward_indices].sum(axis=1)
-        else:
-            forward_flux = np.zeros(flux_array.shape[0])
-
-        # Calculate reverse flux sum
-        if reverse_indices:
-            reverse_flux = flux_array[:, reverse_indices].sum(axis=1)
-        else:
-            reverse_flux = np.zeros(flux_array.shape[0])
-
-        # Calculate net flux
-        net_flux = forward_flux - reverse_flux
-
-        net_flux_vectors.append(net_flux)
-        valid_biocyc_ids.append(biocyc_id)
-
-        print(
-            f"[INFO] Net flux stats for {biocyc_id}: mean={net_flux.mean():.6f}, std={net_flux.std():.6f} (mmol/gDW/hr)"
-        )
-
-    if not net_flux_vectors:
-        return None, []
-
-    # Stack net flux vectors to form the matrix (n_timepoints x n_reactions)
-    net_flux_matrix = np.column_stack(net_flux_vectors)
-
-    print(f"[INFO] Net flux matrix shape for PCA: {net_flux_matrix.shape}")
-
-    return net_flux_matrix, valid_biocyc_ids
-
-
-def perform_pca_analysis(net_flux_matrix, valid_biocyc_ids, time_points):
-    """
-    Perform PCA analysis on the net flux matrix.
-
-    Args:
-        net_flux_matrix: Net flux matrix (n_timepoints x n_reactions)
+        net_flux_df: Polars DataFrame with net flux columns
         valid_biocyc_ids: List of BioCyc IDs (reaction names)
         time_points: Time points corresponding to each row
 
@@ -221,6 +50,28 @@ def perform_pca_analysis(net_flux_matrix, valid_biocyc_ids, time_points):
     """
 
     print("[INFO] Performing PCA analysis...")
+
+    # Select only the net flux columns for PCA
+    net_flux_cols = [f"{biocyc_id}_net_flux" for biocyc_id in valid_biocyc_ids]
+
+    # Check that all columns exist
+    missing_cols = [col for col in net_flux_cols if col not in net_flux_df.columns]
+    if missing_cols:
+        print(f"[ERROR] Missing net flux columns: {missing_cols}")
+        return None
+
+    # Extract net flux matrix (n_timepoints x n_reactions)
+    net_flux_matrix = net_flux_df.select(net_flux_cols).to_numpy()
+
+    print(f"[INFO] Net flux matrix shape for PCA: {net_flux_matrix.shape}")
+
+    # Print basic statistics for each reaction
+    for i, biocyc_id in enumerate(valid_biocyc_ids):
+        flux_values = net_flux_matrix[:, i]
+        print(
+            f"[INFO] Net flux stats for {biocyc_id}: "
+            f"mean={flux_values.mean():.6f}, std={flux_values.std():.6f} (mmol/gDW/hr)"
+        )
 
     # Standardize the data (important for PCA)
     scaler = StandardScaler()
@@ -269,9 +120,6 @@ def perform_pca_analysis(net_flux_matrix, valid_biocyc_ids, time_points):
     return pca_results
 
 
-# ----------------------------------------- #
-
-
 def plot(
     params: dict[str, Any],
     conn: DuckDBPyConnection,
@@ -286,7 +134,7 @@ def plot(
 ):
     """Visualize FBA flux dynamics using PCA trajectory analysis."""
 
-    # Get BioCyc IDs from params
+    # Get parameters
     biocyc_ids = params.get("BioCyc_ID", [])
     if not biocyc_ids:
         print(
@@ -312,34 +160,48 @@ def plot(
 
     print(f"[INFO] PCA analysis with {len(biocyc_ids)} reactions: {biocyc_ids}")
 
-    # Required columns for the query
-    required_columns = [
-        "time",
-        "listeners__fba_results__reaction_fluxes",
-    ]
+    # Create base to extended reaction mapping
+    base_to_extended_mapping = create_base_to_extended_mapping(sim_data_dict)
+    if not base_to_extended_mapping:
+        print("[ERROR] Could not create base to extended reaction mapping")
+        return None
 
-    # Build SQL query for single generation
-    sql = f"""
-    SELECT
-        {", ".join(required_columns)}
-    FROM ({history_sql})
-    ORDER BY time
-    """
-
-    # Execute query
+    # Load reaction IDs from config
     try:
-        df = conn.sql(sql).pl()
+        all_reaction_ids = field_metadata(
+            conn, config_sql, "listeners__fba_results__reaction_fluxes"
+        )
+        print(f"[INFO] Total reactions in sim_data: {len(all_reaction_ids)}")
     except Exception as e:
-        print(f"[ERROR] Error executing SQL query: {e}")
+        print(f"[ERROR] Error loading reaction IDs: {e}")
+        return None
+
+    # Build SQL query for efficient flux calculation
+    flux_calculation_sql, valid_biocyc_ids = build_flux_calculation_sql(
+        biocyc_ids, base_to_extended_mapping, all_reaction_ids, history_sql
+    )
+
+    if not flux_calculation_sql or not valid_biocyc_ids:
+        print("[ERROR] Could not build flux calculation SQL")
+        return None
+
+    if len(valid_biocyc_ids) < 2:
+        print("[ERROR] Need at least 2 valid reactions for PCA analysis")
+        return None
+
+    print(f"[INFO] Processing {len(valid_biocyc_ids)} valid BioCyc IDs")
+
+    # Execute the optimized SQL query
+    try:
+        df = conn.sql(flux_calculation_sql).pl()
+        print(f"[INFO] Loaded data with {df.height} time steps")
+    except Exception as e:
+        print(f"[ERROR] Error executing flux calculation SQL: {e}")
         return None
 
     if df.is_empty():
         print("[ERROR] No data found")
         return None
-
-    # Convert time to minutes
-    if "time" in df.columns:
-        df = df.with_columns((pl.col("time") / 60).alias("time_min"))
 
     # Apply time window filter if specified
     if time_window is not None:
@@ -353,43 +215,23 @@ def plot(
             f"[INFO] Filtered to time window: {start_time_min:.2f} - {end_time_min:.2f} minutes"
         )
 
-    print(f"[INFO] Loaded data with {df.height} time steps")
-
     if df.height < 3:
         print("[ERROR] Need at least 3 time points for meaningful PCA analysis")
         return None
 
-    # Load the reaction IDs from the config
-    try:
-        reaction_ids = field_metadata(
-            conn, config_sql, "listeners__fba_results__reaction_fluxes"
-        )
-        print(f"[INFO] Total reactions in sim_data: {len(reaction_ids)}")
-    except Exception as e:
-        print(f"[ERROR] Error loading reaction IDs: {e}")
-        return None
-
-    # Precompute reaction mappings for all BioCyc IDs
-    reaction_mappings = precompute_reaction_mappings(reaction_ids, biocyc_ids)
-
-    # Calculate net flux matrix for PCA
-    net_flux_matrix, valid_biocyc_ids = calculate_net_flux_matrix(
-        df, reaction_mappings, biocyc_ids
-    )
-
-    if net_flux_matrix is None or len(valid_biocyc_ids) < 2:
-        print("[ERROR] Need at least 2 valid reactions for PCA analysis")
-        return None
+    print(f"[INFO] Final dataset has {df.height} time steps")
 
     # Get time points for trajectory
     time_points = df.select("time_min").to_numpy().flatten()
 
     # Perform PCA analysis
-    pca_results = perform_pca_analysis(net_flux_matrix, valid_biocyc_ids, time_points)
+    pca_results = perform_pca_analysis(df, valid_biocyc_ids, time_points)
 
-    # ---------------------------------------------- #
-    # Create visualizations
+    if pca_results is None:
+        print("[ERROR] PCA analysis failed")
+        return None
 
+    # Create visualization functions
     def create_pca_trajectory_chart(pca_results):
         """Create PCA trajectory visualization."""
 
@@ -454,7 +296,7 @@ def plot(
         pca_chart = (
             trajectory_line + trajectory_points + start_point + end_point
         ).properties(
-            title=f"PCA Trajectory ({pca_results['cumulative_variance']:.1%} variance explained",
+            title=f"PCA Trajectory ({pca_results['cumulative_variance']:.1%} variance explained)",
             width=500,
             height=400,
         )
@@ -507,8 +349,6 @@ def plot(
 
         return combined_loadings
 
-    # ---------------------------------------------- #
-
     # Create visualizations
     trajectory_chart = create_pca_trajectory_chart(pca_results)
     loadings_chart = create_loadings_chart(pca_results)
@@ -526,14 +366,14 @@ def plot(
     )
     combined_plot = combined_plot.properties(
         title=alt.TitleParams(
-            text=f"FBA Flux PCA Trajectory Analysis - {time_window_str}",
+            text=f"FBA Flux PCA Trajectory Analysis{time_window_str}",
             fontSize=16,
             anchor="start",
         )
     )
 
     # Save the plot
-    output_path = os.path.join(outdir, "single_fba_flux_pca.html")
+    output_path = os.path.join(outdir, "fba_flux_pca_trajectory.html")
     combined_plot.save(output_path)
     print(f"[INFO] Saved PCA visualization to: {output_path}")
 
