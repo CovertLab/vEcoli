@@ -29,30 +29,6 @@ def categorize_reactions(extended_reactions: List[str]) -> Tuple[List[str], List
     return forward_reactions, reverse_reactions
 
 
-def get_reaction_indices(
-    reaction_names: List[str], all_reaction_ids: List[str]
-) -> List[int]:
-    """
-    Get indices of reactions in the flux array.
-
-    Args:
-        reaction_names: List of reaction names to find
-        all_reaction_ids: List of all reaction IDs from field_metadata
-
-    Returns:
-        List of indices (0-based for Python, will be converted to 1-based for SQL)
-    """
-    indices = []
-    for rxn_name in reaction_names:
-        try:
-            idx = all_reaction_ids.index(rxn_name)
-            indices.append(idx)
-        except ValueError:
-            print(f"[WARNING] Reaction {rxn_name} not found in flux array")
-
-    return indices
-
-
 def build_flux_calculation_sql(
     biocyc_ids: List[str],
     base_to_extended_mapping: Dict[str, List[str]],
@@ -96,8 +72,22 @@ def build_flux_calculation_sql(
 
         # Separate forward and reverse reactions
         forward_reactions, reverse_reactions = categorize_reactions(extended_reactions)
-        forward_indices = get_reaction_indices(forward_reactions, all_reaction_ids)
-        reverse_indices = get_reaction_indices(reverse_reactions, all_reaction_ids)
+        forward_indices = []
+        reverse_indices = []
+
+        for rxn_name in forward_reactions:
+            try:
+                idx = all_reaction_ids.index(rxn_name)
+                forward_indices.append(idx)
+            except ValueError:
+                print(f"[WARNING] Reaction {rxn_name} not found in flux array")
+
+        for rxn_name in reverse_indices:
+            try:
+                idx = all_reaction_ids.index(rxn_name)
+                reverse_indices.append(idx)
+            except ValueError:
+                print(f"[WARNING] Reaction {rxn_name} not found in flux array")
 
         if not forward_indices and not reverse_indices:
             print(
