@@ -82,7 +82,7 @@ def build_flux_calculation_sql(
             except ValueError:
                 print(f"[WARNING] Reaction {rxn_name} not found in flux array")
 
-        for rxn_name in reverse_indices:
+        for rxn_name in reverse_reactions:
             try:
                 idx = all_reaction_ids.index(rxn_name)
                 reverse_indices.append(idx)
