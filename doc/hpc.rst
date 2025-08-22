@@ -238,6 +238,10 @@ job starts, the terminal will report the build progress.
 .. note::
   Files that match the patterns in ``.dockerignore`` are excluded from the image.
 
+.. note::
+  If the Apptainer build fails, eg:
+  ``FATAL:   While performing build: conveyor failed to get: unexpected end of JSON input``,
+  try cleaning cache: ``apptainer cache clean``
 .. warning::
   Do not make any changes to your cloned repository or close your SSH
   connection until the build has finished.
