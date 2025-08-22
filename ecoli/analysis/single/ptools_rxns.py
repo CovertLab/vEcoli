@@ -92,7 +92,7 @@ def plot(
     rxn_blocksum = consolidate_timepoints(rxn_mtx, n_tp, normalized=True)
 
     ptools_rxns = pd.DataFrame(
-        data=rxn_blocksum.transpose(), index=rxn_ids_base, columns=tp_columns
+        data=np.abs(rxn_blocksum.transpose()), index=rxn_ids_base, columns=tp_columns
     )
 
     ptools_rxns.index.name = "$"
