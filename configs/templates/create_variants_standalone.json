@@ -1,4 +1,8 @@
 {
+    # This file shows a typical set of configuration options for running "runscripts/create_variants.py"
+    # Your own config file may have fewer or more options depending on your needs
+    # Refer to https://covertlab.github.io/vEcoli/workflows.html#id2 for details
+    # Delete these comments from your own config file
     "variants": {
         "some_variant_module": {
             "param1": {
