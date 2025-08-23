@@ -11,6 +11,7 @@ All outputs are saved to outdir.
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from scipy.stats import gaussian_kde
 import os
 from typing import Any
@@ -426,9 +427,23 @@ def create_base_reaction_flux_plots(
             + f"<b>Log |Max Net Flux|:</b> {row['log_max_abs_flux']:.2f}"
         )
 
-    # 1. HEAT SCATTER PLOT
-    fig_heat = go.Figure()
+    # 1. HEAT SCATTER PLOT WITH MARGINAL HISTOGRAMS
+    # Create subplot with marginal histograms
+    fig_heat = make_subplots(
+        rows=2,
+        cols=2,
+        column_widths=[0.9, 0.1],
+        row_heights=[0.1, 0.9],
+        specs=[
+            [{"secondary_y": False}, {"secondary_y": False}],
+            [{"secondary_y": False}, {"secondary_y": False}],
+        ],
+        vertical_spacing=0.05,
+        horizontal_spacing=0.05,
+        subplot_titles=("", "", "", ""),
+    )
 
+    # Main scatter plot (bottom left, row=2, col=1)
     fig_heat.add_trace(
         go.Scatter(
             x=x,
@@ -444,42 +459,114 @@ def create_base_reaction_flux_plots(
                     tickfont=dict(size=12),
                     thickness=15,
                     len=0.7,
+                    x=1.02,  # Position colorbar to the right
                 ),
                 line=dict(width=0.5, color="white"),
             ),
             text=hover_text,
             hovertemplate="%{text}<extra></extra>",
             name="Base Reactions",
-        )
+            showlegend=False,
+        ),
+        row=2,
+        col=1,
     )
 
+    # Top density curve (x-axis distribution, row=1, col=1)
+    if len(x) > 1:
+        # Create smooth density curve for x-axis
+        x_range = np.linspace(x.min(), x.max(), 250)
+        x_density = gaussian_kde(x)
+        x_density_values = x_density(x_range)
+    else:
+        # Single point case
+        x_range = np.array([x.iloc[0]])
+        x_density_values = np.array([1.0])
+
+    fig_heat.add_trace(
+        go.Scatter(
+            x=x_range,
+            y=x_density_values,
+            mode="lines",
+            line=dict(color="steelblue", width=3),
+            fill="tozeroy",
+            fillcolor="rgba(70, 130, 180, 0.3)",
+            name="X Density",
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
+    )
+
+    # Right density curve (y-axis distribution, row=2, col=2)
+    if len(y) > 1:
+        # Create smooth density curve for y-axis
+        y_range = np.linspace(y.min(), y.max(), 250)
+        y_density = gaussian_kde(y)
+        y_density_values = y_density(y_range)
+    else:
+        # Single point case
+        y_range = np.array([y.iloc[0]])
+        y_density_values = np.array([1.0])
+
+    fig_heat.add_trace(
+        go.Scatter(
+            x=y_density_values,
+            y=y_range,
+            mode="lines",
+            line=dict(color="lightcoral", width=3),
+            fill="tozerox",
+            fillcolor="rgba(240, 128, 128, 0.3)",
+            name="Y Density",
+            showlegend=False,
+        ),
+        row=2,
+        col=2,
+    )
+
+    # Update layout for heat scatter with histograms
     fig_heat.update_layout(
         title=dict(
-            text=f"<b>Heat Scatter Plot: {direction} Base Reaction Net Flux - Zero Ratio vs |Max Net Flux|</b>",
+            text=f"<b>Heat Scatter Plot with Marginal Density Curves: {direction} Base Reaction Net Flux</b>",
             font=dict(size=18),
             x=0.5,
             xanchor="center",
         ),
-        xaxis=dict(
-            title=dict(text="log₁₀(ε + |Max Net Flux|)", font=dict(size=14)),
-            tickfont=dict(size=12),
-            gridcolor="rgba(128,128,128,0.2)",
-            gridwidth=1,
-        ),
-        yaxis=dict(
-            title=dict(text="Zero Flux Ratio", font=dict(size=14)),
-            tickfont=dict(size=12),
-            gridcolor="rgba(128,128,128,0.2)",
-            gridwidth=1,
-        ),
         plot_bgcolor="white",
         paper_bgcolor="white",
         font=dict(family="Arial", size=12),
-        width=900,
-        height=700,
-        margin=dict(l=80, r=80, t=100, b=80),
-        showlegend=False,
+        width=1000,
+        height=800,
+        margin=dict(l=80, r=120, t=100, b=80),
     )
+
+    # Update axes for main plot
+    fig_heat.update_xaxes(
+        title=dict(text="log₁₀(ε + |Max Net Flux|)", font=dict(size=14)),
+        tickfont=dict(size=12),
+        gridcolor="rgba(128,128,128,0.2)",
+        gridwidth=1,
+        row=2,
+        col=1,
+    )
+    fig_heat.update_yaxes(
+        title=dict(text="Zero Flux Ratio", font=dict(size=14)),
+        tickfont=dict(size=12),
+        gridcolor="rgba(128,128,128,0.2)",
+        gridwidth=1,
+        row=2,
+        col=1,
+    )
+
+    # Update axes for histograms (remove tick labels and titles)
+    fig_heat.update_xaxes(showticklabels=False, title="", row=1, col=1)
+    fig_heat.update_yaxes(showticklabels=False, title="", row=1, col=1)
+    fig_heat.update_xaxes(showticklabels=False, title="", row=2, col=2)
+    fig_heat.update_yaxes(showticklabels=False, title="", row=2, col=2)
+
+    # Hide the top-right subplot
+    fig_heat.update_xaxes(visible=False, row=1, col=2)
+    fig_heat.update_yaxes(visible=False, row=1, col=2)
 
     # Add statistics annotation
     stats_text = (
@@ -509,7 +596,7 @@ def create_base_reaction_flux_plots(
         yanchor="top",
     )
 
-    # 2. SIMPLE SCATTER PLOT
+    # 2. SIMPLE SCATTER PLOT (original version without histograms)
     fig_simple = go.Figure()
 
     fig_simple.add_trace(
@@ -584,7 +671,8 @@ def create_base_reaction_flux_plots(
 
     # Save plots
     heat_filename = os.path.join(
-        outdir, f"heat_scatter_plot_base_reactions_{filename_suffix}.html"
+        outdir,
+        f"heat_scatter_with_density_curves_base_reactions_{filename_suffix}.html",
     )
     simple_filename = os.path.join(
         outdir, f"simple_scatter_plot_base_reactions_{filename_suffix}.html"
@@ -735,7 +823,7 @@ def plot(
     Preprocesses FBA flux data by mapping extended reactions to base reactions,
     computes net fluxes for base reactions (forward extended - reverse extended),
     categorizes base reactions based on flux behavior, and creates separate
-    visualizations for each category.
+    visualizations for each category with marginal histograms.
 
     Parameters from params dict:
     - zero_threshold: Fraction of zeros above which a base reaction is considered inactive (default: 0.999)
@@ -854,7 +942,7 @@ def plot(
             positive_df, negative_df, oscillating_df, always_zero_df
         )
 
-        # Create visualizations
+        # Create visualizations with marginal histograms
         if len(positive_df) > 0:
             create_base_reaction_flux_plots(
                 positive_df,
