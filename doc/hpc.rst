@@ -426,7 +426,7 @@ cloned repository may affect SLURM batch jobs submitted with this flag.
 .. _Download Results to Local from Sherlock:
 
 Download Results to Local from Sherlock
-====================================
+=======================================
 
 It's recommended to turn to 
 `Sherlock's Data Transfer documentation <https://www.sherlock.stanford.edu/docs/storage/data-transfer/>`_
