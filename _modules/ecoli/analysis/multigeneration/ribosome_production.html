@@ -1,0 +1,490 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.multigeneration.ribosome_production &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.multigeneration.ribosome_production</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.multigeneration.ribosome_production</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">altair</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">alt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="n">open_arbitrary_sim_data</span><span class="p">,</span> <span class="n">named_idx</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">bulk_name_to_idx</span>
+
+
+<span class="c1"># ----------------------------------------- #</span>
+
+
+<div class="viewcode-block" id="calc_rna_doubling_time">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.multigeneration.ribosome_production.html#ecoli.analysis.multigeneration.ribosome_production.calc_rna_doubling_time">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calc_rna_doubling_time</span><span class="p">(</span>
+    <span class="n">produced_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">count_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">borderline</span><span class="p">:</span> <span class="nb">float</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate rRNA doubling time with sanitation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">production_rate</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">produced_col</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;time_step_sec&quot;</span><span class="p">)</span>
+    <span class="n">growth_rate</span> <span class="o">=</span> <span class="n">production_rate</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">count_col</span><span class="p">)</span>
+    <span class="n">dt_min</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="n">growth_rate</span> <span class="o">/</span> <span class="mi">60</span>
+    <span class="n">valid</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">produced_col</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">count_col</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">growth_rate</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="n">dt_min</span><span class="o">.</span><span class="n">is_finite</span><span class="p">()</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">dt_min</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">dt_min</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">borderline</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">pl</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">dt_min</span><span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="plot">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.multigeneration.ribosome_production.html#ecoli.analysis.multigeneration.ribosome_production.plot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">DuckDBPyConnection</span><span class="p">,</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sim_data_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">validation_data_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">variant_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">variant_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize ribosome production metrics for E. coli simulation.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">open_arbitrary_sim_data</span><span class="p">(</span><span class="n">sim_data_dict</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">sim_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="n">sim_doubling_time</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">doubling_time</span><span class="o">.</span><span class="n">asNumber</span><span class="p">()</span>
+
+    <span class="c1"># define rRNA groups and bulk IDs</span>
+    <span class="n">s30_16s</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s30_16s_rRNA</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">s30_full_complex</span>
+    <span class="p">]</span>
+    <span class="n">s50_23s</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s50_23s_rRNA</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">s50_full_complex</span>
+    <span class="p">]</span>
+    <span class="n">s50_5s</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s50_5s_rRNA</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">s50_full_complex</span>
+    <span class="p">]</span>
+    <span class="n">bulk_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">internal_state</span><span class="o">.</span><span class="n">bulk_molecules</span><span class="o">.</span><span class="n">bulk_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+    <span class="c1"># precompute indices as Python ints</span>
+    <span class="n">idx_16s</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">bulk_name_to_idx</span><span class="p">(</span><span class="n">s30_16s</span><span class="p">,</span> <span class="n">bulk_ids</span><span class="p">))]</span>
+    <span class="n">idx_23s</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">bulk_name_to_idx</span><span class="p">(</span><span class="n">s50_23s</span><span class="p">,</span> <span class="n">bulk_ids</span><span class="p">))]</span>
+    <span class="n">idx_5s</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">bulk_name_to_idx</span><span class="p">(</span><span class="n">s50_5s</span><span class="p">,</span> <span class="n">bulk_ids</span><span class="p">))]</span>
+
+    <span class="n">required_columns</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;time&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;variant&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;generation&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;agent_id&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__mass__instantaneous_growth_rate&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__ribosome_data__rRNA16S_initiated&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__ribosome_data__rRNA23S_initiated&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__ribosome_data__rRNA5S_initiated&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__ribosome_data__rRNA16S_init_prob&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__ribosome_data__rRNA23S_init_prob&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__ribosome_data__rRNA5S_init_prob&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__ribosome_data__effective_elongation_rate&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__unique_molecule_counts__active_ribosome&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="c1"># load data</span>
+    <span class="c1"># Create the bulk index expressions</span>
+    <span class="n">bulk_16s_expr</span> <span class="o">=</span> <span class="n">named_idx</span><span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;bulk_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx_16s</span><span class="p">],</span> <span class="p">[</span><span class="n">idx_16s</span><span class="p">])</span>
+    <span class="n">bulk_23s_expr</span> <span class="o">=</span> <span class="n">named_idx</span><span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;bulk_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx_23s</span><span class="p">],</span> <span class="p">[</span><span class="n">idx_23s</span><span class="p">])</span>
+    <span class="n">bulk_5s_expr</span> <span class="o">=</span> <span class="n">named_idx</span><span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;bulk_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx_5s</span><span class="p">],</span> <span class="p">[</span><span class="n">idx_5s</span><span class="p">])</span>
+
+    <span class="c1"># Combine all columns and expressions</span>
+    <span class="n">all_columns</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">required_columns</span><span class="p">)</span>
+    <span class="n">bulk_expressions</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">bulk_16s_expr</span><span class="p">,</span> <span class="n">bulk_23s_expr</span><span class="p">,</span> <span class="n">bulk_5s_expr</span><span class="p">])</span>
+
+    <span class="c1"># Build the SQL query</span>
+    <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    SELECT </span><span class="si">{</span><span class="n">all_columns</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">bulk_expressions</span><span class="si">}</span>
+<span class="s2">    FROM (</span><span class="si">{</span><span class="n">history_sql</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">    WHERE agent_id = 0</span>
+<span class="s2">    ORDER BY generation, time</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()</span>
+
+    <span class="c1"># time</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">((</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;time_min&quot;</span><span class="p">))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">diff</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">over</span><span class="p">([</span><span class="s2">&quot;variant&quot;</span><span class="p">,</span> <span class="s2">&quot;generation&quot;</span><span class="p">,</span> <span class="s2">&quot;agent_id&quot;</span><span class="p">])</span>
+        <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;time_step_sec&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="n">time_step_sec</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;time_step_sec&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">is_null</span><span class="p">())</span>
+        <span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;time_step_sec&quot;</span><span class="p">))</span>
+    <span class="p">)</span>
+
+    <span class="c1"># cell doubling time</span>
+    <span class="k">if</span> <span class="s2">&quot;listeners__mass__instantaneous_growth_rate&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;listeners__mass__instantaneous_growth_rate&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">60</span>
+        <span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+            <span class="n">pl</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">is_between</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">sim_doubling_time</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="s2">&quot;both&quot;</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;cell_doubling_time_min&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">pl</span><span class="o">.</span><span class="n">sum_horizontal</span><span class="p">([</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;bulk_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx_16s</span><span class="p">])</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
+                <span class="s2">&quot;bulk_16s_count&quot;</span>
+            <span class="p">),</span>
+            <span class="n">pl</span><span class="o">.</span><span class="n">sum_horizontal</span><span class="p">([</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;bulk_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx_23s</span><span class="p">])</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
+                <span class="s2">&quot;bulk_23s_count&quot;</span>
+            <span class="p">),</span>
+            <span class="n">pl</span><span class="o">.</span><span class="n">sum_horizontal</span><span class="p">([</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;bulk_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx_5s</span><span class="p">])</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
+                <span class="s2">&quot;bulk_5s_count&quot;</span>
+            <span class="p">),</span>
+            <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;listeners__unique_molecule_counts__active_ribosome&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">fill_null</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ribosome_count&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># total rRNA</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;bulk_16s_count&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ribosome_count&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;rrn16s_count&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;bulk_23s_count&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ribosome_count&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;rrn23s_count&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;bulk_5s_count&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ribosome_count&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;rrn5s_count&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># rRNA doubling times</span>
+    <span class="k">if</span> <span class="s2">&quot;listeners__ribosome_data__rRNA16S_initiated&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+            <span class="n">rrn16S_doubling_time_min</span><span class="o">=</span><span class="n">calc_rna_doubling_time</span><span class="p">(</span>
+                <span class="s2">&quot;listeners__ribosome_data__rRNA16S_initiated&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rrn16s_count&quot;</span><span class="p">,</span>
+                <span class="n">sim_doubling_time</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;listeners__ribosome_data__rRNA23S_initiated&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+            <span class="n">rrn23S_doubling_time_min</span><span class="o">=</span><span class="n">calc_rna_doubling_time</span><span class="p">(</span>
+                <span class="s2">&quot;listeners__ribosome_data__rRNA23S_initiated&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rrn23s_count&quot;</span><span class="p">,</span>
+                <span class="n">sim_doubling_time</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;listeners__ribosome_data__rRNA5S_initiated&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+            <span class="n">rrn5S_doubling_time_min</span><span class="o">=</span><span class="n">calc_rna_doubling_time</span><span class="p">(</span>
+                <span class="s2">&quot;listeners__ribosome_data__rRNA5S_initiated&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;rrn5s_count&quot;</span><span class="p">,</span>
+                <span class="n">sim_doubling_time</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># reference probabilities</span>
+    <span class="n">cond</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">condition</span>
+    <span class="n">trans</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span>
+    <span class="n">synth_probs</span> <span class="o">=</span> <span class="n">trans</span><span class="o">.</span><span class="n">cistron_tu_mapping_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">trans</span><span class="o">.</span><span class="n">rna_synth_prob</span><span class="p">[</span><span class="n">cond</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_prob</span><span class="p">(</span><span class="n">group_ids</span><span class="p">):</span>
+        <span class="n">cistrons</span> <span class="o">=</span> <span class="p">[</span><span class="n">rid</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="k">for</span> <span class="n">rid</span> <span class="ow">in</span> <span class="n">group_ids</span><span class="p">]</span>
+        <span class="n">idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">trans</span><span class="o">.</span><span class="n">cistron_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">cistrons</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">synth_probs</span><span class="p">[</span><span class="n">idxs</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="k">if</span> <span class="n">idxs</span><span class="o">.</span><span class="n">size</span> <span class="k">else</span> <span class="mf">0.0</span>
+
+    <span class="n">ref_probs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;16S&quot;</span><span class="p">:</span> <span class="n">fit_prob</span><span class="p">(</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s30_16s_rRNA</span><span class="p">),</span>
+        <span class="s2">&quot;23S&quot;</span><span class="p">:</span> <span class="n">fit_prob</span><span class="p">(</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s50_23s_rRNA</span><span class="p">),</span>
+        <span class="s2">&quot;5S&quot;</span><span class="p">:</span> <span class="n">fit_prob</span><span class="p">(</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">s50_5s_rRNA</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="c1"># ----------------------------------------- #</span>
+    <span class="c1"># prepare for plotting</span>
+    <span class="n">plot_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;time_min&quot;</span><span class="p">,</span> <span class="s2">&quot;variant&quot;</span><span class="p">,</span> <span class="s2">&quot;generation&quot;</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;cell_doubling_time_min&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rrn16S_doubling_time_min&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rrn23S_doubling_time_min&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rrn5S_doubling_time_min&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rrn16S_init_prob&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rrn23S_init_prob&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rrn5S_init_prob&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__ribosome_data__effective_elongation_rate&quot;</span><span class="p">,</span>
+    <span class="p">]:</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">plot_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+    <span class="n">plot_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">plot_cols</span><span class="p">)</span>
+
+    <span class="n">init_dm</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">plot_df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;time_min&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">select</span><span class="p">([</span><span class="s2">&quot;variant&quot;</span><span class="p">,</span> <span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">])</span>
+        <span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">:</span> <span class="s2">&quot;initial_dry_mass&quot;</span><span class="p">})</span>
+    <span class="p">)</span>
+    <span class="n">plot_df</span> <span class="o">=</span> <span class="n">plot_df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">init_dm</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;variant&quot;</span><span class="p">],</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+    <span class="n">plot_df</span> <span class="o">=</span> <span class="n">plot_df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;initial_dry_mass&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
+            <span class="s2">&quot;dry_mass_normalized&quot;</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># generate Altair charts</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_line_chart</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">y_title</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">plot_df</span><span class="p">)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">base</span><span class="o">.</span><span class="n">mark_line</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;time_min:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Time (min)&quot;</span><span class="p">),</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">y</span><span class="si">}</span><span class="s2">:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">y_title</span><span class="p">),</span>
+                <span class="n">color</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span>
+                    <span class="s2">&quot;generation:N&quot;</span><span class="p">,</span>
+                    <span class="n">legend</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Legend</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Simulated Multigeneration Data&quot;</span><span class="p">),</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">properties</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">120</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">ref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rule</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">ref</span><span class="p">]}))</span>
+                <span class="o">.</span><span class="n">mark_rule</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">strokeDash</span><span class="o">=</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+                <span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="s2">&quot;y:Q&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">line</span> <span class="o">+</span> <span class="n">rule</span>
+        <span class="k">return</span> <span class="n">line</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_histogram</span><span class="p">(</span>
+        <span class="n">col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span> <span class="n">probability</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">probability</span><span class="p">:</span>
+            <span class="n">density</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">plot_df</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">transform_density</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">as_</span><span class="o">=</span><span class="p">[</span><span class="n">col</span><span class="p">,</span> <span class="s2">&quot;density&quot;</span><span class="p">],</span> <span class="n">counts</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="n">bins</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">mark_area</span><span class="p">(</span><span class="n">opacity</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                    <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;bin=</span><span class="si">{</span><span class="n">bins</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+                    <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span><span class="s2">&quot;density:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Density&quot;</span><span class="p">),</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">properties</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">density</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hist</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">plot_df</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">mark_bar</span><span class="p">(</span><span class="n">opacity</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                    <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">:Q&quot;</span><span class="p">,</span> <span class="nb">bin</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Bin</span><span class="p">(</span><span class="n">maxbins</span><span class="o">=</span><span class="n">bins</span><span class="p">),</span> <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;bin=</span><span class="si">{</span><span class="n">bins</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+                    <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span><span class="s2">&quot;count():Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Count&quot;</span><span class="p">),</span>
+                    <span class="n">color</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">value</span><span class="p">(</span><span class="s2">&quot;steelblue&quot;</span><span class="p">),</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">properties</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">hist</span>
+
+    <span class="n">plots</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Dry mass</span>
+    <span class="k">if</span> <span class="s2">&quot;dry_mass_normalized&quot;</span> <span class="ow">in</span> <span class="n">plot_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">create_line_chart</span><span class="p">(</span>
+            <span class="s2">&quot;dry_mass_normalized&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Normalized Dry Mass Over Time&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Dry mass (relative to t=0)&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">hist</span> <span class="o">=</span> <span class="n">create_histogram</span><span class="p">(</span>
+            <span class="s2">&quot;dry_mass_normalized&quot;</span><span class="p">,</span> <span class="s2">&quot;Normalized Dry Mass Distribution&quot;</span><span class="p">,</span> <span class="n">probability</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt</span><span class="o">.</span><span class="n">hconcat</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">hist</span><span class="p">))</span>
+    <span class="c1"># Cell Doubling Time</span>
+    <span class="k">if</span> <span class="s2">&quot;cell_doubling_time_min&quot;</span> <span class="ow">in</span> <span class="n">plot_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">create_line_chart</span><span class="p">(</span>
+            <span class="s2">&quot;cell_doubling_time_min&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Cell Doubling Time&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Doubling Time (min)&quot;</span><span class="p">,</span>
+            <span class="n">sim_doubling_time</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">hist</span> <span class="o">=</span> <span class="n">create_histogram</span><span class="p">(</span>
+            <span class="s2">&quot;cell_doubling_time_min&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Cell Doubling Time (min) Distribution&quot;</span><span class="p">,</span>
+            <span class="n">probability</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt</span><span class="o">.</span><span class="n">hconcat</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">hist</span><span class="p">))</span>
+    <span class="c1"># rRNA Doubl;ing Time</span>
+    <span class="k">for</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;16S&quot;</span><span class="p">,</span> <span class="s2">&quot;23S&quot;</span><span class="p">,</span> <span class="s2">&quot;5S&quot;</span><span class="p">]:</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;rrn</span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">_doubling_time_min&quot;</span>
+        <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">plot_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">create_line_chart</span><span class="p">(</span>
+                <span class="n">col</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2"> rRNA Doubling Time&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Doubling Time (min)&quot;</span><span class="p">,</span>
+                <span class="n">sim_doubling_time</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">hist</span> <span class="o">=</span> <span class="n">create_histogram</span><span class="p">(</span>
+                <span class="n">col</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2"> rRNA Doubling Time Distribution&quot;</span><span class="p">,</span> <span class="n">probability</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt</span><span class="o">.</span><span class="n">hconcat</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">hist</span><span class="p">))</span>
+    <span class="c1"># rRNA Initiation Probability</span>
+    <span class="k">for</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">ref_probs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;rrn</span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">_init_prob&quot;</span>
+        <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">plot_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">create_line_chart</span><span class="p">(</span>
+                <span class="n">col</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2"> rRNA Initiation Probability&quot;</span><span class="p">,</span> <span class="s2">&quot;Probability&quot;</span><span class="p">,</span> <span class="n">ref</span>
+            <span class="p">)</span>
+            <span class="n">hist</span> <span class="o">=</span> <span class="n">create_histogram</span><span class="p">(</span>
+                <span class="n">col</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2"> rRNA Initiation Probability Distribution&quot;</span><span class="p">,</span>
+                <span class="n">probability</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt</span><span class="o">.</span><span class="n">hconcat</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">hist</span><span class="p">))</span>
+    <span class="c1"># Ribosome Elongation Rate</span>
+    <span class="k">if</span> <span class="s2">&quot;listeners__ribosome_data__effective_elongation_rate&quot;</span> <span class="ow">in</span> <span class="n">plot_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">create_line_chart</span><span class="p">(</span>
+            <span class="s2">&quot;listeners__ribosome_data__effective_elongation_rate&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Ribosome Elongation Rate&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Amino acids/s&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">hist</span> <span class="o">=</span> <span class="n">create_histogram</span><span class="p">(</span>
+            <span class="s2">&quot;listeners__ribosome_data__effective_elongation_rate&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Ribosome Elongation Rate Distribution&quot;</span><span class="p">,</span>
+            <span class="n">probability</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt</span><span class="o">.</span><span class="n">hconcat</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">hist</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">plots</span><span class="p">:</span>
+        <span class="n">fallback</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;No data available&quot;</span><span class="p">],</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">]})</span>
+        <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">fallback</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">mark_text</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;x:Q&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;y:Q&quot;</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;message:N&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">properties</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;No Data&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">combined</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">alt</span><span class="o">.</span><span class="n">vconcat</span><span class="p">(</span><span class="o">*</span><span class="n">plots</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">resolve_scale</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;independent&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">properties</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Ribosome Production Metrics&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">out_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;ribosome_production_report.html&quot;</span><span class="p">)</span>
+    <span class="n">combined</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">out_path</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved visualization to: </span><span class="si">{</span><span class="n">out_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">combined</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

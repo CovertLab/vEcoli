@@ -1,0 +1,23 @@
+``runscripts``
+==============
+.. automodule:: runscripts
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   runscripts.debug
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   runscripts.analysis
+   runscripts.create_variants
+   runscripts.parca
+   runscripts.sim
+   runscripts.workflow

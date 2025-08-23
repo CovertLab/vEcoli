@@ -1,0 +1,711 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>runscripts.debug.compare_pickles &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">runscripts.debug.compare_pickles</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for runscripts.debug.compare_pickles</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Compare two .cPickle files or all the .cPickle files in a pair of directories.</span>
+<span class="sd">Show the differences or optionally just a count of difference lines.</span>
+
+<span class="sd">Usage (PATH is a path like &#39;out/manual/intermediates&#39;):</span>
+<span class="sd">    runscripts/debug/comparePickles.py PATH1 PATH2</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numbers</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pprint</span><span class="w"> </span><span class="kn">import</span> <span class="n">pformat</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">types</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">Bio.Seq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.interpolate</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sympy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sympy.matrices</span><span class="w"> </span><span class="kn">import</span> <span class="n">dense</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">unum</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">wholecell.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">constants</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">wholecell.utils.unit_struct_array</span>
+
+
+<span class="n">NULP</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># float comparison tolerance, in Number of Units in the Last Place</span>
+
+<span class="c1"># Objects with a list of attributes to compare</span>
+<span class="n">SPECIAL_OBJECTS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">scipy</span><span class="o">.</span><span class="n">interpolate</span><span class="o">.</span><span class="n">CubicSpline</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="s2">&quot;axis&quot;</span><span class="p">],</span>
+    <span class="n">wholecell</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">unit_struct_array</span><span class="o">.</span><span class="n">UnitStructArray</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;struct_array&quot;</span><span class="p">,</span> <span class="s2">&quot;units&quot;</span><span class="p">],</span>
+<span class="p">}</span>
+
+<span class="n">LEAF_TYPES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">unum</span><span class="o">.</span><span class="n">Unum</span><span class="p">,</span>
+    <span class="n">Bio</span><span class="o">.</span><span class="n">Seq</span><span class="o">.</span><span class="n">Seq</span><span class="p">,</span>
+    <span class="n">sympy</span><span class="o">.</span><span class="n">Basic</span><span class="p">,</span>
+    <span class="n">numbers</span><span class="o">.</span><span class="n">Number</span><span class="p">,</span>
+    <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">,</span>
+    <span class="n">types</span><span class="o">.</span><span class="n">FunctionType</span><span class="p">,</span>
+    <span class="n">dense</span><span class="o">.</span><span class="n">MutableDenseMatrix</span><span class="p">,</span>
+    <span class="n">wholecell</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">unit_struct_array</span><span class="o">.</span><span class="n">UnitStructArray</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">WHITESPACE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\s+&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Repr">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.Repr">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Repr</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A Repr has the given repr() string without quotes and != any other value.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">repr_</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">repr_</span> <span class="o">=</span> <span class="n">repr_</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">repr_</span></div>
+
+
+
+<div class="viewcode-block" id="has_python_vars">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.has_python_vars">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">has_python_vars</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns true if the given object has any Python instance variables, that is</span>
+<span class="sd">    ordinary fields or compact slots. If not, it&#39;s presumably a built-in type</span>
+<span class="sd">    or extension type implemented entirely in C and Cython.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;__dict__&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;__slots__&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="all_vars">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.all_vars">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">all_vars</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a dict of all the object&#39;s instance variables stored in ordinary</span>
+<span class="sd">    fields and in compact slots. This expands on the built-in function `vars()`.</span>
+<span class="sd">    If the object implements the pickling method `__getstate__`, call that</span>
+<span class="sd">    instead to get its defining state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;__getstate__&quot;</span><span class="p">):</span>
+        <span class="c1"># noinspection PyCallingNonCallable</span>
+        <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">__getstate__</span><span class="p">()</span>
+
+    <span class="n">attrs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;__dict__&quot;</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;__slots__&quot;</span><span class="p">,</span> <span class="p">())})</span>
+    <span class="k">return</span> <span class="n">attrs</span></div>
+
+
+
+<div class="viewcode-block" id="is_leaf">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.is_leaf">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_leaf</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">leaves</span><span class="o">=</span><span class="n">LEAF_TYPES</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Predicate to determine if we have reached the end of how deep we want to traverse</span>
+<span class="sd">    through the object tree.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="nb">callable</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>  <span class="c1"># it&#39;s callable</span>
+        <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">leaves</span><span class="p">)</span>  <span class="c1"># it&#39;s an instance of a declared leaf type</span>
+        <span class="ow">or</span> <span class="ow">not</span> <span class="n">has_python_vars</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="p">)</span>  <span class="c1"># an object without Python instance variables</span></div>
+
+
+
+<div class="viewcode-block" id="object_tree">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.object_tree">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">object_tree</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Diagnostic tool to inspect a complex data structure.</span>
+
+<span class="sd">    Given an object, exhaustively traverse down all attributes it contains until leaves</span>
+<span class="sd">    are	reached, and convert everything found into a dictionary or a list. The resulting</span>
+<span class="sd">    dictionary will mirror the structure of the original object, but instead of</span>
+<span class="sd">    attributes with values it will be a dictionary where the keys are the attribute</span>
+<span class="sd">    names. The type of the dictionarified object will be encoded under the key `!type`</span>
+<span class="sd">    which is assumed to not be in conflict with any other attributes. The result should</span>
+<span class="sd">    aid in serialization and deserialization of the object and is intended to be a</span>
+<span class="sd">    translation of a pickled object.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        obj (object): The object to inspect.</span>
+<span class="sd">        path (optional str): The root path of this object tree. This will be built upon</span>
+<span class="sd">            for each child of the current object found and reported in a value is</span>
+<span class="sd">            provided for `debug`.</span>
+<span class="sd">        debug (optional str): If provided, prints paths of the attributes encountered.</span>
+<span class="sd">            If the value is &#39;ALL&#39;, it will print every path. If the value is &#39;CALLABLE&#39;,</span>
+<span class="sd">            it will only print methods and functions it finds.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">debug</span> <span class="o">==</span> <span class="s2">&quot;ALL&quot;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_leaf</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">debug</span> <span class="o">==</span> <span class="s2">&quot;CALLABLE&quot;</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">obj</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">obj</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">key</span><span class="p">:</span> <span class="n">object_tree</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[&#39;</span><span class="si">{}</span><span class="s2">&#39;]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">debug</span><span class="p">)</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">object_tree</span><span class="p">(</span><span class="n">subobj</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span> <span class="n">debug</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">subobj</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="n">tree</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">key</span><span class="p">:</span> <span class="n">object_tree</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">debug</span><span class="p">)</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">tree</span><span class="p">[</span><span class="s2">&quot;!type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">tree</span></div>
+
+
+
+<div class="viewcode-block" id="size_tree">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.size_tree">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">size_tree</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the size of attributes in an object tree. Sizes greater than the cutoff</span>
+<span class="sd">    (in MB) will be returned for displaying. Sizes include all values contained</span>
+<span class="sd">    within an attribute (eg. a Dict will be represented by the size of all keys</span>
+<span class="sd">    and values in addition to the Dict size itself).</span>
+
+<span class="sd">    TODO: double check total size vs disk size - might be missing some types</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">return_val</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">total</span> <span class="o">&gt;</span> <span class="n">cutoff</span> <span class="ow">and</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">total</span><span class="p">,</span> <span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">total</span><span class="p">,)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_size</span><span class="p">(</span><span class="n">o</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">sys</span><span class="o">.</span><span class="n">getsizeof</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="o">**</span><span class="mi">20</span>  <span class="c1"># convert to MB</span>
+
+    <span class="n">size</span> <span class="o">=</span> <span class="n">get_size</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+
+    <span class="c1"># special handling of leaf to get size of defining attributes</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">unum</span><span class="o">.</span><span class="n">Unum</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="n">size_tree</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">_unit</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="n">get_size</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">_value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">size</span><span class="p">,)</span>
+
+    <span class="c1"># special handling of leaf to get size of str sequence</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">Bio</span><span class="o">.</span><span class="n">Seq</span><span class="o">.</span><span class="n">Seq</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="n">get_size</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">size</span><span class="p">,)</span>
+
+    <span class="c1"># special handling of leaf, each entry is allocated the same amount of space</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">wholecell</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">unit_struct_array</span><span class="o">.</span><span class="n">UnitStructArray</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="n">size_tree</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">units</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">n_entries</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">struct_array</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_entries</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">+=</span> <span class="n">get_size</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">struct_array</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">n_entries</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">size</span><span class="p">,)</span>
+
+    <span class="c1"># if a special object, check predefined attributes for equality</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="ow">in</span> <span class="n">SPECIAL_OBJECTS</span><span class="p">:</span>
+        <span class="n">sizes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="n">SPECIAL_OBJECTS</span><span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="n">o</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="n">subsizes</span> <span class="o">=</span> <span class="n">size_tree</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">attr</span><span class="p">),</span> <span class="n">cutoff</span><span class="p">)</span>
+            <span class="n">size</span> <span class="o">+=</span> <span class="n">subsizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">subsizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">cutoff</span><span class="p">:</span>
+                <span class="n">formatted</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subsizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subsizes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">formatted</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="n">formatted</span><span class="p">,</span> <span class="n">subsizes</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">sizes</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">return</span> <span class="n">return_val</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">sizes</span><span class="p">)</span>
+
+    <span class="c1"># if it is a leaf, just return the size</span>
+    <span class="c1"># TODO: any special handling for types that are not already accounted for above</span>
+    <span class="k">elif</span> <span class="n">is_leaf</span><span class="p">(</span><span class="n">o</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">size</span><span class="p">,)</span>
+
+    <span class="c1"># if it is a dictionary, then get the size of keys and values</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+        <span class="n">sizes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">total_size</span> <span class="o">=</span> <span class="n">size</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">o</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">subsizes</span> <span class="o">=</span> <span class="n">size_tree</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">)</span>
+            <span class="n">entry_size</span> <span class="o">=</span> <span class="n">subsizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">get_size</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">total_size</span> <span class="o">+=</span> <span class="n">entry_size</span>
+            <span class="k">if</span> <span class="n">entry_size</span> <span class="o">&gt;</span> <span class="n">cutoff</span><span class="p">:</span>
+                <span class="n">formatted</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">entry_size</span><span class="p">))</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subsizes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">formatted</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="n">formatted</span><span class="p">,</span> <span class="n">subsizes</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">sizes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">return</span> <span class="n">return_val</span><span class="p">(</span><span class="n">total_size</span><span class="p">,</span> <span class="n">sizes</span><span class="p">)</span>
+
+    <span class="c1"># if it is a sequence, then get the size of each element</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+        <span class="n">sizes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">total_size</span> <span class="o">=</span> <span class="n">size</span>
+        <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">o</span><span class="p">:</span>
+            <span class="n">subsizes</span> <span class="o">=</span> <span class="n">size_tree</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">)</span>
+            <span class="n">total_size</span> <span class="o">+=</span> <span class="n">subsizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">subsizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">cutoff</span><span class="p">:</span>
+                <span class="n">formatted</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subsizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subsizes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">formatted</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="n">formatted</span><span class="p">,</span> <span class="n">subsizes</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">sizes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">return_val</span><span class="p">(</span><span class="n">total_size</span><span class="p">,</span> <span class="n">sizes</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">size</span><span class="p">,)</span></div>
+
+
+
+<div class="viewcode-block" id="_are_instances_of">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles._are_instances_of">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_are_instances_of</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a_type</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return True if `a` and `b` are both instances of the given type (or tuple</span>
+<span class="sd">    of types).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">a_type</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a_type</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="diff_trees">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.diff_trees">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">diff_trees</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the differences between two trees or leaf nodes a and b. Return a</span>
+<span class="sd">    falsey value if the inputs match OR a truthy value that explains or</span>
+<span class="sd">    summarizes their differences, where each point in the tree where the inputs</span>
+<span class="sd">    differ will be a tuple (a&#39;s value, b&#39;s value, optional description).</span>
+
+<span class="sd">    Floating point numbers are compared with the tolerance set by the constant</span>
+<span class="sd">    NULP (Number of Units in the Last Place), allowing for NaN and infinite</span>
+<span class="sd">    values. (Adjust the tolerance level NULP if needed.)</span>
+
+<span class="sd">    This operation is symmetrical.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># treat str and Python 2 unicode as the same leaf type</span>
+    <span class="c1"># ditto for int and Python 2 long</span>
+    <span class="k">if</span> <span class="n">_are_instances_of</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_are_instances_of</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">b</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">elide</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">elide</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="c1"># if they aren&#39;t they same type, they are clearly different. Also this lets us</span>
+    <span class="c1"># safely assume throughout the rest of the function that a and b are the same type</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">elide</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">400</span><span class="p">),</span> <span class="n">elide</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
+
+    <span class="c1"># if they are floats, handle various kinds of values</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">compare_floats</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="c1"># if they are numpy arrays, compare them using a numpy testing function</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">compare_ndarrays</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="c1"># if they are Unums compare their contents with matching units</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">unum</span><span class="o">.</span><span class="n">Unum</span><span class="p">):</span>
+        <span class="n">a0</span><span class="p">,</span> <span class="n">b0</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">matchUnits</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">diff_trees</span><span class="p">(</span><span class="n">a0</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(),</span> <span class="n">b0</span><span class="o">.</span><span class="n">asNumber</span><span class="p">())</span>
+
+    <span class="c1"># if a special object, check predefined attributes for equality</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="ow">in</span> <span class="n">SPECIAL_OBJECTS</span><span class="p">:</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="n">SPECIAL_OBJECTS</span><span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="n">subdiff</span> <span class="o">=</span> <span class="n">diff_trees</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">attr</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">subdiff</span><span class="p">:</span>
+                <span class="n">diff</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">subdiff</span>
+        <span class="k">return</span> <span class="n">diff</span>
+
+    <span class="c1"># if they are leafs (including strings) use python equality comparison</span>
+    <span class="k">elif</span> <span class="n">is_leaf</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">b</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">elide</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">elide</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="c1"># if they are dictionaries then diff the value under each key</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">na</span> <span class="o">=</span> <span class="n">Repr</span><span class="p">(</span><span class="s2">&quot;--&quot;</span><span class="p">)</span>
+        <span class="n">nb</span> <span class="o">=</span> <span class="n">Repr</span><span class="p">(</span><span class="s2">&quot;--&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">subdiff</span> <span class="o">=</span> <span class="n">diff_trees</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">na</span><span class="p">),</span> <span class="n">b</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">nb</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">subdiff</span><span class="p">:</span>
+                <span class="n">diff</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">subdiff</span>
+        <span class="k">return</span> <span class="n">diff</span>
+
+    <span class="c1"># if they are sequences then compare each element at each index</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">))</span> <span class="o">*</span> <span class="p">[</span><span class="n">Repr</span><span class="p">(</span><span class="s2">&quot;--&quot;</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="o">*</span> <span class="p">[</span><span class="n">Repr</span><span class="p">(</span><span class="s2">&quot;--&quot;</span><span class="p">)]</span>
+
+        <span class="n">diff</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)):</span>
+            <span class="n">subdiff</span> <span class="o">=</span> <span class="n">diff_trees</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">b</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">subdiff</span><span class="p">:</span>
+                <span class="n">diff</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subdiff</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">diff</span>
+
+    <span class="c1"># this should never happen</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;value not considered by `diff_trees`: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="elide">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.elide">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">elide</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a value with the same repr but elided if it&#39;d be longer than max.&quot;&quot;&quot;</span>
+    <span class="n">repr_</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">repr_</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_len</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Repr</span><span class="p">(</span><span class="n">repr_</span><span class="p">[:</span><span class="n">max_len</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span></div>
+
+
+
+<div class="viewcode-block" id="simplify_error_message">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.simplify_error_message">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">simplify_error_message</span><span class="p">(</span><span class="n">message</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">elide</span><span class="p">(</span><span class="n">Repr</span><span class="p">(</span><span class="n">WHITESPACE</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()))</span></div>
+
+
+
+<div class="viewcode-block" id="compare_floats">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.compare_floats">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_floats</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compare two floats, allowing some tolerance, NaN, and Inf values. This</span>
+<span class="sd">    considers all types of NaN to match.</span>
+<span class="sd">    Return 0.0 (which is falsey) if they match, else (f1, f2).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">f1</span> <span class="o">==</span> <span class="n">f2</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">f1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">f2</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_almost_equal_nulp</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">nulp</span><span class="o">=</span><span class="n">NULP</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+    <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+        <span class="c1"># FWIW, the string error.args[0] tells the NULP difference.</span>
+        <span class="k">return</span> <span class="n">f1</span><span class="p">,</span> <span class="n">f2</span></div>
+
+
+
+<div class="viewcode-block" id="compare_ndarrays">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.compare_ndarrays">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_ndarrays</span><span class="p">(</span><span class="n">array1</span><span class="p">,</span> <span class="n">array2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compare two ndarrays, checking the shape and all elements, allowing for</span>
+<span class="sd">    NaN values and non-numeric values. Return () if they match, else a tuple of</span>
+<span class="sd">    diff info or just a diff description.</span>
+
+<span class="sd">    TODO(jerry): Allow tolerance for float elements of structured arrays and</span>
+<span class="sd">      handle NaN and Inf values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">summarize_array</span><span class="p">(</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Repr</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;array(</span><span class="si">{</span><span class="n">ndarray</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">ndarray</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">array1</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">array2</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">summarize_array</span><span class="p">(</span><span class="n">array1</span><span class="p">),</span> <span class="n">summarize_array</span><span class="p">(</span><span class="n">array2</span><span class="p">)</span>
+
+    <span class="n">object_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">array1</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># This handles float tolerance but not NaN and Inf.</span>
+            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_almost_equal_nulp</span><span class="p">(</span><span class="n">array1</span><span class="p">,</span> <span class="n">array2</span><span class="p">,</span> <span class="n">nulp</span><span class="o">=</span><span class="n">NULP</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AssertionError</span> <span class="k">as</span> <span class="n">_</span><span class="p">:</span>
+            <span class="c1"># return elide(array1), elide(array2), simplify_error_message(e.args[0])</span>
+            <span class="k">pass</span>  <span class="c1"># try again, below</span>
+    <span class="c1"># Handle ragged arrays created with an object dtype</span>
+    <span class="k">elif</span> <span class="n">array1</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">object_dtype</span> <span class="ow">and</span> <span class="n">array2</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">object_dtype</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">array1</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">array2</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">for</span> <span class="n">sub1</span><span class="p">,</span> <span class="n">sub2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">array1</span><span class="p">,</span> <span class="n">array2</span><span class="p">):</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">sub1</span><span class="p">,</span> <span class="n">sub2</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AssertionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">simplify_error_message</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># This handles non-float dtypes, also NaN and Inf, but no tolerance.</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span><span class="n">array1</span><span class="p">,</span> <span class="n">array2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">()</span>
+    <span class="k">except</span> <span class="ne">AssertionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">simplify_error_message</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="load_tree">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.load_tree">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_tree</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a .cPickle file as an object_tree.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">fix_imports</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;latin1&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">object_tree</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="load_fit_tree">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.load_fit_tree">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_fit_tree</span><span class="p">(</span><span class="n">out_subdir</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load the parameter calculator&#39;s (Parca&#39;s) output as an object_tree.&quot;&quot;&quot;</span>
+    <span class="c1"># For convenience, optionally add the prefix &#39;out/&#39;.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">out_subdir</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">out_subdir</span><span class="p">):</span>
+        <span class="n">out_subdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;out&quot;</span><span class="p">,</span> <span class="n">out_subdir</span><span class="p">)</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">out_subdir</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">KB_DIR</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">SERIALIZED_SIM_DATA_FILENAME</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">load_tree</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="pprint_diffs">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.pprint_diffs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">pprint_diffs</span><span class="p">(</span><span class="n">diffs</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">160</span><span class="p">,</span> <span class="n">print_diff_lines</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">print_count</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pretty-print the diff info: optionally print the detailed diff lines,</span>
+<span class="sd">    optionally print the diff line count as a single figure of merit; then</span>
+<span class="sd">    return the line count.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">diffs</span><span class="p">:</span>
+        <span class="n">diff_lines</span> <span class="o">=</span> <span class="n">pformat</span><span class="p">(</span><span class="n">diffs</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">print_diff_lines</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">diff_lines</span><span class="p">)</span>
+        <span class="n">line_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">diff_lines</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">line_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">print_count</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;==&gt; lines of differences: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">line_count</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">line_count</span></div>
+
+
+
+<div class="viewcode-block" id="diff_files">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.diff_files">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">diff_files</span><span class="p">(</span><span class="n">path1</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path2</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">print_diff_lines</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Diff the pair of named pickle files. Return the diff line count.&quot;&quot;&quot;</span>
+    <span class="n">tree1</span> <span class="o">=</span> <span class="n">load_tree</span><span class="p">(</span><span class="n">path1</span><span class="p">)</span>
+    <span class="n">tree2</span> <span class="o">=</span> <span class="n">load_tree</span><span class="p">(</span><span class="n">path2</span><span class="p">)</span>
+    <span class="n">diffs</span> <span class="o">=</span> <span class="n">diff_trees</span><span class="p">(</span><span class="n">tree1</span><span class="p">,</span> <span class="n">tree2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pprint_diffs</span><span class="p">(</span><span class="n">diffs</span><span class="p">,</span> <span class="n">print_diff_lines</span><span class="o">=</span><span class="n">print_diff_lines</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="list_pickles">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.list_pickles">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_pickles</span><span class="p">(</span><span class="n">directory</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a map of .cPickle file names to paths in the given directory</span>
+<span class="sd">    sorted by file modification time then by filename.&quot;&quot;&quot;</span>
+    <span class="n">entries</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.cPickle&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="p">{</span><span class="n">e</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="n">e</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">entries</span><span class="p">)}</span>
+    <span class="k">return</span> <span class="n">files</span></div>
+
+
+
+<div class="viewcode-block" id="diff_dirs">
+<a class="viewcode-back" href="../../../reference/api/runscripts/runscripts.debug.compare_pickles.html#runscripts.debug.compare_pickles.diff_dirs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">diff_dirs</span><span class="p">(</span><span class="n">dir1</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dir2</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">print_diff_lines</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Diff the pickle files in the pair of named directories. Return the total</span>
+<span class="sd">    diff line count.&quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Comparing pickle files in &quot;</span><span class="si">{</span><span class="n">dir1</span><span class="si">}</span><span class="s1">&quot; vs. &quot;</span><span class="si">{</span><span class="n">dir2</span><span class="si">}</span><span class="s1">&quot;.&#39;</span><span class="p">)</span>
+    <span class="n">pickles1</span> <span class="o">=</span> <span class="n">list_pickles</span><span class="p">(</span><span class="n">dir1</span><span class="p">)</span>
+    <span class="n">pickles2</span> <span class="o">=</span> <span class="n">list_pickles</span><span class="p">(</span><span class="n">dir2</span><span class="p">)</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">path1</span> <span class="ow">in</span> <span class="n">pickles1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">*** </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">&#39;*&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="mi">75</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">path2</span> <span class="o">=</span> <span class="n">pickles2</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">path2</span><span class="p">:</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="n">diff_files</span><span class="p">(</span><span class="n">path1</span><span class="p">,</span> <span class="n">path2</span><span class="p">,</span> <span class="n">print_diff_lines</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is in </span><span class="si">{</span><span class="n">dir1</span><span class="si">}</span><span class="s2"> but not </span><span class="si">{</span><span class="n">dir2</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">only_in_dir2</span> <span class="o">=</span> <span class="n">pickles2</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">pickles1</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">only_in_dir2</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">*** Pickle files in </span><span class="si">{</span><span class="n">dir2</span><span class="si">}</span><span class="s2"> but not </span><span class="si">{</span><span class="n">dir1</span><span class="si">}</span><span class="s2">:</span><span class="se">\n</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">only_in_dir2</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">only_in_dir2</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">====&gt; Total differences: </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2"> lines for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">pickles1</span><span class="p">)</span><span class="si">}</span><span class="s2"> pickle&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot; files in </span><span class="si">{</span><span class="n">dir1</span><span class="si">}</span><span class="s2"> against </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">pickles2</span><span class="p">)</span><span class="si">}</span><span class="s2"> pickle files in </span><span class="si">{</span><span class="n">dir2</span><span class="si">}</span><span class="s2">.&quot;</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">count</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Compare two .cPickle files&quot;</span>
+        <span class="s2">&quot; or all the .cPickle files in two directories (in&quot;</span>
+        <span class="s2">&quot; modification-time order).&quot;</span>
+        <span class="s2">&quot; Print a count and optionally a summary of the differences.&quot;</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-c&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--count&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Print just the diff line count for each file, skipping the&quot;</span>
+        <span class="s2">&quot; detailed diff lines.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-f&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--final-sim-data&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Append /kb/simData.cPickle to the two PATH args to make it a&quot;</span>
+        <span class="s2">&quot; little easier compare the final Parca output sim_data.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;path&quot;</span><span class="p">,</span>
+        <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;PATH&quot;</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The two pickle files or directories to compare.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">path1</span><span class="p">,</span> <span class="n">path2</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">path</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">final_sim_data</span><span class="p">:</span>
+        <span class="n">path1</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">path1</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">KB_DIR</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">SERIALIZED_SIM_DATA_FILENAME</span>
+        <span class="p">)</span>
+        <span class="n">path2</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">path2</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">KB_DIR</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">SERIALIZED_SIM_DATA_FILENAME</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path1</span><span class="p">):</span>
+        <span class="n">diff_count</span> <span class="o">=</span> <span class="n">diff_files</span><span class="p">(</span><span class="n">path1</span><span class="p">,</span> <span class="n">path2</span><span class="p">,</span> <span class="n">print_diff_lines</span><span class="o">=</span><span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">count</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">diff_count</span> <span class="o">=</span> <span class="n">diff_dirs</span><span class="p">(</span><span class="n">path1</span><span class="p">,</span> <span class="n">path2</span><span class="p">,</span> <span class="n">print_diff_lines</span><span class="o">=</span><span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">count</span><span class="p">)</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">3</span> <span class="k">if</span> <span class="n">diff_count</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

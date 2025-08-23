@@ -1,0 +1,289 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.causality_network.buildCausalityNetwork &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.causality_network.buildCausalityNetwork</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.causality_network.buildCausalityNetwork</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Builds causality network for a given variant of a given sim.</span>
+
+<span class="sd">Run with &#39;-h&#39; for command line help.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pprint</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.analysis.causality_network</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_dynamics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.analysis.causality_network.build_network</span><span class="w"> </span><span class="kn">import</span> <span class="n">BuildNetwork</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">wholecell.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">filepath</span> <span class="k">as</span> <span class="n">fp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">monotonic</span> <span class="k">as</span> <span class="n">monotonic_seconds</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">process_time</span> <span class="k">as</span> <span class="n">process_time_seconds</span>
+
+
+<span class="n">CAUSALITY_ENV_VAR</span> <span class="o">=</span> <span class="s2">&quot;CAUSALITY_SERVER&quot;</span>
+<span class="n">SIM_DATA_PATH</span> <span class="o">=</span> <span class="s2">&quot;out/kb/simData.cPickle&quot;</span>
+<span class="n">DYNAMICS_OUTPUT</span> <span class="o">=</span> <span class="s2">&quot;out/seriesOut&quot;</span>
+
+
+<div class="viewcode-block" id="BuildCausalityNetwork">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.buildCausalityNetwork.html#ecoli.analysis.causality_network.buildCausalityNetwork.BuildCausalityNetwork">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BuildCausalityNetwork</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Builds and runs a causality network for a given sim.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BuildCausalityNetwork.description">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.buildCausalityNetwork.html#ecoli.analysis.causality_network.buildCausalityNetwork.BuildCausalityNetwork.description">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">description</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># type: () -&gt; str</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Describe the command line program. This defaults to the class name.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span></div>
+
+
+<div class="viewcode-block" id="BuildCausalityNetwork.help">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.buildCausalityNetwork.html#ecoli.analysis.causality_network.buildCausalityNetwork.BuildCausalityNetwork.help">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">help</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># type: () -&gt; str</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return help text for the Command Line Interface. This defaults to a</span>
+<span class="sd">        string constructed around `self.description()`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;Run </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="BuildCausalityNetwork.define_parameters">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.buildCausalityNetwork.html#ecoli.analysis.causality_network.buildCausalityNetwork.BuildCausalityNetwork.define_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">define_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--check_sanity&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Check network sanity.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--show&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If set, attempts to show the causality visualization after&quot;</span>
+            <span class="s2">&quot; processing data.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--id&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If set, a causality network is built using a custom listener dataset.&quot;</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildCausalityNetwork.parse_args">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.buildCausalityNetwork.html#ecoli.analysis.causality_network.buildCausalityNetwork.BuildCausalityNetwork.parse_args">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse_args</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># type: () -&gt; argparse.Namespace</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse the command line args: Construct an ArgumentParser, call</span>
+<span class="sd">        `define_parameters()` to define parameters including subclass-specific</span>
+<span class="sd">        parameters, use it to parse the command line into an</span>
+<span class="sd">        `argparse.Namespace`, and return that.</span>
+
+<span class="sd">        (A `Namespace` is an object with attributes and some methods like</span>
+<span class="sd">        `__repr__()` and `__eq__()`. Call `vars(args)` to turn it into a dict.)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">help</span><span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">define_parameters</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="BuildCausalityNetwork.run">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.buildCausalityNetwork.html#ecoli.analysis.causality_network.buildCausalityNetwork.BuildCausalityNetwork.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">start_real_sec</span> <span class="o">=</span> <span class="n">monotonic_seconds</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{}</span><span class="s2">: --- Starting </span><span class="si">{}</span><span class="s2"> ---&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">(),</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: Building the Causality network&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()))</span>
+        <span class="n">causality_network</span> <span class="o">=</span> <span class="n">BuildNetwork</span><span class="p">(</span>
+            <span class="n">SIM_DATA_PATH</span><span class="p">,</span> <span class="n">DYNAMICS_OUTPUT</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">check_sanity</span>
+        <span class="p">)</span>
+        <span class="n">node_list</span><span class="p">,</span> <span class="n">edge_list</span> <span class="o">=</span> <span class="n">causality_network</span><span class="o">.</span><span class="n">build_nodes_and_edges</span><span class="p">()</span>
+
+        <span class="n">fp</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">DYNAMICS_OUTPUT</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: Converting simulation results to a Causality series&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">read_dynamics</span><span class="o">.</span><span class="n">convert_dynamics</span><span class="p">(</span>
+            <span class="n">DYNAMICS_OUTPUT</span><span class="p">,</span> <span class="n">causality_network</span><span class="o">.</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node_list</span><span class="p">,</span> <span class="n">edge_list</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">id</span>
+        <span class="p">)</span>
+
+        <span class="n">elapsed_real_sec</span> <span class="o">=</span> <span class="n">monotonic_seconds</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_real_sec</span>
+
+        <span class="n">duration</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">elapsed_real_sec</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: Completed building the Causality network in </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">(),</span> <span class="n">duration</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Optionally show the causality visualization.</span>
+        <span class="n">server_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">CAUSALITY_ENV_VAR</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;causality&quot;</span><span class="p">))</span>
+        <span class="n">server_app</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="s2">&quot;server.py&quot;</span><span class="p">)</span>
+        <span class="n">server_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">server_dir</span><span class="p">,</span> <span class="n">server_app</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">show</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">server_path</span><span class="p">):</span>
+            <span class="c1"># See #890 if running command fails due to differences in pyenv</span>
+            <span class="c1"># versions - might need to cd to repo and activate pyenv</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;python&quot;</span><span class="p">,</span> <span class="n">server_path</span><span class="p">,</span> <span class="n">DYNAMICS_OUTPUT</span><span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Serving the Causality site via the command:</span><span class="se">\n</span><span class="s2">  </span><span class="si">{</span><span class="n">cmd</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Ctrl+C to exit.</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">NOTE: Use the --show flag to automatically open the&quot;</span>
+                <span class="s2">&quot; Casuality viewer on this data. You&#39;ll first need to&quot;</span>
+                <span class="s2">&quot; `export </span><span class="si">{0}</span><span class="s2">=~/path/to/causality` project unless the default&quot;</span>
+                <span class="s2">&quot; (../causality) is good.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">CAUSALITY_ENV_VAR</span><span class="p">)</span>
+            <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.buildCausalityNetwork.html#ecoli.analysis.causality_network.buildCausalityNetwork.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">network</span> <span class="o">=</span> <span class="n">BuildCausalityNetwork</span><span class="p">()</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">location</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;sim_path&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">location</span><span class="p">:</span>
+        <span class="n">location</span> <span class="o">=</span> <span class="s2">&quot; at &quot;</span> <span class="o">+</span> <span class="n">location</span>
+
+    <span class="n">start_real_sec</span> <span class="o">=</span> <span class="n">monotonic_seconds</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">(),</span> <span class="n">network</span><span class="o">.</span><span class="n">description</span><span class="p">(),</span> <span class="n">location</span><span class="p">))</span>
+    <span class="n">pp</span><span class="o">.</span><span class="n">pprint</span><span class="p">({</span><span class="s2">&quot;Arguments&quot;</span><span class="p">:</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)})</span>
+
+    <span class="n">start_process_sec</span> <span class="o">=</span> <span class="n">process_time_seconds</span><span class="p">()</span>
+    <span class="n">network</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">elapsed_process</span> <span class="o">=</span> <span class="n">process_time_seconds</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_process_sec</span>
+    <span class="n">elapsed_real_sec</span> <span class="o">=</span> <span class="n">monotonic_seconds</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_real_sec</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: Elapsed time </span><span class="si">{:1.2f}</span><span class="s2"> sec (</span><span class="si">{}</span><span class="s2">); CPU </span><span class="si">{:1.2f}</span><span class="s2"> sec&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">ctime</span><span class="p">(),</span>
+            <span class="n">elapsed_real_sec</span><span class="p">,</span>
+            <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">elapsed_real_sec</span><span class="p">),</span>
+            <span class="n">elapsed_process</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

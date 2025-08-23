@@ -1,0 +1,765 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.causality_network.read_dynamics &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.causality_network.read_dynamics</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.causality_network.read_dynamics</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Reads dynamics data for each of the nodes of a causality network from a single</span>
+<span class="sd">simulation.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">orjson</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">zipfile</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">vivarium.library.dict_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_value_from_path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vivarium.core.emitter</span><span class="w"> </span><span class="kn">import</span> <span class="n">data_from_database</span><span class="p">,</span> <span class="n">get_experiment_database</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.processes.metabolism</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">COUNTS_UNITS</span><span class="p">,</span>
+    <span class="n">VOLUME_UNITS</span><span class="p">,</span>
+    <span class="n">TIME_UNITS</span><span class="p">,</span>
+    <span class="n">MASS_UNITS</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.analysis.causality_network.network_components</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">EDGELIST_JSON</span><span class="p">,</span>
+    <span class="n">Node</span><span class="p">,</span>
+    <span class="n">NODELIST_JSON</span><span class="p">,</span>
+    <span class="n">COUNT_UNITS</span><span class="p">,</span>
+    <span class="n">PROB_UNITS</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.analysis.causality_network.build_network</span><span class="w"> </span><span class="kn">import</span> <span class="n">NODE_ID_SUFFIX</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">wholecell.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">units</span>
+
+
+<span class="n">MIN_TIMESTEPS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="mi">41</span>  <span class="c1"># Minimum number of timesteps for a working visualization without modification</span>
+<span class="p">)</span>
+<span class="c1"># REQUIRED_COLUMNS = [</span>
+<span class="c1"># 	(&quot;BulkMolecules&quot;, &quot;counts&quot;),</span>
+<span class="c1"># 	(&quot;ComplexationListener&quot;, &quot;complexationEvents&quot;),</span>
+<span class="c1"># 	(&quot;EquilibriumListener&quot;, &quot;reactionRates&quot;),</span>
+<span class="c1"># 	(&quot;FBAResults&quot;, &quot;reactionFluxes&quot;),</span>
+<span class="c1"># 	(&quot;GrowthLimits&quot;, &quot;net_charged&quot;),</span>
+<span class="c1"># 	(&quot;Main&quot;, &quot;time&quot;),</span>
+<span class="c1"># 	(&quot;Mass&quot;, &quot;cellMass&quot;),</span>
+<span class="c1"># 	(&quot;Mass&quot;, &quot;dryMass&quot;),</span>
+<span class="c1"># 	(&quot;RNACounts&quot;, &quot;mRNA_counts&quot;),</span>
+<span class="c1">#   (&quot;RnaMaturationListener&quot;, &quot;unprocessed_rnas_consumed&quot;),</span>
+<span class="c1">#   (&quot;RnaSynthProb&quot;, &quot;gene_copy_number&quot;),</span>
+<span class="c1">#   (&quot;RnaSynthProb&quot;, &quot;pPromoterBound&quot;),</span>
+<span class="c1">#   (&quot;RnaSynthProb&quot;, &quot;actual_rna_synth_prob_per_cistron&quot;),</span>
+<span class="c1">#   (&quot;RnaSynthProb&quot;, &quot;promoter_copy_number&quot;),</span>
+<span class="c1">#   (&quot;RnaSynthProb&quot;, &quot;n_bound_TF_per_TU&quot;),</span>
+<span class="c1">#   (&quot;RnaSynthProb&quot;, &quot;n_bound_TF_per_cistron&quot;),</span>
+<span class="c1">#   (&quot;RnapData&quot;, &quot;rnaInitEvent&quot;),</span>
+<span class="c1">#   (&quot;RibosomeData&quot;, &quot;probTranslationPerTranscript&quot;),</span>
+<span class="c1"># 	]</span>
+
+
+<div class="viewcode-block" id="get_safe_name">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.get_safe_name">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_safe_name</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="n">fname</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span><span class="o">**</span><span class="mi">16</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fname</span></div>
+
+
+
+<div class="viewcode-block" id="array_timeseries">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.array_timeseries">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">array_timeseries</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts data of the format {time: {path: value}}} to timeseries of the</span>
+<span class="sd">    format {path: [value_1, value_2,...]}. Modifies timeseries in place.&quot;&quot;&quot;</span>
+    <span class="n">path_timeseries</span> <span class="o">=</span> <span class="n">timeseries</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">path</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">path_timeseries</span> <span class="o">=</span> <span class="n">path_timeseries</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="n">accumulated_data</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">datum</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">path_data</span> <span class="o">=</span> <span class="n">get_value_from_path</span><span class="p">(</span><span class="n">datum</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="n">accumulated_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path_data</span><span class="p">)</span>
+    <span class="n">path_timeseries</span><span class="p">[</span><span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">accumulated_data</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="convert_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.convert_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_dynamics</span><span class="p">(</span><span class="n">seriesOutDir</span><span class="p">,</span> <span class="n">sim_data</span><span class="p">,</span> <span class="n">node_list</span><span class="p">,</span> <span class="n">edge_list</span><span class="p">,</span> <span class="n">experiment_id</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert the sim&#39;s dynamics data to a Causality seriesOut.zip file.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">experiment_id</span><span class="p">:</span>
+        <span class="n">experiment_id</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Please provide an experiment id: &quot;</span><span class="p">)</span>
+
+    <span class="c1"># TODO: Convert to use DuckDB</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Still need to convert to use DuckDB!&quot;</span><span class="p">)</span>
+    <span class="c1"># Retrieve the data directly from database</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_experiment_database</span><span class="p">()</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;bulk&quot;</span><span class="p">,),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;cell_mass&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">,</span> <span class="s2">&quot;dry_mass&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">,</span> <span class="s2">&quot;p_promoter_bound&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">,</span> <span class="s2">&quot;actual_rna_synth_prob_per_cistron&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">,</span> <span class="s2">&quot;promoter_copy_number&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">,</span> <span class="s2">&quot;gene_copy_number&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">,</span> <span class="s2">&quot;n_bound_TF_per_TU&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">,</span> <span class="s2">&quot;n_bound_TF_per_cistron&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;rna_counts&quot;</span><span class="p">,</span> <span class="s2">&quot;mRNA_counts&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;rna_maturation_listener&quot;</span><span class="p">,</span> <span class="s2">&quot;unprocessed_rnas_consumed&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;rnap_data&quot;</span><span class="p">,</span> <span class="s2">&quot;rna_init_event&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;ribosome_data&quot;</span><span class="p">,</span> <span class="s2">&quot;actual_prob_translation_per_transcript&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;complexation_listener&quot;</span><span class="p">,</span> <span class="s2">&quot;complexation_events&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;fba_results&quot;</span><span class="p">,</span> <span class="s2">&quot;reaction_fluxes&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;equilibrium_listener&quot;</span><span class="p">,</span> <span class="s2">&quot;reaction_rates&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;listeners&quot;</span><span class="p">,</span> <span class="s2">&quot;growth_limits&quot;</span><span class="p">,</span> <span class="s2">&quot;net_charged&quot;</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="n">data</span><span class="p">,</span> <span class="n">config</span> <span class="o">=</span> <span class="n">data_from_database</span><span class="p">(</span><span class="n">experiment_id</span><span class="p">,</span> <span class="n">db</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">data</span><span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+
+    <span class="n">timeseries</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">query</span><span class="p">:</span>
+        <span class="n">array_timeseries</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">)</span>
+    <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+    <span class="c1"># Reshape arrays for number of bound transcription factors</span>
+    <span class="n">n_TU</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+    <span class="n">n_cistron</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+    <span class="n">n_TF</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription_regulation</span><span class="o">.</span><span class="n">tf_ids</span><span class="p">)</span>
+
+    <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">][</span><span class="s2">&quot;n_bound_TF_per_cistron&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">][</span><span class="s2">&quot;n_bound_TF_per_cistron&quot;</span><span class="p">]</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_cistron</span><span class="p">,</span> <span class="n">n_TF</span><span class="p">)</span>
+    <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">][</span><span class="s2">&quot;n_bound_TF_per_TU&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">][</span><span class="s2">&quot;n_bound_TF_per_TU&quot;</span><span class="p">]</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_TU</span><span class="p">,</span> <span class="n">n_TF</span><span class="p">)</span>
+
+    <span class="n">conversion_coeffs</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;mass&quot;</span><span class="p">][</span><span class="s2">&quot;dry_mass&quot;</span><span class="p">]</span>
+        <span class="o">/</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;mass&quot;</span><span class="p">][</span><span class="s2">&quot;cell_mass&quot;</span><span class="p">]</span>
+        <span class="o">*</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">constants</span><span class="o">.</span><span class="n">cell_density</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">MASS_UNITS</span> <span class="o">/</span> <span class="n">VOLUME_UNITS</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;fba_results&quot;</span><span class="p">][</span><span class="s2">&quot;reaction_fluxes_converted&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">COUNTS_UNITS</span> <span class="o">/</span> <span class="n">MASS_UNITS</span> <span class="o">/</span> <span class="n">TIME_UNITS</span><span class="p">)</span>
+        <span class="o">*</span> <span class="p">(</span>
+            <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;fba_results&quot;</span><span class="p">][</span><span class="s2">&quot;reaction_fluxes&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+            <span class="o">/</span> <span class="n">conversion_coeffs</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">mmol</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">h</span><span class="p">)</span>
+
+    <span class="c1"># Construct dictionaries of indexes where needed</span>
+    <span class="n">indexes</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_index_dict</span><span class="p">(</span><span class="n">id_array</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">mol</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">mol</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">id_array</span><span class="p">)}</span>
+
+    <span class="n">molecule_ids</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">][</span><span class="s2">&quot;bulk&quot;</span><span class="p">][</span><span class="s2">&quot;_properties&quot;</span><span class="p">][</span><span class="s2">&quot;metadata&quot;</span><span class="p">]</span>
+    <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;BulkMolecules&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_index_dict</span><span class="p">(</span><span class="n">molecule_ids</span><span class="p">)</span>
+
+    <span class="n">gene_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="p">[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">]</span>
+    <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;Genes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_index_dict</span><span class="p">(</span><span class="n">gene_ids</span><span class="p">)</span>
+
+    <span class="n">rna_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+    <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;RNAs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_index_dict</span><span class="p">(</span><span class="n">rna_ids</span><span class="p">)</span>
+
+    <span class="n">mRNA_ids</span> <span class="o">=</span> <span class="n">rna_ids</span><span class="p">[</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span><span class="p">[</span><span class="s2">&quot;is_mRNA&quot;</span><span class="p">]]</span>
+    <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;mRNAs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_index_dict</span><span class="p">(</span><span class="n">mRNA_ids</span><span class="p">)</span>
+
+    <span class="n">translated_rna_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">monomer_data</span><span class="p">[</span><span class="s2">&quot;cistron_id&quot;</span><span class="p">]</span>
+    <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;TranslatedRnas&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_index_dict</span><span class="p">(</span><span class="n">translated_rna_ids</span><span class="p">)</span>
+
+    <span class="c1"># metabolism_rxn_ids = TableReader(</span>
+    <span class="c1"># 	os.path.join(simOutDir, &quot;FBAResults&quot;)).readAttribute(&quot;reactionIDs&quot;)</span>
+    <span class="n">metabolism_rxn_ids</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">][</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;fba_results&quot;</span><span class="p">][</span><span class="s2">&quot;reaction_fluxes&quot;</span><span class="p">][</span>
+        <span class="s2">&quot;_properties&quot;</span>
+    <span class="p">][</span><span class="s2">&quot;metadata&quot;</span><span class="p">]</span>
+    <span class="n">metabolism_rxn_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">metabolism</span><span class="o">.</span><span class="n">reaction_stoich</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;MetabolismReactions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_index_dict</span><span class="p">(</span><span class="n">metabolism_rxn_ids</span><span class="p">)</span>
+
+    <span class="n">complexation_rxn_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">complexation</span><span class="o">.</span><span class="n">ids_reactions</span>
+    <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;ComplexationReactions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_index_dict</span><span class="p">(</span><span class="n">complexation_rxn_ids</span><span class="p">)</span>
+
+    <span class="n">equilibrium_rxn_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">equilibrium</span><span class="o">.</span><span class="n">rxn_ids</span>
+    <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;EquilibriumReactions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_index_dict</span><span class="p">(</span><span class="n">equilibrium_rxn_ids</span><span class="p">)</span>
+
+    <span class="c1"># unprocessed_rna_ids = TableReader(</span>
+    <span class="c1">#     os.path.join(simOutDir, &quot;RnaMaturationListener&quot;)).readAttribute(&quot;unprocessed_rna_ids&quot;)</span>
+    <span class="n">unprocessed_rna_ids</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">][</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_maturation_listener&quot;</span><span class="p">][</span>
+        <span class="s2">&quot;unprocessed_rnas_consumed&quot;</span>
+    <span class="p">][</span><span class="s2">&quot;_properties&quot;</span><span class="p">][</span><span class="s2">&quot;metadata&quot;</span><span class="p">]</span>
+    <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;UnprocessedRnas&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_index_dict</span><span class="p">(</span><span class="n">unprocessed_rna_ids</span><span class="p">)</span>
+
+    <span class="n">tf_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription_regulation</span><span class="o">.</span><span class="n">tf_ids</span>
+    <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;TranscriptionFactors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_index_dict</span><span class="p">(</span><span class="n">tf_ids</span><span class="p">)</span>
+
+    <span class="n">trna_ids</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">uncharged_trna_names</span>
+    <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;Charging&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_index_dict</span><span class="p">(</span><span class="n">trna_ids</span><span class="p">)</span>
+
+    <span class="c1"># Cache cell volume array (used for calculating concentrations)</span>
+
+    <span class="c1"># volume = ((1.0 / sim_data.constants.cell_density) * (</span>
+    <span class="c1"># 	units.fg * columns[(&quot;Mass&quot;, &quot;cellMass&quot;)])).asNumber(units.L)</span>
+    <span class="n">volume</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">constants</span><span class="o">.</span><span class="n">cell_density</span><span class="p">)</span>
+        <span class="o">*</span> <span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">fg</span> <span class="o">*</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;mass&quot;</span><span class="p">][</span><span class="s2">&quot;cell_mass&quot;</span><span class="p">])</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">dynamics_mapping</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">safe</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">index</span><span class="p">,</span>
+                <span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="n">dyn</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">dyn</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">safe</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">dyn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dynamics</span><span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="n">name_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_dynamics</span><span class="p">(</span><span class="n">node_dict</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">node_id</span> <span class="o">=</span> <span class="n">node_dict</span><span class="p">[</span><span class="s2">&quot;ID&quot;</span><span class="p">]</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">node_type</span> <span class="o">=</span> <span class="n">node_dict</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">TYPE_TO_READER_FUNCTION</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">node_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reader</span><span class="p">:</span>
+            <span class="c1"># reader(sim_data, node, node.node_id, columns, indexes, volume)</span>
+            <span class="n">reader</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">node</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">name_mapping</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">node_id</span> <span class="ow">in</span> <span class="n">name_mapping</span><span class="p">:</span>
+            <span class="c1"># Skip duplicates. Why are there duplicates? --check_sanity finds them.</span>
+            <span class="k">return</span>
+
+        <span class="n">dynamics_path</span> <span class="o">=</span> <span class="n">get_safe_name</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">node_id</span><span class="p">)</span>
+        <span class="n">dynamics</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">dynamics_dict</span><span class="p">()</span>
+        <span class="n">dynamics_json</span> <span class="o">=</span> <span class="n">orjson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="n">orjson</span><span class="o">.</span><span class="n">OPT_SERIALIZE_NUMPY</span><span class="p">)</span>
+
+        <span class="n">zf</span><span class="o">.</span><span class="n">writestr</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;series&quot;</span><span class="p">,</span> <span class="n">dynamics_path</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span><span class="p">),</span> <span class="n">dynamics_json</span><span class="p">)</span>
+
+        <span class="n">name_mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">node_id</span><span class="p">)]</span> <span class="o">=</span> <span class="n">dynamics_mapping</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_path</span><span class="p">)</span>
+
+    <span class="c1"># ZIP_BZIP2 saves 14% bytes vs. ZIP_DEFLATED but takes  +70 secs.</span>
+    <span class="c1"># ZIP_LZMA  saves 19% bytes vs. ZIP_DEFLATED but takes +260 sec.</span>
+    <span class="c1"># compresslevel=9 saves very little space.</span>
+    <span class="n">zip_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">seriesOutDir</span><span class="p">,</span> <span class="s2">&quot;seriesOut.zip&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span>
+        <span class="n">zip_name</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="n">zipfile</span><span class="o">.</span><span class="n">ZIP_DEFLATED</span><span class="p">,</span> <span class="n">allowZip64</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">zf</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">node_dict</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">node_list</span><span class="p">):</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="n">build_dynamics</span><span class="p">(</span><span class="n">node_dict</span><span class="p">)</span>
+            <span class="n">save_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">name_mapping</span><span class="p">)</span>
+        <span class="n">save_node</span><span class="p">(</span><span class="n">time_node</span><span class="p">(</span><span class="n">timeseries</span><span class="p">),</span> <span class="n">name_mapping</span><span class="p">)</span>
+
+        <span class="n">zf</span><span class="o">.</span><span class="n">writestr</span><span class="p">(</span><span class="s2">&quot;series.json&quot;</span><span class="p">,</span> <span class="n">orjson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">name_mapping</span><span class="p">))</span>
+        <span class="n">zf</span><span class="o">.</span><span class="n">writestr</span><span class="p">(</span><span class="n">NODELIST_JSON</span><span class="p">,</span> <span class="n">orjson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">node_list</span><span class="p">))</span>
+        <span class="n">zf</span><span class="o">.</span><span class="n">writestr</span><span class="p">(</span>
+            <span class="n">EDGELIST_JSON</span><span class="p">,</span> <span class="n">orjson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">edge_list</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="n">orjson</span><span class="o">.</span><span class="n">OPT_SERIALIZE_NUMPY</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="time_node">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.time_node">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">time_node</span><span class="p">(</span><span class="n">timeseries</span><span class="p">):</span>
+    <span class="n">time_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+    <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;time&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;time&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="s2">&quot;time&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">time_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">MIN_TIMESTEPS</span><span class="p">:</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span> <span class="o">+</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">MIN_TIMESTEPS</span><span class="p">)])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span>
+    <span class="c1"># time = columns[(&quot;Main&quot;, &quot;time&quot;)]</span>
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">time</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="s2">&quot;s&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">time_node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">time_node</span></div>
+
+
+
+<div class="viewcode-block" id="read_global_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_global_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_global_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads global dynamics from simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cell_mass</span> <span class="o">=</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;mass&quot;</span><span class="p">][</span><span class="s2">&quot;cell_mass&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">node_id</span> <span class="o">==</span> <span class="s2">&quot;cell_mass&quot;</span><span class="p">:</span>
+        <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;mass&quot;</span><span class="p">:</span> <span class="n">cell_mass</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;mass&quot;</span><span class="p">:</span> <span class="s2">&quot;fg&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="k">elif</span> <span class="n">node_id</span> <span class="o">==</span> <span class="s2">&quot;cell_volume&quot;</span><span class="p">:</span>
+        <span class="n">cell_volume</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">constants</span><span class="o">.</span><span class="n">cell_density</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">fg</span> <span class="o">*</span> <span class="n">cell_mass</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+        <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;volume&quot;</span><span class="p">:</span> <span class="n">cell_volume</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;volume&quot;</span><span class="p">:</span> <span class="s2">&quot;L&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_gene_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_gene_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_gene_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for gene nodes from simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gene_index</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;Genes&quot;</span><span class="p">][</span><span class="n">node_id</span><span class="p">]</span>
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># &quot;transcription probability&quot;: columns[(&quot;RnaSynthProb&quot;, &quot;actual_rna_synth_prob_per_cistron&quot;)][:, gene_index],</span>
+        <span class="s2">&quot;transcription probability&quot;</span><span class="p">:</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;actual_rna_synth_prob_per_cistron&quot;</span>
+        <span class="p">][:,</span> <span class="n">gene_index</span><span class="p">],</span>
+        <span class="c1"># &quot;gene copy number&quot;: columns[(&quot;RnaSynthProb&quot;, &quot;gene_copy_number&quot;)][:, gene_index],</span>
+        <span class="s2">&quot;gene copy number&quot;</span><span class="p">:</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;gene_copy_number&quot;</span>
+        <span class="p">][:,</span> <span class="n">gene_index</span><span class="p">],</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;transcription probability&quot;</span><span class="p">:</span> <span class="n">PROB_UNITS</span><span class="p">,</span>
+        <span class="s2">&quot;gene copy number&quot;</span><span class="p">:</span> <span class="n">COUNT_UNITS</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_rna_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_rna_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_rna_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for transcript (RNA) nodes from simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If RNA is an mRNA, get counts from mRNA counts listener</span>
+    <span class="k">if</span> <span class="n">node_id</span> <span class="ow">in</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;mRNAs&quot;</span><span class="p">]:</span>
+        <span class="c1"># counts = columns[(&quot;mRNACounts&quot;, &quot;mRNA_counts&quot;)][:, indexes[&quot;mRNAs&quot;][node_id]]</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_counts&quot;</span><span class="p">][</span><span class="s2">&quot;mRNA_counts&quot;</span><span class="p">][</span>
+            <span class="p">:,</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;mRNAs&quot;</span><span class="p">][</span><span class="n">node_id</span><span class="p">]</span>
+        <span class="p">]</span>
+    <span class="c1"># If not, get counts from bulk molecules listener</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># counts = columns[(&quot;BulkMolecules&quot;, &quot;counts&quot;)][:, indexes[&quot;BulkMolecules&quot;][node_id]]</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;bulk&quot;</span><span class="p">][:,</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;BulkMolecules&quot;</span><span class="p">][</span><span class="n">node_id</span><span class="p">]]</span>
+
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;counts&quot;</span><span class="p">:</span> <span class="n">counts</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;counts&quot;</span><span class="p">:</span> <span class="n">COUNT_UNITS</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_protein_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_protein_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_protein_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for monomer/complex nodes from a simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">count_index</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;BulkMolecules&quot;</span><span class="p">][</span><span class="n">node_id</span><span class="p">]</span>
+    <span class="c1"># counts = columns[(&quot;BulkMolecules&quot;, &quot;counts&quot;)][:, count_index]</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;bulk&quot;</span><span class="p">][:,</span> <span class="n">count_index</span><span class="p">]</span>
+    <span class="n">concentration</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">((</span><span class="mi">1</span> <span class="o">/</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">constants</span><span class="o">.</span><span class="n">n_avogadro</span><span class="p">)</span> <span class="o">*</span> <span class="n">counts</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">L</span> <span class="o">*</span> <span class="n">volume</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">mmol</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;counts&quot;</span><span class="p">:</span> <span class="n">counts</span><span class="p">,</span>
+        <span class="s2">&quot;concentration&quot;</span><span class="p">:</span> <span class="n">concentration</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;counts&quot;</span><span class="p">:</span> <span class="n">COUNT_UNITS</span><span class="p">,</span>
+        <span class="s2">&quot;concentration&quot;</span><span class="p">:</span> <span class="s2">&quot;mmol/L&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_metabolite_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_metabolite_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_metabolite_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dyanmics data for metabolite nodes from a simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">count_index</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;BulkMolecules&quot;</span><span class="p">][</span><span class="n">node_id</span><span class="p">]</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+        <span class="k">return</span>  <span class="c1"># Metabolite not being modeled</span>
+    <span class="c1"># counts = columns[(&quot;BulkMolecules&quot;, &quot;counts&quot;)][:, count_index]</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;bulk&quot;</span><span class="p">][:,</span> <span class="n">count_index</span><span class="p">]</span>
+    <span class="n">concentration</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">((</span><span class="mi">1</span> <span class="o">/</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">constants</span><span class="o">.</span><span class="n">n_avogadro</span><span class="p">)</span> <span class="o">*</span> <span class="n">counts</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">L</span> <span class="o">*</span> <span class="n">volume</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">mmol</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;counts&quot;</span><span class="p">:</span> <span class="n">counts</span><span class="p">,</span>
+        <span class="s2">&quot;concentration&quot;</span><span class="p">:</span> <span class="n">concentration</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;counts&quot;</span><span class="p">:</span> <span class="n">COUNT_UNITS</span><span class="p">,</span>
+        <span class="s2">&quot;concentration&quot;</span><span class="p">:</span> <span class="s2">&quot;mmol/L&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_transcription_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_transcription_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_transcription_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for transcription nodes from simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rna_id</span> <span class="o">=</span> <span class="n">node_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">NODE_ID_SUFFIX</span><span class="p">[</span><span class="s2">&quot;transcription&quot;</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">rna_idx</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;RNAs&quot;</span><span class="p">][</span><span class="n">rna_id</span> <span class="o">+</span> <span class="s2">&quot;[c]&quot;</span><span class="p">]</span>
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># &quot;transcription initiations&quot;: columns[(&quot;RnapData&quot;, &quot;rnaInitEvent&quot;)][:, rna_idx],</span>
+        <span class="s2">&quot;transcription initiations&quot;</span><span class="p">:</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rnap_data&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;rna_init_event&quot;</span>
+        <span class="p">][:,</span> <span class="n">rna_idx</span><span class="p">],</span>
+        <span class="c1"># &quot;promoter copy number&quot;: columns[(&quot;RnaSynthProb&quot;, &quot;promoter_copy_number&quot;)][:, rna_idx],</span>
+        <span class="s2">&quot;promoter copy number&quot;</span><span class="p">:</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;promoter_copy_number&quot;</span>
+        <span class="p">][:,</span> <span class="n">rna_idx</span><span class="p">],</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;transcription initiations&quot;</span><span class="p">:</span> <span class="n">COUNT_UNITS</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_translation_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_translation_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_translation_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for translation nodes from a simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rna_id</span> <span class="o">=</span> <span class="n">node_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">NODE_ID_SUFFIX</span><span class="p">[</span><span class="s2">&quot;translation&quot;</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;_RNA&quot;</span>
+    <span class="n">translation_idx</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;TranslatedRnas&quot;</span><span class="p">][</span><span class="n">rna_id</span><span class="p">]</span>
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;translation probability&quot;</span><span class="p">:</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;ribosome_data&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;actual_prob_translation_per_transcript&quot;</span>
+        <span class="p">][:,</span> <span class="n">translation_idx</span><span class="p">],</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;translation probability&quot;</span><span class="p">:</span> <span class="n">PROB_UNITS</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_complexation_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_complexation_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_complexation_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for complexation nodes from a simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">reaction_idx</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;ComplexationReactions&quot;</span><span class="p">][</span><span class="n">node_id</span><span class="p">]</span>
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;complexation events&quot;</span><span class="p">:</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;complexation_listener&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;complexation_events&quot;</span>
+        <span class="p">][:,</span> <span class="n">reaction_idx</span><span class="p">],</span>
+        <span class="c1"># &#39;complexation events&#39;: columns[(&quot;ComplexationListener&quot;, &quot;complexationEvents&quot;)][:, reaction_idx],</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;complexation events&quot;</span><span class="p">:</span> <span class="n">COUNT_UNITS</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_rna_maturation_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_rna_maturation_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_rna_maturation_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for RNA maturation nodes from a simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">reaction_idx</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;UnprocessedRnas&quot;</span><span class="p">][</span><span class="n">node_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;[c]&quot;</span><span class="p">]</span>
+
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># &#39;RNA maturation events&#39;: columns[(&quot;RnaMaturationListener&quot;, &quot;unprocessed_rnas_consumed&quot;)][:, reaction_idx],</span>
+        <span class="s2">&quot;RNA maturation events&quot;</span><span class="p">:</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_maturation_listener&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;unprocessed_rnas_consumed&quot;</span>
+        <span class="p">][:,</span> <span class="n">reaction_idx</span><span class="p">],</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;RNA maturation events&quot;</span><span class="p">:</span> <span class="n">COUNT_UNITS</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_metabolism_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_metabolism_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_metabolism_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for metabolism nodes from a simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">reaction_idx</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;MetabolismReactions&quot;</span><span class="p">][</span><span class="n">node_id</span><span class="p">]</span>
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># &#39;flux&#39;: columns[(&quot;FBAResults&quot;, &quot;reactionFluxesConverted&quot;)][:, reaction_idx],</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;fba_results&quot;</span><span class="p">][</span><span class="s2">&quot;reaction_fluxes_converted&quot;</span><span class="p">][</span>
+            <span class="p">:,</span> <span class="n">reaction_idx</span>
+        <span class="p">],</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="s2">&quot;mmol/gCDW/h&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_equilibrium_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_equilibrium_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_equilibrium_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for equilibrium nodes from a simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># TODO (ggsun): Fluxes for 2CS reactions are not being listened to.</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">reaction_idx</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;EquilibriumReactions&quot;</span><span class="p">][</span><span class="n">node_id</span><span class="p">]</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+        <span class="k">return</span>  <span class="c1"># 2CS reaction</span>
+
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># &#39;reaction rate&#39;: columns[(&quot;EquilibriumListener&quot;, &quot;reactionRates&quot;)][:, reaction_idx],</span>
+        <span class="s2">&quot;reaction rate&quot;</span><span class="p">:</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;equilibrium_listener&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;reaction_rates&quot;</span>
+        <span class="p">][:,</span> <span class="n">reaction_idx</span><span class="p">],</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;reaction rate&quot;</span><span class="p">:</span> <span class="s2">&quot;rxns/s&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_regulation_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_regulation_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_regulation_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for regulation nodes from a simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tf_id</span><span class="p">,</span> <span class="n">gene_id</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">node_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
+    <span class="n">gene_idx</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;Genes&quot;</span><span class="p">][</span><span class="n">gene_id</span><span class="p">]</span>
+    <span class="n">tf_idx</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;TranscriptionFactors&quot;</span><span class="p">][</span><span class="n">tf_id</span><span class="p">]</span>
+
+    <span class="n">bound_tf_array</span> <span class="o">=</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">][</span><span class="s2">&quot;n_bound_TF_per_cistron&quot;</span><span class="p">]</span>
+
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># &#39;bound TFs&#39;: columns[(&quot;RnaSynthProb&quot;, &quot;n_bound_TF_per_TU&quot;)][:, gene_idx, tf_idx],</span>
+        <span class="s2">&quot;bound TFs&quot;</span><span class="p">:</span> <span class="n">bound_tf_array</span><span class="p">[:,</span> <span class="n">gene_idx</span><span class="p">,</span> <span class="n">tf_idx</span><span class="p">],</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;bound TFs&quot;</span><span class="p">:</span> <span class="n">COUNT_UNITS</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_tf_binding_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_tf_binding_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_tf_binding_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for TF binding nodes from a simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tf_id</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">node_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-bound&quot;</span><span class="p">)</span>
+    <span class="n">tf_idx</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;TranscriptionFactors&quot;</span><span class="p">][</span><span class="n">tf_id</span><span class="p">]</span>
+
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># &#39;bound TFs&#39;: columns[(&quot;RnaSynthProb&quot;, &quot;n_bound_TF_per_TU&quot;)][:, :, tf_idx].sum(axis=1),</span>
+        <span class="s2">&quot;bound TFs&quot;</span><span class="p">:</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;rna_synth_prob&quot;</span><span class="p">][</span><span class="s2">&quot;n_bound_TF_per_TU&quot;</span><span class="p">][</span>
+            <span class="p">:,</span> <span class="p">:,</span> <span class="n">tf_idx</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;bound TFs&quot;</span><span class="p">:</span> <span class="n">COUNT_UNITS</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_charging_dynamics">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.read_dynamics.html#ecoli.analysis.causality_network.read_dynamics.read_charging_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_charging_dynamics</span><span class="p">(</span><span class="n">sim_data</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">timeseries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads dynamics data for charging nodes from a simulation output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rna</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[c]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">rna_idx</span> <span class="o">=</span> <span class="n">indexes</span><span class="p">[</span><span class="s2">&quot;Charging&quot;</span><span class="p">][</span><span class="n">rna</span><span class="p">]</span>
+    <span class="n">dynamics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># &#39;reaction rate&#39;: columns[(&quot;GrowthLimits&quot;, &quot;net_charged&quot;)][:, rna_idx]</span>
+        <span class="s2">&quot;reaction rate&quot;</span><span class="p">:</span> <span class="n">timeseries</span><span class="p">[</span><span class="s2">&quot;listeners&quot;</span><span class="p">][</span><span class="s2">&quot;growth_limits&quot;</span><span class="p">][</span><span class="s2">&quot;net_charged&quot;</span><span class="p">][</span>
+            <span class="p">:,</span> <span class="n">rna_idx</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+    <span class="n">dynamics_units</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;reaction rate&quot;</span><span class="p">:</span> <span class="s2">&quot;rxns/s&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">node</span><span class="o">.</span><span class="n">read_dynamics</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">dynamics_units</span><span class="p">)</span></div>
+
+
+
+<span class="n">TYPE_TO_READER_FUNCTION</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;Global&quot;</span><span class="p">:</span> <span class="n">read_global_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Gene&quot;</span><span class="p">:</span> <span class="n">read_gene_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;RNA&quot;</span><span class="p">:</span> <span class="n">read_rna_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Protein&quot;</span><span class="p">:</span> <span class="n">read_protein_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Complex&quot;</span><span class="p">:</span> <span class="n">read_protein_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Metabolite&quot;</span><span class="p">:</span> <span class="n">read_metabolite_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Transcription&quot;</span><span class="p">:</span> <span class="n">read_transcription_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Translation&quot;</span><span class="p">:</span> <span class="n">read_translation_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Complexation&quot;</span><span class="p">:</span> <span class="n">read_complexation_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Equilibrium&quot;</span><span class="p">:</span> <span class="n">read_equilibrium_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;RNA Maturation&quot;</span><span class="p">:</span> <span class="n">read_rna_maturation_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Metabolism&quot;</span><span class="p">:</span> <span class="n">read_metabolism_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Transport&quot;</span><span class="p">:</span> <span class="n">read_metabolism_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Regulation&quot;</span><span class="p">:</span> <span class="n">read_regulation_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;TF Binding&quot;</span><span class="p">:</span> <span class="n">read_tf_binding_dynamics</span><span class="p">,</span>
+    <span class="s2">&quot;Charging&quot;</span><span class="p">:</span> <span class="n">read_charging_dynamics</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

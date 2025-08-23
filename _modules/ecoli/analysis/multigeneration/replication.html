@@ -1,0 +1,364 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.multigeneration.replication &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.multigeneration.replication</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.multigeneration.replication</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The multigeneration analysis method `replication`</span>
+<span class="sd">1. Record the DNA polymerase position vs time</span>
+<span class="sd">2. Record # of pairs of replication forks</span>
+<span class="sd">3. Record the factors of critical initial mass and dry mass</span>
+<span class="sd">4. Record # of oriC</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">altair</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">alt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">open_arbitrary_sim_data</span><span class="p">,</span>
+    <span class="n">read_stacked_columns</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">CRITICAL_N</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span>
+
+<span class="c1"># ----------------------------------------- #</span>
+
+
+<div class="viewcode-block" id="plot">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.multigeneration.replication.html#ecoli.analysis.multigeneration.replication.plot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">DuckDBPyConnection</span><span class="p">,</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sim_data_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">validation_data_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">variant_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">variant_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create comprehensive replication visualization plots for E. coli simulation data.&quot;&quot;&quot;</span>
+    <span class="c1"># Load sim_data to get genome length</span>
+    <span class="k">with</span> <span class="n">open_arbitrary_sim_data</span><span class="p">(</span><span class="n">sim_data_dict</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">sim_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="n">genome_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">replication</span><span class="o">.</span><span class="n">genome_sequence</span><span class="p">)</span>
+
+    <span class="c1"># Define data columns with proper listener names and aliases</span>
+    <span class="n">data_columns</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;time / 3600 AS &quot;Time (hr)&quot;&#39;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__replication_data__fork_coordinates AS fork_coordinates&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__replication_data__number_of_oric AS number_of_oric&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__mass__cell_mass AS cell_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__mass__dry_mass AS dry_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__replication_data__critical_initiation_mass AS critical_initiation_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__replication_data__critical_mass_per_oric AS critical_mass_per_oric&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Load data</span>
+    <span class="n">plot_data</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span><span class="n">history_sql</span><span class="p">,</span> <span class="n">data_columns</span><span class="p">,</span> <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+
+    <span class="c1"># Convert to DataFrame</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">plot_data</span><span class="p">)</span>
+
+    <span class="c1"># Process fork coordinates and calculate pairs of forks using Polars</span>
+    <span class="k">if</span> <span class="s2">&quot;fork_coordinates&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+            <span class="n">pairs_of_forks</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;fork_coordinates&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="o">~</span><span class="n">pl</span><span class="o">.</span><span class="n">element</span><span class="p">()</span><span class="o">.</span><span class="n">is_nan</span><span class="p">())</span>
+            <span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="o">/</span> <span class="mi">2</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Calculate critical mass equivalents</span>
+    <span class="k">if</span> <span class="s2">&quot;cell_mass&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s2">&quot;critical_initiation_mass&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+            <span class="n">critical_mass_equivalents</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;cell_mass&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;critical_initiation_mass&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># ----------------------------------------- #</span>
+    <span class="c1"># Create visualization functions</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_fork_positions_plot</span><span class="p">():</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create DNA polymerase positions scatter plot.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;fork_coordinates&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># Explode fork coordinates and filter out NaN values</span>
+        <span class="n">fork_df</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">([</span><span class="s2">&quot;Time (hr)&quot;</span><span class="p">,</span> <span class="s2">&quot;fork_coordinates&quot;</span><span class="p">])</span>
+            <span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;fork_coordinates&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="o">~</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;fork_coordinates&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">is_nan</span><span class="p">())</span>
+            <span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s2">&quot;fork_coordinates&quot;</span><span class="p">:</span> <span class="s2">&quot;Position&quot;</span><span class="p">})</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">fork_df</span><span class="o">.</span><span class="n">height</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">fork_df</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">mark_circle</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;Time (hr):Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Time (hr)&quot;</span><span class="p">),</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span>
+                    <span class="s2">&quot;Position:Q&quot;</span><span class="p">,</span>
+                    <span class="n">scale</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Scale</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">genome_length</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">genome_length</span> <span class="o">/</span> <span class="mi">2</span><span class="p">]),</span>
+                    <span class="n">axis</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Axis</span><span class="p">(</span>
+                        <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">genome_length</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">genome_length</span> <span class="o">/</span> <span class="mi">2</span><span class="p">],</span>
+                        <span class="n">labelExpr</span><span class="o">=</span><span class="s2">&quot;datum.value == 0 ? &#39;oriC&#39; : (datum.value &lt; 0 ? &#39;-terC&#39; : &#39;+terC&#39;)&quot;</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;DNA polymerase position (nt)&quot;</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">properties</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;DNA Polymerase Positions&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">120</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_pairs_of_forks_plot</span><span class="p">():</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create pairs of replication forks line plot.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;pairs_of_forks&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">mark_line</span><span class="p">(</span><span class="n">strokeWidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;Time (hr):Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Time (hr)&quot;</span><span class="p">),</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span>
+                    <span class="s2">&quot;pairs_of_forks:Q&quot;</span><span class="p">,</span>
+                    <span class="n">scale</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Scale</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">]),</span>
+                    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Pairs of forks&quot;</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">properties</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Pairs of Replication Forks&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_critical_mass_plot</span><span class="p">():</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create critical mass equivalents plot with reference lines.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;critical_mass_equivalents&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># Main line plot</span>
+        <span class="n">base_plot</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">mark_line</span><span class="p">(</span><span class="n">strokeWidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;Time (hr):Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Time (hr)&quot;</span><span class="p">),</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span>
+                    <span class="s2">&quot;critical_mass_equivalents:Q&quot;</span><span class="p">,</span>
+                    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Factors of critical initiation mass&quot;</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Reference lines for critical N values</span>
+        <span class="n">reference_data</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">CRITICAL_N</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;N=</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">CRITICAL_N</span><span class="p">]}</span>
+        <span class="p">)</span>
+
+        <span class="n">reference_lines</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">reference_data</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">mark_rule</span><span class="p">(</span><span class="n">strokeDash</span><span class="o">=</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="s2">&quot;y:Q&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Text labels for reference lines</span>
+        <span class="n">reference_labels</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">reference_data</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">mark_text</span><span class="p">(</span><span class="n">align</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">dx</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">fontSize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="s2">&quot;y:Q&quot;</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;label:N&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">transform_calculate</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;x:Q&quot;</span><span class="p">))</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">base_plot</span> <span class="o">+</span> <span class="n">reference_lines</span> <span class="o">+</span> <span class="n">reference_labels</span><span class="p">)</span><span class="o">.</span><span class="n">properties</span><span class="p">(</span>
+            <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Factors of Critical Initiation Mass&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">100</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_mass_plot</span><span class="p">(</span><span class="n">column_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">y_title</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a generic mass plot.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">column_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">mark_line</span><span class="p">(</span><span class="n">strokeWidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;Time (hr):Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Time (hr)&quot;</span><span class="p">),</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">y_title</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">properties</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># ----------------------------------------- #</span>
+    <span class="c1"># Generate all plots</span>
+    <span class="n">plots</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># 1. Fork positions</span>
+    <span class="n">fork_plot</span> <span class="o">=</span> <span class="n">create_fork_positions_plot</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">fork_plot</span><span class="p">:</span>
+        <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fork_plot</span><span class="p">)</span>
+
+    <span class="c1"># 2. Pairs of forks</span>
+    <span class="n">pairs_plot</span> <span class="o">=</span> <span class="n">create_pairs_of_forks_plot</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">pairs_plot</span><span class="p">:</span>
+        <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pairs_plot</span><span class="p">)</span>
+
+    <span class="c1"># 3. Critical mass equivalents</span>
+    <span class="n">critical_plot</span> <span class="o">=</span> <span class="n">create_critical_mass_plot</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">critical_plot</span><span class="p">:</span>
+        <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">critical_plot</span><span class="p">)</span>
+
+    <span class="c1"># 4. Dry mass</span>
+    <span class="n">dry_mass_plot</span> <span class="o">=</span> <span class="n">create_mass_plot</span><span class="p">(</span><span class="s2">&quot;dry_mass&quot;</span><span class="p">,</span> <span class="s2">&quot;Dry Mass&quot;</span><span class="p">,</span> <span class="s2">&quot;Dry mass (fg)&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dry_mass_plot</span><span class="p">:</span>
+        <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dry_mass_plot</span><span class="p">)</span>
+
+    <span class="c1"># 5. Number of oriC</span>
+    <span class="n">oric_plot</span> <span class="o">=</span> <span class="n">create_mass_plot</span><span class="p">(</span><span class="s2">&quot;number_of_oric&quot;</span><span class="p">,</span> <span class="s2">&quot;Number of oriC&quot;</span><span class="p">,</span> <span class="s2">&quot;Number of oriC&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">oric_plot</span><span class="p">:</span>
+        <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">oric_plot</span><span class="p">)</span>
+
+    <span class="c1"># 6. Critical mass per oriC</span>
+    <span class="n">mass_per_oric_plot</span> <span class="o">=</span> <span class="n">create_mass_plot</span><span class="p">(</span>
+        <span class="s2">&quot;critical_mass_per_oric&quot;</span><span class="p">,</span> <span class="s2">&quot;Critical Mass per oriC&quot;</span><span class="p">,</span> <span class="s2">&quot;Critical mass per oriC&quot;</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">mass_per_oric_plot</span><span class="p">:</span>
+        <span class="n">plots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mass_per_oric_plot</span><span class="p">)</span>
+
+    <span class="c1"># Combine plots or create fallback</span>
+    <span class="k">if</span> <span class="n">plots</span><span class="p">:</span>
+        <span class="n">combined_plot</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">vconcat</span><span class="p">(</span><span class="o">*</span><span class="n">plots</span><span class="p">)</span><span class="o">.</span><span class="n">resolve_scale</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;shared&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created visualization with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">plots</span><span class="p">)</span><span class="si">}</span><span class="s2"> subplots&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Fallback plot if no data available</span>
+        <span class="n">fallback_data</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;No data available for plotting&quot;</span><span class="p">]}</span>
+        <span class="p">)</span>
+        <span class="n">combined_plot</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">fallback_data</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">mark_text</span><span class="p">(</span><span class="n">fontSize</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;x:Q&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span><span class="s2">&quot;y:Q&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;text:N&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">properties</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Replication Data Visualization&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No plottable data found - created fallback message&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Save the plot</span>
+    <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;replication_report.html&quot;</span><span class="p">)</span>
+    <span class="n">combined_plot</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved visualization to: </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">combined_plot</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
