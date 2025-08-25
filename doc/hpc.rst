@@ -183,7 +183,10 @@ keys in your configuration JSON (note the top-level ``sherlock`` key):
     "sherlock": {
       # Boolean, whether to build a fresh Apptainer image. If files that are
       # not excluded by .dockerignore did not change since your last build,
-      # you can set this to false to skip building the image.
+      # you can set this to false to skip building the image. DO NOT set this
+      # to a location in the cloned repo or else the resulting image(s) will be
+      # included in future image builds. test_sherlock.json is an exception
+      # because the test_sherlock folder is ignored by .dockerignore.
       "build_image": true,
       # Path (relative or absolute, including file name) of Apptainer image to
       # build (or use directly, if build_image is false)
