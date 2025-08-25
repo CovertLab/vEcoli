@@ -79,10 +79,6 @@ if [ "$RUN_LOCAL" -ne 0 ]; then
     --build-arg git_branch="${GIT_BRANCH}" \
     --build-arg timestamp="${TIMESTAMP}" .
 elif [ "$BUILD_APPTAINER" -ne 0 ]; then
-  # Create a temporary Singularity definition file
-  TEMP_DEF=$(mktemp)
-  TEMP_FILES+=("$TEMP_DEF")
-
   # Create a temporary file for find exclude patterns
   EXCLUDE_PATTERNS=$(mktemp)
   TEMP_FILES+=("$EXCLUDE_PATTERNS")
@@ -121,7 +117,15 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
 
   echo "Executing: $FIND_CMD"
   # Execute the dynamically generated find command
-  eval "$FIND_CMD -print0 | xargs -0 tar -cf repo.tar"
+  TEMP_FILE_LIST=$(mktemp)
+  TEMP_FILES+=("$TEMP_FILE_LIST")
+  eval "$FIND_CMD -print0" > "$TEMP_FILE_LIST"
+  if [ -s "$TEMP_FILE_LIST" ]; then
+    tar -cf repo.tar --null -T "$TEMP_FILE_LIST"
+  else
+    echo "ERROR: No files found to include in the image"
+    exit 1
+  fi
 
   # Debug output
   echo "Found $(du -sh repo.tar | awk '{print $1}') of files to include in the image"
