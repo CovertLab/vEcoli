@@ -1,0 +1,801 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>runscripts.workflow &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">runscripts.workflow</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for runscripts.workflow</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="c1"># Try to import fsspec, but make it optional</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">fsspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">url_to_fs</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">AbstractFileSystem</span>
+
+    <span class="n">FSSPEC_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">FSSPEC_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="n">LIST_KEYS_TO_MERGE</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;save_times&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;add_processes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;exclude_processes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;processes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;engine_process_reports&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;initial_state_overrides&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Special configuration keys that are list values which are concatenated</span>
+<span class="sd">together when they are found in multiple sources (e.g. default JSON and</span>
+<span class="sd">user-specified JSON) instead of being directly overriden.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">CONFIG_DIR_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))),</span>
+    <span class="s2">&quot;configs&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">NEXTFLOW_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)),</span> <span class="s2">&quot;nextflow&quot;</span><span class="p">)</span>
+
+<span class="n">MULTIDAUGHTER_CHANNEL</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    generationSize = </span><span class="si">{gen_size}</span>
+<span class="s2">    simCh</span>
+<span class="s2">        .map {{ tuple(groupKey(it[1..4], generationSize[it[4]]), it[0], it[1], it[2], it[3], it[4] ) }}</span>
+<span class="s2">        .groupTuple(remainder: true)</span>
+<span class="s2">        .map {{ tuple(it[1][0], it[2][0], it[3][0], it[4][0], it[5][0]) }}</span>
+<span class="s2">        .set {{ multiDaughterCh }}</span>
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="n">MULTIGENERATION_CHANNEL</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    simCh</span>
+<span class="s2">        .groupTuple(by: [1, 2, 3], size: </span><span class="si">{size}</span><span class="s2">, remainder: true)</span>
+<span class="s2">        .map {{ tuple(it[0][0], it[1], it[2], it[3]) }}</span>
+<span class="s2">        .set {{ multiGenerationCh }}</span>
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="n">MULTISEED_CHANNEL</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    simCh</span>
+<span class="s2">        .groupTuple(by: [1, 2], size: </span><span class="si">{size}</span><span class="s2">, remainder: true)</span>
+<span class="s2">        .map {{ tuple(it[0][0], it[1], it[2]) }}</span>
+<span class="s2">        .set {{ multiSeedCh }}</span>
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="n">MULTIVARIANT_CHANNEL</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    // Group once to deduplicate variant names and pickles</span>
+<span class="s2">    // Group again into single value for entire experiment</span>
+<span class="s2">    simCh</span>
+<span class="s2">        .groupTuple(by: [1, 2], size: </span><span class="si">{size}</span><span class="s2">, remainder: true)</span>
+<span class="s2">        .map {{ tuple(it[0][0], it[1], it[2]) }}</span>
+<span class="s2">        .groupTuple(by: [1])</span>
+<span class="s2">        .set {{ multiVariantCh }}</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="parse_uri">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.workflow.html#runscripts.workflow.parse_uri">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_uri</span><span class="p">(</span><span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;AbstractFileSystem&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse URI and return appropriate filesystem and path.</span>
+
+<span class="sd">    For cloud/remote URIs (when fsspec is available), returns fsspec filesystem.</span>
+<span class="sd">    For local paths, returns None and absolute path.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">FSSPEC_AVAILABLE</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span><span class="o">.</span><span class="n">scheme</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;local&quot;</span><span class="p">,</span> <span class="s2">&quot;file&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">&quot;fsspec is not available. Please install fsspec to use remote URIs.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="merge_dicts">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.workflow.html#runscripts.workflow.merge_dicts">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">merge_dicts</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Recursively merges dictionary b into dictionary a.</span>
+<span class="sd">    This mutates dictionary a.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">b</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">a</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="c1"># If both values are dictionaries, recursively merge</span>
+            <span class="n">merge_dicts</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Otherwise, overwrite or add the value from b to a</span>
+            <span class="n">a</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
+
+<div class="viewcode-block" id="generate_colony">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.workflow.html#runscripts.workflow.generate_colony">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_colony</span><span class="p">(</span><span class="n">seeds</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create strings to import and compose Nextflow processes for colony sims.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[],</span> <span class="p">[]</span></div>
+
+
+
+<div class="viewcode-block" id="generate_lineage">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.workflow.html#runscripts.workflow.generate_lineage">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_lineage</span><span class="p">(</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_init_sims</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">generations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">single_daughters</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">analysis_config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create strings to import and compose Nextflow processes for lineage sims:</span>
+<span class="sd">    cells that divide for a number of generations but do not interact. Also</span>
+<span class="sd">    contains import statements and workflow jobs for analysis scripts.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        seed: First seed for first sim</span>
+<span class="sd">        n_init_sims: Number of sims to initialize with different seeds</span>
+<span class="sd">        generations: Number of generations to run for each seed</span>
+<span class="sd">        single_daughters: If True, only simulate one daughter cell each gen</span>
+<span class="sd">        analysis_config: Dictionary with any of the following keys::</span>
+
+<span class="sd">            {</span>
+<span class="sd">                &#39;variant&#39;: analyses to run on output of all cells combined,</span>
+<span class="sd">                &#39;cohort&#39;: analyses to run on output grouped by variant,</span>
+<span class="sd">                &#39;multigen&#39;: analyses to run on output grouped by variant &amp; seed,</span>
+<span class="sd">                &#39;single&#39;: analyses to run on output for each individual cell,</span>
+<span class="sd">                &#39;parca&#39;: analyses to run on parameter calculator output</span>
+<span class="sd">            }</span>
+
+<span class="sd">            Each key corresponds to a mapping from analysis name (as defined</span>
+<span class="sd">            in ``ecol/analysis/__init__.py``) to keyword arguments.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        2-element tuple containing</span>
+
+<span class="sd">        - **sim_imports**: All `include` statements for Nextflow sim processes</span>
+<span class="sd">        - **sim_workflow**: Fully composed workflow for entire lineage</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sim_imports</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">sim_workflow</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">channel.of( </span><span class="si">{</span><span class="n">seed</span><span class="si">}</span><span class="s2">..&lt;</span><span class="si">{</span><span class="n">seed</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">n_init_sims</span><span class="si">}</span><span class="s2"> ).set </span><span class="se">{{</span><span class="s2"> seedCh </span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">]</span>
+
+    <span class="n">all_sim_tasks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">gen</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">generations</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;sim_gen_</span><span class="si">{</span><span class="n">gen</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="c1"># Handle special case of 1st generation</span>
+        <span class="k">if</span> <span class="n">gen</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sim_imports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;include </span><span class="se">{{</span><span class="s2"> simGen0 as </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> </span><span class="se">}}</span><span class="s2"> from &#39;</span><span class="si">{</span><span class="n">NEXTFLOW_DIR</span><span class="si">}</span><span class="s2">/sim&#39;&quot;</span>
+            <span class="p">)</span>
+            <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">(params.config, variantCh.combine(seedCh).combine([1]), &#39;0&#39;)&quot;</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">all_sim_tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.out.metadata&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">single_daughters</span><span class="p">:</span>
+                <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.out.nextGen0.mix(</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.out.nextGen1).set </span><span class="se">{{</span><span class="s2"> </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_nextGen </span><span class="se">}}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.out.nextGen0.set </span><span class="se">{{</span><span class="s2"> </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_nextGen </span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="n">sim_imports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;include </span><span class="se">{{</span><span class="s2"> sim as </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> </span><span class="se">}}</span><span class="s2"> from &#39;</span><span class="si">{</span><span class="n">NEXTFLOW_DIR</span><span class="si">}</span><span class="s2">/sim&#39;&quot;</span><span class="p">)</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;sim_gen_</span><span class="si">{</span><span class="n">gen</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s2">_nextGen)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">single_daughters</span><span class="p">:</span>
+            <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.out.nextGen0.mix(</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.out.nextGen1).set </span><span class="se">{{</span><span class="s2"> </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_nextGen </span><span class="se">}}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.out.nextGen0.set </span><span class="se">{{</span><span class="s2"> </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_nextGen </span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">all_sim_tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.out.metadata&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Channel that combines metadata for all sim tasks</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_sim_tasks</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">tasks</span> <span class="o">=</span> <span class="n">all_sim_tasks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">other_tasks</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">all_sim_tasks</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">tasks</span><span class="si">}</span><span class="s2">.mix(</span><span class="si">{</span><span class="n">other_tasks</span><span class="si">}</span><span class="s2">).set </span><span class="se">{{</span><span class="s2"> simCh </span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">all_sim_tasks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.set </span><span class="se">{{</span><span class="s2"> simCh </span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">sims_per_seed</span> <span class="o">=</span> <span class="n">generations</span> <span class="k">if</span> <span class="n">single_daughters</span> <span class="k">else</span> <span class="mi">2</span><span class="o">**</span><span class="n">generations</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">analysis_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;multivariant&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># Channel that groups all sim tasks</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">MULTIVARIANT_CHANNEL</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">sims_per_seed</span> <span class="o">*</span> <span class="n">n_init_sims</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">analysisMultiVariant(params.config, kb, multiVariantCh, &quot;</span>
+            <span class="s2">&quot;variantMetadataCh)&quot;</span>
+        <span class="p">)</span>
+        <span class="n">sim_imports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;include </span><span class="se">{{</span><span class="s2"> analysisMultiVariant </span><span class="se">}}</span><span class="s2"> from &#39;</span><span class="si">{</span><span class="n">NEXTFLOW_DIR</span><span class="si">}</span><span class="s2">/analysis&#39;&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">analysis_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;multiseed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># Channel that groups sim tasks by variant sim_data</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MULTISEED_CHANNEL</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">sims_per_seed</span> <span class="o">*</span> <span class="n">n_init_sims</span><span class="p">))</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">analysisMultiSeed(params.config, kb, multiSeedCh, variantMetadataCh)&quot;</span>
+        <span class="p">)</span>
+        <span class="n">sim_imports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;include </span><span class="se">{{</span><span class="s2"> analysisMultiSeed </span><span class="se">}}</span><span class="s2"> from &#39;</span><span class="si">{</span><span class="n">NEXTFLOW_DIR</span><span class="si">}</span><span class="s2">/analysis&#39;&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">analysis_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;multigeneration&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># Channel that groups sim tasks by variant sim_data and initial seed</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MULTIGENERATION_CHANNEL</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">sims_per_seed</span><span class="p">))</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">analysisMultiGeneration(params.config, kb, multiGenerationCh, &quot;</span>
+            <span class="s2">&quot;variantMetadataCh)&quot;</span>
+        <span class="p">)</span>
+        <span class="n">sim_imports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;include </span><span class="se">{{</span><span class="s2"> analysisMultiGeneration </span><span class="se">}}</span><span class="s2"> from &#39;</span><span class="si">{</span><span class="n">NEXTFLOW_DIR</span><span class="si">}</span><span class="s2">/analysis&#39;&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">analysis_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;multidaughter&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">single_daughters</span><span class="p">:</span>
+        <span class="c1"># Channel that groups sim tasks by variant sim_data, initial seed, and generation</span>
+        <span class="c1"># When simulating both daughters, will have &gt;1 cell for generation &gt;1</span>
+        <span class="n">gen_size</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;[&quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">g</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="mi">2</span><span class="o">**</span><span class="n">g</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">generations</span><span class="p">)])</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span>
+        <span class="p">)</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MULTIDAUGHTER_CHANNEL</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gen_size</span><span class="o">=</span><span class="n">gen_size</span><span class="p">))</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">analysisMultiDaughter(params.config, kb, multiDaughterCh, &quot;</span>
+            <span class="s2">&quot;variantMetadataCh)&quot;</span>
+        <span class="p">)</span>
+        <span class="n">sim_imports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;include </span><span class="se">{{</span><span class="s2"> analysisMultiDaughter </span><span class="se">}}</span><span class="s2"> from &#39;</span><span class="si">{</span><span class="n">NEXTFLOW_DIR</span><span class="si">}</span><span class="s2">/analysis&#39;&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">analysis_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;single&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">analysisSingle(params.config, kb, simCh, variantMetadataCh)&quot;</span>
+        <span class="p">)</span>
+        <span class="n">sim_imports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;include </span><span class="se">{{</span><span class="s2"> analysisSingle </span><span class="se">}}</span><span class="s2"> from &#39;</span><span class="si">{</span><span class="n">NEXTFLOW_DIR</span><span class="si">}</span><span class="s2">/analysis&#39;&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">analysis_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parca&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="n">sim_workflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">analysisParca(params.config, kb)&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">sim_imports</span><span class="p">,</span> <span class="n">sim_workflow</span></div>
+
+
+
+<div class="viewcode-block" id="generate_code">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.workflow.html#runscripts.workflow.generate_code">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_code</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
+    <span class="n">sim_data_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sim_data_path&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sim_data_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">kb_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sim_data_path</span><span class="p">)</span>
+        <span class="n">run_parca</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">file(&#39;</span><span class="si">{</span><span class="n">kb_dir</span><span class="si">}</span><span class="s2">&#39;).copyTo(</span><span class="se">\&quot;</span><span class="s2">$</span><span class="se">{{</span><span class="s2">params.publishDir</span><span class="se">}}</span><span class="s2">/$</span><span class="se">{{</span><span class="s2">params.experimentId</span><span class="se">}}</span><span class="s2">/parca/kb</span><span class="se">\&quot;</span><span class="s2">)&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Channel.fromPath(&#39;</span><span class="si">{</span><span class="n">kb_dir</span><span class="si">}</span><span class="s2">&#39;).toList().set </span><span class="se">{{</span><span class="s2"> kb </span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">run_parca</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">runParca(params.config)&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">runParca.out.toList().set </span><span class="si">{kb}</span><span class="s2">&quot;</span><span class="p">]</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;seed&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">generations</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;generations&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">generations</span><span class="p">:</span>
+        <span class="n">lineage_seed</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;lineage_seed&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">n_init_sims</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;n_init_sims&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Specified generations: initial lineage seed </span><span class="si">{</span><span class="n">lineage_seed</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">n_init_sims</span><span class="si">}</span><span class="s2"> initial sims&quot;</span>
+        <span class="p">)</span>
+        <span class="n">single_daughters</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;single_daughters&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">sim_imports</span><span class="p">,</span> <span class="n">sim_workflow</span> <span class="o">=</span> <span class="n">generate_lineage</span><span class="p">(</span>
+            <span class="n">lineage_seed</span><span class="p">,</span>
+            <span class="n">n_init_sims</span><span class="p">,</span>
+            <span class="n">generations</span><span class="p">,</span>
+            <span class="n">single_daughters</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;analysis_options&quot;</span><span class="p">,</span> <span class="p">{}),</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sim_imports</span><span class="p">,</span> <span class="n">sim_workflow</span> <span class="o">=</span> <span class="n">generate_colony</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">run_parca</span><span class="p">),</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sim_imports</span><span class="p">),</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sim_workflow</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="build_image_cmd">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.workflow.html#runscripts.workflow.build_image_cmd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_image_cmd</span><span class="p">(</span><span class="n">image_name</span><span class="p">,</span> <span class="n">apptainer</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="n">build_script</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;container&quot;</span><span class="p">,</span> <span class="s2">&quot;build-image.sh&quot;</span>
+    <span class="p">)</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="n">build_script</span><span class="p">,</span> <span class="s2">&quot;-i&quot;</span><span class="p">,</span> <span class="n">image_name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">apptainer</span><span class="p">:</span>
+        <span class="n">cmd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-a&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cmd</span></div>
+
+
+
+<div class="viewcode-block" id="copy_to_filesystem">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.workflow.html#runscripts.workflow.copy_to_filesystem">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">copy_to_filesystem</span><span class="p">(</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filesystem</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;AbstractFileSystem&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Robustly copy the contents of a local source file to a destination path.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        source: Path to source file on local filesystem</span>
+<span class="sd">        dest: Path to destination file on filesystem</span>
+<span class="sd">        filesystem: LocalFileSystem or fsspec filesystem</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">filesystem</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Simple local file copy</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">dest</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copy2</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="c1"># fsspec implementation</span>
+    <span class="k">with</span> <span class="n">filesystem</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span></div>
+
+
+
+<div class="viewcode-block" id="stream_log">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.workflow.html#runscripts.workflow.stream_log">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stream_log</span><span class="p">(</span><span class="n">output_log</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sleep_time</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    As long as output_log exists, read and print new content to stdout.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">log_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">output_log</span><span class="p">)</span>
+    <span class="c1"># Track last position read in output log file</span>
+    <span class="n">last_position</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># Read any new content from the log file</span>
+        <span class="k">if</span> <span class="n">log_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_log</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="c1"># Move to where we left off</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">last_position</span><span class="p">)</span>
+                <span class="c1"># Read and print new content</span>
+                <span class="n">new_content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">new_content</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">new_content</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="c1"># Remember where we are now</span>
+                <span class="n">last_position</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">sleep_time</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.workflow.html#runscripts.workflow.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CONFIG_DIR_PATH</span><span class="p">,</span> <span class="s2">&quot;default.json&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--config&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">config_file</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Path to configuration file for the simulation. &quot;</span>
+            <span class="s2">&quot;All key-value pairs in this file will be applied on top &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;of the options defined in </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--resume&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Resume workflow with given experiment ID. The experiment ID must &quot;</span>
+        <span class="s2">&quot;match the supplied configuration file and if suffix_time was used, must &quot;</span>
+        <span class="s2">&quot;contain the full time suffix (suffix_time will not be applied again).&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">config_file</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">config</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">user_config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">LIST_KEYS_TO_MERGE</span><span class="p">:</span>
+                <span class="n">user_config</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="n">user_config</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[]))</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;engine_process_reports&quot;</span><span class="p">:</span>
+                    <span class="n">user_config</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">user_config</span><span class="p">[</span><span class="n">key</span><span class="p">]]</span>
+                <span class="c1"># Ensures there are no duplicates in d2</span>
+                <span class="n">user_config</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">user_config</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+                <span class="n">user_config</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="n">merge_dicts</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">user_config</span><span class="p">)</span>
+
+    <span class="n">experiment_id</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">experiment_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No experiment ID was provided.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">resume</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">experiment_id</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">resume</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">resume</span>
+    <span class="k">elif</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;suffix_time&quot;</span><span class="p">]:</span>
+        <span class="n">current_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">-%H%M%S&quot;</span><span class="p">)</span>
+        <span class="n">experiment_id</span> <span class="o">=</span> <span class="n">experiment_id</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">current_time</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">experiment_id</span>
+    <span class="n">config</span><span class="p">[</span><span class="s2">&quot;suffix_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># Special characters are messy so do not allow them</span>
+    <span class="k">if</span> <span class="n">experiment_id</span> <span class="o">!=</span> <span class="n">parse</span><span class="o">.</span><span class="n">quote_plus</span><span class="p">(</span><span class="n">experiment_id</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s2">&quot;Experiment ID cannot contain special characters&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;that change the string when URL quoted: </span><span class="si">{</span><span class="n">experiment_id</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot; != </span><span class="si">{</span><span class="n">parse</span><span class="o">.</span><span class="n">quote_plus</span><span class="p">(</span><span class="n">experiment_id</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+    <span class="c1"># Resolve output directory</span>
+    <span class="n">out_bucket</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;out_uri&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;emitter_arg&quot;</span><span class="p">]:</span>
+        <span class="n">out_uri</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;emitter_arg&quot;</span><span class="p">][</span><span class="s2">&quot;out_dir&quot;</span><span class="p">])</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;emitter_arg&quot;</span><span class="p">][</span><span class="s2">&quot;out_dir&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out_uri</span>
+        <span class="k">assert</span> <span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">out_uri</span><span class="p">)</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Output directory must be a local path, not a URI. &quot;</span>
+            <span class="s2">&quot;Specify URIs using &#39;out_uri&#39; under &#39;emitter_arg&#39;.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">out_uri</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;emitter_arg&quot;</span><span class="p">][</span><span class="s2">&quot;out_uri&quot;</span><span class="p">]</span>
+        <span class="n">parsed_uri</span> <span class="o">=</span> <span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">out_uri</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">parsed_uri</span><span class="o">.</span><span class="n">scheme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;local&quot;</span><span class="p">,</span> <span class="s2">&quot;file&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">FSSPEC_AVAILABLE</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;URI &#39;</span><span class="si">{</span><span class="n">out_uri</span><span class="si">}</span><span class="s2">&#39; specified but fsspec is not available. &quot;</span>
+                <span class="s2">&quot;Install fsspec or provide a local URI/out directory.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">out_bucket</span> <span class="o">=</span> <span class="n">parsed_uri</span><span class="o">.</span><span class="n">netloc</span>
+    <span class="c1"># Resolve sim_data_path if provided</span>
+    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sim_data_path&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sim_data_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;sim_data_path&quot;</span><span class="p">])</span>
+    <span class="c1"># Use random seed for Jenkins CI runs</span>
+    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sherlock&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;jenkins&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;lineage_seed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">filesystem</span><span class="p">,</span> <span class="n">outdir</span> <span class="o">=</span> <span class="n">parse_uri</span><span class="p">(</span><span class="n">out_uri</span><span class="p">)</span>
+    <span class="n">outdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">experiment_id</span><span class="p">,</span> <span class="s2">&quot;nextflow&quot;</span><span class="p">)</span>
+    <span class="n">exp_outdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">outdir</span><span class="p">)</span>
+    <span class="n">out_uri</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_uri</span><span class="p">,</span> <span class="n">experiment_id</span><span class="p">,</span> <span class="s2">&quot;nextflow&quot;</span><span class="p">)</span>
+    <span class="n">repo_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+    <span class="n">local_outdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">repo_dir</span><span class="p">,</span> <span class="s2">&quot;nextflow_temp&quot;</span><span class="p">,</span> <span class="n">experiment_id</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">local_outdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">filesystem</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">exp_outdir</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">resume</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Output directory already exists: </span><span class="si">{</span><span class="n">exp_outdir</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="s2">&quot;Please use a different experiment ID or output directory. &quot;</span>
+                <span class="s2">&quot;Alternatively, move, delete, or rename the existing directory.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">filesystem</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">exp_outdir</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">resume</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Output directory already exists: </span><span class="si">{</span><span class="n">exp_outdir</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="s2">&quot;Please use a different experiment ID or output directory. &quot;</span>
+                <span class="s2">&quot;Alternatively, move, delete, or rename the existing directory.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">filesystem</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">temp_config_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">local_outdir</span><span class="si">}</span><span class="s2">/workflow_config.json&quot;</span>
+    <span class="n">final_config_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;workflow_config.json&quot;</span><span class="p">)</span>
+    <span class="n">final_config_uri</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_uri</span><span class="p">,</span> <span class="s2">&quot;workflow_config.json&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">temp_config_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">resume</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">copy_to_filesystem</span><span class="p">(</span><span class="n">temp_config_path</span><span class="p">,</span> <span class="n">final_config_path</span><span class="p">,</span> <span class="n">filesystem</span><span class="p">)</span>
+
+    <span class="n">nf_config</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;nextflow&quot;</span><span class="p">,</span> <span class="s2">&quot;config.template&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">nf_config</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">nf_config</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">nf_config</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">nf_config</span><span class="p">)</span>
+    <span class="n">nf_config</span> <span class="o">=</span> <span class="n">nf_config</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;EXPERIMENT_ID&quot;</span><span class="p">,</span> <span class="n">experiment_id</span><span class="p">)</span>
+    <span class="n">nf_config</span> <span class="o">=</span> <span class="n">nf_config</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;CONFIG_FILE&quot;</span><span class="p">,</span> <span class="n">final_config_uri</span><span class="p">)</span>
+    <span class="n">nf_config</span> <span class="o">=</span> <span class="n">nf_config</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;BUCKET&quot;</span><span class="p">,</span> <span class="n">out_bucket</span><span class="p">)</span>
+    <span class="n">nf_config</span> <span class="o">=</span> <span class="n">nf_config</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+        <span class="s2">&quot;PUBLISH_DIR&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">out_uri</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="n">nf_config</span> <span class="o">=</span> <span class="n">nf_config</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;PARCA_CPUS&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;parca_options&quot;</span><span class="p">][</span><span class="s2">&quot;cpus&quot;</span><span class="p">]))</span>
+
+    <span class="c1"># By default, assume running on local device</span>
+    <span class="n">nf_profile</span> <span class="o">=</span> <span class="s2">&quot;standard&quot;</span>
+    <span class="c1"># If not running on a local device, build container images according</span>
+    <span class="c1"># to options under gcloud or sherlock configuration keys</span>
+    <span class="n">cloud_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;gcloud&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cloud_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nf_profile</span> <span class="o">=</span> <span class="s2">&quot;gcloud&quot;</span>
+        <span class="n">project_id</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">&quot;gcloud&quot;</span><span class="p">,</span> <span class="s2">&quot;config&quot;</span><span class="p">,</span> <span class="s2">&quot;get&quot;</span><span class="p">,</span> <span class="s2">&quot;project&quot;</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">&quot;gcloud&quot;</span><span class="p">,</span> <span class="s2">&quot;config&quot;</span><span class="p">,</span> <span class="s2">&quot;get&quot;</span><span class="p">,</span> <span class="s2">&quot;compute/region&quot;</span><span class="p">],</span>
+            <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+            <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">image_prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">region</span><span class="si">}</span><span class="s2">-docker.pkg.dev/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">/vecoli/&quot;</span>
+        <span class="n">container_image</span> <span class="o">=</span> <span class="n">cloud_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;container_image&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">container_image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Must supply name for container image.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cloud_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;build_image&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">image_cmd</span> <span class="o">=</span> <span class="n">build_image_cmd</span><span class="p">(</span><span class="n">container_image</span><span class="p">)</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">image_cmd</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">nf_config</span> <span class="o">=</span> <span class="n">nf_config</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;IMAGE_NAME&quot;</span><span class="p">,</span> <span class="n">image_prefix</span> <span class="o">+</span> <span class="n">container_image</span><span class="p">)</span>
+    <span class="n">sherlock_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sherlock&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sherlock_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">nf_profile</span> <span class="o">==</span> <span class="s2">&quot;gcloud&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot set both Sherlock and Google Cloud options in the input JSON.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">nf_profile</span> <span class="o">=</span> <span class="s2">&quot;sherlock&quot;</span>
+        <span class="c1"># Suggest that users turn off background thread for Parquet emitter</span>
+        <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;emitter&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;parquet&quot;</span> <span class="ow">and</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;emitter_arg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;threaded&quot;</span><span class="p">,</span> <span class="kc">True</span>
+        <span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Using a background thread in the Parquet emitter may degrade &quot;</span>
+                <span class="s2">&quot;performance on Sherlock, where each simulation is allocated a &quot;</span>
+                <span class="s2">&quot;single CPU core. Consider setting &#39;threaded&#39; to False &quot;</span>
+                <span class="s2">&quot;under &#39;emitter_arg&#39;.&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># Start a new thread to forward output of submitted jobs to stdout</span>
+        <span class="n">thread_executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">container_image</span> <span class="o">=</span> <span class="n">sherlock_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;container_image&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">container_image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Must supply name for container image.&quot;</span><span class="p">)</span>
+        <span class="n">image_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">container_image</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">image_dir</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Container image directory does not exist, creating: </span><span class="si">{</span><span class="n">image_dir</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">image_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sherlock_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;build_image&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">image_cmd</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">build_image_cmd</span><span class="p">(</span><span class="n">container_image</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+            <span class="n">image_build_script</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_outdir</span><span class="p">,</span> <span class="s2">&quot;container.sh&quot;</span><span class="p">)</span>
+            <span class="n">log_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_outdir</span><span class="p">,</span> <span class="s2">&quot;build-image.out&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">image_build_script</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;#!/bin/bash</span>
+<span class="s2">#SBATCH --job-name=&quot;build-image-</span><span class="si">{</span><span class="n">experiment_id</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="s2">#SBATCH --time=30:00</span>
+<span class="s2">#SBATCH --cpus-per-task 2</span>
+<span class="s2">#SBATCH --mem=8GB</span>
+<span class="s2">#SBATCH --partition=owners,normal</span>
+<span class="s2">#SBATCH --wait</span>
+<span class="s2">#SBATCH --output=</span><span class="si">{</span><span class="n">log_file</span><span class="si">}</span>
+<span class="si">{</span><span class="n">image_cmd</span><span class="si">}</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+            <span class="c1"># Create empty log file for thread to stream from</span>
+            <span class="n">log_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">log_file</span><span class="p">)</span>
+            <span class="n">log_path</span><span class="o">.</span><span class="n">touch</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">thread_executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">stream_log</span><span class="p">,</span> <span class="n">log_file</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;sbatch&quot;</span><span class="p">,</span> <span class="n">image_build_script</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="c1"># Always delete log file to stop streaming thread</span>
+                <span class="n">log_path</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+        <span class="n">nf_config</span> <span class="o">=</span> <span class="n">nf_config</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;IMAGE_NAME&quot;</span><span class="p">,</span> <span class="n">container_image</span><span class="p">)</span>
+    <span class="n">local_config</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_outdir</span><span class="p">,</span> <span class="s2">&quot;nextflow.config&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">local_config</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">nf_config</span><span class="p">)</span>
+
+    <span class="n">run_parca</span><span class="p">,</span> <span class="n">sim_imports</span><span class="p">,</span> <span class="n">sim_workflow</span> <span class="o">=</span> <span class="n">generate_code</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="n">nf_template_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;nextflow&quot;</span><span class="p">,</span> <span class="s2">&quot;template.nf&quot;</span>
+    <span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">nf_template_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">nf_template</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">nf_template</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">nf_template</span><span class="p">)</span>
+    <span class="n">nf_template</span> <span class="o">=</span> <span class="n">nf_template</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;RUN_PARCA&quot;</span><span class="p">,</span> <span class="n">run_parca</span><span class="p">)</span>
+    <span class="n">nf_template</span> <span class="o">=</span> <span class="n">nf_template</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;IMPORTS&quot;</span><span class="p">,</span> <span class="n">sim_imports</span><span class="p">)</span>
+    <span class="n">nf_template</span> <span class="o">=</span> <span class="n">nf_template</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;WORKFLOW&quot;</span><span class="p">,</span> <span class="n">sim_workflow</span><span class="p">)</span>
+    <span class="n">local_workflow</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_outdir</span><span class="p">,</span> <span class="s2">&quot;main.nf&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">local_workflow</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">nf_template</span><span class="p">)</span>
+
+    <span class="n">workflow_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_uri</span><span class="p">,</span> <span class="s2">&quot;main.nf&quot;</span><span class="p">)</span>
+
+    <span class="n">config_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_uri</span><span class="p">,</span> <span class="s2">&quot;nextflow.config&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">resume</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">copy_to_filesystem</span><span class="p">(</span><span class="n">local_workflow</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;main.nf&quot;</span><span class="p">),</span> <span class="n">filesystem</span><span class="p">)</span>
+        <span class="n">copy_to_filesystem</span><span class="p">(</span>
+            <span class="n">local_config</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;nextflow.config&quot;</span><span class="p">),</span> <span class="n">filesystem</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Start nextflow workflow</span>
+    <span class="n">report_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">out_uri</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">experiment_id</span><span class="si">}</span><span class="s2">_report.html&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">filesystem</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">report_path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Report file already exists: </span><span class="si">{</span><span class="n">report_path</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="s2">&quot;Please move, delete, or rename it, then run with --resume again.&quot;</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">filesystem</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">report_path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Report file already exists: </span><span class="si">{</span><span class="n">report_path</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="s2">&quot;Please move, delete, or rename it, then run with --resume again.&quot;</span>
+            <span class="p">)</span>
+    <span class="n">workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_uri</span><span class="p">,</span> <span class="s2">&quot;nextflow_workdirs&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nf_profile</span> <span class="o">==</span> <span class="s2">&quot;standard&quot;</span> <span class="ow">or</span> <span class="n">nf_profile</span> <span class="o">==</span> <span class="s2">&quot;gcloud&quot;</span><span class="p">:</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="s2">&quot;nextflow&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;-C&quot;</span><span class="p">,</span>
+                <span class="n">local_config</span><span class="p">,</span>
+                <span class="s2">&quot;run&quot;</span><span class="p">,</span>
+                <span class="n">local_workflow</span><span class="p">,</span>
+                <span class="s2">&quot;-profile&quot;</span><span class="p">,</span>
+                <span class="n">nf_profile</span><span class="p">,</span>
+                <span class="s2">&quot;-with-report&quot;</span><span class="p">,</span>
+                <span class="n">report_path</span><span class="p">,</span>
+                <span class="s2">&quot;-work-dir&quot;</span><span class="p">,</span>
+                <span class="n">workdir</span><span class="p">,</span>
+                <span class="s2">&quot;-resume&quot;</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">resume</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="p">],</span>
+            <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">nf_profile</span> <span class="o">==</span> <span class="s2">&quot;sherlock&quot;</span><span class="p">:</span>
+        <span class="n">batch_script</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_outdir</span><span class="p">,</span> <span class="s2">&quot;nextflow_job.sh&quot;</span><span class="p">)</span>
+        <span class="n">hyperqueue_init</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">hyperqueue_exit</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">sherlock_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hyperqueue&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">nf_profile</span> <span class="o">=</span> <span class="s2">&quot;sherlock_hq&quot;</span>
+            <span class="n">hyperqueue_init</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2"># Set the directory which HyperQueue will use </span>
+<span class="s2">export HQ_SERVER_DIR=</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;.hq-server&quot;</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">mkdir -p $</span><span class="se">{{</span><span class="s2">HQ_SERVER_DIR</span><span class="se">}}</span>
+
+<span class="s2"># Start the server in the background (&amp;) and wait until it has started</span>
+<span class="s2">hq server start --journal </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;.hq-server/journal&quot;</span><span class="p">)</span><span class="si">}</span><span class="s2"> &amp;</span>
+<span class="s2">until hq job list &amp;&gt;/dev/null ; do sleep 1 ; done</span>
+
+<span class="s2">&quot;&quot;&quot;</span>
+            <span class="n">hyperqueue_exit</span> <span class="o">=</span> <span class="s2">&quot;hq job wait all; hq worker stop all; hq server stop&quot;</span>
+        <span class="n">nf_slurm_output</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">experiment_id</span><span class="si">}</span><span class="s2">_slurm.out&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">batch_script</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;#!/bin/bash</span>
+<span class="s2">#SBATCH --job-name=&quot;nf-</span><span class="si">{</span><span class="n">experiment_id</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="s2">#SBATCH --time=7-00:00:00</span>
+<span class="s2">#SBATCH --cpus-per-task 1</span>
+<span class="s2">#SBATCH --mem=4GB</span>
+<span class="s2">#SBATCH --partition=mcovert</span>
+<span class="s2">#SBATCH --output=</span><span class="si">{</span><span class="n">nf_slurm_output</span><span class="si">}</span>
+<span class="si">{</span><span class="s2">&quot;#SBATCH --wait&quot;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sherlock_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;jenkins&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">False</span><span class="p">)</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span>
+<span class="s2">set -e</span>
+<span class="s2"># Ensure HyperQueue shutdown on failure or interruption</span>
+<span class="s2">trap &#39;exitcode=$?; </span><span class="si">{</span><span class="n">hyperqueue_exit</span><span class="si">}</span><span class="s2">&#39; EXIT</span>
+<span class="si">{</span><span class="n">hyperqueue_init</span><span class="si">}</span>
+<span class="s2">nextflow -C </span><span class="si">{</span><span class="n">config_path</span><span class="si">}</span><span class="s2"> run </span><span class="si">{</span><span class="n">workflow_path</span><span class="si">}</span><span class="s2"> -profile </span><span class="si">{</span><span class="n">nf_profile</span><span class="si">}</span><span class="s2"> </span><span class="se">\</span>
+<span class="s2">    -with-report </span><span class="si">{</span><span class="n">report_path</span><span class="si">}</span><span class="s2"> -work-dir </span><span class="si">{</span><span class="n">workdir</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s2">&quot;-resume&quot;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">args</span><span class="o">.</span><span class="n">resume</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="n">copy_to_filesystem</span><span class="p">(</span>
+            <span class="n">batch_script</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;nextflow_job.sh&quot;</span><span class="p">),</span> <span class="n">filesystem</span>
+        <span class="p">)</span>
+        <span class="c1"># Make stdout of workflow viewable in Jenkins</span>
+        <span class="k">if</span> <span class="n">sherlock_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;jenkins&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="c1"># Create empty log file for thread to stream from</span>
+            <span class="n">log_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">nf_slurm_output</span><span class="p">)</span>
+            <span class="n">log_path</span><span class="o">.</span><span class="n">touch</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">thread_executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">stream_log</span><span class="p">,</span> <span class="n">nf_slurm_output</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;sbatch&quot;</span><span class="p">,</span> <span class="n">batch_script</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="c1"># Always delete log file to stop streaming thread</span>
+                <span class="n">log_path</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;sbatch&quot;</span><span class="p">,</span> <span class="n">batch_script</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">local_outdir</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

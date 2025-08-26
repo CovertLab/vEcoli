@@ -1,0 +1,538 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>runscripts.analysis &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">runscripts.analysis</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for runscripts.analysis</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+
+
+<span class="c1"># First, do minimal argument parsing just to get the CPU count</span>
+<div class="viewcode-block" id="parse_cpu_arg">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.analysis.html#runscripts.analysis.parse_cpu_arg">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_cpu_arg</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">add_help</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--cpus&quot;</span><span class="p">,</span> <span class="s2">&quot;-n&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--config&quot;</span><span class="p">)</span>
+    <span class="c1"># Only arguments necessary to determine CPU count</span>
+    <span class="n">args</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">args</span><span class="o">.</span><span class="n">cpus</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;analysis_options&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cpus&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">cpus</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># Set Polars thread count before any imports might load it</span>
+<span class="n">cpu_count</span> <span class="o">=</span> <span class="n">parse_cpu_arg</span><span class="p">()</span>
+<span class="k">if</span> <span class="n">cpu_count</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POLARS_MAX_THREADS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">cpu_count</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Setting POLARS_MAX_THREADS=</span><span class="si">{</span><span class="n">cpu_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">importlib</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>  <span class="c1"># noqa: E402</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fsspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">url_to_fs</span>  <span class="c1"># noqa: E402</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">CONFIG_DIR_PATH</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.experiments.ecoli_master_sim</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimConfig</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: E402</span>
+    <span class="n">dataset_sql</span><span class="p">,</span>
+    <span class="n">create_duckdb_conn</span><span class="p">,</span>
+    <span class="n">open_output_file</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">FILTERS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="s2">&quot;variant&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="s2">&quot;lineage_seed&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="s2">&quot;generation&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="s2">&quot;agent_id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="sd">&quot;&quot;&quot;Mapping of data filters to data type.&quot;&quot;&quot;</span>
+
+<span class="n">ANALYSIS_TYPES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;multiexperiment&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">&quot;multivariant&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;multiseed&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">,</span> <span class="s2">&quot;variant&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;multigeneration&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">,</span> <span class="s2">&quot;variant&quot;</span><span class="p">,</span> <span class="s2">&quot;lineage_seed&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;multidaughter&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">,</span> <span class="s2">&quot;variant&quot;</span><span class="p">,</span> <span class="s2">&quot;lineage_seed&quot;</span><span class="p">,</span> <span class="s2">&quot;generation&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;single&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">,</span> <span class="s2">&quot;variant&quot;</span><span class="p">,</span> <span class="s2">&quot;lineage_seed&quot;</span><span class="p">,</span> <span class="s2">&quot;generation&quot;</span><span class="p">,</span> <span class="s2">&quot;agent_id&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;parca&quot;</span><span class="p">:</span> <span class="p">[],</span>
+<span class="p">}</span>
+<span class="sd">&quot;&quot;&quot;Mapping of all possible analysis types to the combination of identifiers that</span>
+<span class="sd">must be unique for each subset of the data given to that analysis type as input.&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="parse_variant_data_dir">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.analysis.html#runscripts.analysis.parse_variant_data_dir">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_variant_data_dir</span><span class="p">(</span>
+    <span class="n">experiment_id</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">variant_data_dir</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    For each experiment ID and corresponding variant sim data directory,</span>
+<span class="sd">    load the variant metadata JSON and parse the variant sim data file</span>
+<span class="sd">    names to construct mappings from experiments to variants to variant</span>
+<span class="sd">    metadata and variant sim_data paths.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        experiment_id: List of experiment IDs</span>
+<span class="sd">        variant_data_dir: List of directories containing output from</span>
+<span class="sd">            create_variants.py, one for each experiment ID, in order</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple containing three dictionaries::</span>
+
+<span class="sd">            (</span>
+<span class="sd">                {experiment_id: {variant_id: variant_metadata, ...}, ...},</span>
+<span class="sd">                {experiment_id: {variant_id: variant_sim_data_path, ...}, ...}</span>
+<span class="sd">                {experiment_id: variant_name, ...}</span>
+<span class="sd">            )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">variant_metadata</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">sim_data_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">variant_names</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">e_id</span><span class="p">,</span> <span class="n">v_data_dir</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">experiment_id</span><span class="p">,</span> <span class="n">variant_data_dir</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">open_output_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">v_data_dir</span><span class="p">,</span> <span class="s2">&quot;metadata.json&quot;</span><span class="p">))</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">v_metadata</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">variant_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">v_metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">variant_names</span><span class="p">[</span><span class="n">e_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">variant_name</span>
+            <span class="n">variant_metadata</span><span class="p">[</span><span class="n">e_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">v_metadata</span><span class="p">[</span><span class="n">variant_name</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">v_data_dir</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;gs://&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">v_data_dir</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;gcs://&quot;</span><span class="p">)):</span>
+            <span class="n">v_data_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">v_data_dir</span><span class="p">)</span>
+        <span class="n">fs</span><span class="p">,</span> <span class="n">data_dir</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="n">v_data_dir</span><span class="p">)</span>
+        <span class="n">sim_data_dict</span><span class="p">[</span><span class="n">e_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">data_path</span><span class="p">)[</span><span class="mi">0</span><span class="p">])):</span> <span class="nb">str</span><span class="p">(</span><span class="n">data_path</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">data_path</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">data_dir</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">data_path</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;.cPickle&quot;</span>
+        <span class="p">}</span>
+    <span class="k">return</span> <span class="n">variant_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">variant_names</span></div>
+
+
+
+<div class="viewcode-block" id="make_sim_data_dict">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.analysis.html#runscripts.analysis.make_sim_data_dict">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_sim_data_dict</span><span class="p">(</span><span class="n">exp_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">variants</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">sim_data_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variants</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Must specify variant or variant_range if not using variant_data_dir&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sim_data_path</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">variants</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Must specify sim_data_path for each variant if not using variant_data_dir&quot;</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">exp_id</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">variants</span><span class="p">,</span> <span class="n">sim_data_path</span><span class="p">))}</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.analysis.html#runscripts.analysis.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">default_config</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CONFIG_DIR_PATH</span><span class="p">,</span> <span class="s2">&quot;default.json&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--config&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">default_config</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;Path to configuration file for the simulation. &quot;</span>
+            <span class="s2">&quot;All key-value pairs in this file will be applied on top &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;of the options defined in </span><span class="si">{</span><span class="n">default_config</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">data_filter</span><span class="p">,</span> <span class="n">data_type</span> <span class="ow">in</span> <span class="n">FILTERS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;--</span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">data_type</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Limit data to one or more </span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2">(s).&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">data_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;--</span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2">_range&quot;</span><span class="p">,</span>
+                <span class="n">nargs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">metavar</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;START&quot;</span><span class="p">,</span> <span class="s2">&quot;END&quot;</span><span class="p">),</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">data_type</span><span class="p">,</span>
+                <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Limit data to range of </span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2">s not incl. END.&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--sim_data_path&quot;</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to the sim_data pickle(s) to use. If multiple variants given&quot;</span>
+        <span class="s2">&quot; via --variant or --variant_range, must provide same number&quot;</span>
+        <span class="s2">&quot; of paths here in same order. Alternatively, see --variant_data_dir.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--validation_data_path&quot;</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to the validation_data pickle(s) to use.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--outdir&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-o&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Directory that all analysis output is saved to.&quot;</span>
+        <span class="s2">&quot; MUST be a local path, not a Cloud Storage bucket URI.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--cpus&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-n&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of CPUs to use for DuckDB.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--variant_metadata_path&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to JSON file with variant metadata from create_variants.py.&quot;</span>
+        <span class="s2">&quot; Required with --sim_data_path. Otherwise, see --variant_data_dir.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--variant_data_dir&quot;</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path(s) to one or more directories containing variant sim data&quot;</span>
+        <span class="s2">&quot; and metadata from create_variants.py. Supersedes --sim_data_path and&quot;</span>
+        <span class="s2">&quot; --variant_metadata_path. If &gt;1 experiment IDs, this is required and&quot;</span>
+        <span class="s2">&quot; must have the same length and order as the given experiment IDs.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--analysis_types&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-t&quot;</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">ANALYSIS_TYPES</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Type(s) of analysis scripts to run. By default, every script under&quot;</span>
+        <span class="s2">&quot; analysis_options in the config JSON is run. For example, say that&quot;</span>
+        <span class="s2">&quot; 2 experiment IDs are given with --experiment_id, 2 variants with&quot;</span>
+        <span class="s2">&quot; --variant, 2 seeds with --lineage_seed, 2 generations with --generation,&quot;</span>
+        <span class="s2">&quot; and 2 agent IDs with --agent_id. The multiexperiment scripts in the config&quot;</span>
+        <span class="s2">&quot; JSON will each run once with all data matching this filter. The multivariant&quot;</span>
+        <span class="s2">&quot; scripts will each run twice, first with filtered data for one experiment ID,&quot;</span>
+        <span class="s2">&quot; then with filtered data for the other. The multiseed scripts will each run&quot;</span>
+        <span class="s2">&quot; 4 times (2 exp IDs * 2 variants), the multigeneration scripts 8 times (4&quot;</span>
+        <span class="s2">&quot; * 2 seeds), the multidaughter scripts 16 times (8 * 2 generations), and&quot;</span>
+        <span class="s2">&quot; the single scripts 32 times (16 * 2 agent IDs). If you only want to run&quot;</span>
+        <span class="s2">&quot; the single and multivariant scripts, specify -t single multivariant.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CONFIG_DIR_PATH</span><span class="p">,</span> <span class="s2">&quot;default.json&quot;</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">config_file</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">config</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">config</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">SimConfig</span><span class="o">.</span><span class="n">merge_config_dicts</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+    <span class="k">if</span> <span class="s2">&quot;out_uri&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;emitter_arg&quot;</span><span class="p">]:</span>
+        <span class="n">out_uri</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;emitter_arg&quot;</span><span class="p">][</span><span class="s2">&quot;out_dir&quot;</span><span class="p">])</span>
+        <span class="n">gcs_bucket</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">out_uri</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;emitter_arg&quot;</span><span class="p">][</span><span class="s2">&quot;out_uri&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">out_uri</span><span class="p">)</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">&quot;gcs&quot;</span>
+            <span class="ow">or</span> <span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">out_uri</span><span class="p">)</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">&quot;gs&quot;</span>
+        <span class="p">)</span>
+        <span class="n">gcs_bucket</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;analysis_options&quot;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">config</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="c1"># Set up DuckDB filters for data</span>
+    <span class="n">duckdb_filter</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">last_analysis_level</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">filter_types</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">FILTERS</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">current_analysis_level</span><span class="p">,</span> <span class="p">(</span>
+        <span class="n">data_filter</span><span class="p">,</span>
+        <span class="n">data_type</span><span class="p">,</span>
+    <span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">FILTERS</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2">_range&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="n">data_filter</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Provided both range and value(s) for </span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2">. &quot;</span>
+                    <span class="s2">&quot;Range takes precedence.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">config</span><span class="p">[</span><span class="n">data_filter</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="nb">range</span><span class="p">(</span>
+                    <span class="n">config</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2">_range&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2">_range&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data_filter</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">last_analysis_level</span> <span class="o">!=</span> <span class="n">current_analysis_level</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">skipped_filters</span> <span class="o">=</span> <span class="n">filter_types</span><span class="p">[</span>
+                    <span class="n">last_analysis_level</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">current_analysis_level</span>
+                <span class="p">]</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Filtering by </span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2"> when last filter &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;specified was </span><span class="si">{</span><span class="n">filter_types</span><span class="p">[</span><span class="n">last_analysis_level</span><span class="p">]</span><span class="si">}</span><span class="s2">. &quot;</span>
+                    <span class="s2">&quot;Will load all applicable data for the skipped &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;filters: </span><span class="si">{</span><span class="n">skipped_filters</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="n">data_filter</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">data_type</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+                    <span class="n">filter_values</span> <span class="o">=</span> <span class="s2">&quot;&#39;, &#39;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="n">parse</span><span class="o">.</span><span class="n">quote_plus</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="n">data_filter</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="n">duckdb_filter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2"> IN (&#39;</span><span class="si">{</span><span class="n">filter_values</span><span class="si">}</span><span class="s2">&#39;)&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">filter_values</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="n">data_filter</span><span class="p">])</span>
+                    <span class="n">duckdb_filter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2"> IN (</span><span class="si">{</span><span class="n">filter_values</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">data_type</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+                    <span class="n">quoted_val</span> <span class="o">=</span> <span class="n">parse</span><span class="o">.</span><span class="n">quote_plus</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="n">data_filter</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+                    <span class="n">duckdb_filter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2"> = &#39;</span><span class="si">{</span><span class="n">quoted_val</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">duckdb_filter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">data_filter</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">config</span><span class="p">[</span><span class="n">data_filter</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">last_analysis_level</span> <span class="o">=</span> <span class="n">current_analysis_level</span>
+    <span class="n">duckdb_filter</span> <span class="o">=</span> <span class="s2">&quot; AND &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">duckdb_filter</span><span class="p">)</span>
+
+    <span class="c1"># Load variant metadata</span>
+    <span class="k">if</span> <span class="s2">&quot;experiment_id&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Must provide at least one experiment ID with experiment_id&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="s2">&quot;variant_data_dir&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Must provide --variant_data_dir for each experiment ID.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;variant_data_dir&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">]),</span> <span class="p">(</span>
+            <span class="s2">&quot;Must provide --variant_data_dir for each experiment ID.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;variant_data_dir&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;variant_metadata_path&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Ignoring --variant_metadata_path in favor of --variant_data_dir&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;sim_data_path&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Ignoring --sim_data_path in favor of --variant_data_dir&quot;</span><span class="p">)</span>
+        <span class="n">variant_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">variant_names</span> <span class="o">=</span> <span class="n">parse_variant_data_dir</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;variant_data_dir&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;variant_metadata_path&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;variant_metadata_path&quot;</span><span class="p">],</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">variant_metadata</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">variant_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">variant_metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">variant_metadata</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span> <span class="p">{</span>
+                    <span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variant_metadata</span><span class="p">[</span><span class="n">variant_name</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="n">variant_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span> <span class="n">variant_name</span><span class="p">}</span>
+        <span class="n">sim_data_dict</span> <span class="o">=</span> <span class="n">make_sim_data_dict</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variant&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sim_data_path&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;No variant metadata provided. Using empty variant metadata/names dictionaries.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">variant_metadata</span> <span class="o">=</span> <span class="p">{</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span> <span class="p">{}}</span>
+        <span class="n">variant_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="n">sim_data_dict</span> <span class="o">=</span> <span class="n">make_sim_data_dict</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variant&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sim_data_path&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Save copy of config JSON with parameters for plots</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;outdir&quot;</span><span class="p">],</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">metadata_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;outdir&quot;</span><span class="p">]),</span> <span class="s2">&quot;metadata.json&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">metadata_path</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">FileExistsError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metadata_path</span><span class="si">}</span><span class="s2"> already exists, indicating an analysis has &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;been run with output directory </span><span class="si">{</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;outdir&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">. Please &quot;</span>
+            <span class="s2">&quot;delete/move it or specify a different output directory.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">metadata_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+    <span class="c1"># Establish DuckDB connection</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">create_duckdb_conn</span><span class="p">(</span><span class="n">out_uri</span><span class="p">,</span> <span class="n">gcs_bucket</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cpus&quot;</span><span class="p">))</span>
+    <span class="n">history_sql</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="n">success_sql</span> <span class="o">=</span> <span class="n">dataset_sql</span><span class="p">(</span><span class="n">out_uri</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">])</span>
+    <span class="c1"># If no explicit analysis type given, run all types in config JSON</span>
+    <span class="k">if</span> <span class="s2">&quot;analysis_types&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;analysis_types&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">analysis_type</span> <span class="k">for</span> <span class="n">analysis_type</span> <span class="ow">in</span> <span class="n">ANALYSIS_TYPES</span> <span class="k">if</span> <span class="n">analysis_type</span> <span class="ow">in</span> <span class="n">config</span>
+        <span class="p">]</span>
+    <span class="k">for</span> <span class="n">analysis_type</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;analysis_types&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">analysis_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Specified </span><span class="si">{</span><span class="n">analysis_type</span><span class="si">}</span><span class="s2"> analysis type&quot;</span>
+                <span class="s2">&quot; but none provided in analysis_options.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="n">analysis_type</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping </span><span class="si">{</span><span class="n">analysis_type</span><span class="si">}</span><span class="s2"> analysis - none provided in config.&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="c1"># Compile collection of history and config SQL queries for each cell</span>
+        <span class="c1"># subset identified for current analysis type</span>
+        <span class="n">id_cols</span> <span class="o">=</span> <span class="n">ANALYSIS_TYPES</span><span class="p">[</span><span class="n">analysis_type</span><span class="p">]</span>
+        <span class="n">query_strings</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Figure out what Hive partition in main output directory</span>
+        <span class="c1"># to store outputs for analyses run on this cell subset</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">id_cols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">joined_cols</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">id_cols</span><span class="p">)</span>
+            <span class="n">data_ids</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;SELECT DISTINCT ON(</span><span class="si">{</span><span class="n">joined_cols</span><span class="si">}</span><span class="s2">) </span><span class="si">{</span><span class="n">joined_cols</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; FROM (</span><span class="si">{</span><span class="n">config_sql</span><span class="si">}</span><span class="s2">) WHERE </span><span class="si">{</span><span class="n">duckdb_filter</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">data_id</span> <span class="ow">in</span> <span class="n">data_ids</span><span class="p">:</span>
+                <span class="n">data_filters</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">curr_outdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;outdir&quot;</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">col_val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">id_cols</span><span class="p">,</span> <span class="n">data_id</span><span class="p">):</span>
+                    <span class="n">curr_outdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">curr_outdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">col_val</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="c1"># Quote string Hive partition values for DuckDB query</span>
+                    <span class="k">if</span> <span class="n">FILTERS</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+                        <span class="n">col_val</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">col_val</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                    <span class="n">data_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">col_val</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">curr_outdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">data_filters</span> <span class="o">=</span> <span class="s2">&quot; AND &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">data_filters</span><span class="p">)</span>
+                <span class="n">query_strings</span><span class="p">[</span><span class="n">data_filters</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;SELECT * FROM (</span><span class="si">{</span><span class="n">history_sql</span><span class="si">}</span><span class="s2">) WHERE </span><span class="si">{</span><span class="n">data_filters</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="sa">f</span><span class="s2">&quot;SELECT * FROM (</span><span class="si">{</span><span class="n">config_sql</span><span class="si">}</span><span class="s2">) WHERE </span><span class="si">{</span><span class="n">data_filters</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="sa">f</span><span class="s2">&quot;SELECT * FROM (</span><span class="si">{</span><span class="n">success_sql</span><span class="si">}</span><span class="s2">) WHERE </span><span class="si">{</span><span class="n">data_filters</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">curr_outdir</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">curr_outdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;outdir&quot;</span><span class="p">])</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">curr_outdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">query_strings</span><span class="p">[</span><span class="n">duckdb_filter</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;SELECT * FROM (</span><span class="si">{</span><span class="n">history_sql</span><span class="si">}</span><span class="s2">) WHERE </span><span class="si">{</span><span class="n">duckdb_filter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;SELECT * FROM (</span><span class="si">{</span><span class="n">config_sql</span><span class="si">}</span><span class="s2">) WHERE </span><span class="si">{</span><span class="n">duckdb_filter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;SELECT * FROM (</span><span class="si">{</span><span class="n">success_sql</span><span class="si">}</span><span class="s2">) WHERE </span><span class="si">{</span><span class="n">duckdb_filter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;outdir&quot;</span><span class="p">]),</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">analysis_name</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="n">analysis_type</span><span class="p">]:</span>
+            <span class="n">analysis_mod</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ecoli.analysis.</span><span class="si">{</span><span class="n">analysis_type</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">analysis_name</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">data_filters</span><span class="p">,</span> <span class="p">(</span>
+                <span class="n">history_q</span><span class="p">,</span>
+                <span class="n">config_q</span><span class="p">,</span>
+                <span class="n">success_q</span><span class="p">,</span>
+                <span class="n">curr_outdir</span><span class="p">,</span>
+            <span class="p">)</span> <span class="ow">in</span> <span class="n">query_strings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">analysis_type</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">analysis_name</span><span class="si">}</span><span class="s2"> with </span><span class="si">{</span><span class="n">data_filters</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="n">analysis_mod</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                    <span class="n">config</span><span class="p">[</span><span class="n">analysis_type</span><span class="p">][</span><span class="n">analysis_name</span><span class="p">],</span>
+                    <span class="n">conn</span><span class="p">,</span>
+                    <span class="n">history_q</span><span class="p">,</span>
+                    <span class="n">config_q</span><span class="p">,</span>
+                    <span class="n">success_q</span><span class="p">,</span>
+                    <span class="n">sim_data_dict</span><span class="p">,</span>
+                    <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;validation_data_path&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+                    <span class="n">curr_outdir</span><span class="p">,</span>
+                    <span class="n">variant_metadata</span><span class="p">,</span>
+                    <span class="n">variant_names</span><span class="p">,</span>
+                <span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

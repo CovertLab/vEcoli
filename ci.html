@@ -1,0 +1,310 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Continuous Integration &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PyCharm Setup" href="pycharm.html" />
+    <link rel="prev" title="Google Cloud" href="gcloud.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Continuous Integration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#github-actions">GitHub Actions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#jenkins">Jenkins</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#connecting-to-jenkins">Connecting to Jenkins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#modifying-tests">Modifying Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#adding-new-jenkins-jobs">Adding New Jenkins Jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#jenkins-setup">Jenkins Setup</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Continuous Integration</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/ci.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="continuous-integration">
+<h1>Continuous Integration<a class="headerlink" href="#continuous-integration" title="Link to this heading"></a></h1>
+<p>On the vEcoli GitHub website, there is a badge next to certain commits that is
+either a red “X” or a green checkmark. Clicking on this badge reveals a set of
+continuous integration (CI) tests that are automatically run to ensure the
+model continues to work as expected. Some of these tests are run entirely through
+a GitHub service called GitHub Actions. Others are run via a Jenkins instance
+that is constantly running on the Sherlock cluster.</p>
+<section id="github-actions">
+<h2>GitHub Actions<a class="headerlink" href="#github-actions" title="Link to this heading"></a></h2>
+<p>The tests that are run through GitHub Actions are configured by the files in
+<code class="docutils literal notranslate"><span class="pre">.github/workflows</span></code>. Some of these “tests” can be more accurately described
+as maintenance tasks, like publishing the updated documentation website. These
+tasks are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">docs_deploy.yml</span></code>: <code class="docutils literal notranslate"><span class="pre">deploy-docs</span></code> job updates the documentation
+website every time the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch changes (push, PR merge)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs_test.yml</span></code>: <code class="docutils literal notranslate"><span class="pre">test-docs</span></code> job ensures that the documentation
+builds properly (Sphinx) on PRs and changes to <code class="docutils literal notranslate"><span class="pre">master</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pr_tests.yml</span></code>: tests that run on PRs and changes to <code class="docutils literal notranslate"><span class="pre">master</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Reproducibility</span></code> ensures that two runs of the ParCa and simulation
+with the same settings produce the same output</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">two-gens</span></code> runs a two-generation workflow on glucose minimal media</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pytest.yml</span></code>: code quality and functionality tests that run on PRs and changes
+to master</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Pytest</span></code> runs <code class="docutils literal notranslate"><span class="pre">pytest</span></code> (all functions with <code class="docutils literal notranslate"><span class="pre">test_</span></code> prefix)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Mypy</span></code> checks types with <code class="docutils literal notranslate"><span class="pre">mypy</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Lint</span></code> checks code style and formatting with <code class="docutils literal notranslate"><span class="pre">ruff</span></code></p></li>
+</ul>
+</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If you are still actively working on a pull request, add <code class="docutils literal notranslate"><span class="pre">[skip</span> <span class="pre">ci]</span></code>
+on a new line in your commit message to skip the CI tests.</p>
+</div>
+<p>Logs from these tests can be viewed on the GitHub website and you are
+required to get all of these tests passing before merging a PR.</p>
+<p>We would appreciate if you added tests as part of your pull requests.
+This could be as simple as a Python function with the <code class="docutils literal notranslate"><span class="pre">test_</span></code> prefix that ensures
+the code added or modified in your PR works as intended using a few test cases.</p>
+</section>
+<section id="jenkins">
+<h2>Jenkins<a class="headerlink" href="#jenkins" title="Link to this heading"></a></h2>
+<p>Longer running CI tests that are not compatible with the free tier of GitHub
+Actions are run using Jenkins on Sherlock. For information about this setup
+(e.g. for troubleshooting or to replicate it on another cluster), please
+refer to <a class="reference internal" href="#jenkins-setup"><span class="std std-ref">Jenkins Setup</span></a>.</p>
+<p>Each test has an associated Jenkinsfile in <code class="docutils literal notranslate"><span class="pre">runscripts/jenkins/Jenkinsfile</span></code>
+that, in essence, runs one or more workflows using the JSON configuration
+files located in <code class="docutils literal notranslate"><span class="pre">runscripts/jenkins/configs</span></code>. These tests are designed to
+run daily (cron) on the latest commit of the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch.</p>
+<p>The logs for <strong>failed</strong> tests are publicly viewable on the repository website by
+clicking on the relevant commit status badges. Upon doing so, you
+will be brought to a page with logs and a link to <code class="docutils literal notranslate"><span class="pre">View</span> <span class="pre">more</span> <span class="pre">details</span> <span class="pre">on</span> <span class="pre">Jenkins</span> <span class="pre">vEcoli</span></code>.
+This link requires access to the Covert Lab’s Sherlock partition.</p>
+<section id="connecting-to-jenkins">
+<h3>Connecting to Jenkins<a class="headerlink" href="#connecting-to-jenkins" title="Link to this heading"></a></h3>
+<p>First, connect to Sherlock and run the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>squeue<span class="w"> </span>-p<span class="w"> </span>mcovert<span class="w"> </span>-o<span class="w"> </span><span class="s1">&#39;%.10i %.9P %.50j %.8u %.2t %.10M %.3C %.6D %.20R %k&#39;</span>
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Create an alias <code class="docutils literal notranslate"><span class="pre">sqp</span></code> for the command above by adding
+<code class="docutils literal notranslate"><span class="pre">alias</span> <span class="pre">sqp=&quot;{insert</span> <span class="pre">command</span> <span class="pre">here}&quot;</span></code> to your <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code>.</p>
+</div>
+<p>Look for a job called <code class="docutils literal notranslate"><span class="pre">jenkins_new</span></code>. Under the <code class="docutils literal notranslate"><span class="pre">COMMENT</span></code> column, there
+should be a login node of the format <code class="docutils literal notranslate"><span class="pre">shXX-lnXX</span></code>. Close your SSH connection
+and run the following command, replacing as appropriate:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh<span class="w"> </span><span class="o">{</span>username<span class="o">}</span>@<span class="o">{</span>login<span class="w"> </span>node<span class="o">}</span>.sherlock.stanford.edu<span class="w"> </span>-L<span class="w"> </span><span class="m">8080</span>:localhost:8080
+</pre></div>
+</div>
+<p>With that SSH connection open, the <code class="docutils literal notranslate"><span class="pre">View</span> <span class="pre">more</span> <span class="pre">details</span> <span class="pre">on</span> <span class="pre">Jenkins</span> <span class="pre">vEcoli</span></code> link
+will pull up the details of the failing job in the Jenkins interface.</p>
+<p>Additionally, you can open the Jenkins web interface by going to
+<code class="docutils literal notranslate"><span class="pre">http://localhost:8080</span></code> in your web browser. From here, you can
+see the status of all jobs, start and stop jobs, add and modify jobs,
+and do other administrative tasks.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Jenkins is set-up as a persistent job on Sherlock that automatically resubmits
+itself every ~5 days. If this fails, it can be restarted by running <code class="docutils literal notranslate"><span class="pre">sbatch</span>
+<span class="pre">--mail-user={your</span> <span class="pre">email</span> <span class="pre">here}</span> <span class="pre">runscripts/jenkins/jenkins_vecoli.sh</span></code>.</p>
+</div>
+</section>
+<section id="modifying-tests">
+<h3>Modifying Tests<a class="headerlink" href="#modifying-tests" title="Link to this heading"></a></h3>
+<p>Any modifications to the existing Jenkinsfiles in <code class="docutils literal notranslate"><span class="pre">runscripts/jenkins/Jenkinsfile</span></code>
+will modify the behavior of the corresponding tests. To add a new test, you will
+need to create a new Jenkinsfile and (with administrator Jenkins privileges)
+add a new multibranch pipeline job (see below).</p>
+</section>
+<section id="adding-new-jenkins-jobs">
+<h3>Adding New Jenkins Jobs<a class="headerlink" href="#adding-new-jenkins-jobs" title="Link to this heading"></a></h3>
+<p>First, create a new branch and push a commit to GitHub with your new Jenkinsfile. Refer
+to the existing Jenkinsfiles in <code class="docutils literal notranslate"><span class="pre">runscripts/jenkins/Jenkinsfile</span></code> for examples.</p>
+<p>From the main Jenkins dashboard, click <code class="docutils literal notranslate"><span class="pre">New</span> <span class="pre">Item</span></code> in the left sidebar and
+select <code class="docutils literal notranslate"><span class="pre">Multibranch</span> <span class="pre">Pipeline</span></code>.</p>
+<p>Under <code class="docutils literal notranslate"><span class="pre">Branch</span> <span class="pre">Sources</span></code>:</p>
+<ol class="arabic simple">
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">GitHub</span></code>.</p></li>
+<li><p>Select the GitHub App credential added in <a class="reference internal" href="#jenkins-setup"><span class="std std-ref">Jenkins Setup</span></a>.</p></li>
+<li><p>Enter the vEcoli repository URL.</p></li>
+</ol>
+<p>Under <code class="docutils literal notranslate"><span class="pre">Behaviors</span></code>:</p>
+<ol class="arabic simple">
+<li><p>Add the <code class="docutils literal notranslate"><span class="pre">Filter</span> <span class="pre">by</span> <span class="pre">name</span> <span class="pre">(with</span> <span class="pre">wildcards)</span></code> behavior and set <code class="docutils literal notranslate"><span class="pre">Include</span></code> to <code class="docutils literal notranslate"><span class="pre">master</span></code>.
+To test the pipeline, you can temporarily add the name of your new branch, then save the
+pipeline. Jenkins should recognize the Jenkinsfile on your branch and trigger the pipeline
+(including setting GitHub commit statuses). Make sure to remove your branch from this
+section, and save the pipeline again when you are done testing.</p></li>
+<li><p>Add the <code class="docutils literal notranslate"><span class="pre">Status</span> <span class="pre">Checks</span> <span class="pre">Properties</span></code> behavior, give it an informative name, and
+tick <code class="docutils literal notranslate"><span class="pre">Skip</span> <span class="pre">GitHub</span> <span class="pre">Branch</span> <span class="pre">Source</span> <span class="pre">notifications</span></code>.</p></li>
+</ol>
+<p>Under <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">Configuration</span></code>:</p>
+<ol class="arabic simple">
+<li><p>Replace <code class="docutils literal notranslate"><span class="pre">Jenkinsfile</span></code> with the path to the Jenkinsfile for the pipeline relative
+to the root of the repository (e.g. <code class="docutils literal notranslate"><span class="pre">runscripts/jenkins/Jenkinsfile/anaerobic</span></code>).</p></li>
+</ol>
+<p>Click <code class="docutils literal notranslate"><span class="pre">Save</span></code> to create the pipeline, scan the repository for branches that match the filter
+and contain the Jenkinsfile, and trigger the pipeline as appropriate.</p>
+</section>
+<section id="jenkins-setup">
+<span id="id1"></span><h3>Jenkins Setup<a class="headerlink" href="#jenkins-setup" title="Link to this heading"></a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This section is intended for people who want to set up their own Jenkins instance
+on a non-Sherlock cluster or for troubleshooting purposes. Members of the Covert Lab
+should already have a functioning Jenkins instance on Sherlock.</p>
+</div>
+<p>The following describes the steps taken to set up Jenkins on Sherlock to run
+long continuous integration tests on the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch of vEcoli.</p>
+<p>Request an interactive session on Sherlock, taking note of the login node. Once
+the interactive session is started, run the following command to forward
+the port used by Jenkins to the login node:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh<span class="w"> </span>-nNT<span class="w"> </span><span class="o">{</span>username<span class="o">}</span>@<span class="o">{</span>login<span class="w"> </span>node<span class="o">}</span><span class="w"> </span>-R<span class="w"> </span><span class="m">8080</span>:localhost:8080<span class="w"> </span><span class="p">&amp;</span>
+</pre></div>
+</div>
+<p>In this same session, download the latest WAR file from the Jenkins website,
+load the Java and fontconfig modules, then run Jenkins:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget<span class="w"> </span>https://get.jenkins.io/war-stable/latest/jenkins.war
+module<span class="w"> </span>load<span class="w"> </span>java/17.0.4<span class="w"> </span>fontconfig
+<span class="nv">JENKINS_HOME</span><span class="o">=</span><span class="nv">$GROUP_HOME</span>/jenkins_vecoli<span class="w"> </span>java<span class="w"> </span>-jar<span class="w"> </span>jenkins.war<span class="w"> </span>--httpPort<span class="o">=</span><span class="m">8080</span>
+</pre></div>
+</div>
+<p>In a new terminal, open a new SSH connection to the previously noted login node
+with port forwarding:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh<span class="w"> </span><span class="o">{</span>username<span class="o">}</span>@<span class="o">{</span>login<span class="w"> </span>node<span class="o">}</span>.sherlock.stanford.edu<span class="w"> </span>-L<span class="w"> </span><span class="m">8080</span>:localhost:8080
+</pre></div>
+</div>
+<p>On a local machine, open a web browser and navigate to <code class="docutils literal notranslate"><span class="pre">localhost:8080</span></code>. Proceed
+with the post-installation setup wizard (see <a class="reference external" href="https://www.jenkins.io/doc/book/installing/#setup-wizard">Jenkins documentation</a>).</p>
+<p>Manually select the following basic plugins to install:
+Folders, OWASP Markup Formatter, Build Timeout, Credentials Binding,
+Timestamper, Workspace Cleanup, Pipeline, GitHub Branch Source,
+Pipeline: GitHub Groovy Libraries, Pipeline Graph View, Git, GitHub,
+Matrix Authorization, Email Extension, Mailer, and Dark Theme.</p>
+<p>Create an admin user with a username and password of your choice, and keep the
+default web URL of <code class="docutils literal notranslate"><span class="pre">localhost:8080</span></code>. After setup is complete, click on
+<code class="docutils literal notranslate"><span class="pre">Manage</span> <span class="pre">Jenkins</span></code> in the left sidebar, then <code class="docutils literal notranslate"><span class="pre">Plugins</span></code>. Click <code class="docutils literal notranslate"><span class="pre">Available</span> <span class="pre">Plugins</span></code>
+in the left sidebar, then search for and install the <code class="docutils literal notranslate"><span class="pre">GitHub</span> <span class="pre">Checks</span></code> plugin.</p>
+<p>Follow the <a class="reference external" href="https://docs.cloudbees.com/docs/cloudbees-ci/latest/cloud-admin-guide/github-app-auth">linked instructions</a>
+to create a GitHub App for the Covert Lab organization,
+install it on the vEcoli repository, and add it as a credential in Jenkins.</p>
+<p>Stop the Jenkins server by pressing <code class="docutils literal notranslate"><span class="pre">Ctrl+C</span></code> in the terminal where it is running.
+Then, move the <code class="docutils literal notranslate"><span class="pre">jenkins.war</span></code> file to the <code class="docutils literal notranslate"><span class="pre">$GROUP_HOME/jenkins_vecoli</span></code> directory.
+Copy <code class="docutils literal notranslate"><span class="pre">runscripts/jenkins/jenkins_vecoli.sh</span></code> to the same directory.</p>
+<p>Finally, create a directory called <code class="docutils literal notranslate"><span class="pre">slurm_logs</span></code> in <code class="docutils literal notranslate"><span class="pre">$GROUP_HOME/jenkins_vecoli</span></code> and
+<code class="docutils literal notranslate"><span class="pre">cd</span></code> into it. From here, launch Jenkins with <code class="docutils literal notranslate"><span class="pre">sbatch</span> <span class="pre">--mail-user={your</span> <span class="pre">email</span> <span class="pre">here}</span> <span class="pre">../jenkins_vecoli.sh</span></code>.
+This will queue a persistent Jenkins job that should run indefinitely, resubmitting itself
+every 5 days. The stdout and stderr from these jobs will be written to the directory in which
+you ran the <code class="docutils literal notranslate"><span class="pre">sbatch</span></code> command. Remember to run <code class="docutils literal notranslate"><span class="pre">sbatch</span></code> in <code class="docutils literal notranslate"><span class="pre">slurm_logs</span></code> to keep all logs
+in a consistent location accessible to all members of the lab. You will get an email if any of
+these jobs fail, in which case you should review the most recent logs and resubmit with <code class="docutils literal notranslate"><span class="pre">sbatch</span></code>.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gcloud.html" class="btn btn-neutral float-left" title="Google Cloud" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pycharm.html" class="btn btn-neutral float-right" title="PyCharm Setup" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

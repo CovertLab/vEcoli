@@ -1,0 +1,207 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>runscripts.analysis &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="runscripts.create_variants" href="runscripts.create_variants.html" />
+    <link rel="prev" title="runscripts.debug.process_vulnerabilities" href="runscripts.debug.process_vulnerabilities.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ecoli/ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="runscripts.debug.html"><code class="docutils literal notranslate"><span class="pre">runscripts.debug</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.create_variants.html"><code class="docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.parca.html"><code class="docutils literal notranslate"><span class="pre">runscripts.parca</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.sim.html"><code class="docutils literal notranslate"><span class="pre">runscripts.sim</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.workflow.html"><code class="docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/runscripts/runscripts.analysis.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-runscripts.analysis">
+<span id="runscripts-analysis"></span><h1><code class="docutils literal notranslate"><span class="pre">runscripts.analysis</span></code><a class="headerlink" href="#module-runscripts.analysis" title="Link to this heading"></a></h1>
+<dl class="py data">
+<dt class="sig sig-object py" id="runscripts.analysis.ANALYSIS_TYPES">
+<span class="sig-prename descclassname"><span class="pre">runscripts.analysis.</span></span><span class="sig-name descname"><span class="pre">ANALYSIS_TYPES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'multidaughter':</span> <span class="pre">['experiment_id',</span> <span class="pre">'variant',</span> <span class="pre">'lineage_seed',</span> <span class="pre">'generation'],</span> <span class="pre">'multiexperiment':</span> <span class="pre">[],</span> <span class="pre">'multigeneration':</span> <span class="pre">['experiment_id',</span> <span class="pre">'variant',</span> <span class="pre">'lineage_seed'],</span> <span class="pre">'multiseed':</span> <span class="pre">['experiment_id',</span> <span class="pre">'variant'],</span> <span class="pre">'multivariant':</span> <span class="pre">['experiment_id'],</span> <span class="pre">'parca':</span> <span class="pre">[],</span> <span class="pre">'single':</span> <span class="pre">['experiment_id',</span> <span class="pre">'variant',</span> <span class="pre">'lineage_seed',</span> <span class="pre">'generation',</span> <span class="pre">'agent_id']}</span></em><a class="headerlink" href="#runscripts.analysis.ANALYSIS_TYPES" title="Link to this definition"></a></dt>
+<dd><p>Mapping of all possible analysis types to the combination of identifiers that
+must be unique for each subset of the data given to that analysis type as input.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="runscripts.analysis.FILTERS">
+<span class="sig-prename descclassname"><span class="pre">runscripts.analysis.</span></span><span class="sig-name descname"><span class="pre">FILTERS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'agent_id':</span> <span class="pre">&lt;class</span> <span class="pre">'str'&gt;,</span> <span class="pre">'experiment_id':</span> <span class="pre">&lt;class</span> <span class="pre">'str'&gt;,</span> <span class="pre">'generation':</span> <span class="pre">&lt;class</span> <span class="pre">'int'&gt;,</span> <span class="pre">'lineage_seed':</span> <span class="pre">&lt;class</span> <span class="pre">'int'&gt;,</span> <span class="pre">'variant':</span> <span class="pre">&lt;class</span> <span class="pre">'int'&gt;}</span></em><a class="headerlink" href="#runscripts.analysis.FILTERS" title="Link to this definition"></a></dt>
+<dd><p>Mapping of data filters to data type.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.analysis.main">
+<span class="sig-prename descclassname"><span class="pre">runscripts.analysis.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/analysis.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.analysis.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.analysis.make_sim_data_dict">
+<span class="sig-prename descclassname"><span class="pre">runscripts.analysis.</span></span><span class="sig-name descname"><span class="pre">make_sim_data_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exp_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variants</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_data_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/analysis.html#make_sim_data_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.analysis.make_sim_data_dict" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>exp_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>variants</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em>)</p></li>
+<li><p><strong>sim_data_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.analysis.parse_cpu_arg">
+<span class="sig-prename descclassname"><span class="pre">runscripts.analysis.</span></span><span class="sig-name descname"><span class="pre">parse_cpu_arg</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/analysis.html#parse_cpu_arg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.analysis.parse_cpu_arg" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.analysis.parse_variant_data_dir">
+<span class="sig-prename descclassname"><span class="pre">runscripts.analysis.</span></span><span class="sig-name descname"><span class="pre">parse_variant_data_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">experiment_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_data_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/analysis.html#parse_variant_data_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.analysis.parse_variant_data_dir" title="Link to this definition"></a></dt>
+<dd><p>For each experiment ID and corresponding variant sim data directory,
+load the variant metadata JSON and parse the variant sim data file
+names to construct mappings from experiments to variants to variant
+metadata and variant sim_data paths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>experiment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – List of experiment IDs</p></li>
+<li><p><strong>variant_data_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – List of directories containing output from
+create_variants.py, one for each experiment ID, in order</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>Tuple containing three dictionaries:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span>
+    <span class="p">{</span><span class="n">experiment_id</span><span class="p">:</span> <span class="p">{</span><span class="n">variant_id</span><span class="p">:</span> <span class="n">variant_metadata</span><span class="p">,</span> <span class="o">...</span><span class="p">},</span> <span class="o">...</span><span class="p">},</span>
+    <span class="p">{</span><span class="n">experiment_id</span><span class="p">:</span> <span class="p">{</span><span class="n">variant_id</span><span class="p">:</span> <span class="n">variant_sim_data_path</span><span class="p">,</span> <span class="o">...</span><span class="p">},</span> <span class="o">...</span><span class="p">}</span>
+    <span class="p">{</span><span class="n">experiment_id</span><span class="p">:</span> <span class="n">variant_name</span><span class="p">,</span> <span class="o">...</span><span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a>]], <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>]], <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="runscripts.debug.process_vulnerabilities.html" class="btn btn-neutral float-left" title="runscripts.debug.process_vulnerabilities" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="runscripts.create_variants.html" class="btn btn-neutral float-right" title="runscripts.create_variants" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

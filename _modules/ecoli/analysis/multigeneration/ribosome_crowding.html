@@ -1,0 +1,362 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.multigeneration.ribosome_crowding &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.multigeneration.ribosome_crowding</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.multigeneration.ribosome_crowding</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Record the translation probability comparison on Gene EG10184</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">altair</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">alt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">field_metadata</span><span class="p">,</span>
+    <span class="n">open_arbitrary_sim_data</span><span class="p">,</span>
+    <span class="n">named_idx</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">MAX_NUMBER_OF_MONOMERS_TO_PLOT</span> <span class="o">=</span> <span class="mi">300</span>
+
+<span class="c1"># ----------------------------------------- #</span>
+
+
+<div class="viewcode-block" id="plot">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.multigeneration.ribosome_crowding.html#ecoli.analysis.multigeneration.ribosome_crowding.plot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">DuckDBPyConnection</span><span class="p">,</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sim_data_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">validation_data_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">variant_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">variant_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Comparison of target vs actual translation probabilities for overcrowded mRNAs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Load sim_data for monomer mappings</span>
+    <span class="k">with</span> <span class="n">open_arbitrary_sim_data</span><span class="p">(</span><span class="n">sim_data_dict</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">sim_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="c1"># Get monomer and gene mappings</span>
+    <span class="n">mRNA_data</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="o">.</span><span class="n">struct_array</span>
+    <span class="n">monomer_data</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">monomer_data</span><span class="o">.</span><span class="n">struct_array</span>
+
+    <span class="n">monomer_to_gene</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">mono_id</span><span class="p">,</span> <span class="n">cistron_id</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">monomer_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">monomer_data</span><span class="p">[</span><span class="s2">&quot;cistron_id&quot;</span><span class="p">]):</span>
+        <span class="n">gene_id</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">g</span>
+                <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">mRNA_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">mRNA_data</span><span class="p">[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="n">cistron_id</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;Unknown&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">monomer_to_gene</span><span class="p">[</span><span class="n">mono_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">gene_id</span>
+
+    <span class="c1"># Get field metadata</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">field_names</span> <span class="o">=</span> <span class="n">field_metadata</span><span class="p">(</span>
+            <span class="n">conn</span><span class="p">,</span>
+            <span class="n">config_sql</span><span class="p">,</span>
+            <span class="s2">&quot;listeners__ribosome_data__target_prob_translation_per_transcript&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[ERROR] Error getting field metadata: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># First pass: Find overcrowded monomer indices</span>
+    <span class="c1"># If gene X&#39;s target &gt; actual at any timepoint t, it&#39;ll be marked as overcrowded.</span>
+    <span class="n">overcrowded_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    WITH unnested AS (</span>
+<span class="s2">        SELECT </span>
+<span class="s2">            unnest(listeners__ribosome_data__actual_prob_translation_per_transcript) as actual,</span>
+<span class="s2">            unnest(listeners__ribosome_data__target_prob_translation_per_transcript) as target,</span>
+<span class="s2">            generate_subscripts(listeners__ribosome_data__target_prob_translation_per_transcript, 1) as idx</span>
+<span class="s2">        FROM (</span><span class="si">{</span><span class="n">history_sql</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">    )</span>
+<span class="s2">    SELECT DISTINCT idx</span>
+<span class="s2">    FROM unnested</span>
+<span class="s2">    WHERE target &gt; actual</span>
+<span class="s2">    ORDER BY idx</span>
+<span class="s2">    LIMIT </span><span class="si">{</span><span class="n">MAX_NUMBER_OF_MONOMERS_TO_PLOT</span><span class="si">}</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+    <span class="n">overcrowded_indices</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">overcrowded_query</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+    <span class="p">]</span>  <span class="c1"># Convert to 0-based</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">overcrowded_indices</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] No overcrowded monomers found.&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="n">n_overcrowded_monomers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">overcrowded_indices</span><span class="p">)</span>
+    <span class="n">n_overcrowded_monomers_to_plot</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+        <span class="n">n_overcrowded_monomers</span><span class="p">,</span> <span class="n">MAX_NUMBER_OF_MONOMERS_TO_PLOT</span>
+    <span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Found </span><span class="si">{</span><span class="n">n_overcrowded_monomers</span><span class="si">}</span><span class="s2"> overcrowded monomers&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Second pass: Get data for overcrowded monomers only</span>
+    <span class="n">actual_columns</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">target_columns</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">overcrowded_indices</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">n_overcrowded_monomers_to_plot</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">field_names</span><span class="p">):</span>
+            <span class="n">monomer_id</span> <span class="o">=</span> <span class="n">field_names</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">gene_id</span> <span class="o">=</span> <span class="n">monomer_to_gene</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">monomer_id</span><span class="p">,</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">)</span>
+            <span class="n">actual_columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;actual__</span><span class="si">{</span><span class="n">gene_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">target_columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;target__</span><span class="si">{</span><span class="n">gene_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">actual_expr</span> <span class="o">=</span> <span class="n">named_idx</span><span class="p">(</span>
+        <span class="s2">&quot;listeners__ribosome_data__actual_prob_translation_per_transcript&quot;</span><span class="p">,</span>
+        <span class="n">actual_columns</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">overcrowded_indices</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_columns</span><span class="p">)]],</span>
+    <span class="p">)</span>
+
+    <span class="n">target_expr</span> <span class="o">=</span> <span class="n">named_idx</span><span class="p">(</span>
+        <span class="s2">&quot;listeners__ribosome_data__target_prob_translation_per_transcript&quot;</span><span class="p">,</span>
+        <span class="n">target_columns</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">overcrowded_indices</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_columns</span><span class="p">)]],</span>
+    <span class="p">)</span>
+
+    <span class="n">data_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">actual_expr</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">target_expr</span><span class="si">}</span><span class="s2">, time FROM (</span><span class="si">{</span><span class="n">history_sql</span><span class="si">}</span><span class="s2">)&quot;</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">data_query</span><span class="p">)</span><span class="o">.</span><span class="n">fetchdf</span><span class="p">()</span>
+
+    <span class="c1"># ----------------------------------------- #</span>
+    <span class="c1"># Prepare plot data following original format</span>
+    <span class="n">pl_df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+    <span class="c1"># Get all probability columns (both actual and target)</span>
+    <span class="n">prob_columns</span> <span class="o">=</span> <span class="n">actual_columns</span> <span class="o">+</span> <span class="n">target_columns</span>
+
+    <span class="c1"># Unpivot the data</span>
+    <span class="n">plot_df</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">pl_df</span><span class="o">.</span><span class="n">unpivot</span><span class="p">(</span>
+            <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span>
+            <span class="n">on</span><span class="o">=</span><span class="n">prob_columns</span><span class="p">,</span>
+            <span class="n">variable_name</span><span class="o">=</span><span class="s2">&quot;variable&quot;</span><span class="p">,</span>
+            <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;Translation_Probability&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="c1"># Split variable name into probability type and gene ID</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variable&quot;</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">split_exact</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">struct</span><span class="o">.</span><span class="n">rename_fields</span><span class="p">([</span><span class="s2">&quot;Probability_Type&quot;</span><span class="p">,</span> <span class="s2">&quot;Gene_ID&quot;</span><span class="p">]),</span>
+                <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Time_min&quot;</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">unnest</span><span class="p">(</span><span class="s2">&quot;variable&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Get unique gene IDs in the order they appear in the data</span>
+    <span class="n">unique_genes</span> <span class="o">=</span> <span class="n">plot_df</span><span class="p">[</span><span class="s2">&quot;Gene_ID&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+
+    <span class="c1"># ----------------------------------------- #</span>
+    <span class="c1"># Create individual plots for each overcrowded gene</span>
+    <span class="n">charts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">gene_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique_genes</span><span class="p">[:</span><span class="n">n_overcrowded_monomers_to_plot</span><span class="p">]):</span>
+        <span class="n">gene_data</span> <span class="o">=</span> <span class="n">plot_df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Gene_ID&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">gene_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">gene_data</span><span class="o">.</span><span class="n">height</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">gene_id</span> <span class="o">=</span> <span class="n">gene_data</span><span class="p">[</span><span class="s2">&quot;Gene_ID&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Create chart with simplified encoding and proper tooltip</span>
+        <span class="n">chart</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">gene_data</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">mark_line</span><span class="p">(</span><span class="n">point</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">strokeWidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;Time_min:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Time (min)&quot;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Scale</span><span class="p">(</span><span class="n">nice</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span>
+                    <span class="s2">&quot;Translation_Probability:Q&quot;</span><span class="p">,</span>
+                    <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">gene_id</span><span class="si">}</span><span class="s2"> translation probability&quot;</span><span class="p">,</span>
+                    <span class="n">scale</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Scale</span><span class="p">(</span><span class="n">nice</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+                <span class="p">),</span>
+                <span class="n">color</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span>
+                    <span class="s2">&quot;Probability_Type:N&quot;</span><span class="p">,</span>
+                    <span class="n">scale</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Scale</span><span class="p">(</span>
+                        <span class="c1"># actually, the blue target line will cover the orange actual line if they are the same</span>
+                        <span class="n">domain</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;target&quot;</span><span class="p">,</span> <span class="s2">&quot;actual&quot;</span><span class="p">],</span>
+                        <span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;#1f77b4&quot;</span><span class="p">,</span> <span class="s2">&quot;#ff7f0e&quot;</span><span class="p">],</span>
+                    <span class="p">),</span>
+                    <span class="n">legend</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Legend</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Type&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">tooltip</span><span class="o">=</span><span class="p">[</span>
+                    <span class="n">alt</span><span class="o">.</span><span class="n">Tooltip</span><span class="p">(</span><span class="s2">&quot;Time_min:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Time (min)&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;.2f&quot;</span><span class="p">),</span>
+                    <span class="n">alt</span><span class="o">.</span><span class="n">Tooltip</span><span class="p">(</span>
+                        <span class="s2">&quot;Translation_Probability:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Probability&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;.4f&quot;</span>
+                    <span class="p">),</span>
+                    <span class="n">alt</span><span class="o">.</span><span class="n">Tooltip</span><span class="p">(</span><span class="s2">&quot;Probability_Type:N&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Type&quot;</span><span class="p">),</span>
+                    <span class="n">alt</span><span class="o">.</span><span class="n">Tooltip</span><span class="p">(</span><span class="s2">&quot;Gene_ID:N&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Gene&quot;</span><span class="p">),</span>
+                <span class="p">],</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">properties</span><span class="p">(</span>
+                <span class="n">width</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>
+                <span class="n">height</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span>
+                <span class="n">title</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">TitleParams</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="p">[</span>
+                        <span class="sa">f</span><span class="s2">&quot;Gene </span><span class="si">{</span><span class="n">gene_id</span><span class="si">}</span><span class="s2"> - Translation Probability Comparison&quot;</span><span class="p">,</span>
+                        <span class="sa">f</span><span class="s2">&quot;Total overcrowded proteins: </span><span class="si">{</span><span class="n">n_overcrowded_monomers</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot; (showing first </span><span class="si">{</span><span class="n">MAX_NUMBER_OF_MONOMERS_TO_PLOT</span><span class="si">}</span><span class="s2">)&quot;</span>
+                            <span class="k">if</span> <span class="n">n_overcrowded_monomers</span> <span class="o">&gt;</span> <span class="n">MAX_NUMBER_OF_MONOMERS_TO_PLOT</span>
+                            <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span>
+                        <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                    <span class="p">],</span>
+                    <span class="n">fontSize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+                    <span class="n">anchor</span><span class="o">=</span><span class="s2">&quot;start&quot;</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">charts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chart</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">charts</span><span class="p">:</span>
+        <span class="n">combined_chart</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">alt</span><span class="o">.</span><span class="n">vconcat</span><span class="p">(</span><span class="o">*</span><span class="n">charts</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">resolve_scale</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;independent&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">add_params</span><span class="p">(</span><span class="n">alt</span><span class="o">.</span><span class="n">selection_interval</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="s2">&quot;scales&quot;</span><span class="p">))</span>
+        <span class="p">)</span>
+
+        <span class="n">alt</span><span class="o">.</span><span class="n">data_transformers</span><span class="o">.</span><span class="n">enable</span><span class="p">(</span><span class="s2">&quot;json&quot;</span><span class="p">)</span>
+
+        <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;ribosome_crowding.html&quot;</span><span class="p">)</span>
+        <span class="n">combined_chart</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;[INFO] Generated ribosome crowding plot for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">charts</span><span class="p">)</span><span class="si">}</span><span class="s2"> overcrowded proteins&quot;</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Plot saved to: </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Also save as JSON for debugging if needed</span>
+        <span class="n">json_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;ribosome_crowding.json&quot;</span><span class="p">)</span>
+        <span class="n">combined_chart</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">json_path</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Chart specification saved to: </span><span class="si">{</span><span class="n">json_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] No charts created - no data to plot&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,817 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.library.parquet_emitter &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ecoli.library.pymunk_multibody" href="ecoli.library.pymunk_multibody.html" />
+    <link rel="prev" title="ecoli.library.parameters" href="ecoli.library.parameters.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ecoli.analysis.html"><code class="docutils literal notranslate"><span class="pre">ecoli.analysis</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.composites.html"><code class="docutils literal notranslate"><span class="pre">ecoli.composites</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.experiments.html"><code class="docutils literal notranslate"><span class="pre">ecoli.experiments</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="ecoli.library.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library</span></code></a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.cell_wall.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.cell_wall</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.create_timeline.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.create_timeline</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.data_predicates.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.data_predicates</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.initial_conditions.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.initial_conditions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.json_state.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.json_state</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.kinetic_rate_laws.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.kinetic_rate_laws</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.lattice_utils.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.lattice_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.logging_tools.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.logging_tools</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.parameters.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.parameters</span></code></a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">ecoli.library.parquet_emitter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.pymunk_multibody.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.pymunk_multibody</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.schema.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.schema</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.serialize.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.serialize</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.sim_data.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.sim_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.test_parquet_emitter.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.test_parquet_emitter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.units.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.units</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="ecoli.library.updaters.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library.updaters</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.processes.html"><code class="docutils literal notranslate"><span class="pre">ecoli.processes</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ecoli.variants.html"><code class="docutils literal notranslate"><span class="pre">ecoli.variants</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../runscripts/runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+          <li class="breadcrumb-item"><a href="ecoli.library.html"><code class="docutils literal notranslate"><span class="pre">ecoli.library</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">ecoli.library.parquet_emitter</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/ecoli/ecoli.library.parquet_emitter.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-ecoli.library.parquet_emitter">
+<span id="ecoli-library-parquet-emitter"></span><h1><code class="docutils literal notranslate"><span class="pre">ecoli.library.parquet_emitter</span></code><a class="headerlink" href="#module-ecoli.library.parquet_emitter" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.BlockingExecutor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">BlockingExecutor</span></span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#BlockingExecutor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.BlockingExecutor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.BlockingExecutor.submit">
+<span class="sig-name descname"><span class="pre">submit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#BlockingExecutor.submit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.BlockingExecutor.submit" title="Link to this definition"></a></dt>
+<dd><p>Run function in the current thread and return a Future that
+is already done.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fn</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.13)"><em>Callable</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Future</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.METADATA_PREFIX">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">METADATA_PREFIX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'output_metadata__'</span></em><a class="headerlink" href="#ecoli.library.parquet_emitter.METADATA_PREFIX" title="Link to this definition"></a></dt>
+<dd><p>In the config dataset, user-defined metadata for each store
+(see <a class="reference internal" href="ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata" title="ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata"><code class="xref py py-meth docutils literal notranslate"><span class="pre">output_metadata()</span></code></a>)
+will be contained in columns with this prefix.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.ParquetEmitter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">ParquetEmitter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#ParquetEmitter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.ParquetEmitter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.emitter.html#vivarium.core.emitter.Emitter" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Emitter</span></code></a></p>
+<p>Emit data to a Parquet dataset. Note that <a class="reference internal" href="#ecoli.library.parquet_emitter.ParquetEmitter.finalize" title="ecoli.library.parquet_emitter.ParquetEmitter.finalize"><code class="xref py py-meth docutils literal notranslate"><span class="pre">finalize()</span></code></a>
+must be explicitly called in a <code class="docutils literal notranslate"><span class="pre">try...finally</span></code> block around the call to
+<a class="reference external" href="https://vivarium-core.readthedocs.io/en/latest/reference/api/vivarium.core.engine.html#vivarium.core.engine.Engine.update" title="(in Vivarium Core vv1.5.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">vivarium.core.engine.Engine.update()</span></code></a> to ensure that all buffered
+emits are written to Parquet files when the simulation ends for any reason.
+This is handled automatically in <a class="reference internal" href="ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim" title="ecoli.experiments.ecoli_master_sim.EcoliSim"><code class="xref py py-class docutils literal notranslate"><span class="pre">EcoliSim</span></code></a>
+and <a class="reference internal" href="ecoli.processes.engine_process.html#ecoli.processes.engine_process.EngineProcess" title="ecoli.processes.engine_process.EngineProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">EngineProcess</span></code></a></p>
+<p>Configure emitter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em>) – <p>Should be a dictionary with the following keys:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">emits</span> <span class="n">per</span> <span class="n">Parquet</span> <span class="n">row</span>
+        <span class="n">group</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="mi">400</span><span class="p">),</span>
+    <span class="s1">&#39;threaded&#39;</span><span class="p">:</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">write</span> <span class="n">Parquet</span> <span class="n">files</span>
+        <span class="ow">in</span> <span class="n">a</span> <span class="n">background</span> <span class="n">thread</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="kc">True</span><span class="p">),</span>
+    <span class="c1"># One of the following is REQUIRED</span>
+    <span class="s1">&#39;out_dir&#39;</span><span class="p">:</span> <span class="n">local</span> <span class="n">output</span> <span class="n">directory</span> <span class="p">(</span><span class="n">absolute</span><span class="o">/</span><span class="n">relative</span><span class="p">),</span>
+    <span class="s1">&#39;out_uri&#39;</span><span class="p">:</span> <span class="n">Google</span> <span class="n">Cloud</span> <span class="n">storage</span> <span class="n">bucket</span> <span class="n">URI</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.ParquetEmitter.emit">
+<span class="sig-name descname"><span class="pre">emit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#ParquetEmitter.emit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.ParquetEmitter.emit" title="Link to this definition"></a></dt>
+<dd><p>Flattens emit dictionary by concatenating nested key names with double
+underscores (<a class="reference internal" href="#ecoli.library.parquet_emitter.flatten_dict" title="ecoli.library.parquet_emitter.flatten_dict"><code class="xref py py-func docutils literal notranslate"><span class="pre">flatten_dict()</span></code></a>), buffers it in memory, and writes
+to a Parquet file upon buffering a configurable number of emits.</p>
+<p>The output directory (<code class="docutils literal notranslate"><span class="pre">config[&quot;out_dir&quot;]</span></code> or <code class="docutils literal notranslate"><span class="pre">config[&quot;out_uri&quot;]</span></code>) will
+have the following structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="n">experiment_id</span><span class="p">}</span>
+<span class="o">|--</span> <span class="n">history</span>
+<span class="o">|</span>   <span class="o">|--</span> <span class="n">experiment_id</span><span class="o">=</span><span class="p">{</span><span class="n">experiment_id</span><span class="p">}</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="n">variant</span><span class="o">=</span><span class="p">{</span><span class="n">variant</span><span class="p">}</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="n">lineage_seed</span><span class="o">=</span><span class="p">{</span><span class="n">seed</span><span class="p">}</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="n">generation</span><span class="o">=</span><span class="p">{</span><span class="n">generation</span><span class="p">}</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="n">agent_id</span><span class="o">=</span><span class="p">{</span><span class="n">agent_id</span><span class="p">}</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="mf">400.</span><span class="n">pq</span> <span class="p">(</span><span class="n">batched</span> <span class="n">emits</span><span class="p">)</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="mf">800.</span><span class="n">pq</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="o">..</span>
+<span class="o">|--</span> <span class="n">configuration</span>
+<span class="o">|</span>   <span class="o">|--</span> <span class="n">experiment_id</span><span class="o">=</span><span class="p">{</span><span class="n">experiment_id</span><span class="p">}</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="n">variant</span><span class="o">=</span><span class="p">{</span><span class="n">variant</span><span class="p">}</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="n">lineage_seed</span><span class="o">=</span><span class="p">{</span><span class="n">seed</span><span class="p">}</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="n">generation</span><span class="o">=</span><span class="p">{</span><span class="n">generation</span><span class="p">}</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="n">agent_id</span><span class="o">=</span><span class="p">{</span><span class="n">agent_id</span><span class="p">}</span>
+<span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|</span>   <span class="o">|--</span> <span class="n">config</span><span class="o">.</span><span class="n">pq</span> <span class="p">(</span><span class="n">sim</span> <span class="n">config</span> <span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This Hive-partioned directory structure can be efficiently filtered
+and queried using DuckDB (see <a class="reference internal" href="#ecoli.library.parquet_emitter.dataset_sql" title="ecoli.library.parquet_emitter.dataset_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataset_sql()</span></code></a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.ParquetEmitter.finalize">
+<span class="sig-name descname"><span class="pre">finalize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#ParquetEmitter.finalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.ParquetEmitter.finalize" title="Link to this definition"></a></dt>
+<dd><p>Convert remaining batched emits to Parquet at sim shutdown
+and mark sim as successful if <code class="docutils literal notranslate"><span class="pre">success</span></code> flag was set. In vEcoli,
+this is done by <a class="reference internal" href="ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim" title="ecoli.experiments.ecoli_master_sim.EcoliSim"><code class="xref py py-class docutils literal notranslate"><span class="pre">EcoliSim</span></code></a>
+upon reaching division.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.USE_UINT16">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">USE_UINT16</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'listeners__complexation_listener__complexation_events',</span> <span class="pre">'listeners__ribosome_data__mRNA_TU_index',</span> <span class="pre">'listeners__ribosome_data__n_ribosomes_on_each_mRNA',</span> <span class="pre">'listeners__rna_degradation_listener__count_RNA_degraded_per_cistron',</span> <span class="pre">'listeners__rna_degradation_listener__count_rna_degraded',</span> <span class="pre">'listeners__rna_synth_prob__bound_TF_domains',</span> <span class="pre">'listeners__rna_synth_prob__bound_TF_indexes',</span> <span class="pre">'listeners__rna_synth_prob__expected_rna_init_per_cistron',</span> <span class="pre">'listeners__rna_synth_prob__gene_copy_number',</span> <span class="pre">'listeners__rna_synth_prob__n_bound_TF_per_TU',</span> <span class="pre">'listeners__rna_synth_prob__n_bound_TF_per_cistron',</span> <span class="pre">'listeners__rna_synth_prob__promoter_copy_number',</span> <span class="pre">'listeners__rnap_data__active_rnap_domain_indexes',</span> <span class="pre">'listeners__rnap_data__active_rnap_n_bound_ribosomes',</span> <span class="pre">'listeners__rnap_data__rna_init_event',</span> <span class="pre">'listeners__rnap_data__rna_init_event_per_cistron',</span> <span class="pre">'listeners__transcript_elongation_listener__count_rna_synthesized'}</span></em><a class="headerlink" href="#ecoli.library.parquet_emitter.USE_UINT16" title="Link to this definition"></a></dt>
+<dd><p>uint16 is 4x smaller than int64 for values between 0 - 65,535.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.USE_UINT32">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">USE_UINT32</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'listeners__fba_results__catalyst_counts',</span> <span class="pre">'listeners__monomer_counts',</span> <span class="pre">'listeners__ribosome_data__n_ribosomes_on_partial_mRNA_per_transcript',</span> <span class="pre">'listeners__ribosome_data__n_ribosomes_per_transcript',</span> <span class="pre">'listeners__ribosome_data__ribosome_init_event_per_monomer',</span> <span class="pre">'listeners__rna_counts__full_mRNA_cistron_counts',</span> <span class="pre">'listeners__rna_counts__full_mRNA_counts',</span> <span class="pre">'listeners__rna_counts__mRNA_cistron_counts',</span> <span class="pre">'listeners__rna_counts__mRNA_counts',</span> <span class="pre">'listeners__rna_counts__partial_mRNA_cistron_counts',</span> <span class="pre">'listeners__rna_counts__partial_mRNA_counts'}</span></em><a class="headerlink" href="#ecoli.library.parquet_emitter.USE_UINT32" title="Link to this definition"></a></dt>
+<dd><p>uint32 is 2x smaller than int64 for values between 0 - 4,294,967,295.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.config_value">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">config_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_subquery</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#config_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.config_value" title="Link to this definition"></a></dt>
+<dd><p>Gets the saved configuration option (anything in config JSON, with
+double underscore concatenation for nested fields due to
+<a class="reference internal" href="#ecoli.library.parquet_emitter.flatten_dict" title="ecoli.library.parquet_emitter.flatten_dict"><code class="xref py py-func docutils literal notranslate"><span class="pre">flatten_dict()</span></code></a>). Automatically quotes the field name to
+handle special characters. Do NOT use double quotes in <code class="docutils literal notranslate"><span class="pre">field</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conn</strong> (<em>DuckDBPyConnection</em>) – DuckDB connection</p></li>
+<li><p><strong>config_subquery</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – DuckDB query containing sim config data</p></li>
+<li><p><strong>field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of configuration option to get value of</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.create_duckdb_conn">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">create_duckdb_conn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">temp_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/tmp'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gcs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#create_duckdb_conn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.create_duckdb_conn" title="Link to this definition"></a></dt>
+<dd><p>Create a DuckDB connection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>temp_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Temporary directory for spilling to disk.</p></li>
+<li><p><strong>gcs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Set to True if reading from Google Cloud Storage.</p></li>
+<li><p><strong>cpus</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> | </em><em>None</em>) – Number of cores to use (by default, use all detected cores).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>DuckDBPyConnection</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.dataset_sql">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">dataset_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experiment_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#dataset_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.dataset_sql" title="Link to this definition"></a></dt>
+<dd><p>Creates DuckDB SQL strings for sim outputs, configs, and metadata on which
+sims were successful.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>out_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to output directory for workflows to retrieve data
+for (relative or absolute local path OR URI beginning with
+<code class="docutils literal notranslate"><span class="pre">gcs://</span></code> or <code class="docutils literal notranslate"><span class="pre">gs://</span></code> for Google Cloud Storage bucket)</p></li>
+<li><p><strong>experiment_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – List of experiment IDs to include in query. To read data
+from more than one experiment ID, the listeners in the output of the
+first experiment ID in the list must be a strict subset of the listeners
+in the output of the subsequent experiment ID(s).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>3-element tuple containing</p>
+<ul class="simple">
+<li><p><strong>history_sql</strong>: SQL query for sim output (see <a class="reference internal" href="#ecoli.library.parquet_emitter.read_stacked_columns" title="ecoli.library.parquet_emitter.read_stacked_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_stacked_columns()</span></code></a>),</p></li>
+<li><p><strong>config_sql</strong>: SQL query for sim configs (see <a class="reference internal" href="#ecoli.library.parquet_emitter.field_metadata" title="ecoli.library.parquet_emitter.field_metadata"><code class="xref py py-func docutils literal notranslate"><span class="pre">field_metadata()</span></code></a>
+and <a class="reference internal" href="#ecoli.library.parquet_emitter.config_value" title="ecoli.library.parquet_emitter.config_value"><code class="xref py py-func docutils literal notranslate"><span class="pre">config_value()</span></code></a>)</p></li>
+<li><p><strong>success_sql</strong>: SQL query for metadata marking successful sims
+(see <a class="reference internal" href="#ecoli.library.parquet_emitter.read_stacked_columns" title="ecoli.library.parquet_emitter.read_stacked_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_stacked_columns()</span></code></a>)</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.field_metadata">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">field_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_subquery</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#field_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.field_metadata" title="Link to this definition"></a></dt>
+<dd><p>Gets the saved metadata (see
+<a class="reference internal" href="ecoli.experiments.ecoli_master_sim.html#ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata" title="ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata"><code class="xref py py-meth docutils literal notranslate"><span class="pre">output_metadata()</span></code></a>)
+for a given field as a list. Automatically quotes the field name to
+handle special characters. Do NOT use double quotes in <code class="docutils literal notranslate"><span class="pre">field</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conn</strong> (<em>DuckDBPyConnection</em>) – DuckDB connection</p></li>
+<li><p><strong>config_subquery</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – DuckDB query containing sim config data</p></li>
+<li><p><strong>field</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of field to get metadata for</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.flatten_dict">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">flatten_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#flatten_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.flatten_dict" title="Link to this definition"></a></dt>
+<dd><p>Flatten nested dictionary down to key-value pairs where each key
+concatenates all the keys needed to reach the corresponding value
+in the input. Allows each leaf field in a nested emit to be turned
+into a column in a Parquet file for efficient storage and retrieval.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>d</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.json_to_parquet">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">json_to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">emit_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filesystem</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#json_to_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.json_to_parquet" title="Link to this definition"></a></dt>
+<dd><p>Convert dictionary to Parquet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>emit_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><em>ndarray</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><em>Series</em><em>]</em><em>]</em>) – Mapping from column names to NumPy arrays (fixed-shape)
+or lists of Polars Series (variable-shape).</p></li>
+<li><p><strong>outfile</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to output Parquet file. Can be local path or URI.</p></li>
+<li><p><strong>schema</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em>) – Full mapping of column names to Polars dtypes.</p></li>
+<li><p><strong>filesystem</strong> (<em>AbstractFileSystem</em>) – On local filesystem, fsspec filesystem needed to
+write Parquet file atomically.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.named_idx">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">named_idx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero_to_null</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_quote_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#named_idx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.named_idx" title="Link to this definition"></a></dt>
+<dd><p>Create DuckDB expressions for given indices from a list column. Can be
+used in <code class="docutils literal notranslate"><span class="pre">projection</span></code> kwarg of <a class="reference internal" href="#ecoli.library.parquet_emitter.read_stacked_columns" title="ecoli.library.parquet_emitter.read_stacked_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_stacked_columns()</span></code></a>. Since
+each index gets pulled out into its own column, this greatly simplifies
+aggregations like averages, etc. Only use this if the number of indices
+is relatively small (&lt;100) and the list column is 1-dimensional. For 2+
+dimensions or &gt;100 indices, see <a class="reference internal" href="#ecoli.library.parquet_emitter.ndidx_to_duckdb_expr" title="ecoli.library.parquet_emitter.ndidx_to_duckdb_expr"><code class="xref py py-func docutils literal notranslate"><span class="pre">ndidx_to_duckdb_expr()</span></code></a>.
+Automatically quotes column names to handle special characters.
+Do NOT use double quotes in <code class="docutils literal notranslate"><span class="pre">names</span></code> or <code class="docutils literal notranslate"><span class="pre">col</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>DuckDB arrays are 1-indexed so this function adds 1 to every
+supplied index!</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of list column.</p></li>
+<li><p><strong>names</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – List of names for the new columns. Length must match the
+number of index combinations in <code class="docutils literal notranslate"><span class="pre">idx</span></code> (4 for example below).</p></li>
+<li><p><strong>idx</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em><em>]</em>) – Integer indices to retrieve from each dimension of <code class="docutils literal notranslate"><span class="pre">col</span></code>.
+For example, <code class="docutils literal notranslate"><span class="pre">[[0,</span> <span class="pre">1],</span> <span class="pre">[2,</span> <span class="pre">3]]</span></code> will retrieve the third and
+fourth elements of the second dimension for the first and second
+elements of the first dimension.</p></li>
+<li><p><strong>zero_to_null</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to turn 0s into nulls. This is useful when
+dividing by the values in this column, as most DuckDB aggregation
+functions (e.g. <code class="docutils literal notranslate"><span class="pre">avg</span></code>, <code class="docutils literal notranslate"><span class="pre">max</span></code>) propagate NaNs but ignore nulls.</p></li>
+<li><p><strong>_quote_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Private argument to ensure <code class="docutils literal notranslate"><span class="pre">col</span></code> is quoted properly.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DuckDB SQL expression for a set of named columns corresponding to
+the values at given indices of a list column</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.ndidx_to_duckdb_expr">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">ndidx_to_duckdb_expr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#ndidx_to_duckdb_expr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.ndidx_to_duckdb_expr" title="Link to this definition"></a></dt>
+<dd><p>Returns a DuckDB expression for a column equivalent to converting each row
+of <code class="docutils literal notranslate"><span class="pre">name</span></code> into an ndarray <code class="docutils literal notranslate"><span class="pre">name_arr</span></code> (<a class="reference internal" href="#ecoli.library.parquet_emitter.ndlist_to_ndarray" title="ecoli.library.parquet_emitter.ndlist_to_ndarray"><code class="xref py py-func docutils literal notranslate"><span class="pre">ndlist_to_ndarray()</span></code></a>)
+and getting <code class="docutils literal notranslate"><span class="pre">name_arr[idx]</span></code>. <code class="docutils literal notranslate"><span class="pre">idx</span></code> can contain 1D lists of integers,
+boolean masks, or <code class="docutils literal notranslate"><span class="pre">&quot;:&quot;</span></code> (no 2D+ indices like <code class="docutils literal notranslate"><span class="pre">x[[[1,2]]]</span></code>). See also
+<a class="reference internal" href="#ecoli.library.parquet_emitter.named_idx" title="ecoli.library.parquet_emitter.named_idx"><code class="xref py py-func docutils literal notranslate"><span class="pre">named_idx()</span></code></a> if pulling out a relatively small set of indices.
+Automatically quotes column names to handle special characters. Do NOT
+use double quotes in <code class="docutils literal notranslate"><span class="pre">name</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>DuckDB arrays are 1-indexed so this function adds 1 to every
+supplied integer index!</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of column to recursively index</p></li>
+<li><p><strong>idx</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – <p>To get all elements for a dimension, supply the string <code class="docutils literal notranslate"><span class="pre">&quot;:&quot;</span></code>.
+Otherwise, only single integers or 1D integer lists of indices are
+allowed for each dimension. Some examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="c1"># First row, second column</span>
+<span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">]</span> <span class="c1"># First and second row, second column</span>
+<span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;:&quot;</span><span class="p">]</span> <span class="c1"># First element of axis 1, second of 2, all of 3</span>
+<span class="c1"># Final example differs between this function and Numpy</span>
+<span class="c1"># This func: 1st and 2nd of axis 1, all of 2, 1st and 2nd of 3</span>
+<span class="c1"># Numpy: Complicated, see Numpy docs on advanced indexing</span>
+<span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span>
+</pre></div>
+</div>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.ndlist_to_ndarray">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">ndlist_to_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#ndlist_to_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.ndlist_to_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Convert a PyArrow series of nested lists with fixed dimensions into
+a Numpy ndarray. This should really only be necessary if you are trying
+to perform linear algebra (e.g. matrix multiplication, dot products) inside
+a user-defined function (see DuckDB documentation on Python Function API and
+<code class="docutils literal notranslate"><span class="pre">func</span></code> kwarg for <a class="reference internal" href="#ecoli.library.parquet_emitter.read_stacked_columns" title="ecoli.library.parquet_emitter.read_stacked_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_stacked_columns()</span></code></a>).</p>
+<p>For elementwise arithmetic of two nested list columns, this can be used
+to define a custom DuckDB function as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="n">ndlist_to_ndarray</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sum_arrays</span><span class="p">(</span><span class="n">col_0</span><span class="p">,</span> <span class="n">col_1</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+        <span class="n">ndlist_to_ndarray</span><span class="p">(</span><span class="n">col_0</span><span class="p">)</span> <span class="o">+</span>
+        <span class="n">ndlist_to_ndarray</span><span class="p">(</span><span class="n">col_1</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">to_arrow</span><span class="p">()</span>
+<span class="n">conn</span> <span class="o">=</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">conn</span><span class="o">.</span><span class="n">create_function</span><span class="p">(</span>
+    <span class="s2">&quot;sum_2d_int_arrays&quot;</span><span class="p">,</span> <span class="c1"># Function name for use in SQL (must be unique)</span>
+    <span class="n">sum_arrays</span><span class="p">,</span> <span class="c1"># Python function that takes and returns PyArrow arrays</span>
+    <span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span> <span class="c1"># Input types (2D lists here)</span>
+    <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="c1"># Return type (2D list here)</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s2">&quot;arrow&quot;</span> <span class="c1"># Tell DuckDB function operates on Arrow arrays</span>
+<span class="p">)</span>
+<span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s2">&quot;SELECT sum_2d_int_arrays(int_col_0, int_col_1) from input_table&quot;</span><span class="p">)</span>
+<span class="c1"># Note that function must be registered under different name for each</span>
+<span class="c1"># set of unique input/output types</span>
+<span class="n">conn</span><span class="o">.</span><span class="n">create_function</span><span class="p">(</span>
+    <span class="s2">&quot;sum_2d_int_and_float&quot;</span><span class="p">,</span>
+    <span class="n">sum_arrays</span><span class="p">,</span>
+    <span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span> <span class="c1"># Second input is 2D float array</span>
+    <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> <span class="c1"># Adding int to float array gives float in Numpy</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s2">&quot;arrow&quot;</span>
+<span class="p">)</span>
+<span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s2">&quot;SELECT sum_2d_int_and_float(int_col_0, float_col_0) from input_table&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><em>ndarray</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.np_dtype">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">np_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#np_dtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.np_dtype" title="Link to this definition"></a></dt>
+<dd><p>Get NumPy type for input value. There are a few scenarios
+where this function raises an exception intentionally:</p>
+<ul class="simple">
+<li><p>An internal value is None or an empty list/tuple: data is
+ragged/nullable and needs Polars serialization.</p></li>
+<li><p>Python bytes type: NumPy only has fixed-length bytes type
+so use Polars serialization to avoid truncation.</p></li>
+<li><p>Python datetime types: Simpler and less error-prone to use
+Polars serialization instead of converting to NumPy.</p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">np.bytes_</span></code> values and arrays will get truncated to the
+size of the first encountered value. Convert to Python
+bytes type to avoid this.</p>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">try...except</span></code> blocks in <a class="reference internal" href="#ecoli.library.parquet_emitter.ParquetEmitter.emit" title="ecoli.library.parquet_emitter.ParquetEmitter.emit"><code class="xref py py-meth docutils literal notranslate"><span class="pre">emit()</span></code></a>
+are designed to catch these exceptions and fall back to
+Polars serialization.</p>
+<p>All other exceptions raised by this function indicate that the
+value is of an unsupported type for which even the fall back
+Polars serialization likely will not work.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>val</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a>)</p></li>
+<li><p><strong>field_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.num_cells">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">num_cells</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subquery</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#num_cells"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.num_cells" title="Link to this definition"></a></dt>
+<dd><p>Return cell count in DuckDB subquery containing <code class="docutils literal notranslate"><span class="pre">experiment_id</span></code>,
+<code class="docutils literal notranslate"><span class="pre">variant</span></code>, <code class="docutils literal notranslate"><span class="pre">lineage_seed</span></code>, <code class="docutils literal notranslate"><span class="pre">generation</span></code>, and <code class="docutils literal notranslate"><span class="pre">agent_id</span></code> columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conn</strong> (<em>DuckDBPyConnection</em>)</p></li>
+<li><p><strong>subquery</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.open_arbitrary_sim_data">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">open_arbitrary_sim_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_data_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#open_arbitrary_sim_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.open_arbitrary_sim_data" title="Link to this definition"></a></dt>
+<dd><p>Given a mapping from experiment ID(s) to mappings from variant ID(s)
+to sim_data path(s), pick an arbitrary sim_data to read.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sim_data_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a><em>]</em><em>]</em>) – Generated by <a class="reference internal" href="../runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a> and passed to
+each analysis script as an argument.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>File object for arbitrarily chosen sim_data to be loaded
+with <code class="docutils literal notranslate"><span class="pre">pickle.load</span></code></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>OpenFile</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.open_output_file">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">open_output_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outfile</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#open_output_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.open_output_file" title="Link to this definition"></a></dt>
+<dd><p>Open a file by its path, whether that be a path on local storage or
+Google Cloud Storage.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>outfile</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to file. Must have <code class="docutils literal notranslate"><span class="pre">gs://</span></code> or <code class="docutils literal notranslate"><span class="pre">gcs://</span></code> prefix if
+on Google Cloud Storage. Can be relative or absolute path if
+on local storage.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>File object that supports reading, seeking, etc. in bytes</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>OpenFile</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.pl_dtype_from_ndarray">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">pl_dtype_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#pl_dtype_from_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.pl_dtype_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get Polars data type for a Numpy array, including nested lists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>arr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><em>ndarray</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pola.rs/api/python/stable/reference/api/polars.datatypes.DataType.html#polars.datatypes.DataType" title="(in Polars)"><em>DataType</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.plot_metadata">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">plot_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_subquery</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#plot_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.plot_metadata" title="Link to this definition"></a></dt>
+<dd><p>Gets dictionary that can be used as <code class="docutils literal notranslate"><span class="pre">metadata</span></code> kwarg to
+<a class="reference internal" href="../wholecell/wholecell.utils.plotting_tools.html#wholecell.utils.plotting_tools.export_figure" title="wholecell.utils.plotting_tools.export_figure"><code class="xref py py-func docutils literal notranslate"><span class="pre">wholecell.utils.plotting_tools.export_figure()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conn</strong> (<em>DuckDBPyConnection</em>) – DuckDB connection</p></li>
+<li><p><strong>config_subquery</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – DuckDB query containing sim config data</p></li>
+<li><p><strong>variant_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of variant</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><em>Any</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.read_stacked_columns">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">read_stacked_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">history_sql</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order_results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">success_sql</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#read_stacked_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.read_stacked_columns" title="Link to this definition"></a></dt>
+<dd><p>Loads columns for many cells. If you would like to perform more advanced
+computatations (aggregations, window functions, etc.) using the optimized
+DuckDB API, you can omit <code class="docutils literal notranslate"><span class="pre">conn</span></code>, in which case this function will return
+an SQL string that can be used as a subquery. For computations that cannot
+be easily performed using the DuckDB API, you can define a custom function
+<code class="docutils literal notranslate"><span class="pre">func</span></code> that will be called on the data for each cell. By default, the
+return value (whether it be the actual data or an SQL subquery) will
+also include the <code class="docutils literal notranslate"><span class="pre">experiment_id</span></code>, <code class="docutils literal notranslate"><span class="pre">variant</span></code>, <code class="docutils literal notranslate"><span class="pre">lineage_seed</span></code>,
+<code class="docutils literal notranslate"><span class="pre">generation</span></code>, <code class="docutils literal notranslate"><span class="pre">agent_id</span></code>, and <code class="docutils literal notranslate"><span class="pre">time</span></code> columns.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If the column expressions in <code class="docutils literal notranslate"><span class="pre">columns</span></code> are not from
+<a class="reference internal" href="#ecoli.library.parquet_emitter.named_idx" title="ecoli.library.parquet_emitter.named_idx"><code class="xref py py-func docutils literal notranslate"><span class="pre">named_idx()</span></code></a> or <a class="reference internal" href="#ecoli.library.parquet_emitter.ndidx_to_duckdb_expr" title="ecoli.library.parquet_emitter.ndidx_to_duckdb_expr"><code class="xref py py-func docutils literal notranslate"><span class="pre">ndidx_to_duckdb_expr()</span></code></a>,
+they may need to be enclosed in double quotes to handle
+special characters (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;col-with-hyphens&quot;</span></code>).</p>
+</div>
+<p>For example, to get the average total concentration of three bulk molecules
+with indices 100, 1000, and 10000 per cell:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">dataset_sql</span><span class="p">,</span> <span class="n">read_stacked_columns</span><span class="p">)</span>
+<span class="n">history_sql</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">dataset_sql</span><span class="p">(</span><span class="s1">&#39;out/&#39;</span><span class="p">,</span> <span class="s1">&#39;exp_id&#39;</span><span class="p">)</span>
+<span class="n">subquery</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span>
+    <span class="n">history_sql</span><span class="p">,</span>
+    <span class="c1"># Note DuckDB arrays are 1-indexed</span>
+    <span class="p">[</span><span class="s2">&quot;bulk[100 + 1] + bulk[1000 + 1] + bulk[10000 + 1] AS bulk_sum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar&quot;</span><span class="p">],</span>
+    <span class="n">order_results</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">query</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">    SELECT avg(bulk_sum * counts_to_molar) AS avg_total_conc</span>
+<span class="s1">    FROM (</span><span class="si">{subquery}</span><span class="s1">)</span>
+<span class="s1">    GROUP BY experiment_id, variant, lineage_seed, generation, agent_id</span>
+<span class="s1">    &#39;&#39;&#39;</span>
+<span class="n">conn</span> <span class="o">=</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="n">query</span><span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Here is a more complicated example that defines a custom function to get
+the per-cell average RNA synthesis probability per cistron:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">dataset_sql</span><span class="p">,</span> <span class="n">ndlist_to_ndarray</span><span class="p">,</span> <span class="n">read_stacked_columns</span><span class="p">)</span>
+<span class="n">history_sql</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">dataset_sql</span><span class="p">(</span><span class="s1">&#39;out/&#39;</span><span class="p">,</span> <span class="s1">&#39;exp_id&#39;</span><span class="p">)</span>
+<span class="c1"># Load sim data</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;reconstruction/sim_data/kb/simData.cPickle&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">sim_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="c1"># Get mapping from RNAs (TUs) to cistrons</span>
+<span class="n">cistron_tu_mat</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_tu_mapping_matrix</span>
+<span class="c1"># Custom aggregation function with Numpy dot product and mean</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">avg_rna_synth_prob_per_cistron</span><span class="p">(</span><span class="n">rna_synth_prob</span><span class="p">):</span>
+    <span class="c1"># Convert rna_synth_prob into 2-D Numpy array (time x TU)</span>
+    <span class="n">rna_synth_prob</span> <span class="o">=</span> <span class="n">ndlist_to_ndarray</span><span class="p">(</span><span class="n">rna_synth_prob</span><span class="p">[</span>
+        <span class="s2">&quot;listeners__rna_synth_prob__actual_rna_synth_prob&quot;</span><span class="p">])</span>
+    <span class="n">rna_synth_prob_per_cistron</span> <span class="o">=</span> <span class="n">cistron_tu_mat</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rna_synth_prob</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="c1"># Return value must be a PyArrow table</span>
+    <span class="k">return</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;avg_rna_synth_prob_per_cistron&#39;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="n">rna_synth_prob_per_cistron</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)]})</span><span class="o">.</span><span class="n">to_arrow</span><span class="p">()</span>
+<span class="n">conn</span> <span class="o">=</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">read_stacked_columns</span><span class="p">(</span>
+    <span class="n">history_sql</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;listeners__rna_synth_prob__actual_rna_synth_prob&quot;</span><span class="p">],</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">avg_rna_synth_prob_per_cistron</span><span class="p">,</span>
+    <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>history_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – DuckDB SQL string from <a class="reference internal" href="#ecoli.library.parquet_emitter.dataset_sql" title="ecoli.library.parquet_emitter.dataset_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataset_sql()</span></code></a>,
+potentially with filters appended in <code class="docutils literal notranslate"><span class="pre">WHERE</span></code> clause</p></li>
+<li><p><strong>columns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – Names of columns to read data for. Alternatively, DuckDB
+expressions of columns (e.g. <code class="docutils literal notranslate"><span class="pre">avg(listeners__mass__cell_mass)</span> <span class="pre">AS</span> <span class="pre">avg_mass</span></code>
+or the output of <a class="reference internal" href="#ecoli.library.parquet_emitter.named_idx" title="ecoli.library.parquet_emitter.named_idx"><code class="xref py py-func docutils literal notranslate"><span class="pre">named_idx()</span></code></a> or <a class="reference internal" href="#ecoli.library.parquet_emitter.ndidx_to_duckdb_expr" title="ecoli.library.parquet_emitter.ndidx_to_duckdb_expr"><code class="xref py py-func docutils literal notranslate"><span class="pre">ndidx_to_duckdb_expr()</span></code></a>).</p></li>
+<li><p><strong>remove_first</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Remove data for first timestep of each cell</p></li>
+<li><p><strong>func</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.13)"><em>Callable</em></a><em>[</em><em>[</em><em>DataFrame</em><em>]</em><em>, </em><em>DataFrame</em><em>] </em><em>| </em><em>None</em>) – Function to call on data for each cell, should take and
+return a Polars DataFrame with columns equal to <code class="docutils literal notranslate"><span class="pre">columns</span></code></p></li>
+<li><p><strong>conn</strong> (<em>DuckDBPyConnection</em><em> | </em><em>None</em>) – DuckDB connection instance with which to run query. Typically
+provided by <a class="reference internal" href="../runscripts/runscripts.analysis.html#runscripts.analysis.main" title="runscripts.analysis.main"><code class="xref py py-func docutils literal notranslate"><span class="pre">runscripts.analysis.main()</span></code></a> to the <code class="docutils literal notranslate"><span class="pre">plot</span></code>
+method of analysis scripts (tweaked some DuckDB settings). Can
+be omitted to return SQL query string to be used as subquery
+instead of running query immediately and returning result.</p></li>
+<li><p><strong>order_results</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to sort returned table by <code class="docutils literal notranslate"><span class="pre">experiment_id</span></code>,
+<code class="docutils literal notranslate"><span class="pre">variant</span></code>, <code class="docutils literal notranslate"><span class="pre">lineage_seed</span></code>, <code class="docutils literal notranslate"><span class="pre">generation</span></code>, <code class="docutils literal notranslate"><span class="pre">agent_id</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">time</span></code>. If no <code class="docutils literal notranslate"><span class="pre">conn</span></code> is provided, this can usually be disabled
+and any sorting can be deferred until the last step in the query with
+a manual <code class="docutils literal notranslate"><span class="pre">ORDER</span> <span class="pre">BY</span></code>. Doing this can greatly reduce RAM usage.</p></li>
+<li><p><strong>success_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> | </em><em>None</em>) – Final DuckDB SQL string from <a class="reference internal" href="#ecoli.library.parquet_emitter.dataset_sql" title="ecoli.library.parquet_emitter.dataset_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataset_sql()</span></code></a>.
+If provided, will be used to filter out unsuccessful sims.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>DataFrame</em> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.skip_n_gens">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">skip_n_gens</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subquery</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#skip_n_gens"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.skip_n_gens" title="Link to this definition"></a></dt>
+<dd><p>Modifies a DuckDB SQL query to skip the first <code class="docutils literal notranslate"><span class="pre">n</span></code> generations of data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>subquery</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p></li>
+<li><p><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.union_by_name">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">union_by_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query_sql</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#union_by_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.union_by_name" title="Link to this definition"></a></dt>
+<dd><p>Modifies SQL query string from <a class="reference internal" href="#ecoli.library.parquet_emitter.dataset_sql" title="ecoli.library.parquet_emitter.dataset_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataset_sql()</span></code></a> to
+include <code class="docutils literal notranslate"><span class="pre">union_by_name</span> <span class="pre">=</span> <span class="pre">true</span></code> in the DuckDB <code class="docutils literal notranslate"><span class="pre">read_parquet</span></code>
+function. This allows data to be read from simulations that have
+different columns by filling in nulls and casting as necessary.
+This comes with a performance penalty and should be avoided if possible.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query_sql</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – SQL query string from <a class="reference internal" href="#ecoli.library.parquet_emitter.dataset_sql" title="ecoli.library.parquet_emitter.dataset_sql"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataset_sql()</span></code></a></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ecoli.library.parquet_emitter.union_pl_dtypes">
+<span class="sig-prename descclassname"><span class="pre">ecoli.library.parquet_emitter.</span></span><span class="sig-name descname"><span class="pre">union_pl_dtypes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_inner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/ecoli/library/parquet_emitter.html#union_pl_dtypes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ecoli.library.parquet_emitter.union_pl_dtypes" title="Link to this definition"></a></dt>
+<dd><p>Returns the more specific data type when combining two Polars datatypes.
+Mainly intended to fill out nested List types that contain Nulls.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dt1</strong> (<a class="reference external" href="https://docs.pola.rs/api/python/stable/reference/api/polars.datatypes.DataType.html#polars.datatypes.DataType" title="(in Polars)"><em>DataType</em></a><em> | </em><em>DataTypeClass</em>) – First Polars datatype</p></li>
+<li><p><strong>dt2</strong> (<a class="reference external" href="https://docs.pola.rs/api/python/stable/reference/api/polars.datatypes.DataType.html#polars.datatypes.DataType" title="(in Polars)"><em>DataType</em></a><em> | </em><em>DataTypeClass</em>) – Second Polars datatype</p></li>
+<li><p><strong>k</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of column being combined (for error messages)</p></li>
+<li><p><strong>force_inner</strong> (<a class="reference external" href="https://docs.pola.rs/api/python/stable/reference/api/polars.datatypes.DataType.html#polars.datatypes.DataType" title="(in Polars)"><em>DataType</em></a><em> | </em><em>DataTypeClass</em><em> | </em><em>None</em>) – Force this inner type when possible</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resulting datatype</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pola.rs/api/python/stable/reference/api/polars.datatypes.DataType.html#polars.datatypes.DataType" title="(in Polars)"><em>DataType</em></a> | <em>DataTypeClass</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ecoli.library.parameters.html" class="btn btn-neutral float-left" title="ecoli.library.parameters" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ecoli.library.pymunk_multibody.html" class="btn btn-neutral float-right" title="ecoli.library.pymunk_multibody" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

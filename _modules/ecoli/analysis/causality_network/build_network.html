@@ -1,0 +1,1346 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.causality_network.build_network &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.causality_network.build_network</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.causality_network.build_network</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">BuildNetwork</span>
+<span class="sd">============</span>
+
+<span class="sd">Constructs a network representations of simulation components from sim_data,</span>
+<span class="sd">and generates files for node lists and edge lists.</span>
+
+<span class="sd">Adding new nodes to the network:</span>
+<span class="sd">--------------------------------</span>
+
+<span class="sd">To add a new type of nodes to the network (either a state or process), you need</span>
+<span class="sd">to write a new function within this file (build_network.py), which goes through</span>
+<span class="sd">all of the instances of the new node type, and for each instance creates a</span>
+<span class="sd">node:</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    new_node = Node()</span>
+
+<span class="sd">adds attributes (``**attr``), which include &quot;node_class&quot;, &quot;node_type&quot;, &quot;node_id&quot;,</span>
+<span class="sd">&quot;name&quot;, and &quot;synonyms&quot;:</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    new_node.read_attributes(**attr)</span>
+
+<span class="sd">and appends the node to the node list:</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    self.node_list.append(new_node)</span>
+
+<span class="sd">The relevant edges that connect the new node to other nodes also need to be</span>
+<span class="sd">specified:</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    new_edge = Edge(&quot;Edge Type&quot;)</span>
+
+<span class="sd">The source and destination ids for that edge are added with an attribute:</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    attr = {</span>
+<span class="sd">            &#39;src_id&#39;: source_id,</span>
+<span class="sd">            &#39;dst_id&#39;: destination_id,</span>
+<span class="sd">            }</span>
+
+<span class="sd">    new_edge.read_attributes(**attr)</span>
+
+<span class="sd">and the edge is then added to the edge list:</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    self.edge_list.append(new_edge)</span>
+
+<span class="sd">With a complete node and edge list, you are ready to add dynamics data to each</span>
+<span class="sd">node. This is done in read_dynamics.py. You first need to choose appropriate</span>
+<span class="sd">dynamics data to represents that node&#39;s activity, and make sure it is saved in</span>
+<span class="sd">a listener. read_dynamics.py uses saved listener output to load dynamics into</span>
+<span class="sd">each node.</span>
+
+<span class="sd">read_dynamics.py might require a new function to the dynamics data if it is of</span>
+<span class="sd">a new node type, specified in the TYPE_TO_READER_FUNCTION dictionary. When the</span>
+<span class="sd">node list is read, nodes of the new type will be passed into the new function,</span>
+<span class="sd">which assigns that node dynamics from listener output:</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    node.read_dynamics(dynamics, dynamics_units)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.analysis.causality_network.network_components</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Node</span><span class="p">,</span>
+    <span class="n">Edge</span><span class="p">,</span>
+    <span class="n">NODELIST_FILENAME</span><span class="p">,</span>
+    <span class="n">EDGELIST_FILENAME</span><span class="p">,</span>
+    <span class="n">NODE_LIST_HEADER</span><span class="p">,</span>
+    <span class="n">EDGE_LIST_HEADER</span><span class="p">,</span>
+    <span class="n">NODELIST_JSON</span><span class="p">,</span>
+    <span class="n">EDGELIST_JSON</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Suffixes that are added to the node IDs of a particular type of node</span>
+<span class="n">NODE_ID_SUFFIX</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;transcription&quot;</span><span class="p">:</span> <span class="s2">&quot;_TRS&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;maturation&quot;</span><span class="p">:</span> <span class="s2">&quot;_MAT&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;translation&quot;</span><span class="p">:</span> <span class="s2">&quot;_TRL&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;regulation&quot;</span><span class="p">:</span> <span class="s2">&quot;_REG&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># URL template</span>
+<span class="n">URL_TEMPLATE</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;https://ecocyc.org/ECOLI/substring-search?type=NIL&amp;object=</span><span class="si">{0}</span><span class="s2">&amp;&quot;</span>
+    <span class="s2">&quot;quickSearch=Quick+Search&quot;</span>
+<span class="p">)</span>
+<span class="n">URL_TEMPLATE_COMPOUND</span> <span class="o">=</span> <span class="s2">&quot;https://ecocyc.org/compound?orgid=ECOLI&amp;id=</span><span class="si">{0}</span><span class="s2">&quot;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The following groups of molecules participate in multiple processes and are</span>
+<span class="sd">thus identified here to prevent the addition of duplicate nodes.</span>
+
+<span class="sd">Note:</span>
+<span class="sd">	Identifying multi-process participatory molecules in this way is not</span>
+<span class="sd">	required because --check_sanity checks for duplicate nodes. However,</span>
+<span class="sd">	identifying such molecules here can streamline network building by</span>
+<span class="sd">	eliminating the need to search through nodes that were added previously.</span>
+
+<span class="sd">TODO:</span>
+<span class="sd">	Future proof by programmatically finding multi-process participatory</span>
+<span class="sd">	molecules (maybe dictionary of booleans).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Proteins that are reactants or products of a metabolic reaction</span>
+<span class="n">PROTEINS_IN_METABOLISM</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;EG50003-MONOMER[c]&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PHOB-MONOMER[c]&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PTSI-MONOMER[c]&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PTSH-MONOMER[c]&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># Equilibrium complexes that are formed from deactivated equilibrium reactions,</span>
+<span class="c1"># but are reactants in a complexation reaction</span>
+<span class="n">EQUILIBRIUM_COMPLEXES_IN_COMPLEXATION</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;CPLX0-7701[c]&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CPLX0-7677[c]&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;MONOMER0-1781[c]&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CPLX0-7702[c]&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># Metabolites that are used as ligands in equilibrium, but do not participate</span>
+<span class="c1"># in any metabolic reactions</span>
+<span class="n">METABOLITES_ONLY_IN_EQUILIBRIUM</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CPD-7[c]&quot;</span><span class="p">]</span>
+
+<span class="c1"># Molecules in 2CS (two component system) reactions that are not proteins</span>
+<span class="n">NONPROTEIN_MOLECULES_IN_2CS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;ATP[c]&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ADP[c]&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;WATER[c]&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Pi[c]&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PROTON[c]&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PHOSPHO-PHOB[c]&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="n">COMPARTMENTS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;n&quot;</span><span class="p">:</span> <span class="s2">&quot;nucleoid&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;j&quot;</span><span class="p">:</span> <span class="s2">&quot;projection&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="s2">&quot;cell wall&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="s2">&quot;cytoplasm&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;e&quot;</span><span class="p">:</span> <span class="s2">&quot;extracellular&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="s2">&quot;membrane&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;o&quot;</span><span class="p">:</span> <span class="s2">&quot;outer membrane&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="s2">&quot;periplasm&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;l&quot;</span><span class="p">:</span> <span class="s2">&quot;pilus&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;i&quot;</span><span class="p">:</span> <span class="s2">&quot;inner membrane&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;s&quot;</span><span class="p">:</span> <span class="s2">&quot;flagellum&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="molecule_compartment">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.molecule_compartment">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">molecule_compartment</span><span class="p">(</span><span class="n">molecule</span><span class="p">):</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;.+\[(.)]$&quot;</span><span class="p">,</span> <span class="n">molecule</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">COMPARTMENTS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="BuildNetwork">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BuildNetwork</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Constructs a causality network of simulation components, namely states and</span>
+<span class="sd">    processes, of a whole-cell simulation using sim_data. Writes two files</span>
+<span class="sd">    (node list and edge list) that are subsequently used by the dynamics reader</span>
+<span class="sd">    to extract simulation results, and for the visual representation of the</span>
+<span class="sd">    network.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sim_data_file</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">check_sanity</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        TODO: have check_sanity looks for disconnected nodes, and edges</span>
+<span class="sd">        with non-existent nodes.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sim_data_file: path to the variant sim_data pickle file used for</span>
+<span class="sd">                building the network.</span>
+<span class="sd">            output_dir: output directory for the node list and edge list files.</span>
+<span class="sd">            check_sanity: if set to True, checks if there are any nodes with</span>
+<span class="sd">                duplicate IDs in the network.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Open simulation data and save as attribute</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">sim_data_file</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span> <span class="o">=</span> <span class="n">output_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_sanity</span> <span class="o">=</span> <span class="n">check_sanity</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">common_names</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="BuildNetwork.run">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the network and write node/edge list files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_network</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_json</span><span class="p">()</span></div>
+
+        <span class="c1"># self._write_files()</span>
+
+<div class="viewcode-block" id="BuildNetwork.build_nodes_and_edges">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork.build_nodes_and_edges">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_nodes_and_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the network and return the node and edge lists.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_network</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_list</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edge_list</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._build_network">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._build_network">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_network</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add nodes and edges to the node/edge lists, and check for network</span>
+<span class="sd">        sanity (optional).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Add global nodes to the node list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_global_nodes</span><span class="p">()</span>
+
+        <span class="c1"># Add state/process-specific nodes and edges to the node and edge list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_genes</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_transcription_and_transcripts</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_rna_maturation_and_mature_transcripts</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_translation_and_monomers</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_complexation_and_complexes</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_metabolism_and_metabolites</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_equilibrium</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_regulation</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_remove_hanging_edges</span><span class="p">()</span>
+
+        <span class="c1"># Check for network sanity (optional)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_sanity</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_find_duplicate_nodes</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._node_list">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._node_list">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_node_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._edge_list">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._edge_list">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_edge_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">edge_dict</span><span class="p">(</span><span class="n">edge</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;src_node_id&quot;</span><span class="p">:</span> <span class="n">edge</span><span class="o">.</span><span class="n">src_id</span><span class="p">,</span>
+                <span class="s2">&quot;dst_node_id&quot;</span><span class="p">:</span> <span class="n">edge</span><span class="o">.</span><span class="n">dst_id</span><span class="p">,</span>
+                <span class="s2">&quot;stoichiometry&quot;</span><span class="p">:</span> <span class="n">edge</span><span class="o">.</span><span class="n">stoichiometry</span><span class="p">,</span>
+                <span class="s2">&quot;process&quot;</span><span class="p">:</span> <span class="n">edge</span><span class="o">.</span><span class="n">process</span><span class="p">,</span>
+            <span class="p">}</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">edge_dict</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span> <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_list</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._write_files">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._write_files">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write node/edge list as separate .tsv files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Open node list file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">NODELIST_FILENAME</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">nodelist_file</span><span class="p">:</span>
+            <span class="c1"># Write header row</span>
+            <span class="n">nodelist_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">NODE_LIST_HEADER</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Write one row for each node</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="p">:</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">write_nodelist</span><span class="p">(</span><span class="n">nodelist_file</span><span class="p">)</span>
+
+        <span class="c1"># Open edge list file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">EDGELIST_FILENAME</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">edgelist_file</span><span class="p">:</span>
+            <span class="c1"># Write header row</span>
+            <span class="n">edgelist_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">EDGE_LIST_HEADER</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Write one row for each edge</span>
+            <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_list</span><span class="p">:</span>
+                <span class="n">edge</span><span class="o">.</span><span class="n">write_edgelist</span><span class="p">(</span><span class="n">edgelist_file</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._write_json">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._write_json">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write node and edge lists as json files.&quot;&quot;&quot;</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_list</span><span class="p">()</span>
+        <span class="n">node_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span>
+        <span class="n">node_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">NODELIST_JSON</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;writing </span><span class="si">{}</span><span class="s2"> nodes to node file </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">),</span> <span class="n">node_path</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">node_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">node_file</span><span class="p">:</span>
+            <span class="n">node_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">node_json</span><span class="p">)</span>
+
+        <span class="n">edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edge_list</span><span class="p">()</span>
+        <span class="n">edge_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
+        <span class="n">edge_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">EDGELIST_JSON</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;writing </span><span class="si">{}</span><span class="s2"> edges to edge file </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edges</span><span class="p">),</span> <span class="n">edge_path</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">edge_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">edge_file</span><span class="p">:</span>
+            <span class="n">edge_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">edge_json</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._add_global_nodes">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._add_global_nodes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_global_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add global state nodes to the node list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Add total cell mass node to node list</span>
+        <span class="n">mass_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;State&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Global&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="s2">&quot;cell_mass&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Total cell mass&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">mass_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+        <span class="c1"># Add total cell volume node to node list</span>
+        <span class="n">volume_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;State&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Global&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="s2">&quot;cell_volume&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Total cell volume&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">volume_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">mass_node</span><span class="p">,</span> <span class="n">volume_node</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._add_genes">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._add_genes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_genes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add gene state nodes to the node list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Loop through all genes (in the order listed in transcription)</span>
+        <span class="k">for</span> <span class="n">gene_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="p">[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">]:</span>
+            <span class="c1"># Initialize a single gene node</span>
+            <span class="n">gene_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Get name and synonyms for gene</span>
+            <span class="n">gene_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_common_name</span><span class="p">(</span><span class="n">gene_id</span><span class="p">)</span>
+            <span class="n">gene_synonyms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_synonyms</span><span class="p">(</span><span class="n">gene_id</span><span class="p">)</span>
+
+            <span class="c1"># Get URL for gene</span>
+            <span class="n">gene_url</span> <span class="o">=</span> <span class="n">URL_TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gene_id</span><span class="p">)</span>
+
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;State&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Gene&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">gene_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">gene_name</span><span class="p">,</span>
+                <span class="s2">&quot;synonyms&quot;</span><span class="p">:</span> <span class="n">gene_synonyms</span><span class="p">,</span>
+                <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="n">gene_url</span><span class="p">,</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">COMPARTMENTS</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">],</span>
+            <span class="p">}</span>
+
+            <span class="n">gene_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append gene node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gene_node</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._add_transcription_and_transcripts">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._add_transcription_and_transcripts">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_transcription_and_transcripts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add transcription process nodes and transcript state nodes to the node</span>
+<span class="sd">        list, and edges connected to the transcription nodes to the edge list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ntp_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">ntps</span>
+        <span class="n">ppi_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">ppi</span>
+        <span class="n">rnap_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">full_RNAP</span>
+        <span class="n">all_gene_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="p">[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Loop through all transcripts (in the order listed in transcription)</span>
+        <span class="k">for</span> <span class="n">rna_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]:</span>
+            <span class="c1"># Initialize a single transcript node</span>
+            <span class="n">rna_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="c1"># Add common name and synonyms</span>
+            <span class="n">rna_id_no_compartment</span> <span class="o">=</span> <span class="n">rna_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">rna_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_common_name</span><span class="p">(</span><span class="n">rna_id_no_compartment</span><span class="p">)</span>
+            <span class="n">rna_synonyms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_synonyms</span><span class="p">(</span><span class="n">rna_id_no_compartment</span><span class="p">)</span>
+
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;State&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;RNA&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">rna_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">rna_name</span><span class="p">,</span>
+                <span class="s2">&quot;synonyms&quot;</span><span class="p">:</span> <span class="n">rna_synonyms</span><span class="p">,</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">rna_id</span><span class="p">),</span>
+            <span class="p">}</span>
+
+            <span class="n">rna_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append transcript node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rna_node</span><span class="p">)</span>
+
+            <span class="c1"># Initialize a single transcription node for each TU</span>
+            <span class="n">transcription_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">transcription_id</span> <span class="o">=</span> <span class="n">rna_id_no_compartment</span> <span class="o">+</span> <span class="n">NODE_ID_SUFFIX</span><span class="p">[</span><span class="s2">&quot;transcription&quot;</span><span class="p">]</span>
+            <span class="n">transcription_name</span> <span class="o">=</span> <span class="n">rna_name</span> <span class="o">+</span> <span class="s2">&quot; transcription&quot;</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rna_synonyms</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">transcription_synonyms</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">+</span> <span class="s2">&quot; transcription&quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rna_synonyms</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">transcription_synonyms</span> <span class="o">=</span> <span class="p">[</span><span class="n">rna_synonyms</span><span class="p">]</span>
+
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;Process&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Transcription&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">transcription_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">transcription_name</span><span class="p">,</span>
+                <span class="s2">&quot;synonyms&quot;</span><span class="p">:</span> <span class="n">transcription_synonyms</span><span class="p">,</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">transcription_id</span><span class="p">),</span>
+            <span class="p">}</span>
+            <span class="n">transcription_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append transcription node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transcription_node</span><span class="p">)</span>
+
+            <span class="c1"># Get IDs of genes that constitute the transcript</span>
+            <span class="n">constituent_gene_ids</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">all_gene_ids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_id_to_cistron_indexes</span><span class="p">(</span>
+                    <span class="n">rna_id</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+
+            <span class="c1"># Add edge from gene to transcription node</span>
+            <span class="k">for</span> <span class="n">gene_id</span> <span class="ow">in</span> <span class="n">constituent_gene_ids</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Transcription&quot;</span><span class="p">,</span> <span class="n">gene_id</span><span class="p">,</span> <span class="n">transcription_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edge from transcription to transcript node</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Transcription&quot;</span><span class="p">,</span> <span class="n">transcription_id</span><span class="p">,</span> <span class="n">rna_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edges from NTPs to transcription nodes</span>
+            <span class="k">for</span> <span class="n">ntp_id</span> <span class="ow">in</span> <span class="n">ntp_ids</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Transcription&quot;</span><span class="p">,</span> <span class="n">ntp_id</span><span class="p">,</span> <span class="n">transcription_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edge from transcription to Ppi</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Transcription&quot;</span><span class="p">,</span> <span class="n">transcription_id</span><span class="p">,</span> <span class="n">ppi_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edges from RNA polymerases to transcription</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Transcription&quot;</span><span class="p">,</span> <span class="n">rnap_id</span><span class="p">,</span> <span class="n">transcription_id</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._add_rna_maturation_and_mature_transcripts">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._add_rna_maturation_and_mature_transcripts">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_rna_maturation_and_mature_transcripts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add RNA maturation process nodes and mature transcript state nodes to</span>
+<span class="sd">        the node list, and edges connected to these nodes to the edge list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">transcription</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span>
+        <span class="n">mature_rna_ids</span> <span class="o">=</span> <span class="n">transcription</span><span class="o">.</span><span class="n">mature_rna_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+        <span class="n">unprocessed_rna_ids</span> <span class="o">=</span> <span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">][</span>
+            <span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span><span class="p">[</span><span class="s2">&quot;is_unprocessed&quot;</span><span class="p">]</span>
+        <span class="p">]</span>
+        <span class="n">rna_maturation_stoich_matrix</span> <span class="o">=</span> <span class="n">transcription</span><span class="o">.</span><span class="n">rna_maturation_stoich_matrix</span>
+        <span class="n">rna_maturation_enzyme_matrix</span> <span class="o">=</span> <span class="n">transcription</span><span class="o">.</span><span class="n">rna_maturation_enzyme_matrix</span>
+        <span class="n">rna_maturation_enzymes</span> <span class="o">=</span> <span class="n">transcription</span><span class="o">.</span><span class="n">rna_maturation_enzymes</span>
+        <span class="n">ntp_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">ntps</span>
+        <span class="n">ppi_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">ppi</span>
+
+        <span class="c1"># Loop through all mature transcripts (in the order listed in</span>
+        <span class="c1"># transcription)</span>
+        <span class="k">for</span> <span class="n">mature_rna_id</span> <span class="ow">in</span> <span class="n">mature_rna_ids</span><span class="p">:</span>
+            <span class="c1"># Initialize a single transcript node</span>
+            <span class="n">rna_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="c1"># Add common name and synonyms</span>
+            <span class="n">rna_id_no_compartment</span> <span class="o">=</span> <span class="n">mature_rna_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">rna_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_common_name</span><span class="p">(</span><span class="n">rna_id_no_compartment</span><span class="p">)</span>
+            <span class="n">rna_synonyms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_synonyms</span><span class="p">(</span><span class="n">rna_id_no_compartment</span><span class="p">)</span>
+
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;State&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;RNA&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">mature_rna_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">rna_name</span><span class="p">,</span>
+                <span class="s2">&quot;synonyms&quot;</span><span class="p">:</span> <span class="n">rna_synonyms</span><span class="p">,</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">mature_rna_id</span><span class="p">),</span>
+            <span class="p">}</span>
+
+            <span class="n">rna_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append transcript node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rna_node</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">unprocessed_rna_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unprocessed_rna_ids</span><span class="p">):</span>
+            <span class="c1"># Initialize a single RNA maturation node for each unprocessed transcipt</span>
+            <span class="n">rna_maturation_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">rna_id_no_compartment</span> <span class="o">=</span> <span class="n">unprocessed_rna_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">rna_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_common_name</span><span class="p">(</span><span class="n">rna_id_no_compartment</span><span class="p">)</span>
+            <span class="n">rna_synonyms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_synonyms</span><span class="p">(</span><span class="n">rna_id_no_compartment</span><span class="p">)</span>
+
+            <span class="n">maturation_id</span> <span class="o">=</span> <span class="n">rna_id_no_compartment</span> <span class="o">+</span> <span class="n">NODE_ID_SUFFIX</span><span class="p">[</span><span class="s2">&quot;maturation&quot;</span><span class="p">]</span>
+            <span class="n">maturation_name</span> <span class="o">=</span> <span class="n">rna_name</span> <span class="o">+</span> <span class="s2">&quot; maturation&quot;</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rna_synonyms</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">maturation_synonyms</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">+</span> <span class="s2">&quot; maturation&quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rna_synonyms</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">maturation_synonyms</span> <span class="o">=</span> <span class="p">[</span><span class="n">rna_synonyms</span><span class="p">]</span>
+
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;Process&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;RNA Maturation&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">maturation_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">maturation_name</span><span class="p">,</span>
+                <span class="s2">&quot;synonyms&quot;</span><span class="p">:</span> <span class="n">maturation_synonyms</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">rna_maturation_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append transcription node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rna_maturation_node</span><span class="p">)</span>
+
+            <span class="c1"># Get IDs of mature RNAs that are generated from this transcript</span>
+            <span class="n">constituent_transcript_ids</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">mature_rna_ids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">rna_maturation_stoich_matrix</span><span class="o">.</span><span class="n">getcol</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">]</span>
+
+            <span class="c1"># Add edge from the maturation node to mature transcripts</span>
+            <span class="k">for</span> <span class="n">rna_id</span> <span class="ow">in</span> <span class="n">constituent_transcript_ids</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;RNA Maturation&quot;</span><span class="p">,</span> <span class="n">maturation_id</span><span class="p">,</span> <span class="n">rna_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edge from the unprocessed rna to the maturation node</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;RNA Maturation&quot;</span><span class="p">,</span> <span class="n">unprocessed_rna_id</span><span class="p">,</span> <span class="n">maturation_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edges from maturation node to NTPs</span>
+            <span class="k">for</span> <span class="n">ntp_id</span> <span class="ow">in</span> <span class="n">ntp_ids</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;RNA Maturation&quot;</span><span class="p">,</span> <span class="n">maturation_id</span><span class="p">,</span> <span class="n">ntp_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edge from ppi to maturation node</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;RNA Maturation&quot;</span><span class="p">,</span> <span class="n">ppi_id</span><span class="p">,</span> <span class="n">maturation_id</span><span class="p">)</span>
+
+            <span class="c1"># Get indexes of enzymes that catalyze the maturation</span>
+            <span class="n">enzyme_indexes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">rna_maturation_enzyme_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:])[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># Add edge from each enzyme to maturation node</span>
+            <span class="k">for</span> <span class="n">enzyme_index</span> <span class="ow">in</span> <span class="n">enzyme_indexes</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span>
+                    <span class="s2">&quot;RNA Maturation&quot;</span><span class="p">,</span>
+                    <span class="n">rna_maturation_enzymes</span><span class="p">[</span><span class="n">enzyme_index</span><span class="p">],</span>
+                    <span class="n">maturation_id</span><span class="p">,</span>
+                <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._add_translation_and_monomers">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._add_translation_and_monomers">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_translation_and_monomers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add translation process nodes and protein (monomer) state nodes to the</span>
+<span class="sd">        node list, and edges connected to the translation nodes to the edge</span>
+<span class="sd">        list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Create nodes for amino acids</span>
+        <span class="n">aa_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_groups</span><span class="o">.</span><span class="n">amino_acids</span>
+        <span class="n">gtp_id</span> <span class="o">=</span> <span class="s2">&quot;GTP[c]&quot;</span>
+        <span class="n">gdp_id</span> <span class="o">=</span> <span class="s2">&quot;GDP[c]&quot;</span>
+        <span class="n">water_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">water</span>
+        <span class="n">ppi_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">ppi</span>
+
+        <span class="n">ribosome_subunit_ids</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">s30_full_complex</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">s50_full_complex</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="n">all_rna_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Construct dictionary to get corresponding gene IDs from RNA IDs</span>
+        <span class="n">rna_id_to_gene_id</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">cistron_id</span><span class="p">,</span> <span class="n">gene_id</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="p">[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">],</span>
+        <span class="p">):</span>
+            <span class="n">rna_id_to_gene_id</span><span class="p">[</span><span class="n">cistron_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">gene_id</span>
+
+        <span class="c1"># Loop through all translatable genes</span>
+        <span class="k">for</span> <span class="n">monomer_id</span><span class="p">,</span> <span class="n">cistron_id</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">monomer_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">monomer_data</span><span class="p">[</span><span class="s2">&quot;cistron_id&quot;</span><span class="p">],</span>
+        <span class="p">):</span>
+            <span class="n">gene_id</span> <span class="o">=</span> <span class="n">rna_id_to_gene_id</span><span class="p">[</span><span class="n">cistron_id</span><span class="p">]</span>
+
+            <span class="c1"># Initialize a single protein node</span>
+            <span class="n">protein_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">monomer_id_no_compartment</span> <span class="o">=</span> <span class="n">monomer_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">monomer_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_common_name</span><span class="p">(</span><span class="n">monomer_id_no_compartment</span><span class="p">)</span>
+            <span class="n">monomer_synonyms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_synonyms</span><span class="p">(</span><span class="n">monomer_id_no_compartment</span><span class="p">)</span>
+            <span class="n">gene_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_common_name</span><span class="p">(</span><span class="n">gene_id</span><span class="p">)</span>
+            <span class="n">gene_synonyms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_synonyms</span><span class="p">(</span><span class="n">gene_id</span><span class="p">)</span>
+
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;State&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Protein&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">monomer_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">monomer_name</span><span class="p">,</span>
+                <span class="s2">&quot;synonyms&quot;</span><span class="p">:</span> <span class="n">monomer_synonyms</span><span class="p">,</span>
+                <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="n">URL_TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gene_id</span><span class="p">),</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">monomer_id</span><span class="p">),</span>
+            <span class="p">}</span>
+
+            <span class="n">protein_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append protein node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">protein_node</span><span class="p">)</span>
+
+            <span class="c1"># Initialize a single translation node for each transcript</span>
+            <span class="n">translation_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">translation_id</span> <span class="o">=</span> <span class="n">gene_id</span> <span class="o">+</span> <span class="n">NODE_ID_SUFFIX</span><span class="p">[</span><span class="s2">&quot;translation&quot;</span><span class="p">]</span>
+            <span class="n">translation_name</span> <span class="o">=</span> <span class="n">gene_name</span> <span class="o">+</span> <span class="s2">&quot; translation&quot;</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gene_synonyms</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">translation_synonyms</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">+</span> <span class="s2">&quot; translation&quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">gene_synonyms</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">translation_synonyms</span> <span class="o">=</span> <span class="p">[</span><span class="n">gene_synonyms</span><span class="p">]</span>
+
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;Process&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Translation&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">translation_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">translation_name</span><span class="p">,</span>
+                <span class="s2">&quot;synonyms&quot;</span><span class="p">:</span> <span class="n">translation_synonyms</span><span class="p">,</span>
+                <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="n">URL_TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gene_id</span><span class="p">),</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">translation_id</span><span class="p">),</span>
+            <span class="p">}</span>
+            <span class="n">translation_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append translation node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">translation_node</span><span class="p">)</span>
+
+            <span class="c1"># Add edges from all transcripts that encode for the protein to</span>
+            <span class="c1"># the translation node</span>
+            <span class="n">rna_ids</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">all_rna_ids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_id_to_rna_indexes</span><span class="p">(</span>
+                    <span class="n">cistron_id</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">rna_id</span> <span class="ow">in</span> <span class="n">rna_ids</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Translation&quot;</span><span class="p">,</span> <span class="n">rna_id</span><span class="p">,</span> <span class="n">translation_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edge from translation to monomer node</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Translation&quot;</span><span class="p">,</span> <span class="n">translation_id</span><span class="p">,</span> <span class="n">monomer_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edges from amino acids to translation node</span>
+            <span class="k">for</span> <span class="n">aa_id</span> <span class="ow">in</span> <span class="n">aa_ids</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Translation&quot;</span><span class="p">,</span> <span class="n">aa_id</span><span class="p">,</span> <span class="n">translation_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edges from other reactants to translation node</span>
+            <span class="k">for</span> <span class="n">reactant_id</span> <span class="ow">in</span> <span class="p">[</span><span class="n">gtp_id</span><span class="p">,</span> <span class="n">water_id</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Translation&quot;</span><span class="p">,</span> <span class="n">reactant_id</span><span class="p">,</span> <span class="n">translation_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edges from translation to other product nodes</span>
+            <span class="k">for</span> <span class="n">product_id</span> <span class="ow">in</span> <span class="p">[</span><span class="n">gdp_id</span><span class="p">,</span> <span class="n">ppi_id</span><span class="p">,</span> <span class="n">water_id</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Translation&quot;</span><span class="p">,</span> <span class="n">translation_id</span><span class="p">,</span> <span class="n">product_id</span><span class="p">)</span>
+
+            <span class="c1"># Add edges from ribosome subunits to translation node</span>
+            <span class="k">for</span> <span class="n">subunit_id</span> <span class="ow">in</span> <span class="n">ribosome_subunit_ids</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Translation&quot;</span><span class="p">,</span> <span class="n">subunit_id</span><span class="p">,</span> <span class="n">translation_id</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._add_complexation_and_complexes">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._add_complexation_and_complexes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_complexation_and_complexes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add complexation process nodes and complex state nodes to the node</span>
+<span class="sd">        list, and edges connected to the complexation nodes to the edge</span>
+<span class="sd">        list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># List of all complex IDs and reaction IDs</span>
+        <span class="n">complex_ids</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">complexation</span><span class="o">.</span><span class="n">ids_complexes</span>
+            <span class="o">+</span> <span class="n">EQUILIBRIUM_COMPLEXES_IN_COMPLEXATION</span>
+        <span class="p">)</span>
+        <span class="n">reaction_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">complexation</span><span class="o">.</span><span class="n">ids_reactions</span>
+
+        <span class="n">molecule_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">complexation</span><span class="o">.</span><span class="n">molecule_names</span>
+        <span class="n">stoich_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">complexation</span><span class="o">.</span><span class="n">stoich_matrix</span><span class="p">()</span>
+
+        <span class="c1"># Loop through all complexation reactions</span>
+        <span class="k">for</span> <span class="n">reaction_index</span><span class="p">,</span> <span class="n">reaction_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">reaction_ids</span><span class="p">):</span>
+            <span class="c1"># Initialize a single complexation node for each complexation reaction</span>
+            <span class="n">complexation_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;Process&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Complexation&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">reaction_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">reaction_id</span><span class="p">,</span>
+                <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="n">URL_TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reaction_id</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_RXN&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)),</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">reaction_id</span><span class="p">),</span>
+            <span class="p">}</span>
+            <span class="n">complexation_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">complexation_node</span><span class="p">)</span>
+
+            <span class="c1"># Get reaction stoichiometry from stoichimetric matrix</span>
+            <span class="n">stoich_vector</span> <span class="o">=</span> <span class="n">stoich_matrix</span><span class="p">[:,</span> <span class="n">reaction_index</span><span class="p">]</span>
+            <span class="n">molecule_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">stoich_vector</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">stoich_coeffs</span> <span class="o">=</span> <span class="n">stoich_vector</span><span class="p">[</span><span class="n">molecule_indices</span><span class="p">]</span>
+
+            <span class="c1"># Loop through all proteins participating in the reaction</span>
+            <span class="k">for</span> <span class="n">molecule_index</span><span class="p">,</span> <span class="n">stoich</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">molecule_indices</span><span class="p">,</span> <span class="n">stoich_coeffs</span><span class="p">):</span>
+                <span class="c1"># Add complexation edges</span>
+                <span class="c1"># Note: the direction of the edge is determined by the sign of the</span>
+                <span class="c1"># stoichiometric coefficient.</span>
+                <span class="k">if</span> <span class="n">stoich</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span>
+                        <span class="s2">&quot;Complexation&quot;</span><span class="p">,</span>
+                        <span class="n">reaction_id</span><span class="p">,</span>
+                        <span class="n">molecule_ids</span><span class="p">[</span><span class="n">molecule_index</span><span class="p">],</span>
+                        <span class="n">stoich</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span>
+                        <span class="s2">&quot;Complexation&quot;</span><span class="p">,</span>
+                        <span class="n">molecule_ids</span><span class="p">[</span><span class="n">molecule_index</span><span class="p">],</span>
+                        <span class="n">reaction_id</span><span class="p">,</span>
+                        <span class="n">stoich</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">complex_id</span> <span class="ow">in</span> <span class="n">complex_ids</span><span class="p">:</span>
+            <span class="c1"># Initialize a single complex node for each complex</span>
+            <span class="n">complex_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">complex_id_no_compartment</span> <span class="o">=</span> <span class="n">complex_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">complex_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_common_name</span><span class="p">(</span><span class="n">complex_id_no_compartment</span><span class="p">)</span>
+            <span class="n">complex_synonyms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_synonyms</span><span class="p">(</span><span class="n">complex_id_no_compartment</span><span class="p">)</span>
+
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;State&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Complex&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">complex_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">complex_name</span><span class="p">,</span>
+                <span class="s2">&quot;synonyms&quot;</span><span class="p">:</span> <span class="n">complex_synonyms</span><span class="p">,</span>
+                <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="n">URL_TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">complex_id_no_compartment</span><span class="p">),</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">complex_id</span><span class="p">),</span>
+            <span class="p">}</span>
+
+            <span class="n">complex_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">complex_node</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._add_metabolism_and_metabolites">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._add_metabolism_and_metabolites">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_metabolism_and_metabolites</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add metabolism process nodes and metabolite state nodes to the node</span>
+<span class="sd">        list, add edges connected to the metabolism nodes to the edge list.</span>
+<span class="sd">        Note: forward and reverse reactions are represented as separate nodes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get all reaction stoichiometry from sim_data</span>
+        <span class="n">reaction_stoich</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">metabolism</span><span class="o">.</span><span class="n">reaction_stoich</span>
+
+        <span class="c1"># Get reaction to catalyst dict from sim_data</span>
+        <span class="n">reaction_catalysts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">metabolism</span><span class="o">.</span><span class="n">reaction_catalysts</span>
+
+        <span class="c1"># get transport reactions and remove from metabolism</span>
+        <span class="n">transport_reactions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">metabolism</span><span class="o">.</span><span class="n">transport_reactions</span><span class="p">)</span>
+
+        <span class="c1"># Initialize list of metabolite IDs</span>
+        <span class="n">metabolite_ids</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Loop through all reactions</span>
+        <span class="k">for</span> <span class="n">reaction_id</span><span class="p">,</span> <span class="n">stoich_dict</span> <span class="ow">in</span> <span class="n">reaction_stoich</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">node_type</span> <span class="o">=</span> <span class="s2">&quot;Metabolism&quot;</span>
+
+            <span class="c1"># make a transport node if the reaction is in transport_reactions</span>
+            <span class="k">if</span> <span class="n">reaction_id</span> <span class="ow">in</span> <span class="n">transport_reactions</span><span class="p">:</span>
+                <span class="n">node_type</span> <span class="o">=</span> <span class="s2">&quot;Transport&quot;</span>
+
+            <span class="c1"># Initialize a single metabolism node for each reaction</span>
+            <span class="n">metabolism_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Get URL for metabolism reaction</span>
+            <span class="k">if</span> <span class="n">reaction_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;TRANS&quot;</span><span class="p">):</span>
+                <span class="n">reaction_url_tag</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">reaction_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[:</span><span class="mi">3</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">reaction_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;RXN&quot;</span><span class="p">):</span>
+                <span class="n">reaction_url_tag</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">reaction_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[:</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">reaction_url_tag</span> <span class="o">=</span> <span class="n">reaction_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-RXN&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;-RXN&quot;</span>
+            <span class="n">reaction_url</span> <span class="o">=</span> <span class="n">URL_TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">reaction_url_tag</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; (reverse)&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;Process&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="n">node_type</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">reaction_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">reaction_id</span><span class="p">,</span>
+                <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="n">reaction_url</span><span class="p">,</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">reaction_id</span><span class="p">),</span>
+            <span class="p">}</span>
+            <span class="n">metabolism_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metabolism_node</span><span class="p">)</span>
+
+            <span class="c1"># Get list of proteins that catalyze this reaction</span>
+            <span class="n">catalyst_list</span> <span class="o">=</span> <span class="n">reaction_catalysts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">reaction_id</span><span class="p">,</span> <span class="p">[])</span>
+
+            <span class="c1"># Add an edge from each catalyst to the metabolism node</span>
+            <span class="k">for</span> <span class="n">catalyst</span> <span class="ow">in</span> <span class="n">catalyst_list</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="n">node_type</span><span class="p">,</span> <span class="n">catalyst</span><span class="p">,</span> <span class="n">reaction_id</span><span class="p">)</span>
+
+            <span class="c1"># Loop through all metabolites participating in the reaction</span>
+            <span class="k">for</span> <span class="n">metabolite</span><span class="p">,</span> <span class="n">stoich</span> <span class="ow">in</span> <span class="n">stoich_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># Add metabolites that were not encountered</span>
+                <span class="k">if</span> <span class="n">metabolite</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metabolite_ids</span><span class="p">:</span>
+                    <span class="n">metabolite_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metabolite</span><span class="p">)</span>
+
+                <span class="c1"># Add Metabolism edges</span>
+                <span class="c1"># Note: the direction of the edge is determined by the sign of the</span>
+                <span class="c1"># stoichiometric coefficient.</span>
+                <span class="k">if</span> <span class="n">stoich</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="n">node_type</span><span class="p">,</span> <span class="n">reaction_id</span><span class="p">,</span> <span class="n">metabolite</span><span class="p">,</span> <span class="n">stoich</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="n">node_type</span><span class="p">,</span> <span class="n">metabolite</span><span class="p">,</span> <span class="n">reaction_id</span><span class="p">,</span> <span class="n">stoich</span><span class="p">)</span>
+
+        <span class="c1"># Add specific charging reactions</span>
+        <span class="c1"># TODO (Travis): add charged/uncharged tRNA as RNA not metabolites?</span>
+        <span class="n">transcription</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span>
+        <span class="n">uncharged_trnas</span> <span class="o">=</span> <span class="n">transcription</span><span class="o">.</span><span class="n">uncharged_trna_names</span>
+        <span class="n">charging_stoich</span> <span class="o">=</span> <span class="n">transcription</span><span class="o">.</span><span class="n">charging_stoich_matrix</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">charging_molecules</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">transcription</span><span class="o">.</span><span class="n">charging_molecules</span><span class="p">)</span>
+        <span class="n">synthetases</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">transcription</span><span class="o">.</span><span class="n">synthetase_names</span><span class="p">)</span>
+        <span class="n">trna_to_synthetase</span> <span class="o">=</span> <span class="n">transcription</span><span class="o">.</span><span class="n">aa_from_trna</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+            <span class="n">transcription</span><span class="o">.</span><span class="n">aa_from_synthetase</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">stoich</span><span class="p">,</span> <span class="n">trna</span><span class="p">,</span> <span class="n">synth_idx</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">charging_stoich</span><span class="p">,</span> <span class="n">uncharged_trnas</span><span class="p">,</span> <span class="n">trna_to_synthetase</span>
+        <span class="p">):</span>
+            <span class="n">rxn</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> net charging&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trna</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">])</span>
+
+            <span class="n">charging_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;Process&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Charging&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">rxn</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">rxn</span><span class="p">,</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">trna</span><span class="p">),</span>
+            <span class="p">}</span>
+            <span class="n">charging_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">charging_node</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">synthetase</span> <span class="ow">in</span> <span class="n">synthetases</span><span class="p">[</span><span class="n">synth_idx</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Charging&quot;</span><span class="p">,</span> <span class="n">synthetase</span><span class="p">,</span> <span class="n">rxn</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># Loop through all metabolites participating in the reaction</span>
+            <span class="n">mol_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">stoich</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">mol</span><span class="p">,</span> <span class="n">direction</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">charging_molecules</span><span class="p">[</span><span class="n">mol_idx</span><span class="p">],</span> <span class="n">stoich</span><span class="p">[</span><span class="n">mol_idx</span><span class="p">]):</span>
+                <span class="c1"># Add metabolites that were not encountered</span>
+                <span class="k">if</span> <span class="n">mol</span> <span class="o">!=</span> <span class="n">trna</span> <span class="ow">and</span> <span class="n">mol</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metabolite_ids</span><span class="p">:</span>
+                    <span class="n">metabolite_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+                <span class="c1"># Add Charging edges</span>
+                <span class="c1"># Note: the direction of the edge is determined by the sign of the</span>
+                <span class="c1"># stoichiometric coefficient.</span>
+                <span class="k">if</span> <span class="n">direction</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Charging&quot;</span><span class="p">,</span> <span class="n">rxn</span><span class="p">,</span> <span class="n">mol</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Charging&quot;</span><span class="p">,</span> <span class="n">mol</span><span class="p">,</span> <span class="n">rxn</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
+
+        <span class="c1"># Loop through all metabolites</span>
+        <span class="k">for</span> <span class="n">metabolite_id</span> <span class="ow">in</span> <span class="n">metabolite_ids</span><span class="p">:</span>
+            <span class="c1"># Skip proteins - they should have already been added</span>
+            <span class="k">if</span> <span class="n">metabolite_id</span> <span class="ow">in</span> <span class="n">PROTEINS_IN_METABOLISM</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Initialize a single metabolite node for each metabolite</span>
+            <span class="n">metabolite_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">metabolite_id_no_compartment</span> <span class="o">=</span> <span class="n">metabolite_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">metabolite_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_common_name</span><span class="p">(</span>
+                <span class="n">metabolite_id_no_compartment</span>
+            <span class="p">)</span>
+            <span class="n">metabolite_synonyms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_synonyms</span><span class="p">(</span>
+                <span class="n">metabolite_id_no_compartment</span>
+            <span class="p">)</span>
+
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;State&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Metabolite&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">metabolite_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">metabolite_name</span><span class="p">,</span>
+                <span class="s2">&quot;synonyms&quot;</span><span class="p">:</span> <span class="n">metabolite_synonyms</span><span class="p">,</span>
+                <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="n">URL_TEMPLATE_COMPOUND</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">metabolite_id_no_compartment</span><span class="p">),</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">metabolite_id</span><span class="p">),</span>
+            <span class="p">}</span>
+
+            <span class="n">metabolite_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metabolite_node</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._add_equilibrium">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._add_equilibrium">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_equilibrium</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add equilibrium nodes to the node list, and add edges connected to the</span>
+<span class="sd">        equilibrium nodes to the edge list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get equilibrium-specific data from sim_data</span>
+        <span class="n">equilibrium_molecule_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">equilibrium</span><span class="o">.</span><span class="n">molecule_names</span>
+        <span class="n">equilibrium_reaction_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">equilibrium</span><span class="o">.</span><span class="n">rxn_ids</span>
+        <span class="n">equilibrium_stoich_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">equilibrium</span><span class="o">.</span><span class="n">stoich_matrix</span><span class="p">()</span>
+
+        <span class="c1"># Get IDs of complexes that were already added</span>
+        <span class="n">complexation_complex_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">complexation</span><span class="o">.</span><span class="n">ids_complexes</span>
+
+        <span class="c1"># Get list of complex IDs in equilibrium</span>
+        <span class="n">equilibrium_complex_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">equilibrium</span><span class="o">.</span><span class="n">ids_complexes</span>
+
+        <span class="c1"># Loop through each equilibrium reaction</span>
+        <span class="k">for</span> <span class="n">reaction_index</span><span class="p">,</span> <span class="n">reaction_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">equilibrium_reaction_ids</span><span class="p">):</span>
+            <span class="c1"># Initialize a single equilibrium node for each equilibrium reaction</span>
+            <span class="n">equilibrium_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">reaction_name</span> <span class="o">=</span> <span class="n">reaction_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot; equilibrium rxn&quot;</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;Process&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Equilibrium&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">reaction_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">reaction_name</span><span class="p">,</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">reaction_id</span><span class="p">),</span>
+            <span class="p">}</span>
+            <span class="n">equilibrium_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append new node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">equilibrium_node</span><span class="p">)</span>
+
+            <span class="c1"># Extract column corresponding to reaction in the stoichiometric matrix</span>
+            <span class="n">equilibrium_stoich_matrix_column</span> <span class="o">=</span> <span class="n">equilibrium_stoich_matrix</span><span class="p">[</span>
+                <span class="p">:,</span> <span class="n">reaction_index</span>
+            <span class="p">]</span>
+
+            <span class="c1"># Loop through each element in column</span>
+            <span class="k">for</span> <span class="n">molecule_index</span><span class="p">,</span> <span class="n">stoich</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">equilibrium_stoich_matrix_column</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">stoich</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="n">molecule_id</span> <span class="o">=</span> <span class="n">equilibrium_molecule_ids</span><span class="p">[</span><span class="n">molecule_index</span><span class="p">]</span>
+
+                <span class="c1"># Add Equilibrium edges</span>
+                <span class="c1"># Note: the direction of the edge is determined by the sign of the</span>
+                <span class="c1"># stoichiometric coefficient.</span>
+                <span class="k">if</span> <span class="n">stoich</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Equilibrium&quot;</span><span class="p">,</span> <span class="n">reaction_id</span><span class="p">,</span> <span class="n">molecule_id</span><span class="p">,</span> <span class="n">stoich</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Equilibrium&quot;</span><span class="p">,</span> <span class="n">molecule_id</span><span class="p">,</span> <span class="n">reaction_id</span><span class="p">,</span> <span class="n">stoich</span><span class="p">)</span>
+
+        <span class="c1"># Get 2CS-specific data from sim_data</span>
+        <span class="n">tcs_molecule_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">two_component_system</span><span class="o">.</span><span class="n">molecule_names</span>
+        <span class="n">tcs_reaction_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">two_component_system</span><span class="o">.</span><span class="n">rxn_ids</span>
+        <span class="n">tcs_stoich_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">two_component_system</span><span class="o">.</span><span class="n">stoich_matrix</span><span class="p">()</span>
+
+        <span class="c1"># Initialize list of complex IDs in 2CS</span>
+        <span class="c1"># TODO (ggsun): add this to sim_data</span>
+        <span class="n">tcs_complex_ids</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Get lists of monomers that were already added</span>
+        <span class="n">monomer_ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">translation</span><span class="o">.</span><span class="n">monomer_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+
+        <span class="c1"># Loop through each 2CS reaction</span>
+        <span class="k">for</span> <span class="n">reaction_index</span><span class="p">,</span> <span class="n">reaction_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tcs_reaction_ids</span><span class="p">):</span>
+            <span class="c1"># Initialize a single equilibrium node for each equilibrium reaction</span>
+            <span class="n">equilibrium_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">reaction_name</span> <span class="o">=</span> <span class="n">reaction_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot; 2CS rxn&quot;</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;Process&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Equilibrium&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">reaction_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">reaction_name</span><span class="p">,</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">reaction_id</span><span class="p">),</span>
+            <span class="p">}</span>
+            <span class="n">equilibrium_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append new node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">equilibrium_node</span><span class="p">)</span>
+
+            <span class="c1"># Extract column corresponding to reaction in the stoichiometric matrix</span>
+            <span class="n">tcs_stoich_matrix_column</span> <span class="o">=</span> <span class="n">tcs_stoich_matrix</span><span class="p">[:,</span> <span class="n">reaction_index</span><span class="p">]</span>
+
+            <span class="c1"># Loop through each element in column</span>
+            <span class="k">for</span> <span class="n">molecule_index</span><span class="p">,</span> <span class="n">stoich</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tcs_stoich_matrix_column</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">stoich</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="n">molecule_id</span> <span class="o">=</span> <span class="n">tcs_molecule_ids</span><span class="p">[</span><span class="n">molecule_index</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">molecule_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">monomer_ids</span> <span class="o">+</span> <span class="n">NONPROTEIN_MOLECULES_IN_2CS</span><span class="p">:</span>
+                    <span class="n">tcs_complex_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">molecule_id</span><span class="p">)</span>
+
+                <span class="c1"># Add Equilibrium edges</span>
+                <span class="c1"># Note: the direction of the edge is determined by the sign of the</span>
+                <span class="c1"># stoichiometric coefficient.</span>
+                <span class="k">if</span> <span class="n">stoich</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Equilibrium&quot;</span><span class="p">,</span> <span class="n">reaction_id</span><span class="p">,</span> <span class="n">molecule_id</span><span class="p">,</span> <span class="n">stoich</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Equilibrium&quot;</span><span class="p">,</span> <span class="n">molecule_id</span><span class="p">,</span> <span class="n">reaction_id</span><span class="p">,</span> <span class="n">stoich</span><span class="p">)</span>
+
+        <span class="c1"># Add new complexes that were encountered here</span>
+        <span class="k">for</span> <span class="n">complex_id</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">equilibrium_complex_ids</span> <span class="o">+</span> <span class="n">tcs_complex_ids</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">complex_id</span> <span class="ow">in</span> <span class="n">complexation_complex_ids</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Initialize a single complex node for each complex</span>
+            <span class="n">complex_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">complex_id_no_compartment</span> <span class="o">=</span> <span class="n">complex_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">complex_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_common_name</span><span class="p">(</span><span class="n">complex_id_no_compartment</span><span class="p">)</span>
+
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;State&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Complex&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">complex_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">complex_name</span><span class="p">,</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">complex_id</span><span class="p">),</span>
+            <span class="p">}</span>
+            <span class="n">complex_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">complex_node</span><span class="p">)</span>
+
+        <span class="c1"># Loop through metabolites that only appear in equilibrium</span>
+        <span class="k">for</span> <span class="n">metabolite_id</span> <span class="ow">in</span> <span class="n">METABOLITES_ONLY_IN_EQUILIBRIUM</span><span class="p">:</span>
+            <span class="c1"># Initialize a single metabolite node for each metabolite</span>
+            <span class="n">metabolite_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+            <span class="c1"># Add attributes to the node</span>
+            <span class="n">metabolite_id_no_compartment</span> <span class="o">=</span> <span class="n">metabolite_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">metabolite_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">common_names</span><span class="o">.</span><span class="n">get_common_name</span><span class="p">(</span>
+                <span class="n">metabolite_id_no_compartment</span>
+            <span class="p">)</span>
+
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;State&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Metabolite&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">metabolite_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">metabolite_name</span><span class="p">,</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">metabolite_id</span><span class="p">),</span>
+            <span class="p">}</span>
+            <span class="n">metabolite_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="c1"># Append node to node_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metabolite_node</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._add_regulation">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._add_regulation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_regulation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add regulation nodes with to the node list, and add edges connected to</span>
+<span class="sd">        the regulation nodes to the edge list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get list of transcription factor IDs and transcription unit IDs</span>
+        <span class="n">tf_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription_regulation</span><span class="o">.</span><span class="n">tf_ids</span>
+        <span class="n">rna_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+        <span class="n">cistron_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">cistron_data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Get delta_prob matrix from sim_data</span>
+        <span class="n">delta_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription_regulation</span><span class="o">.</span><span class="n">delta_prob</span>
+
+        <span class="c1"># Build dict that maps TFs to indexes of transcription units they</span>
+        <span class="c1"># regulate</span>
+        <span class="n">TF_to_TU_idx</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">tf</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tf_ids</span><span class="p">):</span>
+            <span class="n">TF_to_TU_idx</span><span class="p">[</span><span class="n">tf</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta_prob</span><span class="p">[</span><span class="s2">&quot;deltaI&quot;</span><span class="p">][</span><span class="n">delta_prob</span><span class="p">[</span><span class="s2">&quot;deltaJ&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span>
+
+        <span class="c1"># Build dict that maps RNA IDs to gene IDs</span>
+        <span class="n">cistron_id_to_gene_id</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">cistron_id</span><span class="p">,</span> <span class="n">gene_id</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">replication</span><span class="o">.</span><span class="n">gene_data</span><span class="p">[</span><span class="s2">&quot;cistron_id&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">replication</span><span class="o">.</span><span class="n">gene_data</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+        <span class="p">):</span>
+            <span class="n">cistron_id_to_gene_id</span><span class="p">[</span><span class="n">cistron_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">gene_id</span>
+
+        <span class="c1"># Loop through all TFs</span>
+        <span class="k">for</span> <span class="n">tf_id</span> <span class="ow">in</span> <span class="n">tf_ids</span><span class="p">:</span>
+            <span class="c1"># Add TF bound to DNA</span>
+            <span class="n">bound_tf_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tf_id</span><span class="si">}</span><span class="s2">-bound&quot;</span>
+            <span class="n">tf_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;Process&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;TF Binding&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">bound_tf_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">bound_tf_id</span><span class="p">,</span>
+                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="s2">&quot;c&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">tf_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf_node</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Regulation&quot;</span><span class="p">,</span> <span class="n">tf_id</span> <span class="o">+</span> <span class="s2">&quot;[c]&quot;</span><span class="p">,</span> <span class="n">bound_tf_id</span><span class="p">)</span>
+
+            <span class="c1"># Get IDs of RNAs that are regulated by the TF</span>
+            <span class="n">regulated_rna_ids</span> <span class="o">=</span> <span class="n">rna_ids</span><span class="p">[</span><span class="n">TF_to_TU_idx</span><span class="p">[</span><span class="n">tf_id</span><span class="p">]]</span>
+
+            <span class="k">for</span> <span class="n">regulated_rna_id</span> <span class="ow">in</span> <span class="n">regulated_rna_ids</span><span class="p">:</span>
+                <span class="n">regulated_cistron_ids</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">cistron_ids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_id_to_cistron_indexes</span><span class="p">(</span>
+                        <span class="n">regulated_rna_id</span>
+                    <span class="p">)</span>
+                <span class="p">]</span>
+
+                <span class="k">for</span> <span class="n">regulated_cistron_id</span> <span class="ow">in</span> <span class="n">regulated_cistron_ids</span><span class="p">:</span>
+                    <span class="c1"># Find corresponding ID of gene</span>
+                    <span class="n">gene_id</span> <span class="o">=</span> <span class="n">cistron_id_to_gene_id</span><span class="p">[</span><span class="n">regulated_cistron_id</span><span class="p">]</span>
+
+                    <span class="c1"># Initialize a single regulation node for each TF-gene pair</span>
+                    <span class="n">regulation_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+
+                    <span class="c1"># Add attributes to the node</span>
+                    <span class="n">reg_id</span> <span class="o">=</span> <span class="n">tf_id</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">gene_id</span> <span class="o">+</span> <span class="n">NODE_ID_SUFFIX</span><span class="p">[</span><span class="s2">&quot;regulation&quot;</span><span class="p">]</span>
+                    <span class="n">reg_name</span> <span class="o">=</span> <span class="n">tf_id</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">+</span> <span class="n">gene_id</span> <span class="o">+</span> <span class="s2">&quot; gene regulation&quot;</span>
+                    <span class="n">attr</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">&quot;node_class&quot;</span><span class="p">:</span> <span class="s2">&quot;Process&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;node_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Regulation&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;node_id&quot;</span><span class="p">:</span> <span class="n">reg_id</span><span class="p">,</span>
+                        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">reg_name</span><span class="p">,</span>
+                        <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">molecule_compartment</span><span class="p">(</span><span class="n">reg_id</span><span class="p">),</span>
+                    <span class="p">}</span>
+                    <span class="n">regulation_node</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">regulation_node</span><span class="p">)</span>
+
+                    <span class="c1"># Add edge from TF to this regulation node</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Regulation&quot;</span><span class="p">,</span> <span class="n">bound_tf_id</span><span class="p">,</span> <span class="n">reg_id</span><span class="p">)</span>
+
+                    <span class="c1"># Add edge from this regulation node to the gene</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_append_edge</span><span class="p">(</span><span class="s2">&quot;Regulation&quot;</span><span class="p">,</span> <span class="n">reg_id</span><span class="p">,</span> <span class="n">gene_id</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._find_duplicate_nodes">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._find_duplicate_nodes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_find_duplicate_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Identify nodes that have duplicate IDs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">counters</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">([</span><span class="n">node</span><span class="o">.</span><span class="n">get_node_id</span><span class="p">()</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="p">])</span>
+        <span class="n">duplicate_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">node_id</span> <span class="k">for</span> <span class="n">node_id</span> <span class="ow">in</span> <span class="n">counters</span> <span class="k">if</span> <span class="n">counters</span><span class="p">[</span><span class="n">node_id</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">}</span>
+
+        <span class="c1"># Print duplicate node IDs that were found</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">duplicate_ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> node IDs have duplicates: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">duplicate_ids</span><span class="p">),</span> <span class="n">duplicate_ids</span><span class="p">)</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._remove_hanging_edges">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._remove_hanging_edges">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_remove_hanging_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Remove edges that are not connected to existing nodes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get set of all node IDs</span>
+        <span class="n">node_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">node</span><span class="o">.</span><span class="n">node_id</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="p">}</span>
+        <span class="n">disconnected_edge_indexes</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Find edges whose source and destination nodes are not defined</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">edge</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edge_list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">edge</span><span class="o">.</span><span class="n">src_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node_ids</span> <span class="ow">or</span> <span class="n">edge</span><span class="o">.</span><span class="n">dst_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node_ids</span><span class="p">:</span>
+                <span class="n">disconnected_edge_indexes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="c1"># Remove these edges</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">disconnected_edge_indexes</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">edge_list</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildNetwork._append_edge">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.causality_network.build_network.html#ecoli.analysis.causality_network.build_network.BuildNetwork._append_edge">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_append_edge</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">type_</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dst</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stoichiometry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper function for appending new nodes to the network.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">edge</span> <span class="o">=</span> <span class="n">Edge</span><span class="p">(</span><span class="n">type_</span><span class="p">)</span>
+        <span class="n">edge</span><span class="o">.</span><span class="n">read_attributes</span><span class="p">(</span><span class="n">src_id</span><span class="o">=</span><span class="n">src</span><span class="p">,</span> <span class="n">dst_id</span><span class="o">=</span><span class="n">dst</span><span class="p">,</span> <span class="n">stoichiometry</span><span class="o">=</span><span class="n">stoichiometry</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,413 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.multivariant.dummy &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.multivariant.dummy</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.multivariant.dummy</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+
+<span class="n">OUTPUT_COLUMN_NAMES</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;agent_id&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;bulk&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;experiment_id&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;generation&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;lineage_seed&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__atp__atp_allocated_initial&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__atp__atp_requested&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__complexation_listener__complexation_events&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__dna_supercoiling__segment_domain_indexes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__dna_supercoiling__segment_left_boundary_coordinates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__dna_supercoiling__segment_right_boundary_coordinates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__dna_supercoiling__segment_superhelical_densities&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__enzyme_kinetics__actual_fluxes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__enzyme_kinetics__counts_to_molar&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__enzyme_kinetics__enzyme_counts_init&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__enzyme_kinetics__metabolite_counts_final&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__enzyme_kinetics__metabolite_counts_init&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__enzyme_kinetics__target_aa_conc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__enzyme_kinetics__target_fluxes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__enzyme_kinetics__target_fluxes_lower&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__enzyme_kinetics__target_fluxes_upper&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__equilibrium_listener__reaction_rates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__base_reaction_fluxes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__catalyst_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__coefficient&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__conc_updates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__constrained_molecules&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__delta_metabolites&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__external_exchange_fluxes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__homeostatic_objective_values&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__kinetic_objective_values&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__media_id&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__objective_value&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__reaction_fluxes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__reduced_costs&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__shadow_prices&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__target_concentrations&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__translation_gtp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__unconstrained_molecules&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__fba_results__uptake_constraints&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_allocated&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_conc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_count_diff&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_export&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_exporters&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_import&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_importers&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_in_media&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_pool_size&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_request_size&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_supply&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_supply_aa_conc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_supply_enzymes_fwd&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_supply_enzymes_rev&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_supply_fraction_fwd&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_supply_fraction_rev&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aa_synthesis&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__aas_used&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__active_ribosome_allocated&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__charged_trna_conc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__fraction_aa_to_elongate&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__fraction_trna_charged&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__net_charged&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__ntp_allocated&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__ntp_pool_size&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__ntp_request_size&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__ntp_used&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__original_aa_supply&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__ppgpp_conc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__rela_conc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__rela_syn&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__ribosome_conc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__spot_conc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__spot_deg&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__spot_deg_inhibited&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__spot_syn&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__synthetase_conc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__trna_charged&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__growth_limits__uncharged_trna_conc&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__cell_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__cytosol_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__dna_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__dry_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__dry_mass_fold_change&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__expected_mass_fold_change&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__extracellular_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__flagellum_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__growth&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__inner_membrane_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__instantaneous_growth_rate&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__mRna_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__membrane_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__outer_membrane_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__periplasm_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__pilus_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__projection_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__protein_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__protein_mass_fold_change&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__protein_mass_fraction&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__rRna_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__rna_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__rna_mass_fold_change&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__rna_mass_fraction&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__smallMolecule_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__small_molecule_fold_change&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__tRna_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__volume&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__mass__water_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__monomer_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__replication_data__critical_initiation_mass&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__replication_data__critical_mass_per_oriC&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__replication_data__fork_coordinates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__replication_data__fork_domains&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__replication_data__fork_unique_index&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__replication_data__free_DnaA_boxes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__replication_data__number_of_oric&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__replication_data__total_DnaA_boxes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__aa_count_in_sequence&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__aa_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__actual_elongation_hist&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__actual_elongations&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__actual_prob_translation_per_transcript&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__did_initialize&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__did_terminate&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__effective_elongation_rate&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__elongations_non_terminating_hist&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__mRNA_TU_index&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__mRNA_is_overcrowded&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__max_p&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__max_p_per_protein&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__n_ribosomes_on_each_mRNA&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__n_ribosomes_on_partial_mRNA_per_transcript&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__n_ribosomes_per_transcript&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__num_trpA_terminated&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__process_elongation_rate&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__protein_mass_on_polysomes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__rRNA16S_init_prob&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__rRNA16S_initiated&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__rRNA23S_init_prob&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__rRNA23S_initiated&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__rRNA5S_init_prob&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__rRNA5S_initiated&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__rRNA_init_prob_TU&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__rRNA_initiated_TU&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__ribosome_init_event_per_monomer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__target_prob_translation_per_transcript&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__termination_loss&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__total_rRNA_init_prob&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__total_rRNA_initiated&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__total_rna_init&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__ribosome_data__translation_supply&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__full_mRNA_cistron_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__full_mRNA_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__mRNA_cistron_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__mRNA_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__partial_mRNA_cistron_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__partial_mRNA_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__partial_rRNA_cistron_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_counts__partial_rRNA_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_degradation_listener__count_RNA_degraded_per_cistron&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_degradation_listener__count_rna_degraded&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_degradation_listener__diff_relative_first_order_decay&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_degradation_listener__fract_endo_rrna_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_degradation_listener__fraction_active_endornases&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_degradation_listener__fragment_bases_digested&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_degradation_listener__nucleotides_from_degradation&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_maturation_listener__maturation_enzyme_counts&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_maturation_listener__mature_rnas_generated&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_maturation_listener__total_degraded_ntps&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_maturation_listener__total_maturation_events&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_maturation_listener__unprocessed_rnas_consumed&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__actual_rna_synth_prob&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__actual_rna_synth_prob_per_cistron&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__bound_TF_coordinates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__bound_TF_domains&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__bound_TF_indexes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__expected_rna_init_per_cistron&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__gene_copy_number&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__max_p&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__n_actual_bound&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__n_available_promoters&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__n_bound_TF_per_TU&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__n_bound_TF_per_cistron&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__n_promoter_bound&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__p_promoter_bound&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__promoter_copy_number&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__target_rna_synth_prob&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__target_rna_synth_prob_per_cistron&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__total_rna_init&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rna_synth_prob__tu_is_overcrowded&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__active_rnap_coordinates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__active_rnap_domain_indexes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__active_rnap_n_bound_ribosomes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__active_rnap_on_stable_RNA_indexes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__active_rnap_unique_indexes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__actual_elongations&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__codirectional_collision_coordinates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__did_initialize&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__did_stall&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__did_terminate&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__empty_fork_collision_coordinates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__headon_collision_coordinates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__incomplete_transcription_events&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__n_codirectional_collisions&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__n_empty_fork_collisions&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__n_headon_collisions&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__n_removed_ribosomes&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__n_total_collisions&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__rna_init_event&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__rna_init_event_per_cistron&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__rnap_data__termination_loss&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__transcript_elongation_listener__attenuation_probability&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__transcript_elongation_listener__count_NTPs_used&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__transcript_elongation_listener__count_rna_synthesized&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__transcript_elongation_listener__counts_attenuated&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__unique_molecule_counts__DnaA_box&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__unique_molecule_counts__RNA&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__unique_molecule_counts__active_RNAP&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__unique_molecule_counts__active_replisome&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__unique_molecule_counts__active_ribosome&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__unique_molecule_counts__chromosomal_segment&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__unique_molecule_counts__chromosome_domain&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__unique_molecule_counts__full_chromosome&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__unique_molecule_counts__gene&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__unique_molecule_counts__oriC&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;listeners__unique_molecule_counts__promoter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;process_state__polypeptide_elongation__aa_count_diff&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;process_state__polypeptide_elongation__aa_exchange_rates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;process_state__polypeptide_elongation__gtp_to_hydrolyze&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;time&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;variant&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="plot">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.multivariant.dummy.html#ecoli.analysis.multivariant.dummy.plot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">DuckDBPyConnection</span><span class="p">,</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sim_data_paths</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">validation_data_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">variant_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">variant_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dummy analysis script that checks current output columns match expected list</span>
+<span class="sd">    of output columns.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">current_column_names</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;SELECT column_name FROM (DESCRIBE (</span><span class="si">{</span><span class="n">history_sql</span><span class="si">}</span><span class="s2">)) ORDER BY column_name&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">pl</span><span class="p">()</span>
+    <span class="n">current_column_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">current_column_names</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">current_column_names</span> <span class="o">!=</span> <span class="n">OUTPUT_COLUMN_NAMES</span><span class="p">:</span>
+        <span class="n">missing_columns</span> <span class="o">=</span> <span class="n">OUTPUT_COLUMN_NAMES</span> <span class="o">-</span> <span class="n">current_column_names</span>
+        <span class="n">new_columns</span> <span class="o">=</span> <span class="n">current_column_names</span> <span class="o">-</span> <span class="n">OUTPUT_COLUMN_NAMES</span>
+
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;Output column names mismatch detected!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;This could be due to:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;  1. New output columns have been added to the simulation</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;  2. Existing output columns have been renamed</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;  3. Columns have been removed from the simulation</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">new_columns</span><span class="p">:</span>
+            <span class="n">error_msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">New columns (not in expected list):&quot;</span><span class="p">)</span>
+            <span class="n">error_msg</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;  • </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">new_columns</span><span class="p">)])</span>
+
+        <span class="k">if</span> <span class="n">missing_columns</span><span class="p">:</span>
+            <span class="n">error_msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Missing columns (expected but not found):&quot;</span><span class="p">)</span>
+            <span class="n">error_msg</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;  • </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">missing_columns</span><span class="p">)])</span>
+
+        <span class="n">error_msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Troubleshooting:&quot;</span><span class="p">)</span>
+        <span class="n">error_msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;  • If new columns were added: Add them to OUTPUT_COLUMN_NAMES&quot;</span>
+        <span class="p">)</span>
+        <span class="n">error_msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;  • If columns were renamed: Update names in OUTPUT_COLUMN_NAMES&quot;</span>
+        <span class="p">)</span>
+        <span class="n">error_msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;  • If columns were removed: Remove names in OUTPUT_COLUMN_NAMES&quot;</span>
+        <span class="p">)</span>
+        <span class="n">error_msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;  • IMPORTANT: update other analyses that use renamed or removed columns&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">error_msg</span><span class="p">))</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">outdir</span><span class="si">}</span><span class="s2">/dummy_analysis.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Dummy analysis completed successfully.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;No issues detected with output column names.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2025, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
