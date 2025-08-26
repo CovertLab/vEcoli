@@ -128,6 +128,13 @@ See :ref:`sherlock-config` for a description of the Sherlock-specific
 configuration options and :ref:`sherlock-running` for details about running
 a workflow on Sherlock.
 
+.. note::
+   ``test_sherlock.json`` sets ``out_dir`` to ``.``. In relative path syntax,
+   this refers to the current directory, meaning the cloned repo. This makes
+   the configuration portable as it does not assume the presence of any other
+   folders. However, as noted in :ref:`sherlock-config`, we recommend changing
+   this in your workflows. 
+
 To run scripts on Sherlock outside a workflow, see :ref:`sherlock-interactive`.
 To run scripts on Sherlock through a SLURM batch script, see :ref:`sherlock-noninteractive`.
 
@@ -176,7 +183,10 @@ keys in your configuration JSON (note the top-level ``sherlock`` key):
     "sherlock": {
       # Boolean, whether to build a fresh Apptainer image. If files that are
       # not excluded by .dockerignore did not change since your last build,
-      # you can set this to false to skip building the image.
+      # you can set this to false to skip building the image. DO NOT set this
+      # to a location in the cloned repo or else the resulting image(s) will be
+      # included in future image builds. test_sherlock.json is an exception
+      # because the test_sherlock folder is ignored by .dockerignore.
       "build_image": true,
       # Path (relative or absolute, including file name) of Apptainer image to
       # build (or use directly, if build_image is false)
@@ -196,8 +206,15 @@ In addition to these options, you **MUST** set the emitter output directory
 enough space to store your workflow outputs. 
 
 .. important::
-   We recommend setting ``emitter_arg`` to a location in your ``$SCRATCH`` directory (e.g. ``"out_dir": "/scratch/users/{username}/out"``),
-   since ``$HOME`` only has a pretty small storage limit (run ``sh_quota`` to view).
+   We recommend setting ``out_dir`` under ``emitter_arg`` to a location in your
+   ``$SCRATCH`` directory to circumvent the ``$HOME`` storage limit
+   (run ``sh_quota`` to view). One way to do this is using an absolute path
+   (e.g. ``/scratch/users/{username}``). Alternatively, you can create a
+   symlink to your scratch directory by running the following command inside
+   your cloned repository: ``ln -s /scratch/users/{username} out`` (delete
+   ``out`` in your cloned repo first if it already exists). Then, using ``out``
+   for ``out_dir`` will cause all simulation output to be redirected to your
+   scratch directory.
 
 If using the Parquet emitter and ``threaded`` is not set to false under
 ``emitter_arg``, a warning will be printed suggesting that you set ``threaded``

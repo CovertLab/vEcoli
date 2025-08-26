@@ -63,3 +63,7 @@ trace-*
 #######################
 .venv/
 
+# Sherlock test #
+#################
+test_sherlock/
+
