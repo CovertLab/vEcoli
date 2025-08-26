@@ -1,4 +1,8 @@
 {
+    # This file shows a typical set of configuration options for running "runscripts/parca.py"
+    # Your own config file may have fewer or more options depending on your needs
+    # Refer to https://covertlab.github.io/vEcoli/workflows.html#configuration for details
+    # Delete these comments from your own config file
     "sim_data_path": null,
     "parca_options": {
         "cpus": 1,
