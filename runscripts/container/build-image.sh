@@ -79,10 +79,6 @@ if [ "$RUN_LOCAL" -ne 0 ]; then
     --build-arg git_branch="${GIT_BRANCH}" \
     --build-arg timestamp="${TIMESTAMP}" .
 elif [ "$BUILD_APPTAINER" -ne 0 ]; then
-  # Create a temporary Singularity definition file
-  TEMP_DEF=$(mktemp)
-  TEMP_FILES+=("$TEMP_DEF")
-
   # Create a temporary file for find exclude patterns
   EXCLUDE_PATTERNS=$(mktemp)
   TEMP_FILES+=("$EXCLUDE_PATTERNS")
@@ -94,21 +90,17 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
     if [ -f "$ignore_file" ]; then
       echo "Processing patterns from $ignore_file"
       grep -v "^#" "$ignore_file" | grep -v "^$" | grep -v "^!" | while read -r pattern; do
-        # Handle patterns starting with / (root-relative)
-        if [[ "$pattern" == /* ]]; then
-          echo ".${pattern}" >>"$EXCLUDE_PATTERNS"
-          echo ".${pattern}/*" >>"$EXCLUDE_PATTERNS"
-        # Handle directory patterns ending with /
-        elif [[ "$pattern" == */ ]]; then
-          echo "./${pattern}*" >>"$EXCLUDE_PATTERNS"
-          echo "./*/${pattern}*" >>"$EXCLUDE_PATTERNS"
-        # Handle other patterns
-        else
-          echo "./*/${pattern}" >>"$EXCLUDE_PATTERNS"
-          echo "./${pattern}" >>"$EXCLUDE_PATTERNS"
-          echo "./${pattern}/*" >>"$EXCLUDE_PATTERNS"
-          echo "./*/${pattern}/*" >>"$EXCLUDE_PATTERNS"
-        fi
+          # Handle patterns starting with / (root-relative)
+          if [[ "$pattern" == /* ]]; then
+            echo ".${pattern}/*" >>"$EXCLUDE_PATTERNS"
+          # Handle directory patterns ending with /
+          elif [[ "$pattern" == */ ]]; then
+            echo "./${pattern}*" >>"$EXCLUDE_PATTERNS"
+          # Handle other patterns
+          else
+            echo "./${pattern}" >>"$EXCLUDE_PATTERNS"
+            echo "./${pattern}/*" >>"$EXCLUDE_PATTERNS"
+          fi
       done
     fi
   }
@@ -123,19 +115,24 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
     FIND_CMD="$FIND_CMD ! -path \"$pattern\""
   done <"$EXCLUDE_PATTERNS"
 
-  # Create a temporary file for our list of files
-  TEMP_FILES_LIST=$(mktemp)
-  TEMP_FILES+=("$TEMP_FILES_LIST")
-
   echo "Executing: $FIND_CMD"
   # Execute the dynamically generated find command
-  eval "$FIND_CMD" >"$TEMP_FILES_LIST"
+  TEMP_FILE_LIST=$(mktemp)
+  TEMP_FILES+=("$TEMP_FILE_LIST")
+  eval "$FIND_CMD -print0" > "$TEMP_FILE_LIST"
+  if [ -s "$TEMP_FILE_LIST" ]; then
+    tar -cf repo.tar --null -T "$TEMP_FILE_LIST"
+  else
+    echo "ERROR: No files found to include in the image"
+    exit 1
+  fi
 
   # Debug output
-  echo "Generated $(wc -l <"$TEMP_FILES_LIST") files to include in the image"
+  echo "Found $(du -sh repo.tar | awk '{print $1}') of files to include in the image"
+  TEMP_FILES+=("repo.tar")
 
   # Initialize environment variables string
-  DOT_ENV_VARS=""
+  DOT_ENV_VARS="    "
   # Check if .env file exists
   if [ -f ".env" ]; then
       echo "Processing .env for Singularity environment..."
@@ -146,7 +143,7 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
               # Strip any existing 'export ' prefix
               line=${line#export }
               # Add to environment variables string with export prefix
-              DOT_ENV_VARS+="    export $line"$'\n'
+              DOT_ENV_VARS+="export $line; "
           fi
       done < ".env"
       echo "Found $(echo "$DOT_ENV_VARS" | grep -c 'export ') environment variables"
@@ -154,22 +151,6 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
       echo "Warning: .env not found"
   fi
 
-  # Read the Singularity file line by line
-  while IFS= read -r line; do
-    if [[ "$line" == *"FILES_TO_ADD"* ]]; then
-      # For the line containing FILES_TO_ADD, replace with formatted file paths
-      while IFS= read -r file; do
-        echo "    $file /vEcoli/$file" >>"$TEMP_DEF"
-      done <"$TEMP_FILES_LIST"
-    elif [[ "$line" == *"DOT_ENV_VARS"* ]]; then
-      echo "$DOT_ENV_VARS" >> "$TEMP_DEF"
-    else
-      # Otherwise just add the line as-is
-      echo "$line" >>"$TEMP_DEF"
-    fi
-  done <runscripts/container/Singularity
-
-  echo "Using temporary definition file: $TEMP_DEF"
   echo "=== Building Apptainer Image: ${IMAGE} ==="
   echo "=== git hash ${GIT_HASH}, git branch ${GIT_BRANCH} ==="
 
@@ -180,7 +161,8 @@ elif [ "$BUILD_APPTAINER" -ne 0 ]; then
     --build-arg git_hash="${GIT_HASH}" \
     --build-arg git_branch="${GIT_BRANCH}" \
     --build-arg timestamp="${TIMESTAMP}" \
-    "${IMAGE}" "$TEMP_DEF"; do
+    --build-arg dot_env_vars="${DOT_ENV_VARS}" \
+    "${IMAGE}" runscripts/container/Singularity; do
     if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
         echo "ERROR: Apptainer build failed after $MAX_ATTEMPTS attempts."
         exit 1
