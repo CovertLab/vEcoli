@@ -63,6 +63,11 @@ trace-*
 #######################
 .venv/
 
+# Sherlock test #
+#################
+test_sherlock/
+
+
 /scripts
 /configs/debug
 /reconstruction/sim_data

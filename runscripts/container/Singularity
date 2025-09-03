@@ -12,7 +12,7 @@ From: ghcr.io/astral-sh/uv@sha256:1cc0392c8aad8026ef3922e3f997fff0f31e506b0ffe95
     export UV_CACHE_DIR="/vEcoli/.uv_cache"
     # runscripts/container/build-image.sh has some custom logic to replace this
     # with the environment variables that are set in .env
-    DOT_ENV_VARS
+    {{ dot_env_vars }}
 
 %labels
     application "Whole Cell Model Runtime Environment"
@@ -22,11 +22,14 @@ From: ghcr.io/astral-sh/uv@sha256:1cc0392c8aad8026ef3922e3f997fff0f31e506b0ffe95
     website "https://www.covert.stanford.edu/"
 
 %files
-    # runscripts/container/build-image.sh has some custom logic to replace this
-    # with a set of files that honors .dockerignore
-    FILES_TO_ADD
+    repo.tar /repo.tar
 
 %post
+    mkdir -p /vEcoli
+    if [ -f /repo.tar ]; then
+        tar -xf /repo.tar -C /vEcoli
+        rm /repo.tar
+    fi
     apt-get update && apt-get install -y gcc procps nano curl
     cd /vEcoli
     UV_CACHE_DIR="/vEcoli/.uv_cache" UV_COMPILE_BYTECODE=1 uv sync --frozen
