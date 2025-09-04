@@ -1,6 +1,6 @@
 import os
 import pickle
-from typing import Any
+from typing import Any, cast
 
 from duckdb import DuckDBPyConnection
 import numpy as np
@@ -12,6 +12,7 @@ from ecoli.library.parquet_emitter import (
     open_arbitrary_sim_data,
     ndlist_to_ndarray,
     read_stacked_columns,
+    skip_n_gens,
 )
 from wholecell.utils.protein_counts import get_simulated_validation_counts
 
@@ -28,14 +29,31 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
+    """
+    Plot average monomer counts in simulation against Schmidt 2015 and Wisniewski 2014.
+
+    Args:
+        params: Dictionary containing parameters of the format::
+
+            {
+                # Number of initial generations worth of data to skip
+                "skip_n_gens": int
+            }
+
+    """
     with open_arbitrary_sim_data(sim_data_paths) as f:
         sim_data = pickle.load(f)
     with open(validation_data_paths[0], "rb") as f:
         validation_data = pickle.load(f)
 
-    subquery = read_stacked_columns(
-        history_sql, ["listeners__monomer_counts"], order_results=False
+    subquery = cast(
+        str,
+        read_stacked_columns(
+            history_sql, ["listeners__monomer_counts"], order_results=False
+        ),
     )
+    if params.get("skip_n_gens"):
+        subquery = skip_n_gens(subquery, params["skip_n_gens"])
     monomer_counts = conn.sql(f"""
         WITH unnested_counts AS (
             SELECT unnest(listeners__monomer_counts) AS counts,
