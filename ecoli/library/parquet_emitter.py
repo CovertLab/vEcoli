@@ -197,7 +197,7 @@ def skip_n_gens(subquery: str, n: int) -> str:
     """
     Modifies a DuckDB SQL query to skip the first ``n`` generations of data.
     """
-    return f"SELECT * FROM ({subquery}) WHERE generation >= {n}"
+    return f"SELECT * FROM ({subquery}) WHERE generation > {n}"
 
 
 def ndlist_to_ndarray(s) -> np.ndarray:
