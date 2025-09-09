@@ -509,6 +509,12 @@ def main():
         container_image = sherlock_config.get("container_image", None)
         if container_image is None:
             raise RuntimeError("Must supply name for container image.")
+        image_dir = os.path.abspath(os.path.dirname(container_image))
+        if not os.path.exists(image_dir):
+            warnings.warn(
+                f"Container image directory does not exist, creating: {image_dir}."
+            )
+            os.makedirs(image_dir, exist_ok=True)
         if sherlock_config.get("build_image", False):
             image_cmd = " ".join(build_image_cmd(container_image, True))
             image_build_script = os.path.join(local_outdir, "container.sh")
