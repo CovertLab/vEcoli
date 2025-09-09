@@ -483,7 +483,7 @@ class MetabolismReduxClassic(Step):
             "secretion": 0.01,
             "efficiency": 0.000001, # decrease efficiency
             "kinetics": 0.0000001, #TODO Heena: increase for closer estimation for kinetically constrained rxn and decrease efficiency
-            # "diversity": 0.001, # 0.0001 Heena's addition to minimize number of reactions with no flow
+            "diversity": 0.001, # 0.0001 Heena's addition to minimize number of reactions with no flow
         }
 
         solution: FlowResult = self.network_flow_model.solve(
@@ -776,7 +776,7 @@ def test_network_flow_model():
         homeostatic_targets=list(homeostatic_metabolites.values()),
         objective_weights={"secretion": 0.01, "efficiency": 0.0001},
         upper_flux_bound=100,
-        solver=cp.MOSEK,
+        solver=cp.GLOP,
     )
 
     assert np.isclose(
