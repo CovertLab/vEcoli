@@ -483,7 +483,7 @@ class MetabolismReduxClassic(Step):
             "secretion": 0.01,
             "efficiency": 0.000001, # decrease efficiency
             "kinetics": 0.0000001, #TODO Heena: increase for closer estimation for kinetically constrained rxn and decrease efficiency
-            "diversity": 0.0000, # 0.0001 Heena's addition to minimize number of reactions with no flow
+            "diversity": 0.001, # 0.0001 Heena's addition to minimize number of reactions with no flow
         }
 
         solution: FlowResult = self.network_flow_model.solve(
@@ -724,11 +724,9 @@ class NetworkFlowModel:
         # Heena's addition: minimize number of reactions with no flow
         # introduce new boolean variable z = {0,1}
         if "diversity" in objective_weights:
-            z = cp.Variable(self.n_orig_rxns, boolean=True)
-            constr.extend([v >= z])
             loss += (
-                -objective_weights['diversity']
-                * cp.sum(z)
+                objective_weights['diversity']
+                * cp.sum(cp.pos(100-v))
             )
         else:
             loss
@@ -739,7 +737,7 @@ class NetworkFlowModel:
         if p.status != "optimal":
             raise ValueError(
                 "Network flow model of metabolism did not "
-                "converge to an optimal solution."
+                "converge to an optimal solution. " + p.status
             )
 
         velocities = np.array(v.value)

@@ -53,17 +53,17 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic",
-    max_duration=400,
+    max_duration=10,
     divide=True,
     fail_at_max_duration=True,
     initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries',
-    name="NEW_flowPartition_default",
+    name="GLOP_sum_pos_diversity",
     raw_output=False,
     save=True,
-    save_times=[1, 2, 5, 10, 50, 100, 200, 400, 800],
+    save_times=[1],
     condition="basal",  # basal, with_aa, acetate
     fixed_media="minimal",  # minimal, minimal_plus_amino_acids, minimal_acetate
 ):
