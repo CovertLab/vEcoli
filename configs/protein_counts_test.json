@@ -7,7 +7,7 @@
     "fail_at_max_duration": true,
     "sim_data_path": null,
     "generations": 8,
-    "n_init_sims": 4,
+    "n_init_sims": 2,
     "single_daughters": true,
     "emitter": "parquet",
     "emitter_arg": {
