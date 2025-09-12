@@ -1,0 +1,18 @@
+{
+    "experiment_id": "protein_counts_test_with_wcCLMLNE1_parca_starting_seed_1",
+    "suffix_time": false,
+
+    "fail_at_max_duration": true,
+    "sim_data_path": "/Users/miagrahn/wcEcoli/out/CLMLNE1/kb/simData.cPickle",
+    "seed": 1,
+    "generations": 8,
+    "n_init_sims": 4,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}}
+    }
+}
