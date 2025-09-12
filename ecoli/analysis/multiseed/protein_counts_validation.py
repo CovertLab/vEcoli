@@ -7,6 +7,7 @@ import numpy as np
 import polars as pl
 from scipy.stats import pearsonr
 import altair as alt
+from sklearn.metrics import r2_score
 
 from ecoli.library.parquet_emitter import (
     open_arbitrary_sim_data,
@@ -87,6 +88,15 @@ def plot(
         schmidt_counts, monomer_counts, schmidt_ids, sim_monomer_ids
     )
 
+    # Determine where the protein counts are above 30 (for calculating an R2 value)
+    # schmidt_above_30_idx = np.where((val_schmidt_counts >= 30 & (sim_schmidt_counts >= 30)))
+    # schmidt_val_above_30 = val_schmidt_counts[schmidt_above_30_idx]
+    # schmidt_sim_above_30 = sim_schmidt_counts[schmidt_above_30_idx]
+
+    # wisniewski_above_30_idx = np.where((val_wisniewski_counts >= 30 & (sim_wisniewski_counts >= 30)))
+    # wisniewski_val_above_30 = val_wisniewski_counts[wisniewski_above_30_idx]
+    # wisniewski_sim_above_30 = sim_wisniewski_counts[wisniewski_above_30_idx]
+
     schmidt_chart = (
         alt.Chart(
             pl.DataFrame(
@@ -102,10 +112,17 @@ def plot(
             y=alt.Y("sim", title="log10(Simulation Average Counts + 1)"),
         )
         .properties(
-            title="Pearson r: %0.2f"
-            % pearsonr(
-                np.log10(sim_schmidt_counts + 1), np.log10(val_schmidt_counts + 1)
-            )[0]
+            title="Pearson r: %0.3f | weighted R²: %.3f"
+            % (
+                pearsonr(
+                    np.log10(val_schmidt_counts + 1), np.log10(sim_schmidt_counts + 1)
+                )[0],
+                r2_score(
+                    np.log10(val_schmidt_counts + 1),
+                    np.log10(sim_schmidt_counts + 1),
+                    sample_weight=np.log10(val_schmidt_counts + 1),
+                ),
+            )  # , sample_weight=np.log10(schmidt_val_above_30 +1)
         )
     )
     wisniewski_chart = (
@@ -121,12 +138,20 @@ def plot(
         .encode(
             x=alt.X("wisniewski", title="log10(Wisniewski 2014 Counts + 1)"),
             y=alt.Y("sim", title="log10(Simulation Average Counts + 1)"),
-        )
+        )  # ≥
         .properties(
-            title="Pearson r: %0.2f"
-            % pearsonr(
-                np.log10(sim_wisniewski_counts + 1), np.log10(val_wisniewski_counts + 1)
-            )[0]
+            title="Pearson r: %0.3f | weighted R²: %.3f"
+            % (
+                pearsonr(
+                    np.log10(val_wisniewski_counts + 1),
+                    np.log10(sim_wisniewski_counts + 1),
+                )[0],
+                r2_score(
+                    np.log10(sim_wisniewski_counts + 1),
+                    np.log10(val_wisniewski_counts + 1),
+                    sample_weight=np.log10(sim_wisniewski_counts + 1),
+                ),
+            )
         )
     )
     max_val = max(

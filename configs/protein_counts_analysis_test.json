@@ -1,0 +1,24 @@
+{
+
+    "emitter_arg": {
+        "out_dir": "out"
+
+    },
+    "analysis_options": {
+        "experiment_id": ["protein_counts_test"],
+        "variant_data_dir": ["out/protein_counts_test/variant_sim_data"],
+        "validation_data_path": ["out/protein_counts_test/parca/kb/validationData.cPickle"],
+        "outdir": "out/protein_counts_test/plots_post_modification/protein_counts_tests",
+        "cpus": 1,
+
+
+        "single": {},
+        "multidaughter": {},
+        "multigeneration": {},
+        "multiseed": {"protein_counts_validation": {
+            "skip_n_gens": 2
+        }},
+        "multivariant": {},
+        "multiexperiment": {}
+    }
+}
