@@ -106,7 +106,7 @@ PATHS_TO_LOAD = {
         "outer_tetracycline_permeability",
     ),
     "Murein tetramer": ("bulk", "CPD-12261[p]"),
-    "PBP1a complex": ("bulk", "CPLX0-7717[i]"),
+    "PBP1a complex": ("bulk", "CPLX0-7717[p]"),
     "PBP1a mRNA": ("mrna", "EG10748_RNA"),
     "PBP1b alpha complex": ("bulk", "CPLX0-3951[i]"),
     "PBP1b mRNA": ("mrna", "EG10605_RNA"),
