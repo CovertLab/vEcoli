@@ -89,13 +89,17 @@ def plot(
     )
 
     # Determine where the protein counts are above 30 (for calculating an R2 value)
-    # schmidt_above_30_idx = np.where((val_schmidt_counts >= 30 & (sim_schmidt_counts >= 30)))
-    # schmidt_val_above_30 = val_schmidt_counts[schmidt_above_30_idx]
-    # schmidt_sim_above_30 = sim_schmidt_counts[schmidt_above_30_idx]
+    schmidt_above_30_idx = np.where(
+        (val_schmidt_counts > 30 & (sim_schmidt_counts > 30))
+    )
+    schmidt_val_above_30 = val_schmidt_counts[schmidt_above_30_idx]
+    schmidt_sim_above_30 = sim_schmidt_counts[schmidt_above_30_idx]
 
-    # wisniewski_above_30_idx = np.where((val_wisniewski_counts >= 30 & (sim_wisniewski_counts >= 30)))
-    # wisniewski_val_above_30 = val_wisniewski_counts[wisniewski_above_30_idx]
-    # wisniewski_sim_above_30 = sim_wisniewski_counts[wisniewski_above_30_idx]
+    wisniewski_above_30_idx = np.where(
+        (val_wisniewski_counts > 30 & (sim_wisniewski_counts > 30))
+    )
+    wisniewski_val_above_30 = val_wisniewski_counts[wisniewski_above_30_idx]
+    wisniewski_sim_above_30 = sim_wisniewski_counts[wisniewski_above_30_idx]
 
     schmidt_chart = (
         alt.Chart(
@@ -112,15 +116,14 @@ def plot(
             y=alt.Y("sim", title="log10(Simulation Average Counts + 1)"),
         )
         .properties(
-            title="Pearson r: %0.3f | weighted R²: %.3f"
+            title="Pearson r: %0.3f | R² (counts > 30): %.3f"
             % (
                 pearsonr(
                     np.log10(val_schmidt_counts + 1), np.log10(sim_schmidt_counts + 1)
                 )[0],
                 r2_score(
-                    np.log10(val_schmidt_counts + 1),
-                    np.log10(sim_schmidt_counts + 1),
-                    sample_weight=np.log10(val_schmidt_counts + 1),
+                    np.log10(schmidt_val_above_30 + 1),
+                    np.log10(schmidt_sim_above_30 + 1),
                 ),
             )  # , sample_weight=np.log10(schmidt_val_above_30 +1)
         )
@@ -140,17 +143,16 @@ def plot(
             y=alt.Y("sim", title="log10(Simulation Average Counts + 1)"),
         )  # ≥
         .properties(
-            title="Pearson r: %0.3f | weighted R²: %.3f"
+            title="Pearson r: %0.3f | R² (counts > 30): %.3f"
             % (
                 pearsonr(
                     np.log10(val_wisniewski_counts + 1),
                     np.log10(sim_wisniewski_counts + 1),
                 )[0],
                 r2_score(
-                    np.log10(sim_wisniewski_counts + 1),
-                    np.log10(val_wisniewski_counts + 1),
-                    sample_weight=np.log10(sim_wisniewski_counts + 1),
-                ),
+                    np.log10(wisniewski_val_above_30 + 1),
+                    np.log10(wisniewski_sim_above_30 + 1),
+                ),  # sample_weight=np.log10(sim_wisniewski_counts + 1)
             )
         )
     )
