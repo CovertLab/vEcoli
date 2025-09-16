@@ -1240,7 +1240,10 @@ def initialize_transcription(
     unique_molecules["RNA"] = np.concatenate((partial_rnas, full_rnas))
     # Have to recreate unique indices or else there will be conflicts between
     # full and partial RNAs
-    unique_prefix = np.min(unique_molecules["RNA"]["unique_index"])
+    unique_mol_names = list(
+        sim_data.internal_state.unique_molecule.unique_molecule_definitions.keys()
+    )
+    unique_prefix = unique_mol_names.index("RNA") << 59
     unique_molecules["RNA"]["unique_index"] = np.arange(
         unique_prefix, unique_prefix + len(unique_molecules["RNA"])
     )

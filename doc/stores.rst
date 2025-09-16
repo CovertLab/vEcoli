@@ -332,7 +332,9 @@ molecule). All unique molecules will have the following named fields:
         generate the new unique indices. If you need to reference the unique
         indices of new molecules in the same process AND timestep in which they
         are generated, see :py:meth:`ecoli.library.schema.create_unique_indices`.
-        Note that unique indices are only unique within a single cell.
+        Note that unique indices are only unique for a cell and its ancestors. For
+        example, two daughter cells from the same parent cell will have conflicting
+        unique indices.
     2. ``_entryState`` (:py:attr:`numpy.int8`): 1 for active row, 0 for inactive row
         When unique molecules are deleted (e.g. RNA degradation), all of their data, 
         including the ``_entryState`` field, is set to 0. When unique molecues are 
@@ -345,17 +347,6 @@ molecule). All unique molecules will have the following named fields:
         metabolite, water, and DNA. An example of a dynamic submass is the constantly
         changing protein mass of the polypeptide associated with an actively 
         translating ribosome.
-
-.. note::
-    Unique molecules are instances of :py:class:`~ecoli.library.schema.MetadataArray`,
-    a subclass of Numpy arrays that adds a ``metadata`` attribute. This attribute
-    is used to store the next unique index to be assigned to a new unique molecule.
-    If you wish to add a custom unique molecule type, after you have
-    created a structured Numpy array with at least the above attributes,
-    create a :py:class:`~ecoli.library.schema.MetadataArray` instance from it using
-    ``MetadataArray(array, next_unique_index)``, where ``array`` is your structured
-    Numpy array and ``next_unique_index`` is the next unique index to be assigned.
-
 
 Initialization
 ==============

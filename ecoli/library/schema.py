@@ -116,18 +116,6 @@ class MetadataArray(np.ndarray):
     def __new__(cls, input_array, metadata=None):
         # Input array should be an array instance
         obj = np.asarray(input_array).view(cls)
-        # Ensure unique_index field exists and is unique
-        if "unique_index" in obj.dtype.names:
-            if "_entryState" in obj.dtype.names:
-                unique_indices = obj["unique_index"][obj["_entryState"].view(np.bool_)]
-                if len(unique_indices) != len(set(unique_indices)):
-                    raise ValueError(
-                        "All elements in the 'unique_index' field must be unique."
-                    )
-            else:
-                raise ValueError("Input array must have an '_entryState' field.")
-        else:
-            raise ValueError("Input array must have a 'unique_index' field.")
         obj.metadata = metadata
         return obj
 

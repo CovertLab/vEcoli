@@ -151,8 +151,6 @@ class ChromosomeStructure(Step):
                             np.zeros(self.n_TUs, np.int64),
                             self.rna_ids,
                         ),
-                        "n_empty_fork_collisions": 0,
-                        "empty_fork_collision_coordinates": [],
                     }
                 )
             },
@@ -329,14 +327,14 @@ class ChromosomeStructure(Step):
 
                 # Domain has no active replisomes
                 else:
-                    children_of_domain = child_domains[
-                        all_chromosome_domain_indexes == domain_index
-                    ]
-                    # Child domains are full chromosomes (domain has finished replicating)
-                    if np.all(np.isin(children_of_domain, mother_domain_indexes)):
+                    # Domain has child domains (has finished replicating)
+                    if (
+                        child_domains[all_chromosome_domain_indexes == domain_index, 0]
+                        != self.no_child_place_holder
+                    ):
                         # Remove all molecules on this domain
                         domain_mask = domain_indexes == domain_index
-                    # Domain has not started replication or replication was interrupted
+                    # Domain has not started replication
                     else:
                         continue
 
@@ -357,6 +355,12 @@ class ChromosomeStructure(Step):
         removed_DnaA_boxes_mask = get_removed_molecules_mask(
             DnaA_box_domain_indexes, DnaA_box_coordinates
         )
+
+        # Get attribute arrays of remaining RNAPs
+        remaining_RNAPs_mask = np.logical_not(removed_RNAPs_mask)
+        remaining_RNAP_domain_indexes = RNAP_domain_indexes[remaining_RNAPs_mask]
+        remaining_RNAP_coordinates = RNAP_coordinates[remaining_RNAPs_mask]
+        remaining_RNAP_unique_indexes = RNAP_unique_indexes[remaining_RNAPs_mask]
 
         # Build masks for head-on and co-directional collisions between RNAPs
         # and replication forks
@@ -423,9 +427,6 @@ class ChromosomeStructure(Step):
             all_new_segment_domain_indexes = np.array([], dtype=np.int32)
             all_new_linking_numbers = np.array([], dtype=np.float64)
 
-            # Iteratively tally RNAPs that were removed due to collisions with
-            # replication forks with or without replisomes on each domain
-            removed_RNAP_masks_all_domains = np.full_like(removed_RNAPs_mask, False)
             for domain_index in np.unique(all_chromosome_domain_indexes):
                 # Skip domains that have completed replication
                 if np.all(domain_index < mother_domain_indexes):
@@ -434,14 +435,11 @@ class ChromosomeStructure(Step):
                 domain_spans_oriC = domain_index in origin_domain_indexes
                 domain_spans_terC = domain_index in mother_domain_indexes
 
-                # Parse attributes of remaining RNAPs in this domain
-                RNAPs_domain_mask = RNAP_domain_indexes == domain_index
-                RNAP_coordinates_this_domain = RNAP_coordinates[RNAPs_domain_mask]
-                RNAP_unique_indexes_this_domain = RNAP_unique_indexes[RNAPs_domain_mask]
-                domain_remaining_RNAPs_mask = ~removed_RNAPs_mask[RNAPs_domain_mask]
+                # Get masks for segments and RNAPs in this domain
+                segments_domain_mask = segment_domain_indexes == domain_index
+                RNAP_domain_mask = remaining_RNAP_domain_indexes == domain_index
 
                 # Parse attributes of segments in this domain
-                segments_domain_mask = segment_domain_indexes == domain_index
                 boundary_molecule_indexes_this_domain = boundary_molecule_indexes[
                     segments_domain_mask, :
                 ]
@@ -450,59 +448,29 @@ class ChromosomeStructure(Step):
                 ]
                 linking_numbers_this_domain = linking_numbers[segments_domain_mask]
 
-                new_molecule_coordinates_this_domain = np.array([], dtype=np.int64)
-                new_molecule_indexes_this_domain = np.array([], dtype=np.int64)
+                # Parse attributes of remaining RNAPs in this domain
+                new_molecule_coordinates_this_domain = remaining_RNAP_coordinates[
+                    RNAP_domain_mask
+                ]
+                new_molecule_indexes_this_domain = remaining_RNAP_unique_indexes[
+                    RNAP_domain_mask
+                ]
+
                 # Append coordinates and indexes of replisomes on this domain,
                 # if any
                 if not domain_spans_oriC:
                     replisome_domain_mask = replisome_domain_indexes == domain_index
-                    replisome_coordinates_this_domain = replisome_coordinates[
-                        replisome_domain_mask
-                    ]
-                    replisome_molecule_indexes_this_domain = replisome_unique_indexes[
-                        replisome_domain_mask
-                    ]
-
-                    # If one or more replisomes was removed in the last time step,
-                    # use the last known location and molecule index.
-                    if len(replisome_molecule_indexes_this_domain) != 2:
-                        assert len(replisome_molecule_indexes_this_domain) < 2
-                        # (
-                        #     replisome_coordinates_this_domain,
-                        #     replisome_molecule_indexes_this_domain,
-                        # ) = get_last_known_replisome_data(
-                        #     boundary_coordinates_this_domain,
-                        #     boundary_molecule_indexes_this_domain,
-                        #     replisome_coordinates_this_domain,
-                        #     replisome_molecule_indexes_this_domain,
-                        # )
-                        # Assume that RNAPs that run into a replication fork
-                        # are removed even if there is no replisome
-                        RNAPs_on_forks = np.isin(
-                            RNAP_coordinates_this_domain,
-                            replisome_coordinates_this_domain,
-                        )
-                        domain_remaining_RNAPs_mask = np.logical_and(
-                            domain_remaining_RNAPs_mask, ~RNAPs_on_forks
-                        )
-                        full_removed_RNAPs_mask = np.full_like(
-                            removed_RNAPs_mask, False
-                        )
-                        full_removed_RNAPs_mask[RNAPs_domain_mask] = RNAPs_on_forks
-                        removed_RNAP_masks_all_domains = np.logical_or(
-                            removed_RNAP_masks_all_domains, full_removed_RNAPs_mask
-                        )
 
                     new_molecule_coordinates_this_domain = np.concatenate(
                         (
                             new_molecule_coordinates_this_domain,
-                            replisome_coordinates_this_domain,
+                            replisome_coordinates[replisome_domain_mask],
                         )
                     )
                     new_molecule_indexes_this_domain = np.concatenate(
                         (
                             new_molecule_indexes_this_domain,
-                            replisome_molecule_indexes_this_domain,
+                            replisome_unique_indexes[replisome_domain_mask],
                         )
                     )
 
@@ -515,80 +483,19 @@ class ChromosomeStructure(Step):
                     replisome_parent_domain_mask = (
                         replisome_domain_indexes == parent_domain_index
                     )
-                    replisome_coordinates_parent_domain = replisome_coordinates[
-                        replisome_parent_domain_mask
-                    ]
-                    replisome_molecule_indexes_parent_domain = replisome_unique_indexes[
-                        replisome_parent_domain_mask
-                    ]
-
-                    # If one or more replisomes was removed in the last time step,
-                    # use the last known location and molecule index.
-                    if len(replisome_molecule_indexes_parent_domain) != 2:
-                        assert len(replisome_molecule_indexes_parent_domain) < 2
-                        # Parse attributes of segments in parent domain
-                        # parent_segments_domain_mask = (
-                        #     segment_domain_indexes == parent_domain_index
-                        # )
-                        # boundary_molecule_indexes_parent_domain = (
-                        #     boundary_molecule_indexes[parent_segments_domain_mask, :]
-                        # )
-                        # boundary_coordinates_parent_domain = boundary_coordinates[
-                        #     parent_segments_domain_mask, :
-                        # ]
-                        # (
-                        #     replisome_coordinates_parent_domain,
-                        #     replisome_molecule_indexes_parent_domain,
-                        # ) = get_last_known_replisome_data(
-                        #     boundary_coordinates_parent_domain,
-                        #     boundary_molecule_indexes_parent_domain,
-                        #     replisome_coordinates_parent_domain,
-                        #     replisome_molecule_indexes_parent_domain,
-                        # )
-                        # Assume that RNAPs that run into a replication fork
-                        # are removed even if there is no replisome
-                        RNAPs_on_forks = np.isin(
-                            RNAP_coordinates_this_domain,
-                            replisome_coordinates_parent_domain,
-                        )
-                        domain_remaining_RNAPs_mask = np.logical_and(
-                            domain_remaining_RNAPs_mask, ~RNAPs_on_forks
-                        )
-                        full_removed_RNAPs_mask = np.full_like(
-                            removed_RNAPs_mask, False
-                        )
-                        full_removed_RNAPs_mask[RNAPs_domain_mask] = RNAPs_on_forks
-                        removed_RNAP_masks_all_domains = np.logical_or(
-                            removed_RNAP_masks_all_domains, full_removed_RNAPs_mask
-                        )
 
                     new_molecule_coordinates_this_domain = np.concatenate(
                         (
                             new_molecule_coordinates_this_domain,
-                            replisome_coordinates_parent_domain,
+                            replisome_coordinates[replisome_parent_domain_mask],
                         )
                     )
                     new_molecule_indexes_this_domain = np.concatenate(
                         (
                             new_molecule_indexes_this_domain,
-                            replisome_molecule_indexes_parent_domain,
+                            replisome_unique_indexes[replisome_parent_domain_mask],
                         )
                     )
-
-                # Add remaining RNAPs in this domain after accounting for removals
-                # due to collisions with replication forks
-                new_molecule_coordinates_this_domain = np.concatenate(
-                    (
-                        new_molecule_coordinates_this_domain,
-                        RNAP_coordinates_this_domain[domain_remaining_RNAPs_mask],
-                    )
-                )
-                new_molecule_indexes_this_domain = np.concatenate(
-                    (
-                        new_molecule_indexes_this_domain,
-                        RNAP_unique_indexes_this_domain[domain_remaining_RNAPs_mask],
-                    )
-                )
 
                 # If there are no molecules left on this domain, continue
                 if len(new_molecule_indexes_this_domain) == 0:
@@ -647,25 +554,6 @@ class ChromosomeStructure(Step):
                         "domain_index": all_new_segment_domain_indexes,
                         "linking_number": all_new_linking_numbers,
                     }
-                }
-            )
-
-            # Figure out if any additional RNAPs were removed due to collisions with
-            # replication forks where there were no replisomes
-            empty_fork_RNAP_collision_mask = np.logical_and(
-                removed_RNAP_masks_all_domains,
-                np.logical_not(
-                    np.logical_or(
-                        RNAP_headon_collision_mask, RNAP_codirectional_collision_mask
-                    )
-                ),
-            )
-            update["listeners"]["rnap_data"].update(
-                {
-                    "n_empty_fork_collisions": empty_fork_RNAP_collision_mask.sum(),
-                    "empty_fork_collision_coordinates": RNAP_coordinates[
-                        empty_fork_RNAP_collision_mask
-                    ],
                 }
             )
 

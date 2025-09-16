@@ -1,5 +1,5 @@
 process analysisSingle {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}", mode: "copy"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}", mode: "move"
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
@@ -49,7 +49,7 @@ process analysisSingle {
 }
 
 process analysisMultiDaughter {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}", mode: "copy"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}", mode: "move"
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
@@ -97,7 +97,7 @@ process analysisMultiDaughter {
 }
 
 process analysisMultiGeneration {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}", mode: "copy"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}", mode: "move"
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}"
 
@@ -143,7 +143,7 @@ process analysisMultiGeneration {
 }
 
 process analysisMultiSeed {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}", mode: "copy"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}", mode: "move"
 
     tag "variant=${variant}"
 
@@ -187,7 +187,7 @@ process analysisMultiSeed {
 }
 
 process analysisMultiVariant {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses", mode: "copy"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses", mode: "move"
 
     label "slurm_submit"
 

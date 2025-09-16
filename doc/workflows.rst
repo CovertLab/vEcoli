@@ -603,8 +603,7 @@ is a list workflow behaviors enabled in our model to handle unexpected errors.
 - If you realize that a code issue is the cause of job failure(s), stop
   the workflow run if it is not already (e.g. ``control + c``, ``scancel``,
   etc.), make the necessary code fixes, and rerun :py:mod:`runscripts.workflow`
-  with the same configuration JSON and the ``--resume`` command-line argument,
-  supplying the experiment ID (with time suffix if using ``suffix_time`` option).
+  with the same configuration JSON and the ``--resume`` command-line argument.
   Nextflow will intelligently resume workflow execution from the last successful
   job in each chain of job dependencies (e.g. generation 7 of a cell lineage
   depends on generation 6, :py:mod:`runscripts.create_variants` depends on

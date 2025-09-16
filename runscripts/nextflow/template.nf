@@ -26,7 +26,7 @@ process runParca {
 }
 
 process analysisParca {
-    publishDir "${params.publishDir}/${params.experimentId}/parca/analysis", mode: "copy"
+    publishDir "${params.publishDir}/${params.experimentId}/parca/analysis", mode: "move"
 
     label "slurm_submit"
 
