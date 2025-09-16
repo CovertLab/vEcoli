@@ -3,8 +3,8 @@ from ecoli.library.schema import numpy_schema
 
 
 class UniqueUpdate(Step):
-    """Placed after all Steps of each execution layer (see :ref:`partitioning`)
-    to ensure that unique molecules are completely up-to-date"""
+    """Placed after before and after all Steps to ensure that
+    unique molecules are completely up-to-date"""
 
     name = "unique-update"
 

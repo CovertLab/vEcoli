@@ -743,8 +743,8 @@ def test_transcript_elongation():
         "ignore",
         message="Incompatible schema "
         "assignment at .+ Trying to assign the value <bound method "
-        r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
-        r"has the value <bound method UniqueNumpyUpdater\.updater",
+        "UniqueNumpyUpdater.updater .+ to key updater, which already "
+        "has the value <bound method UniqueNumpyUpdater.updater",
     )
     engine = Engine(**settings, initial_state=deepcopy(initial_state))
     engine.run_for(100)
@@ -805,8 +805,8 @@ def test_transcript_elongation():
         "ignore",
         message="Incompatible schema "
         "assignment at .+ Trying to assign the value <bound method "
-        r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
-        r"has the value <bound method UniqueNumpyUpdater\.updater",
+        "UniqueNumpyUpdater.updater .+ to key updater, which already "
+        "has the value <bound method UniqueNumpyUpdater.updater",
     )
     engine = Engine(**settings, initial_state=deepcopy(initial_state))
     engine.run_for(100)

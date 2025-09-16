@@ -213,8 +213,8 @@ def test_rna_interference(return_data=False):
         "ignore",
         message="Incompatible schema "
         "assignment at .+ Trying to assign the value <bound method "
-        r"UniqueNumpyUpdater\.updater .+ to key updater, which already "
-        r"has the value <bound method UniqueNumpyUpdater\.updater",
+        "UniqueNumpyUpdater.updater .+ to key updater, which already "
+        "has the value <bound method UniqueNumpyUpdater.updater",
     )
     experiment = Engine(
         processes={"rna-interference": rna_inter},
