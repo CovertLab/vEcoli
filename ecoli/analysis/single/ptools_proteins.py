@@ -176,14 +176,10 @@ def plot(
 
     bulk2protein_monomers = bulk2monomers[:, protein_monomer_idxs]
 
-    cistrons = list(translation_module["cistron_id"])
-
-    gene_labels = []
+    protein_labels = []
 
     for protein_idx, protein in enumerate(protein_monomers):
-        cistron = cistrons[protein_idx]
-        gene = rna2genes[cistron]
-        gene_labels.append(gene)
+        protein_labels.append(protein[:-3])
 
     proteomics = np.matmul(bulk_mtx, bulk2protein_monomers)
 
@@ -194,7 +190,7 @@ def plot(
     proteomics_bulksum = consolidate_timepoints(proteomics, n_tp, normalized=True)
 
     ptools_proteins = pd.DataFrame(
-        data=proteomics_bulksum.transpose(), index=gene_labels, columns=tp_columns
+        data=proteomics_bulksum.transpose(), index=protein_labels, columns=tp_columns
     )
 
     ptools_proteins.index.name = "$"
