@@ -185,13 +185,15 @@ def _(output_loaded, pd, sp_select, sp_trajs):
 
 
 @app.cell
-def _(plot_df):
+def _(downsample, plot_df):
     df_long = plot_df.melt(
         id_vars=["time"],  # Columns to keep as identifier variables
         var_name="bulk_molecules",  # Name for the new column containing original column headers
         value_name="counts",  # Name for the new column containing original column values
     )
-    return (df_long,)
+
+    dfds_long = downsample(df_long)
+    return (dfds_long,)
 
 
 @app.cell
@@ -207,8 +209,8 @@ def _(mo, sp_select, y_scale):
 
 
 @app.cell
-def _(alt, df_long, y_scale):
-    alt.Chart(df_long).mark_line().encode(
+def _(alt, dfds_long, y_scale):
+    alt.Chart(dfds_long).mark_line().encode(
         x=alt.X("time:Q", scale=alt.Scale(type="linear"), axis=alt.Axis(tickCount=4)),
         y=alt.Y("counts:Q", scale=alt.Scale(type=y_scale.value)),
         color="bulk_molecules:N",
@@ -231,7 +233,7 @@ def _(mo, mrna_cistron_names):
 
 
 @app.cell
-def _(mrna_cistron_names, mrna_select, np, output_loaded, pd):
+def _(downsample, mrna_cistron_names, mrna_select, np, output_loaded, pd):
     mrna_mtx = np.stack(
         output_loaded["listeners__rna_counts__full_mRNA_cistron_counts"]
     )
@@ -251,12 +253,14 @@ def _(mrna_cistron_names, mrna_select, np, output_loaded, pd):
         var_name="gene names",  # Name for the new column containing original column headers
         value_name="counts",  # Name for the new column containing original column values
     )
-    return (mrna_df_long,)
+
+    mrna_dfds_long = downsample(mrna_df_long)
+    return (mrna_dfds_long,)
 
 
 @app.cell
-def _(alt, mrna_df_long, y_scale_mrna):
-    alt.Chart(mrna_df_long).mark_line().encode(
+def _(alt, mrna_dfds_long, y_scale_mrna):
+    alt.Chart(mrna_dfds_long).mark_line().encode(
         x=alt.X("time:Q", scale=alt.Scale(type="linear"), axis=alt.Axis(tickCount=4)),
         y=alt.Y("counts:Q", scale=alt.Scale(type=y_scale_mrna.value)),
         color="gene names:N",
@@ -279,7 +283,7 @@ def _(mo, rxn_ids):
 
 
 @app.cell
-def _(np, output_loaded, pd, rxn_ids, select_rxns):
+def _(downsample, np, output_loaded, pd, rxn_ids, select_rxns):
     rxns_mtx = np.stack(
         output_loaded["listeners__fba_results__base_reaction_fluxes"].values
     )
@@ -300,12 +304,13 @@ def _(np, output_loaded, pd, rxn_ids, select_rxns):
         value_name="flux",  # Name for the new column containing original column values
     )
 
-    return (rxns_df_long,)
+    rxns_dfds_long = downsample(rxns_df_long)
+    return (rxns_dfds_long,)
 
 
 @app.cell
-def _(alt, rxns_df_long, y_scale_rxns):
-    alt.Chart(rxns_df_long).mark_line().encode(
+def _(alt, rxns_dfds_long, y_scale_rxns):
+    alt.Chart(rxns_dfds_long).mark_line().encode(
         x=alt.X("time:Q", scale=alt.Scale(type="linear"), axis=alt.Axis(tickCount=4)),
         y=alt.Y("flux:Q", scale=alt.Scale(type=y_scale_rxns.value)),
         color="reaction_id:N",
@@ -471,14 +476,35 @@ def _(agent_select, exp_select, gen_select, seed_select, variant_select):
 
 
 @app.cell
-def _(duckdb):
+def _(duckdb, itertools, np):
     def load_outputs(sql):
         outputs_df = duckdb.sql(sql).df()
         outputs_df = outputs_df.groupby("time", as_index=False).sum()
 
         return outputs_df
 
-    return (load_outputs,)
+    def downsample(df_long):
+        tp_all = np.unique(df_long["time"]).astype(int)
+        ds_ratio = int(np.ceil(np.shape(df_long)[0] / 20000))
+        tp_ds = list(itertools.islice(tp_all, 0, max(tp_all), ds_ratio))
+        df_ds = df_long[np.isin(df_long["time"], tp_ds)]
+
+        return df_ds
+
+    return downsample, load_outputs
+
+
+@app.cell
+def _():
+    import itertools
+
+    return (itertools,)
+
+
+@app.cell
+def _(np):
+    int(np.ceil(0.78))
+    return
 
 
 if __name__ == "__main__":
