@@ -332,7 +332,7 @@ def _(exp_select, os, wd_root):
 
             variants = [var.split("variant=")[1] for var in variant_folders]
 
-        except FileNotFoundError:
+        except (FileNotFoundError, TypeError):
             variants = ["N/A"]
 
         return variants
@@ -351,7 +351,7 @@ def _(exp_select, os, wd_root):
             seed_folders = [folder for folder in seeds_ls if not folder.startswith(".")]
 
             seeds = [seed.split("lineage_seed=")[1] for seed in seed_folders]
-        except FileNotFoundError:
+        except (FileNotFoundError, TypeError):
             seeds = ["N/A"]
 
         return seeds
@@ -372,7 +372,7 @@ def _(exp_select, os, wd_root):
             gen_folders = [folder for folder in gens_ls if not folder.startswith(".")]
 
             gens = [gen.split("generation=")[1] for gen in gen_folders]
-        except FileNotFoundError:
+        except (FileNotFoundError, TypeError):
             gens = ["N/A"]
 
         return gens
@@ -397,18 +397,12 @@ def _(exp_select, os, wd_root):
                 folder for folder in agents_ls if not folder.startswith(".")
             ]
             agents = [agent.split("agent_id=")[1] for agent in agent_folders]
-        except FileNotFoundError:
+        except (FileNotFoundError, TypeError):
             agents = ["N/A"]
 
         return agents
 
     return get_agents, get_gens, get_seeds, get_variants
-
-
-@app.cell
-def _(os):
-    os.listdir("outdir")
-    return
 
 
 @app.cell
