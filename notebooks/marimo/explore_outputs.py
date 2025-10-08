@@ -13,8 +13,9 @@ def _():
     import duckdb
     import sys
     import altair as alt
+    import itertools
 
-    return alt, duckdb, mo, np, os, pd, sys
+    return alt, duckdb, itertools, mo, np, os, pd, sys
 
 
 @app.cell
@@ -50,8 +51,10 @@ def _(LoadSimData):
 
 
 @app.cell
-def _(get_bulk_ids, get_rxn_ids, sim_data, sim_data_path):
+def _(get_bulk_ids, get_rxn_ids, np, sim_data, sim_data_path):
     bulk_ids = get_bulk_ids(sim_data_path)
+    bulk_ids_biocyc = [bulk_id[:-3] for bulk_id in bulk_ids]
+    bulk_names_unique = list(np.unique(bulk_ids_biocyc))
     rxn_ids = get_rxn_ids(sim_data_path)
     cistron_data = sim_data.process.transcription.cistron_data
     mrna_cistron_ids = cistron_data["id"][cistron_data["is_mRNA"]].tolist()
@@ -59,7 +62,7 @@ def _(get_bulk_ids, get_rxn_ids, sim_data, sim_data_path):
         sim_data.common_names.get_common_name(cistron_id)
         for cistron_id in mrna_cistron_ids
     ]
-    return bulk_ids, mrna_cistron_names, rxn_ids
+    return bulk_ids_biocyc, bulk_names_unique, mrna_cistron_names, rxn_ids
 
 
 @app.cell
@@ -73,8 +76,8 @@ def _(mo):
 
 
 @app.cell
-def _(bulk_ids, mo, os, wd_root):
-    sp_select = mo.ui.multiselect(options=bulk_ids)
+def _(bulk_names_unique, mo, os, wd_root):
+    sp_select = mo.ui.multiselect(options=bulk_names_unique)
     exp_select = mo.ui.dropdown(options=os.listdir(os.path.join(wd_root, "out")))
     y_scale = mo.ui.dropdown(options=["linear", "log", "symlog"], value="linear")
 
@@ -138,7 +141,6 @@ def _(exp_select, gen_select, get_agents, mo, seed_select, variant_select):
 
 @app.cell
 def _(analysis_select, get_db_filter, partitions_dict):
-    # dbf_dict = partitions_dict(exp_select.value,variant_select.value,seed_select.value,gen_select.value,agent_select.value)
     dbf_dict = partitions_dict(analysis_select.value)
     db_filter = get_db_filter(dbf_dict)
 
@@ -161,16 +163,32 @@ def _(dataset_sql, db_filter, exp_select, os, wd_root):
 
 
 @app.cell
-def _(bulk_ids, history_sql_filtered, load_outputs, np, sp_select):
+def _(get_bulk_sp_traj, history_sql_filtered, load_outputs, np, sp_select):
     output_loaded = load_outputs(history_sql_filtered)
 
     bulk_mtx = np.stack(output_loaded["bulk"].values)
 
-    sp_idxs = [bulk_ids.index(bulk_id) for bulk_id in sp_select.value]
+    # sp_idxs = [bulk_ids.index(bulk_id) for bulk_id in sp_select.value]
 
-    sp_trajs = [bulk_mtx[:, sp_idx] for sp_idx in sp_idxs]
+    # sp_trajs = [bulk_mtx[:, sp_idx] for sp_idx in sp_idxs]
+
+    sp_trajs = [get_bulk_sp_traj(bulk_id, bulk_mtx) for bulk_id in sp_select.value]
 
     return output_loaded, sp_trajs
+
+
+@app.cell
+def _(bulk_ids_biocyc, np):
+    def get_bulk_sp_traj(sp_name, bulk_mtx):
+        sp_idxs = [
+            index for index, item in enumerate(bulk_ids_biocyc) if item == sp_name
+        ]
+
+        bulk_sp_traj = np.sum(bulk_mtx[:, sp_idxs], 1)
+
+        return bulk_sp_traj
+
+    return (get_bulk_sp_traj,)
 
 
 @app.cell
@@ -199,6 +217,11 @@ def _(downsample, plot_df):
 @app.cell
 def _(mo):
     mo.md("""bulk molecule counts""")
+    return
+
+
+@app.cell
+def _():
     return
 
 
@@ -412,9 +435,6 @@ def _(exp_select, os, wd_root):
 
 @app.cell
 def _(partition_groups, read_partitions):
-    # def partitions_dict(exp_id,var_id,seed_id,gen_id,agent_id):
-    #     return {"experiment_id":f"'{exp_id}'", "variant":var_id, "lineage_seed":seed_id, "generation":gen_id, "agent_id":agent_id}
-
     def partitions_dict(analysis_type):
         partitions_req = partition_groups[analysis_type]
         partitions_all = read_partitions()
@@ -492,19 +512,6 @@ def _(duckdb, itertools, np):
         return df_ds
 
     return downsample, load_outputs
-
-
-@app.cell
-def _():
-    import itertools
-
-    return (itertools,)
-
-
-@app.cell
-def _(np):
-    int(np.ceil(0.78))
-    return
 
 
 if __name__ == "__main__":
