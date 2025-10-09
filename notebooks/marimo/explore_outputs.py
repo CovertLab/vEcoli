@@ -55,6 +55,7 @@ def _(get_bulk_ids, get_rxn_ids, np, sim_data, sim_data_path):
     bulk_ids = get_bulk_ids(sim_data_path)
     bulk_ids_biocyc = [bulk_id[:-3] for bulk_id in bulk_ids]
     bulk_names_unique = list(np.unique(bulk_ids_biocyc))
+    bulk_common_names = get_common_names(bulk_names_unique, sim_data)
     rxn_ids = get_rxn_ids(sim_data_path)
     cistron_data = sim_data.process.transcription.cistron_data
     mrna_cistron_ids = cistron_data["id"][cistron_data["is_mRNA"]].tolist()
@@ -62,7 +63,13 @@ def _(get_bulk_ids, get_rxn_ids, np, sim_data, sim_data_path):
         sim_data.common_names.get_common_name(cistron_id)
         for cistron_id in mrna_cistron_ids
     ]
-    return bulk_ids_biocyc, bulk_names_unique, mrna_cistron_names, rxn_ids
+    return (
+        bulk_common_names,
+        bulk_ids_biocyc,
+        bulk_names_unique,
+        mrna_cistron_names,
+        rxn_ids,
+    )
 
 
 @app.cell
@@ -163,7 +170,7 @@ def _(dataset_sql, db_filter, exp_select, os, wd_root):
 
 
 @app.cell
-def _(get_bulk_sp_traj, history_sql_filtered, load_outputs, np, sp_select):
+def _(bulk_sp_plot, get_bulk_sp_traj, history_sql_filtered, load_outputs, np):
     output_loaded = load_outputs(history_sql_filtered)
 
     bulk_mtx = np.stack(output_loaded["bulk"].values)
@@ -172,14 +179,26 @@ def _(get_bulk_sp_traj, history_sql_filtered, load_outputs, np, sp_select):
 
     # sp_trajs = [bulk_mtx[:, sp_idx] for sp_idx in sp_idxs]
 
-    sp_trajs = [get_bulk_sp_traj(bulk_id, bulk_mtx) for bulk_id in sp_select.value]
+    sp_trajs = [get_bulk_sp_traj(bulk_id, bulk_mtx) for bulk_id in bulk_sp_plot.value]
 
     return output_loaded, sp_trajs
 
 
 @app.cell
-def _(bulk_ids_biocyc, np):
-    def get_bulk_sp_traj(sp_name, bulk_mtx):
+def _(
+    bulk_common_names,
+    bulk_ids_biocyc,
+    bulk_names_unique,
+    molecule_id_type,
+    np,
+):
+    def get_bulk_sp_traj(sp_input, bulk_mtx):
+        if molecule_id_type.value == "common name":
+            sp_name = bulk_names_unique[bulk_common_names.index(sp_input)]
+
+        elif molecule_id_type.value == "bulk id":
+            sp_name = sp_input
+
         sp_idxs = [
             index for index, item in enumerate(bulk_ids_biocyc) if item == sp_name
         ]
@@ -192,8 +211,8 @@ def _(bulk_ids_biocyc, np):
 
 
 @app.cell
-def _(output_loaded, pd, sp_select, sp_trajs):
-    plot_dict = {key: val for (key, val) in zip(sp_select.value, sp_trajs)}
+def _(bulk_sp_plot, output_loaded, pd, sp_trajs):
+    plot_dict = {key: val for (key, val) in zip(bulk_sp_plot.value, sp_trajs)}
 
     plot_dict["time"] = output_loaded["time"]
 
@@ -222,6 +241,41 @@ def _(mo):
 
 @app.cell
 def _():
+    return
+
+
+@app.cell
+def _(mo):
+    molecule_id_type = mo.ui.radio(
+        options=["common name", "bulk id"], value="common name"
+    )
+
+    return (molecule_id_type,)
+
+
+@app.cell
+def _(bulk_common_names, bulk_names_unique, mo, molecule_id_type):
+    if molecule_id_type.value == "common name":
+        molecule_id_options = bulk_common_names
+    elif molecule_id_type.value == "bulk id":
+        molecule_id_options = bulk_names_unique
+
+    bulk_sp_plot = mo.ui.multiselect(options=molecule_id_options)
+    return (bulk_sp_plot,)
+
+
+@app.cell
+def _(bulk_sp_plot, mo, molecule_id_type):
+    bulk_select = ["molecule id type:", molecule_id_type]
+
+    if molecule_id_type.value == "common name":
+        bulk_select.append("name:")
+        bulk_select.append(bulk_sp_plot)
+    elif molecule_id_type.value == "bulk id":
+        bulk_select.append("id:")
+        bulk_select.append(bulk_sp_plot)
+
+    mo.hstack(bulk_select, justify="center")
     return
 
 
@@ -512,6 +566,28 @@ def _(duckdb, itertools, np):
         return df_ds
 
     return downsample, load_outputs
+
+
+@app.function
+def get_common_names(bulk_names, sim_data):
+    bulk_common_names = [
+        sim_data.common_names.get_common_name(name) for name in bulk_names
+    ]
+
+    duplicates = []
+
+    for item in bulk_common_names:
+        if bulk_common_names.count(item) > 1 and item not in duplicates:
+            duplicates.append(item)
+
+    for dup in duplicates:
+        sp_idxs = [index for index, item in enumerate(bulk_common_names) if item == dup]
+
+        for sp_idx in sp_idxs:
+            bulk_rename = str(bulk_common_names[sp_idx]) + f"[{bulk_names[sp_idx]}]"
+            bulk_common_names[sp_idx] = bulk_rename
+
+    return bulk_common_names
 
 
 if __name__ == "__main__":
