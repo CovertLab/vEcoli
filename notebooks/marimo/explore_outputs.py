@@ -59,6 +59,7 @@ def _(get_bulk_ids, get_rxn_ids, np, sim_data, sim_data_path):
     rxn_ids = get_rxn_ids(sim_data_path)
     cistron_data = sim_data.process.transcription.cistron_data
     mrna_cistron_ids = cistron_data["id"][cistron_data["is_mRNA"]].tolist()
+    mrna_gene_ids = [cistron_id.strip("_RNA") for cistron_id in mrna_cistron_ids]
     mrna_cistron_names = [
         sim_data.common_names.get_common_name(cistron_id)
         for cistron_id in mrna_cistron_ids
@@ -68,6 +69,7 @@ def _(get_bulk_ids, get_rxn_ids, np, sim_data, sim_data_path):
         bulk_ids_biocyc,
         bulk_names_unique,
         mrna_cistron_names,
+        mrna_gene_ids,
         rxn_ids,
     )
 
@@ -83,12 +85,11 @@ def _(mo):
 
 
 @app.cell
-def _(bulk_names_unique, mo, os, wd_root):
-    sp_select = mo.ui.multiselect(options=bulk_names_unique)
+def _(mo, os, wd_root):
     exp_select = mo.ui.dropdown(options=os.listdir(os.path.join(wd_root, "out")))
     y_scale = mo.ui.dropdown(options=["linear", "log", "symlog"], value="linear")
 
-    return exp_select, sp_select, y_scale
+    return exp_select, y_scale
 
 
 @app.cell
@@ -230,17 +231,24 @@ def _(downsample, plot_df):
     )
 
     dfds_long = downsample(df_long)
-    return (dfds_long,)
+    return df_long, dfds_long
 
 
 @app.cell
-def _(mo):
-    mo.md("""bulk molecule counts""")
+def _(get_presets, mo, preset_dir):
+    select_preset = mo.ui.dropdown(options=get_presets(preset_dir))
+    return (select_preset,)
+
+
+@app.cell
+def _(mo, select_preset):
+    mo.hstack(["pathway:", select_preset], justify="start")
     return
 
 
 @app.cell
-def _():
+def _(mo):
+    mo.md("""compound molecule counts""")
     return
 
 
@@ -254,19 +262,28 @@ def _(mo):
 
 
 @app.cell
-def _(bulk_common_names, bulk_names_unique, mo, molecule_id_type):
+def _(
+    bulk_common_names,
+    bulk_names_unique,
+    bulk_override,
+    mo,
+    molecule_id_type,
+    select_preset,
+):
     if molecule_id_type.value == "common name":
         molecule_id_options = bulk_common_names
     elif molecule_id_type.value == "bulk id":
         molecule_id_options = bulk_names_unique
 
-    bulk_sp_plot = mo.ui.multiselect(options=molecule_id_options)
+    bulk_sp_plot = mo.ui.multiselect(
+        options=molecule_id_options, value=bulk_override(select_preset.value)
+    )
     return (bulk_sp_plot,)
 
 
 @app.cell
-def _(bulk_sp_plot, mo, molecule_id_type):
-    bulk_select = ["molecule id type:", molecule_id_type]
+def _(bulk_sp_plot, mo, molecule_id_type, y_scale):
+    bulk_select = ["label type:", molecule_id_type]
 
     if molecule_id_type.value == "common name":
         bulk_select.append("name:")
@@ -275,13 +292,10 @@ def _(bulk_sp_plot, mo, molecule_id_type):
         bulk_select.append("id:")
         bulk_select.append(bulk_sp_plot)
 
+    bulk_select.append("scale:")
+    bulk_select.append(y_scale)
+
     mo.hstack(bulk_select, justify="center")
-    return
-
-
-@app.cell
-def _(mo, sp_select, y_scale):
-    mo.hstack(["bulk id(s):", sp_select, "scale:", y_scale], justify="start")
     return
 
 
@@ -296,8 +310,130 @@ def _(alt, dfds_long, y_scale):
 
 
 @app.cell
+def _(mo, wd_root):
+    # unfinished
+    bulk_out_browser = mo.ui.file_browser(
+        initial_path=wd_root, multiple=False, selection_mode="directory"
+    )
+    bulk_out_filename = mo.ui.text()
+    bulk_out_type = mo.ui.radio(options=["wide", "long"], value="wide")
+    # mo.vstack([bulk_out_browser,bulk_out_filename,bulk_out_type])
+    return bulk_out_browser, bulk_out_filename, bulk_out_type
+
+
+@app.cell
+def _(
+    bulk_out_browser,
+    bulk_out_filename,
+    bulk_out_type,
+    df_long,
+    os,
+    plot_df,
+):
+    def export_bulk():
+        out_path = os.path.join(str(bulk_out_browser.path()), bulk_out_filename.value)
+        df_export = {"wide": plot_df, "long": df_long}
+        df_export[bulk_out_type.value].to_csv(
+            out_path, sep="\t", index=False, header=True
+        )
+
+    return
+
+
+@app.cell
+def _(mo):
+    # unfinished
+    export_bulk_button = mo.ui.run_button(kind="success")
+
+    return (export_bulk_button,)
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _(export_bulk_button):
+    export_bulk_button.value
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
 def _(mo):
     mo.md("""mRNA counts""")
+    return
+
+
+@app.cell
+def _(mo):
+    rna_label_type = mo.ui.radio(
+        options=["gene name", "BioCyc gene id"], value="gene name"
+    )
+    return (rna_label_type,)
+
+
+@app.cell
+def _(
+    mo,
+    mrna_cistron_names,
+    mrna_gene_ids,
+    mrna_override,
+    rna_label_type,
+    select_preset,
+):
+    if rna_label_type.value == "gene name":
+        rna_label_options = mrna_cistron_names
+    elif rna_label_type.value == "BioCyc gene id":
+        rna_label_options = mrna_gene_ids
+
+    mrna_select_plot = mo.ui.multiselect(
+        options=rna_label_options, value=mrna_override(select_preset.value)
+    )
+    return (mrna_select_plot,)
+
+
+@app.cell
+def _(molecule_id_type, mrna_cistron_names, mrna_gene_ids, rna_label_type):
+    def get_mrna_traj(mrna_input, mrna_mtx):
+        if rna_label_type.value == "gene name":
+            mrna_name = mrna_input
+        elif molecule_id_type.value == "bulk id":
+            mrna_name = mrna_cistron_names[mrna_gene_ids.index(mrna_input)]
+
+        # sp_idxs = [index for index, item in enumerate(bulk_ids_biocyc) if item == sp_name]
+
+        # bulk_sp_traj = np.sum(bulk_mtx[:,sp_idxs],1)
+
+        mrna_idx = mrna_cistron_names.index(mrna_name)
+
+        mrna_traj = mrna_mtx[:, mrna_idx]
+
+        return mrna_traj
+
+    return (get_mrna_traj,)
+
+
+@app.cell
+def _(mo, mrna_select_plot, rna_label_type, y_scale_mrna):
+    mrna_select_menu = ["label type:", rna_label_type]
+
+    if rna_label_type.value == "gene name":
+        mrna_select_menu.append("name:")
+        mrna_select_menu.append(mrna_select_plot)
+    elif rna_label_type.value == "BioCyc gene id":
+        mrna_select_menu.append("id:")
+        mrna_select_menu.append(mrna_select_plot)
+
+    mrna_select_menu.append("scale:")
+    mrna_select_menu.append(y_scale_mrna)
+
+    mo.hstack(mrna_select_menu, justify="center")
     return
 
 
@@ -306,20 +442,28 @@ def _(mo, mrna_cistron_names):
     mrna_select = mo.ui.multiselect(options=mrna_cistron_names)
     y_scale_mrna = mo.ui.dropdown(options=["linear", "log"], value="log")
     mo.hstack(["gene name(s):", mrna_select, "scale:", y_scale_mrna], justify="start")
-    return mrna_select, y_scale_mrna
+    return (y_scale_mrna,)
 
 
 @app.cell
-def _(downsample, mrna_cistron_names, mrna_select, np, output_loaded, pd):
+def _(downsample, get_mrna_traj, mrna_select_plot, np, output_loaded, pd):
     mrna_mtx = np.stack(
         output_loaded["listeners__rna_counts__full_mRNA_cistron_counts"]
     )
 
-    mrna_idxs = [mrna_cistron_names.index(gene_id) for gene_id in mrna_select.value]
+    # mrna_idxs = [mrna_cistron_names.index(gene_id) for gene_id in mrna_select.value]
 
-    mrna_trajs = [mrna_mtx[:, mrna_idx] for mrna_idx in mrna_idxs]
+    # sp_trajs = [get_bulk_sp_traj(bulk_id,bulk_mtx) for bulk_id in bulk_sp_plot.value]
 
-    mrna_plot_dict = {key: val for (key, val) in zip(mrna_select.value, mrna_trajs)}
+    mrna_trajs = [
+        get_mrna_traj(mrna_id, mrna_mtx) for mrna_id in mrna_select_plot.value
+    ]
+
+    # mrna_trajs = [mrna_mtx[:, mrna_idx] for mrna_idx in mrna_idxs]
+
+    mrna_plot_dict = {
+        key: val for (key, val) in zip(mrna_select_plot.value, mrna_trajs)
+    }
 
     mrna_plot_dict["time"] = output_loaded["time"]
 
@@ -352,8 +496,10 @@ def _(mo):
 
 
 @app.cell
-def _(mo, rxn_ids):
-    select_rxns = mo.ui.multiselect(options=rxn_ids)
+def _(mo, rxn_ids, rxn_override, select_preset):
+    select_rxns = mo.ui.multiselect(
+        options=rxn_ids, value=rxn_override(select_preset.value)
+    )
     y_scale_rxns = mo.ui.dropdown(options=["linear", "log"], value="log")
     mo.hstack(["reaction id(s):", select_rxns, "scale:", y_scale_rxns], justify="start")
     return select_rxns, y_scale_rxns
@@ -588,6 +734,106 @@ def get_common_names(bulk_names, sim_data):
             bulk_common_names[sp_idx] = bulk_rename
 
     return bulk_common_names
+
+
+@app.cell
+def _(
+    bulk_common_names,
+    bulk_names_unique,
+    molecule_id_type,
+    mrna_cistron_names,
+    mrna_gene_ids,
+    np,
+    os,
+    pd,
+    rna_label_type,
+    rxn_ids,
+):
+    preset_dir = "presets"
+
+    def get_presets(preset_dir):
+        preset_files = os.listdir(preset_dir)
+        presets_list = [file.split(".")[0] for file in preset_files]
+
+        return presets_list
+
+    def read_columns(st_column):
+        values = []
+        for item in st_column:
+            items_actual = item.split(" // ")
+            for item_actual in items_actual:
+                values.append(item_actual)
+        return values
+
+    def read_presets(preset_name):
+        preset_dict = {}
+        if isinstance(preset_name, str):
+            preset_table = pd.read_csv(
+                os.path.join(preset_dir, preset_name + ".txt"), header=0, sep="\t"
+            )
+
+            preset_dict["reactions"] = read_columns(preset_table["reactions"])
+            preset_dict["genes"] = read_columns(preset_table["genes"])
+            preset_dict["compounds"] = read_columns(preset_table["compounds"])
+
+        return preset_dict
+
+    def preset_override(preset_name):
+        preset_dict = read_presets(preset_name)
+
+        preset_final = {}
+
+        if len(preset_dict) > 0:
+            preset_final["reactions"] = np.array(preset_dict["reactions"])[
+                np.isin(preset_dict["reactions"], rxn_ids)
+            ].tolist()
+
+            preset_final["genes"] = np.array(preset_dict["genes"])[
+                np.isin(preset_dict["genes"], mrna_gene_ids)
+            ].tolist()
+
+            preset_final["genes"] = np.unique(preset_final["genes"]).tolist()
+
+            if rna_label_type.value == "gene name":
+                preset_gene_names = []
+                for gene_id in preset_final["genes"]:
+                    preset_gene_names.append(
+                        mrna_cistron_names[mrna_gene_ids.index(gene_id)]
+                    )
+                preset_final["genes"] = preset_gene_names
+
+            preset_final["compounds"] = np.array(preset_dict["compounds"])[
+                np.isin(preset_dict["compounds"], bulk_names_unique)
+            ].tolist()
+
+            preset_final["compounds"] = np.unique(preset_final["compounds"]).tolist()
+
+            if molecule_id_type.value == "common name":
+                preset_compound_names = []
+                for name in preset_final["compounds"]:
+                    preset_compound_names.append(
+                        bulk_common_names[bulk_names_unique.index(name)]
+                    )
+                preset_final["compounds"] = preset_compound_names
+
+        return preset_final
+
+    def bulk_override(preset_name):
+        preset_dict = preset_override(preset_name)
+        bulk_list = preset_dict.get("compounds")
+        return bulk_list
+
+    def rxn_override(preset_name):
+        preset_dict = preset_override(preset_name)
+        rxn_list = preset_dict.get("reactions")
+        return rxn_list
+
+    def mrna_override(preset_name):
+        preset_dict = preset_override(preset_name)
+        mrna_list = preset_dict.get("genes")
+        return mrna_list
+
+    return bulk_override, get_presets, mrna_override, preset_dir, rxn_override
 
 
 if __name__ == "__main__":
