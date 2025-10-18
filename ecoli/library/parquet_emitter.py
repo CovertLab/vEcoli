@@ -331,7 +331,7 @@ def named_idx(
 ) -> str:
     """
     Create DuckDB expressions for given indices from a list column. Can be
-    used in ``projection`` kwarg of :py:func:`~.read_stacked_columns`. Since
+    used in ``columns`` kwarg of :py:func:`~.read_stacked_columns`. Since
     each index gets pulled out into its own column, this greatly simplifies
     aggregations like averages, etc. Only use this if the number of indices
     is relatively small (<100) and the list column is 1-dimensional. For 2+
