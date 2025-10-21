@@ -1164,7 +1164,7 @@ def initialize_transcription(
         """
 
         def in_bounds(coord_val, lb, ub):
-            return np.logical_and(coord_val > lb, coord_val < ub)
+            return np.logical_and(coord_val < ub, coord_val > lb)
 
         domains_to_check = [curr_domain, *chromosome_domain_indexes]
         for domain_idx in domains_to_check:
@@ -1278,7 +1278,7 @@ def initialize_transcription(
             else:
                 collision_coords = np.unique(updated_coordinates[collision_indices])
                 warnings.warn(
-                    f"RNAP collisions remain at {collision_coords} after 100 shuffles."
+                    f"RNAP collisions remain at {collision_coords} after {RNAP_COLLISION_RESOLUTION_MAX_ATTEMPTS} shuffles."
                 )
 
     # Reset coordinates of RNAPs that cross the boundaries between right and
