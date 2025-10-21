@@ -1231,6 +1231,9 @@ def initialize_transcription(
     # Ensure no RNAPs are at the same location
     if n_RNAPs_to_activate > 1:
         # Find duplicate positions on same domain
+        # This encoding creates unique position keys by treating each domain as occupying a
+        # separate chromosome_length-sized space. This enables efficient collision detection
+        # across domains, since positions in different domains will not overlap.
         positions = updated_coordinates + domain_index_rnap * chromosome_length
         unique_keys, inverse_indices, counts = np.unique(
             positions, return_inverse=True, return_counts=True
