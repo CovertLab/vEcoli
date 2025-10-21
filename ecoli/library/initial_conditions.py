@@ -1134,7 +1134,6 @@ def initialize_transcription(
     is_forward = transcription_direction[TU_index_partial_RNAs]
 
     # Randomly advance RNAPs along the transcription units
-    # TODO (Eran): make sure there aren't any RNAPs at same location on same TU
     updated_lengths = np.round(
         random_state.rand(n_RNAPs_to_activate) * rna_lengths[TU_index_partial_RNAs]
     ).astype(int)
