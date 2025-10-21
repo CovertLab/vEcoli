@@ -1227,6 +1227,55 @@ def initialize_transcription(
         dtype=np.int32,
     )
 
+    # Ensure no RNAPs are at the same location
+    if n_RNAPs_to_activate > 1:
+        # Find duplicate positions on same domain
+        positions = updated_coordinates + domain_index_rnap * chromosome_length
+        unique_keys, inverse_indices, counts = np.unique(
+            positions, return_inverse=True, return_counts=True
+        )
+
+        # Identify RNAPs that need adjustment
+        collision_mask = counts[inverse_indices] > 1
+
+        if np.any(collision_mask):
+            # For colliding RNAPs, regenerate positions
+            collision_indices = np.where(collision_mask)[0]
+
+            for attempt in range(100):
+                # Generate new positions for colliding RNAPs
+                new_positions = np.array(
+                    random_state.rand(len(collision_indices))
+                    * rna_lengths[TU_index_partial_RNAs][collision_indices],
+                    dtype=int,
+                )
+                updated_lengths[collision_indices] = new_positions
+                updated_coordinates[collision_indices] = (
+                    starting_coordinates[collision_indices]
+                    + direction_rescaled[collision_indices] * new_positions
+                )
+
+                # Reassign domains for moved RNAPs
+                for idx in collision_indices:
+                    domain_index_rnap[idx] = get_domain_for_coordinate(
+                        updated_coordinates[idx], domain_index_rnap[idx]
+                    )
+
+                # Since some TUs overlap, must recheck all positions
+                positions = updated_coordinates + domain_index_rnap * chromosome_length
+                unique_keys, inverse_indices, counts = np.unique(
+                    positions, return_inverse=True, return_counts=True
+                )
+                collision_mask = counts[inverse_indices] > 1
+                collision_indices = np.where(collision_mask)[0]
+
+                if len(collision_indices) == 0:
+                    break
+            else:
+                raise RuntimeError(
+                    "Could not resolve RNAP collisions after 100 attempts."
+                )
+
     # Reset coordinates of RNAPs that cross the boundaries between right and
     # left replichores
     updated_coordinates[updated_coordinates > replichore_lengths[0]] -= (
