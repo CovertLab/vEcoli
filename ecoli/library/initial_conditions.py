@@ -1148,6 +1148,85 @@ def initialize_transcription(
         direction_rescaled, updated_lengths
     )
 
+    # Extract replication state from unique_molecules for domain assignment
+    chromosome_domain_indexes = unique_molecules["chromosome_domain"]["domain_index"]
+    child_domains = unique_molecules["chromosome_domain"]["child_domains"]
+    origin_domain_indexes = unique_molecules["oriC"]["domain_index"]
+    replisome_coordinates = unique_molecules["active_replisome"]["coordinates"]
+    replisome_domain_indexes = unique_molecules["active_replisome"]["domain_index"]
+    n_replisome = len(replisome_coordinates)
+
+    def get_domain_for_coordinate(coord, curr_domain):
+        """
+        Determine which chromosome domain a coordinate belongs to, using the
+        same logic as get_motif_attributes. Start checking from curr_domain.
+        """
+
+        def in_bounds(coord_val, lb, ub):
+            return coord_val < ub and coord_val > lb
+
+        domains_to_check = [curr_domain, *chromosome_domain_indexes]
+        for domain_idx in domains_to_check:
+            # If the domain is the mother domain of the initial chromosome
+            if domain_idx == 0:
+                if n_replisome == 0:
+                    return domain_idx
+                else:
+                    domain_boundaries = replisome_coordinates[
+                        replisome_domain_indexes == 0
+                    ]
+                    if (
+                        coord > domain_boundaries.max()
+                        or coord < domain_boundaries.min()
+                    ):
+                        return domain_idx
+
+            # If the domain contains the origin
+            elif np.isin(domain_idx, origin_domain_indexes):
+                parent_domain_idx = chromosome_domain_indexes[
+                    np.where(child_domains == domain_idx)[0][0]
+                ]
+                parent_domain_boundaries = replisome_coordinates[
+                    replisome_domain_indexes == parent_domain_idx
+                ]
+                if in_bounds(
+                    coord,
+                    parent_domain_boundaries.min(),
+                    parent_domain_boundaries.max(),
+                ):
+                    return domain_idx
+
+            # If the domain neither contains the origin nor the terminus
+            else:
+                parent_domain_idx = chromosome_domain_indexes[
+                    np.where(child_domains == domain_idx)[0][0]
+                ]
+                parent_domain_boundaries = replisome_coordinates[
+                    replisome_domain_indexes == parent_domain_idx
+                ]
+                domain_boundaries = replisome_coordinates[
+                    replisome_domain_indexes == domain_idx
+                ]
+
+                if in_bounds(
+                    coord, domain_boundaries.max(), parent_domain_boundaries.max()
+                ) or in_bounds(
+                    coord, parent_domain_boundaries.min(), domain_boundaries.min()
+                ):
+                    return domain_idx
+
+        # Default to domain 0 if no match found
+        return 0
+
+    # Assign each RNAP to the correct domain based on its coordinate
+    domain_index_rnap = np.array(
+        [
+            get_domain_for_coordinate(coord, domain)
+            for coord, domain in zip(updated_coordinates, domain_index_rnap)
+        ],
+        dtype=np.int32,
+    )
+
     # Reset coordinates of RNAPs that cross the boundaries between right and
     # left replichores
     updated_coordinates[updated_coordinates > replichore_lengths[0]] -= (
