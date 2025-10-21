@@ -7,6 +7,7 @@ import numpy.typing as npt
 from numpy.lib import recfunctions as rfn
 from typing import Any
 from unum import Unum
+import warnings
 
 from ecoli.library.schema import (
     attrs,
@@ -1163,7 +1164,7 @@ def initialize_transcription(
         """
 
         def in_bounds(coord_val, lb, ub):
-            return coord_val < ub and coord_val > lb
+            return np.logical_and(coord_val > lb, coord_val < ub)
 
         domains_to_check = [curr_domain, *chromosome_domain_indexes]
         for domain_idx in domains_to_check:
@@ -1272,8 +1273,9 @@ def initialize_transcription(
                 if len(collision_indices) == 0:
                     break
             else:
-                raise RuntimeError(
-                    "Could not resolve RNAP collisions after 100 attempts."
+                collision_coords = np.unique(updated_coordinates[collision_indices])
+                warnings.warn(
+                    f"RNAP collisions remain at {collision_coords} after 100 shuffles."
                 )
 
     # Reset coordinates of RNAPs that cross the boundaries between right and
