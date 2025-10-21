@@ -37,6 +37,7 @@ from wholecell.utils.polymerize import computeMassIncrease
 from wholecell.utils.random import stochasticRound
 
 RAND_MAX = 2**31
+RNAP_COLLISION_RESOLUTION_MAX_ATTEMPTS = 100
 
 
 def create_bulk_container(
@@ -1134,10 +1135,9 @@ def initialize_transcription(
 
     # Randomly advance RNAPs along the transcription units
     # TODO (Eran): make sure there aren't any RNAPs at same location on same TU
-    updated_lengths = np.array(
-        random_state.rand(n_RNAPs_to_activate) * rna_lengths[TU_index_partial_RNAs],
-        dtype=int,
-    )
+    updated_lengths = np.round(
+        random_state.rand(n_RNAPs_to_activate) * rna_lengths[TU_index_partial_RNAs]
+    ).astype(int)
 
     # Rescale boolean array of directions to an array of 1's and -1's.
     direction_rescaled = (2 * (is_forward - 0.5)).astype(np.int64)
@@ -1243,17 +1243,16 @@ def initialize_transcription(
             # For colliding RNAPs, regenerate positions
             collision_indices = np.where(collision_mask)[0]
 
-            for attempt in range(100):
+            for attempt in range(RNAP_COLLISION_RESOLUTION_MAX_ATTEMPTS):
                 # Generate new positions for colliding RNAPs
-                new_positions = np.array(
+                new_lengths = np.round(
                     random_state.rand(len(collision_indices))
-                    * rna_lengths[TU_index_partial_RNAs][collision_indices],
-                    dtype=int,
-                )
-                updated_lengths[collision_indices] = new_positions
+                    * rna_lengths[TU_index_partial_RNAs][collision_indices]
+                ).astype(int)
+                updated_lengths[collision_indices] = new_lengths
                 updated_coordinates[collision_indices] = (
                     starting_coordinates[collision_indices]
-                    + direction_rescaled[collision_indices] * new_positions
+                    + direction_rescaled[collision_indices] * new_lengths
                 )
 
                 # Reassign domains for moved RNAPs
@@ -1262,7 +1261,11 @@ def initialize_transcription(
                         updated_coordinates[idx], domain_index_rnap[idx]
                     )
 
-                # Since some TUs overlap, must recheck all positions
+                # Since some TUs overlap, must recheck all positions:
+                # Moving one RNAP may resolve its collision, but could also
+                # create a new collision with an RNAP from an overlapping TU.
+                # Therefore, after each shuffle, all positions must be checked
+                # for collisions, not just the ones that were moved.
                 positions = updated_coordinates + domain_index_rnap * chromosome_length
                 unique_keys, inverse_indices, counts = np.unique(
                     positions, return_inverse=True, return_counts=True
