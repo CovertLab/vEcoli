@@ -1279,9 +1279,16 @@ def initialize_transcription(
                 if len(collision_indices) == 0:
                     break
             else:
-                collision_coords = np.unique(updated_coordinates[collision_indices])
+                collision_locs = list(
+                    set(
+                        zip(
+                            updated_coordinates[collision_indices],
+                            domain_index_rnap[collision_indices],
+                        )
+                    )
+                )
                 warnings.warn(
-                    f"RNAP collisions remain at {collision_coords} after {RNAP_COLLISION_RESOLUTION_MAX_ATTEMPTS} shuffles."
+                    f"RNAP collisions remain at (coordinate, domain) pairs {collision_locs} after {RNAP_COLLISION_RESOLUTION_MAX_ATTEMPTS} shuffles."
                 )
 
     # Reset coordinates of RNAPs that cross the boundaries between right and
