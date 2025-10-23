@@ -142,6 +142,42 @@ Click ``Save`` to create the pipeline, scan the repository for branches that mat
 and contain the Jenkinsfile, and trigger the pipeline as appropriate.
 
 
+Diagnosing Failed Jobs
+======================
+
+There are three main ways that a properly configured Jenkins job can fail:
+
+1. An underlying error in the simulation workflow (ParCa, simulation, analyses)
+2. The SLURM job running Jenkins is terminated and restarted
+3. The Covert Lab Sherlock node is experiencing issues
+
+If the failure is due to (1), the end of the logs for the test should contain
+the error message(s) from the simulation workflow. From there, you can debug
+the issue as you would any other error in the code (see :ref:`make_and_test`).
+
+Situation (2) can happen if a test is running right when the Jenkins SLURM job is
+about to reach its time limit (5 days). The Jenkins SLURM job automatically
+resubmits itself, but running jobs will fail with the following log messages:
+
+.. code-block:: text
+
+    wrapper script does not seem to be touching the log file in {path to Jenkins workspace}
+    (JENKINS-48300: if on an extremely laggy filesystem, consider -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL=86400)
+
+Failures due to (2) can usually be ignored if the test passes the next time it runs.
+
+Situation (3) is less common but often causes all Jenkins tests to fail due to
+timeouts (example: 15 hours for ``runscripts/jenkins/Jenkinsfile/glucose``).
+Check the status of the node with ``sinfo -p mcovert``. If the node is in a
+``boot^`` or ``drain`` state, the user who started the Jenkins SLURM job should
+cancel it and any related pending jobs using ``scancel {job ID}``. Then, requeue
+the Jenkins SLURM job with
+``sbatch --mail-user={your email here} runscripts/jenkins/jenkins_vecoli.sh``.
+Once the issues with the node are resolved, the Jenkins SLURM job will start
+and tests should run as normal (tests running at the time of node issues will
+report as failed when the new Jenkins SLURM job starts).
+
+
 .. _jenkins-setup:
 
 Jenkins Setup
