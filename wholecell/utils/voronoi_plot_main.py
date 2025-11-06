@@ -748,8 +748,8 @@ class VoronoiMaster(object):
         """
         Master function of generating layered or non-layered voronoi plot from a
         dictionary.
-        gross_error = \\sum_{i} |Area(i) - Expected Area(i)|
-        error_all = \\sum_{i} |Area(i) - Expected Area(i)|/(2 * total area)
+        gross_error = \sum_{i} |Area(i) - Expected Area(i)|
+        error_all = \sum_{i} |Area(i) - Expected Area(i)|/(2 * total area)
         The factor 2 in the error formula is to correct the repeated calculation
         in area error.
         Args:
@@ -774,7 +774,7 @@ class VoronoiMaster(object):
                 represented by the plot
 
         Returns:
-            The error in total area representation.
+            error_all: the error in total area representation.
         """
         voronoi_list_old = []
         if ax_shape is not None:
@@ -889,7 +889,7 @@ class VoronoiMaster(object):
                 patches = []
                 colors_all = []
                 for polygon in voronoi.polygons:
-                    polygon_plot_obj = Polygon(polygon.xy, True)
+                    polygon_plot_obj = Polygon(polygon.xy, closed=True)
                     ax.plot(
                         polygon.xy[:, 0],
                         polygon.xy[:, 1],
@@ -941,7 +941,8 @@ class VoronoiMaster(object):
                 )
         return gross_error
 
-    def _find_total(self, val: int | float | dict) -> float:
+    def _find_total(self, val):
+        # type: (Union[int, float, dict]) -> float
         """
         Find the total value within a number or nestable dictionary.
         """
@@ -990,13 +991,13 @@ class VoronoiMaster(object):
                 labels, values, canvas_obj
             )
         voronoi_list = [voronoi_out]
-        polygon_value_list: list[list] = [[] for _ in dic]
-        label_site_list: list[list] = [[] for _ in dic]
+        polygon_value_list = [[] for _ in dic]  # type: List[Iterable]
+        label_site_list = [[] for _ in dic]  # type: List[Iterable]
 
         for i, value in enumerate(dic.values()):
             if isinstance(value, (float, int)):
-                polygon_value_list[i] = [voronoi_out.polygons[i], values[i]]
-                label_site_list[i] = [labels[i], voronoi_out.sites[i]]
+                polygon_value_list[i] = (voronoi_out.polygons[i], values[i])
+                label_site_list[i] = (labels[i], voronoi_out.sites[i])
 
             elif isinstance(value, dict):
                 if voronoi_list_old is not None:
