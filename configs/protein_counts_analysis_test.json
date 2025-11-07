@@ -5,10 +5,10 @@
 
     },
     "analysis_options": {
-        "experiment_id": ["protein_counts_test_with_wcCLMLNE1_parca"],
-        "variant_data_dir": ["out/protein_counts_test_with_wcCLMLNE1_parca/variant_sim_data"],
-        "validation_data_path": ["out/protein_counts_test_with_wcCLMLNE1_parca/parca/kb/validationData.cPickle"],
-        "outdir": "out/protein_counts_test_with_wcCLMLNE1_parca/plots_post_modification",
+        "experiment_id": ["protein_counts_test_with_wcCLMLNE1_parca_starting_seed_1"],
+        "variant_data_dir": ["out/protein_counts_test_with_wcCLMLNE1_parca_starting_seed_1/variant_sim_data"],
+        "validation_data_path": ["out/protein_counts_test_with_wcCLMLNE1_parca_starting_seed_1/parca/kb/validationData.cPickle"],
+        "outdir": "out/protein_counts_test_with_wcCLMLNE1_parca_starting_seed_1/plots_post_modification",
         "cpus": 1,
 
 
