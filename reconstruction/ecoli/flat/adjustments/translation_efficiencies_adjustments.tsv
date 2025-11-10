@@ -25,3 +25,8 @@
 "HOMOCYSMET-MONOMER[c]"	2		"fit_sim_data_1.py"	"Main methionine synthase when there's no B12. Better alignment with ribosome profiling"
 "PGMI-MONOMER[c]"	0.25		"fit_sim_data_1.py"	"Better alignment with ribosome profiling"
 "EG10242-MONOMER[c]"	3		"fit_sim_data_1.py"	"dnaN, important for mechanistic replisome and better match experimental counts"
+"ILES-MONOMER[c]"	2		"fit_sim_data_1.py"	"Isoleucine--tRNA ligase; Better match experimental counts. Necessary for normal growth using kinetic tRNA charging model."
+"PHET-MONOMER[c]"	5		"fit_sim_data_1.py"	"Phenylalanine--tRNA ligase; Better match experimental counts. Necessary for normal growth using kinetic tRNA charging model."
+"PHES-MONOMER[c]"	5		"fit_sim_data_1.py"	"Phenylalanine--tRNA ligase; Better match experimental counts. Necessary for normal growth using kinetic tRNA charging model."
+"TYRS-MONOMER[c]"	2		"fit_sim_data_1.py"	"Tyrosine--tRNA ligase; Better match experimental counts. Necessary for normal growth using kinetic tRNA charging model."
+"THRS-MONOMER[c]"	0.5		"fit_sim_data_1.py"	"Threonine--tRNA ligase; Better match experimental counts. Necessary for normal growth using kinetic tRNA charging model."
