@@ -127,7 +127,6 @@ LIST_OF_DICT_FILENAMES = [
     os.path.join("adjustments", "relative_metabolite_concentrations_changes.tsv"),
     os.path.join("optimization", "trna_charging_kinetics_constants.tsv"),
     os.path.join("optimization", "trna_charging_kinetics_solutions.tsv"),
-    os.path.join("optimization", "trna_synthetase_dynamic_range.tsv"),
 ]
 SEQUENCE_FILE = "sequence.fasta"
 LIST_OF_PARAMETER_FILENAMES = [

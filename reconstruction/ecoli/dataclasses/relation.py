@@ -627,16 +627,6 @@ class Relation(object):
                     continue
                 self.trna_charging_constants[key][k] = v
 
-        # Store tRNA synthetase abundances observed from sample
-        # simulations
-        self.trna_synthetase_samples = {}
-        for row in raw_data.optimization.trna_synthetase_dynamic_range:
-            key = row["synthetase_condition"]
-            self.trna_synthetase_samples[key] = {}
-            self.trna_synthetase_samples[key]["mean"] = row["mean"]
-            self.trna_synthetase_samples[key]["std"] = row["std"]
-            self.trna_synthetase_samples[key]["min"] = row["min"]
-
         # Store curated kinetics
         self.synthetase_to_max_curated_k_cats = {}
         for row in raw_data.trna_charging_kinetics_curated:
@@ -982,16 +972,6 @@ class Relation(object):
         bounds_2 = bounds_1[:]
         bounds_2[K_A_index] = (-2, upper_bound)
 
-        # Get the minimum trna synthetase concentration observed
-        # from sample simulations
-        synthetase_mins = []
-        for condition in self.conditions:
-            key = f"{synthetase}__{condition}"
-            synthetase_mins.append(
-                self.trna_synthetase_samples[key]["min"].asNumber(self.conc_unit)
-            )
-        synthetase_mins = np.array(synthetase_mins)
-
         trna_charging_kinetics_solutions = []
 
         # Sweep over the minimum tRNA synthetase value
@@ -1003,11 +983,7 @@ class Relation(object):
 
             # Calculate the minimum trna synthetase concentration
             # used in this sweep level
-            c_synthetase_min = []
-            for estimated_minimum in sweep_level / n_increments * synthetase_mins:
-                for i in range(len(trnas)):
-                    c_synthetase_min.append(estimated_minimum)
-            c_synthetase_min = np.array(c_synthetase_min)
+            c_synthetase_min = sweep_level / n_increments * c_synthetase
 
             # Determine whether full amino acid saturation holds
             initial_solution = get_random_initial_solution(
@@ -1318,13 +1294,7 @@ class Relation(object):
             v_codons_array += v_codons.tolist()
             v_codons_total.append(v_codons.sum())
 
-            # Get tRNA synthetase concentration observed from sample
-            # simulations
-            c_synthetase = (
-                self.trna_synthetase_samples[f"{synthetase}__{condition}"]["mean"]
-            ).asNumber(self.conc_unit)
-
-            # Get tRNA abundances from average container
+            # Get tRNA and synthetase abundances from average container
             volume = (
                 cell_specs[condition]["avgCellDryMassInit"]
                 / sim_data.mass.cell_dry_mass_fraction
@@ -1332,6 +1302,9 @@ class Relation(object):
             )
             to_conc = 1 / sim_data.constants.n_avogadro / volume
             container = cell_specs[condition]["bulkAverageContainer"]
+            c_synthetase = (
+                to_conc * container["count"][container["id"] == synthetase][0]
+            ).asNumber(self.conc_unit)
 
             # tRNAs are not automatically matured in ParCa and must
             # be converted from TUs to cistrons for accurate counts
