@@ -36,7 +36,7 @@ def read_outputs(
 
 def consolidate_timepoints(state_mtx, n_tp, normalized=False):
     # generate consolidated relative time points
-    checkpoints = np.linspace(0, np.shape(state_mtx)[0], n_tp, dtype=int)
+    checkpoints = np.linspace(0, np.shape(state_mtx)[0] - 1, n_tp, dtype=int)
 
     if normalized:
         denom = [
@@ -58,7 +58,7 @@ def consolidate_timepoints(state_mtx, n_tp, normalized=False):
     block_sums = np.stack(block_sums, axis=0)
     block_sums_final = np.insert(block_sums, 0, state_mtx[0], axis=0)
 
-    return block_sums_final
+    return block_sums_final, checkpoints
 
 
 def plot(
@@ -79,6 +79,13 @@ def plot(
 
     sim_data = LoadSimData(sim_data_path).sim_data
 
+    time_units = ["minutes", "seconds"]
+
+    if not params.get("time_unit"):
+        params["time_unit"] = "minutes"
+    elif params["time_unit"] not in time_units:
+        params["time_unit"] = "minutes"
+
     output_columns = ["bulk", "listeners__fba_results__base_reaction_fluxes"]
 
     output_df = read_outputs(history_sql, conn, output_columns)
@@ -89,9 +96,15 @@ def plot(
 
     n_tp = params["n_tp"]
 
-    tp_columns = ["t" + str(i) for i in range(n_tp)]
+    rxn_blocksum, tp_idx = consolidate_timepoints(rxn_mtx, n_tp, normalized=True)
 
-    rxn_blocksum = consolidate_timepoints(rxn_mtx, n_tp, normalized=True)
+    tp_checkpoints = output_df["time"].values[tp_idx]
+
+    if params["time_unit"] == "minutes":
+        tp_checkpoints = tp_checkpoints / 60
+        tp_checkpoints = [round(x) for x in tp_checkpoints]
+
+    tp_columns = ["t = " + str(i) for i in tp_checkpoints]
 
     ptools_rxns = pd.DataFrame(
         data=np.abs(rxn_blocksum.transpose()), index=rxn_ids_base, columns=tp_columns
@@ -100,7 +113,7 @@ def plot(
     ptools_rxns.index.name = "$"
 
     ptools_rxns.to_csv(
-        os.path.join(outdir, "ptools_rxns_multiseed.txt"),
+        os.path.join(outdir, "ptools_rxns.txt"),
         sep="\t",
         index=True,
         header=True,

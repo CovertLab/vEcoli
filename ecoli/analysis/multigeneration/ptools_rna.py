@@ -111,7 +111,7 @@ def build_bulk2monomers_matrix(sim_data):
 
 def consolidate_timepoints(state_mtx, n_tp, normalized=False):
     # generate consolidated relative time points
-    checkpoints = np.linspace(0, np.shape(state_mtx)[0], n_tp, dtype=int)
+    checkpoints = np.linspace(0, np.shape(state_mtx)[0] - 1, n_tp, dtype=int)
 
     if normalized:
         denom = [
@@ -133,7 +133,7 @@ def consolidate_timepoints(state_mtx, n_tp, normalized=False):
     block_sums = np.stack(block_sums, axis=0)
     block_sums_final = np.insert(block_sums, 0, state_mtx[0], axis=0)
 
-    return block_sums_final
+    return block_sums_final, checkpoints
 
 
 def plot(
@@ -161,6 +161,13 @@ def plot(
     rna_data = sim_data.process.transcription.rna_data
 
     tu_source = retrieve_tu_source(wd_raw)
+
+    time_units = ["minutes", "seconds"]
+
+    if not params.get("time_unit"):
+        params["time_unit"] = "minutes"
+    elif params["time_unit"] not in time_units:
+        params["time_unit"] = "minutes"
 
     bulk_ids = get_bulk_ids(sim_data)
 
@@ -355,11 +362,17 @@ def plot(
 
     n_tp = int(params["n_tp"])
 
-    rna_counts_gene_blocksum = consolidate_timepoints(
+    rna_counts_gene_blocksum, tp_idx = consolidate_timepoints(
         rna_counts_gene, n_tp, normalized=True
     )
 
-    tp_columns = ["t" + str(i) for i in range(n_tp)]
+    tp_checkpoints = output_df["time"].values[tp_idx]
+
+    if params["time_unit"] == "minutes":
+        tp_checkpoints = tp_checkpoints / 60
+        tp_checkpoints = [round(x) for x in tp_checkpoints]
+
+    tp_columns = ["t = " + str(i) for i in tp_checkpoints]
 
     ptools_rna = pd.DataFrame(
         data=rna_counts_gene_blocksum.transpose(),
@@ -370,7 +383,7 @@ def plot(
     ptools_rna.index.name = "$"
 
     ptools_rna.to_csv(
-        os.path.join(outdir, "ptools_rna_multigen.txt"),
+        os.path.join(outdir, "ptools_rna.txt"),
         sep="\t",
         index=True,
         header=True,

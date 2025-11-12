@@ -65,7 +65,7 @@ def build_bulk2monomers_matrix(sim_data):
 
 def consolidate_timepoints(state_mtx, n_tp, normalized=False):
     # generate consolidated relative time points
-    checkpoints = np.linspace(0, np.shape(state_mtx)[0], n_tp, dtype=int)
+    checkpoints = np.linspace(0, np.shape(state_mtx)[0] - 1, n_tp, dtype=int)
 
     if normalized:
         denom = [
@@ -87,7 +87,7 @@ def consolidate_timepoints(state_mtx, n_tp, normalized=False):
     block_sums = np.stack(block_sums, axis=0)
     block_sums_final = np.insert(block_sums, 0, state_mtx[0], axis=0)
 
-    return block_sums_final
+    return block_sums_final, checkpoints
 
 
 def plot(
@@ -113,6 +113,13 @@ def plot(
     sim_data = LoadSimData(sim_data_path).sim_data
 
     bulk_ids = get_bulk_ids(sim_data)
+
+    time_units = ["minutes", "seconds"]
+
+    if not params.get("time_unit"):
+        params["time_unit"] = "minutes"
+    elif params["time_unit"] not in time_units:
+        params["time_unit"] = "minutes"
 
     genes_input_raw = pd.read_csv(
         os.path.join(wd_raw, "genes.tsv"), sep="\t", header=5, index_col=0
@@ -187,9 +194,17 @@ def plot(
 
     n_tp = int(params["n_tp"])
 
-    tp_columns = ["t" + str(i) for i in range(n_tp)]
+    proteomics_bulksum, tp_idx = consolidate_timepoints(
+        proteomics, n_tp, normalized=True
+    )
 
-    proteomics_bulksum = consolidate_timepoints(proteomics, n_tp, normalized=True)
+    tp_checkpoints = output_df["time"].values[tp_idx]
+
+    if params["time_unit"] == "minutes":
+        tp_checkpoints = tp_checkpoints / 60
+        tp_checkpoints = [round(x) for x in tp_checkpoints]
+
+    tp_columns = ["t = " + str(i) for i in tp_checkpoints]
 
     ptools_proteins = pd.DataFrame(
         data=proteomics_bulksum.transpose(), index=protein_labels, columns=tp_columns
@@ -198,7 +213,7 @@ def plot(
     ptools_proteins.index.name = "$"
 
     ptools_proteins.to_csv(
-        os.path.join(outdir, "ptools_proteins_multiseed.txt"),
+        os.path.join(outdir, "ptools_proteins.txt"),
         sep="\t",
         index=True,
         header=True,
