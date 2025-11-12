@@ -47,6 +47,7 @@ FILTERS = {
 }
 """Mapping of data filters to data type."""
 
+
 ANALYSIS_TYPES = {
     "multiexperiment": [],
     "multivariant": ["experiment_id"],
@@ -55,6 +56,7 @@ ANALYSIS_TYPES = {
     "multidaughter": ["experiment_id", "variant", "lineage_seed", "generation"],
     "single": ["experiment_id", "variant", "lineage_seed", "generation", "agent_id"],
     "parca": [],
+    "data_transform": ["experiment_id", "variant", "lineage_seed", "generation", "agent_id"]
 }
 """Mapping of all possible analysis types to the combination of identifiers that
 must be unique for each subset of the data given to that analysis type as input."""
@@ -117,7 +119,7 @@ def make_sim_data_dict(exp_id: str, variants: list[int], sim_data_path: list[str
     return {exp_id: dict(zip(variants, sim_data_path))}
 
 
-def main():
+def test_main():
     parser = argparse.ArgumentParser()
     default_config = os.path.join(CONFIG_DIR_PATH, "default.json")
     parser.add_argument(
@@ -181,6 +183,7 @@ def main():
         " --variant_metadata_path. If >1 experiment IDs, this is required and"
         " must have the same length and order as the given experiment IDs.",
     )
+    # multiseed: nexp_ids * n_variants, multigen:
     parser.add_argument(
         "--analysis_types",
         "-t",
@@ -410,4 +413,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    test_main()
