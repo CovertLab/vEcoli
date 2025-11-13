@@ -6,7 +6,7 @@
         "experiment_id": ["sms_multiseed_multigen"],
         "variant_data_dir": ["out/sms_multiseed_multigen/variant_sim_data"],
         "validation_data_path": ["out/sms_multiseed_multigen/parca/kb/validationData.cPickle"],
-        "outdir": "out/multiseed_multigen_analysis_GENES",
+        "outdir": "out/multiseed_multigen_analysis",
         "cpus": 7,
         "data_transform": {
             "genes": {

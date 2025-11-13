@@ -6,8 +6,7 @@ Base DataTransformation ABC that is inherited by any data transformer required f
 import abc
 import itertools
 import math
-import subprocess
-import tempfile
+import os
 from pathlib import Path
 from typing import Any, LiteralString
 
@@ -15,13 +14,12 @@ import duckdb
 import pandas as pd
 import polars as pl
 import numpy as np
-import pytest
 from duckdb import DuckDBPyConnection
 
-from ecoli.library.transforms import PARTITION_GROUPS
+from ecoli.library.transform import PARTITION_GROUPS
 from ecoli.library.parquet_emitter import dataset_sql
 from ecoli.library.sim_data import LoadSimData
-from ecoli.library.transforms.models import DatasetLabels, DataTransformExportFormat
+from ecoli.library.transform.models import DatasetLabels, DataTransformExportFormat, DataTransformation
 from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
 
@@ -29,6 +27,7 @@ class DataTransformer(abc.ABC):
     sim_data_path: str
     sim_data: SimulationDataEcoli
     data_labels: DatasetLabels
+    transformation: DataTransformation | None = None
 
     def __init__(self, sim_data_path: Path):
         self.sim_data_path = str(sim_data_path)
@@ -39,7 +38,7 @@ class DataTransformer(abc.ABC):
     def _transform(
             self,
             experiment_id: str,
-            outputs_loaded: pd.DataFrame,
+            outputs_loaded: pd.DataFrame | pl.DataFrame,
             observable_ids: list[str] | None = None,
             lazy: bool = True,
             **kwargs
@@ -67,14 +66,16 @@ class DataTransformer(abc.ABC):
             history_sql_filtered = history_sql or get_filtered_query(simulation_outdir, experiment_id, db_filter)
 
         output_loaded: pd.DataFrame = load_outputs(sql=history_sql_filtered, conn=conn)
-        return self._transform(experiment_id=experiment_id, outputs_loaded=output_loaded, observable_ids=observable_ids, lazy=lazy, **kwargs)
+        transformed_data = self._transform(experiment_id=experiment_id, outputs_loaded=output_loaded, observable_ids=observable_ids, lazy=lazy, **kwargs)
+        self.transformation = DataTransformation(x=output_loaded, y=transformed_data, f=self._transform)
+        return transformed_data
 
-    def export(self, genes_df: pl.LazyFrame, outdir: str, filename: str, io_format: DataTransformExportFormat | str | None = None) -> pl.LazyFrame | None:
+    def export(self, df: pl.LazyFrame, outdir: str, filename: str, io_format: DataTransformExportFormat | str | None = None) -> pl.LazyFrame | None:
         export_format = io_format or DataTransformExportFormat.PARQUET
-        exporter = getattr(genes_df, f"sink_{export_format}")
+        exporter = getattr(df, f"sink_{export_format}")
         out_path = Path(outdir) / f"{filename}.{export_format}"
         lf = exporter(out_path)
-        print(f'Successfully exported {filename} to {outdir}!')
+        print(f'Successfully exported {filename} to {out_path}!')
         return lf
 
     def _get_data_labels(self) -> DatasetLabels:
@@ -220,60 +221,3 @@ def downsample_dataframe(df_long: pd.DataFrame) -> pd.DataFrame:
 
 def get_config_value(config_df: pl.DataFrame, col: str):
     return config_df[[col]].to_numpy().flatten()[0]
-
-
-# -- tests -- #
-
-def lazyframe_fixture(upper: int = 1111) -> pl.LazyFrame:
-    def fake_data(upper: int = 1111) -> dict[str, list[float]]:
-        return {
-            "time": np.arange(0, upper).tolist(),
-            "x": list(map(lambda i: (i ** 0.3) / (2.2 ** 11.11), list(range(upper)))),
-            "y": list(map(lambda i: (-i ** 0.3 ** 0.2) / (2.2 ** 11.11), list(range(upper)))),
-            "z": list(map(lambda i: (i ** 0.3) / (2.2 ** 11.11 ** 2 / 3), list(range(upper))))
-        }
-    return pl.LazyFrame(fake_data(upper))
-
-
-def test_downsample(sim_data_path: Path) -> None:
-    def downsample_eager(df_long: pl.DataFrame) -> pl.DataFrame:
-        tp_all = np.unique(df_long["time"].to_numpy()).astype(int)
-        ds_ratio = int(math.ceil(len(df_long) / 20000))
-        tp_ds = list(itertools.islice(tp_all, 0, tp_all.max(), ds_ratio))
-        return df_long.filter(pl.col("time").is_in(tp_ds))
-
-    def downsample_pd(df_long: pd.DataFrame) -> pd.DataFrame:
-        tp_all = np.unique(df_long["time"]).astype(int)
-        ds_ratio = int(np.ceil(np.shape(df_long)[0] / 20000))
-        tp_ds = list(itertools.islice(tp_all, 0, max(tp_all), ds_ratio))
-        df_ds = df_long[np.isin(df_long["time"], tp_ds)]
-        return df_ds
-
-    pddf = pd.DataFrame({
-        "time": np.arange(0, 100),
-        "bulk": np.random.rand(100),
-    })
-
-    pldf = pl.from_pandas(pddf)
-    lf = pldf.lazy()
-
-    eager_out = downsample_eager(pldf)
-    lazy_out = downsample(lf).collect()
-    pd_out = downsample_pd(pddf)
-
-    assert eager_out.equals(lazy_out)
-    assert pd_out.equals(lazy_out.to_pandas())
-
-
-def test_run() -> None:
-    subprocess.run("rm -rf /Users/alexanderpatrie/sms/vecoli_repo/out/multiseed_multigen_analysis && uv run --env-file .env runscripts/analysis.py --config configs/data_transformation.json".split(" "))
-
-
-@pytest.mark.asyncio
-async def test_export_parquet() -> None:
-    n_rows = int(1e4)
-    tmp = tempfile.TemporaryDirectory()
-    pq_path = Path(tmp.name) / "66_000.parquet"
-    lf: pl.LazyFrame | None = lazyframe_fixture(n_rows).sink_parquet(pq_path)
-    print(lf.collect_schema() if lf else "Lf not yet populated!")
-    tmp.cleanup()

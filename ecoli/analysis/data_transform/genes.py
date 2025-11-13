@@ -9,9 +9,9 @@ from typing import Any
 from duckdb import DuckDBPyConnection
 import polars as pl
 
-from ecoli.library.transforms import REPO_ROOT
-from ecoli.library.transforms.data_transformer_biocyc import DataTransformerGenes
-from ecoli.library.transforms.models import SimulationConfigData
+from ecoli.library.transform import REPO_ROOT
+from ecoli.library.transform.data_transformer_biocyc import DataTransformerGenes, DataTransformerBioCyc
+from ecoli.library.transform.models import SimulationConfigData, DataTransformExportFormat
 
 
 def partition_log(experiment_id: str, variant: int, seed: int, generation: int, agent_id: str) -> None:
@@ -41,8 +41,10 @@ def plot(
     partition_log(experiment_id, variant, seed, generation, agent_id)
 
     # set up transformer
+    # transformer = DataTransformerGenes(sim_data_path=simdata_path)
     simdata_path = Path(sim_data_paths[experiment_id][variant])
-    transformer = DataTransformerGenes(sim_data_path=simdata_path)
+    transformer = DataTransformerBioCyc(sim_data_path=simdata_path)
+    transformation_type = params.get("type", "genes")
 
     # generate genes_df
     genes_df: pl.LazyFrame = transformer.transform(
@@ -54,7 +56,8 @@ def plot(
         generation=generation,
         agent_id=agent_id,
         history_sql=history_sql,
-        lazy=True
+        lazy=True,
+        type=transformation_type
     )
     print(f'GENES DF:\n{genes_df.collect_schema()}')
 
@@ -71,6 +74,6 @@ def plot(
 
     # export lazyframe to parquet
     filename = f"genes_{experiment_id}"
-    transformer.export()
-    transformer.export_parquet(genes_df, outdir, filename)
+    exported_format = DataTransformExportFormat[params.get("export_format", "PARQUET")]
+    transformer.export(genes_df, outdir, filename, DataTransformExportFormat.PARQUET)
 

@@ -7,10 +7,32 @@ import pandas as pd
 import polars as pl
 import numpy as np
 
-from ecoli.library.transforms.data_transformer import DataTransformer, downsample
+from ecoli.library.transform.data_transformer import DataTransformer, downsample
 
 
 class DataTransformerBioCyc(DataTransformer):
+    @override
+    def _transform(
+            self,
+            experiment_id: str,
+            outputs_loaded: pd.DataFrame,
+            observable_ids: list[str] | None = None,
+            lazy: bool = True,
+            **kwargs
+    ) -> pl.DataFrame | pl.LazyFrame:
+        df = None
+        transform_type = kwargs.get("type", "genes")
+        if transform_type == "genes":
+            df = self._genes(outputs_loaded, observable_ids, lazy)
+        elif transform_type == "bulk":
+            df = self._bulk(outputs_loaded, observable_ids, lazy)
+
+        elif transform_type == "reactions":
+            df = self._reactions(outputs_loaded, observable_ids, lazy)
+        if df is None:
+            raise ValueError("You must specify a type of transformation")
+        return df
+
     def _genes(
             self,
             outputs_loaded: pd.DataFrame,
@@ -67,27 +89,6 @@ class DataTransformerBioCyc(DataTransformer):
             lazy: bool = True
     ) -> pl.DataFrame | pl.LazyFrame:
         pass
-
-    def _transform(
-            self,
-            experiment_id: str,
-            outputs_loaded: pd.DataFrame,
-            observable_ids: list[str] | None = None,
-            lazy: bool = True,
-            **kwargs
-    ) -> pl.DataFrame | pl.LazyFrame:
-        df = None
-        transform_type = kwargs.get("kind", "genes")
-        if transform_type == "genes":
-            df = self._genes(outputs_loaded, observable_ids, lazy)
-        elif transform_type == "bulk":
-            df = self._bulk(outputs_loaded, observable_ids, lazy)
-
-        elif transform_type == "reactions":
-            df = self._reactions(outputs_loaded, observable_ids, lazy)
-        if df is None:
-            raise ValueError("You must specify a type of transformation")
-        return df
 
 
 class DataTransformerGenes(DataTransformer):

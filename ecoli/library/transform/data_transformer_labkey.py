@@ -5,7 +5,7 @@ Data Relabeling/Aggregation Transformation (Eco/BioCyc)
 import pandas as pd
 import polars as pl
 
-from ecoli.library.transforms.data_transformer import DataTransformer
+from ecoli.library.transform.data_transformer import DataTransformer
 
 
 class DataTransformerLabkey(DataTransformer):
