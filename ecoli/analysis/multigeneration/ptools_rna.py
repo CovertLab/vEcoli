@@ -372,7 +372,7 @@ def plot(
         tp_checkpoints = tp_checkpoints / 60
         tp_checkpoints = [round(x) for x in tp_checkpoints]
 
-    tp_columns = ["t = " + str(i) for i in tp_checkpoints]
+    tp_columns = [str(i) + params["time_unit"][0] for i in tp_checkpoints]
 
     ptools_rna = pd.DataFrame(
         data=rna_counts_gene_blocksum.transpose(),

@@ -204,7 +204,7 @@ def plot(
         tp_checkpoints = tp_checkpoints / 60
         tp_checkpoints = [round(x) for x in tp_checkpoints]
 
-    tp_columns = ["t = " + str(i) for i in tp_checkpoints]
+    tp_columns = [str(i) + params["time_unit"][0] for i in tp_checkpoints]
 
     ptools_proteins = pd.DataFrame(
         data=proteomics_bulksum.transpose(), index=protein_labels, columns=tp_columns
