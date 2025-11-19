@@ -104,7 +104,7 @@ def plot(
         tp_checkpoints = tp_checkpoints / 60
         tp_checkpoints = [round(x) for x in tp_checkpoints]
 
-    tp_columns = ["t = " + str(i) for i in tp_checkpoints]
+    tp_columns = [str(i) + params["time_unit"][0] for i in tp_checkpoints]
 
     ptools_rxns = pd.DataFrame(
         data=np.abs(rxn_blocksum.transpose()), index=rxn_ids_base, columns=tp_columns
