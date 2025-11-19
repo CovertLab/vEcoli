@@ -284,10 +284,10 @@ def _(
     np,
 ):
     def get_bulk_sp_traj(sp_input, bulk_mtx):
-        if molecule_id_type.value == "common name":
+        if molecule_id_type.value == "Common name":
             sp_name = bulk_names_unique[bulk_common_names.index(sp_input)]
 
-        elif molecule_id_type.value == "bulk id":
+        elif molecule_id_type.value == "BioCyc ID":
             sp_name = sp_input
 
         sp_idxs = [
@@ -339,7 +339,7 @@ def _(mo, select_pathway):
 @app.cell
 def _(mo):
     molecule_id_type = mo.ui.radio(
-        options=["common name", "bulk id"], value="common name"
+        options=["Common name", "BioCyc ID"], value="Common name"
     )
 
     return (molecule_id_type,)
@@ -354,9 +354,9 @@ def _(
     molecule_id_type,
     select_pathway,
 ):
-    if molecule_id_type.value == "common name":
+    if molecule_id_type.value == "Common name":
         molecule_id_options = bulk_common_names
-    elif molecule_id_type.value == "bulk id":
+    elif molecule_id_type.value == "BioCyc ID":
         molecule_id_options = bulk_names_unique
 
     bulk_sp_plot = mo.ui.multiselect(
@@ -388,10 +388,10 @@ def _(bulk_sp_plot, mo, molecule_id_type, y_scale):
         molecule_id_type,
     ]
 
-    if molecule_id_type.value == "common name":
+    if molecule_id_type.value == "Common name":
         bulk_select.append("name:")
         bulk_select.append(bulk_sp_plot)
-    elif molecule_id_type.value == "bulk id":
+    elif molecule_id_type.value == "BioCyc ID":
         bulk_select.append("id:")
         bulk_select.append(bulk_sp_plot)
 
@@ -452,7 +452,7 @@ def _(mo, mrna_select_plot, rna_label_type, y_scale_mrna):
     if rna_label_type.value == "gene name":
         mrna_select_menu.append("name:")
         mrna_select_menu.append(mrna_select_plot)
-    elif rna_label_type.value == "BioCyc gene id":
+    elif rna_label_type.value == "BioCyc ID":
         mrna_select_menu.append("ID:")
         mrna_select_menu.append(mrna_select_plot)
 
@@ -506,11 +506,11 @@ def _(
 
 
 @app.cell
-def _(molecule_id_type, mrna_cistron_names, mrna_gene_ids, rna_label_type):
+def _(mrna_cistron_names, mrna_gene_ids, rna_label_type):
     def get_mrna_traj(mrna_input, mrna_mtx):
         if rna_label_type.value == "gene name":
             mrna_name = mrna_input
-        elif molecule_id_type.value == "bulk id":
+        elif rna_label_type.value == "BioCyc ID":
             mrna_name = mrna_cistron_names[mrna_gene_ids.index(mrna_input)]
 
         mrna_idx = mrna_cistron_names.index(mrna_name)
@@ -1220,7 +1220,7 @@ def _(
                 ]
             )
 
-            if molecule_id_type.value == "common name":
+            if molecule_id_type.value == "Common name":
                 preset_compound_names = []
                 for name in preset_final["compounds"]:
                     preset_compound_names.append(
