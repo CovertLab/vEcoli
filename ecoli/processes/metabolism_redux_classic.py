@@ -303,6 +303,12 @@ class MetabolismReduxClassic(Step):
                         "efficiency_term": 0,
                         "kinetic_term": 0,
                         "maintenance_target": 0,
+                        "loss_total": 0,
+                        "loss_kinetic": 0,
+                        "loss_homeostatic": 0,
+                        "loss_secretion": 0,
+                        "loss_efficiency": 0,
+                        "loss_diversity": 0,
                     }
                 ),
                 "enzyme_kinetics": listener_schema(
@@ -557,6 +563,12 @@ class MetabolismReduxClassic(Step):
                     "kinetic_term": solution.kinetic_term
                     * objective_weights["kinetics"],
                     "time_per_step": time.time(),
+                    "loss_total": solution.loss_total,
+                    "loss_kinetic": solution.loss_kinetic,
+                    "loss_homeostatic": solution.loss_homeostatic,
+                    "loss_secretion": solution.loss_secretion,
+                    "loss_efficiency": solution.loss_efficiency,
+                    "loss_diversity": solution.loss_diversity,
                 }
             },
             "next_update_time": states["global_time"] + states["timestep"],
@@ -605,6 +617,12 @@ class FlowResult:
     homeostatic_term: float
     secretion_term: float
     efficiency_term: float
+    loss_total: float
+    loss_kinetic: float
+    loss_homeostatic: float
+    loss_secretion: float
+    loss_efficiency: float
+    loss_diversity: float
 
 
 class NetworkFlowModel:
@@ -721,6 +739,7 @@ class NetworkFlowModel:
             (dm[self.homeostatic_idx] - homeostatic_dm_targets) / homeostatic_concs
         )
         loss += objective_weights["homeostatic"] * homeostatic_term
+        loss_homeostatic = objective_weights["homeostatic"] * homeostatic_term
 
         # flux_sum_part_obj = objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
 
@@ -730,12 +749,22 @@ class NetworkFlowModel:
             if "secretion" in objective_weights
             else loss
         )
+        loss_secretion = (
+            objective_weights["secretion"] * secretion_term
+            if "secretion" in objective_weights
+            else 0
+        )
 
         efficiency_term = cp.sum(v)
         loss += (
             objective_weights["efficiency"] * efficiency_term
             if "efficiency" in objective_weights
             else loss
+        )
+        loss_efficiency = (
+            objective_weights["efficiency"] * efficiency_term
+            if "efficiency" in objective_weights
+            else 0
         )
 
         kinetic_term = cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
@@ -744,12 +773,23 @@ class NetworkFlowModel:
             if "kinetics" in objective_weights
             else loss
         )
+        loss_kinetic = (
+            objective_weights["kinetics"] * kinetic_term
+            if "kinetics" in objective_weights
+            else 0.0
+        )
 
         # Heena's addition: minimize number of reactions with no flow
         if "diversity" in objective_weights:
             loss += objective_weights["diversity"] * cp.sum(cp.pos(1e-3 - v))
         else:
             loss
+
+        loss_diversity = (
+            objective_weights["diversity"] * cp.sum(cp.pos(1e-3 - v))
+            if "diversity" in objective_weights
+            else 0.0
+        )
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
@@ -774,6 +814,12 @@ class NetworkFlowModel:
             homeostatic_term=homeostatic_term.value,
             secretion_term=secretion_term.value,
             efficiency_term=efficiency_term.value,
+            loss_total=loss.value,
+            loss_kinetic=loss_kinetic.value,
+            loss_homeostatic=loss_homeostatic.value,
+            loss_secretion=loss_secretion.value,
+            loss_efficiency=loss_efficiency.value,
+            loss_diversity=loss_diversity,
         )
 
 
