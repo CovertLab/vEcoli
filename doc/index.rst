@@ -49,4 +49,5 @@ in the Vivarium documentation.
    gcloud
    ci
    pycharm
+   diffs
    API Reference <reference/api_ref.rst>
