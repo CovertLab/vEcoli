@@ -24,6 +24,11 @@ ParCa
   `commit 3a6da7c from PR#306 <https://github.com/CovertLab/vEcoli/pull/306/commits/3a6da7c6ac438ef08d8f056bcbb7a64b6775f310>`_
   and the source code for
   :py:meth:`~reconstruction.ecoli.dataclasses.process.transcription.Transcription._build_cistron_data`.
+- Adjusted select gene transcription and translation efficiencies to better match
+  experimental data and fix some mechanistic issues. See
+  `commit 7035fb7 from PR#306 <https://github.com/CovertLab/vEcoli/pull/306/commits/7035fb78ae64ddbde745688ef5cbbac4b6eda06b>`_,
+  `e94e69a from PR#275 <https://github.com/CovertLab/vEcoli/commit/e94e69a22c8d8793af31d5a340d5e3d6c69cdcaa>`_,
+  and `b75278c from PR#243 <https://github.com/CovertLab/vEcoli/commit/b75278ce38718778a15e026c7dc0d0d5170675ec>`_.
 
 
 ----------
