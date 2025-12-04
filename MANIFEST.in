@@ -1,0 +1,16 @@
+# recursive-include wholecell/utils *.pyx
+# recursive-include wholecell/utils *.pxd
+# recursive-include reconstruction *.tsv *.csv
+# recursive-include reconstruction/ecoli/flat *
+
+# all TSV/CSV in reconstruction
+recursive-include reconstruction *.tsv *.csv
+
+# all flat/data files within reconstruction/ecoli/flat
+recursive-include reconstruction/ecoli/flat *
+
+# include cython files
+recursive-include wholecell/utils *.pyx *.pxd
+
+# config JSON
+recursive-include configs *.json

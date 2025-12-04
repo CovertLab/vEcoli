@@ -1,7 +1,8 @@
 import os
+
 import numpy as np
 from Cython.Build import cythonize
-from setuptools import Extension, setup
+from setuptools import Extension, find_packages, setup
 
 # List of your Cython extension modules
 extensions = [
@@ -25,9 +26,8 @@ extensions = [
     ),
 ]
 
-# Use cythonize on the extensions list
 setup(
     name="Vivarium Ecoli Extensions",
-    ext_modules=cythonize(extensions),
+    ext_modules=cythonize(extensions, compiler_directives={"language_level": "3"}),
     include_dirs=[np.get_include()],
 )
