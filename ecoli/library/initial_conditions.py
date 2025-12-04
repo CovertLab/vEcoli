@@ -1165,7 +1165,25 @@ def initialize_transcription(
         def in_bounds(coord_val, lb, ub):
             return np.logical_and(coord_val < ub, coord_val > lb)
 
-        domains_to_check = [curr_domain, *chromosome_domain_indexes]
+        domains_to_check = [curr_domain]
+        # Prioritize checking parent and child domains next, if they exist
+        # Otherwise, RNAPs may get assigned to domains that are not contiguous
+        parent_domain_idx = chromosome_domain_indexes[
+            np.where(child_domains == curr_domain)[0]
+        ]
+        if len(parent_domain_idx) > 0:
+            domains_to_check.append(parent_domain_idx[0])
+        curr_child_domains = child_domains[
+            np.where(chromosome_domain_indexes == curr_domain)[0]
+        ][0]
+        for child in curr_child_domains:
+            if child != -1:
+                domains_to_check.append(child)
+
+        for domain in chromosome_domain_indexes:
+            if domain not in domains_to_check:
+                domains_to_check.append(domain)
+
         for domain_idx in domains_to_check:
             # If the domain is the mother domain of the initial chromosome
             if domain_idx == 0:
@@ -1263,11 +1281,7 @@ def initialize_transcription(
                         updated_coordinates[idx], domain_index_rnap[idx]
                     )
 
-                # Since some TUs overlap, must recheck all positions:
-                # Moving one RNAP may resolve its collision, but could also
-                # create a new collision with an RNAP from an overlapping TU.
-                # Therefore, after each shuffle, all positions must be checked
-                # for collisions, not just the ones that were moved.
+                # Recheck all positions for overlaps
                 positions = updated_coordinates + domain_index_rnap * chromosome_length
                 unique_keys, inverse_indices, counts = np.unique(
                     positions, return_inverse=True, return_counts=True
