@@ -162,6 +162,7 @@ profiles {
                 queue = 'owners,normal'
                 clusterOptions = ''
             }
+            executor = 'hq'
             container = params.container_image
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
             // Use Nextflow's retry logic instead of HyperQueue's built-in logic
