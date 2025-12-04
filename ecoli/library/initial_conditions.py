@@ -7,6 +7,7 @@ import numpy.typing as npt
 from numpy.lib import recfunctions as rfn
 from typing import Any
 from unum import Unum
+import warnings
 
 from ecoli.library.schema import (
     attrs,
@@ -36,6 +37,7 @@ from wholecell.utils.polymerize import computeMassIncrease
 from wholecell.utils.random import stochasticRound
 
 RAND_MAX = 2**31
+RNAP_COLLISION_RESOLUTION_MAX_ATTEMPTS = 100
 
 
 def create_bulk_container(
@@ -1132,11 +1134,9 @@ def initialize_transcription(
     is_forward = transcription_direction[TU_index_partial_RNAs]
 
     # Randomly advance RNAPs along the transcription units
-    # TODO (Eran): make sure there aren't any RNAPs at same location on same TU
-    updated_lengths = np.array(
-        random_state.rand(n_RNAPs_to_activate) * rna_lengths[TU_index_partial_RNAs],
-        dtype=int,
-    )
+    updated_lengths = np.round(
+        random_state.rand(n_RNAPs_to_activate) * rna_lengths[TU_index_partial_RNAs]
+    ).astype(int)
 
     # Rescale boolean array of directions to an array of 1's and -1's.
     direction_rescaled = (2 * (is_forward - 0.5)).astype(np.int64)
@@ -1147,6 +1147,162 @@ def initialize_transcription(
     updated_coordinates = starting_coordinates + np.multiply(
         direction_rescaled, updated_lengths
     )
+
+    # Extract replication state from unique_molecules for domain assignment
+    chromosome_domain_indexes = unique_molecules["chromosome_domain"]["domain_index"]
+    child_domains = unique_molecules["chromosome_domain"]["child_domains"]
+    origin_domain_indexes = unique_molecules["oriC"]["domain_index"]
+    replisome_coordinates = unique_molecules["active_replisome"]["coordinates"]
+    replisome_domain_indexes = unique_molecules["active_replisome"]["domain_index"]
+    n_replisome = len(replisome_coordinates)
+
+    def get_domain_for_coordinate(coord, curr_domain):
+        """
+        Determine which chromosome domain a coordinate belongs to, using the
+        same logic as get_motif_attributes. Start checking from curr_domain.
+        """
+
+        def in_bounds(coord_val, lb, ub):
+            return np.logical_and(coord_val < ub, coord_val > lb)
+
+        domains_to_check = [curr_domain]
+        # Prioritize checking parent and child domains next, if they exist
+        # Otherwise, RNAPs may get assigned to domains that are not contiguous
+        parent_domain_idx = chromosome_domain_indexes[
+            np.where(child_domains == curr_domain)[0]
+        ]
+        if len(parent_domain_idx) > 0:
+            domains_to_check.append(parent_domain_idx[0])
+        curr_child_domains = child_domains[
+            np.where(chromosome_domain_indexes == curr_domain)[0]
+        ][0]
+        for child in curr_child_domains:
+            if child != -1:
+                domains_to_check.append(child)
+
+        for domain in chromosome_domain_indexes:
+            if domain not in domains_to_check:
+                domains_to_check.append(domain)
+
+        for domain_idx in domains_to_check:
+            # If the domain is the mother domain of the initial chromosome
+            if domain_idx == 0:
+                if n_replisome == 0:
+                    return domain_idx
+                else:
+                    domain_boundaries = replisome_coordinates[
+                        replisome_domain_indexes == 0
+                    ]
+                    if (
+                        coord > domain_boundaries.max()
+                        or coord < domain_boundaries.min()
+                    ):
+                        return domain_idx
+
+            # If the domain contains the origin
+            elif np.isin(domain_idx, origin_domain_indexes):
+                parent_domain_idx = chromosome_domain_indexes[
+                    np.where(child_domains == domain_idx)[0][0]
+                ]
+                parent_domain_boundaries = replisome_coordinates[
+                    replisome_domain_indexes == parent_domain_idx
+                ]
+                if in_bounds(
+                    coord,
+                    parent_domain_boundaries.min(),
+                    parent_domain_boundaries.max(),
+                ):
+                    return domain_idx
+
+            # If the domain neither contains the origin nor the terminus
+            else:
+                parent_domain_idx = chromosome_domain_indexes[
+                    np.where(child_domains == domain_idx)[0][0]
+                ]
+                parent_domain_boundaries = replisome_coordinates[
+                    replisome_domain_indexes == parent_domain_idx
+                ]
+                domain_boundaries = replisome_coordinates[
+                    replisome_domain_indexes == domain_idx
+                ]
+
+                if in_bounds(
+                    coord, domain_boundaries.max(), parent_domain_boundaries.max()
+                ) or in_bounds(
+                    coord, parent_domain_boundaries.min(), domain_boundaries.min()
+                ):
+                    return domain_idx
+
+        # Default to domain 0 if no match found
+        return 0
+
+    # Assign each RNAP to the correct domain based on its coordinate
+    domain_index_rnap = np.array(
+        [
+            get_domain_for_coordinate(coord, domain)
+            for coord, domain in zip(updated_coordinates, domain_index_rnap)
+        ],
+        dtype=np.int32,
+    )
+
+    # Ensure no RNAPs are at the same location
+    if n_RNAPs_to_activate > 1:
+        # Find duplicate positions on same domain
+        # This encoding creates unique position keys by treating each domain as occupying a
+        # separate chromosome_length-sized space. This enables efficient collision detection
+        # across domains, since positions in different domains will not overlap.
+        positions = updated_coordinates + domain_index_rnap * chromosome_length
+        unique_keys, inverse_indices, counts = np.unique(
+            positions, return_inverse=True, return_counts=True
+        )
+
+        # Identify RNAPs that need adjustment
+        collision_mask = counts[inverse_indices] > 1
+
+        if np.any(collision_mask):
+            # For colliding RNAPs, regenerate positions
+            collision_indices = np.where(collision_mask)[0]
+
+            for attempt in range(RNAP_COLLISION_RESOLUTION_MAX_ATTEMPTS):
+                # Generate new positions for colliding RNAPs
+                new_lengths = np.round(
+                    random_state.rand(len(collision_indices))
+                    * rna_lengths[TU_index_partial_RNAs][collision_indices]
+                ).astype(int)
+                updated_lengths[collision_indices] = new_lengths
+                updated_coordinates[collision_indices] = (
+                    starting_coordinates[collision_indices]
+                    + direction_rescaled[collision_indices] * new_lengths
+                )
+
+                # Reassign domains for moved RNAPs
+                for idx in collision_indices:
+                    domain_index_rnap[idx] = get_domain_for_coordinate(
+                        updated_coordinates[idx], domain_index_rnap[idx]
+                    )
+
+                # Recheck all positions for overlaps
+                positions = updated_coordinates + domain_index_rnap * chromosome_length
+                unique_keys, inverse_indices, counts = np.unique(
+                    positions, return_inverse=True, return_counts=True
+                )
+                collision_mask = counts[inverse_indices] > 1
+                collision_indices = np.where(collision_mask)[0]
+
+                if len(collision_indices) == 0:
+                    break
+            else:
+                collision_locs = list(
+                    set(
+                        zip(
+                            updated_coordinates[collision_indices],
+                            domain_index_rnap[collision_indices],
+                        )
+                    )
+                )
+                warnings.warn(
+                    f"RNAP collisions remain at (coordinate, domain) pairs {collision_locs} after {RNAP_COLLISION_RESOLUTION_MAX_ATTEMPTS} shuffles."
+                )
 
     # Reset coordinates of RNAPs that cross the boundaries between right and
     # left replichores
