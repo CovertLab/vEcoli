@@ -1,0 +1,8 @@
+``ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot``
+============================================================
+.. automodule:: ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:
