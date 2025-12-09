@@ -706,6 +706,12 @@ class NetworkFlowModel:
         force_flow_idx: Optional[Iterable[float]] = None,
         objective_weights: Optional[Mapping[str, float]] = None,
         upper_flux_bound: float = 100,
+        kinetic_constraint: Optional[
+            Mapping[int, float]
+        ] = None,  # {Reaction_idx: WT flux}
+        kinetic_adjustment: Optional[
+            float
+        ] = None,  # Consideration: dictionary to take care of different adjustment for individual protein
         solver=cp.GLOP,
     ) -> FlowResult:
         """Solve the network flow model for fluxes and dm/dt values."""
@@ -720,6 +726,15 @@ class NetworkFlowModel:
 
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
+
+        # TODO: add in kinetic constraint. Input reaction id/indx, WT flux, and % adjustment
+        if kinetic_constraint is not None:
+            reaction_idx = np.array(list(kinetic_constraint.keys()))
+            WT_flux = np.array(list(kinetic_constraint.values()))
+
+            constr.append(
+                v[reaction_idx] <= WT_flux * kinetic_adjustment
+            )  # only works for now because adjustment is a float
 
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == maintenance_target)
