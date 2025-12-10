@@ -1,0 +1,8 @@
+``ecoli.analysis.antibiotics_colony.tet_dry_mass``
+==================================================
+.. automodule:: ecoli.analysis.antibiotics_colony.tet_dry_mass
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,8 @@
+``ecoli.analysis.multivariant.average_monomer_counts``
+======================================================
+.. automodule:: ecoli.analysis.multivariant.average_monomer_counts
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:
