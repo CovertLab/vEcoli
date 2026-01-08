@@ -1,0 +1,537 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.library.test_rnap_initialization &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diffs.html">Model Differences From wcEcoli</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.library.test_rnap_initialization</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.library.test_rnap_initialization</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Tests for RNAP initialization edge cases fixed in PR #359. Specifically:</span>
+<span class="sd">1. RNAPs are assigned to chromosome domains based on their actual coordinates,</span>
+<span class="sd">   not just their transcription unit (TU) start positions</span>
+<span class="sd">2. RNAPs cannot be initialized at the same location (collision detection)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">unittest.mock</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mock</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.initial_conditions</span><span class="w"> </span><span class="kn">import</span> <span class="n">initialize_transcription</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">wholecell.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">units</span>
+
+
+<div class="viewcode-block" id="mock_sim_data">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.test_rnap_initialization.html#ecoli.library.test_rnap_initialization.mock_sim_data">[docs]</a>
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">mock_sim_data</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a minimal mock sim_data object for testing.&quot;&quot;&quot;</span>
+    <span class="n">sim_data</span> <span class="o">=</span> <span class="n">Mock</span><span class="p">()</span>
+
+    <span class="c1"># Transcription data</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;length&quot;</span><span class="p">:</span> <span class="n">units</span><span class="o">.</span><span class="n">nt</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">100</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">250</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">600</span><span class="p">]),</span>
+        <span class="s2">&quot;mw&quot;</span><span class="p">:</span> <span class="n">units</span><span class="o">.</span><span class="n">g</span>
+        <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">mol</span>
+        <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">30000.0</span><span class="p">,</span> <span class="mf">45000.0</span><span class="p">,</span> <span class="mf">90000.0</span><span class="p">,</span> <span class="mf">75000.0</span><span class="p">,</span> <span class="mf">60000.0</span><span class="p">,</span> <span class="mf">180000.0</span><span class="p">]),</span>
+        <span class="s2">&quot;is_forward&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s2">&quot;is_mRNA&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]),</span>
+        <span class="s2">&quot;is_rRNA&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s2">&quot;is_tRNA&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s2">&quot;includes_ribosomal_protein&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;includes_RNAP&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s2">&quot;TU0&quot;</span><span class="p">,</span> <span class="s2">&quot;TU1&quot;</span><span class="p">,</span> <span class="s2">&quot;TU2&quot;</span><span class="p">,</span> <span class="s2">&quot;TU3&quot;</span><span class="p">,</span> <span class="s2">&quot;TU4&quot;</span><span class="p">,</span> <span class="s2">&quot;TU5&quot;</span><span class="p">]),</span>
+    <span class="p">}</span>
+
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">transcription_sequences</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+        <span class="mi">6</span><span class="p">,</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">500</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
+
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">transcription_monomer_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">transcription_end_weight</span> <span class="o">=</span> <span class="mf">0.5</span>
+
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rnapFractionActiveDict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;minimal&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">}</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rnaSynthProbFraction</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;minimal&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;mRna&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;tRna&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span> <span class="s2">&quot;rRna&quot;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rnaSynthProbRProtein</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;minimal&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.1</span><span class="p">])}</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rnaSynthProbRnaPolymerase</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;minimal&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.05</span><span class="p">])</span>
+    <span class="p">}</span>
+
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription_regulation</span><span class="o">.</span><span class="n">basal_prob</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span><span class="mf">0.17</span><span class="p">,</span> <span class="mf">0.17</span><span class="p">,</span> <span class="mf">0.17</span><span class="p">,</span> <span class="mf">0.17</span><span class="p">,</span> <span class="mf">0.17</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription_regulation</span><span class="o">.</span><span class="n">get_delta_prob_matrix</span> <span class="o">=</span> <span class="n">Mock</span><span class="p">(</span>
+        <span class="n">return_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">attenuated_rna_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">replication</span><span class="o">.</span><span class="n">replichore_lengths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">2000</span><span class="p">])</span>
+
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">molecule_ids</span><span class="o">.</span><span class="n">full_RNAP</span> <span class="o">=</span> <span class="s2">&quot;APORNAP-CPLX[c]&quot;</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">conditions</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;basal&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;nutrients&quot;</span><span class="p">:</span> <span class="s2">&quot;minimal&quot;</span><span class="p">}}</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">condition</span> <span class="o">=</span> <span class="s2">&quot;basal&quot;</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">constants</span><span class="o">.</span><span class="n">n_avogadro</span> <span class="o">=</span> <span class="mf">6.022e23</span> <span class="o">/</span> <span class="n">units</span><span class="o">.</span><span class="n">mol</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">submass_name_to_index</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;nonspecific_RNA&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;mRNA&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">genetic_perturbations</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">sim_data</span><span class="o">.</span><span class="n">internal_state</span><span class="o">.</span><span class="n">unique_molecule</span><span class="o">.</span><span class="n">unique_molecule_definitions</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;active_RNAP&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;domain_index&quot;</span><span class="p">:</span> <span class="s2">&quot;i4&quot;</span><span class="p">,</span> <span class="s2">&quot;coordinates&quot;</span><span class="p">:</span> <span class="s2">&quot;i8&quot;</span><span class="p">,</span> <span class="s2">&quot;is_forward&quot;</span><span class="p">:</span> <span class="s2">&quot;?&quot;</span><span class="p">},</span>
+        <span class="s2">&quot;RNA&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;TU_index&quot;</span><span class="p">:</span> <span class="s2">&quot;i8&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;transcript_length&quot;</span><span class="p">:</span> <span class="s2">&quot;i8&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;is_mRNA&quot;</span><span class="p">:</span> <span class="s2">&quot;?&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;is_full_transcript&quot;</span><span class="p">:</span> <span class="s2">&quot;?&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;can_translate&quot;</span><span class="p">:</span> <span class="s2">&quot;?&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;RNAP_index&quot;</span><span class="p">:</span> <span class="s2">&quot;i8&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;full_chromosome&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;division_time&quot;</span><span class="p">:</span> <span class="s2">&quot;f8&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;has_triggered_division&quot;</span><span class="p">:</span> <span class="s2">&quot;?&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;domain_index&quot;</span><span class="p">:</span> <span class="s2">&quot;i4&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;chromosome_domain&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;domain_index&quot;</span><span class="p">:</span> <span class="s2">&quot;i4&quot;</span><span class="p">,</span> <span class="s2">&quot;child_domains&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;i4&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)},</span>
+        <span class="s2">&quot;active_replisome&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;domain_index&quot;</span><span class="p">:</span> <span class="s2">&quot;i4&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;right_replichore&quot;</span><span class="p">:</span> <span class="s2">&quot;?&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;coordinates&quot;</span><span class="p">:</span> <span class="s2">&quot;i8&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;oriC&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;domain_index&quot;</span><span class="p">:</span> <span class="s2">&quot;i4&quot;</span><span class="p">},</span>
+        <span class="s2">&quot;promoter&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;TU_index&quot;</span><span class="p">:</span> <span class="s2">&quot;i8&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;coordinates&quot;</span><span class="p">:</span> <span class="s2">&quot;i8&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;domain_index&quot;</span><span class="p">:</span> <span class="s2">&quot;i4&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bound_TF&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;?&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">sim_data</span></div>
+
+
+
+<div class="viewcode-block" id="mock_bulk_state">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.test_rnap_initialization.html#ecoli.library.test_rnap_initialization.mock_bulk_state">[docs]</a>
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">mock_bulk_state</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create mock bulk state with inactive RNAPs.&quot;&quot;&quot;</span>
+    <span class="n">bulk_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;APORNAP-CPLX[c]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ATP[c]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;GTP[c]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TU0&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TU1&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TU2&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TU3&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TU4&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TU5&quot;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;U50&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">bulk_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">])</span>
+
+    <span class="n">bulk_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">bulk_ids</span><span class="p">,</span> <span class="n">bulk_counts</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;U50&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;count&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">bulk_state</span></div>
+
+
+
+<div class="viewcode-block" id="mock_unique_molecules_double_replicating">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.test_rnap_initialization.html#ecoli.library.test_rnap_initialization.mock_unique_molecules_double_replicating">[docs]</a>
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">mock_unique_molecules_double_replicating</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create mock unique molecules with 2 rounds replication in progress:</span>
+<span class="sd">    - Domain 0 (mother domain)</span>
+<span class="sd">    - Domain 1 and 2 (daughter domains created by 1st fork)</span>
+<span class="sd">    - Domain 3 and 4 (daughter domains created by 2nd fork)</span>
+<span class="sd">    - 4 active replisomes creating the forks</span>
+<span class="sd">    - Promoters distributed across domains</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">unique_molecules</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Full chromosome</span>
+    <span class="n">unique_molecules</span><span class="p">[</span><span class="s2">&quot;full_chromosome&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;domain_index&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;division_time&quot;</span><span class="p">,</span> <span class="s2">&quot;f8&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;has_triggered_division&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;_entryState&quot;</span><span class="p">,</span> <span class="s2">&quot;i1&quot;</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Chromosome domains: 0 (mother), 1 and 2 (daughters)</span>
+    <span class="n">unique_molecules</span><span class="p">[</span><span class="s2">&quot;chromosome_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># Mother domain has two child domains</span>
+            <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># Child domain 1</span>
+            <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># Child domain 2 has two child domains</span>
+            <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># Child domain 3</span>
+            <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># Child domain 4</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;domain_index&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;child_domains&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;_entryState&quot;</span><span class="p">,</span> <span class="s2">&quot;i1&quot;</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="c1"># OriCs in outermost daughter domains</span>
+    <span class="n">unique_molecules</span><span class="p">[</span><span class="s2">&quot;oriC&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;domain_index&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;i4&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;_entryState&quot;</span><span class="p">,</span> <span class="s2">&quot;i1&quot;</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Active replisomes at position 500 (creating fork)</span>
+    <span class="c1"># Right replichore replisome and left replichore replisome</span>
+    <span class="n">unique_molecules</span><span class="p">[</span><span class="s2">&quot;active_replisome&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># Right fork, domain 0</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1000</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="mi">1001</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># Left fork, domain 0</span>
+            <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># Right fork, domain 2</span>
+            <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">500</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="mi">1001</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># Left fork, domain 2</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;domain_index&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;coordinates&quot;</span><span class="p">,</span> <span class="s2">&quot;i8&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;right_replichore&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;unique_index&quot;</span><span class="p">,</span> <span class="s2">&quot;i8&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;_entryState&quot;</span><span class="p">,</span> <span class="s2">&quot;i1&quot;</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="c1"># TU lengths: [100, 150, 300, 250, 200, 600]</span>
+    <span class="c1"># TU forward: [True, True, False, True, False, False]</span>
+    <span class="c1"># TU 0: coordinates -100 to 0, domain 1</span>
+    <span class="c1"># TU 1: coordinates 1000 to 1150, domain 0</span>
+    <span class="c1"># TU 2: coordinates -300 to -600, domain 4 overlapping with 2</span>
+    <span class="c1"># TU 3: coordinates 800 to 1050, domain 2 overlapping with 0</span>
+    <span class="c1"># TU 4: coordinates 600 to 400, domain 2 overlapping with 3/4</span>
+    <span class="c1"># TU 5: coordinates 1050 to 450, domain 0 overlapping with 1/2 and 3/4</span>
+    <span class="n">unique_molecules</span><span class="p">[</span><span class="s2">&quot;promoter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">300</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">800</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">600</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1050</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;domain_index&quot;</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;TU_index&quot;</span><span class="p">,</span> <span class="s2">&quot;i8&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;coordinates&quot;</span><span class="p">,</span> <span class="s2">&quot;i8&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;bound_TF&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)),</span>
+            <span class="p">(</span><span class="s2">&quot;_entryState&quot;</span><span class="p">,</span> <span class="s2">&quot;i1&quot;</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">unique_molecules</span></div>
+
+
+
+<div class="viewcode-block" id="check_domain_boundaries">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.test_rnap_initialization.html#ecoli.library.test_rnap_initialization.check_domain_boundaries">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_domain_boundaries</span><span class="p">(</span><span class="n">unique_mols</span><span class="p">):</span>
+    <span class="c1"># Domain indices</span>
+    <span class="n">domain_indices</span> <span class="o">=</span> <span class="n">unique_mols</span><span class="p">[</span><span class="s2">&quot;active_RNAP&quot;</span><span class="p">][</span><span class="s2">&quot;domain_index&quot;</span><span class="p">]</span>
+    <span class="n">coordinates</span> <span class="o">=</span> <span class="n">unique_mols</span><span class="p">[</span><span class="s2">&quot;active_RNAP&quot;</span><span class="p">][</span><span class="s2">&quot;coordinates&quot;</span><span class="p">]</span>
+    <span class="n">tu_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">unique_mols</span><span class="p">[</span><span class="s2">&quot;RNA&quot;</span><span class="p">][</span><span class="s2">&quot;TU_index&quot;</span><span class="p">][</span><span class="n">unique_mols</span><span class="p">[</span><span class="s2">&quot;RNA&quot;</span><span class="p">][</span><span class="s2">&quot;RNAP_index&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">rnap_idx</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">rnap_idx</span> <span class="ow">in</span> <span class="n">unique_mols</span><span class="p">[</span><span class="s2">&quot;active_RNAP&quot;</span><span class="p">][</span><span class="s2">&quot;unique_index&quot;</span><span class="p">]</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">domain_i</span><span class="p">,</span> <span class="n">coord_i</span><span class="p">,</span> <span class="n">tu_i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">domain_indices</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">tu_indices</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">tu_i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">domain_i</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">assert</span> <span class="n">coord_i</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="mi">100</span> <span class="ow">and</span> <span class="n">coord_i</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="n">tu_i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">domain_i</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">assert</span> <span class="n">coord_i</span> <span class="o">&gt;=</span> <span class="mi">1000</span> <span class="ow">and</span> <span class="n">coord_i</span> <span class="o">&lt;=</span> <span class="mi">1150</span>
+        <span class="k">elif</span> <span class="n">tu_i</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">coord_i</span> <span class="o">&lt;=</span> <span class="o">-</span><span class="mi">300</span> <span class="ow">and</span> <span class="n">coord_i</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="mi">600</span>
+            <span class="k">if</span> <span class="n">coord_i</span> <span class="o">&lt;=</span> <span class="o">-</span><span class="mi">500</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">domain_i</span> <span class="o">==</span> <span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># TU 2 starts in domain 4 and ends in domain 2.</span>
+                <span class="c1"># A TU 2 RNAP can be initialized in domain 2,</span>
+                <span class="c1"># overlap with another RNAP, and relocated back</span>
+                <span class="c1"># to a coordinate in domain 4. However, coordinates</span>
+                <span class="c1"># in domain 4 are also valid in domain 3. In these</span>
+                <span class="c1"># cases, the initialization code will always assign</span>
+                <span class="c1"># the RNAP to the domain that appears first in the</span>
+                <span class="c1"># list of valid domains (3 in this test case).</span>
+                <span class="c1">#</span>
+                <span class="c1"># This is mechanistically nonsensical because domain</span>
+                <span class="c1"># 3 does not have the TU 2 promoter and should not</span>
+                <span class="c1"># have TU 2 RNAPs. Fortunately, in real sims, both</span>
+                <span class="c1"># daughter domains will each have a copy of every</span>
+                <span class="c1"># promoter. This fixes the biological plausibility</span>
+                <span class="c1"># but still favors initialization in one domain over</span>
+                <span class="c1"># another. From what I can tell, collisions between</span>
+                <span class="c1"># RNAPs during initialization should be rare</span>
+                <span class="c1"># enough in real sims that this is negligible.</span>
+                <span class="k">assert</span> <span class="n">domain_i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">tu_i</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">coord_i</span> <span class="o">&gt;=</span> <span class="mi">800</span> <span class="ow">and</span> <span class="n">coord_i</span> <span class="o">&lt;=</span> <span class="mi">1050</span>
+            <span class="k">if</span> <span class="n">coord_i</span> <span class="o">&gt;=</span> <span class="mi">1000</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">domain_i</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># TU 3 RNAPs can end up in domain 1 for same</span>
+                <span class="c1"># reason as above.</span>
+                <span class="k">assert</span> <span class="n">domain_i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">tu_i</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">coord_i</span> <span class="o">&lt;=</span> <span class="mi">600</span> <span class="ow">and</span> <span class="n">coord_i</span> <span class="o">&gt;=</span> <span class="mi">400</span>
+            <span class="c1"># Unlike TU 2 and 3, TU 4 starts in domain 2</span>
+            <span class="c1"># and ends in 3/4. Domain 3 is always</span>
+            <span class="c1"># chosen because it comes before domain 4</span>
+            <span class="c1"># in our test setup.</span>
+            <span class="c1">#</span>
+            <span class="c1"># This is biologically sound because</span>
+            <span class="c1"># RNAPs start at the promoter and process</span>
+            <span class="c1"># along only the daughter domain containing</span>
+            <span class="c1"># the template strand. The domain containing</span>
+            <span class="c1"># the non-template strand does not yet have</span>
+            <span class="c1"># a template of the promoter, so no RNAPs</span>
+            <span class="c1"># should be initialized there.</span>
+            <span class="k">if</span> <span class="n">coord_i</span> <span class="o">&lt;=</span> <span class="mi">500</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">domain_i</span> <span class="o">==</span> <span class="mi">3</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">domain_i</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">elif</span> <span class="n">tu_i</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">coord_i</span> <span class="o">&lt;=</span> <span class="mi">1050</span> <span class="ow">and</span> <span class="n">coord_i</span> <span class="o">&gt;=</span> <span class="mi">450</span>
+            <span class="c1"># TU 5 technically spans all domains, but</span>
+            <span class="c1"># RNAPs will only be initialized in domain</span>
+            <span class="c1"># 0 (start of TU) or 1 (first valid domain</span>
+            <span class="c1"># with all coordinates outside domain 0).</span>
+            <span class="c1">#</span>
+            <span class="c1"># This is biologically sound for the same</span>
+            <span class="c1"># reason as TU 4.</span>
+            <span class="k">if</span> <span class="n">coord_i</span> <span class="o">&gt;=</span> <span class="mi">1000</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">domain_i</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">domain_i</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected TU index </span><span class="si">{</span><span class="n">tu_i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="check_no_duplicates">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.test_rnap_initialization.html#ecoli.library.test_rnap_initialization.check_no_duplicates">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_no_duplicates</span><span class="p">(</span><span class="n">active_rnaps</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">active_rnaps</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">active_rnaps</span><span class="p">[</span><span class="s2">&quot;coordinates&quot;</span><span class="p">],</span> <span class="n">active_rnaps</span><span class="p">[</span><span class="s2">&quot;domain_index&quot;</span><span class="p">])),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>
+    <span class="p">),</span> <span class="s2">&quot;Found duplicate (coordinate, domain) pairs&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="TestRNAPDomainAssignment">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.test_rnap_initialization.html#ecoli.library.test_rnap_initialization.TestRNAPDomainAssignment">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestRNAPDomainAssignment</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Test that RNAPs are correctly assigned to chromosome domains.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_rnap_domain_assignment</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">mock_sim_data</span><span class="p">,</span> <span class="n">mock_bulk_state</span><span class="p">,</span> <span class="n">mock_unique_molecules_double_replicating</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test RNAP domain assignment when there&#39;s no replication.</span>
+<span class="sd">        All RNAPs should be assigned to domain 0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mock_sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span><span class="p">[</span><span class="s2">&quot;replication_coordinate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">mock_unique_molecules_double_replicating</span><span class="p">[</span><span class="s2">&quot;promoter&quot;</span><span class="p">][</span><span class="s2">&quot;coordinates&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">unique_id_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+        <span class="n">random_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+
+        <span class="c1"># Call initialize_transcription</span>
+        <span class="n">initialize_transcription</span><span class="p">(</span>
+            <span class="n">mock_bulk_state</span><span class="p">,</span>
+            <span class="n">mock_unique_molecules_double_replicating</span><span class="p">,</span>
+            <span class="n">mock_sim_data</span><span class="p">,</span>
+            <span class="n">random_state</span><span class="p">,</span>
+            <span class="n">unique_id_rng</span><span class="p">,</span>
+            <span class="n">ppgpp_regulation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">trna_attenuation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Check domains of all initialized RNAPs</span>
+        <span class="n">check_domain_boundaries</span><span class="p">(</span><span class="n">mock_unique_molecules_double_replicating</span><span class="p">)</span>
+        <span class="n">check_no_duplicates</span><span class="p">(</span><span class="n">mock_unique_molecules_double_replicating</span><span class="p">[</span><span class="s2">&quot;active_RNAP&quot;</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="TestRNAPCollisionDetection">
+<a class="viewcode-back" href="../../../reference/api/ecoli/ecoli.library.test_rnap_initialization.html#ecoli.library.test_rnap_initialization.TestRNAPCollisionDetection">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestRNAPCollisionDetection</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Test that RNAPs cannot be initialized at the same location.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_collision_resolution</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">mock_sim_data</span><span class="p">,</span> <span class="n">mock_bulk_state</span><span class="p">,</span> <span class="n">mock_unique_molecules_double_replicating</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test that RNAP collisions are appropriately handled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mock_sim_data</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">transcription</span><span class="o">.</span><span class="n">rna_data</span><span class="p">[</span><span class="s2">&quot;replication_coordinate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">mock_unique_molecules_double_replicating</span><span class="p">[</span><span class="s2">&quot;promoter&quot;</span><span class="p">][</span><span class="s2">&quot;coordinates&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="c1"># Use a fixed random state that gives same value for first 30 calls</span>
+        <span class="n">random_state</span> <span class="o">=</span> <span class="n">Mock</span><span class="p">()</span>
+        <span class="n">hidden_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+        <span class="n">random_state</span><span class="o">.</span><span class="n">multinomial</span> <span class="o">=</span> <span class="n">hidden_rng</span><span class="o">.</span><span class="n">multinomial</span>
+        <span class="n">call_count</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">controlled_rand</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">call_count</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">call_count</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">30</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">hidden_rng</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+        <span class="n">random_state</span><span class="o">.</span><span class="n">rand</span> <span class="o">=</span> <span class="n">controlled_rand</span>
+        <span class="n">unique_id_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">43</span><span class="p">)</span>
+
+        <span class="n">initialize_transcription</span><span class="p">(</span>
+            <span class="n">mock_bulk_state</span><span class="p">,</span>
+            <span class="n">mock_unique_molecules_double_replicating</span><span class="p">,</span>
+            <span class="n">mock_sim_data</span><span class="p">,</span>
+            <span class="n">random_state</span><span class="p">,</span>
+            <span class="n">unique_id_rng</span><span class="p">,</span>
+            <span class="n">ppgpp_regulation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">trna_attenuation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">active_rnaps</span> <span class="o">=</span> <span class="n">mock_unique_molecules_double_replicating</span><span class="p">[</span><span class="s2">&quot;active_RNAP&quot;</span><span class="p">]</span>
+        <span class="n">check_domain_boundaries</span><span class="p">(</span><span class="n">mock_unique_molecules_double_replicating</span><span class="p">)</span>
+        <span class="n">check_no_duplicates</span><span class="p">(</span><span class="n">active_rnaps</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># Run tests with pytest</span>
+    <span class="n">pytest</span><span class="o">.</span><span class="n">main</span><span class="p">([</span><span class="vm">__file__</span><span class="p">,</span> <span class="s2">&quot;-v&quot;</span><span class="p">,</span> <span class="s2">&quot;--tb=short&quot;</span><span class="p">])</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2026, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
