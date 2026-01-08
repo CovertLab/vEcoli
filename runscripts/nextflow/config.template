@@ -23,13 +23,12 @@ profiles {
                 memory = params.parca_cpus * 2.GB
             }
             errorStrategy = {
-                // Codes: 137 (out-of-memory), 50001 - 50006 (Google Batch task fail:
+                // Codes: 50001 - 50006 (Google Batch task fail:
                 // https://cloud.google.com/batch/docs/troubleshooting#reserved-exit-codes)
-                (((task.exitStatus == 137) || (task.exitStatus >= 50001 && task.exitStatus <= 50006))
+                ((task.exitStatus >= 50001 && task.exitStatus <= 50006)
                 && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore'
             }
-            // Retry once with more RAM if OOM
-            memory = { 4.GB * task.attempt }
+            memory = 4.GB
             maxRetries = 1
             // Using single core is slightly slower but much cheaper
             cpus = 1
