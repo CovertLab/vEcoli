@@ -1,4 +1,5 @@
 import os
+import fnmatch
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable, cast, Mapping, Optional
 from urllib import parse
@@ -178,6 +179,41 @@ def dataset_sql(out_dir: str, experiment_ids: list[str]) -> tuple[str, str, str]
             """
         )
     return sql_queries[0], sql_queries[1], sql_queries[2]
+
+
+def list_columns(
+    conn: duckdb.DuckDBPyConnection, history_subquery: str, pattern: str | None = None
+) -> list[str]:
+    """
+    Return list of columns in DuckDB subquery containing sim output data.
+
+    Args:
+        conn: DuckDB connection
+        history_subquery: DuckDB query containing sim output data
+        pattern: Optional glob pattern to filter column names
+    """
+    columns = (
+        conn.sql(f"SELECT column_name FROM (DESCRIBE ({history_subquery}))")
+        .pl()["column_name"]
+        .to_list()
+    )
+    if pattern is not None:
+        columns = fnmatch.filter(columns, pattern)
+    return columns
+
+
+def quote_columns(columns: str | list[str]) -> str | list[str]:
+    """
+    Given a one or more raw column names (not DuckDB expressions),
+    return the same column name(s) enclosed in inner
+    double quotes to handle special characters (spaces, dashes, etc.).
+
+    Args:
+        columns: One or more column names
+    """
+    if isinstance(columns, str):
+        return f'"{columns}"'
+    return [f'"{col}"' for col in columns]
 
 
 def num_cells(conn: duckdb.DuckDBPyConnection, subquery: str) -> int:
@@ -524,10 +560,13 @@ def read_stacked_columns(
     also include the ``experiment_id``, ``variant``, ``lineage_seed``,
     ``generation``, ``agent_id``, and ``time`` columns.
 
-    .. warning:: If the column expressions in ``columns`` are not from
+    .. warning:: If your raw column names contain special characters and you
+        are not constructing your column expressions with
         :py:func:`~named_idx` or :py:func:`~ndidx_to_duckdb_expr`,
-        they may need to be enclosed in double quotes to handle
-        special characters (e.g. ``"col-with-hyphens"``).
+        the raw column names MUST be enclosed in double quotes
+        to handle special characters (e.g. ``'"space and-hyphens"'``,
+        ``"\"[brackets]\""``). Use :py:func:`~quote_columns` to quote
+        these columns before constructing SQL expressions with them.
 
     For example, to get the average total concentration of three bulk molecules
     with indices 100, 1000, and 10000 per cell::
