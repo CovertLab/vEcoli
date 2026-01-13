@@ -43,11 +43,11 @@ process simGen0 {
     next_generation = generation + 1
     agent_id_d0 = agent_id + '0'
     agent_id_d1 = agent_id + '1'
-    seed_d0 = sim_seed + 1
-    seed_d1 = sim_seed + 2
+    seed_d0 = lineage_seed + 1
+    seed_d1 = lineage_seed + 2
     """
     echo "$config $sim_data $lineage_seed $generation" > daughter_state_0.json
-    echo "$sim_seed" > daughter_state_1.json
+    echo "$lineage_seed" > daughter_state_1.json
     export division_time=1000
     """
 }
@@ -97,6 +97,11 @@ process sim {
     seed_d0 = sim_seed + 1
     seed_d1 = sim_seed + 2
     """
+    # Randomly fail 10% of the time to test fault tolerance
+    if [ \$((RANDOM % 10)) -eq 0 ]; then
+        echo "Simulated random failure for testing" >&2
+        exit 1
+    fi
     echo "$config $sim_data $lineage_seed $generation" > daughter_state_0.json
     echo "$initial_state $sim_seed" > daughter_state_1.json
     export division_time=1000
