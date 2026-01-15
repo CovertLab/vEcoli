@@ -5,6 +5,7 @@ MetabolismRedux
 import numpy as np
 import numpy.typing as npt
 import time
+
 from unum import Unum
 import warnings
 from scipy.sparse import csr_matrix
@@ -279,6 +280,15 @@ class MetabolismReduxClassic(Step):
                     "_divider": "empty_dict",
                 },
                 "gtp_to_hydrolyze": {"_default": 0, "_emit": True, "_divider": "zero"},
+                "aa_exchange_rates": {
+                    "_default": CONC_UNITS
+                    / TIME_UNITS
+                    * np.zeros(len(self.parameters["aa_exchange_names"])),
+                    "_emit": True,
+                    "_updater": "set",
+                    "_divider": "set",
+                    "_serializer": "<class 'unum.Unum'>",
+                },
             },
             "listeners": {
                 "mass": listener_schema({"cell_mass": 0.0, "dry_mass": 0.0}),
@@ -293,10 +303,10 @@ class MetabolismReduxClassic(Step):
                         "estimated_homeostatic_dmdt": [],
                         "homeostatic_metabolite_counts": [],
                         "target_homeostatic_dmdt": [],
-                        "estimated_exchange_dmdt": {},
+                        # "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
                         "target_kinetic_fluxes": [],
-                        "target_kinetic_bounds": [],
+                        # "target_kinetic_bounds": [],
                         "reaction_catalyst_counts": [],
                         "homeostatic_term": 0,
                         "secretion_term": 0,
@@ -541,8 +551,8 @@ class MetabolismReduxClassic(Step):
                     "target_homeostatic_dmdt": target_homeostatic_dmdt,
                     "homeostatic_metabolite_counts": homeostatic_metabolite_counts,
                     "target_kinetic_fluxes": target_kinetic_flux,
-                    "target_kinetic_bounds": target_kinetic_bounds,
-                    "estimated_exchange_dmdt": estimated_exchange_dmdt,
+                    # "target_kinetic_bounds": target_kinetic_bounds,
+                    # "estimated_exchange_dmdt": estimated_exchange_dmdt,
                     "estimated_intermediate_dmdt": estimated_intermediate_dmdt,
                     "maintenance_target": target_maintenance_flux,
                     "solution_fluxes": solution.velocities,
@@ -557,7 +567,8 @@ class MetabolismReduxClassic(Step):
                     "kinetic_term": solution.kinetic_term
                     * objective_weights["kinetics"],
                     "time_per_step": time.time(),
-                }
+                },
+                "enzyme_kinetics": {"counts_to_molar": self.counts_to_molar.asNumber()},
             },
             "next_update_time": states["global_time"] + states["timestep"],
         }
