@@ -317,9 +317,9 @@ class MetabolismReduxClassic(Step):
                 ),
                 "enzyme_kinetics": listener_schema(
                     {
-                        "metabolite_counts_init": 0,
-                        "metabolite_counts_final": 0,
-                        "enzyme_counts_init": 0,
+                        "metabolite_counts_init": [],
+                        "metabolite_counts_final": [],
+                        "enzyme_counts_init": [],
                         "counts_to_molar": 1.0,
                         "actual_fluxes": [],
                         "target_fluxes": [],

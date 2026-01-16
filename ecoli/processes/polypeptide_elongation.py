@@ -528,7 +528,10 @@ class PolypeptideElongation(PartitionedProcess):
         # Simulations without mechanistic translation supply need this to be
         # manually zeroed after division
         proc_data = requests.setdefault("polypeptide_elongation", {})
-        proc_data.setdefault("aa_exchange_rates", np.zeros(len(self.amino_acids)))
+        proc_data.setdefault(
+            "aa_exchange_rates",
+            MICROMOLAR_UNITS / units.s * np.zeros(len(self.amino_acids)),
+        )
 
         return requests
 
