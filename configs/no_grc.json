@@ -1,0 +1,34 @@
+{
+    "experiment_id": "no_grc",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 16
+    },
+    "fail_at_max_duration": true,
+    "sim_data_path": null,
+    "generations": 32,
+    "n_init_sims": 16,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "variants": {
+        "condition": {
+            "condition": {"value": ["with_aa"]}
+        }
+    },
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}},
+        "multivariant": {"trna_synthetase_concs": {"skip_gens": 4}}
+    },
+    "steady_state_trna_charging": false,
+    "kinetic_trna_charging": false,
+    "coarse_kinetic_elongation": false,
+    "ppgpp_regulation": false,
+    "mechanistic_replisome": false,
+    "mechanistic_translation_supply": false,
+    "mechanistic_aa_transport": false,
+    "translation_supply": false,
+    "aa_supply_in_charging": false
+}
