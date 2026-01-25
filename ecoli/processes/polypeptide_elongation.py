@@ -1007,7 +1007,7 @@ class TranslationSupplyElongationModel(BaseElongationModel):
     def amino_acid_counts(self, aasInSequences):
         # Check if this is required. It is a better request but there may be
         # fewer elongations.
-        return np.fmin(self.process.aa_supply, aasInSequences)
+        return np.fmin(self.process.aa_supply, aasInSequences).astype(np.int64)
 
 
 class SteadyStateElongationModel(TranslationSupplyElongationModel):
