@@ -29,6 +29,5 @@
     "mechanistic_replisome": false,
     "mechanistic_translation_supply": false,
     "mechanistic_aa_transport": false,
-    "translation_supply": false,
     "aa_supply_in_charging": false
 }
