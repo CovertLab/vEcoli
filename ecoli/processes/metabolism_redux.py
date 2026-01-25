@@ -356,13 +356,10 @@ class MetabolismRedux(Step):
                 },
                 "gtp_to_hydrolyze": {"_default": 0, "_emit": True, "_divider": "zero"},
                 "aa_exchange_rates": {
-                    "_default": CONC_UNITS
-                    / TIME_UNITS
-                    * np.zeros(len(self.aa_exchange_names)),
+                    "_default": np.zeros(len(self.aa_exchange_names)),
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "set",
-                    "_serializer": "<class 'unum.Unum'>",
                 },
             },
             "listeners": {
