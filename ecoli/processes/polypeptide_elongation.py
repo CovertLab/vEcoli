@@ -752,7 +752,15 @@ class BaseElongationModel(object):
     ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], dict]:
         aa_counts_for_translation = self.amino_acid_counts(aasInSequences)
 
-        requests = {"bulk": [(self.process.amino_acid_idx, aa_counts_for_translation)]}
+        # Bulk requests have to be integers (wcEcoli implicitly casts floats to ints)
+        requests = {
+            "bulk": [
+                (
+                    self.process.amino_acid_idx,
+                    aa_counts_for_translation.astype(np.int64),
+                )
+            ]
+        }
 
         # Not modeling charging so set fraction charged to 0 for all tRNA
         fraction_charged = np.zeros(len(self.process.amino_acid_idx))
