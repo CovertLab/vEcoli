@@ -40,6 +40,7 @@ from ecoli.library.schema import (
 )
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
+from ecoli.processes.metabolism import CONC_UNITS, TIME_UNITS
 
 
 MICROMOLAR_UNITS = units.umol / units.L
@@ -267,10 +268,6 @@ class PolypeptideElongation(PartitionedProcess):
         self.seed = self.parameters["seed"]
         self.random_state = np.random.RandomState(seed=self.seed)
 
-        self.zero_aa_exchange_rates = (
-            MICROMOLAR_UNITS / units.s * np.zeros(len(self.amino_acids))
-        )
-
     def ports_schema(self):
         return {
             "environment": {
@@ -422,7 +419,7 @@ class PolypeptideElongation(PartitionedProcess):
                     "_divider": "zero",
                 },
                 "aa_exchange_rates": {
-                    "_default": self.zero_aa_exchange_rates.copy(),
+                    "_default": np.zeros(len(self.amino_acids)),
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "set",
@@ -1159,9 +1156,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
                     }
                 },
                 "polypeptide_elongation": {
-                    "aa_exchange_rates": self.counts_to_molar
-                    / units.s
-                    * (import_rates - export_rates)
+                    "aa_exchange_rates": (
+                        self.counts_to_molar / units.s * (import_rates - export_rates)
+                    ).asNumber(CONC_UNITS / TIME_UNITS)
                 },
             },
         )
