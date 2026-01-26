@@ -110,7 +110,7 @@ def test_add_timeline():
         TEST_FILE,
         {
             "CPD-12261[p]": ("bulk", "CPD-12261[p]"),
-            "CPLX0-7717[i]": ("bulk", "CPLX0-7717[i]"),
+            "CPLX0-7717[p]": ("bulk", "CPLX0-7717[p]"),
             "CPLX0-3951[i]": ("bulk", "CPLX0-3951[i]"),
         },
     )

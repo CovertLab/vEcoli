@@ -208,13 +208,8 @@ enough space to store your workflow outputs.
 .. important::
    We recommend setting ``out_dir`` under ``emitter_arg`` to a location in your
    ``$SCRATCH`` directory to circumvent the ``$HOME`` storage limit
-   (run ``sh_quota`` to view). One way to do this is using an absolute path
-   (e.g. ``/scratch/users/{username}``). Alternatively, you can create a
-   symlink to your scratch directory by running the following command inside
-   your cloned repository: ``ln -s /scratch/users/{username} out`` (delete
-   ``out`` in your cloned repo first if it already exists). Then, using ``out``
-   for ``out_dir`` will cause all simulation output to be redirected to your
-   scratch directory.
+   (run ``sh_quota`` to view). Make sure to use an absolute path
+   (e.g. ``/scratch/users/{username}``).
 
 If using the Parquet emitter and ``threaded`` is not set to false under
 ``emitter_arg``, a warning will be printed suggesting that you set ``threaded``

@@ -33,7 +33,7 @@ def test_division(agent_id="0", max_duration=4):
     sim = EcoliSim.from_file()
     # Initial state saved right before division set to be
     # triggered according to D period
-    sim.config["initial_state_file"] = "vivecoli_t2527"
+    sim.config["initial_state_file"] = "vivecoli_t2526"
     sim.config["divide"] = True
     sim.config["agent_id"] = agent_id
     sim.config["max_duration"] = max_duration
@@ -84,9 +84,9 @@ def test_division(agent_id="0", max_duration=4):
             membrane_idx,
         ]
     )
-    mother_state = next(iter(output[1]["agents"].values()))
+    mother_state = next(iter(output[0]["agents"].values()))
     mother_bulk = np.delete(mother_state["bulk"], ignore_idx)
-    daughter_states = list(output[2]["agents"].values())
+    daughter_states = list(output[1]["agents"].values())
     daughter_bulk = [np.delete(ds["bulk"], ignore_idx) for ds in daughter_states]
 
     # compare the counts of bulk molecules between the mother and daughters
@@ -138,7 +138,7 @@ def test_division_topology():
     # get initial mass from Ecoli composer
     sim = EcoliSim.from_file()
     sim.config["seed"] = 1
-    sim.config["initial_state_file"] = "vivecoli_t2527"
+    sim.config["initial_state_file"] = "vivecoli_t2526"
     sim.config["divide"] = True
     sim.config["agent_id"] = agent_id
     sim.build_ecoli()
