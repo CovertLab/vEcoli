@@ -308,11 +308,11 @@ class MetabolismReduxClassic(Step):
                         "target_kinetic_fluxes": [],
                         # "target_kinetic_bounds": [],
                         "reaction_catalyst_counts": [],
-                        "homeostatic_term": 0,
-                        "secretion_term": 0,
-                        "efficiency_term": 0,
-                        "kinetic_term": 0,
-                        "maintenance_target": 0,
+                        "homeostatic_term": 0.0,
+                        # "secretion_term": 0.0,
+                        # "efficiency_term": 0.0,
+                        # "kinetic_term": 0.0,
+                        "maintenance_target": 0.0,
                     }
                 ),
                 "enzyme_kinetics": listener_schema(
@@ -496,8 +496,8 @@ class MetabolismReduxClassic(Step):
         # TODO (Cyrus) solve network flow problem to get fluxes
         objective_weights = {
             "secretion": 0.01,
-            "efficiency": 0.000001,  # decrease efficiency
-            "kinetics": 0.00001,
+            "efficiency": 0.0001,  # decrease efficiency
+            "kinetics": 0.005,  # 0.00001
             # "diversity": 0.0001, # 0.001 Heena's addition to minimize number of reactions with no flow
             "homeostatic": 1,
         }
@@ -560,12 +560,12 @@ class MetabolismReduxClassic(Step):
                     "reaction_catalyst_counts": reaction_catalyst_counts,
                     "homeostatic_term": solution.homeostatic_term
                     * objective_weights["homeostatic"],
-                    "secretion_term": solution.secretion_term
-                    * objective_weights["secretion"],
-                    "efficiency_term": solution.efficiency_term
-                    * objective_weights["efficiency"],
-                    "kinetic_term": solution.kinetic_term
-                    * objective_weights["kinetics"],
+                    # "secretion_term": solution.secretion_term
+                    # * objective_weights["secretion"],
+                    # "efficiency_term": solution.efficiency_term
+                    # * objective_weights["efficiency"],
+                    # "kinetic_term": solution.kinetic_term
+                    # * objective_weights["kinetics"],
                     "time_per_step": time.time(),
                 },
                 "enzyme_kinetics": {"counts_to_molar": self.counts_to_molar.asNumber()},
@@ -612,10 +612,10 @@ class FlowResult:
     dm_dt: Iterable[float]
     exchanges: Iterable[float]
     objective: float
-    kinetic_term: float
     homeostatic_term: float
-    secretion_term: float
-    efficiency_term: float
+    # kinetic_term: float
+    # secretion_term: float
+    # efficiency_term: float
 
 
 class NetworkFlowModel:
@@ -733,34 +733,34 @@ class NetworkFlowModel:
         )
         loss += objective_weights["homeostatic"] * homeostatic_term
 
-        # flux_sum_part_obj = objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
-
-        secretion_term = cp.sum(e[self.secretion_idx])
-        loss += (
-            objective_weights["secretion"] * secretion_term
-            if "secretion" in objective_weights
-            else loss
-        )
-
-        efficiency_term = cp.sum(v)
-        loss += (
-            objective_weights["efficiency"] * efficiency_term
-            if "efficiency" in objective_weights
-            else loss
-        )
-
-        kinetic_term = cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
-        loss = (
-            loss + objective_weights["kinetics"] * kinetic_term
-            if "kinetics" in objective_weights
-            else loss
-        )
-
-        # Heena's addition: minimize number of reactions with no flow
-        if "diversity" in objective_weights:
-            loss += objective_weights["diversity"] * cp.sum(cp.pos(1e-3 - v))
-        else:
-            loss
+        # # flux_sum_part_obj = objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
+        #
+        # secretion_term = cp.sum(e[self.secretion_idx])
+        # loss += (
+        #     objective_weights["secretion"] * secretion_term
+        #     if "secretion" in objective_weights
+        #     else loss
+        # )
+        #
+        # efficiency_term = cp.sum(v)
+        # loss += (
+        #     objective_weights["efficiency"] * efficiency_term
+        #     if "efficiency" in objective_weights
+        #     else loss
+        # )
+        #
+        # kinetic_term = cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
+        # loss = (
+        #     loss + objective_weights["kinetics"] * kinetic_term
+        #     if "kinetics" in objective_weights
+        #     else loss
+        # )
+        #
+        # # Heena's addition: minimize number of reactions with no flow
+        # if "diversity" in objective_weights:
+        #     loss += objective_weights["diversity"] * cp.sum(cp.pos(1e-3 - v))
+        # else:
+        #     loss
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
@@ -781,10 +781,10 @@ class NetworkFlowModel:
             dm_dt=dm_dt,
             exchanges=exchanges,
             objective=objective,
-            kinetic_term=kinetic_term.value,
             homeostatic_term=homeostatic_term.value,
-            secretion_term=secretion_term.value,
-            efficiency_term=efficiency_term.value,
+            # kinetic_term=kinetic_term.value,
+            # secretion_term=secretion_term.value,
+            # efficiency_term=efficiency_term.value,
         )
 
 

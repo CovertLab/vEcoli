@@ -55,14 +55,14 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic",
-    max_duration=100,
+    max_duration=600,
     divide=True,
     fail_at_max_duration=False,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
     emitter="parquet",  # 'timeseries','parquet'
-    name="temp",
+    name="homeostatic_only",
     raw_output=False,
     save=True,
     save_times=[1],
@@ -76,12 +76,17 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
-    sim.emitter = emitter
-    sim.emitter_arg = {"out_dir": "out/parquet_tryout"}
+
     # sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
-    sim.save = save
-    sim.save_times = save_times
+
+    if save:
+        sim.save = save
+        sim.save_times = save_times
+
+    sim.emitter = emitter
+    if emitter == "parquet":
+        sim.emitter_arg = {"out_dir": "out/objective_weight/basal/"}
 
     sim.condition = condition
     sim.fixed_media = fixed_media
@@ -110,7 +115,9 @@ def run_ecoli_with_metabolism_redux_classic(
     query = []
 
     folder = f"out/objective_weight/{condition}/{name}_{max_duration}_{datetime.date.today()}/"
-    save_sim_output(folder, query, sim, save_model=True)
+
+    if emitter == "timeseries":
+        save_sim_output(folder, query, sim, save_model=True)
 
 
 def run_colony(
@@ -271,7 +278,7 @@ def run_ecoli_with_default_metabolism(
     divide=False,
     progress_bar=True,
     log_updates=False,
-    emitter="timeseries",
+    emitter="parquet",
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
     sim.max_duration = max_duration
@@ -279,6 +286,7 @@ def run_ecoli_with_default_metabolism(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
+    sim.emitter_arg = {"out_dir": "out/parquet_tryout"}
     sim.build_ecoli()
 
     sim.run()
@@ -316,6 +324,7 @@ def save_sim_output(folder, query, sim, save_model=False):
                 ("agents", agent, "listeners", "fba_results"),
                 ("agents", agent, "listeners", "mass"),
                 ("agents", agent, "listeners", "unique_molecule_counts"),
+                ("agents", agent, "listeners", "enzyme_kinetics"),
                 ("agents", agent, "bulk"),
             ]
         )

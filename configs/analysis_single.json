@@ -1,0 +1,17 @@
+{
+    "emitter_arg": {
+        "out_dir": "out/objective_weight/basal/"
+    },
+    "analysis_options": {
+        "experiment_id": ["metabolism_redux_20260122-155950"],
+        "variant_data_dir": ["/Users/HeenaSaqib/dev/vEcoli/out/test_installation/variant_sim_data"],
+        "validation_data_path": ["out/kb/validationData.cPickle"],
+        "outdir": "out/objective_weight/basal/metabolism_redux_20260122-155950/analysis/",
+        "cpus": 1,
+
+        "single": {"weighted_objective_terms": {},
+                   "mass_fraction_summary": {}
+        }
+    }
+}
+
