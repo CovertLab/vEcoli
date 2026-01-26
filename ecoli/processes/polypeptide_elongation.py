@@ -1030,7 +1030,12 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             # Adjust aa_supply higher if amino acid concentrations are low
             # Improves stability of charging and mimics amino acid synthesis
             # inhibition and export
-            self.process.aa_supply *= self.aa_supply_scaling(aa_conc, aa_in_media)
+            # Polypeptide elongation operates using concentration units of CONC_UNITS (uM)
+            # but aa_supply_scaling uses M units, so convert using unit_conversion (1e-6)
+            self.process.aa_supply *= self.aa_supply_scaling(
+                self.charging_params["unit_conversion"] * aa_conc.asNumber(CONC_UNITS),
+                aa_in_media,
+            )
 
         aa_counts_for_translation = (
             v_rib
