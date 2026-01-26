@@ -27,6 +27,19 @@ class MoleculeGroups(object):
             POLYMERIZED_FRAGMENT_PREFIX + dntp_id for dntp_id in dntp_ids
         ]
 
+        codon_ids = []
+        ntp_abbreviations = [ntp[0] for ntp in ntp_ids]
+        for nucleotide_0 in ntp_abbreviations:
+            for nucleotide_1 in ntp_abbreviations:
+                for nucleotide_2 in ntp_abbreviations:
+                    codon = nucleotide_0 + nucleotide_1 + nucleotide_2
+
+                    # Skip stop codons (except UGA, which codes for selenocysteine)
+                    if codon in ["UAA", "UAG"]:
+                        continue
+
+                    codon_ids.append(codon)
+
         # Build list of rRNA IDs from raw data
         s30_16s_rRNA = [
             rna["id"] + "[c]" for rna in raw_data.rnas if rna["id"].startswith("RRS")
@@ -141,6 +154,14 @@ class MoleculeGroups(object):
             "polymerized_subunits": polymerized_aa_ids
             + polymerized_ntp_ids
             + polymerized_dntp_ids,
+            "codons": codon_ids,
+            "initiator_trnas": [
+                "RNA0-306[c]",
+                "metY-tRNA[c]",
+                "metZ-tRNA[c]",
+                "metW-tRNA[c]",
+            ],
+            "elongator_trnas": ["metT-tRNA[c]", "metU-tRNA[c]"],
             "s30_proteins": s30_proteins,
             "s30_16s_rRNA": s30_16s_rRNA,
             "s50_protein_complexes": ["CPLX0-3956[c]"],

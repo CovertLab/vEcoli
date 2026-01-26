@@ -452,6 +452,14 @@ class Transcription(object):
         max_cistron_id_length = max(len(rna["id"]) for rna in all_cistrons)
         max_gene_id_length = max(len(id_) for id_ in gene_id)
 
+        # Record anticodons
+        rna_id_to_anticodon = {}
+        for rna in raw_data.rnas:
+            if rna["type"] == "tRNA":
+                rna_id_to_anticodon[rna["id"]] = rna["anticodon"]
+        cistron_ids = [rna["id"] for rna in all_cistrons]
+        anticodons = [rna_id_to_anticodon.get(rna_id, "") for rna_id in cistron_ids]
+
         cistron_data = np.zeros(
             n_cistrons,
             dtype=[
@@ -473,10 +481,11 @@ class Transcription(object):
                 ("is_RNAP", "bool"),
                 ("uses_corrected_seq_counts", "bool"),
                 ("is_new_gene", "bool"),
+                ("anticodon", "U3"),
             ],
         )
 
-        cistron_data["id"] = [rna["id"] for rna in all_cistrons]
+        cistron_data["id"] = cistron_ids
         cistron_data["gene_id"] = gene_id
         cistron_data["length"] = cistron_lengths
         cistron_data["replication_coordinate"] = replication_coordinate
@@ -494,6 +503,7 @@ class Transcription(object):
         cistron_data["is_RNAP"] = is_RNAP
         cistron_data["uses_corrected_seq_counts"] = np.zeros(n_cistrons, dtype=bool)
         cistron_data["is_new_gene"] = [k.startswith("NG") for k in gene_id]
+        cistron_data["anticodon"] = anticodons
 
         cistron_field_units = {
             "id": None,
@@ -514,6 +524,7 @@ class Transcription(object):
             "is_RNAP": None,
             "uses_corrected_seq_counts": None,
             "is_new_gene": None,
+            "anticodon": None,
         }
 
         self.cistron_data = UnitStructArray(cistron_data, cistron_field_units)
@@ -1425,7 +1436,9 @@ class Transcription(object):
         aa_names = sim_data.molecule_groups.amino_acids
         aa_indices = {aa: i for i, aa in enumerate(aa_names)}
         trna_indices = {trna: i for i, trna in enumerate(self.uncharged_trna_names)}
-        self.aa_from_trna = np.zeros((len(aa_names), len(self.uncharged_trna_names)))
+        self.aa_from_trna = np.zeros(
+            (len(aa_names), len(self.uncharged_trna_names)), dtype=int
+        )
         for trna in self.uncharged_trna_names:
             aa = trna[:3].upper()
             if aa == "ALA":
