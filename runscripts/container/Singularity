@@ -9,15 +9,8 @@ From: ghcr.io/astral-sh/uv@sha256:cda8422643a3d47dd5d457639dce8f5fbd130ef158ff4a
     export IMAGE_GIT_HASH="{{ git_hash }}"
     export IMAGE_GIT_BRANCH="{{ git_branch }}"
     export IMAGE_TIMESTAMP="{{ timestamp }}"
-    export UV_CACHE_DIR="/vEcoli/.uv_cache"
-    # Silence warning about cache and sync targets being on different filesystems
-    export UV_LINK_MODE="copy"
-    # Prevent uv dirs from being created in any locations that may overlap with
-    # host filesystems that Apptainer may automount
-    export UV_TOOL_DIR="/vEcoli/.uv_tools"
-    export UV_TOOL_BIN_DIR="/vEcoli/.uv_tools/bin"
-    export UV_PYTHON_INSTALL_DIR="/vEcoli/.uv_python"
-    export UV_PYTHON_BIN_DIR="/vEcoli/.uv_python/bin"
+    # Source shared uv environment variables
+    . /vEcoli/singularity-env.sh
     # runscripts/container/build-image.sh has some custom logic to replace this
     # with the environment variables that are set in .env
     {{ dot_env_vars }}
@@ -31,6 +24,7 @@ From: ghcr.io/astral-sh/uv@sha256:cda8422643a3d47dd5d457639dce8f5fbd130ef158ff4a
 
 %files
     repo.tar /repo.tar
+    runscripts/container/singularity-env.sh /vEcoli/singularity-env.sh
 
 %post
     mkdir -p /vEcoli
@@ -40,12 +34,6 @@ From: ghcr.io/astral-sh/uv@sha256:cda8422643a3d47dd5d457639dce8f5fbd130ef158ff4a
     fi
     apt-get update && apt-get install -y gcc procps nano curl
     cd /vEcoli
-    # Silence warning about cache and sync targets being on different filesystems
-    export UV_LINK_MODE="copy"
-    # Prevent uv dirs from being created in any locations that may overlap with
-    # host filesystems that Apptainer may automount
-    export UV_TOOL_DIR="/vEcoli/.uv_tools"
-    export UV_TOOL_BIN_DIR="/vEcoli/.uv_tools/bin"
-    export UV_PYTHON_INSTALL_DIR="/vEcoli/.uv_python"
-    export UV_PYTHON_BIN_DIR="/vEcoli/.uv_python/bin"
-    UV_CACHE_DIR="/vEcoli/.uv_cache" UV_COMPILE_BYTECODE=1 uv sync --frozen
+    # Source shared uv environment variables
+    . /vEcoli/singularity-env.sh
+    UV_COMPILE_BYTECODE=1 uv sync --frozen
