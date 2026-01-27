@@ -212,8 +212,10 @@ def quote_columns(columns: str | list[str]) -> str | list[str]:
         columns: One or more column names
     """
     if isinstance(columns, str):
-        return f'"{columns}"'
-    return [f'"{col}"' for col in columns]
+        # Escape existing double quotes by doubling them
+        escaped = columns.replace('"', '""')
+        return f'"{escaped}"'
+    return [cast(str, quote_columns(col)) for col in columns]
 
 
 def num_cells(conn: duckdb.DuckDBPyConnection, subquery: str) -> int:
