@@ -1,9 +1,11 @@
 [build-system]
+# Pinning for maximum reproducibility, but this may be
+# annoying to remember to update
 requires = [
-    "setuptools",
-    "wheel",
-    "Cython",
-    "numpy"
+    "setuptools==80.10.2",
+    "wheel==0.46.3",
+    "Cython==3.1.2",
+    "numpy==2.2.6"
 ]
 build-backend = "setuptools.build_meta"
 
