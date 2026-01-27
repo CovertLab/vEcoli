@@ -74,23 +74,6 @@ def numpy_molecules(states):
                 ),
                 "constrained": {"GLC[p]": 20.0 * units.mmol / (units.g * units.h)},
             }
-        if "process_state" in states:
-            if "polypeptide_elongation" in states["process_state"]:
-                if (
-                    "aa_exchange_rates"
-                    in states["process_state"]["polypeptide_elongation"]
-                ):
-                    states["process_state"]["polypeptide_elongation"][
-                        "aa_exchange_rates"
-                    ] = (
-                        units.mmol
-                        / units.s
-                        * np.array(
-                            states["process_state"]["polypeptide_elongation"][
-                                "aa_exchange_rates"
-                            ]
-                        )
-                    )
     return states
 
 

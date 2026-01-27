@@ -40,6 +40,7 @@ from ecoli.library.schema import (
 )
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
+from ecoli.processes.metabolism import CONC_UNITS, TIME_UNITS
 
 
 MICROMOLAR_UNITS = units.umol / units.L
@@ -267,10 +268,6 @@ class PolypeptideElongation(PartitionedProcess):
         self.seed = self.parameters["seed"]
         self.random_state = np.random.RandomState(seed=self.seed)
 
-        self.zero_aa_exchange_rates = (
-            MICROMOLAR_UNITS / units.s * np.zeros(len(self.amino_acids))
-        )
-
     def ports_schema(self):
         return {
             "environment": {
@@ -422,7 +419,7 @@ class PolypeptideElongation(PartitionedProcess):
                     "_divider": "zero",
                 },
                 "aa_exchange_rates": {
-                    "_default": self.zero_aa_exchange_rates.copy(),
+                    "_default": np.zeros(len(self.amino_acids)),
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "set",
@@ -755,7 +752,15 @@ class BaseElongationModel(object):
     ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], dict]:
         aa_counts_for_translation = self.amino_acid_counts(aasInSequences)
 
-        requests = {"bulk": [(self.process.amino_acid_idx, aa_counts_for_translation)]}
+        # Bulk requests have to be integers (wcEcoli implicitly casts floats to ints)
+        requests = {
+            "bulk": [
+                (
+                    self.process.amino_acid_idx,
+                    aa_counts_for_translation.astype(np.int64),
+                )
+            ]
+        }
 
         # Not modeling charging so set fraction charged to 0 for all tRNA
         fraction_charged = np.zeros(len(self.process.amino_acid_idx))
@@ -1033,7 +1038,12 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             # Adjust aa_supply higher if amino acid concentrations are low
             # Improves stability of charging and mimics amino acid synthesis
             # inhibition and export
-            self.process.aa_supply *= self.aa_supply_scaling(aa_conc, aa_in_media)
+            # Polypeptide elongation operates using concentration units of CONC_UNITS (uM)
+            # but aa_supply_scaling uses M units, so convert using unit_conversion (1e-6)
+            self.process.aa_supply *= self.aa_supply_scaling(
+                self.charging_params["unit_conversion"] * aa_conc.asNumber(CONC_UNITS),
+                aa_in_media,
+            )
 
         aa_counts_for_translation = (
             v_rib
@@ -1159,9 +1169,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
                     }
                 },
                 "polypeptide_elongation": {
-                    "aa_exchange_rates": self.counts_to_molar
-                    / units.s
-                    * (import_rates - export_rates)
+                    "aa_exchange_rates": (
+                        self.counts_to_molar / units.s * (import_rates - export_rates)
+                    ).asNumber(CONC_UNITS / TIME_UNITS)
                 },
             },
         )
