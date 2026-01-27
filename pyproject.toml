@@ -19,7 +19,6 @@ dependencies = [
     "scipy",
     "biopython",
     "cvxpy",
-    "cython",
     "dill",
     "duckdb",
     "gcsfs",
