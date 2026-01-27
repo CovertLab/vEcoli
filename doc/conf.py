@@ -104,6 +104,10 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+# Custom JavaScript and CSS for AI-powered search
+html_js_files = ["ai_search.js"]
+html_css_files = ["ai_search.css"]
+
 
 # -- Options for extensions --------------------------------------------------
 

@@ -28,6 +28,10 @@ jobs:
         run: sudo apt-get install pandoc
       - name: Install model
         run: USE_CYTHON=1 uv sync --frozen --extra docs
+      - name: Build search index for AI search
+        run: |
+          cd doc
+          python build_search_index.py
       - name: Build documentation
         run: |
           cd doc

@@ -21,6 +21,21 @@ jobs:
         run: sudo apt-get install pandoc
       - name: Install model
         run: USE_CYTHON=1 uv sync --frozen --extra docs
+      - name: Build search index for AI search
+        run: |
+          cd doc
+          python build_search_index.py
+      - name: Inject API key for AI search (if configured)
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          # Replace placeholder with actual API key from GitHub Secrets (if set)
+          if [ -n "$GROQ_API_KEY" ]; then
+            echo "Injecting GROQ API key for AI search..."
+            sed -i "s/__GROQ_API_KEY__/$GROQ_API_KEY/g" doc/_static/ai_search.js
+          else
+            echo "No GROQ_API_KEY secret found - users will need to provide their own API key"
+          fi
       - name: Build documentation
         run: |
           cd doc

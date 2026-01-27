@@ -29,6 +29,7 @@ __pycache__
 /wholecell/utils/*.c
 /doc/reference/api/
 /doc/notebooks/
+/doc/_static/search_index.json
 
 # OS generated files #
 ######################
