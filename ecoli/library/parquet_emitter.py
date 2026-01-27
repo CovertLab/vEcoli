@@ -560,6 +560,9 @@ def read_stacked_columns(
     also include the ``experiment_id``, ``variant``, ``lineage_seed``,
     ``generation``, ``agent_id``, and ``time`` columns.
 
+    .. hint:: To get a full list of columns in the output data that you can
+        use in your ``columns`` SQL expressions, use :py:func:`~.list_columns`.
+
     .. warning:: If your raw column names contain special characters and you
         are not constructing your column expressions with
         :py:func:`~named_idx` or :py:func:`~ndidx_to_duckdb_expr`,
