@@ -204,8 +204,8 @@ def list_columns(
 
 def quote_columns(columns: str | list[str]) -> str | list[str]:
     """
-    Given a one or more raw column names (not DuckDB expressions),
-    return the same column name(s) enclosed in inner
+    Given one or more raw column names (not DuckDB expressions),
+    return the same column name(s) enclosed in
     double quotes to handle special characters (spaces, dashes, etc.).
 
     Args:
