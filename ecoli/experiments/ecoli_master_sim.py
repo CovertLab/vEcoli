@@ -765,8 +765,12 @@ class EcoliSim:
                 self.ecoli_experiment.emitter.finalize()
             # Exit so that EcoliSim.run() does not raise TimeLimitError
             sys.exit()
-        finally:
-            # Finish writing any buffered emits to Parquet files
+        except:  # noqa: E722
+            # Finish writing any buffered emits to Parquet files if the simulation
+            # encounters any error (including KeyboardInterrupt)
+            # We use a bare except instead of finally because we don't want to
+            # run finalize() every time update_experiment is called to advance to
+            # save times in save_states()
             if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
                 self.ecoli_experiment.emitter.finalize()
 
