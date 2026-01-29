@@ -18,11 +18,15 @@ on:
   push:
     branches: [master]
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     branches: [master]
 
 jobs:
   Reproducibility:
     runs-on: macos-latest
+    if: |
+      github.event_name == 'push' || 
+      contains(github.event.pull_request.labels.*.name, 'long ci')
     steps:
     - uses: actions/checkout@v2
     - name: Install uv
@@ -60,6 +64,9 @@ jobs:
         uv run --env-file .env runscripts/debug/diff_simouts.py -o "out" "parca_1*" "parca_2*"
   Two-gens:
     runs-on: macos-latest
+    if: |
+      github.event_name == 'push' || 
+      contains(github.event.pull_request.labels.*.name, 'long ci')
     steps:
     - uses: actions/checkout@v2
     - name: Install uv
