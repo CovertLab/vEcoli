@@ -773,6 +773,7 @@ class EcoliSim:
             # save times in save_states()
             if isinstance(self.ecoli_experiment.emitter, ParquetEmitter):
                 self.ecoli_experiment.emitter.finalize()
+            raise
 
     def save_states(self):
         """
