@@ -38,6 +38,12 @@ tasks are:
     If you are still actively working on a pull request, add ``[skip ci]``
     on a new line in your commit message to skip the CI tests.
 
+.. warning::
+    The ``Reproducibility`` and ``two-gens`` tests can take a long time
+    to complete. To avoid excessive usage of GitHub Actions minutes, these
+    tests will only run if the PR is tagged on GitHub with the ``long ci``
+    tag. Only add this tag when the PR is ready to be merged.
+
 Logs from these tests can be viewed on the GitHub website and you are
 required to get all of these tests passing before merging a PR.
 
