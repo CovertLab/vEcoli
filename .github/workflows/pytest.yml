@@ -28,7 +28,14 @@ jobs:
         version: "0.7.12"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
+    - name: Cache ParCa simulation data
+      id: cache-parca
+      uses: actions/cache@v5
+      with:
+        path: out/kb/*.cPickle
+        key: parca-${{ hashFiles('reconstruction/ecoli/**/*.py', 'reconstruction/ecoli/**/*.tsv') }}
     - name: Run ParCa
+      if: steps.cache-parca.outputs.cache-hit != 'true'
       run: |
         uv run --env-file .env runscripts/parca.py \
           --config configs/gha_pytest.json
