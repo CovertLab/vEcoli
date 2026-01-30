@@ -18,15 +18,19 @@ on:
   push:
     branches: [master]
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     branches: [master]
 
 jobs:
   Reproducibility:
     runs-on: macos-latest
+    if: |
+      github.event_name == 'push' || 
+      contains(github.event.pull_request.labels.*.name, 'long ci')
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
         version: "0.7.12"
@@ -60,10 +64,13 @@ jobs:
         uv run --env-file .env runscripts/debug/diff_simouts.py -o "out" "parca_1*" "parca_2*"
   Two-gens:
     runs-on: macos-latest
+    if: |
+      github.event_name == 'push' || 
+      contains(github.event.pull_request.labels.*.name, 'long ci')
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
         version: "0.7.12"
