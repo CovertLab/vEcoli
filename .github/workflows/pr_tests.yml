@@ -11,7 +11,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.merge_group.head_sha || github.ref }}
   cancel-in-progress: true
 
 on:
@@ -20,12 +20,14 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
     branches: [master]
+  merge_group:
+    branches: [master]
 
 jobs:
   Reproducibility:
     runs-on: macos-latest
     if: |
-      github.event_name == 'push' || 
+      github.event_name == 'push' || github.event_name == 'merge_group' ||
       contains(github.event.pull_request.labels.*.name, 'long ci')
     steps:
     - uses: actions/checkout@v6
@@ -65,7 +67,7 @@ jobs:
   Two-gens:
     runs-on: macos-latest
     if: |
-      github.event_name == 'push' || 
+      github.event_name == 'push' || github.event_name == 'merge_group' ||
       contains(github.event.pull_request.labels.*.name, 'long ci')
     steps:
     - uses: actions/checkout@v6
