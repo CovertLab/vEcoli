@@ -68,7 +68,8 @@ dev = [
 docs = [
     "Sphinx",
     "sphinx-rtd-theme",
-    "nbsphinx"
+    "nbsphinx",
+    "pre-commit"
 ]
 
 [tool.setuptools]
