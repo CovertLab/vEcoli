@@ -10,10 +10,4 @@ export UV_TOOL_DIR="/vEcoli/.uv_tools"
 export UV_TOOL_BIN_DIR="/vEcoli/.uv_tools/bin"
 export UV_PYTHON_INSTALL_DIR="/vEcoli/.uv_python"
 export UV_PYTHON_BIN_DIR="/vEcoli/.uv_python/bin"
-
-# Limit concurrency to try to fix sporadic build issues on HPC clusters
-export UV_CONCURRENT_BUILDS=1
-export UV_CONCURRENT_DOWNLOADS=1
-export UV_CONCURRENT_INSTALLS=1
-# Try to disable cache to fix sporadic build issues on HPC clusters
-export UV_NO_CACHE=1
+export UV_CACHE_DIR="/vEcoli/.uv_cache"
