@@ -41,6 +41,13 @@ small ad-hoc test simulations or for creating your own experiment file (see
 the other two and only offers access to a few key configuration options. It is
 mainly intended for internal use (e.g. in Nextflow workflow scripts).
 
+.. warning::
+    If mixing and matching different configuration methods, the order of precedence
+    can be confusing. Generally, CLI options override JSON config file options,
+    but the object-oriented interface may or may not override one or both depending on
+    when in the code the object-oriented options are set. Therefore, we recommend
+    that you stick to one configuration method, preferably JSON, as much as possible.
+
 .. _json_config:
 
 -----------------
