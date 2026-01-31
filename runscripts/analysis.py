@@ -1,6 +1,7 @@
 import os
 import argparse
 import json
+from collections import defaultdict
 
 
 # First, do minimal argument parsing just to get the CPU count
@@ -353,12 +354,34 @@ def main():
         # Figure out what Hive partition in main output directory
         # to store outputs for analyses run on this cell subset
         if len(id_cols) > 0:
-            joined_cols = ", ".join(id_cols)
-            data_ids = conn.sql(
-                f"SELECT DISTINCT ON({joined_cols}) {joined_cols}"
+            # Query for distinct id_cols and also get variants for filtering
+            # sim_data_dict and variant_metadata later
+            # Include experiment_id and variant if not already in id_cols
+            cols_to_select = list(id_cols)
+            if "experiment_id" not in cols_to_select:
+                cols_to_select.append("experiment_id")
+            if "variant" not in cols_to_select:
+                cols_to_select.append("variant")
+            select_cols = ", ".join(cols_to_select)
+
+            data_ids_with_variants = conn.sql(
+                f"SELECT DISTINCT {select_cols}"
                 f" FROM ({config_sql}) WHERE {duckdb_filter}"
             ).fetchall()
-            for data_id in data_ids:
+
+            # Group by the id_cols to collect variants for each subset
+            id_to_variants = defaultdict(set)
+            for row in data_ids_with_variants:
+                # Extract the id_cols values (first len(id_cols) elements)
+                data_id = row[: len(id_cols)]
+                # Extract experiment_id and variant
+                exp_id_idx = cols_to_select.index("experiment_id")
+                var_id_idx = cols_to_select.index("variant")
+                exp_id = row[exp_id_idx]
+                var_id = row[var_id_idx]
+                id_to_variants[data_id].add((exp_id, var_id))
+
+            for data_id, variant_set in id_to_variants.items():
                 data_filters = []
                 curr_outdir = os.path.abspath(config["outdir"])
                 for col, col_val in zip(id_cols, data_id):
@@ -374,15 +397,23 @@ def main():
                     f"SELECT * FROM ({config_sql}) WHERE {data_filters}",
                     f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
                     curr_outdir,
+                    variant_set,  # Store the variant set for filtering
                 )
         else:
             curr_outdir = os.path.abspath(config["outdir"])
             os.makedirs(curr_outdir, exist_ok=True)
+            # For analysis types with no id_cols, query all variants matching the filter
+            all_variants = conn.sql(
+                f"SELECT DISTINCT experiment_id, variant"
+                f" FROM ({config_sql}) WHERE {duckdb_filter}"
+            ).fetchall()
+            variant_set = set(all_variants)
             query_strings[duckdb_filter] = (
                 f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
                 f"SELECT * FROM ({success_sql}) WHERE {duckdb_filter}",
                 os.path.abspath(config["outdir"]),
+                variant_set,  # Store the variant set for filtering
             )
         for analysis_name in config[analysis_type]:
             analysis_mod = importlib.import_module(
@@ -393,19 +424,47 @@ def main():
                 config_q,
                 success_q,
                 curr_outdir,
+                variant_set,
             ) in query_strings.items():
                 print(f"Running {analysis_type} {analysis_name} with {data_filters}.")
+                # Filter variant_metadata and sim_data_dict to only include
+                # variants that match the current filters. This allows analyses
+                # to safely use open_arbitrary_sim_data with the guarantee that
+                # only a sim_data file of the correct variant will be opened.
+                filtered_variant_metadata = {}
+                filtered_sim_data_dict = {}
+                filtered_variant_names = {}
+
+                for exp_id, var_id in variant_set:
+                    if exp_id not in filtered_variant_metadata:
+                        filtered_variant_metadata[exp_id] = {}
+                        filtered_sim_data_dict[exp_id] = {}
+                        filtered_variant_names[exp_id] = variant_names.get(exp_id)
+
+                    if (
+                        exp_id in variant_metadata
+                        and var_id in variant_metadata[exp_id]
+                    ):
+                        filtered_variant_metadata[exp_id][var_id] = variant_metadata[
+                            exp_id
+                        ][var_id]
+
+                    if exp_id in sim_data_dict and var_id in sim_data_dict[exp_id]:
+                        filtered_sim_data_dict[exp_id][var_id] = sim_data_dict[exp_id][
+                            var_id
+                        ]
+
                 analysis_mod.plot(
                     config[analysis_type][analysis_name],
                     conn,
                     history_q,
                     config_q,
                     success_q,
-                    sim_data_dict,
+                    filtered_sim_data_dict,
                     config.get("validation_data_path", []),
                     curr_outdir,
-                    variant_metadata,
-                    variant_names,
+                    filtered_variant_metadata,
+                    filtered_variant_names,
                 )
 
 
