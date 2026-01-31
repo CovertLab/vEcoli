@@ -40,6 +40,13 @@ for the most up-to-date default configuration options.
 Below, we explore each runscript in further detail, including the
 configuration options unique to each.
 
+.. note::
+  Not all options valid for standalone runscripts are valid for
+  :py:mod:`runscripts.workflow`. This is because some options
+  are automatically handled by the workflow. All such options
+  MUST be omitted from configs supplied to :py:mod:`runscripts.workflow`
+  and are listed in a warning box below each relevant section.
+
 -----
 ParCa
 -----
@@ -100,6 +107,9 @@ Configuration options for the ParCa are all located in a dictionary under the
   for transcription.
 - ``variable_elongation_translation``: If True, enable variable elongation
   for translation.
+
+.. warning::
+  **Omit from worflow configs:** ``parca_options --> outdir``
 
 .. note::
   If the top-level ``sim_data_path`` option is not null, the ParCa is skipped
@@ -224,6 +234,9 @@ running :py:mod:`runscripts.workflow`), the configuration file must also include
 - Top-level (not under ``variants`` key) ``kb`` option: path to directory
   containing ParCa output pickle files
 
+.. warning::
+  **Omit from worflow configs:** top-level ``outdir``, top-level ``kb``
+
 .. _variant_output:
 
 Output
@@ -251,6 +264,8 @@ Refer to :ref:`/experiments.rst` for more information about the main
 script for running single-cell simulations,
 :py:mod:`~ecoli.experiments.ecoli_master_sim`.
 
+.. warning::
+  **Omit from worflow configs:** None, all are valid.
 
 .. _analysis_scripts:
 
@@ -309,7 +324,7 @@ Configuration
 The :py:mod:`runscripts.analysis` script accepts the following configuration
 options under the ``analysis_options`` key:
 
-- ``single``, ``multidaughter``, ``multigeneration``, ``multiseed``, ``multivariant``
+- ``single``, ``multidaughter``, ``multigeneration``, ``multiseed``, ``multivariant``,
   ``multiexperiment``: Can pick one or more analysis types to run. Under each analysis
   type is a sub-dictionary of the following format:
 
@@ -355,8 +370,8 @@ options under the ``analysis_options`` key:
   ``single`` analyses 16 times. If you only want to run the ``single`` and ``multivariant``
   analyses, specify ``["single", "multivariant"]`` using this option.
 
-In addition to the options above, you MUST provide ONE of the following three sets of
-additional options:
+In addition to the options above, when running :py:mod:`runscripts.analysis` manually, you
+must provide ONE of the following three sets of additional options:
 
 1. ``variant_data_dir``
    
@@ -388,10 +403,14 @@ additional options:
    gives the user maximum flexibility in mapping variants to simulation data files and
    metadata.
 
-.. note::
-  You must also have the ``emitter_arg`` key in your config JSON with a ``out_dir`` or
-  ``out_uri`` set to the location where the analysis script will look for simulation
-  data output.
+Lastly, standalone analysis configs must have a top-level ``emitter_arg`` key
+with an ``out_dir`` or ``out_uri`` set to the location where the analysis script
+should look for simulation data output.
+
+.. warning::
+  **Omit from worflow configs:** Everything except ``analysis_options --> cpus``
+  and the names of analyses to run with associated parameters under
+  ``analysis_options --> single/multidaughter/...``.
 
 .. _analysis_template:
 
