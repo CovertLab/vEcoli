@@ -3203,6 +3203,7 @@ dev = [
 ]
 docs = [
     { name = "nbsphinx" },
+    { name = "pre-commit" },
     { name = "sphinx" },
     { name = "sphinx-rtd-theme" },
 ]
@@ -3234,6 +3235,7 @@ requires-dist = [
     { name = "pandas" },
     { name = "polars" },
     { name = "pre-commit", marker = "extra == 'dev'" },
+    { name = "pre-commit", marker = "extra == 'docs'" },
     { name = "pyarrow" },
     { name = "pymunk" },
     { name = "pytest", marker = "extra == 'dev'" },
