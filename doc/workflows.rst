@@ -109,7 +109,7 @@ Configuration options for the ParCa are all located in a dictionary under the
   for translation.
 
 .. warning::
-  **Omit from worflow configs:** ``parca_options --> outdir``
+  **Omit from workflow configs:** ``parca_options --> outdir``
 
 .. note::
   If the top-level ``sim_data_path`` option is not null, the ParCa is skipped
@@ -235,7 +235,7 @@ running :py:mod:`runscripts.workflow`), the configuration file must also include
   containing ParCa output pickle files
 
 .. warning::
-  **Omit from worflow configs:** top-level ``outdir``, top-level ``kb``
+  **Omit from workflow configs:** top-level ``outdir``, top-level ``kb``
 
 .. _variant_output:
 
@@ -265,7 +265,7 @@ script for running single-cell simulations,
 :py:mod:`~ecoli.experiments.ecoli_master_sim`.
 
 .. warning::
-  **Omit from worflow configs:** None, all are valid.
+  **Omit from workflow configs:** None, all are valid.
 
 .. _analysis_scripts:
 
@@ -408,7 +408,7 @@ with an ``out_dir`` or ``out_uri`` set to the location where the analysis script
 should look for simulation data output.
 
 .. warning::
-  **Omit from worflow configs:** Everything except ``analysis_options --> cpus``
+  **Omit from workflow configs:** Everything except ``analysis_options --> cpus``
   and the names of analyses to run with associated parameters under
   ``analysis_options --> single/multidaughter/...``.
 
