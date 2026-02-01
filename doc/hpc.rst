@@ -317,6 +317,10 @@ To run scripts on Sherlock, you must have either:
 - Built a container image manually using ``runscripts/container/build-image.sh`` with
   the ``-a`` flag
 
+.. note::
+   If ``build-image.sh`` fails with an error about ``squashfs_ll`` being killed,
+   try requesting more memory (e.g. ``srun --mem=8GB``). We recommend at least 8GB.
+
 Start an interactive container with your full image path (see the warning box at
 :doc:`workflows`) by navigating to your cloned repository and running:
 
