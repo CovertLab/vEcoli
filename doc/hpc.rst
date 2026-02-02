@@ -332,6 +332,13 @@ Start an interactive container with your full image path (see the warning box at
   Inside the interactive container, you can safely use ``python`` directly
   in addition to the usual ``uv`` commands.
 
+.. tip::
+   Use the ``-h`` flag to see all available options for
+   ``runscripts/container/interactive.sh``. One particularly
+   useful option is ``-p``, which allows you to bind mount
+   additional directories into the container. This is necessary
+   if your ``out_dir`` is not automatically mounted by Apptainer.
+
 The above command launches a container containing a snapshot of your
 cloned repository as it was when the image was built. This snapshot
 is located at ``/vEcoli`` inside the container and is mostly intended
