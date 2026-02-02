@@ -84,7 +84,7 @@ def json_to_parquet(
     temp_outfile = outfile
     if parse.urlparse(outfile).scheme in ("", "file", "local"):
         temp_outfile = outfile + ".tmp"
-    tbl.write_parquet(temp_outfile, statistics=False)
+    tbl.write_parquet(temp_outfile)
     if temp_outfile != outfile:
         filesystem.mv(temp_outfile, outfile)
 
@@ -946,7 +946,6 @@ class ParquetEmitter(Emitter):
             self.filesystem.makedirs(os.path.dirname(success_file))
             pl.DataFrame({"success": [True]}).write_parquet(
                 success_file,
-                statistics=False,
             )
 
     def emit(self, data: dict[str, Any]):
