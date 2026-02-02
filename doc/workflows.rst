@@ -265,7 +265,7 @@ script for running single-cell simulations,
 :py:mod:`~ecoli.experiments.ecoli_master_sim`.
 
 .. warning::
-  **Workflow config compatibility:** All simulation config options are valid for workflow configs.
+  **Omit from workflow configs:** None. All simulation config options are valid for workflow configs.
 
 .. _analysis_scripts:
 
