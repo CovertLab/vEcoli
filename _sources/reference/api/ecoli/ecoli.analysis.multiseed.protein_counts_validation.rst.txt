@@ -1,0 +1,8 @@
+``ecoli.analysis.multiseed.protein_counts_validation``
+======================================================
+.. automodule:: ecoli.analysis.multiseed.protein_counts_validation
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

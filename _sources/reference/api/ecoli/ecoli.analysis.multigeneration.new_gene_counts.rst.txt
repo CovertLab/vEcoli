@@ -1,0 +1,8 @@
+``ecoli.analysis.multigeneration.new_gene_counts``
+==================================================
+.. automodule:: ecoli.analysis.multigeneration.new_gene_counts
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

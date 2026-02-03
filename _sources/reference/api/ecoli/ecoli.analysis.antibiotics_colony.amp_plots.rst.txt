@@ -1,0 +1,8 @@
+``ecoli.analysis.antibiotics_colony.amp_plots``
+===============================================
+.. automodule:: ecoli.analysis.antibiotics_colony.amp_plots
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

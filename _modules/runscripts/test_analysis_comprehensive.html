@@ -1,0 +1,1084 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>runscripts.test_analysis_comprehensive &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../diffs.html">Model Differences From wcEcoli</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">runscripts.test_analysis_comprehensive</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for runscripts.test_analysis_comprehensive</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Comprehensive tests for analysis.py refactored functions</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">importlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModuleType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">runscripts.analysis</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">parse_variant_data_dir</span><span class="p">,</span>
+    <span class="n">make_sim_data_dict</span><span class="p">,</span>
+    <span class="n">build_duckdb_filter</span><span class="p">,</span>
+    <span class="n">load_variant_metadata</span><span class="p">,</span>
+    <span class="n">filter_variant_dicts</span><span class="p">,</span>
+    <span class="n">build_query_strings</span><span class="p">,</span>
+    <span class="n">run_analysis_loop</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="MockConnection">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_analysis_comprehensive.html#runscripts.test_analysis_comprehensive.MockConnection">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MockConnection</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">return_data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">return_data</span> <span class="o">=</span> <span class="n">return_data</span>
+
+<div class="viewcode-block" id="MockConnection.sql">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_analysis_comprehensive.html#runscripts.test_analysis_comprehensive.MockConnection.sql">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sql</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
+        <span class="k">class</span><span class="w"> </span><span class="nc">MockResult</span><span class="p">:</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">fetchall</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="c1"># Return test data: (exp_id, variant)</span>
+                <span class="k">return</span> <span class="n">conn</span><span class="o">.</span><span class="n">return_data</span>
+
+        <span class="k">return</span> <span class="n">MockResult</span><span class="p">()</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="TestParseVariantDataDir">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_analysis_comprehensive.html#runscripts.test_analysis_comprehensive.TestParseVariantDataDir">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestParseVariantDataDir</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for parse_variant_data_dir function&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_parse_single_experiment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test parsing variant data directory for a single experiment&quot;&quot;&quot;</span>
+        <span class="n">exp_id</span> <span class="o">=</span> <span class="s2">&quot;test_exp&quot;</span>
+        <span class="n">variant_dir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;variants&quot;</span>
+        <span class="n">variant_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;test_variant&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;0&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">},</span>
+                <span class="s2">&quot;1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param1&quot;</span><span class="p">:</span> <span class="s2">&quot;value2&quot;</span><span class="p">},</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="n">metadata_file</span> <span class="o">=</span> <span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;metadata.json&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">metadata_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># Create variant sim_data files</span>
+        <span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;0.cPickle&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+        <span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;1.cPickle&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+
+        <span class="n">v_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">v_names</span> <span class="o">=</span> <span class="n">parse_variant_data_dir</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">exp_id</span><span class="p">],</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">variant_dir</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">exp_id</span> <span class="ow">in</span> <span class="n">v_metadata</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">v_metadata</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="mi">1</span> <span class="ow">in</span> <span class="n">v_metadata</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">v_metadata</span><span class="p">[</span><span class="n">exp_id</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;param1&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;value1&quot;</span>
+        <span class="k">assert</span> <span class="n">v_metadata</span><span class="p">[</span><span class="n">exp_id</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;param1&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;value2&quot;</span>
+        <span class="k">assert</span> <span class="n">exp_id</span> <span class="ow">in</span> <span class="n">sim_data_dict</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">sim_data_dict</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="mi">1</span> <span class="ow">in</span> <span class="n">sim_data_dict</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">v_names</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;test_variant&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_parse_multiple_experiments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test parsing variant data directories for multiple experiments&quot;&quot;&quot;</span>
+        <span class="n">exp_ids</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="s2">&quot;exp2&quot;</span><span class="p">]</span>
+        <span class="n">variant_dirs</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">exp_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">exp_ids</span><span class="p">):</span>
+            <span class="n">variant_dir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;variants_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">variant_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+            <span class="n">variant_dirs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">variant_dir</span><span class="p">))</span>
+
+            <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="sa">f</span><span class="s2">&quot;variant_</span><span class="si">{</span><span class="n">exp_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;0&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param1&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;value_</span><span class="si">{</span><span class="n">exp_id</span><span class="si">}</span><span class="s2">_0&quot;</span><span class="p">},</span>
+                    <span class="s2">&quot;1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param1&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;value_</span><span class="si">{</span><span class="n">exp_id</span><span class="si">}</span><span class="s2">_1&quot;</span><span class="p">},</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="n">metadata_file</span> <span class="o">=</span> <span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;metadata.json&quot;</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">metadata_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+            <span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;0.cPickle&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+            <span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;1.cPickle&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+
+        <span class="n">v_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">v_names</span> <span class="o">=</span> <span class="n">parse_variant_data_dir</span><span class="p">(</span>
+            <span class="n">exp_ids</span><span class="p">,</span> <span class="n">variant_dirs</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Check both experiments are present</span>
+        <span class="k">assert</span> <span class="s2">&quot;exp1&quot;</span> <span class="ow">in</span> <span class="n">v_metadata</span>
+        <span class="k">assert</span> <span class="s2">&quot;exp2&quot;</span> <span class="ow">in</span> <span class="n">v_metadata</span>
+        <span class="k">assert</span> <span class="s2">&quot;exp1&quot;</span> <span class="ow">in</span> <span class="n">sim_data_dict</span>
+        <span class="k">assert</span> <span class="s2">&quot;exp2&quot;</span> <span class="ow">in</span> <span class="n">sim_data_dict</span>
+
+        <span class="c1"># Check variant data for exp1</span>
+        <span class="k">assert</span> <span class="n">v_metadata</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;param1&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;value_exp1_0&quot;</span>
+        <span class="k">assert</span> <span class="n">v_metadata</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;param1&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;value_exp1_1&quot;</span>
+        <span class="k">assert</span> <span class="n">v_names</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;variant_exp1&quot;</span>
+
+        <span class="c1"># Check variant data for exp2</span>
+        <span class="k">assert</span> <span class="n">v_metadata</span><span class="p">[</span><span class="s2">&quot;exp2&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;param1&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;value_exp2_0&quot;</span>
+        <span class="k">assert</span> <span class="n">v_metadata</span><span class="p">[</span><span class="s2">&quot;exp2&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;param1&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;value_exp2_1&quot;</span>
+        <span class="k">assert</span> <span class="n">v_names</span><span class="p">[</span><span class="s2">&quot;exp2&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;variant_exp2&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_parse_no_variant_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test parsing when no variant files are present&quot;&quot;&quot;</span>
+        <span class="n">exp_id</span> <span class="o">=</span> <span class="s2">&quot;test_exp&quot;</span>
+        <span class="n">variant_dir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;variants&quot;</span>
+        <span class="n">variant_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;test_variant&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+        <span class="n">metadata_file</span> <span class="o">=</span> <span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;metadata.json&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">metadata_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="n">v_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">v_names</span> <span class="o">=</span> <span class="n">parse_variant_data_dir</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">exp_id</span><span class="p">],</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">variant_dir</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">exp_id</span> <span class="ow">in</span> <span class="n">v_metadata</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">v_metadata</span><span class="p">[</span><span class="n">exp_id</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">exp_id</span> <span class="ow">in</span> <span class="n">sim_data_dict</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">sim_data_dict</span><span class="p">[</span><span class="n">exp_id</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">v_names</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;test_variant&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="TestMakeSimDataDict">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_analysis_comprehensive.html#runscripts.test_analysis_comprehensive.TestMakeSimDataDict">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestMakeSimDataDict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for make_sim_data_dict function&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_make_sim_data_dict_basic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test creating sim_data_dict with basic inputs&quot;&quot;&quot;</span>
+        <span class="n">exp_id</span> <span class="o">=</span> <span class="s2">&quot;test_exp&quot;</span>
+        <span class="n">variants</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="n">sim_data_paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/path/0.cPickle&quot;</span><span class="p">,</span> <span class="s2">&quot;/path/1.cPickle&quot;</span><span class="p">,</span> <span class="s2">&quot;/path/2.cPickle&quot;</span><span class="p">]</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">make_sim_data_dict</span><span class="p">(</span><span class="n">exp_id</span><span class="p">,</span> <span class="n">variants</span><span class="p">,</span> <span class="n">sim_data_paths</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">exp_id</span> <span class="ow">in</span> <span class="n">result</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="n">exp_id</span><span class="p">])</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="n">exp_id</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;/path/0.cPickle&quot;</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="n">exp_id</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;/path/1.cPickle&quot;</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="n">exp_id</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;/path/2.cPickle&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_make_sim_data_dict_empty_variants</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that empty variants list raises ValueError&quot;&quot;&quot;</span>
+        <span class="n">exp_id</span> <span class="o">=</span> <span class="s2">&quot;test_exp&quot;</span>
+        <span class="n">variants</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">sim_data_paths</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s2">&quot;Must specify variant&quot;</span><span class="p">):</span>
+            <span class="n">make_sim_data_dict</span><span class="p">(</span><span class="n">exp_id</span><span class="p">,</span> <span class="n">variants</span><span class="p">,</span> <span class="n">sim_data_paths</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_make_sim_data_dict_mismatched_lengths</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that mismatched variant and path lengths raises ValueError&quot;&quot;&quot;</span>
+        <span class="n">exp_id</span> <span class="o">=</span> <span class="s2">&quot;test_exp&quot;</span>
+        <span class="n">variants</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="n">sim_data_paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/path/0.cPickle&quot;</span><span class="p">,</span> <span class="s2">&quot;/path/1.cPickle&quot;</span><span class="p">]</span>
+
+        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span>
+            <span class="ne">ValueError</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s2">&quot;Must specify sim_data_path for each variant&quot;</span>
+        <span class="p">):</span>
+            <span class="n">make_sim_data_dict</span><span class="p">(</span><span class="n">exp_id</span><span class="p">,</span> <span class="n">variants</span><span class="p">,</span> <span class="n">sim_data_paths</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_make_sim_data_dict_single_variant</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test creating sim_data_dict with a single variant&quot;&quot;&quot;</span>
+        <span class="n">exp_id</span> <span class="o">=</span> <span class="s2">&quot;test_exp&quot;</span>
+        <span class="n">variants</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+        <span class="n">sim_data_paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/path/5.cPickle&quot;</span><span class="p">]</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">make_sim_data_dict</span><span class="p">(</span><span class="n">exp_id</span><span class="p">,</span> <span class="n">variants</span><span class="p">,</span> <span class="n">sim_data_paths</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">exp_id</span> <span class="ow">in</span> <span class="n">result</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="n">exp_id</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="n">exp_id</span><span class="p">][</span><span class="mi">5</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;/path/5.cPickle&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="TestBuildDuckdbFilter">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_analysis_comprehensive.html#runscripts.test_analysis_comprehensive.TestBuildDuckdbFilter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestBuildDuckdbFilter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for build_duckdb_filter function&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_single_string_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test building filter with single string value&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">]}</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">build_duckdb_filter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="n">expected</span> <span class="o">=</span> <span class="s2">&quot;experiment_id = &#39;test_exp&#39;&quot;</span>
+        <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="n">expected</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_multiple_string_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test building filter with multiple string values&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="s2">&quot;exp2&quot;</span><span class="p">,</span> <span class="s2">&quot;exp3&quot;</span><span class="p">]}</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">build_duckdb_filter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="s2">&quot;experiment_id IN (&#39;exp1&#39;, &#39;exp2&#39;, &#39;exp3&#39;)&quot;</span> <span class="o">==</span> <span class="n">result</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_single_int_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test building filter with single int value&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;variant&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">5</span><span class="p">]}</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">build_duckdb_filter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="s2">&quot;variant = 5&quot;</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">assert</span> <span class="s2">&quot;applicable data for the skipped&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_multiple_int_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test building filter with multiple int values&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;variant&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]}</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">build_duckdb_filter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="s2">&quot;variant IN (0, 1, 2)&quot;</span> <span class="o">==</span> <span class="n">result</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">assert</span> <span class="s2">&quot;applicable data for the skipped&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_combined_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test building filter with multiple filter types&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;variant&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="s2">&quot;lineage_seed&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">42</span><span class="p">],</span>
+        <span class="p">}</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">build_duckdb_filter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="s2">&quot;experiment_id = &#39;test_exp&#39;&quot;</span> <span class="ow">in</span> <span class="n">result</span>
+        <span class="k">assert</span> <span class="s2">&quot;variant IN (0, 1)&quot;</span> <span class="ow">in</span> <span class="n">result</span>
+        <span class="k">assert</span> <span class="s2">&quot;lineage_seed = 42&quot;</span> <span class="ow">in</span> <span class="n">result</span>
+        <span class="k">assert</span> <span class="s2">&quot; AND &quot;</span> <span class="ow">in</span> <span class="n">result</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_range_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that range filters are converted to lists&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;variant_range&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">]}</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">build_duckdb_filter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="s2">&quot;variant IN (0, 1, 2, 3, 4)&quot;</span> <span class="o">==</span> <span class="n">result</span>
+            <span class="c1"># Check that variant list was created in config</span>
+            <span class="k">assert</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;variant&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">assert</span> <span class="s2">&quot;applicable data for the skipped&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_range_precedence_over_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that range takes precedence over explicit values&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;variant&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
+            <span class="s2">&quot;variant_range&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="p">}</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">build_duckdb_filter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="c1"># There may be multiple warnings (range precedence + skipped filters)</span>
+            <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span>
+                <span class="s2">&quot;Range takes precedence&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">warning</span><span class="o">.</span><span class="n">message</span><span class="p">)</span> <span class="k">for</span> <span class="n">warning</span> <span class="ow">in</span> <span class="n">w</span>
+            <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="s2">&quot;variant IN (0, 1, 2)&quot;</span> <span class="o">==</span> <span class="n">result</span>
+        <span class="k">assert</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;variant&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_skipped_filter_warning</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test warning when filters are skipped&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;generation&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">5</span><span class="p">],</span>  <span class="c1"># Skips variant and lineage_seed</span>
+        <span class="p">}</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
+            <span class="n">build_duckdb_filter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">assert</span> <span class="s2">&quot;skipped&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_empty_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test with no filters specified&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">build_duckdb_filter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_agent_id_string_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test agent_id string filtering&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;agent_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;agent_001&quot;</span><span class="p">,</span> <span class="s2">&quot;agent_002&quot;</span><span class="p">]}</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">build_duckdb_filter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">assert</span> <span class="s2">&quot;applicable data for the skipped&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="s2">&quot;agent_id IN (&#39;agent_001&#39;, &#39;agent_002&#39;)&quot;</span> <span class="o">==</span> <span class="n">result</span></div>
+
+
+
+<div class="viewcode-block" id="TestLoadVariantMetadata">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_analysis_comprehensive.html#runscripts.test_analysis_comprehensive.TestLoadVariantMetadata">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestLoadVariantMetadata</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for load_variant_metadata function&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_load_from_variant_data_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test loading metadata from variant_data_dir&quot;&quot;&quot;</span>
+
+        <span class="n">variant_dir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;variants&quot;</span>
+        <span class="n">variant_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;test_variant&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;0&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value0&quot;</span><span class="p">},</span>
+                <span class="s2">&quot;1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">},</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;metadata.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;0.cPickle&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+        <span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;1.cPickle&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;variant_data_dir&quot;</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">variant_dir</span><span class="p">)],</span>
+        <span class="p">}</span>
+
+        <span class="n">v_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">v_names</span> <span class="o">=</span> <span class="n">load_variant_metadata</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="s2">&quot;test_exp&quot;</span> <span class="ow">in</span> <span class="n">v_metadata</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">v_metadata</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="mi">1</span> <span class="ow">in</span> <span class="n">v_metadata</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">v_names</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;test_variant&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_load_from_variant_metadata_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test loading metadata from variant_metadata_path&quot;&quot;&quot;</span>
+
+        <span class="n">metadata_file</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;metadata.json&quot;</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;test_variant&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;0&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value0&quot;</span><span class="p">},</span>
+                <span class="s2">&quot;1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">},</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">metadata_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;variant_metadata_path&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">metadata_file</span><span class="p">),</span>
+            <span class="s2">&quot;variant&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="s2">&quot;sim_data_path&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;/path/0.cPickle&quot;</span><span class="p">,</span> <span class="s2">&quot;/path/1.cPickle&quot;</span><span class="p">],</span>
+        <span class="p">}</span>
+
+        <span class="n">v_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">v_names</span> <span class="o">=</span> <span class="n">load_variant_metadata</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="s2">&quot;test_exp&quot;</span> <span class="ow">in</span> <span class="n">v_metadata</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">v_metadata</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="mi">1</span> <span class="ow">in</span> <span class="n">v_metadata</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">v_names</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;test_variant&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_no_variant_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test with no variant metadata provided&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;variant&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="s2">&quot;sim_data_path&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;/path/0.cPickle&quot;</span><span class="p">],</span>
+        <span class="p">}</span>
+
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
+            <span class="n">v_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">v_names</span> <span class="o">=</span> <span class="n">load_variant_metadata</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">assert</span> <span class="s2">&quot;No variant metadata&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="s2">&quot;test_exp&quot;</span> <span class="ow">in</span> <span class="n">v_metadata</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">v_metadata</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_missing_experiment_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that missing experiment_id raises KeyError&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s2">&quot;experiment ID&quot;</span><span class="p">):</span>
+            <span class="n">load_variant_metadata</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_multiple_experiments_without_variant_data_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that multiple experiments require variant_data_dir&quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="s2">&quot;exp2&quot;</span><span class="p">]}</span>
+        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s2">&quot;variant_data_dir&quot;</span><span class="p">):</span>
+            <span class="n">load_variant_metadata</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_variant_data_dir_precedence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that variant_data_dir takes precedence&quot;&quot;&quot;</span>
+
+        <span class="n">variant_dir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;variants&quot;</span>
+        <span class="n">variant_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;test_variant&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;0&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value0&quot;</span><span class="p">}}}</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;metadata.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;0.cPickle&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+
+        <span class="n">metadata_file</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;other_metadata.json&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">metadata_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">({</span><span class="s2">&quot;other&quot;</span><span class="p">:</span> <span class="p">{}},</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;variant_data_dir&quot;</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">variant_dir</span><span class="p">)],</span>
+            <span class="s2">&quot;variant_metadata_path&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">metadata_file</span><span class="p">),</span>
+            <span class="s2">&quot;sim_data_path&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;/other/path.cPickle&quot;</span><span class="p">],</span>
+        <span class="p">}</span>
+
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
+            <span class="n">v_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">v_names</span> <span class="o">=</span> <span class="n">load_variant_metadata</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="c1"># Should warn about ignoring the other parameters</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+            <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span><span class="s2">&quot;variant_metadata_path&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">warning</span><span class="o">.</span><span class="n">message</span><span class="p">)</span> <span class="k">for</span> <span class="n">warning</span> <span class="ow">in</span> <span class="n">w</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span><span class="s2">&quot;sim_data_path&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">warning</span><span class="o">.</span><span class="n">message</span><span class="p">)</span> <span class="k">for</span> <span class="n">warning</span> <span class="ow">in</span> <span class="n">w</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">v_names</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;test_variant&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="TestFilterVariantDicts">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_analysis_comprehensive.html#runscripts.test_analysis_comprehensive.TestFilterVariantDicts">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestFilterVariantDicts</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for filter_variant_dicts function&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_filter_basic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test basic filtering&quot;&quot;&quot;</span>
+        <span class="n">variant_set</span> <span class="o">=</span> <span class="p">{(</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)}</span>
+        <span class="n">variant_metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="mi">0</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value0&quot;</span><span class="p">},</span>
+                <span class="mi">1</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">},</span>
+                <span class="mi">2</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value2&quot;</span><span class="p">},</span>  <span class="c1"># Should be filtered out</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="n">sim_data_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;/path/0.cPickle&quot;</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;/path/1.cPickle&quot;</span><span class="p">,</span>
+                <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;/path/2.cPickle&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="n">variant_names</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="s2">&quot;test_variant&quot;</span><span class="p">}</span>
+
+        <span class="p">(</span>
+            <span class="n">filtered_metadata</span><span class="p">,</span>
+            <span class="n">filtered_sim_data</span><span class="p">,</span>
+            <span class="n">filtered_names</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">filter_variant_dicts</span><span class="p">(</span>
+            <span class="n">variant_set</span><span class="p">,</span> <span class="n">variant_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">variant_names</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="mi">1</span> <span class="ow">in</span> <span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="mi">2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_sim_data</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">filtered_sim_data</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="mi">1</span> <span class="ow">in</span> <span class="n">filtered_sim_data</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="mi">2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">filtered_sim_data</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">filtered_names</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;test_variant&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_filter_multiple_experiments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test filtering across multiple experiments&quot;&quot;&quot;</span>
+        <span class="n">variant_set</span> <span class="o">=</span> <span class="p">{(</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;exp2&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)}</span>
+        <span class="n">variant_metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;val0&quot;</span><span class="p">},</span> <span class="mi">1</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;val1&quot;</span><span class="p">}},</span>
+            <span class="s2">&quot;exp2&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;val0&quot;</span><span class="p">},</span> <span class="mi">1</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;val1&quot;</span><span class="p">}},</span>
+        <span class="p">}</span>
+        <span class="n">sim_data_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;/path/exp1_0.cPickle&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;/path/exp1_1.cPickle&quot;</span><span class="p">},</span>
+            <span class="s2">&quot;exp2&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;/path/exp2_0.cPickle&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;/path/exp2_1.cPickle&quot;</span><span class="p">},</span>
+        <span class="p">}</span>
+        <span class="n">variant_names</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="s2">&quot;variant1&quot;</span><span class="p">,</span> <span class="s2">&quot;exp2&quot;</span><span class="p">:</span> <span class="s2">&quot;variant2&quot;</span><span class="p">}</span>
+
+        <span class="p">(</span>
+            <span class="n">filtered_metadata</span><span class="p">,</span>
+            <span class="n">filtered_sim_data</span><span class="p">,</span>
+            <span class="n">filtered_names</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">filter_variant_dicts</span><span class="p">(</span>
+            <span class="n">variant_set</span><span class="p">,</span> <span class="n">variant_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">variant_names</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="s2">&quot;exp1&quot;</span> <span class="ow">in</span> <span class="n">filtered_metadata</span>
+        <span class="k">assert</span> <span class="s2">&quot;exp2&quot;</span> <span class="ow">in</span> <span class="n">filtered_metadata</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;exp2&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="mi">1</span> <span class="ow">in</span> <span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;exp2&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="s2">&quot;exp1&quot;</span> <span class="ow">in</span> <span class="n">filtered_sim_data</span>
+        <span class="k">assert</span> <span class="s2">&quot;exp2&quot;</span> <span class="ow">in</span> <span class="n">filtered_sim_data</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_sim_data</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_sim_data</span><span class="p">[</span><span class="s2">&quot;exp2&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">filtered_sim_data</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="mi">1</span> <span class="ow">in</span> <span class="n">filtered_sim_data</span><span class="p">[</span><span class="s2">&quot;exp2&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">filtered_names</span> <span class="o">==</span> <span class="n">variant_names</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_filter_with_missing_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test filtering when some variants lack metadata&quot;&quot;&quot;</span>
+        <span class="n">variant_set</span> <span class="o">=</span> <span class="p">{(</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)}</span>
+        <span class="n">variant_metadata</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value0&quot;</span><span class="p">}}}</span>  <span class="c1"># Missing variant 1</span>
+        <span class="n">sim_data_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;/path/0.cPickle&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;/path/1.cPickle&quot;</span><span class="p">}}</span>
+        <span class="n">variant_names</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="s2">&quot;test_variant&quot;</span><span class="p">}</span>
+
+        <span class="p">(</span>
+            <span class="n">filtered_metadata</span><span class="p">,</span>
+            <span class="n">filtered_sim_data</span><span class="p">,</span>
+            <span class="n">filtered_names</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">filter_variant_dicts</span><span class="p">(</span>
+            <span class="n">variant_set</span><span class="p">,</span> <span class="n">variant_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">variant_names</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Metadata should only have variant 0</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">]</span>
+        <span class="c1"># But sim_data should have both</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_sim_data</span><span class="p">[</span><span class="s2">&quot;exp1&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="n">variant_names</span> <span class="o">==</span> <span class="n">filtered_names</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_filter_empty_set</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test with empty variant set&quot;&quot;&quot;</span>
+        <span class="n">variant_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">variant_metadata</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value0&quot;</span><span class="p">}}}</span>
+        <span class="n">sim_data_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;/path/0.cPickle&quot;</span><span class="p">}}</span>
+        <span class="n">variant_names</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;exp1&quot;</span><span class="p">:</span> <span class="s2">&quot;test_variant&quot;</span><span class="p">}</span>
+
+        <span class="p">(</span>
+            <span class="n">filtered_metadata</span><span class="p">,</span>
+            <span class="n">filtered_sim_data</span><span class="p">,</span>
+            <span class="n">filtered_names</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">filter_variant_dicts</span><span class="p">(</span>
+            <span class="n">variant_set</span><span class="p">,</span> <span class="n">variant_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">variant_names</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_metadata</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_sim_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_names</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span></div>
+
+
+
+<div class="viewcode-block" id="TestBuildQueryStrings">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_analysis_comprehensive.html#runscripts.test_analysis_comprehensive.TestBuildQueryStrings">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestBuildQueryStrings</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for build_query_strings function&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_build_with_id_cols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test building query strings for analysis type with id_cols&quot;&quot;&quot;</span>
+        <span class="c1"># Create a mock connection that returns test data</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">MockConnection</span><span class="p">([(</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span>
+        <span class="n">analysis_type</span> <span class="o">=</span> <span class="s2">&quot;multiseed&quot;</span>  <span class="c1"># Has id_cols = [&quot;experiment_id&quot;, &quot;variant&quot;]</span>
+        <span class="n">duckdb_filter</span> <span class="o">=</span> <span class="s2">&quot;experiment_id = &#39;exp1&#39;&quot;</span>
+        <span class="n">config_sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM config&quot;</span>
+        <span class="n">history_sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM history&quot;</span>
+        <span class="n">success_sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM success&quot;</span>
+        <span class="n">outdir</span> <span class="o">=</span> <span class="s2">&quot;/tmp/test_output&quot;</span>
+
+        <span class="n">query_strings</span> <span class="o">=</span> <span class="n">build_query_strings</span><span class="p">(</span>
+            <span class="n">analysis_type</span><span class="p">,</span>
+            <span class="n">duckdb_filter</span><span class="p">,</span>
+            <span class="n">config_sql</span><span class="p">,</span>
+            <span class="n">history_sql</span><span class="p">,</span>
+            <span class="n">success_sql</span><span class="p">,</span>
+            <span class="n">outdir</span><span class="p">,</span>
+            <span class="n">conn</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Should have one entry for (exp1, 0) and one for (exp1, 1)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">query_strings</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_build_without_id_cols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test building query strings for analysis type without id_cols&quot;&quot;&quot;</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">MockConnection</span><span class="p">([(</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span>
+        <span class="n">analysis_type</span> <span class="o">=</span> <span class="s2">&quot;multiexperiment&quot;</span>  <span class="c1"># Has id_cols = []</span>
+        <span class="n">duckdb_filter</span> <span class="o">=</span> <span class="s2">&quot;experiment_id = &#39;exp1&#39;&quot;</span>
+        <span class="n">config_sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM config&quot;</span>
+        <span class="n">history_sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM history&quot;</span>
+        <span class="n">success_sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM success&quot;</span>
+        <span class="n">outdir</span> <span class="o">=</span> <span class="s2">&quot;/tmp/test_output&quot;</span>
+
+        <span class="n">query_strings</span> <span class="o">=</span> <span class="n">build_query_strings</span><span class="p">(</span>
+            <span class="n">analysis_type</span><span class="p">,</span>
+            <span class="n">duckdb_filter</span><span class="p">,</span>
+            <span class="n">config_sql</span><span class="p">,</span>
+            <span class="n">history_sql</span><span class="p">,</span>
+            <span class="n">success_sql</span><span class="p">,</span>
+            <span class="n">outdir</span><span class="p">,</span>
+            <span class="n">conn</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Should have single entry with the base filter</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">query_strings</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="n">duckdb_filter</span> <span class="ow">in</span> <span class="n">query_strings</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_query_string_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that query strings have correct structure&quot;&quot;&quot;</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">MockConnection</span><span class="p">([(</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+        <span class="n">analysis_type</span> <span class="o">=</span> <span class="s2">&quot;multiseed&quot;</span>
+        <span class="n">duckdb_filter</span> <span class="o">=</span> <span class="s2">&quot;experiment_id = &#39;exp1&#39;&quot;</span>
+        <span class="n">config_sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM config&quot;</span>
+        <span class="n">history_sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM history&quot;</span>
+        <span class="n">success_sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM success&quot;</span>
+        <span class="n">outdir</span> <span class="o">=</span> <span class="s2">&quot;/tmp/test_output&quot;</span>
+
+        <span class="n">query_strings</span> <span class="o">=</span> <span class="n">build_query_strings</span><span class="p">(</span>
+            <span class="n">analysis_type</span><span class="p">,</span>
+            <span class="n">duckdb_filter</span><span class="p">,</span>
+            <span class="n">config_sql</span><span class="p">,</span>
+            <span class="n">history_sql</span><span class="p">,</span>
+            <span class="n">success_sql</span><span class="p">,</span>
+            <span class="n">outdir</span><span class="p">,</span>
+            <span class="n">conn</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Get first (and only) query string tuple</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">query_strings</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;experiment_id=&#39;exp1&#39; AND variant=0&quot;</span>
+        <span class="n">history_q</span><span class="p">,</span> <span class="n">config_q</span><span class="p">,</span> <span class="n">success_q</span><span class="p">,</span> <span class="n">curr_outdir</span><span class="p">,</span> <span class="n">variant_set</span> <span class="o">=</span> <span class="n">query_strings</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+        <span class="c1"># Check structure</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="s2">&quot;WHERE experiment_id=&#39;exp1&#39; AND variant=0&quot;</span>
+        <span class="k">assert</span> <span class="nb">filter</span> <span class="ow">in</span> <span class="n">history_q</span>
+        <span class="k">assert</span> <span class="nb">filter</span> <span class="ow">in</span> <span class="n">config_q</span>
+        <span class="k">assert</span> <span class="nb">filter</span> <span class="ow">in</span> <span class="n">success_q</span>
+        <span class="k">assert</span> <span class="n">curr_outdir</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">outdir</span><span class="si">}</span><span class="s2">/experiment_id=exp1/variant=0&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variant_set</span><span class="p">,</span> <span class="nb">set</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="s2">&quot;exp1&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">in</span> <span class="n">variant_set</span></div>
+
+
+
+<div class="viewcode-block" id="TestIntegration">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_analysis_comprehensive.html#runscripts.test_analysis_comprehensive.TestIntegration">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestIntegration</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Integration tests that test multiple functions together&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_full_workflow_simple</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test a simple end-to-end workflow&quot;&quot;&quot;</span>
+
+        <span class="c1"># Set up test data</span>
+        <span class="n">variant_dir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;variants&quot;</span>
+        <span class="n">variant_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;test_variant&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;0&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value0&quot;</span><span class="p">},</span>
+                <span class="s2">&quot;1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">},</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;metadata.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;0.cPickle&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+        <span class="p">(</span><span class="n">variant_dir</span> <span class="o">/</span> <span class="s2">&quot;1.cPickle&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+
+        <span class="c1"># Build config</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;variant&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="s2">&quot;variant_data_dir&quot;</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">variant_dir</span><span class="p">)],</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Build filter</span>
+        <span class="n">duckdb_filter</span> <span class="o">=</span> <span class="n">build_duckdb_filter</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="s2">&quot;experiment_id = &#39;test_exp&#39; AND variant IN (0, 1)&quot;</span> <span class="o">==</span> <span class="n">duckdb_filter</span>
+
+        <span class="c1"># Load metadata</span>
+        <span class="n">v_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">v_names</span> <span class="o">=</span> <span class="n">load_variant_metadata</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">v_metadata</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span>
+
+        <span class="c1"># Filter for variant 0 only</span>
+        <span class="n">variant_set</span> <span class="o">=</span> <span class="p">{(</span><span class="s2">&quot;test_exp&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)}</span>
+        <span class="n">filtered_metadata</span><span class="p">,</span> <span class="n">filtered_sim_data</span><span class="p">,</span> <span class="n">filtered_names</span> <span class="o">=</span> <span class="n">filter_variant_dicts</span><span class="p">(</span>
+            <span class="n">variant_set</span><span class="p">,</span> <span class="n">v_metadata</span><span class="p">,</span> <span class="n">sim_data_dict</span><span class="p">,</span> <span class="n">v_names</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="mi">1</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">filtered_metadata</span><span class="p">[</span><span class="s2">&quot;test_exp&quot;</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="TestRunAnalysisLoop">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_analysis_comprehensive.html#runscripts.test_analysis_comprehensive.TestRunAnalysisLoop">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestRunAnalysisLoop</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for run_analysis_loop function&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_run_with_mock_analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test running analysis loop with mocked analysis module&quot;&quot;&quot;</span>
+        <span class="c1"># Create mock analysis module</span>
+        <span class="n">mock_analysis</span> <span class="o">=</span> <span class="n">ModuleType</span><span class="p">(</span><span class="s2">&quot;mock_analysis&quot;</span><span class="p">)</span>
+        <span class="n">mock_analysis</span><span class="o">.</span><span class="n">plot_calls</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">mock_plot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">mock_analysis</span><span class="o">.</span><span class="n">plot_calls</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;args&quot;</span><span class="p">:</span> <span class="n">args</span><span class="p">,</span> <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">})</span>
+
+        <span class="n">mock_analysis</span><span class="o">.</span><span class="n">plot</span> <span class="o">=</span> <span class="n">mock_plot</span>
+
+        <span class="c1"># Mock importlib.import_module</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">mock_import</span><span class="p">(</span><span class="n">module_name</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;test_analysis&quot;</span> <span class="ow">in</span> <span class="n">module_name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">mock_analysis</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No module named </span><span class="si">{</span><span class="n">module_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="n">importlib</span><span class="p">,</span> <span class="s2">&quot;import_module&quot;</span><span class="p">,</span> <span class="n">mock_import</span><span class="p">)</span>
+
+        <span class="c1"># Create mock connection</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">MockConnection</span><span class="p">([(</span><span class="s2">&quot;test_exp&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+
+        <span class="c1"># Set up config</span>
+        <span class="n">outdir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;output&quot;</span>
+        <span class="n">outdir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;outdir&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">outdir</span><span class="p">),</span>
+            <span class="s2">&quot;analysis_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;multiseed&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;multiseed&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;test_analysis&quot;</span><span class="p">:</span> <span class="p">{}},</span>
+            <span class="s2">&quot;validation_data_path&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="p">}</span>
+
+        <span class="n">variant_metadata</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;test_exp&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value&quot;</span><span class="p">}}}</span>
+        <span class="n">sim_data_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;test_exp&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;/path/0.cPickle&quot;</span><span class="p">}}</span>
+        <span class="n">variant_names</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;test_exp&quot;</span><span class="p">:</span> <span class="s2">&quot;test_variant&quot;</span><span class="p">}</span>
+
+        <span class="c1"># Run analysis loop</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="n">run_analysis_loop</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">,</span>
+            <span class="n">conn</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM history&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM config&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM success&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;experiment_id = &#39;test_exp&#39;&quot;</span><span class="p">,</span>
+            <span class="n">variant_metadata</span><span class="p">,</span>
+            <span class="n">sim_data_dict</span><span class="p">,</span>
+            <span class="n">variant_names</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Check stats</span>
+        <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;total_runs&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;skipped&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;errors&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+
+        <span class="c1"># Check that plot was called</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">mock_analysis</span><span class="o">.</span><span class="n">plot_calls</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_run_with_empty_analysis_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test running with empty analysis type&quot;&quot;&quot;</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">MockConnection</span><span class="p">([])</span>
+        <span class="n">outdir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;output&quot;</span>
+        <span class="n">outdir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;outdir&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">outdir</span><span class="p">),</span>
+            <span class="s2">&quot;analysis_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;multiseed&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;multiseed&quot;</span><span class="p">:</span> <span class="p">{},</span>  <span class="c1"># Empty</span>
+        <span class="p">}</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="n">run_analysis_loop</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">,</span>
+            <span class="n">conn</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM history&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM config&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM success&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="p">{},</span>
+            <span class="p">{},</span>
+            <span class="p">{},</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;skipped&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;total_runs&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_run_with_missing_analysis_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that missing analysis type raises KeyError&quot;&quot;&quot;</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">MockConnection</span><span class="p">([])</span>
+        <span class="n">outdir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;output&quot;</span>
+        <span class="n">outdir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;outdir&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">outdir</span><span class="p">),</span>
+            <span class="s2">&quot;analysis_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;multiseed&quot;</span><span class="p">],</span>
+            <span class="c1"># multiseed not in config</span>
+        <span class="p">}</span>
+
+        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s2">&quot;multiseed&quot;</span><span class="p">):</span>
+            <span class="n">run_analysis_loop</span><span class="p">(</span>
+                <span class="n">config</span><span class="p">,</span>
+                <span class="n">conn</span><span class="p">,</span>
+                <span class="s2">&quot;SELECT * FROM history&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;SELECT * FROM config&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;SELECT * FROM success&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="p">{},</span>
+                <span class="p">{},</span>
+                <span class="p">{},</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_run_with_error_handling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that errors are caught and counted&quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">mock_import</span><span class="p">(</span><span class="n">module_name</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mock error for </span><span class="si">{</span><span class="n">module_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="n">importlib</span><span class="p">,</span> <span class="s2">&quot;import_module&quot;</span><span class="p">,</span> <span class="n">mock_import</span><span class="p">)</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">MockConnection</span><span class="p">([(</span><span class="s2">&quot;test_exp&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+        <span class="n">outdir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;output&quot;</span>
+        <span class="n">outdir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;outdir&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">outdir</span><span class="p">),</span>
+            <span class="s2">&quot;analysis_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;multiseed&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;multiseed&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;test_analysis&quot;</span><span class="p">:</span> <span class="p">{}},</span>
+        <span class="p">}</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="n">run_analysis_loop</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">,</span>
+            <span class="n">conn</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM history&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM config&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM success&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="p">{},</span>
+            <span class="p">{},</span>
+            <span class="p">{},</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;errors&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;total_runs&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_run_auto_detects_analysis_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that analysis types are auto-detected when not specified&quot;&quot;&quot;</span>
+        <span class="n">mock_analysis</span> <span class="o">=</span> <span class="n">ModuleType</span><span class="p">(</span><span class="s2">&quot;mock_analysis&quot;</span><span class="p">)</span>
+        <span class="n">mock_analysis</span><span class="o">.</span><span class="n">plot_calls</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">mock_plot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">mock_analysis</span><span class="o">.</span><span class="n">plot_calls</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;args&quot;</span><span class="p">:</span> <span class="n">args</span><span class="p">,</span> <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">})</span>
+
+        <span class="n">mock_analysis</span><span class="o">.</span><span class="n">plot</span> <span class="o">=</span> <span class="n">mock_plot</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">mock_import</span><span class="p">(</span><span class="n">module_name</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">mock_analysis</span>
+
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="n">importlib</span><span class="p">,</span> <span class="s2">&quot;import_module&quot;</span><span class="p">,</span> <span class="n">mock_import</span><span class="p">)</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">MockConnection</span><span class="p">([(</span><span class="s2">&quot;test_exp&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)])</span>
+        <span class="n">outdir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;output&quot;</span>
+        <span class="n">outdir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+
+        <span class="c1"># Don&#39;t specify analysis_types, it should detect from config</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;outdir&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">outdir</span><span class="p">),</span>
+            <span class="s2">&quot;multiseed&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;test_analysis&quot;</span><span class="p">:</span> <span class="p">{}},</span>
+            <span class="s2">&quot;multivariant&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;another_analysis&quot;</span><span class="p">:</span> <span class="p">{}},</span>
+        <span class="p">}</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="n">run_analysis_loop</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">,</span>
+            <span class="n">conn</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM history&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM config&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM success&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="p">{},</span>
+            <span class="p">{},</span>
+            <span class="p">{},</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Should have run both analysis types</span>
+        <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;total_runs&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="s2">&quot;analysis_types&quot;</span> <span class="ow">in</span> <span class="n">config</span>
+        <span class="k">assert</span> <span class="s2">&quot;multiseed&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;analysis_types&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="s2">&quot;multivariant&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;analysis_types&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_run_filters_variants_correctly</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that variants are filtered correctly for each analysis&quot;&quot;&quot;</span>
+        <span class="n">mock_analysis</span> <span class="o">=</span> <span class="n">ModuleType</span><span class="p">(</span><span class="s2">&quot;mock_analysis&quot;</span><span class="p">)</span>
+        <span class="n">mock_analysis</span><span class="o">.</span><span class="n">plot_calls</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">mock_plot</span><span class="p">(</span>
+            <span class="n">plot_config</span><span class="p">,</span>
+            <span class="n">conn</span><span class="p">,</span>
+            <span class="n">history_q</span><span class="p">,</span>
+            <span class="n">config_q</span><span class="p">,</span>
+            <span class="n">success_q</span><span class="p">,</span>
+            <span class="n">sim_data_dict</span><span class="p">,</span>
+            <span class="n">validation_data_path</span><span class="p">,</span>
+            <span class="n">outdir</span><span class="p">,</span>
+            <span class="n">variant_metadata</span><span class="p">,</span>
+            <span class="n">variant_names</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="c1"># Record what was passed</span>
+            <span class="n">mock_analysis</span><span class="o">.</span><span class="n">plot_calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;sim_data_dict&quot;</span><span class="p">:</span> <span class="n">sim_data_dict</span><span class="p">,</span>
+                    <span class="s2">&quot;variant_metadata&quot;</span><span class="p">:</span> <span class="n">variant_metadata</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="n">mock_analysis</span><span class="o">.</span><span class="n">plot</span> <span class="o">=</span> <span class="n">mock_plot</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">mock_import</span><span class="p">(</span><span class="n">module_name</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">mock_analysis</span>
+
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="n">importlib</span><span class="p">,</span> <span class="s2">&quot;import_module&quot;</span><span class="p">,</span> <span class="n">mock_import</span><span class="p">)</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">MockConnection</span><span class="p">([(</span><span class="s2">&quot;test_exp&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;test_exp&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span>
+        <span class="n">outdir</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">&quot;output&quot;</span>
+        <span class="n">outdir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;outdir&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">outdir</span><span class="p">),</span>
+            <span class="s2">&quot;analysis_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;multiseed&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;multiseed&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;test_analysis&quot;</span><span class="p">:</span> <span class="p">{}},</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Full metadata has 3 variants, but query will only return 2</span>
+        <span class="n">variant_metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;test_exp&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="mi">0</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value0&quot;</span><span class="p">},</span>
+                <span class="mi">1</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">},</span>
+                <span class="mi">2</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;param&quot;</span><span class="p">:</span> <span class="s2">&quot;value2&quot;</span><span class="p">},</span>  <span class="c1"># Should be filtered out</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="n">sim_data_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;test_exp&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;/path/0.cPickle&quot;</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;/path/1.cPickle&quot;</span><span class="p">,</span>
+                <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;/path/2.cPickle&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="n">variant_names</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;test_exp&quot;</span><span class="p">:</span> <span class="s2">&quot;test_variant&quot;</span><span class="p">}</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="n">run_analysis_loop</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">,</span>
+            <span class="n">conn</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM history&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM config&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT * FROM success&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">variant_metadata</span><span class="p">,</span>
+            <span class="n">sim_data_dict</span><span class="p">,</span>
+            <span class="n">variant_names</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;total_runs&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>  <span class="c1"># One for variant 0, one for variant 1</span>
+
+        <span class="c1"># Check that filtered data was passed to plot</span>
+        <span class="k">for</span> <span class="n">call</span> <span class="ow">in</span> <span class="n">mock_analysis</span><span class="o">.</span><span class="n">plot_calls</span><span class="p">:</span>
+            <span class="c1"># Should only have variants 0 or 1, not 2</span>
+            <span class="k">assert</span> <span class="mi">2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">call</span><span class="p">[</span><span class="s2">&quot;variant_metadata&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;test_exp&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="k">assert</span> <span class="mi">2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">call</span><span class="p">[</span><span class="s2">&quot;sim_data_dict&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;test_exp&quot;</span><span class="p">,</span> <span class="p">{})</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">pytest</span><span class="o">.</span><span class="n">main</span><span class="p">([</span><span class="vm">__file__</span><span class="p">,</span> <span class="s2">&quot;-v&quot;</span><span class="p">])</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2026, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

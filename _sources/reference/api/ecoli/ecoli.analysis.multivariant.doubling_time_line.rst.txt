@@ -1,0 +1,8 @@
+``ecoli.analysis.multivariant.doubling_time_line``
+==================================================
+.. automodule:: ecoli.analysis.multivariant.doubling_time_line
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

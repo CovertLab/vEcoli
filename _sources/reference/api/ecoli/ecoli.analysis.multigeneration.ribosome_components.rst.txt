@@ -1,0 +1,8 @@
+``ecoli.analysis.multigeneration.ribosome_components``
+======================================================
+.. automodule:: ecoli.analysis.multigeneration.ribosome_components
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

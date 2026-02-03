@@ -1,0 +1,6 @@
+``ecoli.analysis.multiexperiment``
+==================================
+.. automodule:: ecoli.analysis.multiexperiment
+   :members:
+   :undoc-members:
+   :show-inheritance:

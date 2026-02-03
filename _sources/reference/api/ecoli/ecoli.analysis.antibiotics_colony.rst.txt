@@ -1,0 +1,23 @@
+``ecoli.analysis.antibiotics_colony``
+=====================================
+.. automodule:: ecoli.analysis.antibiotics_colony
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   ecoli.analysis.antibiotics_colony.amp_plots
+   ecoli.analysis.antibiotics_colony.exploration
+   ecoli.analysis.antibiotics_colony.load_data
+   ecoli.analysis.antibiotics_colony.metrics
+   ecoli.analysis.antibiotics_colony.plot
+   ecoli.analysis.antibiotics_colony.plot_utils
+   ecoli.analysis.antibiotics_colony.snapshot_and_hist_plot
+   ecoli.analysis.antibiotics_colony.spatial_correlation
+   ecoli.analysis.antibiotics_colony.tet_dry_mass
+   ecoli.analysis.antibiotics_colony.timeseries
+   ecoli.analysis.antibiotics_colony.validation
