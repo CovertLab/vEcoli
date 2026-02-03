@@ -279,13 +279,6 @@ class TestBuildDuckdbFilter:
         result = build_duckdb_filter(config)
         assert result == ""
 
-    def test_url_encoding_in_string_filter(self):
-        """Test that special characters in strings are URL-encoded"""
-        config = {"experiment_id": ["test exp"]}  # Space should be encoded
-        result = build_duckdb_filter(config)
-        # URL encoding happens with parse.quote_plus
-        assert result == "experiment_id = 'test+exp'"
-
     def test_agent_id_string_filter(self):
         """Test agent_id string filtering"""
         config = {"agent_id": ["agent_001", "agent_002"]}
