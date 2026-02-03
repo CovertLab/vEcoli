@@ -317,6 +317,10 @@ To run scripts on Sherlock, you must have either:
 - Built a container image manually using ``runscripts/container/build-image.sh`` with
   the ``-a`` flag
 
+.. note::
+   If ``build-image.sh`` fails with an error about ``squashfs_ll`` being killed,
+   try requesting more memory (e.g. ``srun --mem=8GB``). We recommend at least 8GB.
+
 Start an interactive container with your full image path (see the warning box at
 :doc:`workflows`) by navigating to your cloned repository and running:
 
@@ -327,6 +331,13 @@ Start an interactive container with your full image path (see the warning box at
 .. note::
   Inside the interactive container, you can safely use ``python`` directly
   in addition to the usual ``uv`` commands.
+
+.. tip::
+   Use the ``-h`` flag to see all available options for
+   ``runscripts/container/interactive.sh``. One particularly
+   useful option is ``-p``, which allows you to bind mount
+   additional directories into the container. This is necessary
+   if your ``out_dir`` is not automatically mounted by Apptainer.
 
 The above command launches a container containing a snapshot of your
 cloned repository as it was when the image was built. This snapshot
