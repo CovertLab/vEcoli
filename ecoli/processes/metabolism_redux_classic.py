@@ -30,6 +30,7 @@ CONC_UNITS = COUNTS_UNITS / VOLUME_UNITS
 CONVERSION_UNITS = MASS_UNITS * TIME_UNITS / VOLUME_UNITS
 GDCW_BASIS = units.mmol / units.g / units.h
 
+NEW_GENE_CONSTRAINTS = True
 
 NAME = "ecoli-metabolism-redux-classic"
 TOPOLOGY = topology_registry.access("ecoli-metabolism")
@@ -498,17 +499,45 @@ class MetabolismReduxClassic(Step):
             "homeostatic": 1,
         }
 
-        ### TODO: ADD THE CONSTRAINTS AND REDUCED KINETIC TARGETS HERE
+        # TODO: clean up implementation of new gene constraints if it successfully runs
+        if NEW_GENE_CONSTRAINTS:
+            import pickle
 
-        solution: FlowResult = self.network_flow_model.solve(
-            homeostatic_concs=homeostatic_metabolite_concentrations,
-            homeostatic_dm_targets=target_homeostatic_dmdt,
-            maintenance_target=maintenance_target,
-            kinetic_targets=target_kinetic_values,
-            binary_kinetic_idx=binary_kinetic_idx,
-            objective_weights=objective_weights,
-            solver=cp.GLOP,
-        )
+            with open(
+                "notebooks/Heena notebooks/Riley New Genes/"
+                "all_below_line_reaction_constraint_dict_variant16.pkl",
+                "rb",
+            ) as f:
+                all_below_line_reaction_constraint_dict = pickle.load(f)
+            with open(
+                "notebooks/Heena notebooks/Riley New Genes/"
+                "reduced_kinetic_targets_80pct_variant16.pkl",
+                "rb",
+            ) as f:
+                reduced_kinetic_targets_80pct = pickle.load(f)
+
+            solution: FlowResult = self.network_flow_model.solve(
+                homeostatic_concs=homeostatic_metabolite_concentrations,
+                homeostatic_dm_targets=target_homeostatic_dmdt,
+                maintenance_target=maintenance_target,
+                binary_kinetic_idx=binary_kinetic_idx,
+                objective_weights=objective_weights,
+                solver=cp.GLOP,
+                kinetic_targets=reduced_kinetic_targets_80pct,
+                kinetic_constraint=all_below_line_reaction_constraint_dict,
+                kinetic_adjustment=0.8,
+            )
+
+        else:
+            solution: FlowResult = self.network_flow_model.solve(
+                homeostatic_concs=homeostatic_metabolite_concentrations,
+                homeostatic_dm_targets=target_homeostatic_dmdt,
+                maintenance_target=maintenance_target,
+                kinetic_targets=target_kinetic_values,
+                binary_kinetic_idx=binary_kinetic_idx,
+                objective_weights=objective_weights,
+                solver=cp.GLOP,
+            )
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
