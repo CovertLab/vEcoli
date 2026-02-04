@@ -498,6 +498,8 @@ class MetabolismReduxClassic(Step):
             "homeostatic": 1,
         }
 
+        ### TODO: ADD THE CONSTRAINTS AND REDUCED KINETIC TARGETS HERE
+
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
             homeostatic_dm_targets=target_homeostatic_dmdt,

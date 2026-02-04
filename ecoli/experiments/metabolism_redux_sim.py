@@ -55,14 +55,16 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic",
-    max_duration=600,
+    max_duration=5000,
     divide=True,
-    fail_at_max_duration=False,
+    fail_at_max_duration=True,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
+    n_init_sims=1,
     emitter="timeseries",  # 'timeseries','parquet'
     name="output_objective_weights",
+    generations=1,
     raw_output=False,
     save=True,
     save_times=[1],
@@ -76,6 +78,9 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
+    sim.generations = generations  # run generation
+    sim.n_init_sims = n_init_sims
+
     sim.emitter = emitter
     # sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
