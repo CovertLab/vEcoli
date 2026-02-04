@@ -728,6 +728,8 @@ class NetworkFlowModel:
         constr.append(dm[self.intermediates_idx] == 0)
 
         # TODO: add in kinetic constraint. Input reaction id/indx, WT flux, and % adjustment
+        # TODO: need to adjust the targets for the kinetic ones we constrain?
+        # TODO: make adjustments variable?
         if kinetic_constraint is not None:
             reaction_idx = np.array(list(kinetic_constraint.keys()))
             WT_flux = np.array(list(kinetic_constraint.values()))
