@@ -467,6 +467,7 @@ def run_simulation(config):
         topology=composite.topology,
         initial_state=initial_state,
         experiment_id=experiment_id,
+        emit_config=config.get("emit_config", False),
         emitter=emitter_config,
         progress_bar=config["progress_bar"],
         metadata=metadata,

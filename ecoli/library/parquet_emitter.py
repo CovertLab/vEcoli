@@ -1100,7 +1100,7 @@ class ParquetEmitter(Emitter):
                                 :emit_idx
                             ].tolist() + [None] * (self.batch_size - emit_idx)
                 # Fall back Polars serialization
-                v = pl.Series([v])
+                v = pl.Series([str(v)])
                 # Ensure type consistency
                 curr_type = self.pl_types.setdefault(k, pl.Null)
                 if v.dtype != curr_type:
