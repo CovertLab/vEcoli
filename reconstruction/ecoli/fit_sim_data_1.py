@@ -8,11 +8,12 @@ TODO: functionalize so that values are not both set and returned from some metho
 import binascii
 import functools
 import itertools
+import json
 import os
 import pickle
 import time
 import traceback
-from typing import Callable
+from typing import Callable, Any
 
 from stochastic_arrow import StochasticSystem
 from cvxpy import Variable, Problem, Minimize, norm
@@ -44,6 +45,21 @@ ECOS_0_TOLERANCE = 1e-10  # Tolerance to adjust solver output to 0
 
 BASAL_EXPRESSION_CONDITION = "M9 Glucose minus AAs"
 
+# Smoke mode: reduced conditions for fast testing (~20-30 min instead of 2-4 hours)
+# These are the minimal conditions needed for a valid sim_data
+SMOKE_CONDITIONS = {"basal", "with_aa"}
+# TFs required by SMOKE_CONDITIONS (from condition_defs.tsv)
+SMOKE_TFS = {
+    "CPLX-125",        # trpR - with_aa active
+    "MONOMER0-162",    # tyrR - with_aa active
+    "CPLX0-228",       # argR - with_aa active
+    "MONOMER0-155",    # lrp - with_aa active
+    "CPLX0-7796",      # metJ - with_aa active
+    "CPLX0-7669",      # argP - with_aa inactive
+    "PUTA-CPLX",       # putA - with_aa inactive
+    "EG12123-MONOMER", # lrhA - with_aa inactive
+}
+
 VERBOSE = 1
 
 COUNTS_UNITS = units.dmol
@@ -54,6 +70,197 @@ TIME_UNITS = units.s
 functions_run = []
 
 
+def get_structural_signature(
+    obj: Any,
+    max_depth: int = 4,
+    _depth: int = 0,
+    _max_keys: int = 20,
+    _max_attrs: int = 30,
+) -> Any:
+    """
+    Generate a JSON-serializable structural signature of an object.
+
+    Captures types, shapes, and keys without actual numeric data.
+    Useful for debugging and comparing sim_data across stages/modes.
+
+    Args:
+        obj: Object to analyze (sim_data, dict, array, etc.)
+        max_depth: Maximum recursion depth (default 4 for performance)
+        _depth: Current recursion depth (internal)
+        _max_keys: Maximum dict keys to include per level
+        _max_attrs: Maximum object attributes to include per level
+
+    Returns:
+        JSON-serializable dict describing the structure
+    """
+    if _depth > max_depth:
+        return {"_truncated": True, "_type": type(obj).__name__}
+
+    # Handle None
+    if obj is None:
+        return None
+
+    # Handle callable early (skip methods)
+    if callable(obj) and not isinstance(obj, type):
+        return {"_type": "callable", "name": getattr(obj, '__name__', '?')}
+
+    # Handle numpy arrays (fast path - these are common)
+    if isinstance(obj, np.ndarray):
+        sig = {
+            "_type": "ndarray",
+            "dtype": str(obj.dtype),
+            "shape": list(obj.shape),
+        }
+        if obj.dtype.names:
+            sig["fields"] = list(obj.dtype.names)[:20]  # Limit field names
+        return sig
+
+    # Handle scipy sparse matrices
+    if scipy.sparse.issparse(obj):
+        return {
+            "_type": f"sparse.{type(obj).__name__}",
+            "dtype": str(obj.dtype),
+            "shape": list(obj.shape),
+            "nnz": obj.nnz,
+        }
+
+    # Handle units (wholecell.utils.units)
+    if hasattr(obj, 'asNumber') and hasattr(obj, 'units'):
+        try:
+            val = obj.asNumber()
+            if isinstance(val, np.ndarray):
+                return {
+                    "_type": "units.array",
+                    "units": str(obj.units()),
+                    "shape": list(val.shape),
+                    "dtype": str(val.dtype),
+                }
+            else:
+                return {"_type": "units.scalar", "units": str(obj.units())}
+        except Exception:
+            return {"_type": "units.unknown"}
+
+    # Handle strings (fast path)
+    if isinstance(obj, str):
+        return {"_type": "str", "_len": len(obj)}
+
+    # Handle numbers (fast path)
+    if isinstance(obj, (int, float, bool)):
+        return {"_type": type(obj).__name__}
+
+    # Handle bytes
+    if isinstance(obj, bytes):
+        return {"_type": "bytes", "_len": len(obj)}
+
+    # Handle dicts
+    if isinstance(obj, dict):
+        sig = {"_type": "dict", "_len": len(obj)}
+        sorted_keys = sorted(obj.keys(), key=str)[:_max_keys]
+        if len(obj) > _max_keys:
+            sig["_truncated_keys"] = True
+        sig["keys"] = {
+            str(k): get_structural_signature(
+                obj[k], max_depth, _depth + 1, _max_keys, _max_attrs
+            )
+            for k in sorted_keys
+        }
+        return sig
+
+    # Handle lists and tuples
+    if isinstance(obj, (list, tuple)):
+        type_name = "list" if isinstance(obj, list) else "tuple"
+        sig = {"_type": type_name, "_len": len(obj)}
+        if len(obj) == 0:
+            return sig
+        # Sample first element only for efficiency
+        sig["sample_element"] = get_structural_signature(
+            obj[0], max_depth, _depth + 1, _max_keys, _max_attrs
+        )
+        # Check types of first few elements
+        sample_types = set(type(x).__name__ for x in obj[:10])
+        if len(sample_types) == 1:
+            sig["element_type"] = sample_types.pop()
+        else:
+            sig["element_types"] = list(sample_types)
+        return sig
+
+    # Handle sets
+    if isinstance(obj, (set, frozenset)):
+        sample = []
+        try:
+            sample = sorted([str(x) for x in list(obj)[:5]])
+        except Exception:
+            pass
+        return {
+            "_type": "set" if isinstance(obj, set) else "frozenset",
+            "_len": len(obj),
+            "sample": sample,
+        }
+
+    # Handle objects with __dict__ (custom classes like SimulationDataEcoli)
+    if hasattr(obj, '__dict__'):
+        sig = {"_type": type(obj).__name__}
+        attrs = {}
+        attr_count = 0
+        # Use __dict__ directly for speed instead of dir()
+        attr_names = sorted(obj.__dict__.keys()) if hasattr(obj, '__dict__') else []
+        for attr_name in attr_names:
+            if attr_name.startswith('_'):
+                continue
+            if attr_count >= _max_attrs:
+                sig["_truncated_attrs"] = True
+                break
+            try:
+                attr_val = obj.__dict__.get(attr_name)
+                if attr_val is None or callable(attr_val):
+                    continue
+                attrs[attr_name] = get_structural_signature(
+                    attr_val, max_depth, _depth + 1, _max_keys, _max_attrs
+                )
+                attr_count += 1
+            except Exception:
+                attrs[attr_name] = {"_error": "could not access"}
+                attr_count += 1
+        if attrs:
+            sig["attributes"] = attrs
+        return sig
+
+    # Fallback
+    return {"_type": type(obj).__name__}
+
+
+def write_structural_signature(
+    sim_data: Any,
+    cell_specs: dict,
+    stage_name: str,
+    intermediates_dir: str,
+) -> None:
+    """
+    Write structural signatures for sim_data and cell_specs to JSON files.
+
+    Args:
+        sim_data: The SimulationDataEcoli object
+        cell_specs: The cell specifications dict
+        stage_name: Name of the current stage (e.g., 'initialize')
+        intermediates_dir: Directory to write signature files
+    """
+    if not intermediates_dir:
+        return
+
+    os.makedirs(intermediates_dir, exist_ok=True)
+
+    signature = {
+        "stage": stage_name,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "sim_data": get_structural_signature(sim_data, max_depth=3),
+        "cell_specs": get_structural_signature(cell_specs, max_depth=3),
+    }
+
+    signature_file = os.path.join(intermediates_dir, f"signature_{stage_name}.json")
+    with open(signature_file, "w") as f:
+        json.dump(signature, f, indent=2, default=str)
+
+
 def fitSimData_1(raw_data, **kwargs):
     """
     Fits parameters necessary for the simulation based on the knowledge base
@@ -62,9 +269,12 @@ def fitSimData_1(raw_data, **kwargs):
             raw_data (KnowledgeBaseEcoli) - knowledge base consisting of the
                     necessary raw data
             cpus (int) - number of processes to use (if > 1, use multiprocessing)
-            debug (bool) - if True, fit only one arbitrarily-chosen transcription
-                    factor in order to speed up a debug cycle (should not be used for
-                    an actual simulation)
+            smoke (bool) - if True, fit only the minimal set of TFs needed for
+                    'basal' and 'with_aa' conditions (~20-30 min vs 2-4 hours).
+                    Produces valid sim_data for testing/development.
+            debug (bool) - DEPRECATED: use smoke instead. If True, fit only one
+                    arbitrarily-chosen transcription factor. This mode is BROKEN
+                    and will fail at promoter_binding due to shape mismatches.
             save_intermediates (bool) - if True, save the state (sim_data and cell_specs)
                     to disk in intermediates_directory after each Parca step
             intermediates_directory (str) - path to the directory to save intermediate
@@ -179,7 +389,12 @@ def save_state(func):
                 pickle.dump(sim_data, f, protocol=pickle.HIGHEST_PROTOCOL)
             with open(cell_specs_file, "wb") as f:
                 pickle.dump(cell_specs, f, protocol=pickle.HIGHEST_PROTOCOL)
-            print(f"Saved data for {func_name}")
+            sim_data_size = os.path.getsize(sim_data_file) / (1024 * 1024)
+            cell_specs_size = os.path.getsize(cell_specs_file) / (1024 * 1024)
+            print(f"Saved data for {func_name}: sim_data={sim_data_size:.1f}MB, cell_specs={cell_specs_size:.1f}MB")
+
+            # Write structural signature for debugging/comparison
+            write_structural_signature(sim_data, cell_specs, func_name, intermediates_dir)
 
         # Record which functions have been run to know if the loaded function has run
         functions_run.append(func_name)
@@ -200,11 +415,41 @@ def initialize(sim_data, cell_specs, raw_data=None, **kwargs):
 
 
 @save_state
-def input_adjustments(sim_data, cell_specs, debug=False, **kwargs):
+def input_adjustments(sim_data, cell_specs, debug=False, smoke=False, **kwargs):
     # Limit the number of conditions that are being fit so that execution time decreases
-    if debug:
+    if smoke:
         print(
-            "Warning: Running the Parca in debug mode - not all conditions will be fit"
+            f"SMOKE MODE: Fitting only {len(SMOKE_TFS)} TFs for {len(SMOKE_CONDITIONS)} conditions"
+        )
+        # Filter TF conditions to only those needed for smoke conditions
+        # This limits which TFs are fit in tf_condition_specs and fit_condition
+        sim_data.tf_to_active_inactive_conditions = {
+            k: v for k, v in sim_data.tf_to_active_inactive_conditions.items()
+            if k in SMOKE_TFS
+        }
+        # Filter combined conditions to smoke subset
+        # This limits which combined conditions are built in buildCombinedConditionCellSpecifications
+        sim_data.condition_active_tfs = {
+            k: [tf for tf in v if tf in SMOKE_TFS]
+            for k, v in sim_data.condition_active_tfs.items()
+            if k in SMOKE_CONDITIONS
+        }
+        sim_data.condition_inactive_tfs = {
+            k: [tf for tf in v if tf in SMOKE_TFS]
+            for k, v in sim_data.condition_inactive_tfs.items()
+            if k in SMOKE_CONDITIONS
+        }
+        # NOTE: Do NOT filter sim_data.conditions or condition_to_doubling_time here!
+        # The TF-specific conditions (e.g., PUTA-CPLX__active) are needed by
+        # buildTfConditionCellSpecifications and are already limited by filtering
+        # tf_to_active_inactive_conditions above.
+        print(f"  TFs: {sorted(sim_data.tf_to_active_inactive_conditions.keys())}")
+        print(f"  Combined conditions: {sorted(sim_data.condition_active_tfs.keys())}")
+    elif debug:
+        print(
+            "Warning: Running the Parca in debug mode - not all conditions will be fit.\n"
+            "         This mode is BROKEN and will fail at promoter_binding.\n"
+            "         Use --smoke instead for fast testing."
         )
         key = list(sim_data.tf_to_active_inactive_conditions.keys())[0]
         sim_data.tf_to_active_inactive_conditions = {

@@ -44,10 +44,11 @@ def run_parca(config):
     sim_data = fitSimData_1(
         raw_data=raw_data,
         cpus=config["cpus"],
-        debug=config["debug_parca"],
-        load_intermediate=config["load_intermediate"],
-        save_intermediates=config["save_intermediates"],
-        intermediates_directory=config["intermediates_directory"],
+        smoke=config.get("smoke", False),
+        debug=config.get("debug_parca", False),
+        load_intermediate=config.get("load_intermediate"),
+        save_intermediates=config.get("save_intermediates", False),
+        intermediates_directory=config.get("intermediates_directory", ""),
         variable_elongation_transcription=config["variable_elongation_transcription"],
         variable_elongation_translation=config["variable_elongation_translation"],
         disable_ribosome_capacity_fitting=(not config["ribosome_fitting"]),
@@ -126,12 +127,18 @@ def main():
         " removes the rrfF gene from the rrnD operon.",
     )
     parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="Fast smoke run (~20-30 min) fitting only TFs required for "
+        "'basal' and 'with_aa' conditions. Produces valid sim_data for "
+        "testing and development.",
+    )
+    parser.add_argument(
         "--debug-parca",
         action=argparse.BooleanOptionalAction,
-        help="Make Parca calculate only one arbitrarily-chosen transcription"
-        " factor condition when adjusting gene expression levels, leaving"
-        " the other TFs at their input levels for faster Parca debugging."
-        " DO NOT USE THIS FOR A MEANINGFUL SIMULATION.",
+        help="DEPRECATED: use --smoke instead. Make Parca calculate only one "
+        "arbitrarily-chosen transcription factor condition. WARNING: This mode "
+        "is BROKEN and will fail at promoter_binding due to shape mismatches.",
     )
     parser.add_argument(
         "--load-intermediate",
