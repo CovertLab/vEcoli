@@ -1715,11 +1715,13 @@ class Transcription(object):
         )
 
         # Store expected readthrough fraction for each condition to use in initial conditions
+        # Only iterate over conditions that exist in cell_specs (subset in smoke mode)
         self.attenuation_readthrough = {}
         for condition in sim_data.conditions:
-            self.attenuation_readthrough[condition] = (
-                1 - self.get_attenuation_stop_probabilities(get_trna_conc(condition))
-            )
+            if condition in cell_specs:
+                self.attenuation_readthrough[condition] = (
+                    1 - self.get_attenuation_stop_probabilities(get_trna_conc(condition))
+                )
 
     def get_attenuation_stop_probabilities(self, trna_conc):
         """
@@ -1971,6 +1973,12 @@ class Transcription(object):
         TODO:
                 fit for all conditions and not just those specified below?
         """
+
+        # Skip in smoke mode when not all required conditions are available
+        # (requires all 3 conditions for least squares fit)
+        required_conditions = ["with_aa", "basal", "no_oxygen"]
+        if not all(cond in sim_data.pPromoterBound for cond in required_conditions):
+            return
 
         # Fraction RNAP bound to ppGpp in different conditions
         ppgpp_aa = sim_data.growth_rate_parameters.get_ppGpp_conc(

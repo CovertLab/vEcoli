@@ -1471,7 +1471,89 @@ def calculateTranslationSupply(
 from reconstruction.ecoli.parca_updates import (
     SimDataUpdate, ArrayUpdate, CellSpecsUpdate, StageResult,
     apply_sim_data_update, apply_cell_specs_update, apply_stage_result,
+    # Input dataclasses for explicit dependencies
+    TranslationEfficiencyInputs,
+    BalancedTranslationInputs,
+    RnaExpressionInputs,
+    RnaDegRateInputs,
+    ProteinDegRateInputs,
+    SmokeModeInputs,
+    # Configuration dataclasses for stage functions
+    FittingOptions,
 )
+
+
+# ============================================================================
+# Input extraction helpers
+# ============================================================================
+# These functions extract the required inputs from sim_data for each compute function.
+
+
+def extract_translation_efficiency_inputs(sim_data) -> TranslationEfficiencyInputs:
+    """Extract inputs needed for compute_translation_efficiency_updates."""
+    return TranslationEfficiencyInputs(
+        translation_efficiencies_adjustments=sim_data.adjustments.translation_efficiencies_adjustments,
+        monomer_ids=sim_data.process.translation.monomer_data["id"],
+    )
+
+
+def extract_balanced_translation_inputs(sim_data) -> BalancedTranslationInputs:
+    """Extract inputs needed for compute_balanced_translation_updates."""
+    return BalancedTranslationInputs(
+        monomer_ids=sim_data.process.translation.monomer_data["id"],
+        translation_efficiencies=sim_data.process.translation.translation_efficiencies_by_monomer,
+        balanced_groups=sim_data.adjustments.balanced_translation_efficiencies,
+    )
+
+
+def extract_rna_expression_inputs(sim_data) -> RnaExpressionInputs:
+    """Extract inputs needed for compute_rna_expression_updates."""
+    # Pre-compute cistron_id_to_rna_indexes mapping
+    cistron_ids = sim_data.process.transcription.cistron_data["id"]
+    cistron_id_to_rna_indexes = {
+        cid: sim_data.process.transcription.cistron_id_to_rna_indexes(cid)
+        for cid in cistron_ids
+    }
+    return RnaExpressionInputs(
+        cistron_ids=cistron_ids,
+        rna_ids=sim_data.process.transcription.rna_data["id"],
+        basal_expression=sim_data.process.transcription.rna_expression["basal"].copy(),
+        rna_expression_adjustments=sim_data.adjustments.rna_expression_adjustments,
+        cistron_id_to_rna_indexes=cistron_id_to_rna_indexes,
+    )
+
+
+def extract_rna_deg_rate_inputs(sim_data) -> RnaDegRateInputs:
+    """Extract inputs needed for compute_rna_deg_rate_updates."""
+    # Pre-compute cistron_id_to_rna_indexes mapping
+    cistron_ids = sim_data.process.transcription.cistron_data["id"]
+    cistron_id_to_rna_indexes = {
+        cid: sim_data.process.transcription.cistron_id_to_rna_indexes(cid)
+        for cid in cistron_ids
+    }
+    return RnaDegRateInputs(
+        cistron_ids=cistron_ids,
+        rna_ids=sim_data.process.transcription.rna_data["id"],
+        rna_deg_rates_adjustments=sim_data.adjustments.rna_deg_rates_adjustments,
+        cistron_id_to_rna_indexes=cistron_id_to_rna_indexes,
+    )
+
+
+def extract_protein_deg_rate_inputs(sim_data) -> ProteinDegRateInputs:
+    """Extract inputs needed for compute_protein_deg_rate_updates."""
+    return ProteinDegRateInputs(
+        protein_deg_rates_adjustments=sim_data.adjustments.protein_deg_rates_adjustments,
+        monomer_ids=sim_data.process.translation.monomer_data["id"],
+    )
+
+
+def extract_smoke_mode_inputs(sim_data) -> SmokeModeInputs:
+    """Extract inputs needed for compute_smoke_mode_updates."""
+    return SmokeModeInputs(
+        tf_to_active_inactive_conditions=sim_data.tf_to_active_inactive_conditions,
+        condition_active_tfs=sim_data.condition_active_tfs,
+        condition_inactive_tfs=sim_data.condition_inactive_tfs,
+    )
 
 
 # ============================================================================
@@ -1479,11 +1561,14 @@ from reconstruction.ecoli.parca_updates import (
 # ============================================================================
 
 
-def compute_translation_efficiency_updates(sim_data) -> SimDataUpdate:
+def compute_translation_efficiency_updates(inputs: TranslationEfficiencyInputs) -> SimDataUpdate:
     """
-    Compute translation efficiency adjustments without mutating sim_data.
+    Compute translation efficiency adjustments.
 
-    Pure version of setTranslationEfficiencies().
+    Args:
+        inputs: TranslationEfficiencyInputs with:
+            - translation_efficiencies_adjustments: Dict[protein_id, multiplier]
+            - monomer_ids: Array of monomer IDs
 
     Returns:
         SimDataUpdate describing the translation efficiency modifications.
@@ -1492,20 +1577,13 @@ def compute_translation_efficiency_updates(sim_data) -> SimDataUpdate:
 
     # Collect all indices and their multipliers
     indices_and_multipliers = []
-    for protein in sim_data.adjustments.translation_efficiencies_adjustments:
-        idx = np.where(sim_data.process.translation.monomer_data["id"] == protein)[0]
-        multiplier = sim_data.adjustments.translation_efficiencies_adjustments[protein]
+    for protein, multiplier in inputs.translation_efficiencies_adjustments.items():
+        idx = np.where(inputs.monomer_ids == protein)[0]
         for i in idx:
             indices_and_multipliers.append((i, multiplier))
 
     # Apply each multiplier as a separate array update
-    # We need to apply them one at a time since they're at different indices
     for idx, multiplier in indices_and_multipliers:
-        path = 'process.translation.translation_efficiencies_by_monomer'
-        if path not in update.arrays:
-            # For the first update at this path, we'll track all updates together
-            # by building a combined update later
-            pass
         update.arrays[f'process.translation.translation_efficiencies_by_monomer:{idx}'] = ArrayUpdate(
             op='multiply', value=multiplier, indices=idx
         )
@@ -1513,27 +1591,29 @@ def compute_translation_efficiency_updates(sim_data) -> SimDataUpdate:
     return update
 
 
-def compute_balanced_translation_updates(sim_data) -> SimDataUpdate:
+def compute_balanced_translation_updates(inputs: BalancedTranslationInputs) -> SimDataUpdate:
     """
-    Compute balanced translation efficiency updates without mutating sim_data.
+    Compute balanced translation efficiency updates.
 
-    Pure version of set_balanced_translation_efficiencies().
+    Args:
+        inputs: BalancedTranslationInputs with:
+            - monomer_ids: Array of monomer IDs
+            - translation_efficiencies: Current efficiency values
+            - balanced_groups: List of protein groups to balance
 
     Returns:
         SimDataUpdate describing the translation efficiency modifications.
     """
     update = SimDataUpdate()
 
+    # Build monomer_id (without [c] suffix) to index mapping
     monomer_id_to_index = {
-        monomer["id"][:-3]: i
-        for (i, monomer) in enumerate(sim_data.process.translation.monomer_data)
+        mid[:-3]: i for i, mid in enumerate(inputs.monomer_ids)
     }
 
-    efficiencies = sim_data.process.translation.translation_efficiencies_by_monomer
-
-    for group_idx, proteins in enumerate(sim_data.adjustments.balanced_translation_efficiencies):
+    for group_idx, proteins in enumerate(inputs.balanced_groups):
         protein_indexes = np.array([monomer_id_to_index[m] for m in proteins])
-        mean_trl_eff = efficiencies[protein_indexes].mean()
+        mean_trl_eff = inputs.translation_efficiencies[protein_indexes].mean()
 
         # Set all proteins in this group to the mean value
         update.arrays[f'process.translation.translation_efficiencies_by_monomer:group{group_idx}'] = ArrayUpdate(
@@ -1543,28 +1623,33 @@ def compute_balanced_translation_updates(sim_data) -> SimDataUpdate:
     return update
 
 
-def compute_rna_expression_updates(sim_data) -> SimDataUpdate:
+def compute_rna_expression_updates(inputs: RnaExpressionInputs) -> SimDataUpdate:
     """
-    Compute RNA expression adjustments without mutating sim_data.
+    Compute RNA expression adjustments.
 
-    Pure version of setRNAExpression().
+    Args:
+        inputs: RnaExpressionInputs with:
+            - cistron_ids: Array of cistron IDs
+            - rna_ids: Array of RNA IDs
+            - basal_expression: Current basal expression values
+            - rna_expression_adjustments: Dict[mol_id, adjustment_factor]
+            - cistron_id_to_rna_indexes: Pre-computed mapping
 
     Returns:
         SimDataUpdate describing the RNA expression modifications.
     """
     update = SimDataUpdate()
 
-    cistron_ids = set(sim_data.process.transcription.cistron_data["id"])
+    cistron_ids_set = set(inputs.cistron_ids)
     rna_id_to_index = {
-        rna_id[:-3]: i
-        for (i, rna_id) in enumerate(sim_data.process.transcription.rna_data["id"])
+        rna_id[:-3]: i for i, rna_id in enumerate(inputs.rna_ids)
     }
 
     rna_index_to_adjustment = {}
 
-    for mol_id, adj_factor in sim_data.adjustments.rna_expression_adjustments.items():
-        if mol_id in cistron_ids:
-            rna_indexes = sim_data.process.transcription.cistron_id_to_rna_indexes(mol_id)
+    for mol_id, adj_factor in inputs.rna_expression_adjustments.items():
+        if mol_id in cistron_ids_set:
+            rna_indexes = inputs.cistron_id_to_rna_indexes[mol_id]
         elif mol_id in rna_id_to_index:
             rna_indexes = [rna_id_to_index[mol_id]]
         else:
@@ -1578,8 +1663,7 @@ def compute_rna_expression_updates(sim_data) -> SimDataUpdate:
             )
 
     # Compute the new expression values
-    # We need to apply multiplications then normalize
-    current_expression = sim_data.process.transcription.rna_expression["basal"].copy()
+    current_expression = inputs.basal_expression.copy()
     for rna_index, adj_factor in rna_index_to_adjustment.items():
         current_expression[rna_index] *= adj_factor
     current_expression /= current_expression.sum()
@@ -1590,34 +1674,33 @@ def compute_rna_expression_updates(sim_data) -> SimDataUpdate:
     return update
 
 
-def compute_rna_deg_rate_updates(sim_data) -> SimDataUpdate:
+def compute_rna_deg_rate_updates(inputs: RnaDegRateInputs) -> SimDataUpdate:
     """
-    Compute RNA degradation rate adjustments without mutating sim_data.
+    Compute RNA degradation rate adjustments.
 
-    Pure version of setRNADegRates().
+    Args:
+        inputs: RnaDegRateInputs with:
+            - cistron_ids: Array of cistron IDs
+            - rna_ids: Array of RNA IDs
+            - rna_deg_rates_adjustments: Dict[mol_id, adjustment_factor]
+            - cistron_id_to_rna_indexes: Pre-computed mapping
 
     Returns:
         SimDataUpdate describing the RNA degradation rate modifications.
     """
     update = SimDataUpdate()
 
-    cistron_id_to_index = {
-        cistron_id: i
-        for (i, cistron_id) in enumerate(sim_data.process.transcription.cistron_data["id"])
-    }
-    rna_id_to_index = {
-        rna_id[:-3]: i
-        for (i, rna_id) in enumerate(sim_data.process.transcription.rna_data["id"])
-    }
+    cistron_id_to_index = {cid: i for i, cid in enumerate(inputs.cistron_ids)}
+    rna_id_to_index = {rna_id[:-3]: i for i, rna_id in enumerate(inputs.rna_ids)}
 
     rna_index_to_adjustment = {}
     cistron_index_to_adjustment = {}
 
-    for mol_id, adj_factor in sim_data.adjustments.rna_deg_rates_adjustments.items():
+    for mol_id, adj_factor in inputs.rna_deg_rates_adjustments.items():
         if mol_id in cistron_id_to_index:
             cistron_index = cistron_id_to_index[mol_id]
             cistron_index_to_adjustment[cistron_index] = adj_factor
-            rna_indexes = sim_data.process.transcription.cistron_id_to_rna_indexes(mol_id)
+            rna_indexes = inputs.cistron_id_to_rna_indexes[mol_id]
         elif mol_id in rna_id_to_index:
             rna_indexes = [rna_id_to_index[mol_id]]
         else:
@@ -1645,20 +1728,22 @@ def compute_rna_deg_rate_updates(sim_data) -> SimDataUpdate:
     return update
 
 
-def compute_protein_deg_rate_updates(sim_data) -> SimDataUpdate:
+def compute_protein_deg_rate_updates(inputs: ProteinDegRateInputs) -> SimDataUpdate:
     """
-    Compute protein degradation rate adjustments without mutating sim_data.
+    Compute protein degradation rate adjustments.
 
-    Pure version of setProteinDegRates().
+    Args:
+        inputs: ProteinDegRateInputs with:
+            - protein_deg_rates_adjustments: Dict[protein_id, adjustment_factor]
+            - monomer_ids: Array of monomer IDs
 
     Returns:
         SimDataUpdate describing the protein degradation rate modifications.
     """
     update = SimDataUpdate()
 
-    for protein in sim_data.adjustments.protein_deg_rates_adjustments:
-        idx = np.where(sim_data.process.translation.monomer_data["id"] == protein)[0]
-        adj_factor = sim_data.adjustments.protein_deg_rates_adjustments[protein]
+    for protein, adj_factor in inputs.protein_deg_rates_adjustments.items():
+        idx = np.where(inputs.monomer_ids == protein)[0]
         for i in idx:
             update.arrays[f'process.translation.monomer_data:protein{i}'] = ArrayUpdate(
                 op='multiply', value=adj_factor, indices=i, field='deg_rate'
@@ -1667,11 +1752,15 @@ def compute_protein_deg_rate_updates(sim_data) -> SimDataUpdate:
     return update
 
 
-def compute_smoke_mode_updates(sim_data) -> SimDataUpdate:
+def compute_smoke_mode_updates(inputs: SmokeModeInputs) -> SimDataUpdate:
     """
-    Compute smoke mode filtering updates without mutating sim_data.
+    Compute smoke mode filtering updates.
 
-    Filters TF conditions to only those needed for SMOKE_CONDITIONS.
+    Args:
+        inputs: SmokeModeInputs with:
+            - tf_to_active_inactive_conditions: TF condition mappings
+            - condition_active_tfs: Active TFs per condition
+            - condition_inactive_tfs: Inactive TFs per condition
 
     Returns:
         SimDataUpdate describing the smoke mode filtering.
@@ -1680,20 +1769,20 @@ def compute_smoke_mode_updates(sim_data) -> SimDataUpdate:
 
     # Filter TF conditions to only those needed for smoke conditions
     update.attributes['tf_to_active_inactive_conditions'] = {
-        k: v for k, v in sim_data.tf_to_active_inactive_conditions.items()
+        k: v for k, v in inputs.tf_to_active_inactive_conditions.items()
         if k in SMOKE_TFS
     }
 
     # Filter combined conditions to smoke subset
     update.attributes['condition_active_tfs'] = {
         k: [tf for tf in v if tf in SMOKE_TFS]
-        for k, v in sim_data.condition_active_tfs.items()
+        for k, v in inputs.condition_active_tfs.items()
         if k in SMOKE_CONDITIONS
     }
 
     update.attributes['condition_inactive_tfs'] = {
         k: [tf for tf in v if tf in SMOKE_TFS]
-        for k, v in sim_data.condition_inactive_tfs.items()
+        for k, v in inputs.condition_inactive_tfs.items()
         if k in SMOKE_CONDITIONS
     }
 
@@ -1755,7 +1844,8 @@ def compute_input_adjustments(sim_data, cell_specs, debug=False, smoke=False, **
         print(
             f"SMOKE MODE: Fitting only {len(SMOKE_TFS)} TFs for {len(SMOKE_CONDITIONS)} conditions"
         )
-        smoke_update = compute_smoke_mode_updates(sim_data_copy)
+        smoke_inputs = extract_smoke_mode_inputs(sim_data_copy)
+        smoke_update = compute_smoke_mode_updates(smoke_inputs)
         sim_data_update = sim_data_update.merge(smoke_update)
         apply_sim_data_update(sim_data_copy, smoke_update)
         print(f"  TFs: {sorted(smoke_update.attributes['tf_to_active_inactive_conditions'].keys())}")
@@ -1772,23 +1862,34 @@ def compute_input_adjustments(sim_data, cell_specs, debug=False, smoke=False, **
 
     # Compute and apply helper function updates incrementally
     # Each function sees the state after previous updates were applied
-    trans_eff_update = compute_translation_efficiency_updates(sim_data_copy)
+
+    # 1. Translation efficiencies
+    trans_eff_inputs = extract_translation_efficiency_inputs(sim_data_copy)
+    trans_eff_update = compute_translation_efficiency_updates(trans_eff_inputs)
     sim_data_update = sim_data_update.merge(trans_eff_update)
     apply_sim_data_update(sim_data_copy, trans_eff_update)
 
-    balanced_trans_update = compute_balanced_translation_updates(sim_data_copy)
+    # 2. Balanced translation efficiencies (depends on step 1)
+    balanced_trans_inputs = extract_balanced_translation_inputs(sim_data_copy)
+    balanced_trans_update = compute_balanced_translation_updates(balanced_trans_inputs)
     sim_data_update = sim_data_update.merge(balanced_trans_update)
     apply_sim_data_update(sim_data_copy, balanced_trans_update)
 
-    rna_expr_update = compute_rna_expression_updates(sim_data_copy)
+    # 3. RNA expression
+    rna_expr_inputs = extract_rna_expression_inputs(sim_data_copy)
+    rna_expr_update = compute_rna_expression_updates(rna_expr_inputs)
     sim_data_update = sim_data_update.merge(rna_expr_update)
     apply_sim_data_update(sim_data_copy, rna_expr_update)
 
-    rna_deg_update = compute_rna_deg_rate_updates(sim_data_copy)
+    # 4. RNA degradation rates
+    rna_deg_inputs = extract_rna_deg_rate_inputs(sim_data_copy)
+    rna_deg_update = compute_rna_deg_rate_updates(rna_deg_inputs)
     sim_data_update = sim_data_update.merge(rna_deg_update)
     apply_sim_data_update(sim_data_copy, rna_deg_update)
 
-    protein_deg_update = compute_protein_deg_rate_updates(sim_data_copy)
+    # 5. Protein degradation rates
+    protein_deg_inputs = extract_protein_deg_rate_inputs(sim_data_copy)
+    protein_deg_update = compute_protein_deg_rate_updates(protein_deg_inputs)
     sim_data_update = sim_data_update.merge(protein_deg_update)
     # No need to apply the last one since we're done
 
@@ -1798,10 +1899,7 @@ def compute_input_adjustments(sim_data, cell_specs, debug=False, smoke=False, **
 def compute_basal_specs(
     sim_data,
     cell_specs,
-    disable_ribosome_capacity_fitting=False,
-    disable_rnapoly_capacity_fitting=False,
-    variable_elongation_transcription=True,
-    variable_elongation_translation=False,
+    fitting_options: FittingOptions = None,
     **kwargs,
 ) -> StageResult:
     """
@@ -1810,9 +1908,23 @@ def compute_basal_specs(
     This builds the basal condition cell specifications and updates sim_data
     with expression, Km values, and maintenance costs.
 
+    Args:
+        sim_data: The SimulationDataEcoli object (will be deep-copied)
+        cell_specs: The cell specifications dict (read-only)
+        fitting_options: FittingOptions with configuration for fitting behavior
+
     Returns:
         StageResult with sim_data_update and cell_specs_update
     """
+    # Use provided options or create defaults from kwargs for backward compatibility
+    if fitting_options is None:
+        fitting_options = FittingOptions(
+            disable_ribosome_capacity_fitting=kwargs.get('disable_ribosome_capacity_fitting', False),
+            disable_rnapoly_capacity_fitting=kwargs.get('disable_rnapoly_capacity_fitting', False),
+            variable_elongation_transcription=kwargs.get('variable_elongation_transcription', True),
+            variable_elongation_translation=kwargs.get('variable_elongation_translation', False),
+            cache_dir=kwargs.get('cache_dir'),
+        )
 
     sim_data_copy = copy_module.deepcopy(sim_data)
     sim_data_update = SimDataUpdate()
@@ -1821,10 +1933,10 @@ def compute_basal_specs(
     # Build basal cell specifications (this returns a new cell_specs dict)
     new_cell_specs = buildBasalCellSpecifications(
         sim_data_copy,
-        variable_elongation_transcription,
-        variable_elongation_translation,
-        disable_ribosome_capacity_fitting,
-        disable_rnapoly_capacity_fitting,
+        fitting_options.variable_elongation_transcription,
+        fitting_options.variable_elongation_translation,
+        fitting_options.disable_ribosome_capacity_fitting,
+        fitting_options.disable_rnapoly_capacity_fitting,
     )
 
     # Update cell_specs with basal condition
@@ -1835,7 +1947,7 @@ def compute_basal_specs(
 
     # Compute Km's
     Km = setKmCooperativeEndoRNonLinearRNAdecay(
-        sim_data_copy, new_cell_specs["basal"]["bulkContainer"], kwargs.get("cache_dir")
+        sim_data_copy, new_cell_specs["basal"]["bulkContainer"], fitting_options.cache_dir
     )
     n_transcribed_rnas = len(sim_data_copy.process.transcription.rna_data)
 
@@ -1883,11 +1995,7 @@ def compute_basal_specs(
 def compute_tf_condition_specs(
     sim_data,
     cell_specs,
-    cpus=1,
-    disable_ribosome_capacity_fitting=False,
-    disable_rnapoly_capacity_fitting=False,
-    variable_elongation_transcription=True,
-    variable_elongation_translation=False,
+    fitting_options: FittingOptions = None,
     **kwargs,
 ) -> StageResult:
     """
@@ -1896,16 +2004,30 @@ def compute_tf_condition_specs(
     This builds cell specifications for each TF condition (active/inactive)
     and combined conditions.
 
+    Args:
+        sim_data: The SimulationDataEcoli object (will be deep-copied)
+        cell_specs: The cell specifications dict (will be deep-copied)
+        fitting_options: FittingOptions with configuration for fitting behavior
+
     Returns:
         StageResult with sim_data_update and cell_specs_update
     """
+    # Use provided options or create defaults from kwargs for backward compatibility
+    if fitting_options is None:
+        fitting_options = FittingOptions(
+            cpus=kwargs.get('cpus', 1),
+            disable_ribosome_capacity_fitting=kwargs.get('disable_ribosome_capacity_fitting', False),
+            disable_rnapoly_capacity_fitting=kwargs.get('disable_rnapoly_capacity_fitting', False),
+            variable_elongation_transcription=kwargs.get('variable_elongation_transcription', True),
+            variable_elongation_translation=kwargs.get('variable_elongation_translation', False),
+        )
 
     sim_data_copy = copy_module.deepcopy(sim_data)
     cell_specs_copy = copy_module.deepcopy(cell_specs)
     sim_data_update = SimDataUpdate()
     cell_specs_update = CellSpecsUpdate()
 
-    cpus = parallelization.cpus(cpus)
+    cpus = parallelization.cpus(fitting_options.cpus)
 
     # Apply updates to cell_specs from buildTfConditionCellSpecifications for each TF condition
     conditions = list(sorted(sim_data_copy.tf_to_active_inactive_conditions))
@@ -1913,10 +2035,10 @@ def compute_tf_condition_specs(
         (
             sim_data_copy,
             tf,
-            variable_elongation_transcription,
-            variable_elongation_translation,
-            disable_ribosome_capacity_fitting,
-            disable_rnapoly_capacity_fitting,
+            fitting_options.variable_elongation_transcription,
+            fitting_options.variable_elongation_translation,
+            fitting_options.disable_ribosome_capacity_fitting,
+            fitting_options.disable_rnapoly_capacity_fitting,
         )
         for tf in conditions
     ]
@@ -1952,10 +2074,10 @@ def compute_tf_condition_specs(
     buildCombinedConditionCellSpecifications(
         sim_data_copy,
         cell_specs_copy,
-        variable_elongation_transcription,
-        variable_elongation_translation,
-        disable_ribosome_capacity_fitting,
-        disable_rnapoly_capacity_fitting,
+        fitting_options.variable_elongation_transcription,
+        fitting_options.variable_elongation_translation,
+        fitting_options.disable_ribosome_capacity_fitting,
+        fitting_options.disable_rnapoly_capacity_fitting,
     )
 
     # Capture any new conditions from combined
@@ -1984,21 +2106,31 @@ def compute_tf_condition_specs(
     return StageResult(sim_data_update=sim_data_update, cell_specs_update=cell_specs_update)
 
 
-def compute_fit_condition(sim_data, cell_specs, cpus=1, **kwargs) -> StageResult:
+def compute_fit_condition(sim_data, cell_specs, fitting_options: FittingOptions = None, **kwargs) -> StageResult:
     """
     Pure function to fit conditions.
 
     This runs fitCondition for each condition to calculate bulk distributions
     and translation supply rates.
 
+    Args:
+        sim_data: The SimulationDataEcoli object (will be deep-copied)
+        cell_specs: The cell specifications dict (will be deep-copied)
+        fitting_options: FittingOptions with configuration for fitting behavior
+
     Returns:
         StageResult with sim_data_update and cell_specs_update
     """
+    # Use provided options or create defaults from kwargs for backward compatibility
+    if fitting_options is None:
+        fitting_options = FittingOptions(cpus=kwargs.get('cpus', 1))
 
     sim_data_copy = copy_module.deepcopy(sim_data)
     cell_specs_copy = copy_module.deepcopy(cell_specs)
     sim_data_update = SimDataUpdate()
     cell_specs_update = CellSpecsUpdate()
+
+    cpus = parallelization.cpus(fitting_options.cpus)
 
     # Apply updates from fitCondition to cell_specs for each fit condition
     conditions = list(sorted(cell_specs_copy))
@@ -2025,6 +2157,13 @@ def compute_promoter_binding(sim_data, cell_specs, **kwargs) -> StageResult:
     """
     Pure function to fit promoter bound probability.
 
+    This stage uses convex optimization to fit TF-promoter binding probabilities
+    that satisfy physiological constraints while matching experimental data.
+
+    Args:
+        sim_data: The SimulationDataEcoli object (will be deep-copied)
+        cell_specs: The cell specifications dict (will be deep-copied)
+
     Returns:
         StageResult with sim_data_update and cell_specs_update
     """
@@ -2032,6 +2171,7 @@ def compute_promoter_binding(sim_data, cell_specs, **kwargs) -> StageResult:
     sim_data_copy = copy_module.deepcopy(sim_data)
     cell_specs_copy = copy_module.deepcopy(cell_specs)
     sim_data_update = SimDataUpdate()
+    cell_specs_update = CellSpecsUpdate()
 
     if VERBOSE > 0:
         print("Fitting promoter binding")
@@ -2039,14 +2179,21 @@ def compute_promoter_binding(sim_data, cell_specs, **kwargs) -> StageResult:
     fitPromoterBoundProbability(sim_data_copy, cell_specs_copy)
 
     # Capture the updates made by fitPromoterBoundProbability
-    # This function modifies sim_data.process.transcription attributes
-    transcription = sim_data_copy.process.transcription
-    sim_data_update.attributes['process.transcription.tf_to_tf_type'] = transcription.tf_to_tf_type
-    sim_data_update.attributes['process.transcription.active_to_bound'] = transcription.active_to_bound
-    sim_data_update.attributes['process.transcription.pPromoterBound'] = transcription.pPromoterBound
-    sim_data_update.attributes['process.transcription.tf_ids'] = transcription.tf_ids
+    # 1. pPromoterBound is set at sim_data level
+    sim_data_update.attributes['pPromoterBound'] = sim_data_copy.pPromoterBound
 
-    return StageResult(sim_data_update=sim_data_update, cell_specs_update=CellSpecsUpdate())
+    # 2. rna_synth_prob is updated for each condition via _update_synth_prob
+    sim_data_update.attributes['process.transcription.rna_synth_prob'] = (
+        sim_data_copy.process.transcription.rna_synth_prob
+    )
+
+    # 3. cell_specs["basal"] gets r_vector and r_columns
+    cell_specs_update.conditions['basal'] = {
+        'r_vector': cell_specs_copy['basal']['r_vector'],
+        'r_columns': cell_specs_copy['basal']['r_columns'],
+    }
+
+    return StageResult(sim_data_update=sim_data_update, cell_specs_update=cell_specs_update)
 
 
 def compute_adjust_promoters(sim_data, cell_specs, **kwargs) -> StageResult:
@@ -5025,8 +5172,14 @@ def calculatePromoterBoundProbability(sim_data, cell_specs):
     )
     rna_coords = sim_data.process.transcription.rna_data["replication_coordinate"]
 
+    # Get all TF IDs (not just the filtered ones in smoke mode)
+    all_tf_ids = sim_data.process.transcription_regulation.tf_ids
+
     for conditionKey in sorted(cell_specs):
-        pPromoterBound[conditionKey] = {}
+        # Initialize all TFs with 0.0 so calculate_attenuation can access them
+        # even for TFs not fitted in smoke mode
+        pPromoterBound[conditionKey] = {tf: 0.0 for tf in all_tf_ids}
+
         tau = sim_data.condition_to_doubling_time[conditionKey].asNumber(units.min)
         n_avg_copy = sim_data.process.replication.get_average_copy_number(
             tau, rna_coords
@@ -5040,6 +5193,7 @@ def calculatePromoterBoundProbability(sim_data, cell_specs):
         )
         countsToMolar = 1 / (sim_data.constants.n_avogadro * cellVolume)
 
+        # Only compute probabilities for TFs being fitted (subset in smoke mode)
         for tf in sorted(sim_data.tf_to_active_inactive_conditions):
             tfType = sim_data.process.transcription_regulation.tf_to_tf_type[tf]
             curr_tf_idx = bulk_name_to_idx(

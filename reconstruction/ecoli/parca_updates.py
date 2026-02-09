@@ -468,3 +468,151 @@ def collect_updates(*updates: SimDataUpdate) -> SimDataUpdate:
     for update in updates:
         result = result.merge(update)
     return result
+
+
+# ============================================================================
+# Input dataclasses for pure compute functions
+# ============================================================================
+# These make explicit what data each function needs, improving testability
+# and making dependencies visible.
+
+
+@dataclass
+class TranslationEfficiencyInputs:
+    """Inputs for compute_translation_efficiency_updates."""
+    translation_efficiencies_adjustments: Dict[str, float]  # protein_id -> multiplier
+    monomer_ids: np.ndarray  # process.translation.monomer_data["id"]
+
+
+@dataclass
+class BalancedTranslationInputs:
+    """Inputs for compute_balanced_translation_updates."""
+    monomer_ids: np.ndarray  # process.translation.monomer_data["id"]
+    translation_efficiencies: np.ndarray  # process.translation.translation_efficiencies_by_monomer
+    balanced_groups: List[List[str]]  # adjustments.balanced_translation_efficiencies
+
+
+@dataclass
+class RnaExpressionInputs:
+    """Inputs for compute_rna_expression_updates."""
+    cistron_ids: np.ndarray  # process.transcription.cistron_data["id"]
+    rna_ids: np.ndarray  # process.transcription.rna_data["id"]
+    basal_expression: np.ndarray  # process.transcription.rna_expression["basal"]
+    rna_expression_adjustments: Dict[str, float]  # adjustments.rna_expression_adjustments
+    cistron_id_to_rna_indexes: Dict[str, List[int]]  # pre-computed mapping
+
+
+@dataclass
+class RnaDegRateInputs:
+    """Inputs for compute_rna_deg_rate_updates."""
+    cistron_ids: np.ndarray  # process.transcription.cistron_data["id"]
+    rna_ids: np.ndarray  # process.transcription.rna_data["id"]
+    rna_deg_rates_adjustments: Dict[str, float]  # adjustments.rna_deg_rates_adjustments
+    cistron_id_to_rna_indexes: Dict[str, List[int]]  # pre-computed mapping
+
+
+@dataclass
+class ProteinDegRateInputs:
+    """Inputs for compute_protein_deg_rate_updates."""
+    protein_deg_rates_adjustments: Dict[str, float]  # adjustments.protein_deg_rates_adjustments
+    monomer_ids: np.ndarray  # process.translation.monomer_data["id"]
+
+
+@dataclass
+class SmokeModeInputs:
+    """Inputs for compute_smoke_mode_updates."""
+    tf_to_active_inactive_conditions: Dict[str, Dict]
+    condition_active_tfs: Dict[str, List[str]]
+    condition_inactive_tfs: Dict[str, List[str]]
+
+
+# ============================================================================
+# Configuration dataclasses for stage functions
+# ============================================================================
+# These separate configuration options from data inputs, making the interface
+# cleaner and enabling configuration to be passed around easily.
+
+
+@dataclass
+class FittingOptions:
+    """
+    Configuration options shared across multiple fitting stages.
+
+    These control various fitting behaviors in the ParCa pipeline.
+    """
+    disable_ribosome_capacity_fitting: bool = False
+    disable_rnapoly_capacity_fitting: bool = False
+    variable_elongation_transcription: bool = True
+    variable_elongation_translation: bool = False
+    cpus: int = 1
+    cache_dir: Optional[str] = None
+
+
+@dataclass
+class BasalSpecsInputs:
+    """
+    Inputs for compute_basal_specs.
+
+    Attributes:
+        fitting_options: Configuration for fitting behavior
+        sim_data: The simulation data object (will be deep-copied internally)
+        cell_specs: The cell specifications dict (read-only, not used directly)
+    """
+    fitting_options: FittingOptions
+    # Note: sim_data is still passed separately since internal helpers need it
+
+
+@dataclass
+class TfConditionSpecsInputs:
+    """
+    Inputs for compute_tf_condition_specs.
+
+    Attributes:
+        fitting_options: Configuration for fitting behavior
+        tf_conditions: List of TF condition keys to process
+    """
+    fitting_options: FittingOptions
+    tf_conditions: List[str]  # From sim_data.tf_to_active_inactive_conditions.keys()
+
+
+@dataclass
+class FitConditionInputs:
+    """
+    Inputs for compute_fit_condition.
+
+    Attributes:
+        fitting_options: Configuration for fitting behavior
+        condition_labels: List of condition labels to fit
+    """
+    fitting_options: FittingOptions
+    condition_labels: List[str]  # From cell_specs.keys()
+
+
+@dataclass
+class PromoterBindingInputs:
+    """
+    Inputs for compute_promoter_binding.
+
+    This stage fits TF-promoter binding probabilities using convex optimization.
+    """
+    # Configuration only - the actual data comes from sim_data/cell_specs
+    pass
+
+
+@dataclass
+class SetConditionsInputs:
+    """
+    Inputs for compute_set_conditions.
+
+    Attributes:
+        condition_labels: List of condition labels to set parameters for
+    """
+    condition_labels: List[str]
+
+
+@dataclass
+class FinalAdjustmentsInputs:
+    """
+    Inputs for compute_final_adjustments.
+    """
+    fitting_options: FittingOptions
