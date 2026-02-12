@@ -1,6 +1,7 @@
 import numpy as np
 import orjson
 import re
+import ast
 from unum import Unum
 from vivarium.core.registry import Serializer
 from vivarium.library.topology import convert_path_style, normalize_path
@@ -77,8 +78,6 @@ class NumpyRandomStateSerializer(Serializer):
         return bool(self.regex_for_serialized.fullmatch(data))
 
     def deserialize(self, data):
-        import ast
-
         matched_regex = self.regex_for_serialized.fullmatch(data)
         if matched_regex:
             data = matched_regex.group(1)
