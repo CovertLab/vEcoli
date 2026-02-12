@@ -473,6 +473,14 @@ def run_simulation(config):
         metadata=metadata,
         profile=config["profile"],
         initial_global_time=config.get("start_time", 0.0),
+        emit_topology=config.get("emit_topology", True),
+        emit_processes=config.get("emit_processes", False),
+        emit_step=config.get("emit_step", 1),
+        display_info=config.get("display_info", True),
+        global_time_precision=config.get("global_time_precision", None),
+        store_schema=config.get("store_schema", None),
+        description=config.get("description", ""),
+        experiment_name=config.get("experiment_name", None),
     )
     # Unnecessary reference to initial_state
     engine.initial_state = None
