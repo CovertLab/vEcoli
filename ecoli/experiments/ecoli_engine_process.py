@@ -452,6 +452,7 @@ def run_simulation(config):
     metadata.pop("initial_state", None)
     metadata["git_hash"] = get_git_revision_hash()
     metadata["git_diff"] = get_git_diff()
+    metadata = serialize_value(metadata)
 
     # Since unique numpy updater is an class method, internal
     # deepcopying in vivarium-core causes this warning to appear
