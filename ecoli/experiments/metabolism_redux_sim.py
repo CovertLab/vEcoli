@@ -61,10 +61,10 @@ def run_ecoli_with_metabolism_redux_classic(
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
-    emitter="parquet",  # 'timeseries','parquet'
-    name="homeostatic_only",
+    emitter="timeseries",  # 'timeseries','parquet'
+    name="homeo_secretion_1E-4",
     raw_output=False,
-    save=True,
+    save=False,
     save_times=[1],
     condition="basal",  # basal, with_aa, acetate
     fixed_media="minimal",  # minimal, minimal_plus_amino_acids, minimal_acetate
