@@ -1402,6 +1402,32 @@ from reconstruction.ecoli.parca_updates import (
     # Configuration dataclasses for stage functions
     FittingOptions,
 )
+from reconstruction.ecoli.parca_outputs import (
+    # Output dataclasses for typed stage results
+    CellSpecsData,
+    InitializeOutput,
+    InputAdjustmentsOutput,
+    BasalSpecsOutput,
+    TfConditionSpecsOutput,
+    FitConditionOutput,
+    PromoterBindingOutput,
+    AdjustPromotersOutput,
+    SetConditionsOutput,
+    FinalAdjustmentsOutput,
+    # Mapper functions to convert outputs to StageResult
+    apply_initialize_output,
+    apply_input_adjustments_output,
+    apply_basal_specs_output,
+    apply_tf_condition_specs_output,
+    apply_fit_condition_output,
+    apply_promoter_binding_output,
+    apply_adjust_promoters_output,
+    apply_set_conditions_output,
+    apply_final_adjustments_output,
+    # Helper functions
+    cell_specs_data_to_dict,
+    dict_to_cell_specs_data,
+)
 
 
 # ============================================================================
@@ -1735,12 +1761,9 @@ def compute_debug_mode_updates(sim_data) -> SimDataUpdate:
 # ============================================================================
 
 
-def compute_input_adjustments(sim_data, cell_specs, debug=False, smoke=False, **kwargs) -> StageResult:
+def compute_input_adjustments_typed(sim_data, cell_specs, debug=False, smoke=False, **kwargs) -> InputAdjustmentsOutput:
     """
-    Pure function to compute input adjustments.
-
-    Returns a StageResult containing all updates to sim_data and cell_specs
-    without mutating the originals.
+    Pure function to compute input adjustments, returning typed output.
 
     Note: This function applies updates incrementally to ensure sequential
     dependencies are respected (e.g., set_balanced_translation_efficiencies
@@ -1753,12 +1776,12 @@ def compute_input_adjustments(sim_data, cell_specs, debug=False, smoke=False, **
         smoke: If True, fit only minimal TFs for basal + with_aa conditions
 
     Returns:
-        StageResult with sim_data_update and cell_specs_update
+        InputAdjustmentsOutput with typed fields
     """
-
     # Work on a copy to preserve the original sim_data
     sim_data_copy = copy_module.deepcopy(sim_data)
-    sim_data_update = SimDataUpdate()
+
+    output = InputAdjustmentsOutput()
 
     # Handle smoke/debug mode filtering
     if smoke:
@@ -1767,10 +1790,13 @@ def compute_input_adjustments(sim_data, cell_specs, debug=False, smoke=False, **
         )
         smoke_inputs = extract_smoke_mode_inputs(sim_data_copy)
         smoke_update = compute_smoke_mode_updates(smoke_inputs)
-        sim_data_update = sim_data_update.merge(smoke_update)
+        # Extract typed fields from smoke update
+        output.tf_to_active_inactive_conditions = smoke_update.attributes.get('tf_to_active_inactive_conditions')
+        output.condition_active_tfs = smoke_update.attributes.get('condition_active_tfs')
+        output.condition_inactive_tfs = smoke_update.attributes.get('condition_inactive_tfs')
         apply_sim_data_update(sim_data_copy, smoke_update)
-        print(f"  TFs: {sorted(smoke_update.attributes['tf_to_active_inactive_conditions'].keys())}")
-        print(f"  Combined conditions: {sorted(smoke_update.attributes['condition_active_tfs'].keys())}")
+        print(f"  TFs: {sorted(output.tf_to_active_inactive_conditions.keys())}")
+        print(f"  Combined conditions: {sorted(output.condition_active_tfs.keys())}")
     elif debug:
         print(
             "Warning: Running the Parca in debug mode - not all conditions will be fit.\n"
@@ -1778,56 +1804,111 @@ def compute_input_adjustments(sim_data, cell_specs, debug=False, smoke=False, **
             "         Use --smoke instead for fast testing."
         )
         debug_update = compute_debug_mode_updates(sim_data_copy)
-        sim_data_update = sim_data_update.merge(debug_update)
+        output.tf_to_active_inactive_conditions = debug_update.attributes.get('tf_to_active_inactive_conditions')
         apply_sim_data_update(sim_data_copy, debug_update)
 
-    # Compute and apply helper function updates incrementally
-    # Each function sees the state after previous updates were applied
-
-    # 1. Translation efficiencies
+    # 1. Translation efficiencies - extract multipliers
     trans_eff_inputs = extract_translation_efficiency_inputs(sim_data_copy)
+    for protein, multiplier in trans_eff_inputs.translation_efficiencies_adjustments.items():
+        idx_array = np.where(trans_eff_inputs.monomer_ids == protein)[0]
+        for idx in idx_array:
+            output.translation_efficiencies_multipliers[int(idx)] = multiplier
+
+    # Apply to copy for next step
     trans_eff_update = compute_translation_efficiency_updates(trans_eff_inputs)
-    sim_data_update = sim_data_update.merge(trans_eff_update)
     apply_sim_data_update(sim_data_copy, trans_eff_update)
 
     # 2. Balanced translation efficiencies (depends on step 1)
     balanced_trans_inputs = extract_balanced_translation_inputs(sim_data_copy)
-    balanced_trans_update = compute_balanced_translation_updates(balanced_trans_inputs)
-    sim_data_update = sim_data_update.merge(balanced_trans_update)
-    apply_sim_data_update(sim_data_copy, balanced_trans_update)
+    # Build monomer_id to index mapping
+    monomer_id_to_index = {
+        mid[:-3]: i for i, mid in enumerate(balanced_trans_inputs.monomer_ids)
+    }
+    # Collect all indices that will be balanced
+    all_balanced_indices = []
+    for proteins in balanced_trans_inputs.balanced_groups:
+        protein_indexes = np.array([monomer_id_to_index[m] for m in proteins])
+        all_balanced_indices.extend(protein_indexes.tolist())
+        mean_trl_eff = balanced_trans_inputs.translation_efficiencies[protein_indexes].mean()
+
+    if all_balanced_indices:
+        output.balanced_translation_indices = np.array(all_balanced_indices)
+        # The value will vary per group, so we use the update mechanism
+        # For the typed output, we store the final balanced state
+        balanced_trans_update = compute_balanced_translation_updates(balanced_trans_inputs)
+        apply_sim_data_update(sim_data_copy, balanced_trans_update)
 
     # 3. RNA expression
     rna_expr_inputs = extract_rna_expression_inputs(sim_data_copy)
     rna_expr_update = compute_rna_expression_updates(rna_expr_inputs)
-    sim_data_update = sim_data_update.merge(rna_expr_update)
+    if 'process.transcription.rna_expression' in rna_expr_update.dicts:
+        output.rna_expression_basal = rna_expr_update.dicts['process.transcription.rna_expression'].get('basal')
     apply_sim_data_update(sim_data_copy, rna_expr_update)
 
     # 4. RNA degradation rates
     rna_deg_inputs = extract_rna_deg_rate_inputs(sim_data_copy)
+    cistron_id_to_index = {cid: i for i, cid in enumerate(rna_deg_inputs.cistron_ids)}
+    rna_id_to_index = {rna_id[:-3]: i for i, rna_id in enumerate(rna_deg_inputs.rna_ids)}
+
+    for mol_id, adj_factor in rna_deg_inputs.rna_deg_rates_adjustments.items():
+        if mol_id in cistron_id_to_index:
+            cistron_index = cistron_id_to_index[mol_id]
+            output.cistron_deg_rate_multipliers[cistron_index] = adj_factor
+            rna_indexes = rna_deg_inputs.cistron_id_to_rna_indexes[mol_id]
+        elif mol_id in rna_id_to_index:
+            rna_indexes = [rna_id_to_index[mol_id]]
+        else:
+            continue
+
+        for rna_index in rna_indexes:
+            output.rna_deg_rate_multipliers[rna_index] = max(
+                output.rna_deg_rate_multipliers.get(rna_index, 0), adj_factor
+            )
+
     rna_deg_update = compute_rna_deg_rate_updates(rna_deg_inputs)
-    sim_data_update = sim_data_update.merge(rna_deg_update)
     apply_sim_data_update(sim_data_copy, rna_deg_update)
 
     # 5. Protein degradation rates
     protein_deg_inputs = extract_protein_deg_rate_inputs(sim_data_copy)
-    protein_deg_update = compute_protein_deg_rate_updates(protein_deg_inputs)
-    sim_data_update = sim_data_update.merge(protein_deg_update)
-    # No need to apply the last one since we're done
+    for protein, adj_factor in protein_deg_inputs.protein_deg_rates_adjustments.items():
+        idx_array = np.where(protein_deg_inputs.monomer_ids == protein)[0]
+        for idx in idx_array:
+            output.protein_deg_rate_multipliers[int(idx)] = adj_factor
 
-    return StageResult(sim_data_update=sim_data_update, cell_specs_update=CellSpecsUpdate())
+    return output
 
 
-def compute_basal_specs(
+def compute_input_adjustments(sim_data, cell_specs, debug=False, smoke=False, **kwargs) -> StageResult:
+    """
+    Pure function to compute input adjustments.
+
+    This is a backward-compatible wrapper that calls compute_input_adjustments_typed
+    and converts the output to StageResult.
+
+    Args:
+        sim_data: The SimulationDataEcoli object (read-only)
+        cell_specs: The cell specifications dict (read-only)
+        debug: DEPRECATED - use smoke instead
+        smoke: If True, fit only minimal TFs for basal + with_aa conditions
+
+    Returns:
+        StageResult with sim_data_update and cell_specs_update
+    """
+    output = compute_input_adjustments_typed(sim_data, cell_specs, debug=debug, smoke=smoke, **kwargs)
+    return apply_input_adjustments_output(output)
+
+
+def compute_basal_specs_typed(
     sim_data,
     cell_specs,
     fitting_options: FittingOptions = None,
     **kwargs,
-) -> StageResult:
+) -> BasalSpecsOutput:
     """
-    Pure function to compute basal cell specifications.
+    Pure function to compute basal cell specifications, returning typed output.
 
-    This builds the basal condition cell specifications and updates sim_data
-    with expression, Km values, and maintenance costs.
+    This builds the basal condition cell specifications and computes
+    expression, Km values, and maintenance costs.
 
     Args:
         sim_data: The SimulationDataEcoli object (will be deep-copied)
@@ -1835,7 +1916,7 @@ def compute_basal_specs(
         fitting_options: FittingOptions with configuration for fitting behavior
 
     Returns:
-        StageResult with sim_data_update and cell_specs_update
+        BasalSpecsOutput with typed fields
     """
     # Use provided options or create defaults from kwargs for backward compatibility
     if fitting_options is None:
@@ -1848,8 +1929,6 @@ def compute_basal_specs(
         )
 
     sim_data_copy = copy_module.deepcopy(sim_data)
-    sim_data_update = SimDataUpdate()
-    cell_specs_update = CellSpecsUpdate()
 
     # Build basal cell specifications (this returns a new cell_specs dict)
     new_cell_specs = buildBasalCellSpecifications(
@@ -1860,9 +1939,6 @@ def compute_basal_specs(
         fitting_options.disable_rnapoly_capacity_fitting,
     )
 
-    # Update cell_specs with basal condition
-    cell_specs_update.conditions['basal'] = new_cell_specs['basal']
-
     # Set expression based on ppGpp regulation from basal expression
     sim_data_copy.process.transcription.set_ppgpp_expression(sim_data_copy)
 
@@ -1872,55 +1948,78 @@ def compute_basal_specs(
     )
     n_transcribed_rnas = len(sim_data_copy.process.transcription.rna_data)
 
-    # Capture updates to sim_data
-    # Mass updates from buildBasalCellSpecifications
-    sim_data_update.attributes['mass.avg_cell_dry_mass_init'] = sim_data_copy.mass.avg_cell_dry_mass_init
-    sim_data_update.attributes['mass.avg_cell_dry_mass'] = sim_data_copy.mass.avg_cell_dry_mass
-    sim_data_update.attributes['mass.avg_cell_water_mass_init'] = sim_data_copy.mass.avg_cell_water_mass_init
-    sim_data_update.attributes['mass.fitAvgSolubleTargetMolMass'] = sim_data_copy.mass.fitAvgSolubleTargetMolMass
-
-    # Expression updates
-    sim_data_update.dicts['process.transcription.rna_expression'] = {
-        'basal': sim_data_copy.process.transcription.rna_expression['basal']
-    }
-    sim_data_update.dicts['process.transcription.rna_synth_prob'] = {
-        'basal': sim_data_copy.process.transcription.rna_synth_prob['basal']
-    }
-    sim_data_update.dicts['process.transcription.fit_cistron_expression'] = {
-        'basal': sim_data_copy.process.transcription.fit_cistron_expression['basal']
-    }
-
-    # ppGpp expression updates (set_ppgpp_expression creates exp_ppgpp and exp_free)
-    sim_data_update.attributes['process.transcription.exp_ppgpp'] = (
-        sim_data_copy.process.transcription.exp_ppgpp
-    )
-    sim_data_update.attributes['process.transcription.exp_free'] = (
-        sim_data_copy.process.transcription.exp_free
-    )
-
-    # Km updates
-    sim_data_update.arrays['process.transcription.rna_data:Km_endoRNase'] = ArrayUpdate(
-        op='set', value=Km[:n_transcribed_rnas], field='Km_endoRNase'
-    )
-    sim_data_update.arrays['process.transcription.mature_rna_data:Km_endoRNase'] = ArrayUpdate(
-        op='set', value=Km[n_transcribed_rnas:], field='Km_endoRNase'
-    )
-
     # Maintenance costs (fitMaintenanceCosts sets sim_data.constants.darkATP)
     fitMaintenanceCosts(sim_data_copy, new_cell_specs["basal"]["bulkContainer"])
-    sim_data_update.attributes['constants.darkATP'] = sim_data_copy.constants.darkATP
 
-    return StageResult(sim_data_update=sim_data_update, cell_specs_update=cell_specs_update)
+    # Build basal CellSpecsData
+    basal_specs = new_cell_specs['basal']
+    basal_cell_specs = CellSpecsData(
+        concDict=basal_specs['concDict'],
+        expression=basal_specs['expression'],
+        doubling_time=basal_specs['doubling_time'],
+        synthProb=basal_specs['synthProb'],
+        fit_cistron_expression=basal_specs['fit_cistron_expression'],
+        avgCellDryMassInit=basal_specs['avgCellDryMassInit'],
+        fitAvgSolubleTargetMolMass=basal_specs['fitAvgSolubleTargetMolMass'],
+        bulkContainer=basal_specs['bulkContainer'],
+        cistron_expression=basal_specs.get('cistron_expression'),
+    )
+
+    return BasalSpecsOutput(
+        # Mass updates
+        avg_cell_dry_mass_init=sim_data_copy.mass.avg_cell_dry_mass_init,
+        avg_cell_dry_mass=sim_data_copy.mass.avg_cell_dry_mass,
+        avg_cell_water_mass_init=sim_data_copy.mass.avg_cell_water_mass_init,
+        fitAvgSolubleTargetMolMass=sim_data_copy.mass.fitAvgSolubleTargetMolMass,
+        # Expression
+        rna_expression_basal=sim_data_copy.process.transcription.rna_expression['basal'],
+        rna_synth_prob_basal=sim_data_copy.process.transcription.rna_synth_prob['basal'],
+        fit_cistron_expression_basal=sim_data_copy.process.transcription.fit_cistron_expression['basal'],
+        # ppGpp
+        exp_ppgpp=sim_data_copy.process.transcription.exp_ppgpp,
+        exp_free=sim_data_copy.process.transcription.exp_free,
+        # Km
+        rna_data_Km_endoRNase=Km[:n_transcribed_rnas],
+        mature_rna_data_Km_endoRNase=Km[n_transcribed_rnas:],
+        # Maintenance
+        darkATP=sim_data_copy.constants.darkATP,
+        # Cell specs
+        basal_cell_specs=basal_cell_specs,
+    )
 
 
-def compute_tf_condition_specs(
+def compute_basal_specs(
     sim_data,
     cell_specs,
     fitting_options: FittingOptions = None,
     **kwargs,
 ) -> StageResult:
     """
-    Pure function to compute TF condition cell specifications.
+    Pure function to compute basal cell specifications.
+
+    This is a backward-compatible wrapper that calls compute_basal_specs_typed
+    and converts the output to StageResult.
+
+    Args:
+        sim_data: The SimulationDataEcoli object (will be deep-copied)
+        cell_specs: The cell specifications dict (read-only)
+        fitting_options: FittingOptions with configuration for fitting behavior
+
+    Returns:
+        StageResult with sim_data_update and cell_specs_update
+    """
+    output = compute_basal_specs_typed(sim_data, cell_specs, fitting_options=fitting_options, **kwargs)
+    return apply_basal_specs_output(output)
+
+
+def compute_tf_condition_specs_typed(
+    sim_data,
+    cell_specs,
+    fitting_options: FittingOptions = None,
+    **kwargs,
+) -> TfConditionSpecsOutput:
+    """
+    Pure function to compute TF condition cell specifications, returning typed output.
 
     This builds cell specifications for each TF condition (active/inactive)
     and combined conditions.
@@ -1931,7 +2030,7 @@ def compute_tf_condition_specs(
         fitting_options: FittingOptions with configuration for fitting behavior
 
     Returns:
-        StageResult with sim_data_update and cell_specs_update
+        TfConditionSpecsOutput with typed fields
     """
     # Use provided options or create defaults from kwargs for backward compatibility
     if fitting_options is None:
@@ -1945,8 +2044,6 @@ def compute_tf_condition_specs(
 
     sim_data_copy = copy_module.deepcopy(sim_data)
     cell_specs_copy = copy_module.deepcopy(cell_specs)
-    sim_data_update = SimDataUpdate()
-    cell_specs_update = CellSpecsUpdate()
 
     cpus = parallelization.cpus(fitting_options.cpus)
 
@@ -1967,30 +2064,6 @@ def compute_tf_condition_specs(
         buildTfConditionCellSpecifications, args, conditions, cell_specs_copy, cpus
     )
 
-    # Capture cell_specs updates
-    for conditionKey in cell_specs_copy:
-        if conditionKey not in cell_specs:
-            cell_specs_update.conditions[conditionKey] = cell_specs_copy[conditionKey]
-
-    # Update sim_data transcription dicts
-    rna_expression_updates = {}
-    rna_synth_prob_updates = {}
-    cistron_expression_updates = {}
-    fit_cistron_expression_updates = {}
-
-    for conditionKey in cell_specs_copy:
-        if conditionKey == "basal":
-            continue
-        rna_expression_updates[conditionKey] = cell_specs_copy[conditionKey]["expression"]
-        rna_synth_prob_updates[conditionKey] = cell_specs_copy[conditionKey]["synthProb"]
-        cistron_expression_updates[conditionKey] = cell_specs_copy[conditionKey]["cistron_expression"]
-        fit_cistron_expression_updates[conditionKey] = cell_specs_copy[conditionKey]["fit_cistron_expression"]
-
-    sim_data_update.dicts['process.transcription.rna_expression'] = rna_expression_updates
-    sim_data_update.dicts['process.transcription.rna_synth_prob'] = rna_synth_prob_updates
-    sim_data_update.dicts['process.transcription.cistron_expression'] = cistron_expression_updates
-    sim_data_update.dicts['process.transcription.fit_cistron_expression'] = fit_cistron_expression_updates
-
     # Build combined conditions
     buildCombinedConditionCellSpecifications(
         sim_data_copy,
@@ -2001,35 +2074,64 @@ def compute_tf_condition_specs(
         fitting_options.disable_rnapoly_capacity_fitting,
     )
 
-    # Capture any new conditions from combined
-    for conditionKey in cell_specs_copy:
-        if conditionKey not in cell_specs and conditionKey not in cell_specs_update.conditions:
-            cell_specs_update.conditions[conditionKey] = cell_specs_copy[conditionKey]
+    # Build typed output
+    output = TfConditionSpecsOutput()
 
-    # Update combined condition expression in sim_data
-    for conditionKey in sim_data_copy.condition_active_tfs:
+    # Collect expression dicts and condition specs (excluding basal)
+    for conditionKey in cell_specs_copy:
         if conditionKey == "basal":
             continue
-        if conditionKey in cell_specs_copy:
-            sim_data_update.dicts['process.transcription.rna_expression'][conditionKey] = (
-                cell_specs_copy[conditionKey]["expression"]
-            )
-            sim_data_update.dicts['process.transcription.rna_synth_prob'][conditionKey] = (
-                cell_specs_copy[conditionKey]["synthProb"]
-            )
-            sim_data_update.dicts['process.transcription.cistron_expression'][conditionKey] = (
-                cell_specs_copy[conditionKey]["cistron_expression"]
-            )
-            sim_data_update.dicts['process.transcription.fit_cistron_expression'][conditionKey] = (
-                cell_specs_copy[conditionKey]["fit_cistron_expression"]
+        if conditionKey not in cell_specs:
+            # This is a new condition
+            specs = cell_specs_copy[conditionKey]
+            output.condition_specs[conditionKey] = CellSpecsData(
+                concDict=specs['concDict'],
+                expression=specs['expression'],
+                doubling_time=specs['doubling_time'],
+                synthProb=specs['synthProb'],
+                fit_cistron_expression=specs['fit_cistron_expression'],
+                avgCellDryMassInit=specs['avgCellDryMassInit'],
+                fitAvgSolubleTargetMolMass=specs['fitAvgSolubleTargetMolMass'],
+                bulkContainer=specs['bulkContainer'],
+                cistron_expression=specs.get('cistron_expression'),
             )
 
-    return StageResult(sim_data_update=sim_data_update, cell_specs_update=cell_specs_update)
+        # Add expression updates
+        output.rna_expression[conditionKey] = cell_specs_copy[conditionKey]["expression"]
+        output.rna_synth_prob[conditionKey] = cell_specs_copy[conditionKey]["synthProb"]
+        output.cistron_expression[conditionKey] = cell_specs_copy[conditionKey]["cistron_expression"]
+        output.fit_cistron_expression[conditionKey] = cell_specs_copy[conditionKey]["fit_cistron_expression"]
+
+    return output
 
 
-def compute_fit_condition(sim_data, cell_specs, fitting_options: FittingOptions = None, **kwargs) -> StageResult:
+def compute_tf_condition_specs(
+    sim_data,
+    cell_specs,
+    fitting_options: FittingOptions = None,
+    **kwargs,
+) -> StageResult:
     """
-    Pure function to fit conditions.
+    Pure function to compute TF condition cell specifications.
+
+    This is a backward-compatible wrapper that calls compute_tf_condition_specs_typed
+    and converts the output to StageResult.
+
+    Args:
+        sim_data: The SimulationDataEcoli object (will be deep-copied)
+        cell_specs: The cell specifications dict (will be deep-copied)
+        fitting_options: FittingOptions with configuration for fitting behavior
+
+    Returns:
+        StageResult with sim_data_update and cell_specs_update
+    """
+    output = compute_tf_condition_specs_typed(sim_data, cell_specs, fitting_options=fitting_options, **kwargs)
+    return apply_tf_condition_specs_output(output)
+
+
+def compute_fit_condition_typed(sim_data, cell_specs, fitting_options: FittingOptions = None, **kwargs) -> FitConditionOutput:
+    """
+    Pure function to fit conditions, returning typed output.
 
     This runs fitCondition for each condition to calculate bulk distributions
     and translation supply rates.
@@ -2040,7 +2142,7 @@ def compute_fit_condition(sim_data, cell_specs, fitting_options: FittingOptions 
         fitting_options: FittingOptions with configuration for fitting behavior
 
     Returns:
-        StageResult with sim_data_update and cell_specs_update
+        FitConditionOutput with typed fields
     """
     # Use provided options or create defaults from kwargs for backward compatibility
     if fitting_options is None:
@@ -2048,8 +2150,6 @@ def compute_fit_condition(sim_data, cell_specs, fitting_options: FittingOptions 
 
     sim_data_copy = copy_module.deepcopy(sim_data)
     cell_specs_copy = copy_module.deepcopy(cell_specs)
-    sim_data_update = SimDataUpdate()
-    cell_specs_update = CellSpecsUpdate()
 
     cpus = parallelization.cpus(fitting_options.cpus)
 
@@ -2058,25 +2158,43 @@ def compute_fit_condition(sim_data, cell_specs, fitting_options: FittingOptions 
     args = [(sim_data_copy, cell_specs_copy[condition], condition) for condition in conditions]
     apply_updates(fitCondition, args, conditions, cell_specs_copy, cpus)
 
+    output = FitConditionOutput()
+
     # Capture cell_specs updates
     for condition in conditions:
-        cell_specs_update.conditions[condition] = cell_specs_copy[condition]
+        output.condition_specs_updates[condition] = cell_specs_copy[condition]
 
     # Update translation supply rate
-    translation_supply_updates = {}
     for condition_label in sorted(cell_specs_copy):
         nutrients = sim_data_copy.conditions[condition_label]["nutrients"]
         if nutrients not in sim_data_copy.translation_supply_rate:
-            translation_supply_updates[nutrients] = cell_specs_copy[condition_label]["translation_aa_supply"]
+            output.translation_supply_rate[nutrients] = cell_specs_copy[condition_label]["translation_aa_supply"]
 
-    sim_data_update.dicts['translation_supply_rate'] = translation_supply_updates
-
-    return StageResult(sim_data_update=sim_data_update, cell_specs_update=cell_specs_update)
+    return output
 
 
-def compute_promoter_binding(sim_data, cell_specs, **kwargs) -> StageResult:
+def compute_fit_condition(sim_data, cell_specs, fitting_options: FittingOptions = None, **kwargs) -> StageResult:
     """
-    Pure function to fit promoter bound probability.
+    Pure function to fit conditions.
+
+    This is a backward-compatible wrapper that calls compute_fit_condition_typed
+    and converts the output to StageResult.
+
+    Args:
+        sim_data: The SimulationDataEcoli object (will be deep-copied)
+        cell_specs: The cell specifications dict (will be deep-copied)
+        fitting_options: FittingOptions with configuration for fitting behavior
+
+    Returns:
+        StageResult with sim_data_update and cell_specs_update
+    """
+    output = compute_fit_condition_typed(sim_data, cell_specs, fitting_options=fitting_options, **kwargs)
+    return apply_fit_condition_output(output)
+
+
+def compute_promoter_binding_typed(sim_data, cell_specs, **kwargs) -> PromoterBindingOutput:
+    """
+    Pure function to fit promoter bound probability, returning typed output.
 
     This stage uses convex optimization to fit TF-promoter binding probabilities
     that satisfy physiological constraints while matching experimental data.
@@ -2086,85 +2204,90 @@ def compute_promoter_binding(sim_data, cell_specs, **kwargs) -> StageResult:
         cell_specs: The cell specifications dict (will be deep-copied)
 
     Returns:
-        StageResult with sim_data_update and cell_specs_update
+        PromoterBindingOutput with typed fields
     """
-
     sim_data_copy = copy_module.deepcopy(sim_data)
     cell_specs_copy = copy_module.deepcopy(cell_specs)
-    sim_data_update = SimDataUpdate()
-    cell_specs_update = CellSpecsUpdate()
 
     if VERBOSE > 0:
         print("Fitting promoter binding")
 
     fitPromoterBoundProbability(sim_data_copy, cell_specs_copy)
 
-    # Capture the updates made by fitPromoterBoundProbability
-    # 1. pPromoterBound is set at sim_data level
-    sim_data_update.attributes['pPromoterBound'] = sim_data_copy.pPromoterBound
-
-    # 2. rna_synth_prob is updated for each condition via _update_synth_prob
-    sim_data_update.attributes['process.transcription.rna_synth_prob'] = (
-        sim_data_copy.process.transcription.rna_synth_prob
+    return PromoterBindingOutput(
+        pPromoterBound=sim_data_copy.pPromoterBound,
+        rna_synth_prob=sim_data_copy.process.transcription.rna_synth_prob,
+        basal_r_vector=cell_specs_copy['basal']['r_vector'],
+        basal_r_columns=cell_specs_copy['basal']['r_columns'],
     )
 
-    # 3. cell_specs["basal"] gets r_vector and r_columns
-    cell_specs_update.conditions['basal'] = {
-        'r_vector': cell_specs_copy['basal']['r_vector'],
-        'r_columns': cell_specs_copy['basal']['r_columns'],
-    }
 
-    return StageResult(sim_data_update=sim_data_update, cell_specs_update=cell_specs_update)
+def compute_promoter_binding(sim_data, cell_specs, **kwargs) -> StageResult:
+    """
+    Pure function to fit promoter bound probability.
+
+    This is a backward-compatible wrapper that calls compute_promoter_binding_typed
+    and converts the output to StageResult.
+
+    Args:
+        sim_data: The SimulationDataEcoli object (will be deep-copied)
+        cell_specs: The cell specifications dict (will be deep-copied)
+
+    Returns:
+        StageResult with sim_data_update and cell_specs_update
+    """
+    output = compute_promoter_binding_typed(sim_data, cell_specs, **kwargs)
+    return apply_promoter_binding_output(output)
+
+
+def compute_adjust_promoters_typed(sim_data, cell_specs, **kwargs) -> AdjustPromotersOutput:
+    """
+    Pure function to adjust promoters, returning typed output.
+
+    Fits ligand concentrations and calculates RNAP recruitment.
+
+    Returns:
+        AdjustPromotersOutput with typed fields
+    """
+    sim_data_copy = copy_module.deepcopy(sim_data)
+    cell_specs_copy = copy_module.deepcopy(cell_specs)
+
+    fitLigandConcentrations(sim_data_copy, cell_specs_copy)
+    calculateRnapRecruitment(sim_data_copy, cell_specs_copy)
+
+    return AdjustPromotersOutput(
+        free_to_inactive_total=sim_data_copy.process.equilibrium.free_to_inactive_total,
+        rnap_to_bound_prob_from_TFRNAP=sim_data_copy.process.transcription.rnap_to_bound_prob_from_TFRNAP,
+        rnap_to_bound_prob_from_basal=sim_data_copy.process.transcription.rnap_to_bound_prob_from_basal,
+    )
 
 
 def compute_adjust_promoters(sim_data, cell_specs, **kwargs) -> StageResult:
     """
     Pure function to adjust promoters.
 
-    Fits ligand concentrations and calculates RNAP recruitment.
+    This is a backward-compatible wrapper that calls compute_adjust_promoters_typed
+    and converts the output to StageResult.
 
     Returns:
         StageResult with sim_data_update and cell_specs_update
     """
-
-    sim_data_copy = copy_module.deepcopy(sim_data)
-    cell_specs_copy = copy_module.deepcopy(cell_specs)
-    sim_data_update = SimDataUpdate()
-
-    fitLigandConcentrations(sim_data_copy, cell_specs_copy)
-    calculateRnapRecruitment(sim_data_copy, cell_specs_copy)
-
-    # Capture updates from fitLigandConcentrations
-    sim_data_update.attributes['process.equilibrium.free_to_inactive_total'] = (
-        sim_data_copy.process.equilibrium.free_to_inactive_total
-    )
-
-    # Capture updates from calculateRnapRecruitment
-    sim_data_update.dicts['process.transcription.rnap_to_bound_prob_from_TFRNAP'] = (
-        sim_data_copy.process.transcription.rnap_to_bound_prob_from_TFRNAP
-    )
-    sim_data_update.dicts['process.transcription.rnap_to_bound_prob_from_basal'] = (
-        sim_data_copy.process.transcription.rnap_to_bound_prob_from_basal
-    )
-
-    return StageResult(sim_data_update=sim_data_update, cell_specs_update=CellSpecsUpdate())
+    output = compute_adjust_promoters_typed(sim_data, cell_specs, **kwargs)
+    return apply_adjust_promoters_output(output)
 
 
-def compute_set_conditions(sim_data, cell_specs, **kwargs) -> StageResult:
+def compute_set_conditions_typed(sim_data, cell_specs, **kwargs) -> SetConditionsOutput:
     """
-    Pure function to set conditions.
+    Pure function to set conditions, returning typed output.
 
     Rescales mass for soluble metabolites and populates condition-specific
     dictionaries on sim_data.
 
     Returns:
-        StageResult with sim_data_update and cell_specs_update
+        SetConditionsOutput with typed fields
     """
-
     sim_data_copy = copy_module.deepcopy(sim_data)
     cell_specs_copy = copy_module.deepcopy(cell_specs)
-    sim_data_update = SimDataUpdate()
-    cell_specs_update = CellSpecsUpdate()
 
     # Initialize the dicts
     rnaSynthProbFraction = {}
@@ -2175,6 +2298,7 @@ def compute_set_conditions(sim_data, cell_specs, **kwargs) -> StageResult:
     expectedDryMassIncreaseDict = {}
     ribosomeElongationRateDict = {}
     ribosomeFractionActiveDict = {}
+    condition_specs_updates = {}
 
     for condition_label in sorted(cell_specs_copy):
         condition = sim_data_copy.conditions[condition_label]
@@ -2204,7 +2328,7 @@ def compute_set_conditions(sim_data, cell_specs, **kwargs) -> StageResult:
             print("{} to {}".format(spec["avgCellDryMassInit"], avgCellDryMassInit))
 
         # Update cell_specs
-        cell_specs_update.conditions[condition_label] = {
+        condition_specs_updates[condition_label] = {
             'avgCellDryMassInit': avgCellDryMassInit,
             'fitAvgSolublePoolMass': fitAvgSolublePoolMass,
         }
@@ -2266,33 +2390,45 @@ def compute_set_conditions(sim_data, cell_specs, **kwargs) -> StageResult:
                 )
                 ribosomeFractionActiveDict[nutrients] = frac
 
-    # Set all the dict updates
-    sim_data_update.attributes['process.transcription.rnaSynthProbFraction'] = rnaSynthProbFraction
-    sim_data_update.attributes['process.transcription.rnapFractionActiveDict'] = rnapFractionActiveDict
-    sim_data_update.attributes['process.transcription.rnaSynthProbRProtein'] = rnaSynthProbRProtein
-    sim_data_update.attributes['process.transcription.rnaSynthProbRnaPolymerase'] = rnaSynthProbRnaPolymerase
-    sim_data_update.attributes['process.transcription.rnaPolymeraseElongationRateDict'] = rnaPolymeraseElongationRateDict
-    sim_data_update.attributes['expectedDryMassIncreaseDict'] = expectedDryMassIncreaseDict
-    sim_data_update.attributes['process.translation.ribosomeElongationRateDict'] = ribosomeElongationRateDict
-    sim_data_update.attributes['process.translation.ribosomeFractionActiveDict'] = ribosomeFractionActiveDict
+    return SetConditionsOutput(
+        rnaSynthProbFraction=rnaSynthProbFraction,
+        rnapFractionActiveDict=rnapFractionActiveDict,
+        rnaSynthProbRProtein=rnaSynthProbRProtein,
+        rnaSynthProbRnaPolymerase=rnaSynthProbRnaPolymerase,
+        rnaPolymeraseElongationRateDict=rnaPolymeraseElongationRateDict,
+        ribosomeElongationRateDict=ribosomeElongationRateDict,
+        ribosomeFractionActiveDict=ribosomeFractionActiveDict,
+        expectedDryMassIncreaseDict=expectedDryMassIncreaseDict,
+        condition_specs_updates=condition_specs_updates,
+    )
 
-    return StageResult(sim_data_update=sim_data_update, cell_specs_update=cell_specs_update)
 
-
-def compute_final_adjustments(sim_data, cell_specs, **kwargs) -> StageResult:
+def compute_set_conditions(sim_data, cell_specs, **kwargs) -> StageResult:
     """
-    Pure function for final adjustments.
+    Pure function to set conditions.
+
+    This is a backward-compatible wrapper that calls compute_set_conditions_typed
+    and converts the output to StageResult.
+
+    Returns:
+        StageResult with sim_data_update and cell_specs_update
+    """
+    output = compute_set_conditions_typed(sim_data, cell_specs, **kwargs)
+    return apply_set_conditions_output(output)
+
+
+def compute_final_adjustments_typed(sim_data, cell_specs, **kwargs) -> FinalAdjustmentsOutput:
+    """
+    Pure function for final adjustments, returning typed output.
 
     Adjusts expression for RNA attenuation, ppGpp regulation, and sets
     supply/export/uptake constants.
 
     Returns:
-        StageResult with sim_data_update and cell_specs_update
+        FinalAdjustmentsOutput with typed fields
     """
-
     sim_data_copy = copy_module.deepcopy(sim_data)
     cell_specs_copy = copy_module.deepcopy(cell_specs)
-    sim_data_update = SimDataUpdate()
 
     # Adjust expression for RNA attenuation
     sim_data_copy.process.transcription.calculate_attenuation(sim_data_copy, cell_specs_copy)
@@ -2322,37 +2458,50 @@ def compute_final_adjustments(sim_data, cell_specs, **kwargs) -> StageResult:
         average_basal_container, sim_data_copy.constants
     )
 
-    # Capture transcription updates
     transcription = sim_data_copy.process.transcription
-    sim_data_update.attributes['process.transcription.attenuation_basal_prob'] = transcription.attenuation_basal_prob
-    sim_data_update.attributes['process.transcription.ppgpp_expression'] = transcription.ppgpp_expression
-    sim_data_update.attributes['process.transcription.exp_ppgpp'] = transcription.exp_ppgpp
-    sim_data_update.attributes['process.transcription.synth_prob_ppgpp'] = transcription.synth_prob_ppgpp
-    sim_data_update.attributes['process.transcription.ppgpp_km'] = transcription.ppgpp_km
-    sim_data_update.attributes['process.transcription.ppgpp_ki_synthetase'] = transcription.ppgpp_ki_synthetase
-    sim_data_update.attributes['process.transcription.ppgpp_ki_hydrolase'] = transcription.ppgpp_ki_hydrolase
-
-    # Capture metabolism updates
     metabolism = sim_data_copy.process.metabolism
-    sim_data_update.attributes['process.metabolism.aa_supply_scaling'] = metabolism.aa_supply_scaling
-    sim_data_update.attributes['process.metabolism.aa_supply'] = metabolism.aa_supply
-    sim_data_update.attributes['process.metabolism.aa_export_kcat'] = metabolism.aa_export_kcat
-    sim_data_update.attributes['process.metabolism.aa_import_kis'] = metabolism.aa_import_kis
 
-    return StageResult(sim_data_update=sim_data_update, cell_specs_update=CellSpecsUpdate())
+    return FinalAdjustmentsOutput(
+        # Transcription
+        attenuation_basal_prob=transcription.attenuation_basal_prob,
+        ppgpp_expression=transcription.ppgpp_expression,
+        exp_ppgpp=transcription.exp_ppgpp,
+        synth_prob_ppgpp=transcription.synth_prob_ppgpp,
+        ppgpp_km=transcription.ppgpp_km,
+        ppgpp_ki_synthetase=transcription.ppgpp_ki_synthetase,
+        ppgpp_ki_hydrolase=transcription.ppgpp_ki_hydrolase,
+        # Metabolism
+        aa_supply_scaling=metabolism.aa_supply_scaling,
+        aa_supply=metabolism.aa_supply,
+        aa_export_kcat=metabolism.aa_export_kcat,
+        aa_import_kis=metabolism.aa_import_kis,
+    )
 
 
-def compute_initialize(sim_data, cell_specs, raw_data=None, **kwargs) -> StageResult:
+def compute_final_adjustments(sim_data, cell_specs, **kwargs) -> StageResult:
     """
-    Pure function to initialize sim_data.
+    Pure function for final adjustments.
+
+    This is a backward-compatible wrapper that calls compute_final_adjustments_typed
+    and converts the output to StageResult.
+
+    Returns:
+        StageResult with sim_data_update and cell_specs_update
+    """
+    output = compute_final_adjustments_typed(sim_data, cell_specs, **kwargs)
+    return apply_final_adjustments_output(output)
+
+
+def compute_initialize_typed(sim_data, cell_specs, raw_data=None, **kwargs) -> InitializeOutput:
+    """
+    Pure function to initialize sim_data, returning typed output.
 
     This is largely a wrapper around sim_data.initialize() which does
     the bulk of the work.
 
     Returns:
-        StageResult with sim_data_update and cell_specs_update
+        InitializeOutput with initialized sim_data
     """
-
     sim_data_copy = copy_module.deepcopy(sim_data)
 
     # Initialize sim_data
@@ -2361,14 +2510,21 @@ def compute_initialize(sim_data, cell_specs, raw_data=None, **kwargs) -> StageRe
         basal_expression_condition=BASAL_EXPRESSION_CONDITION,
     )
 
-    # Since initialize() sets up the entire sim_data structure,
-    # we need to capture all the initialized attributes.
-    # This is done by replacing the entire sim_data, which is handled
-    # specially in the apply function.
-    sim_data_update = SimDataUpdate()
-    sim_data_update.attributes['_replace_entire_object'] = sim_data_copy
+    return InitializeOutput(sim_data=sim_data_copy)
 
-    return StageResult(sim_data_update=sim_data_update, cell_specs_update=CellSpecsUpdate())
+
+def compute_initialize(sim_data, cell_specs, raw_data=None, **kwargs) -> StageResult:
+    """
+    Pure function to initialize sim_data.
+
+    This is a backward-compatible wrapper that calls compute_initialize_typed
+    and converts the output to StageResult.
+
+    Returns:
+        StageResult with sim_data_update and cell_specs_update
+    """
+    output = compute_initialize_typed(sim_data, cell_specs, raw_data=raw_data, **kwargs)
+    return apply_initialize_output(output)
 
 
 # ============================================================================

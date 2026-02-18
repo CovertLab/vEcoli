@@ -396,6 +396,374 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIn('arr', combined.arrays)
 
 
+# ============================================================================
+# Tests for Output Dataclasses and Mappers (parca_outputs.py)
+# ============================================================================
+
+from reconstruction.ecoli.parca_outputs import (
+    CellSpecsData,
+    InitializeOutput,
+    InputAdjustmentsOutput,
+    BasalSpecsOutput,
+    TfConditionSpecsOutput,
+    FitConditionOutput,
+    PromoterBindingOutput,
+    AdjustPromotersOutput,
+    SetConditionsOutput,
+    FinalAdjustmentsOutput,
+    apply_initialize_output,
+    apply_input_adjustments_output,
+    apply_basal_specs_output,
+    apply_tf_condition_specs_output,
+    apply_fit_condition_output,
+    apply_promoter_binding_output,
+    apply_adjust_promoters_output,
+    apply_set_conditions_output,
+    apply_final_adjustments_output,
+    cell_specs_data_to_dict,
+    dict_to_cell_specs_data,
+)
+
+
+class TestCellSpecsData(unittest.TestCase):
+    """Tests for the CellSpecsData dataclass."""
+
+    def test_creation_with_required_fields(self):
+        """Test creating CellSpecsData with required fields only."""
+        data = CellSpecsData(
+            concDict={'met1': 1.0},
+            expression=np.array([0.1, 0.2]),
+            doubling_time=60.0,
+            synthProb=np.array([0.5, 0.5]),
+            fit_cistron_expression=np.array([0.3, 0.3]),
+            avgCellDryMassInit=1.0,
+            fitAvgSolubleTargetMolMass=0.5,
+            bulkContainer=np.array([100, 200]),
+        )
+        self.assertEqual(data.concDict, {'met1': 1.0})
+        self.assertIsNone(data.cistron_expression)
+        self.assertIsNone(data.r_vector)
+
+    def test_creation_with_optional_fields(self):
+        """Test creating CellSpecsData with optional fields."""
+        data = CellSpecsData(
+            concDict={'met1': 1.0},
+            expression=np.array([0.1, 0.2]),
+            doubling_time=60.0,
+            synthProb=np.array([0.5, 0.5]),
+            fit_cistron_expression=np.array([0.3, 0.3]),
+            avgCellDryMassInit=1.0,
+            fitAvgSolubleTargetMolMass=0.5,
+            bulkContainer=np.array([100, 200]),
+            r_vector=np.array([1, 2, 3]),
+            r_columns=['a', 'b', 'c'],
+        )
+        np.testing.assert_array_equal(data.r_vector, [1, 2, 3])
+        self.assertEqual(data.r_columns, ['a', 'b', 'c'])
+
+    def test_to_dict_conversion(self):
+        """Test converting CellSpecsData to dict."""
+        data = CellSpecsData(
+            concDict={'met1': 1.0},
+            expression=np.array([0.1, 0.2]),
+            doubling_time=60.0,
+            synthProb=np.array([0.5, 0.5]),
+            fit_cistron_expression=np.array([0.3, 0.3]),
+            avgCellDryMassInit=1.0,
+            fitAvgSolubleTargetMolMass=0.5,
+            bulkContainer=np.array([100, 200]),
+            r_vector=np.array([1, 2, 3]),
+        )
+        result = cell_specs_data_to_dict(data)
+        self.assertEqual(result['concDict'], {'met1': 1.0})
+        np.testing.assert_array_equal(result['expression'], [0.1, 0.2])
+        np.testing.assert_array_equal(result['r_vector'], [1, 2, 3])
+        self.assertNotIn('cistron_expression', result)  # None values excluded
+
+    def test_from_dict_conversion(self):
+        """Test converting dict to CellSpecsData."""
+        d = {
+            'concDict': {'met1': 1.0},
+            'expression': np.array([0.1, 0.2]),
+            'doubling_time': 60.0,
+            'synthProb': np.array([0.5, 0.5]),
+            'fit_cistron_expression': np.array([0.3, 0.3]),
+            'avgCellDryMassInit': 1.0,
+            'fitAvgSolubleTargetMolMass': 0.5,
+            'bulkContainer': np.array([100, 200]),
+        }
+        data = dict_to_cell_specs_data(d)
+        self.assertEqual(data.concDict, {'met1': 1.0})
+        self.assertEqual(data.doubling_time, 60.0)
+        self.assertIsNone(data.r_vector)
+
+
+class TestOutputDataclasses(unittest.TestCase):
+    """Tests for the stage output dataclasses."""
+
+    def test_initialize_output(self):
+        """Test InitializeOutput creation."""
+        mock_sim_data = MagicMock()
+        output = InitializeOutput(sim_data=mock_sim_data)
+        self.assertEqual(output.sim_data, mock_sim_data)
+
+    def test_input_adjustments_output_defaults(self):
+        """Test InputAdjustmentsOutput with defaults."""
+        output = InputAdjustmentsOutput()
+        self.assertEqual(output.translation_efficiencies_multipliers, {})
+        self.assertIsNone(output.tf_to_active_inactive_conditions)
+        self.assertIsNone(output.rna_expression_basal)
+
+    def test_input_adjustments_output_with_values(self):
+        """Test InputAdjustmentsOutput with values."""
+        output = InputAdjustmentsOutput(
+            translation_efficiencies_multipliers={0: 1.5, 1: 2.0},
+            tf_to_active_inactive_conditions={'TF1': {'active': 'cond1'}},
+        )
+        self.assertEqual(output.translation_efficiencies_multipliers[0], 1.5)
+        self.assertIn('TF1', output.tf_to_active_inactive_conditions)
+
+    def test_basal_specs_output(self):
+        """Test BasalSpecsOutput creation."""
+        basal_specs = CellSpecsData(
+            concDict={},
+            expression=np.array([0.1]),
+            doubling_time=60.0,
+            synthProb=np.array([0.5]),
+            fit_cistron_expression=np.array([0.3]),
+            avgCellDryMassInit=1.0,
+            fitAvgSolubleTargetMolMass=0.5,
+            bulkContainer=np.array([100]),
+        )
+        output = BasalSpecsOutput(
+            avg_cell_dry_mass_init=1.0,
+            avg_cell_dry_mass=2.0,
+            avg_cell_water_mass_init=0.7,
+            fitAvgSolubleTargetMolMass=0.5,
+            rna_expression_basal=np.array([0.1, 0.2]),
+            rna_synth_prob_basal=np.array([0.5, 0.5]),
+            fit_cistron_expression_basal=np.array([0.3]),
+            exp_ppgpp=np.array([0.01]),
+            exp_free=np.array([0.99]),
+            rna_data_Km_endoRNase=np.array([1.0, 2.0]),
+            mature_rna_data_Km_endoRNase=np.array([1.5]),
+            darkATP=100.0,
+            basal_cell_specs=basal_specs,
+        )
+        self.assertEqual(output.avg_cell_dry_mass_init, 1.0)
+        np.testing.assert_array_equal(output.rna_expression_basal, [0.1, 0.2])
+
+    def test_tf_condition_specs_output_defaults(self):
+        """Test TfConditionSpecsOutput with defaults."""
+        output = TfConditionSpecsOutput()
+        self.assertEqual(output.rna_expression, {})
+        self.assertEqual(output.condition_specs, {})
+
+    def test_fit_condition_output(self):
+        """Test FitConditionOutput creation."""
+        output = FitConditionOutput(
+            translation_supply_rate={'minimal': np.array([1.0, 2.0])},
+            condition_specs_updates={'basal': {'key': 'value'}},
+        )
+        self.assertIn('minimal', output.translation_supply_rate)
+        self.assertEqual(output.condition_specs_updates['basal']['key'], 'value')
+
+
+class TestMapperFunctions(unittest.TestCase):
+    """Tests for the mapper functions."""
+
+    def test_apply_initialize_output(self):
+        """Test apply_initialize_output produces correct StageResult."""
+        mock_sim_data = MagicMock()
+        output = InitializeOutput(sim_data=mock_sim_data)
+        result = apply_initialize_output(output)
+
+        self.assertIsInstance(result, StageResult)
+        self.assertEqual(
+            result.sim_data_update.attributes['_replace_entire_object'],
+            mock_sim_data
+        )
+
+    def test_apply_input_adjustments_output_empty(self):
+        """Test apply_input_adjustments_output with empty output."""
+        output = InputAdjustmentsOutput()
+        result = apply_input_adjustments_output(output)
+
+        self.assertIsInstance(result, StageResult)
+        # Empty output should produce empty updates
+        self.assertEqual(len(result.sim_data_update.arrays), 0)
+
+    def test_apply_input_adjustments_output_with_smoke_mode(self):
+        """Test apply_input_adjustments_output with smoke mode updates."""
+        output = InputAdjustmentsOutput(
+            tf_to_active_inactive_conditions={'TF1': {'active': 'cond1'}},
+            condition_active_tfs={'basal': ['TF1']},
+        )
+        result = apply_input_adjustments_output(output)
+
+        self.assertEqual(
+            result.sim_data_update.attributes['tf_to_active_inactive_conditions'],
+            {'TF1': {'active': 'cond1'}}
+        )
+        self.assertEqual(
+            result.sim_data_update.attributes['condition_active_tfs'],
+            {'basal': ['TF1']}
+        )
+
+    def test_apply_input_adjustments_output_with_multipliers(self):
+        """Test apply_input_adjustments_output with efficiency multipliers."""
+        output = InputAdjustmentsOutput(
+            translation_efficiencies_multipliers={0: 1.5, 5: 2.0},
+        )
+        result = apply_input_adjustments_output(output)
+
+        # Should have array updates for each multiplier
+        self.assertIn(
+            'process.translation.translation_efficiencies_by_monomer:idx0',
+            result.sim_data_update.arrays
+        )
+        self.assertIn(
+            'process.translation.translation_efficiencies_by_monomer:idx5',
+            result.sim_data_update.arrays
+        )
+        # Check the update values
+        update0 = result.sim_data_update.arrays[
+            'process.translation.translation_efficiencies_by_monomer:idx0'
+        ]
+        self.assertEqual(update0.op, 'multiply')
+        self.assertEqual(update0.value, 1.5)
+        self.assertEqual(update0.indices, 0)
+
+    def test_apply_basal_specs_output(self):
+        """Test apply_basal_specs_output produces correct StageResult."""
+        basal_specs = CellSpecsData(
+            concDict={'met': 1.0},
+            expression=np.array([0.1]),
+            doubling_time=60.0,
+            synthProb=np.array([0.5]),
+            fit_cistron_expression=np.array([0.3]),
+            avgCellDryMassInit=1.0,
+            fitAvgSolubleTargetMolMass=0.5,
+            bulkContainer=np.array([100]),
+        )
+        output = BasalSpecsOutput(
+            avg_cell_dry_mass_init=1.0,
+            avg_cell_dry_mass=2.0,
+            avg_cell_water_mass_init=0.7,
+            fitAvgSolubleTargetMolMass=0.5,
+            rna_expression_basal=np.array([0.1]),
+            rna_synth_prob_basal=np.array([0.5]),
+            fit_cistron_expression_basal=np.array([0.3]),
+            exp_ppgpp=np.array([0.01]),
+            exp_free=np.array([0.99]),
+            rna_data_Km_endoRNase=np.array([1.0]),
+            mature_rna_data_Km_endoRNase=np.array([1.5]),
+            darkATP=100.0,
+            basal_cell_specs=basal_specs,
+        )
+        result = apply_basal_specs_output(output)
+
+        self.assertIsInstance(result, StageResult)
+        # Check mass attributes
+        self.assertEqual(
+            result.sim_data_update.attributes['mass.avg_cell_dry_mass_init'],
+            1.0
+        )
+        # Check expression dicts
+        self.assertIn('basal', result.sim_data_update.dicts['process.transcription.rna_expression'])
+        # Check Km array updates
+        self.assertIn(
+            'process.transcription.rna_data:Km_endoRNase',
+            result.sim_data_update.arrays
+        )
+        # Check cell_specs updates
+        self.assertIn('basal', result.cell_specs_update.conditions)
+
+    def test_apply_promoter_binding_output(self):
+        """Test apply_promoter_binding_output produces correct StageResult."""
+        output = PromoterBindingOutput(
+            pPromoterBound={'TF1': 0.5},
+            rna_synth_prob={'basal': np.array([0.1, 0.2])},
+            basal_r_vector=np.array([1, 2, 3]),
+            basal_r_columns=['a', 'b', 'c'],
+        )
+        result = apply_promoter_binding_output(output)
+
+        self.assertIsInstance(result, StageResult)
+        self.assertEqual(result.sim_data_update.attributes['pPromoterBound'], {'TF1': 0.5})
+        self.assertEqual(
+            result.cell_specs_update.conditions['basal']['r_columns'],
+            ['a', 'b', 'c']
+        )
+
+    def test_apply_adjust_promoters_output(self):
+        """Test apply_adjust_promoters_output produces correct StageResult."""
+        output = AdjustPromotersOutput(
+            free_to_inactive_total=0.1,
+            rnap_to_bound_prob_from_TFRNAP={'TF1': 0.5},
+            rnap_to_bound_prob_from_basal={'TF1': 0.3},
+        )
+        result = apply_adjust_promoters_output(output)
+
+        self.assertIsInstance(result, StageResult)
+        self.assertEqual(
+            result.sim_data_update.attributes['process.equilibrium.free_to_inactive_total'],
+            0.1
+        )
+
+    def test_apply_set_conditions_output(self):
+        """Test apply_set_conditions_output produces correct StageResult."""
+        output = SetConditionsOutput(
+            rnaSynthProbFraction={'minimal': {'mRna': 0.5}},
+            rnapFractionActiveDict={'minimal': 0.8},
+            rnaSynthProbRProtein={'minimal': np.array([0.1])},
+            rnaSynthProbRnaPolymerase={'minimal': np.array([0.05])},
+            rnaPolymeraseElongationRateDict={'minimal': 50.0},
+            ribosomeElongationRateDict={'minimal': 20.0},
+            ribosomeFractionActiveDict={'minimal': 0.9},
+            expectedDryMassIncreaseDict={'minimal': 1.0},
+            condition_specs_updates={'basal': {'avgCellDryMassInit': 1.5}},
+        )
+        result = apply_set_conditions_output(output)
+
+        self.assertIsInstance(result, StageResult)
+        self.assertEqual(
+            result.sim_data_update.attributes['process.transcription.rnaSynthProbFraction'],
+            {'minimal': {'mRna': 0.5}}
+        )
+        self.assertEqual(
+            result.cell_specs_update.conditions['basal']['avgCellDryMassInit'],
+            1.5
+        )
+
+    def test_apply_final_adjustments_output(self):
+        """Test apply_final_adjustments_output produces correct StageResult."""
+        output = FinalAdjustmentsOutput(
+            attenuation_basal_prob=0.1,
+            ppgpp_expression=np.array([0.5]),
+            exp_ppgpp=np.array([0.01]),
+            synth_prob_ppgpp=0.05,
+            ppgpp_km=1.0,
+            ppgpp_ki_synthetase=0.5,
+            ppgpp_ki_hydrolase=0.3,
+            aa_supply_scaling=1.0,
+            aa_supply=np.array([1, 2, 3]),
+            aa_export_kcat=0.1,
+            aa_import_kis=0.2,
+        )
+        result = apply_final_adjustments_output(output)
+
+        self.assertIsInstance(result, StageResult)
+        self.assertEqual(
+            result.sim_data_update.attributes['process.transcription.attenuation_basal_prob'],
+            0.1
+        )
+        self.assertEqual(
+            result.sim_data_update.attributes['process.metabolism.aa_supply_scaling'],
+            1.0
+        )
+
+
 # Skip slow integration tests by default
 # Run with: pytest -k "slow" --run-slow
 import os
