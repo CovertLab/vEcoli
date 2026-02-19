@@ -54,7 +54,7 @@ from reconstruction.ecoli.parca.stage_09_final_adjustments import (
 )
 
 # Backward-compatible re-exports used by test_fit_sim_data_1.py and analysis scripts.
-from reconstruction.ecoli.parca._shared import (  # noqa: F401
+from reconstruction.ecoli.parca._math import (  # noqa: F401
     totalCountFromMassesAndRatios,
     proteinDistributionFrommRNA,
     mRNADistributionFromProtein,
