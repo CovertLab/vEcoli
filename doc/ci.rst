@@ -38,12 +38,37 @@ tasks are:
     If you are still actively working on a pull request, add ``[skip ci]``
     on a new line in your commit message to skip the CI tests.
 
+.. warning::
+    The ``Reproducibility`` and ``two-gens`` tests can take a long time
+    to complete. To avoid excessive usage of GitHub Actions minutes, these
+    tests will only run if the PR has the ``long ci`` label on GitHub. See
+    GitHub documentation on
+    `adding labels <https://docs.github.com/en/issues/using-labels-and-milestones-to-track-work/managing-labels#applying-a-label>`_.
+    Make sure to only add this label when your PR is ready to merge.
+
 Logs from these tests can be viewed on the GitHub website and you are
 required to get all of these tests passing before merging a PR.
 
 We would appreciate if you added tests as part of your pull requests.
 This could be as simple as a Python function with the ``test_`` prefix that ensures
 the code added or modified in your PR works as intended using a few test cases.
+
+Merge Queue
+===========
+
+If there are 3 or more PRs that are ready to be merged, we recommend turning on
+the GitHub merge queue feature to reduce the time and number of CI runs required
+to get all the PRs merged. To do this, a user with admin privileges on the repository
+can go to the "Settings" tab, then "Rules" in the left sidebar, and "Rulesets" under
+that. From there, click on the "master" ruleset, and look for the "Require merge queue"
+setting. In addition to enabling that, also disable "Require branches to be up to date
+before merging" under "Require status checks to pass" to avoid redundant CI runs.
+
+.. warning::
+  The merge queue feature is only faster and more efficient when there are 3+ PRs
+  ready to be merged. For fewer PRs, do not turn merge queue on and just merge
+  them as normal. Remember to re-enable "Require branches to be up to date
+  before merging" when disabling "Require merge queue".
 
 -------
 Jenkins
