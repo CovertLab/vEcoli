@@ -306,9 +306,10 @@ class MetabolismReduxClassic(Step):
                         # "target_kinetic_bounds": [],
                         "reaction_catalyst_counts": [],
                         "homeostatic_term": 0.0,
-                        "secretion_term": 0.0,
+                        # "secretion_term": 0.0,
                         # "efficiency_term": 0.0,
                         # "kinetics_term": 0.0,
+                        "diversity_term": 0.0,
                         "binary_kinetic_idx": [],
                         "maintenance_target": 0.0,
                     }
@@ -493,10 +494,10 @@ class MetabolismReduxClassic(Step):
 
         # TODO (Cyrus) solve network flow problem to get fluxes
         objective_weights = {
-            "secretion": 1e-4,
+            # "secretion": 1e-4,
             # "efficiency": 2e-05,  # decrease efficiency
             # "kinetics": 1.64E-3,  # 0.00001
-            # "diversity": 0.0001, # 0.001 Heena's addition to minimize number of reactions with no flow
+            "diversity": 0.0001,  # 0.001 Heena's addition to minimize number of reactions with no flow
             "homeostatic": 1,
         }
 
@@ -558,12 +559,14 @@ class MetabolismReduxClassic(Step):
                     "reaction_catalyst_counts": reaction_catalyst_counts,
                     "homeostatic_term": solution.homeostatic_term
                     * objective_weights["homeostatic"],
-                    "secretion_term": solution.secretion_term
-                    * objective_weights["secretion"],
+                    # "secretion_term": solution.secretion_term
+                    # * objective_weights["secretion"],
                     # "efficiency_term": solution.efficiency_term
                     # * objective_weights["efficiency"],
                     # "kinetics_term": solution.kinetics_term
                     # * objective_weights["kinetics"],
+                    "diversity_term": solution.diversity_term
+                    * objective_weights["diversity"],
                     "binary_kinetic_idx": self.binary_kinetic_idx,
                     "time_per_step": time.time(),
                 },
@@ -613,8 +616,9 @@ class FlowResult:
     objective: float
     homeostatic_term: float
     # kinetics_term: float
-    secretion_term: float
+    # secretion_term: float
     # efficiency_term: float
+    diversity_term: float
 
 
 class NetworkFlowModel:
@@ -734,12 +738,12 @@ class NetworkFlowModel:
 
         # flux_sum_part_obj = objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
 
-        secretion_term = cp.sum(e[self.secretion_idx])
-        loss += (
-            objective_weights["secretion"] * secretion_term
-            if "secretion" in objective_weights
-            else loss
-        )
+        # secretion_term = cp.sum(e[self.secretion_idx])
+        # loss += (
+        #     objective_weights["secretion"] * secretion_term
+        #     if "secretion" in objective_weights
+        #     else loss
+        # )
 
         # efficiency_term = cp.sum(v)
         # loss += (
@@ -755,11 +759,12 @@ class NetworkFlowModel:
         #     else loss
         # )
 
-        # # Heena's addition: minimize number of reactions with no flow
-        # if "diversity" in objective_weights:
-        #     loss += objective_weights["diversity"] * cp.sum(cp.pos(1e-3 - v))
-        # else:
-        #     loss
+        # Heena's addition: minimize number of reactions with no flow
+        diversity_term = cp.sum(cp.pos(1e-3 - v))
+        if "diversity" in objective_weights:
+            loss += objective_weights["diversity"] * diversity_term
+        else:
+            loss
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
@@ -782,8 +787,9 @@ class NetworkFlowModel:
             objective=objective,
             homeostatic_term=homeostatic_term.value,
             # kinetics_term=kinetics_term.value,
-            secretion_term=secretion_term.value,
+            # secretion_term=secretion_term.value,
             # efficiency_term=efficiency_term.value,
+            diversity_term=diversity_term.value,
         )
 
 
