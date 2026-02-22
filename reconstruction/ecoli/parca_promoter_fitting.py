@@ -321,15 +321,19 @@ def _build_matrix_H(sim_data, col_name_to_index, pPromoterBound, r, fixedTFs, ce
             pInitV.append(1.0)
 
     # Save indices for combined conditions
+    # In debug/smoke mode, only a subset of TFs have columns in H;
+    # skip TFs whose columns were never created.
     for condition, tfs in sim_data.condition_active_tfs.items():
         for tf in tfs:
             col_name = f"{tf}__{tf}__active"
-            pPromoterBoundIdxs[condition][tf] = H_col_name_to_index[col_name]
+            if col_name in H_col_name_to_index:
+                pPromoterBoundIdxs[condition][tf] = H_col_name_to_index[col_name]
 
     for condition, tfs in sim_data.condition_inactive_tfs.items():
         for tf in tfs:
             col_name = f"{tf}__{tf}__inactive"
-            pPromoterBoundIdxs[condition][tf] = H_col_name_to_index[col_name]
+            if col_name in H_col_name_to_index:
+                pPromoterBoundIdxs[condition][tf] = H_col_name_to_index[col_name]
 
     pInit = np.zeros(len(set(pInitI)))
     pInit[pInitI] = pInitV

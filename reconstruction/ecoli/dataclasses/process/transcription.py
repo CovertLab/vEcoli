@@ -1715,11 +1715,17 @@ class Transcription(object):
         )
 
         # Store expected readthrough fraction for each condition to use in initial conditions
+        # In debug/smoke mode, cell_specs may not have entries for all conditions;
+        # use basal condition readthrough as fallback for unfitted conditions
+        basal_readthrough = 1 - self.get_attenuation_stop_probabilities(get_trna_conc("basal"))
         self.attenuation_readthrough = {}
         for condition in sim_data.conditions:
-            self.attenuation_readthrough[condition] = (
-                1 - self.get_attenuation_stop_probabilities(get_trna_conc(condition))
-            )
+            if condition in cell_specs:
+                self.attenuation_readthrough[condition] = (
+                    1 - self.get_attenuation_stop_probabilities(get_trna_conc(condition))
+                )
+            else:
+                self.attenuation_readthrough[condition] = basal_readthrough
 
     def get_attenuation_stop_probabilities(self, trna_conc):
         """
