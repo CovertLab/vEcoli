@@ -497,7 +497,7 @@ class MetabolismReduxClassic(Step):
             # "secretion": 1e-4,
             # "efficiency": 2e-05,  # decrease efficiency
             # "kinetics": 1.64E-3,  # 0.00001
-            "diversity": 0.0001,  # 0.001 Heena's addition to minimize number of reactions with no flow
+            "diversity": 2.04e-1,  # 0.001 Heena's addition to minimize number of reactions with no flow
             "homeostatic": 1,
         }
 
@@ -508,6 +508,7 @@ class MetabolismReduxClassic(Step):
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
+            target_minimal_flux=self.counts_to_molar.asNumber(),
             solver=cp.GLOP,
         )
 
@@ -702,6 +703,7 @@ class NetworkFlowModel:
         force_flow_idx: Optional[Iterable[float]] = None,
         objective_weights: Optional[Mapping[str, float]] = None,
         upper_flux_bound: float = 100,
+        target_minimal_flux: float = 0,
         solver=cp.GLOP,
     ) -> FlowResult:
         """Solve the network flow model for fluxes and dm/dt values."""
@@ -760,11 +762,12 @@ class NetworkFlowModel:
         # )
 
         # Heena's addition: minimize number of reactions with no flow
-        diversity_term = cp.sum(cp.pos(1e-3 - v))
-        if "diversity" in objective_weights:
-            loss += objective_weights["diversity"] * diversity_term
-        else:
-            loss
+        diversity_term = cp.sum(cp.pos(target_minimal_flux - v))
+        loss += (
+            objective_weights["diversity"] * diversity_term
+            if "diversity" in objective_weights
+            else loss
+        )
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
