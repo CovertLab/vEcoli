@@ -5,6 +5,8 @@ Tests for Ecoli Master
 """
 
 import os
+from itertools import product
+
 import numpy as np
 import pytest
 import warnings
@@ -24,6 +26,40 @@ from configs import (
 )
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
+TRANSLATION_SUPPLY_FLAGS = [
+    "mechanistic_translation_supply",
+    "trna_charging",
+    "mechanistic_aa_transport",
+    "aa_supply_in_charging",
+    "translation_supply",
+]
+_FLAG_STATE_TUPLES = list(product([False, True], repeat=len(TRANSLATION_SUPPLY_FLAGS)))
+TRANSLATION_FLAG_COMBINATIONS = [
+    dict(zip(TRANSLATION_SUPPLY_FLAGS, combo)) for combo in _FLAG_STATE_TUPLES
+]
+TRANSLATION_FLAG_IDS = [
+    ",".join(
+        f"{name}={'on' if state else 'off'}"
+        for name, state in zip(TRANSLATION_SUPPLY_FLAGS, combo)
+    )
+    for combo in _FLAG_STATE_TUPLES
+]
+del _FLAG_STATE_TUPLES
+
+
+def run_two_second_simulation(flag_overrides):
+    """Run a 2 s EcoliSim with the provided translation flag overrides."""
+
+    sim = EcoliSim.from_file()
+    # Use Parquet emitter for strict type enforcement
+    sim.config["emitter"] = "parquet"
+    sim.config["emitter_arg"] = {"out_dir": "out/translation_flag_tests"}
+    sim.config["max_duration"] = 2
+    for flag_key, flag_value in flag_overrides.items():
+        sim.config[flag_key] = flag_value
+    sim.build_ecoli()
+    sim.run()
+
 
 @pytest.mark.slow
 def test_division(agent_id="0", max_duration=4):
@@ -33,7 +69,7 @@ def test_division(agent_id="0", max_duration=4):
     sim = EcoliSim.from_file()
     # Initial state saved right before division set to be
     # triggered according to D period
-    sim.config["initial_state_file"] = "vivecoli_t2527"
+    sim.config["initial_state_file"] = "vivecoli_t2526"
     sim.config["divide"] = True
     sim.config["agent_id"] = agent_id
     sim.config["max_duration"] = max_duration
@@ -84,9 +120,9 @@ def test_division(agent_id="0", max_duration=4):
             membrane_idx,
         ]
     )
-    mother_state = next(iter(output[1]["agents"].values()))
+    mother_state = next(iter(output[0]["agents"].values()))
     mother_bulk = np.delete(mother_state["bulk"], ignore_idx)
-    daughter_states = list(output[2]["agents"].values())
+    daughter_states = list(output[1]["agents"].values())
     daughter_bulk = [np.delete(ds["bulk"], ignore_idx) for ds in daughter_states]
 
     # compare the counts of bulk molecules between the mother and daughters
@@ -138,7 +174,7 @@ def test_division_topology():
     # get initial mass from Ecoli composer
     sim = EcoliSim.from_file()
     sim.config["seed"] = 1
-    sim.config["initial_state_file"] = "vivecoli_t2527"
+    sim.config["initial_state_file"] = "vivecoli_t2526"
     sim.config["divide"] = True
     sim.config["agent_id"] = agent_id
     sim.build_ecoli()
@@ -315,12 +351,25 @@ def test_emit_unique():
             assert isinstance(val["agents"]["0"]["unique"][unique_mol], list)
 
 
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "flag_overrides",
+    TRANSLATION_FLAG_COMBINATIONS,
+    ids=TRANSLATION_FLAG_IDS,
+)
+def test_translation_flag_harness(flag_overrides):
+    """Run the 2 s simulation across every translation flag combination."""
+
+    run_two_second_simulation(flag_overrides)
+
+
 test_library = {
     "1": test_division,
     "2": test_division_topology,
     "3": test_ecoli_generate,
     "4": test_lattice_lysis,
     "5": test_emit_unique,
+    "6": test_translation_flag_harness,
 }
 
 # run experiments in test_library from the command line with:

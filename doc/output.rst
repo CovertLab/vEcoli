@@ -254,6 +254,11 @@ to read data using DuckDB. These include:
   Analysis scripts (see :ref:`analysis_scripts`) receive a ``history_sql`` and
   ``config_sql`` that reads data from Parquet files with filters applied when
   run using :py:mod:`runscripts.analysis`.
+- :py:func:`~ecoli.library.parquet_emitter.quote_columns`: Enclose
+  raw column names in double quotes to handle special characters (e.g. spaces,
+  dashes, etc.) when constructing DuckDB SQL queries.
+- :py:func:`~ecoli.library.parquet_emitter.list_columns`: Get a list of all
+  output column names, optionally filtered by glob pattern.
 - :py:func:`~ecoli.library.parquet_emitter.union_by_name`: Modify SQL query
   from :py:func:`~ecoli.library.parquet_emitter.dataset_sql` to
   use DuckDB's `union_by_name <https://duckdb.org/docs/stable/data/multiple_files/combining_schemas.html#union-by-name>`_.

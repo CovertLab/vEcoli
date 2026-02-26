@@ -592,14 +592,14 @@ class Metabolism(object):
             catalysts,
             reversible_reactions,
             rxn_id_to_base_rxn_id,
-            new_rxn_ids
+            new_rxn_ids,
         ) = self._replace_enzyme_reactions(
             raw_constraints,
             reaction_stoich,
             catalysts,
             reversible_reactions,
             rxn_id_to_base_rxn_id,
-            new_rxn_ids
+            new_rxn_ids,
         )
 
         # Create symbolic kinetic equations
@@ -1009,7 +1009,7 @@ class Metabolism(object):
         )
 
     def aa_supply_scaling(
-        self, aa_conc: Unum, aa_present: Unum
+        self, aa_conc: npt.NDArray[np.float64], aa_present: npt.NDArray[np.bool_]
     ) -> npt.NDArray[np.float64]:
         """
         Called during polypeptide_elongation process
@@ -1025,8 +1025,6 @@ class Metabolism(object):
                 Scaling for the supply of each amino acid with
                 higher supply rate if >1, lower supply rate if <1
         """
-
-        aa_conc = aa_conc.asNumber(METABOLITE_CONCENTRATION_UNITS)
 
         aa_supply = self.fraction_supply_rate
         aa_import = aa_present * self.fraction_import_rate
