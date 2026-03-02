@@ -497,7 +497,7 @@ class MetabolismReduxClassic(Step):
             # "secretion": 1e-4,
             # "efficiency": 2e-05,  # decrease efficiency
             # "kinetics": 1.64E-3,  # 0.00001
-            "diversity": 2.04e-1,  # 0.001 Heena's addition to minimize number of reactions with no flow
+            "diversity": 8.53e-3,  # 0.001 Heena's addition to minimize number of reactions with no flow
             "homeostatic": 1,
         }
 

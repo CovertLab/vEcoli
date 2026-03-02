@@ -15,3 +15,4 @@
 "HS-BETA-GLUCURONID-RXN_CPD-3611//METOH"	{"CPD-3611[CCO-CYTOSOL]": -1, "WATER[CCO-CYTOSOL]": -1, "D-Glucopyranuronate[CCO-CYTOSOL]": 1, "METOH[CCO-CYTOSOL]": 1}	"L2R"	["CPLX0-7662"]	1	"manual curation by Heena for gene uidA"
 "HS-SPONTANEOUS-TRANSPORT[CCO-OUTER-MEM]-HCN"	{"HCN[CCO-PERI-BAC]": -1, "HCN[CCO-EXTRACELLULAR]": 1}	"BOTH"	[]	1	"manual curation by Heena for gene pspE"
 "HS-SPONTANEOUS-TRANSPORT[CCO-PM-BAC-NEG]-HCN"	{"HCN[CCO-CYTOSOL]": -1, "HCN[CCO-PERI-BAC]": 1}	"BOTH"	[]	1	"manual curation by Heena for gene pspE"
+"HS-5-NUCLEOTID-RXN[CCO-CYTOSOL]-CMP//CYTIDINE"	{"CMP[CCO-CYTOSOL]": -1, "WATER[CCO-CYTOSOL]": -1, "CYTIDINE[CCO-CYTOSOL]": 1, "Pi[CCO-CYTOSOL]": 1}	"L2R"	["EG11817-MONOMER", "EG12115-MONOMER", "EG10634-MONOMER"]	1	"CYTIDINE[c] is currently homeostatic no-production dead-end. manual curation for de novo synthesis of Cytidine. Reference PMID: 16430214 (UmpH), 15489502 (UmpG), KEGG Pyrimidine Metabolism (yjjG)"

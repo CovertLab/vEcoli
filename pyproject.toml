@@ -57,6 +57,7 @@ dependencies = [
     "pandas-stubs~=2.3.0",
     "scipy-stubs~=1.15.3",
     "kneed>=0.8.5",
+    "kaleido>=1.2.0",
 ]
 
 [project.optional-dependencies]

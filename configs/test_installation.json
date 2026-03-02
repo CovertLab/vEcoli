@@ -1,12 +1,12 @@
 {
-    "experiment_id": "test_installation_2",
+    "experiment_id": "basal_added_Cytidine_rxn",
     "suffix_time": false,
     "parca_options": {
         "cpus": 4
     },
     "fail_at_max_duration": true,
     "sim_data_path": null,
-    "generations": 1,
+    "generations": 2,
     "n_init_sims": 1,
     "single_daughters": true,
     "emitter": "parquet",
@@ -14,6 +14,18 @@
         "out_dir": "out"
     },
     "analysis_options": {
-        "single": {"mass_fraction_summary": {}}
+        "single": {
+            "mass_fraction_summary": {}
+        },
+        "multigeneration": {
+            "replication": {}
+        },
+        "multivariant": {
+            "cell_mass": {},
+            "doubling_time_hist": {
+                "skip_n_gens": 0
+            },
+            "doubling_time_line": {}
+        }
     }
 }
