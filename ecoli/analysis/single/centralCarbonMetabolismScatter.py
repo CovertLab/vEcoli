@@ -82,7 +82,7 @@ def plot(
                 list(listeners__mass__cell_mass ORDER BY time) AS cell_mass,
                 list(listeners__mass__dry_mass ORDER BY time) AS dry_mass,
                 list(listeners__fba_results__base_reaction_fluxes ORDER BY time)
-                    AS base_reaction_fluxes,
+                    AS base_reaction_fluxes
             FROM ({subquery})
             GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
         """).pl()
