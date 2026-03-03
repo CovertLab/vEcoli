@@ -12,7 +12,6 @@ from typing import Any, cast, TYPE_CHECKING
 import os
 import pickle
 import numpy as np
-import plotly.graph_objects as go
 from wholecell.utils import units, toya
 from ecoli.library.parquet_emitter import (
     field_metadata,
@@ -20,6 +19,8 @@ from ecoli.library.parquet_emitter import (
     open_arbitrary_sim_data,
     read_stacked_columns,
 )
+import altair as alt
+import polars as pl
 
 if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
@@ -137,36 +138,55 @@ def plot(
     toya_stdevs_num = toya_flux_stdevs.asNumber(FLUX_UNITS)
 
     # ------------------------------------------------------------------
-    # Plotly scatter with error bars
+    # Altair scatter with error bars
     # ------------------------------------------------------------------
-
     pearson_r = float(np.corrcoef(sim_means_num, toya_means_num)[0, 1])
+    flux_unit_str = FLUX_UNITS.strUnit()
 
-    scatter = go.Scatter(
-        x=toya_means_num,
-        y=sim_means_num,
-        mode="markers",
-        error_x=dict(type="data", array=toya_stdevs_num, visible=True, color="black"),
-        error_y=dict(type="data", array=sim_stdevs_num, visible=True, color="black"),
-        marker=dict(color="steelblue", size=7),
-        text=list(toya_reactions),
-        hovertemplate=(
-            "<b>%{text}</b><br>"
-            f"Toya 2010: %{{x:.4f}} {FLUX_UNITS.strUnit()}<br>"
-            f"Simulation: %{{y:.4f}} {FLUX_UNITS.strUnit()}<extra></extra>"
-        ),
+    df = pl.DataFrame(
+        {
+            "reaction": list(toya_reactions),
+            "toya_mean": toya_means_num,
+            "toya_stdev": toya_stdevs_num,
+            "sim_mean": sim_means_num,
+            "sim_stdev": sim_stdevs_num,
+            # Pre-compute error bar bounds so Altair can encode them directly
+            "toya_lo": toya_means_num - toya_stdevs_num,
+            "toya_hi": toya_means_num + toya_stdevs_num,
+            "sim_lo": sim_means_num - sim_stdevs_num,
+            "sim_hi": sim_means_num + sim_stdevs_num,
+        }
     )
 
-    fig = go.Figure(data=[scatter])
-    fig.update_layout(
-        title=f"Central Carbon Metabolism Flux, Pearson R = {pearson_r:.2f}",
-        xaxis_title=f"Toya 2010 Reaction Flux {FLUX_UNITS.strUnit()}",
-        yaxis_title=f"Mean WCM Reaction Flux {FLUX_UNITS.strUnit()}",
-        width=700,
-        height=600,
-        template="plotly_white",
-        paper_bgcolor="rgba(255, 0, 0, 0)",
-        plot_bgcolor="rgba(255, 0, 0, 0)",
+    base = alt.Chart(df).encode(
+        x=alt.X("toya_mean:Q", title=f"Toya 2010 Reaction Flux {flux_unit_str}"),
+        y=alt.Y("sim_mean:Q", title=f"Mean WCM Reaction Flux {flux_unit_str}"),
+        tooltip=["reaction:N", "toya_mean:Q", "sim_mean:Q"],
     )
 
-    fig.write_html(os.path.join(outdir, "centralCarbonMetabolismScatter.html"))
+    points = base.mark_point(color="steelblue", size=50, filled=True)
+
+    x_errorbars = base.mark_errorbar().encode(
+        x=alt.X("toya_lo:Q", title=f"Toya 2010 Reaction Flux {flux_unit_str}"),
+        x2="toya_hi:Q",
+        color=alt.value("black"),
+    )
+
+    y_errorbars = base.mark_errorbar().encode(
+        y=alt.Y("sim_lo:Q", title=f"Mean WCM Reaction Flux {flux_unit_str}"),
+        y2="sim_hi:Q",
+        color=alt.value("black"),
+    )
+
+    chart = (
+        (points + x_errorbars + y_errorbars)
+        .properties(
+            title=f"Central Carbon Metabolism Flux, Pearson R = {pearson_r:.2f}",
+            width=500,
+            height=450,
+        )
+        .configure_view(strokeWidth=0, fill=None)
+    )
+
+    chart.save(os.path.join(outdir, "centralCarbonMetabolismScatter.html"))
+    chart.save(os.path.join(outdir, "centralCarbonMetabolismScatter.svg"))
