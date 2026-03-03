@@ -1,0 +1,14 @@
+{
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "experiment_id": ["test_PR_long"],
+        "variant_data_dir": ["/Users/HeenaSaqib/dev/vEcoli/out/test_PR_long/variant_sim_data"],
+        "validation_data_path": ["/Users/HeenaSaqib/dev/vEcoli/out/test_PR_long/parca/kb/validationData.cPickle"],
+        "outdir": "out/test_PR_long/extra_analysis/",
+        "cpus": 1,
+
+        "single": {"centralCarbonMetabolismScatter": {}}
+    }
+}
