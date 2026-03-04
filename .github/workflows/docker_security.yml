@@ -50,6 +50,7 @@ jobs:
           output: trivy-results.sarif
           vuln-type: os,library
           ignore-unfixed: true
+          github-pat: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload SARIF result
         id: upload-sarif
@@ -69,6 +70,7 @@ jobs:
           output: trivy-junit.xml
           vuln-type: os,library
           ignore-unfixed: true
+          github-pat: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish Trivy test report
         if: github.event_name == 'pull_request'
