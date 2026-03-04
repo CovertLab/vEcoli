@@ -25,7 +25,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish Trivy test report
-        if: github.event_name == 'pull_request'
         uses: ctrf-io/github-test-reporter@v1
         with:
           report-path: trivy-artifacts/trivy-junit.xml
