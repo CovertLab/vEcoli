@@ -24,13 +24,32 @@ jobs:
           repository: ${{ github.repository }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Determine PR number securely
+        id: get_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
+
+          PR_NUM=$(gh pr list \
+            --state open \
+            --json number,headRefOid \
+            --jq ".[] | select(.headRefOid==\"${HEAD_SHA}\") | .number")
+
+          if [ -z "$PR_NUM" ]; then
+            echo "No open PR found for head SHA ${HEAD_SHA}"
+            exit 1
+          fi
+
+          echo "PR_NUMBER=$PR_NUM" >> $GITHUB_ENV
+
       - name: Publish Trivy test report
         uses: ctrf-io/github-test-reporter@v1
         with:
           report-path: trivy-artifacts/trivy-junit.xml
           summary-report: false
           failed-report: true
-          pull-request: true
+          pull-request: ${{ env.PR_NUMBER }}
           update-comment: true
           overwrite-comment: true
           integrations-config: |
