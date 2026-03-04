@@ -1,0 +1,53 @@
+name: Trivy PR Comment
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+on:
+  workflow_run:
+    workflows: ["Docker Build and Security Scan"]
+    types: [completed]
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Trivy PR artifacts
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          name: trivy-pr-report
+          path: trivy-artifacts
+          repository: ${{ github.repository }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Trivy test report
+        if: github.event_name == 'pull_request'
+        uses: ctrf-io/github-test-reporter@v1
+        with:
+          report-path: trivy-artifacts/trivy-junit.xml
+          summary-report: false
+          failed-report: true
+          pull-request: true
+          update-comment: true
+          overwrite-comment: true
+          integrations-config: |
+            {
+              "junit-to-ctrf": {
+                "enabled": true,
+                "action": "convert",
+                "options": {
+                  "output": "./ctrf-reports/ctrf-report.json",
+                  "toolname": "junit-to-ctrf",
+                  "useSuiteName": false,
+                  "env": {
+                    "appName": "vEcoli"
+                  }
+                }
+              }
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

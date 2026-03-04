@@ -3,7 +3,6 @@ name: Docker Build and Security Scan
 permissions:
   contents: read
   security-events: write
-  pull-requests: write
   actions: read
 
 on:
@@ -50,7 +49,6 @@ jobs:
           output: trivy-results.sarif
           vuln-type: os,library
           ignore-unfixed: true
-          github-pat: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload SARIF result
         id: upload-sarif
@@ -70,32 +68,10 @@ jobs:
           output: trivy-junit.xml
           vuln-type: os,library
           ignore-unfixed: true
-          github-pat: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish Trivy test report
+      - name: Upload Trivy JUnit result
         if: github.event_name == 'pull_request'
-        uses: ctrf-io/github-test-reporter@v1
+        uses: actions/upload-artifact@v4
         with:
-          report-path: trivy-junit.xml
-          summary-report: false
-          failed-report: true
-          pull-request: true
-          update-comment: true
-          overwrite-comment: true
-          integrations-config: |
-            {
-              "junit-to-ctrf": {
-                "enabled": true,
-                "action": "convert",
-                "options": {
-                  "output": "./ctrf-reports/ctrf-report.json",
-                  "toolname": "junit-to-ctrf",
-                  "useSuiteName": false,
-                  "env": {
-                    "appName": "vEcoli"
-                  }
-                }
-              }
-            }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: trivy-pr-report
+          path: trivy-junit.xml
