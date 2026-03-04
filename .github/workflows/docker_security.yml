@@ -40,23 +40,60 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - name: Scan image with Trivy (SARIF)
+        if: github.event_name != 'pull_request'
+        id: trivy-sarif
+        uses: aquasecurity/trivy-action@0.34.2
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Analyze for critical and high CVEs
-        id: docker-scout-cves
-        uses: docker/scout-action@v1
-        with:
-          command: cves,recommendations
-          image: vecoli:latest
-          sarif-file: sarif.output.json
-          summary: true
+          image-ref: vecoli:latest
+          format: sarif
+          output: trivy-results.sarif
+          vuln-type: os,library
+          ignore-unfixed: true
 
       - name: Upload SARIF result
         id: upload-sarif
+        if: github.event_name != 'pull_request'
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: sarif.output.json
+          sarif_file: trivy-results.sarif
+
+      - name: Scan image with Trivy (JUnit)
+        id: trivy-junit
+        if: github.event_name == 'pull_request'
+        uses: aquasecurity/trivy-action@0.34.2
+        with:
+          image-ref: vecoli:latest
+          format: template
+          template: "@.github/trivy-junit.tpl"
+          output: trivy-junit.xml
+          vuln-type: os,library
+          ignore-unfixed: true
+
+      - name: Publish Trivy test report
+        if: github.event_name == 'pull_request'
+        uses: ctrf-io/github-test-reporter@v1
+        with:
+          report-path: trivy-junit.xml
+          summary-report: false
+          failed-report: true
+          pull-request: true
+          update-comment: true
+          overwrite-comment: true
+          integrations-config: |
+            {
+              "junit-to-ctrf": {
+                "enabled": true,
+                "action": "convert",
+                "options": {
+                  "output": "./ctrf-reports/ctrf-report.json",
+                  "toolname": "junit-to-ctrf",
+                  "useSuiteName": false,
+                  "env": {
+                    "appName": "vEcoli"
+                  }
+                }
+              }
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
