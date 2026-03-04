@@ -74,25 +74,24 @@ def plot(
                 "listeners__mass__dry_mass",
                 "listeners__fba_results__base_reaction_fluxes",
             ],
-            order_results=False,
+            order_results=True,
         ),
     )
 
     raw = conn.sql(f"""
             SELECT
-                list(listeners__mass__cell_mass ORDER BY time) AS cell_mass,
-                list(listeners__mass__dry_mass ORDER BY time) AS dry_mass,
-                list(listeners__fba_results__base_reaction_fluxes ORDER BY time)
+                (listeners__mass__cell_mass) AS cell_mass,
+                (listeners__mass__dry_mass) AS dry_mass,
+                (listeners__fba_results__base_reaction_fluxes)
                     AS base_reaction_fluxes
             FROM ({subquery})
-            GROUP BY experiment_id, variant, lineage_seed, generation, agent_id
         """).pl()
 
-    cell_masses = units.fg * ndlist_to_ndarray(raw["cell_mass"])[0]  # (n_timesteps,)
-    dry_masses = units.fg * ndlist_to_ndarray(raw["dry_mass"])[0]  # (n_timesteps,)
-    flux_matrix = ndlist_to_ndarray(raw["base_reaction_fluxes"])[
-        0
-    ]  # (n_timesteps, n_rxns)
+    cell_masses = units.fg * raw["cell_mass"]  # (n_timesteps,)
+    dry_masses = units.fg * raw["dry_mass"]  # (n_timesteps,)
+    flux_matrix = ndlist_to_ndarray(
+        raw["base_reaction_fluxes"]
+    )  # (n_timesteps, n_rxns)
 
     sim_reaction_fluxes = CONC_UNITS / TIMESTEP * flux_matrix  # mmol/L/s
 
