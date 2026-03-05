@@ -147,16 +147,35 @@ def build_index_from_rst(doc_dir: Path) -> list[dict]:
             print(f"Indexed RST: {extract_title(content)} ({html_path})")
         else:
             doc_title = sections[0]["title"]
+            # Track seen anchors to handle duplicates (Sphinx uses #id1, #id2, etc.)
+            anchor_counts = {}
             for i, section in enumerate(sections):
-                path = html_path if i == 0 else f"{html_path}#{section['anchor']}"
-                title = (
-                    section["title"] if i == 0 else f"{section['title']} ({doc_title})"
-                )
+                base_anchor = section["anchor"]
+                # Handle duplicate anchors within the same document
+                if base_anchor in anchor_counts:
+                    anchor_counts[base_anchor] += 1
+                    anchor = f"id{anchor_counts[base_anchor]}"
+                else:
+                    anchor_counts[base_anchor] = 0
+                    anchor = base_anchor
+
+                path = html_path if i == 0 else f"{html_path}#{anchor}"
+
+                # Create more descriptive title using content preview for duplicates
+                if i == 0:
+                    title = section["title"]
+                elif anchor_counts.get(base_anchor, 0) > 0:
+                    # For duplicate section titles, add content hint
+                    preview = section["content"][:60].strip().split("\n")[0]
+                    title = f"{section['title']}: {preview}... ({doc_title})"
+                else:
+                    title = f"{section['title']} ({doc_title})"
+
                 if len(section["content"].strip()) > 50:
                     index.append(
                         {"title": title, "path": path, "content": section["content"]}
                     )
-                    print(f"Indexed RST: {title} ({path})")
+                    print(f"Indexed RST: {title[:60]}... ({path})")
     return index
 
 
