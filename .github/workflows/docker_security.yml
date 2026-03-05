@@ -63,7 +63,7 @@ jobs:
         with:
           image-ref: vecoli:latest
           format: template
-          template: "@.github/trivy-junit.tpl"
+          template: "@${{ env.HOME }}/.local/bin/trivy-bin/contrib/junit.tpl"
           output: trivy-junit.xml
           vuln-type: os,library
           ignore-unfixed: true
