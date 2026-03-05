@@ -458,6 +458,13 @@ def run_simulation(config):
         initial_state = deep_merge(initial_state, initial_environment)
         del environment_composite, initial_environment
 
+    if config["emitter"] == "parquet":
+        # ParquetEmitter expects agents/<agent_id> structure. To ensure everything
+        # in outer sim is emitted, embed the entire outer sim under agents/outer
+        initial_state = {"agents": {"outer": initial_state}}
+        composite.processes = {"agents": {"outer": composite.processes}}
+        composite.topology = {"agents": {"outer": composite.topology}}
+
     metadata = config.to_dict()
     metadata.pop("initial_state", None)
     metadata["git_hash"] = get_git_revision_hash()
