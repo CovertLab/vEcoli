@@ -12,21 +12,9 @@ on:
 
 jobs:
   comment:
-    if: github.event.workflow_run.event == 'pull_request'
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Check out PR code
-        uses: actions/checkout@v6
-
-      - name: Download Trivy PR artifacts
-        uses: actions/download-artifact@v4
-        with:
-          run-id: ${{ github.event.workflow_run.id }}
-          name: trivy-pr-report
-          path: trivy-artifacts
-          repository: ${{ github.repository }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Determine PR number securely
         id: get_pr
         env:
@@ -46,29 +34,43 @@ jobs:
 
           echo "PR_NUMBER=$PR_NUM" >> $GITHUB_ENV
 
-      - name: Publish Trivy test report
-        uses: ctrf-io/github-test-reporter@v1
+      - name: Comment PR with Trivy summary link
+        uses: actions/github-script@v8
         with:
-          report-path: trivy-artifacts/trivy-junit.xml
-          summary-report: false
-          failed-report: true
-          pull-request: ${{ env.PR_NUMBER }}
-          update-comment: true
-          overwrite-comment: true
-          integrations-config: |
-            {
-              "junit-to-ctrf": {
-                "enabled": true,
-                "action": "convert",
-                "options": {
-                  "output": "./ctrf-reports/ctrf-report.json",
-                  "toolname": "junit-to-ctrf",
-                  "useSuiteName": false,
-                  "env": {
-                    "appName": "vEcoli"
-                  }
-                }
-              }
+          script: |
+            const issue_number = Number(process.env.PR_NUMBER);
+            if (!issue_number) {
+              core.info('No PR number available.');
+              return;
+            }
+            const header = '## Trivy scan results';
+            const runUrl = context.payload.workflow_run.html_url;
+            const comment = `${header}\n\nThe Trivy vulnerability report is available in the workflow summary:\n${runUrl}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existing = comments.find((c) => {
+              if (!c.body) return false;
+              const isBot = c.user && c.user.type === 'Bot';
+              return isBot && c.body.startsWith(header);
+            });
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: comment,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body: comment,
+              });
             }
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ env.PR_NUMBER }}

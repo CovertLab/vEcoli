@@ -59,7 +59,6 @@ jobs:
 
       - name: Scan image with Trivy (JUnit)
         id: trivy-junit
-        if: github.event_name == 'pull_request'
         uses: aquasecurity/trivy-action@0.34.2
         with:
           image-ref: vecoli:latest
@@ -69,9 +68,26 @@ jobs:
           vuln-type: os,library
           ignore-unfixed: true
 
-      - name: Upload Trivy JUnit result
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
+      - name: Publish Trivy test report (JUnit)
+        uses: ctrf-io/github-test-reporter@v1
         with:
-          name: trivy-pr-report
-          path: trivy-junit.xml
+          report-path: trivy-junit.xml
+          summary-report: false
+          failed-report: true
+          pull-request: false
+          github-report: false
+          integrations-config: |
+            {
+              "junit-to-ctrf": {
+                "enabled": true,
+                "action": "convert",
+                "options": {
+                  "output": "./ctrf-reports/ctrf-report.json",
+                  "toolname": "junit-to-ctrf",
+                  "useSuiteName": false,
+                  "env": {
+                    "appName": "vEcoli"
+                  }
+                }
+              }
+            }
