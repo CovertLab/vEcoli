@@ -349,6 +349,13 @@ class EngineProcess(Process):
             self.emitter_config = self.parameters["inner_emitter"]
         self.emitter_config["experiment_id"] = self.inner_experiment_id
         self.emitter = get_emitter(self.emitter_config)
+        # ParquetEmitter saves configuration data in separate Hive-partitioned
+        # dataset. It also needs this emit to determine what partition to write to.
+        if isinstance(self.emitter, ParquetEmitter):
+            null_emitter = self.sim.emitter
+            self.sim.emitter = self.emitter
+            self.sim._emit_configuration()
+            self.sim.emitter = null_emitter
 
     def ports_schema(self):
         schema = {
