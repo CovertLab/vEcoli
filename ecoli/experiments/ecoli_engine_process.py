@@ -134,6 +134,12 @@ class EcoliInnerSim(Composer):
             "division_threshold": ("division_threshold",),
         }
 
+        # Include metadata
+        composite["metadata"] = ecoli_sim.get_metadata()
+        composite["metadata"].pop("initial_state", None)
+        composite["metadata"]["output_metadata"] = ecoli_sim.output_metadata()
+        composite["metadata"] = serialize_value(composite["metadata"])
+
         return composite
 
     # Not used

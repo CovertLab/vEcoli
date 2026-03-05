@@ -310,6 +310,7 @@ class EngineProcess(Process):
             topology=topology,
             initial_state=inner_initial_state,
             experiment_id=self.inner_experiment_id,
+            metadata=inner_composite.get("metadata"),
             emitter="null",
             display_info=False,
             progress_bar=False,
@@ -514,6 +515,9 @@ class EngineProcess(Process):
         # updates, we have to wait for those updates from the previous
         # timestep to be applied before we emit data.
         data = self.sim.state.emit_data()
+        if isinstance(self.emitter, ParquetEmitter):
+            # ParquetEmitter expects per-agent data under agents/<agent_id>.
+            data = {"agents": {self.parameters["agent_id"]: data}}
         data["time"] = self.sim.global_time
         emit_config = {
             "table": "history",
