@@ -145,6 +145,15 @@ class MetadataArray(np.ndarray):
         else:
             return super(MetadataArray, self).__array_wrap__(out_arr, context)
 
+    def __reduce__(self):
+        pickled_state = super().__reduce__()
+        new_state = pickled_state[2] + (self.metadata,)
+        return pickled_state[0], pickled_state[1], new_state
+
+    def __setstate__(self, state):
+        self.metadata = state[-1]
+        super().__setstate__(state[:-1])
+
 
 def array_from(d: dict) -> np.ndarray:
     """Makes a Numpy array from dictionary values.
@@ -322,9 +331,14 @@ def bulk_numpy_updater(
     # Bulk updates are lists of tuples, where first value
     # in each tuple is an array of indices to update and
     # second value is array of updates to apply
+    # Numpy arrays are read-only outside of updater. If we cannot make the
+    # view writeable (eg. shared memory), operate on a local copy instead.
     result = current
-    # Numpy arrays are read-only outside of updater
-    result.flags.writeable = True
+    try:
+        result.flags.writeable = True
+    except ValueError:
+        result = current.copy()
+        result.flags.writeable = True
     for idx, value in update:
         result["count"][idx] += value
     result.flags.writeable = False
@@ -520,8 +534,13 @@ class UniqueNumpyUpdater:
             return current
 
         result = current
-        # Numpy arrays are read-only outside of updater
-        result.flags.writeable = True
+        # Numpy arrays are read-only outside of updater. If we cannot make the
+        # view writeable (eg. shared memory), operate on a local copy instead.
+        try:
+            result.flags.writeable = True
+        except ValueError:
+            result = current.copy()
+            result.flags.writeable = True
         active_mask = result["_entryState"].view(np.bool_)
         # Generate array of active indices for delete updates only
         if len(self.delete_updates) > 0:
