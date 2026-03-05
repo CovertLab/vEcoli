@@ -59,11 +59,12 @@ jobs:
 
       - name: Scan image with Trivy (JUnit)
         id: trivy-junit
-        uses: aquasecurity/trivy-action@0.34.2
+        # Pinned to avoid template path bug in >0.34.0: https://github.com/aquasecurity/trivy-action/issues/509
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           image-ref: vecoli:latest
           format: template
-          template: "@${{ env.HOME }}/.local/bin/trivy-bin/contrib/junit.tpl"
+          template: "@$HOME/.local/bin/trivy-bin/contrib/junit.tpl"
           output: trivy-junit.xml
           vuln-type: os,library
           ignore-unfixed: true
