@@ -204,8 +204,12 @@ class PBPBinding(Step):
         # Calculate fraction of active PBP1a, PBP1b using Hill Equation
         # (calculating prop NOT bound, i.e. 1 - Hill eq value)
         beta_lactam = states["concentrations"][self.beta_lactam]
-        active_fraction_1a = 1 / (1 + (beta_lactam / self.K_A_1a) ** self.n_1a)
-        active_fraction_1b = 1 / (1 + (beta_lactam / self.K_A_1b) ** self.n_1b)
+        active_fraction_1a = (
+            1 / (1 + (beta_lactam / self.K_A_1a) ** self.n_1a).magnitude
+        )
+        active_fraction_1b = (
+            1 / (1 + (beta_lactam / self.K_A_1b) ** self.n_1b).magnitude
+        )
 
         update["pbp_state"] = {
             "active_fraction_PBP1A": active_fraction_1a,
