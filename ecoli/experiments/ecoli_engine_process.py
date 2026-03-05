@@ -166,6 +166,7 @@ class EcoliEngineProcess(Composer):
         "emit_paths": tuple(),
         "start_time": 0,
         "experiment_id": "",
+        "inner_experiment_id": None,
         "inner_emitter": "null",
         "inner_composer_config": {},
         "lysis_config": {},
@@ -204,6 +205,7 @@ class EcoliEngineProcess(Composer):
             "_parallel": config["parallel"],
             "start_time": config["start_time"],
             "experiment_id": config["experiment_id"],
+            "inner_experiment_id": config["inner_experiment_id"],
             "inner_same_timestep": config["inner_same_timestep"],
         }
         cell_process = EngineProcess(cell_process_config)
@@ -350,6 +352,7 @@ def run_simulation(config):
         del multibody_schema, diffusion_schema
 
     experiment_id = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S_%f%z")
+    inner_experiment_id = f"{experiment_id}__inner"
     emitter_config = {"type": config["emitter"]}
     for key, value in config["emitter_arg"].items():
         emitter_config[key] = value
@@ -366,6 +369,7 @@ def run_simulation(config):
         "emit_paths": tuple(tuple(path) for path in config["engine_process_reports"]),
         "seed": config["seed"],
         "experiment_id": experiment_id,
+        "inner_experiment_id": inner_experiment_id,
         "start_time": config.get("start_time", 0),
         "inner_composer_config": config.to_dict(),
         "lysis_config": config.get("lysis_config", {}),

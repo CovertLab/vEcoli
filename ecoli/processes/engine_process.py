@@ -216,6 +216,7 @@ class EngineProcess(Process):
         "division_variable": None,
         "start_time": 0,
         "experiment_id": "",
+        "inner_experiment_id": None,
         "inner_same_timestep": False,
     }
     # TODO: Handle name clashes between tunnels.
@@ -249,6 +250,11 @@ class EngineProcess(Process):
         - ``tunnel_out_schemas``: a mapping from names of ports for tunnels out
           to schemas to use for the stores that those ports point to. Helpful
           for ensuring consistency in schemas specified for these stores.
+        - ``inner_experiment_id``: if supplied, the data from the inner simulation
+          will be emitted with this experiment ID instead of the main experiment ID,
+          which will be used for the outer simulation. This is necessary when running
+          with the ParquetEmitter to avoid overwriting data. If not provided, the main
+          experiment ID is used for both the inner and outer simulations.
 
         These options allow EngineProcess to create a full inner simulation,
         increment it in sync with the process time step and the rest of the
@@ -257,6 +263,10 @@ class EngineProcess(Process):
         """
         parameters = parameters or {}
         super().__init__(parameters)
+        self.inner_experiment_id = (
+            self.parameters.get("inner_experiment_id")
+            or self.parameters["experiment_id"]
+        )
         # Pass config to generate() to avoid deep copy
         inner_composite = self.parameters["inner_composer"]().generate(
             self.parameters["inner_composer_config"]
@@ -299,7 +309,7 @@ class EngineProcess(Process):
             flow=inner_composite.get("flow"),
             topology=topology,
             initial_state=inner_initial_state,
-            experiment_id=self.parameters["experiment_id"],
+            experiment_id=self.inner_experiment_id,
             emitter="null",
             display_info=False,
             progress_bar=False,
@@ -337,7 +347,7 @@ class EngineProcess(Process):
             self.emitter_config = {"type": self.parameters["inner_emitter"]}
         else:
             self.emitter_config = self.parameters["inner_emitter"]
-        self.emitter_config["experiment_id"] = self.parameters["experiment_id"]
+        self.emitter_config["experiment_id"] = self.inner_experiment_id
         self.emitter = get_emitter(self.emitter_config)
 
     def ports_schema(self):
