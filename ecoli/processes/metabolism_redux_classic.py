@@ -494,10 +494,10 @@ class MetabolismReduxClassic(Step):
 
         # TODO (Cyrus) solve network flow problem to get fluxes
         objective_weights = {
-            "secretion": 1e-4,
-            "efficiency": 2e-05,  # decrease efficiency
-            "kinetics": 1.64e-3,  # 0.00001
-            "diversity": 8.53e-3,  # 0.001 Heena's addition to minimize number of reactions with no flow
+            "secretion": 1.25293e-05,
+            "efficiency": 8.64e-06,  # decrease efficiency
+            "kinetics": 0.001411686,  # 0.00001
+            "diversity": 0.004282198,  # 0.001 Heena's addition to minimize number of reactions with no flow
             "homeostatic": 1,
         }
 

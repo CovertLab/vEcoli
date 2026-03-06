@@ -62,7 +62,7 @@ def run_ecoli_with_metabolism_redux_classic(
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries','parquet'
-    name="homeo_diversity_8.53E-3",
+    name="all_shrunk_row30",
     raw_output=False,
     save=False,
     save_times=[1],
