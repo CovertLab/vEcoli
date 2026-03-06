@@ -107,6 +107,14 @@ Configuration options for the ParCa are all located in a dictionary under the
   for transcription.
 - ``variable_elongation_translation``: If True, enable variable elongation
   for translation.
+- ``rnaseq_manifest_path``: Path to an RNA-seq manifest TSV file listing available
+  datasets. If null (default), ParCa uses the legacy ``raw_data.rna_seq_data`` tables.
+  See ``experimental_data/rnaseq/manifest.tsv`` for the expected format.
+- ``rnaseq_basal_dataset_id``: The ``dataset_id`` from the manifest to use as the
+  basal transcriptome. Required if ``rnaseq_manifest_path`` is set.
+- ``basal_expression_condition``: Modeled condition name used throughout ParCa for
+  the baseline growth state. Must match a defined condition. Default is
+  ``"M9 Glucose minus AAs"``.
 
 .. warning::
   **Omit from workflow configs:** ``parca_options --> outdir``
