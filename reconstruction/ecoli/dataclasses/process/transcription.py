@@ -16,6 +16,7 @@ import sympy as sp
 from reconstruction.ecoli.dataclasses.getter_functions import EXCLUDED_RNA_TYPES
 from .replication import MAX_TIMESTEP
 from ecoli.library.schema import bulk_name_to_idx, counts
+from wholecell.io.ingestion import ingest_transcriptome
 from wholecell.utils import data, fitting, units
 from wholecell.utils.fast_nonnegative_least_squares import fast_nnls
 from wholecell.utils.fitting import normalize
@@ -526,10 +527,23 @@ class Transcription(object):
         cistron_id_to_gene_id = {
             gene["rna_ids"][0]: gene["id"] for gene in raw_data.genes
         }
-        seq_data = {
-            x["Gene"]: x[sim_data.basal_expression_condition]
-            for x in getattr(raw_data.rna_seq_data, f"rnaseq_{RNA_SEQ_ANALYSIS}_mean")
-        }
+
+        # Build gene_id -> TPM mapping from either new ingestion layer or legacy tables
+        if sim_data.rnaseq_manifest_path is not None:
+            # Use new ingestion layer
+            tpm_table, _metadata = ingest_transcriptome(
+                sim_data.rnaseq_manifest_path,
+                sim_data.rnaseq_basal_dataset_id,
+            )
+            seq_data = dict(zip(tpm_table["gene_id"], tpm_table["tpm_mean"]))
+        else:
+            # Legacy path: use raw_data tables with basal_expression_condition as column
+            seq_data = {
+                x["Gene"]: x[sim_data.basal_expression_condition]
+                for x in getattr(
+                    raw_data.rna_seq_data, f"rnaseq_{RNA_SEQ_ANALYSIS}_mean"
+                )
+            }
 
         cistron_rnaseq_coverage = []
         for cistron_id in self.cistron_data["id"]:

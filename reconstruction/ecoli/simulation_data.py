@@ -8,6 +8,7 @@ Raw data processed into forms convenient for whole-cell modeling
 from __future__ import annotations
 
 import collections
+import os
 
 import numpy as np
 
@@ -42,7 +43,24 @@ class SimulationDataEcoli(object):
         # Doubling time (used in fitting)
         self.doubling_time = None
 
-    def initialize(self, raw_data, basal_expression_condition="M9 Glucose minus AAs"):
+    def initialize(
+        self,
+        raw_data,
+        basal_expression_condition,
+        rnaseq_manifest_path=None,
+        rnaseq_basal_dataset_id=None,
+    ):
+        # Validate RNA-seq config (early, clear errors)
+        if rnaseq_manifest_path is not None:
+            if rnaseq_basal_dataset_id is None:
+                raise ValueError(
+                    "rnaseq_basal_dataset_id is required when rnaseq_manifest_path is set."
+                )
+            if not os.path.isfile(rnaseq_manifest_path):
+                raise FileNotFoundError(
+                    f"rnaseq_manifest_path not found: {rnaseq_manifest_path}"
+                )
+
         self.operons_on = raw_data.operons_on
         self.stable_rrna = raw_data.stable_rrna
 
@@ -52,6 +70,10 @@ class SimulationDataEcoli(object):
 
         # TODO: Check that media condition is valid
         self.basal_expression_condition = basal_expression_condition
+
+        # RNA-seq ingestion config (None = use legacy raw_data tables)
+        self.rnaseq_manifest_path = rnaseq_manifest_path
+        self.rnaseq_basal_dataset_id = rnaseq_basal_dataset_id
 
         self._add_molecular_weight_keys(raw_data)
         self._add_compartment_keys(raw_data)

@@ -42,8 +42,6 @@ PROMOTER_MAX_ITERATIONS = 100
 PROMOTER_CONVERGENCE_THRESHOLD = 1e-9
 ECOS_0_TOLERANCE = 1e-10  # Tolerance to adjust solver output to 0
 
-BASAL_EXPRESSION_CONDITION = "M9 Glucose minus AAs"
-
 VERBOSE = 1
 
 COUNTS_UNITS = units.dmol
@@ -82,6 +80,13 @@ def fitSimData_1(raw_data, **kwargs):
                     expression is not fit to protein synthesis demands
             cache_dir (str) - path to the directory to save cached data for
                     affinities of RNAs binding to endoRNases
+            rnaseq_manifest_path (str or None) - path to RNA-seq manifest TSV;
+                    if None, use legacy raw_data.rna_seq_data tables
+            rnaseq_basal_dataset_id (str or None) - dataset_id from manifest to
+                    use as basal transcriptome; required if rnaseq_manifest_path is set
+            basal_expression_condition (str) - modeled condition name for
+                    the baseline growth state (default: "M9 Glucose minus AAs",
+                    defined in configs/default.json)
 
     """
 
@@ -193,7 +198,9 @@ def save_state(func):
 def initialize(sim_data, cell_specs, raw_data=None, **kwargs):
     sim_data.initialize(
         raw_data=raw_data,
-        basal_expression_condition=BASAL_EXPRESSION_CONDITION,
+        basal_expression_condition=kwargs.get("basal_expression_condition"),
+        rnaseq_manifest_path=kwargs.get("rnaseq_manifest_path"),
+        rnaseq_basal_dataset_id=kwargs.get("rnaseq_basal_dataset_id"),
     )
 
     return sim_data, cell_specs

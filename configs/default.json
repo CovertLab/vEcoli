@@ -48,7 +48,10 @@
         "save_intermediates": false,
         "intermediates_directory": "",
         "variable_elongation_transcription": true,
-        "variable_elongation_translation": false
+        "variable_elongation_translation": false,
+        "rnaseq_manifest_path": null,
+        "rnaseq_basal_dataset_id": null,
+        "basal_expression_condition": "M9 Glucose minus AAs"
     },
 
     "analysis_options": {

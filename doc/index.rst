@@ -42,6 +42,7 @@ in the Vivarium documentation.
    composites
    experiments
    workflows
+   data_ingestion
    output
    tutorial
    docs

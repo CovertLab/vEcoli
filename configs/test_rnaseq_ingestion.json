@@ -1,0 +1,10 @@
+{
+    "sim_data_path": null,
+    "parca_options": {
+        "cpus": 4,
+        "outdir": "out/test_rnaseq_ingestion",
+        "rnaseq_manifest_path": "experimental_data/rnaseq/manifest.tsv",
+        "rnaseq_basal_dataset_id": "gbw_0001",
+        "basal_expression_condition": "M9 Glucose minus AAs"
+    }
+}

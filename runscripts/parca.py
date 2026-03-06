@@ -53,6 +53,9 @@ def run_parca(config):
         disable_ribosome_capacity_fitting=(not config["ribosome_fitting"]),
         disable_rnapoly_capacity_fitting=(not config["rnapoly_fitting"]),
         cache_dir=config["cache_dir"],
+        rnaseq_manifest_path=config["rnaseq_manifest_path"],
+        rnaseq_basal_dataset_id=config["rnaseq_basal_dataset_id"],
+        basal_expression_condition=config["basal_expression_condition"],
     )
     print(f"{time.ctime()}: Saving sim_data")
     with open(sim_data_file, "wb") as f:
@@ -166,6 +169,24 @@ def main():
         help="Use a different elongation rate for different polypeptides"
         " (currently increases rates for ribosomal proteins)."
         " Usually set this consistently between runParca and runSim.",
+    )
+    parser.add_argument(
+        "--rnaseq-manifest-path",
+        type=str,
+        help="Path to RNA-seq manifest TSV. If set, ParCa uses the new"
+        " ingestion layer instead of legacy raw_data tables.",
+    )
+    parser.add_argument(
+        "--rnaseq-basal-dataset-id",
+        type=str,
+        help="dataset_id from manifest to use as basal transcriptome."
+        " Required if --rnaseq-manifest-path is set.",
+    )
+    parser.add_argument(
+        "--basal-expression-condition",
+        type=str,
+        help="Modeled condition name for the baseline growth state."
+        " Default = 'M9 Glucose minus AAs'.",
     )
 
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
