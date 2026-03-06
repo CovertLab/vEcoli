@@ -8,11 +8,13 @@ and a Pearson R correlation in the title.
 Ported from wcEcoli
 """
 
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 import os
 import pickle
 import numpy as np
+
 from wholecell.utils import units, toya
+from fsspec import open as fsspec_open
 from ecoli.library.parquet_emitter import (
     field_metadata,
     ndlist_to_ndarray,
@@ -57,35 +59,23 @@ def plot(
     # -------------------------------------------
     with open_arbitrary_sim_data(sim_data_paths) as f:
         sim_data = pickle.load(f)
-    with open(validation_data_paths[0], "rb") as f:
+    with fsspec_open(validation_data_paths[0], "rb") as f:
         validation_data = pickle.load(f)
 
     cell_density = sim_data.constants.cell_density
 
-    # --------------------------------------------------------------
-    # --- Read mass and FBA flux columns from parquet via DuckDB ---
-    # --------------------------------------------------------------
-    subquery = cast(
-        str,
-        read_stacked_columns(
-            history_sql,
-            [
-                "listeners__mass__cell_mass",
-                "listeners__mass__dry_mass",
-                "listeners__fba_results__base_reaction_fluxes",
-            ],
-            order_results=True,
-        ),
-    )
+    # --------------------------------------
+    # --- Read mass and FBA flux columns ---
+    # --------------------------------------
+    query = [
+        "listeners__mass__cell_mass AS cell_mass",
+        "listeners__mass__dry_mass AS dry_mass",
+        "listeners__fba_results__base_reaction_fluxes AS base_reaction_fluxes",
+    ]
 
-    raw = conn.sql(f"""
-            SELECT
-                (listeners__mass__cell_mass) AS cell_mass,
-                (listeners__mass__dry_mass) AS dry_mass,
-                (listeners__fba_results__base_reaction_fluxes)
-                    AS base_reaction_fluxes
-            FROM ({subquery})
-        """).pl()
+    raw = pl.DataFrame(
+        read_stacked_columns(history_sql, query, order_results=True, conn=conn)
+    )
 
     cell_masses = units.fg * raw["cell_mass"]  # (n_timesteps,)
     dry_masses = units.fg * raw["dry_mass"]  # (n_timesteps,)
