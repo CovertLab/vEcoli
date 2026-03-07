@@ -36,6 +36,7 @@ jobs:
           file: runscripts/container/Dockerfile
           load: true
           tags: vecoli:latest
+          build-args: INSTALL_EXTRAS=1
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
