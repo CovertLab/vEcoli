@@ -6,7 +6,7 @@ on a log scale, solves the NetworkFlowModel for each combination, and
 visualizes the resulting Pareto front across all objective terms.
 
 Produces three plots:
-    pareto_results/pairwise_homeostatic.html     — Altair pairwise scatter
+    pareto_results/pairwise_homeostatic.html     — Altair pairwise scatter + table + weight distribution
     pareto_results/parallel_coordinates.html     — Altair parallel coordinates
     pareto_results/pareto_3d.html                — Plotly 3D interactive
 
@@ -195,7 +195,7 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
     combined = (
         ((charts[0] | charts[1]) & (charts[2] | charts[3]))
         .properties(title="Pairwise Pareto: Homeostatic vs Secondary Objectives")
-        .configure_title(fontSize=14)
+        .configure_title(fontSize=14, anchor="")
     )
     out = os.path.join(OUT_DIR, "pairwise_homeostatic.html")
     combined.save(out)
