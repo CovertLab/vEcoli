@@ -1,7 +1,6 @@
 name: Trivy PR Comment
 
 permissions:
-  contents: read
   actions: read
   pull-requests: write
 
@@ -15,13 +14,11 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Check out PR code
-        uses: actions/checkout@v6
-
       - name: Determine PR number securely
         id: get_pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
 
