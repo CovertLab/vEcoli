@@ -45,7 +45,7 @@ jobs:
             }
             const header = '## Trivy scan results';
             const runUrl = context.payload.workflow_run.html_url;
-            const comment = `${header}\n\nThe Trivy vulnerability report is available in the workflow summary:\n${runUrl}`;
+            const comment = `${header}\n\n:warning: **Please review the Trivy vulnerability report before merging.**\n\nThe full report is available in the workflow summary:\n${runUrl}`;
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
