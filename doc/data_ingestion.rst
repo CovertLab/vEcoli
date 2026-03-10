@@ -80,13 +80,15 @@ RNA-seq data is organized as:
 
 .. code-block:: text
 
-    experimental_data/
-    └── rnaseq/
-        ├── manifest.tsv          # Lists all available datasets
-        ├── ref_0001.tsv          # TPM table for dataset ref_0001
-        ├── ref_0002.tsv          # TPM table for dataset ref_0002
-        ├── gbw_0001.tsv          # TPM table for dataset gbw_0001
-        └── ...
+    reconstruction/
+    └── ecoli/
+        └── experimental_data/
+            └── rnaseq/
+                ├── manifest.tsv        # Lists all available datasets
+                ├── ref_0001.tsv       # TPM table for dataset ref_0001
+                ├── ref_0002.tsv       # TPM table for dataset ref_0002
+                ├── gbw_0001.tsv       # TPM table for dataset gbw_0001
+                └── ...
 
 The ``manifest.tsv`` file is the entry point—it lists all available datasets and
 their metadata. Each dataset has a corresponding TPM table file.
@@ -229,7 +231,7 @@ in your configuration JSON:
         "parca_options": {
             "cpus": 4,
             "outdir": "out/custom_rnaseq",
-            "rnaseq_manifest_path": "experimental_data/rnaseq/manifest.tsv",
+            "rnaseq_manifest_path": "reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv",
             "rnaseq_basal_dataset_id": "gbw_0001",
             "basal_expression_condition": "M9 Glucose minus AAs"
         }
@@ -275,14 +277,14 @@ For programmatic access, use the functions in :py:mod:`wholecell.io.ingestion`:
     )
 
     # Load and validate a manifest
-    manifest = ingest_rnaseq_manifest("experimental_data/rnaseq/manifest.tsv")
+    manifest = ingest_rnaseq_manifest("reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv")
 
     # Load a single TPM table
-    tpm_df = ingest_rnaseq_tpm_table("experimental_data/rnaseq/gbw_0001.tsv")
+    tpm_df = ingest_rnaseq_tpm_table("reconstruction/ecoli/experimental_data/rnaseq/gbw_0001.tsv")
 
     # Convenience: load a dataset by ID (validates manifest + TPM table)
     tpm_df, metadata = ingest_transcriptome(
-        "experimental_data/rnaseq/manifest.tsv",
+        "reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv",
         dataset_id="gbw_0001"
     )
 
@@ -295,7 +297,7 @@ To add your own RNA-seq data:
 1. **Prepare your TPM table** as a tab-separated file with ``gene_id`` and ``tpm_mean``
    columns. Ensure gene IDs are EcoCyc identifiers.
 
-2. **Place the file** in ``experimental_data/rnaseq/`` (or another location).
+2. **Place the file** in ``reconstruction/ecoli/experimental_data/rnaseq/`` (or another location).
 
 3. **Add an entry to the manifest** with a unique ``dataset_id``, description,
    and the path to your file.
@@ -309,7 +311,7 @@ To add your own RNA-seq data:
 .. code-block:: bash
 
     # 1. Add your TPM file
-    cp my_experiment_tpm.tsv experimental_data/rnaseq/my_exp_001.tsv
+    cp my_experiment_tpm.tsv reconstruction/ecoli/experimental_data/rnaseq/my_exp_001.tsv
 
     # 2. Edit manifest.tsv to add a row for my_exp_001
 
@@ -319,7 +321,7 @@ To add your own RNA-seq data:
         "parca_options": {
             "cpus": 4,
             "outdir": "out/my_experiment",
-            "rnaseq_manifest_path": "experimental_data/rnaseq/manifest.tsv",
+            "rnaseq_manifest_path": "reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv",
             "rnaseq_basal_dataset_id": "my_exp_001"
         }
     }
