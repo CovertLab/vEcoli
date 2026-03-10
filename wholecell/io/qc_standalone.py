@@ -146,7 +146,18 @@ def _(result):
 @app.cell
 def _(result):
     ## essential genes
-    result.comparison_table[result.comparison_table["gene_essential"]]
+    result.comparison_table[result.comparison_table["gene_essential"]].sort_values(
+        "expt_tpm"
+    )
+    return
+
+
+@app.cell
+def _(np, result):
+    result.comparison_table[
+        (result.comparison_table["gene_essential"])
+        & (np.isnan(result.comparison_table["expt_tpm"]))
+    ].sort_values("expt_tpm")
     return
 
 
@@ -267,6 +278,35 @@ def _(matched, np):
 
     plt.tight_layout()
     fig2
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""TODO: add in variance-aware comparative analyses (e.g. fill in and use the optional tpm_std columns)"""
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+    Consider... 
+
+    - if/how/when to implement data correction or flexibilization. For example, ParCa fails on an attempt to ingest new data. How to troubleshoot?
+       - Identify candidate problematic datapoints, e.g. by most different from reference, perhaps weighted by essentiality or pathway designation
+       - Options to remediate
+          - drop sets of problematic datapoints (revert to reference measurement) until issue resolves; how to generalize?
+          - "flex" data in a rational way with respect to its variance. E.g. "what's the minimal number of genes I have to modify within n*[std] to successfully integrate"?
+    """
+    )
     return
 
 
