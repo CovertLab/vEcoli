@@ -48,7 +48,7 @@ WEIGHT_RANGES = {
 }
 
 OUT_DIR = (
-    "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_shrunk_1000samples"
+    "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_shrunk_1000samples_2"
 )
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -162,6 +162,7 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
         ("obj_div", "lambda_div", "Diversity"),
     ]
 
+    # --- Make Scatter Plots ---
     charts = []
     interval = alt.selection_interval()
     for obj_col, lam_col, title in terms:
@@ -192,12 +193,85 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
         ).add_selection(interval)
         charts.append(chart)
 
-    combined = (
-        ((charts[0] | charts[1]) & (charts[2] | charts[3]))
-        .properties(title="Pairwise Pareto: Homeostatic vs Secondary Objectives")
-        .configure_title(fontSize=14, anchor="")
+    combined_scatter = ((charts[0] | charts[1]) & (charts[2] | charts[3])).properties(
+        title="Pairwise Pareto: Homeostatic vs Secondary Objectives"
     )
-    out = os.path.join(OUT_DIR, "pairwise_homeostatic.html")
+
+    # --- Make Table Alongside Selection (Rank By Homeostatic Objective)---
+    # Base chart for data tables
+    ranked_text = (
+        alt.Chart(df)
+        .mark_text(align="right")
+        .encode(y=alt.Y("rank:O", axis=None))
+        .transform_filter(interval)
+        .transform_window(
+            rank="rank()",
+            sort=[
+                alt.SortField("obj_homeo", order="ascending"),
+                alt.SortField("obj_kin", order="ascending"),
+            ],
+        )
+        .transform_filter(alt.datum.rank <= 10)
+        .properties(height=240)
+    )
+
+    # Data Tables
+    lambda_sec = ranked_text.encode(
+        text=alt.Text("lambda_sec:Q", format=".2e")
+    ).properties(title=alt.Title(text="λ_sec", align="right"))
+    lambda_eff = ranked_text.encode(
+        text=alt.Text("lambda_eff:Q", format=".2e")
+    ).properties(title=alt.Title(text="λ_eff", align="right"))
+    lambda_kin = ranked_text.encode(
+        text=alt.Text("lambda_kin:Q", format=".2e")
+    ).properties(title=alt.Title(text="λ_kin", align="right"))
+    lambda_div = ranked_text.encode(
+        text=alt.Text("lambda_div:Q", format=".2e")
+    ).properties(title=alt.Title(text="λ_div", align="right"))
+    obj_homeo = ranked_text.encode(
+        text=alt.Text("obj_homeo:Q", format=".3e")
+    ).properties(title=alt.Title(text="Homeostatic Objective", align="right"))
+    obj_kinetic = ranked_text.encode(
+        text=alt.Text("obj_kin:Q", format=".3f")
+    ).properties(title=alt.Title(text="Unweighted Kinetic Objective", align="right"))
+    text = alt.hconcat(
+        lambda_sec, lambda_eff, lambda_kin, lambda_div, obj_homeo, obj_kinetic
+    )
+
+    density = (
+        alt.Chart(df)
+        .transform_filter(interval)
+        .transform_fold(
+            ["lambda_sec", "lambda_eff", "lambda_kin", "lambda_div"],
+            as_=["lambda_type", "value"],
+        )
+        .transform_density(
+            density="value",
+            groupby=["lambda_type"],
+            as_=["value", "density"],
+        )
+        .mark_area(opacity=0.4)
+        .encode(
+            x=alt.X("value:Q", title="Lambda Value").scale(type="log"),
+            y=alt.Y("density:Q", title="Density", stack=False),
+            color=alt.Color(
+                "lambda_type:N",
+                title="Lambda",
+                legend=alt.Legend(orient="none", legendX=550, legendY=300),
+            ),
+        )
+        .properties(title="Distribution of lambda weights", width=500, height=300)
+    )
+
+    # Build chart
+    c2 = text & density
+    combined = (
+        (combined_scatter | c2)
+        .configure_title(fontSize=14, anchor="middle")
+        .configure_view(stroke=None)
+    )
+
+    out = os.path.join(OUT_DIR, "pairwise_analysis.html")
     combined.save(out)
     print(f"  Saved: {out}")
 
