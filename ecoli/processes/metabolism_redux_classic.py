@@ -141,6 +141,13 @@ class MetabolismReduxClassic(Step):
         "cell_density": 1100 * units.g / units.L,
         "concentration_updates": None,
         "maintenance_reaction": {},
+        "objective_weights": {
+            "secretion": 0.0000291836683368938,
+            "efficiency": 0.0000143864966692813,  # decrease efficiency
+            "kinetics": 0.000587985945457892,  # 0.00001
+            "diversity": 0.0012362552060785,  # 0.001 Heena's addition to minimize number of reactions with no flow
+            "homeostatic": 1,
+        },
     }
 
     def __init__(self, parameters):
@@ -492,14 +499,7 @@ class MetabolismReduxClassic(Step):
         target_kinetic_values = enzyme_kinetic_boundaries[:, 1]
         target_kinetic_bounds = enzyme_kinetic_boundaries[:, [0, 2]]
 
-        # TODO (Cyrus) solve network flow problem to get fluxes
-        objective_weights = {
-            "secretion": 1.25293e-05,
-            "efficiency": 8.64e-06,  # decrease efficiency
-            "kinetics": 0.001411686,  # 0.00001
-            "diversity": 0.004282198,  # 0.001 Heena's addition to minimize number of reactions with no flow
-            "homeostatic": 1,
-        }
+        objective_weights = self.parameters["objective_weights"]
 
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
@@ -568,7 +568,7 @@ class MetabolismReduxClassic(Step):
                     * objective_weights["kinetics"],
                     "diversity_term": solution.diversity_term
                     * objective_weights["diversity"],
-                    "binary_kinetic_idx": self.binary_kinetic_idx,
+                    "binary_kinetic_idx": self.binary_kinetic_idx[0],
                     "time_per_step": time.time(),
                 },
                 "enzyme_kinetics": {"counts_to_molar": self.counts_to_molar.asNumber()},

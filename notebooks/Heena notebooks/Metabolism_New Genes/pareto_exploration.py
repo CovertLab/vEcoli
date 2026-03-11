@@ -47,9 +47,7 @@ WEIGHT_RANGES = {
     "diversity": (1e-4, 1e-2),
 }
 
-OUT_DIR = (
-    "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_shrunk_1000samples_2"
-)
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_init_shrunk_1000samples"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 
@@ -204,18 +202,21 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
         .mark_text(align="right")
         .encode(y=alt.Y("rank:O", axis=None))
         .transform_filter(interval)
+        .transform_calculate(
+            lambda_norm="sqrt(datum.lambda_sec * datum.lambda_sec + "
+            "datum.lambda_eff * datum.lambda_eff + "
+            "datum.lambda_kin * datum.lambda_kin + "
+            "datum.lambda_div * datum.lambda_div)"
+        )
         .transform_window(
             rank="rank()",
-            sort=[
-                alt.SortField("obj_homeo", order="ascending"),
-                alt.SortField("obj_kin", order="ascending"),
-            ],
+            sort=[alt.SortField("lambda_norm", order="descending")],
         )
         .transform_filter(alt.datum.rank <= 10)
         .properties(height=240)
     )
 
-    # Data Tables
+    # Select Columns to Display for Data Tables
     lambda_sec = ranked_text.encode(
         text=alt.Text("lambda_sec:Q", format=".2e")
     ).properties(title=alt.Title(text="λ_sec", align="right"))
@@ -230,14 +231,26 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
     ).properties(title=alt.Title(text="λ_div", align="right"))
     obj_homeo = ranked_text.encode(
         text=alt.Text("obj_homeo:Q", format=".3e")
-    ).properties(title=alt.Title(text="Homeostatic Objective", align="right"))
+    ).properties(title=alt.Title(text="Homeostatic Obj.", align="right"))
     obj_kinetic = ranked_text.encode(
         text=alt.Text("obj_kin:Q", format=".3f")
-    ).properties(title=alt.Title(text="Unweighted Kinetic Objective", align="right"))
+    ).properties(title=alt.Title(text="Unweighted Kinetic Obj.", align="right"))
+    obj_secretion = ranked_text.encode(
+        text=alt.Text("obj_sec:Q", format=".3f")
+    ).properties(title=alt.Title(text="Unweighted Secretion Obj.", align="right"))
+
+    # Combine Columns to Display
     text = alt.hconcat(
-        lambda_sec, lambda_eff, lambda_kin, lambda_div, obj_homeo, obj_kinetic
+        lambda_sec,
+        lambda_eff,
+        lambda_kin,
+        lambda_div,
+        obj_homeo,
+        obj_kinetic,
+        obj_secretion,
     )
 
+    # --- Plot Lambda Distributions for Selected Points ---
     density = (
         alt.Chart(df)
         .transform_filter(interval)
@@ -245,22 +258,20 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
             ["lambda_sec", "lambda_eff", "lambda_kin", "lambda_div"],
             as_=["lambda_type", "value"],
         )
-        .transform_density(
-            density="value",
-            groupby=["lambda_type"],
-            as_=["value", "density"],
-        )
-        .mark_area(opacity=0.4)
+        .transform_calculate(log_value="log(datum.value) / log(10)")
+        .mark_bar(opacity=0.4, binSpacing=0)
         .encode(
-            x=alt.X("value:Q", title="Lambda Value").scale(type="log"),
-            y=alt.Y("density:Q", title="Density", stack=False),
+            x=alt.X("log_value:Q", title="log₁₀(Lambda Value)").bin(
+                maxbins=40, base=10
+            ),
+            y=alt.Y("count()", title="Count", stack=False),
             color=alt.Color(
                 "lambda_type:N",
                 title="Lambda",
                 legend=alt.Legend(orient="none", legendX=550, legendY=300),
             ),
         )
-        .properties(title="Distribution of lambda weights", width=500, height=300)
+        .properties(title="Distribution of Objected Weights", width=500, height=300)
     )
 
     # Build chart

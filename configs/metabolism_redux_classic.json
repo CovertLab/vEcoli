@@ -1,6 +1,17 @@
 {
-    "experiment_id" : "metabolism_redux",
-    "max_duration" : 10,
+    "experiment_id" : "temp",
+    "max_duration" : 4000,
+    "fail_at_max_duration": true,
+    "progress_bar": true,
+    "log_updates": false,
+    "generations": 1,
+    "emitter": "timeseries",
+    "emitter_arg": {"out_dir": "out/objective_weight_batch/"},
+    "save": false,
+    "save_times": [1],
+    "fixed_media": "minimal",
+    "condition": "basal",
+
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-redux-classic"
     },
@@ -30,5 +41,19 @@
     "translation_supply": false,
     "aa_supply_in_charging": false,
     "adjust_timestep_for_charging": false,
-    "disable_ppgpp_elongation_inhibition": true
+    "disable_ppgpp_elongation_inhibition": true,
+
+    "process_configs": {
+    "ecoli-metabolism-redux-classic": {
+        "objective_weights": {
+            "secretion": 1.61894E-05,
+            "efficiency": 1.89694E-05,
+            "kinetics": 0.000675622,
+            "diversity": 0.007915997,
+            "homeostatic": 1.0
+        }
+    }
+}
+
+
 }
