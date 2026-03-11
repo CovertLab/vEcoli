@@ -30,6 +30,11 @@
 
         # basal_expression_condition: modeled condition name (must match a defined condition)
         # This is used throughout ParCa for the baseline growth state.
-        "basal_expression_condition": "M9 Glucose minus AAs"
+        "basal_expression_condition": "M9 Glucose minus AAs",
+
+        # rnaseq_fill_missing_genes_from_ref: when true (default), genes missing
+        # from the experimental RNA-seq dataset are filled from the reference
+        # table (rnaseq_rsem_tpm_mean.tsv) using basal_expression_condition.
+        "rnaseq_fill_missing_genes_from_ref": true
     }
 }

@@ -49,6 +49,7 @@ class SimulationDataEcoli(object):
         basal_expression_condition,
         rnaseq_manifest_path=None,
         rnaseq_basal_dataset_id=None,
+        rnaseq_fill_missing_genes_from_ref=True,
     ):
         # Validate RNA-seq config (early, clear errors)
         if rnaseq_manifest_path is not None:
@@ -74,6 +75,7 @@ class SimulationDataEcoli(object):
         # RNA-seq ingestion config (None = use legacy raw_data tables)
         self.rnaseq_manifest_path = rnaseq_manifest_path
         self.rnaseq_basal_dataset_id = rnaseq_basal_dataset_id
+        self.rnaseq_fill_missing_genes_from_ref = rnaseq_fill_missing_genes_from_ref
 
         self._add_molecular_weight_keys(raw_data)
         self._add_compartment_keys(raw_data)

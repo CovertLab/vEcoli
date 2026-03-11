@@ -201,6 +201,9 @@ def initialize(sim_data, cell_specs, raw_data=None, **kwargs):
         basal_expression_condition=kwargs.get("basal_expression_condition"),
         rnaseq_manifest_path=kwargs.get("rnaseq_manifest_path"),
         rnaseq_basal_dataset_id=kwargs.get("rnaseq_basal_dataset_id"),
+        rnaseq_fill_missing_genes_from_ref=kwargs.get(
+            "rnaseq_fill_missing_genes_from_ref", True
+        ),
     )
 
     return sim_data, cell_specs
