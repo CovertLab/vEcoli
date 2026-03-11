@@ -56,6 +56,7 @@ def run_parca(config):
         rnaseq_manifest_path=config["rnaseq_manifest_path"],
         rnaseq_basal_dataset_id=config["rnaseq_basal_dataset_id"],
         basal_expression_condition=config["basal_expression_condition"],
+        rnaseq_fill_missing_genes_from_ref=config["rnaseq_fill_missing_genes_from_ref"],
     )
     print(f"{time.ctime()}: Saving sim_data")
     with open(sim_data_file, "wb") as f:

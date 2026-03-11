@@ -46,9 +46,9 @@ def _():
 
 @app.cell
 def _(Path):
-    MANIFEST_PATH = Path("experimental_data/rnaseq/manifest.tsv")
+    MANIFEST_PATH = Path("reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv")
     REF_DATASET_ID = "ref_0001"
-    EXPT_DATASET_ID = "gbw_0001"
+    EXPT_DATASET_ID = "gbw_0001_v2"
     return EXPT_DATASET_ID, MANIFEST_PATH, REF_DATASET_ID
 
 
@@ -162,6 +162,11 @@ def _(np, result):
 
 
 @app.cell
+def _():
+    return
+
+
+@app.cell
 def _(mo, result):
     _n_only_ref = len(result.genes_only_in_ref)
     _n_only_expt = len(result.genes_only_in_expt)
@@ -247,6 +252,12 @@ def _(np, pd, result):
 
     chart
     return (matched,)
+
+
+@app.cell
+def _(result):
+    result.comparison_table[(result.comparison_table["gene_name"] == "ssrA")]
+    return
 
 
 @app.cell

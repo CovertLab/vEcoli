@@ -18,6 +18,7 @@ from .replication import MAX_TIMESTEP
 from ecoli.library.schema import bulk_name_to_idx, counts
 from wholecell.io.ingestion import ingest_transcriptome
 from wholecell.utils import data, fitting, units
+import warnings
 from wholecell.utils.fast_nonnegative_least_squares import fast_nnls
 from wholecell.utils.fitting import normalize
 from wholecell.utils.unit_struct_array import UnitStructArray
@@ -535,22 +536,57 @@ class Transcription(object):
                 sim_data.rnaseq_manifest_path,
                 sim_data.rnaseq_basal_dataset_id,
             )
-            seq_data = dict(zip(tpm_table["gene_id"], tpm_table["tpm_mean"]))
+            # Experimental-only mapping
+            seq_data_exp = dict(zip(tpm_table["gene_id"], tpm_table["tpm_mean"]))
+            # Combined mapping (may be updated with reference values)
+            seq_data = dict(seq_data_exp)
+
+            if sim_data.rnaseq_fill_missing_genes_from_ref:
+                # Reference mapping from legacy table and basal_expression_condition
+                ref_data = {
+                    x["Gene"]: x[sim_data.basal_expression_condition]
+                    for x in getattr(
+                        raw_data.rna_seq_data, f"rnaseq_{RNA_SEQ_ANALYSIS}_mean"
+                    )
+                }
+
+                # Genes present in the model but missing from experimental dataset
+                model_gene_ids = set(cistron_id_to_gene_id.values())
+                missing_gene_ids = model_gene_ids.difference(seq_data_exp.keys())
+
+                if missing_gene_ids:
+                    filled = 0
+                    for gene_id in missing_gene_ids:
+                        if gene_id in ref_data:
+                            seq_data[gene_id] = ref_data[gene_id]
+                            filled += 1
+
+                    if filled > 0:
+                        # Warn once about how many genes were filled from reference
+                        warnings.warn(
+                            f"{filled} genes were missing from experimental RNA-seq "
+                            f"dataset {sim_data.rnaseq_basal_dataset_id!r} and were "
+                            f"filled from reference RNA-seq for basal expression "
+                            f"condition {sim_data.basal_expression_condition!r}.",
+                            UserWarning,
+                        )
         else:
-            # Legacy path: use raw_data tables with basal_expression_condition as column
+            # No RNAseq data provided path: use raw_data tables with basal_expression_condition as column
             seq_data = {
                 x["Gene"]: x[sim_data.basal_expression_condition]
                 for x in getattr(
                     raw_data.rna_seq_data, f"rnaseq_{RNA_SEQ_ANALYSIS}_mean"
                 )
             }
+            seq_data_exp = seq_data
 
         cistron_rnaseq_coverage = []
         for cistron_id in self.cistron_data["id"]:
             gene_id = cistron_id_to_gene_id[cistron_id]
             # If sequencing data is not found, initialize expression to zero.
             cistron_expression.append(seq_data.get(gene_id, 0.0))
-            cistron_rnaseq_coverage.append(gene_id in seq_data)
+            # Coverage reflects presence in the experimental dataset when available
+            cistron_rnaseq_coverage.append(gene_id in seq_data_exp)
 
         cistron_expression = np.array(cistron_expression)
         self._cistron_is_rnaseq_covered = np.array(cistron_rnaseq_coverage)
