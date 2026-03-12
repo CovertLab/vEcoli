@@ -1413,6 +1413,8 @@ class Metabolism(object):
             )
 
         for amino_acid in ordered_aa_ids:
+            if VERBOSE:
+                print(f"\n--- {amino_acid} ---")
             data = self.aa_synthesis_pathways[amino_acid]
             fwd_enzymes = data["enzymes"]
             fwd_enzymes_basal_idx = bulk_name_to_idx(fwd_enzymes, basal_container["id"])
