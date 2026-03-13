@@ -106,6 +106,52 @@ def parse_variant_data_dir(
     return variant_metadata, sim_data_dict, variant_names
 
 
+def parse_from_experiment_batch_dir(
+    experiment_batch_dir: str,
+) -> tuple[list[str], list[str] | None]:
+    """
+    Parse experiment_id and variant_data_dir from a batch directory.
+
+    Each subdirectory of experiment_batch_dir is treated as an experiment_id.
+    variant_data_dir is set to [experiment_batch_dir/exp_id/variant_sim_data, ...]
+    only if every such path exists; otherwise variant_data_dir is None (no variant
+    metadata will be loaded and subsequent warning/errors will raise if no other
+    variant_data_dir is provided).
+
+    Make sure to provide path to the batch directory itself, not to an experiment subdirectory
+    Make sure that there are no non-experiment directories, like analysis or outputs
+    in the first layer of batch directory
+
+    Args:
+        experiment_batch_dir: Path to directory containing one subdir per experiment.
+
+    Returns:
+        (experiment_ids, variant_data_dirs or None)
+    """
+    if not os.path.isdir(experiment_batch_dir):
+        raise FileNotFoundError(
+            f"experiment_batch_dir not found or not a directory: {experiment_batch_dir}"
+        )
+    batch_path = os.path.abspath(experiment_batch_dir)
+    experiment_ids = sorted(
+        exp_id
+        for exp_id in os.listdir(batch_path)
+        if os.path.isdir(os.path.join(batch_path, exp_id))
+        and not exp_id.startswith(".")  # don't take hidden dir
+    )
+    if not experiment_ids:
+        raise ValueError(
+            f"No experiment subdirectories found under {experiment_batch_dir}"
+        )
+    variant_dirs = [
+        os.path.join(batch_path, exp_id, "variant_sim_data")
+        for exp_id in experiment_ids
+    ]
+    if all(os.path.isdir(p) for p in variant_dirs):
+        return experiment_ids, variant_dirs
+    return experiment_ids, None
+
+
 def make_sim_data_dict(exp_id: str, variants: list[int], sim_data_path: list[str]):
     if len(variants) == 0:
         raise ValueError(
@@ -199,10 +245,7 @@ def load_variant_metadata(
     if "experiment_id" not in config:
         raise KeyError("Must provide at least one experiment ID with experiment_id")
 
-    if len(config["experiment_id"]) > 1:
-        assert "variant_data_dir" in config, (
-            "Must provide --variant_data_dir for each experiment ID."
-        )
+    if len(config["experiment_id"]) > 1 and "variant_data_dir" in config:
         assert len(config["variant_data_dir"]) == len(config["experiment_id"]), (
             "Must provide --variant_data_dir for each experiment ID."
         )
@@ -546,6 +589,13 @@ def main():
         " must have the same length and order as the given experiment IDs.",
     )
     parser.add_argument(
+        "--experiment_batch_dir",
+        help="Directory containing one subdir per experiment (parquet output)."
+        " When provided and neither --experiment_id nor --variant_data_dir is"
+        " set, experiment_id and optionally variant_data_dir are parsed from"
+        " this folder. Data is read from this path (overrides emitter out_dir).",
+    )
+    parser.add_argument(
         "--analysis_types",
         "-t",
         nargs="*",
@@ -585,6 +635,26 @@ def main():
     for k, v in vars(args).items():
         if v is not None:
             config[k] = v
+
+    # If neither experiment_id nor variant_data_dir provided, require experiment_batch_dir
+    # and parse experiment_id (and optionally variant_data_dir) from that folder.
+    has_experiment_id = config.get("experiment_id") not in (None, [])
+    has_variant_data_dir = config.get("variant_data_dir") not in (None, [])
+    if not has_experiment_id and not has_variant_data_dir:
+        if not config.get("experiment_batch_dir"):
+            raise KeyError(
+                "Must provide experiment_id and variant_data_dir, or experiment_batch_dir. "
+                "With experiment_batch_dir, experiment IDs (and variant_data_dir if present) "
+                "are parsed from that directory."
+            )
+        experiment_ids, variant_dirs = parse_from_experiment_batch_dir(
+            config["experiment_batch_dir"]
+        )
+        config["experiment_id"] = experiment_ids
+        if variant_dirs is not None:
+            config["variant_data_dir"] = variant_dirs
+        out_uri = os.path.abspath(config["experiment_batch_dir"])
+        gcs_bucket = False
 
     # Set up DuckDB filters for data
     duckdb_filter = build_duckdb_filter(config)
