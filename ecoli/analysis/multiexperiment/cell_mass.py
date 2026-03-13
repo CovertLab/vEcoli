@@ -67,7 +67,7 @@ def plot(
                 "gen_seed:N", legend=alt.Legend(title="Generation and Seed")
             ),
         )
-        .properties(width=600, height=300)
+        .properties(width=450, height=300)
     ).interactive()
 
     spread_abs = (
@@ -84,7 +84,7 @@ def plot(
                 "gen_seed:N", legend=alt.Legend(title="Generation and Seed")
             ),
         )
-        .properties(width=600, height=300)
+        .properties(width=450, height=300)
     ).interactive()
 
     line_rel = (
@@ -100,7 +100,7 @@ def plot(
                 "gen_seed:N", legend=alt.Legend(title="Generation and Seed")
             ),
         )
-        .properties(width=600, height=300)
+        .properties(width=450, height=300)
     ).interactive()
 
     spread_rel = (
@@ -117,7 +117,7 @@ def plot(
                 "gen_seed:N", legend=alt.Legend(title="Generation and Seed")
             ),
         )
-        .properties(width=600, height=300)
+        .properties(width=450, height=300)
     ).interactive()
 
     reference_line = (
