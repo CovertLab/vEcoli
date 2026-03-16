@@ -7,7 +7,8 @@ For each experiment (generation + lineage_seed), plots the mean mass fraction
 across single cells with spread (confidence interval) over time.
 """
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, cast
+import numpy as np
 import os
 
 from ecoli.library.parquet_emitter import read_stacked_columns
@@ -17,24 +18,7 @@ import polars as pl
 if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
 
-MASS_QUERY_ALIASES = [
-    ("protein_mass", "listeners__mass__protein_mass"),
-    ("tRNA_mass", "listeners__mass__tRna_mass"),
-    ("rRNA_mass", "listeners__mass__rRna_mass"),
-    ("mRNA_mass", "listeners__mass__mRna_mass"),
-    ("dna_mass", "listeners__mass__dna_mass"),
-    ("smallMolecule_mass", "listeners__mass__smallMolecule_mass"),
-    ("dry_mass", "listeners__mass__dry_mass"),
-]
-SUBMASS_DISPLAY_NAMES = [
-    "Protein",
-    "tRNA",
-    "rRNA",
-    "mRNA",
-    "DNA",
-    "Small Mol",
-    "Dry",
-]
+alt.data_transformers.enable("vegafusion")
 
 
 def plot(
@@ -49,27 +33,25 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    """Plot mean and spread of mass fractions over time per experiment."""
-    query = [f"{col} AS {alias}" for alias, col in MASS_QUERY_ALIASES]
-    query.append("time/60 AS time_min")
+    # parse plot parameters from config
+    group_by = params.get("group_by", "gen_seed")
 
-    raw = pl.DataFrame(
-        read_stacked_columns(history_sql, query, order_results=True, conn=conn)
+    mass_columns = {
+        "Protein": "listeners__mass__protein_mass",
+        "tRNA": "listeners__mass__tRna_mass",
+        "rRNA": "listeners__mass__rRna_mass",
+        "mRNA": "listeners__mass__mRna_mass",
+        "DNA": "listeners__mass__dna_mass",
+        "Small Mol": "listeners__mass__smallMolecule_mass",
+        "Dry": "listeners__mass__dry_mass",
+    }
+
+    mass_data = pl.DataFrame(
+        read_stacked_columns(history_sql, list(mass_columns.values()), conn=conn)
     )
 
-    # Mass fraction = component / dry_mass for each row (per cell, per time)
-    dry = raw["dry_mass"]
-    fraction_cols = {}
-    for alias, _ in MASS_QUERY_ALIASES:
-        if alias == "dry_mass":
-            fraction_cols["dry_frac"] = pl.lit(1.0)
-        else:
-            fraction_cols[f"{alias.replace('_mass', '')}_frac"] = pl.col(alias) / dry
-
-    raw = raw.with_columns(**fraction_cols)
-
-    # gen_seed for grouping/coloring like cell_mass.py
-    raw = raw.with_columns(
+    # Add generation and lineage_seed columns for grouping
+    mass_data = mass_data.with_columns(
         gen_seed=(
             pl.lit("gen=")
             + pl.col("generation").cast(pl.Utf8)
@@ -78,61 +60,112 @@ def plot(
         )
     )
 
-    # Long form: one row per (time_min, gen_seed, agent_id, Submass, fraction)
-    frac_col_names = list(fraction_cols.keys())
-    melted = raw.select(["time_min", "gen_seed", "agent_id"] + frac_col_names).melt(
-        id_vars=["time_min", "gen_seed", "agent_id"],
-        value_vars=frac_col_names,
-        variable_name="frac_key",
-        value_name="fraction",
+    # Relative time per (generation, lineage_seed) so each generation starts at t=0
+    # and x-axis can be tight to data per facet
+    if group_by == "gen_seed" or group_by == "generation":
+        min_t = mass_data.group_by(["generation", "lineage_seed"]).agg(
+            pl.col("time").min().alias("t_min")
+        )
+        mass_data = mass_data.join(min_t, on=["generation", "lineage_seed"])
+        mass_data = mass_data.with_columns(
+            ((pl.col("time") - pl.col("t_min")) / 60).alias("Time (min)")
+        )
+    else:
+        mass_data = mass_data.with_columns(
+            ((pl.col("time") - pl.col("time").min()) / 60).alias("Time (min)")
+        )
+
+    fractions = {
+        k: cast(float, (mass_data[v] / mass_data["listeners__mass__dry_mass"]).mean())
+        for k, v in mass_columns.items()
+    }
+
+    # create new dataframe for normalized growth to t=0
+    assert group_by in mass_data.columns, (
+        f"plot_by column '{group_by}' not found in data"
     )
 
-    # Map frac_key to display name (same order as MASS_QUERY_ALIASES)
-    key_to_display = dict(zip(frac_col_names, SUBMASS_DISPLAY_NAMES))
-    melted = melted.with_columns(Submass=pl.col("frac_key").replace(key_to_display))
+    new_columns = {
+        "Time (min)": mass_data["Time (min)"],
+        "group_by": mass_data[group_by],
+        "experiment_id": mass_data["experiment_id"],
+        "generation": mass_data["generation"],
+        **{
+            f"{k} ({fractions[k]:.3f})": mass_data[v] / mass_data[v][0]
+            for k, v in mass_columns.items()
+        },
+    }
 
-    max_time_min = float(raw["time_min"].max())
-    x_scale = alt.Scale(domain=[0, max_time_min], nice=False)
+    mass_fold_change_df = pl.DataFrame(new_columns)
 
-    # Mean line per (time_min, gen_seed, Submass)
-    line_chart = (
-        alt.Chart(melted)
+    # Long form to follow altair format (include generation so we can break lines at division)
+    melted = mass_fold_change_df.melt(
+        id_vars=["Time (min)", "group_by", "generation", "experiment_id"],
+        variable_name="Submass",
+        value_name="Mass (normalized by t = 0 min)",
+    )
+
+    # Plot mean and confidence interval of mass fraction for each submass component, individual plots by group_by
+    n_experiments = len(np.unique(mass_data["experiment_id"]))
+
+    line = (
+        alt.Chart()
         .mark_line(strokeWidth=0.5)
         .encode(
-            x=alt.X("time_min:Q", title="Time (min)", scale=x_scale),
-            y=alt.Y("mean(fraction):Q", title="Mean mass fraction"),
-            color=alt.Color(
-                "gen_seed:N", legend=alt.Legend(title="Generation and Seed")
+            x=alt.X("Time (min):Q", title="Time (min)"),
+            y=alt.Y(
+                "mean(Mass (normalized by t = 0 min)):Q", title="Mean mass fraction"
             ),
+            color=alt.Color("Submass:N", legend=alt.Legend(title="Mass subcomponent")),
+            detail=alt.Detail(
+                "generation:N"
+            ),  # separate path per generation so no line across division
         )
-        .properties(width=450, height=220)
-    ).interactive()
-
-    # Spread (ci0–ci1) per (time_min, gen_seed, Submass)
-    spread_chart = (
-        alt.Chart(melted)
-        .mark_area(opacity=0.3)
-        .encode(
-            x=alt.X("time_min:Q", title="Time (min)", scale=x_scale),
-            y=alt.Y("ci0(fraction):Q"),
-            y2=alt.Y2("ci1(fraction):Q"),
-            color=alt.Color(
-                "gen_seed:N", legend=alt.Legend(title="Generation and Seed")
-            ),
-        )
-        .properties(width=450, height=220)
-    ).interactive()
-
-    layered = (spread_chart + line_chart).properties(
-        title="Mean mass fraction with spread across single cells"
     )
 
-    # One facet per mass subcomponent
-    figure = layered.facet(
-        row=alt.Facet("Submass:N", title="Mass component", sort=SUBMASS_DISPLAY_NAMES),
-    ).resolve_scale(y="independent")
+    spread = (
+        alt.Chart()
+        .mark_area(opacity=0.3)
+        .encode(
+            x=alt.X("Time (min):Q", title="Time (min)"),
+            y=alt.Y("ci0(Mass (normalized by t = 0 min)):Q"),
+            y2=alt.Y2("ci1(Mass (normalized by t = 0 min)):Q"),
+            color=alt.Color("Submass:N", legend=alt.Legend(title="Mass subcomponent")),
+            detail=alt.Detail(
+                "generation:N"
+            ),  # separate path per generation so no line across division
+        )
+    )
 
+    # --- Save Plot 1: Combined plot with mean and spread ---
+    figure_combined = (
+        alt.layer(spread, line, data=melted)
+        .facet(column=alt.Facet("group_by:N"))
+        .resolve_scale(
+            x="independent"
+        )  # tight x-axis per facet, 0 to max for that group
+        .properties(
+            title=f"Mass fraction across {n_experiments} experiments grouped by {group_by}"
+        )
+    )
     out_path = os.path.join(outdir, "multiexperiment_mass_fraction_summary.html")
-    figure.save(out_path)
+    figure_combined.save(out_path)
+
+    # --- Save Plot 2: Individual Cell Component Mass per Experiment (Mean across gen and seed) ---
+    figure_individual = (
+        alt.layer(spread, line, data=melted)
+        .facet(facet=alt.Facet("experiment_id:N"), columns=5)
+        .resolve_scale(
+            x="independent"
+        )  # tight x-axis per facet, 0 to max for that group
+        .properties(
+            title="Mean Mass fraction of each experiment across the entire sim (gen and seed)"
+        )
+    )
+    out_path = os.path.join(
+        outdir, "multiexperiment_mass_fraction_summary_individual.html"
+    )
+    figure_individual.save(out_path)
+
     print(f"Saved multi-experiment mass fraction summary to: {out_path}")
     return

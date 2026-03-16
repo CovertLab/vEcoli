@@ -1,17 +1,15 @@
 {
     "emitter_arg": {
-        "out_dir": "out/objective_weight_batch_analysis/"
+        "out_dir": "out/objective_weight_batch_analysis_4/"
     },
     "analysis_options": {
         "experiment_batch_dir": "out/objective_weight_batch/",
         "validation_data_path": ["out/kb/validationData.cPickle"],
-        "outdir": "out/objective_weight_batch_analysis/",
+        "outdir": "out/objective_weight_batch_analysis_4/",
         "cpus": 1,
 
-        "multiexperiment": {
-            "cell_mass": {},
-            "cell_mass_individual": {},
-            "doubling_time_hist": {"skip_n_gens": 0}
+        "single": {
+            "centralCarbonMetabolismScatter": {}
         }
     }
 }

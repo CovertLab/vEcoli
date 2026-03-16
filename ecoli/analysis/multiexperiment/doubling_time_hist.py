@@ -47,7 +47,7 @@ def plot(
         - "gen_seed": distribution of doubling time of gen_seed combo, grouping experiment_id and variant
     """
     skip_n_gens_val = params.get("skip_n_gens", 8)
-    plot_by = params.get("group_by", "gen_seed")
+    plot_by = params.get("plot_by", "gen_seed")
     doubling_time_sql = skip_n_gens(doubling_time_sql, skip_n_gens_val)
 
     doubling_times = conn.sql(f"""

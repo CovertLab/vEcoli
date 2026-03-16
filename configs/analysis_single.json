@@ -4,7 +4,7 @@
     },
     "analysis_options": {
         "experiment_id": ["metabolism_weights_1_20260311-013054"],
-        "variant_data_dir": ["/Users/HeenaSaqib/dev/vEcoli/out/objective_weight_batch/metabolism_weights_1_20260311-013054/variant_sim_data"],
+        "variant_data_dir": ["/Users/heenasaqib/dev/vEcoli/out/objective_weight_batch/metabolism_weights_1_20260311-013054/variant_sim_data"],
         "validation_data_path": ["out/kb/validationData.cPickle"],
         "outdir": "out/objective_weight_batch/metabolism_weights_1_20260311-013054/analysis/",
         "cpus": 1,
