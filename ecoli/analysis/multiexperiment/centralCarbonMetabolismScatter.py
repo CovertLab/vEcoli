@@ -2,12 +2,20 @@
 Central Carbon Metabolism Flux comparison against Toya 2010 across multiple
 experiments.
 
-Scatter + distribution (violin and strip) of simulated reaction fluxes (y-axis)
-per Toya 2010 reaction (fixed set on x/facets). Each experiment has ~m
-datapoints per reaction; we show the distribution across experiments via
-violin + strip plots faceted by reaction and experiment_id.
+Mirrors the single/centralCarbonMetabolismScatter.py scatter layout:
+  - X-axis: Toya 2010 experimentally measured flux (fixed; one value per reaction).
+  - Y-axis: simulated flux.
 
-Ported from single/centralCarbonMetabolismScatter.py.
+For each reaction (at its Toya x position) the chart shows a boxplot whose
+statistics are computed from ALL simulated flux values pooled across every
+experiment and every timestep within that generation.  The Toya ±stdev is
+drawn as a horizontal error bar at the box median.
+
+The chart is faceted by generation (one row per generation).
+
+Note: mark_boxplot in Vega-Lite does not reliably group by exact quantitative
+x values, so box statistics are computed explicitly in Polars and drawn with
+primitive marks (bar + rule + tick).
 """
 
 from typing import Any, TYPE_CHECKING
@@ -50,11 +58,9 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    """
-    Build long dataframe: experiment_id, reaction, sim_flux (and optional toya_mean).
-    Then facet by reaction (fixed set) and experiment_id; in each cell show
-    violin + strip of sim_flux.
-    """
+    # plot_by = params.get("plot_by", "generation")
+    REDUXCLASSIC = params.get("is_reduxclassic", True)
+
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
     with fsspec_open(validation_data_paths[0], "rb") as f:
@@ -62,15 +68,19 @@ def plot(
 
     cell_density = sim_data.constants.cell_density
 
+    # ---------------------------------------
+    # --- Read mass and FBA flux columns ---
+    # ---------------------------------------
     query = [
         "listeners__mass__cell_mass AS cell_mass",
         "listeners__mass__dry_mass AS dry_mass",
         "listeners__fba_results__base_reaction_fluxes AS base_reaction_fluxes",
+        "listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar",
     ]
 
     raw = pl.DataFrame(
         read_stacked_columns(
-            history_sql, query, order_results=True, conn=conn, remove_first=True
+            history_sql, query, order_results=True, conn=conn, remove_first=REDUXCLASSIC
         )
     )
 
@@ -83,102 +93,157 @@ def plot(
     common_reactions = [r for r in toya_reactions if r in reaction_id_to_index]
 
     flux_matrix = ndlist_to_ndarray(raw["base_reaction_fluxes"])
-    sim_reaction_fluxes = CONC_UNITS / TIMESTEP * flux_matrix
 
-    # Reference Toya fluxes (fixed x): use first experiment's masses for adjustment
-    first_exp = raw["experiment_id"][0]
-    first_mask = raw["experiment_id"] == first_exp
-    cell_masses = units.fg * raw.filter(first_mask)["cell_mass"]
-    dry_masses = units.fg * raw.filter(first_mask)["dry_mass"]
-    toya_fluxes = toya.adjust_toya_data(
-        validation_data.reactionFlux.toya2010fluxes["reactionFlux"],
-        cell_masses,
-        dry_masses,
-        cell_density,
-    )
-    toya_flux_means = toya.process_toya_data(
-        common_reactions, toya_reactions, toya_fluxes
-    )
-    toya_means_num = toya_flux_means.asNumber(FLUX_UNITS)
+    if REDUXCLASSIC:
+        # convert counts to mmol/L/s; must be numpy (n_timesteps,1) to broadcast with flux_matrix
+        counts_to_molar = raw["counts_to_molar"].to_numpy()[:, np.newaxis]
+        sim_reaction_fluxes = (
+            CONC_UNITS / TIMESTEP * counts_to_molar * flux_matrix
+        )  # mmol/L/s
+    else:
+        sim_reaction_fluxes = CONC_UNITS / TIMESTEP * flux_matrix  # mmol/L/s
 
-    # Long data: one row per (row_index, reaction) -> experiment_id, reaction, sim_flux
-    n_rows = flux_matrix.shape[0]
-    rows_list = []
-    for i in range(n_rows):
-        exp_id = raw["experiment_id"][i]
-        for j, r in enumerate(common_reactions):
-            idx = reaction_id_to_index[r]
-            val = sim_reaction_fluxes[i, idx].asNumber(FLUX_UNITS)
-            rows_list.append(
-                {"experiment_id": exp_id, "reaction": r, "sim_flux": float(val)}
+    # -----------------------------------------------
+    # --- Format Simulated DataFrame with toya.py ---
+    # -----------------------------------------------
+    raw = raw.with_columns(
+        pl.concat_str(
+            pl.lit("experiment_id="),
+            pl.col("experiment_id"),
+            pl.lit(", variant="),
+            pl.col("variant").cast(pl.Utf8),
+            pl.lit(", seed="),
+            pl.col("lineage_seed").cast(pl.Utf8),
+            pl.lit(", generation="),
+            pl.col("generation").cast(pl.Utf8),
+        ).alias("sim_meta")
+    )
+
+    sim_meta = np.unique(raw["sim_meta"])
+
+    # -----------------------------------------------
+    # --- Build one unified DataFrame across all sims ---
+    # -----------------------------------------------
+    all_dfs = []
+    for sim in sim_meta:
+        mask = raw["sim_meta"] == sim
+        cell_masses_ref = units.fg * raw.filter(mask)["cell_mass"]
+        dry_masses_ref = units.fg * raw.filter(mask)["dry_mass"]
+
+        toya_fluxes = toya.adjust_toya_data(
+            validation_data.reactionFlux.toya2010fluxes["reactionFlux"],
+            cell_masses_ref,
+            dry_masses_ref,
+            cell_density,
+        )
+        toya_stdevs = toya.adjust_toya_data(
+            validation_data.reactionFlux.toya2010fluxes["reactionFluxStdev"],
+            cell_masses_ref,
+            dry_masses_ref,
+            cell_density,
+        )
+
+        sim_flux_means, sim_flux_stdevs = toya.process_simulated_fluxes(
+            toya_reactions, reaction_ids, sim_reaction_fluxes[mask, :]
+        )
+        toya_flux_means = toya.process_toya_data(
+            common_reactions, toya_reactions, toya_fluxes
+        )
+        toya_flux_stdevs = toya.process_toya_data(
+            common_reactions, toya_reactions, toya_stdevs
+        )
+
+        sim_means_num = sim_flux_means.asNumber(FLUX_UNITS)
+        sim_stdevs_num = sim_flux_stdevs.asNumber(FLUX_UNITS)
+        toya_means_num = toya_flux_means.asNumber(FLUX_UNITS)
+        toya_stdevs_num = toya_flux_stdevs.asNumber(FLUX_UNITS)
+
+        ss_res = np.sum((sim_means_num - toya_means_num) ** 2)
+        ss_tot = np.sum((toya_means_num - np.mean(toya_means_num)) ** 2)
+        r_squared = float(1 - ss_res / ss_tot)
+        pearson_r = float(np.corrcoef(sim_means_num, toya_means_num)[0, 1])
+
+        all_dfs.append(
+            pl.DataFrame(
+                {
+                    "reaction": list(toya_reactions),
+                    "toya_mean": toya_means_num,
+                    "toya_stdev": toya_stdevs_num,
+                    "sim_mean": sim_means_num,
+                    "sim_stdev": sim_stdevs_num,
+                    "toya_lo": toya_means_num - toya_stdevs_num,
+                    "toya_hi": toya_means_num + toya_stdevs_num,
+                    "sim_lo": sim_means_num - sim_stdevs_num,
+                    "sim_hi": sim_means_num + sim_stdevs_num,
+                    "sim_meta": [sim] * len(toya_reactions),  # ✅ facet key
+                    "pearson_r": [pearson_r] * len(toya_reactions),  # ✅ per-facet stat
+                    "r_squared": [r_squared] * len(toya_reactions),  # ✅ per-facet stat
+                }
             )
+        )
 
-    df = pl.DataFrame(rows_list)
-
-    # Optional: add Toya reference per reaction for tooltip/reference line
-    toya_ref = pl.DataFrame(
-        {
-            "reaction": common_reactions,
-            "toya_mean": toya_means_num.tolist(),
-        }
-    )
-    df = df.join(toya_ref, on="reaction")
-
-    # Jitter for strip so points don't overlap on one x when overlaid on violin
-    np.random.seed(42)
-    jitter = pl.Series("x_jitter", np.random.uniform(-0.02, 0.02, len(df)))
-    df = df.with_columns(jitter)
-
-    flux_min = float(df["sim_flux"].min())
-    flux_max = float(df["sim_flux"].max())
-    extent = [flux_min, flux_max]
+    df_all = pl.concat(all_dfs)
     flux_unit_str = FLUX_UNITS.strUnit()
 
-    base = alt.Chart(df)
+    # -----------------------------------------------
+    # --- Build chart facet by sim_meta -------------
+    # -----------------------------------------------
+    base = alt.Chart().encode(
+        x=alt.X("toya_mean:Q", title=f"Toya 2010 Reaction Flux {flux_unit_str}"),
+        y=alt.Y("sim_mean:Q", title=f"Mean WCM Reaction Flux {flux_unit_str}"),
+        tooltip=[
+            "reaction:N",
+            "toya_mean:Q",
+            "sim_mean:Q",
+            "pearson_r:Q",
+            "r_squared:Q",
+        ],
+    )
 
-    # Density per (experiment_id, reaction) so each facet cell gets the right distribution
-    violin = (
-        base.transform_density(
-            "sim_flux",
-            groupby=["experiment_id", "reaction"],
-            as_=["sim_flux", "density"],
-            extent=extent,
-        )
-        .mark_area(orient="horizontal", opacity=0.4)
+    points = base.mark_point(color="steelblue", size=50, filled=True)
+
+    x_errorbars = base.mark_errorbar().encode(
+        x=alt.X("toya_lo:Q", title=f"Toya 2010 Reaction Flux {flux_unit_str}"),
+        x2="toya_hi:Q",
+        color=alt.value("black"),
+    )
+
+    y_errorbars = base.mark_errorbar().encode(
+        y=alt.Y("sim_lo:Q", title=f"Mean WCM Reaction Flux {flux_unit_str}"),
+        y2="sim_hi:Q",
+        color=alt.value("black"),
+    )
+
+    # Annotation layer for per-facet stats
+    annotation = (
+        alt.Chart()
+        .mark_text(align="left", baseline="top", dx=5, dy=5, fontSize=11)
         .encode(
-            x=alt.X("density:Q", stack="center", axis=None),
-            y=alt.Y("sim_flux:Q", title=f"Simulated flux {flux_unit_str}"),
-            color=alt.Color("experiment_id:N", legend=alt.Legend(title="Experiment")),
+            x=alt.value(0),
+            y=alt.value(0),
+            text=alt.Text(
+                "pearson_r:Q", format=".2f"
+            ),  # or use transform_calculate to combine both
         )
-        .properties(width=100, height=280)
+        .transform_aggregate(
+            pearson_r="mean(pearson_r)",
+            r_squared="mean(r_squared)",
+            groupby=["sim_meta"],
+        )
+        .transform_calculate(
+            label="'Pearson R = ' + format(datum.pearson_r, '.2f') + "
+            "', R² to y=x is ' + format(datum.r_squared, '.2f')"
+        )
+        .encode(text="label:N")
     )
 
-    strip = (
-        base.mark_circle(size=14, opacity=0.6, color="black")
-        .encode(
-            x=alt.X(
-                "x_jitter:Q",
-                title=None,
-                axis=None,
-                scale=alt.Scale(domain=[-0.05, 0.05]),
-            ),
-            y=alt.Y("sim_flux:Q", title=f"Simulated flux {flux_unit_str}"),
-        )
-        .properties(width=100, height=280)
+    final_chart = (
+        alt.layer(points, x_errorbars, y_errorbars, annotation, data=df_all)
+        # .properties(width=500, height=450)
+        .facet(facet=alt.Facet("sim_meta:N", title="Simulation"), columns=5)
+        .resolve_scale(y="independent")
+        .configure_view(strokeWidth=0, fill=None)
+        .properties(title="Central Carbon Metabolism Flux")
     )
 
-    # Layer violin (distribution) + strip (points) per cell; facet by reaction (columns) and experiment (rows)
-    figure = (
-        (violin + strip)
-        .resolve_scale(y="shared", x="independent")
-        .properties(
-            title="Central Carbon Metabolism Flux by experiment (violin + strip)"
-        )
-    )
-
-    out_path = os.path.join(
-        outdir, "multiexperiment_centralCarbonMetabolismScatter.html"
-    )
-    figure.save(out_path)
-    print(f"Saved multi-experiment central carbon metabolism scatter to: {out_path}")
-    return
+    final_chart.save(os.path.join(outdir, "centralCarbonMetabolismScatter.html"))

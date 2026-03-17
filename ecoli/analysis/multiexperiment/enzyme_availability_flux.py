@@ -142,7 +142,7 @@ def plot(
     )
 
     line_enz = (
-        base.mark_line(strokeWidth=1)
+        base.mark_line(strokeWidth=1.5)
         .transform_calculate(trace=f"'{enzyme_name} (counts)'")
         .encode(
             x=alt.X("Time (min):Q", title="Time (min)"),
@@ -159,7 +159,7 @@ def plot(
     )
 
     line_need = (
-        base.mark_line(strokeWidth=1)
+        base.mark_line(strokeWidth=1.5)
         .transform_calculate(trace=f"'{met} unmet need (normalized dmdt diff)'")
         .encode(
             x=alt.X("Time (min):Q", title="Time (min)"),

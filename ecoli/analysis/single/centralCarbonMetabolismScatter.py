@@ -36,6 +36,7 @@ CONC_UNITS = COUNTS_UNITS / VOLUME_UNITS
 FLUX_UNITS = COUNTS_UNITS / VOLUME_UNITS / TIME_UNITS
 
 TIMESTEP = 1 * TIME_UNITS  # time step of the simulation
+REDUXCLASSIC = True
 
 
 def plot(
@@ -71,19 +72,29 @@ def plot(
         "listeners__mass__cell_mass AS cell_mass",
         "listeners__mass__dry_mass AS dry_mass",
         "listeners__fba_results__base_reaction_fluxes AS base_reaction_fluxes",
+        "listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar",
     ]
 
     raw = pl.DataFrame(
-        read_stacked_columns(history_sql, query, order_results=True, conn=conn)
+        read_stacked_columns(
+            history_sql, query, order_results=True, conn=conn, remove_first=True
+        )
     )
 
     cell_masses = units.fg * raw["cell_mass"]  # (n_timesteps,)
     dry_masses = units.fg * raw["dry_mass"]  # (n_timesteps,)
     flux_matrix = ndlist_to_ndarray(
         raw["base_reaction_fluxes"]
-    )  # (n_timesteps, n_rxns)
+    )  # (n_timesteps, n_rxns) in counts if reduxClassic; in mmol/L/s if in metabolism
 
-    sim_reaction_fluxes = CONC_UNITS / TIMESTEP * flux_matrix  # mmol/L/s
+    if REDUXCLASSIC:
+        # convert counts to mmol/L/s; must be numpy (n_timesteps,1) to broadcast with flux_matrix
+        counts_to_molar = raw["counts_to_molar"].to_numpy()[:, np.newaxis]
+        sim_reaction_fluxes = (
+            CONC_UNITS / TIMESTEP * counts_to_molar * flux_matrix
+        )  # mmol/L/s
+    else:
+        sim_reaction_fluxes = CONC_UNITS / TIMESTEP * flux_matrix  # mmol/L/s
 
     # Retrieve reaction IDs from config metadata
     reaction_ids = np.array(
