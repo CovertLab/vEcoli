@@ -338,20 +338,32 @@ class MetabolismReduxClassic(Step):
                 # TODO: Not empty list default
                 "fba_results": listener_schema(
                     {
-                        "solution_fluxes": [],
-                        "solution_dmdt": [],
+                        "solution_fluxes": ([], self.reaction_names),
+                        "solution_dmdt": ([], self.metabolite_names),
                         "solution_residuals": [],
                         "time_per_step": 0.0,
                         "estimated_fluxes": [],
-                        "estimated_homeostatic_dmdt": [],
-                        "homeostatic_metabolite_counts": [],
-                        "target_homeostatic_dmdt": [],
+                        "estimated_homeostatic_dmdt": (
+                            [],
+                            self.homeostatic_metabolites,
+                        ),
+                        "homeostatic_metabolite_counts": (
+                            [],
+                            self.homeostatic_metabolites,
+                        ),
+                        "target_homeostatic_dmdt": ([], self.homeostatic_metabolites),
                         # "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
-                        "target_kinetic_fluxes": [],
+                        "target_kinetic_fluxes": (
+                            [],
+                            self.kinetic_constraint_reactions,
+                        ),
                         # "target_kinetic_bounds": [],
-                        "reaction_catalyst_counts": [],
-                        "homeostatic_term": 0.0,
+                        "reaction_catalyst_counts": (
+                            [],
+                            self.parameters["reaction_catalysts"],
+                        ),
+                        "homeostatic_term": (0.0, self.parameters["objective_weights"]),
                         "secretion_term": 0.0,
                         "efficiency_term": 0.0,
                         "kinetics_term": 0.0,

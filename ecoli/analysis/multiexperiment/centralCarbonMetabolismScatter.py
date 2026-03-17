@@ -69,7 +69,9 @@ def plot(
     ]
 
     raw = pl.DataFrame(
-        read_stacked_columns(history_sql, query, order_results=True, conn=conn)
+        read_stacked_columns(
+            history_sql, query, order_results=True, conn=conn, remove_first=True
+        )
     )
 
     reaction_ids = np.array(
@@ -79,9 +81,6 @@ def plot(
 
     reaction_id_to_index = {r: i for i, r in enumerate(reaction_ids)}
     common_reactions = [r for r in toya_reactions if r in reaction_id_to_index]
-    if not common_reactions:
-        print("No Toya reactions found in simulation reaction IDs; skipping plot.")
-        return
 
     flux_matrix = ndlist_to_ndarray(raw["base_reaction_fluxes"])
     sim_reaction_fluxes = CONC_UNITS / TIMESTEP * flux_matrix
@@ -150,8 +149,6 @@ def plot(
             x=alt.X("density:Q", stack="center", axis=None),
             y=alt.Y("sim_flux:Q", title=f"Simulated flux {flux_unit_str}"),
             color=alt.Color("experiment_id:N", legend=alt.Legend(title="Experiment")),
-            column=alt.Column("reaction:N", title="Reaction (Toya 2010)"),
-            row=alt.Row("experiment_id:N", title="Experiment"),
         )
         .properties(width=100, height=280)
     )
@@ -166,8 +163,6 @@ def plot(
                 scale=alt.Scale(domain=[-0.05, 0.05]),
             ),
             y=alt.Y("sim_flux:Q", title=f"Simulated flux {flux_unit_str}"),
-            column=alt.Column("reaction:N", title="Reaction (Toya 2010)"),
-            row=alt.Row("experiment_id:N", title="Experiment"),
         )
         .properties(width=100, height=280)
     )
