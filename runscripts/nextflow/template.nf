@@ -1,6 +1,6 @@
 process runParca {
     // Run ParCa using parca_options from config JSON
-    publishDir "${params.publishDir}/${params.experimentId}/parca", mode: "copy"
+    publishDir { "${params.publishDir}/${params.experimentId}/parca" }, mode: "copy"
 
     label "parca"
 
@@ -26,7 +26,7 @@ process runParca {
 }
 
 process analysisParca {
-    publishDir "${params.publishDir}/${params.experimentId}/parca/analysis", mode: "copy"
+    publishDir { "${params.publishDir}/${params.experimentId}/parca/analysis" }, mode: "copy"
 
     label "slurm_submit"
 
