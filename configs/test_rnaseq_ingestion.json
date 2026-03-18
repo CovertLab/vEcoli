@@ -1,13 +1,29 @@
 {
-    "sim_data_path": null,
+    "experiment_id": "test_rnaseq_ingestion_gbw0002",
+    "suffix_time": false,
     "parca_options": {
         "cpus": 4,
-        "outdir": "out/test_rnaseq_ingestion",
-        "save_intermediates": true,
-        "intermediates_directory": "out/test_rnaseq_ingestion/intermediates",
         "rnaseq_manifest_path": "reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv",
-        "rnaseq_basal_dataset_id": "gbw_0001_v2",
+        "rnaseq_basal_dataset_id": "gbw_0002_v2",
         "basal_expression_condition": "M9 Glucose minus AAs",
         "rnaseq_fill_missing_genes_from_ref": true
+    }
+,   "sim_data_path": null,
+    "fail_at_max_duration": true,
+    "generations": 3,
+    "n_init_sims": 3,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out",
+        "threaded": false
+    },   
+    "analysis_options": {
+        "single": {
+            "mass_fraction_summary": {}
+        },
+        "multiseed": {
+            "cd1_higher_order_properties": {}
+        }
     }
 }

@@ -1,9 +1,25 @@
 {
-    "sim_data_path": null,
+    "experiment_id": "test_rnaseq_ingestion_defaults_sim",
+    "suffix_time": false,
     "parca_options": {
-        "cpus": 4,
-        "outdir": "out/test_rnaseq_ingestion_defaults",
-        "save_intermediates": true,
-        "intermediates_directory": "out/test_rnaseq_ingestion_defaults/intermediates"
+        "cpus": 4
+    }
+,   "sim_data_path": null,
+    "fail_at_max_duration": true,
+    "generations": 3,
+    "n_init_sims": 3,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out",
+        "threaded": false
+    },   
+    "analysis_options": {
+        "single": {
+            "mass_fraction_summary": {}
+        },
+        "multiseed": {
+            "cd1_higher_order_properties": {}
+        }
     }
 }

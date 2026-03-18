@@ -405,7 +405,10 @@ class KnowledgeBaseEcoli(object):
             data_to_remove = getattr(self, attr_to_remove.split(".")[0])
             for attr in attr_to_remove.split(".")[1:]:
                 data_to_remove = getattr(data_to_remove, attr)
-            removed_cols = list(data_to_remove[0].keys())
+            if not data_to_remove:
+                removed_cols = []
+            else:
+                removed_cols = list(data_to_remove[0].keys())
             ids_to_remove = set()
             for row in data_to_remove:
                 ids_to_remove.add(tuple([row[col] for col in removed_cols]))

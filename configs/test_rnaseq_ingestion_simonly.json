@@ -1,0 +1,30 @@
+{
+    "experiment_id": "test_rnaseq_ingestion_gbw0002_from_simdata",
+    "suffix_time": false,
+
+    "parca_options": {
+        "cpus": 0
+    },
+
+    "sim_data_path": "out/test_rnaseq_ingestion/kb/simData.cPickle",
+
+    "fail_at_max_duration": true,
+    "generations": 3,
+    "n_init_sims": 3,
+    "single_daughters": true,
+
+    "emitter": "parquet",
+    "emitter_arg": {
+    "out_dir": "out",
+    "threaded": false
+    },
+
+    "analysis_options": {
+    "single": {
+        "mass_fraction_summary": {}
+    },
+    "multiseed": {
+        "cd1_higher_order_properties": {}
+    }
+    }
+}

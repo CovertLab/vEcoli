@@ -726,6 +726,14 @@ def _(
 
 
 @app.cell
+def _(solver_input_table):
+    solver_input_table[solver_input_table.aa == "CYS[c]"].drop(
+        columns=["aa"]
+    ).set_index("run").T
+    return
+
+
+@app.cell
 def _(mo):
     mo.md("""### Concentrations (CYS pathway)""")
     return

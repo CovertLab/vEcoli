@@ -57,7 +57,7 @@ REVERSE_TAG = " (reverse)"
 REVERSE_REACTION_ID = "{{}}{}".format(REVERSE_TAG)
 ENZYME_REACTION_ID = "{}__{}"
 
-VERBOSE = True
+VERBOSE = False
 
 
 class InvalidReactionDirectionError(Exception):
@@ -1481,7 +1481,9 @@ class Metabolism(object):
             elif (
                 data["reverse enzymes"]
                 and not units.isfinite(data["km, degradation"])
-                and amino_acid != "L-SELENOCYSTEINE[c]"
+                # and amino_acid != "L-SELENOCYSTEINE[c]"
+                and amino_acid
+                not in ("L-SELENOCYSTEINE[c]", "CYS[c]")  # TESTING 3/12/2026
             ):
                 km_reverse = (
                     minimal_conc[amino_acid] * 10
