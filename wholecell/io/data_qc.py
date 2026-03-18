@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Set, Union
+from scipy.stats import spearmanr
 
 import numpy as np
 import pandas as pd
@@ -251,8 +252,6 @@ def _compute_summary_stats(
     pearson_r = np.corrcoef(ref_tpm, expt_tpm)[0, 1]
 
     # Spearman correlation (rank-based)
-    from scipy.stats import spearmanr
-
     spearman_r, _ = spearmanr(ref_tpm, expt_tpm)
 
     # RMSE
