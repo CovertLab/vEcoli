@@ -57,7 +57,7 @@ REVERSE_TAG = " (reverse)"
 REVERSE_REACTION_ID = "{{}}{}".format(REVERSE_TAG)
 ENZYME_REACTION_ID = "{}__{}"
 
-VERBOSE = True
+VERBOSE = False
 
 
 class InvalidReactionDirectionError(Exception):
@@ -1756,8 +1756,7 @@ class Metabolism(object):
                     )
 
                     print(f"\t{factor:.2f}:\t{new_kcat_fwd:5.1f}\t{new_kcat_rev:5.1f}")
-                if kcat_fwd is not None:
-                    print(f"*** {amino_acid}: {kcat_fwd:5.1f} {kcat_rev:5.1f} ***")
+                print(f"*** {amino_acid}: {kcat_fwd:5.1f} {kcat_rev:5.1f} ***")
 
             if kcat_fwd is None:
                 raise ValueError(
