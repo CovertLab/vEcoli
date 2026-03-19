@@ -112,8 +112,12 @@ Configuration options for the ParCa are all located in a dictionary under the
   See ``experimental_data/rnaseq/manifest.tsv`` for the expected format.
 - ``rnaseq_basal_dataset_id``: The ``dataset_id`` from the manifest to use as the
   basal transcriptome. Required if ``rnaseq_manifest_path`` is set.
-- ``basal_expression_condition``: Modeled condition name used throughout ParCa for
-  the baseline growth state. Must match a defined condition. Default is
+- ``basal_expression_condition``: When using the legacy code path
+  (``rnaseq_manifest_path`` is null), this must match a column name in the reference
+  RNA-seq tables under ``reconstruction/ecoli/flat/rna_seq_data/`` (e.g.
+  ``"M9 Glucose minus AAs"``, ``"M9 Glucose plus AAs"``). When using the
+  manifest-based path, it is only used to fill missing genes from the reference table
+  (when ``rnaseq_fill_missing_genes_from_ref`` is true). Default is
   ``"M9 Glucose minus AAs"``.
 
 .. warning::
