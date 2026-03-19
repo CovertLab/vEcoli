@@ -536,10 +536,7 @@ class Transcription(object):
                 sim_data.rnaseq_manifest_path,
                 sim_data.rnaseq_basal_dataset_id,
             )
-            # Experimental-only mapping
-            seq_data_exp = dict(zip(tpm_table["gene_id"], tpm_table["tpm_mean"]))
-            # Combined mapping (may be updated with reference values)
-            seq_data = dict(seq_data_exp)
+            seq_data = dict(zip(tpm_table["gene_id"], tpm_table["tpm_mean"]))
 
             if sim_data.rnaseq_fill_missing_genes_from_ref:
                 # Reference mapping from legacy table and basal_expression_condition
@@ -552,7 +549,7 @@ class Transcription(object):
 
                 # Genes present in the model but missing from experimental dataset
                 model_gene_ids = set(cistron_id_to_gene_id.values())
-                missing_gene_ids = model_gene_ids.difference(seq_data_exp.keys())
+                missing_gene_ids = model_gene_ids.difference(seq_data.keys())
 
                 if missing_gene_ids:
                     filled = 0
@@ -578,15 +575,13 @@ class Transcription(object):
                     raw_data.rna_seq_data, f"rnaseq_{RNA_SEQ_ANALYSIS}_mean"
                 )
             }
-            seq_data_exp = seq_data
 
         cistron_rnaseq_coverage = []
         for cistron_id in self.cistron_data["id"]:
             gene_id = cistron_id_to_gene_id[cistron_id]
             # If sequencing data is not found, initialize expression to zero.
             cistron_expression.append(seq_data.get(gene_id, 0.0))
-            # Coverage reflects presence in the experimental dataset when available
-            cistron_rnaseq_coverage.append(gene_id in seq_data_exp)
+            cistron_rnaseq_coverage.append(gene_id in seq_data)
 
         cistron_expression = np.array(cistron_expression)
         self._cistron_is_rnaseq_covered = np.array(cistron_rnaseq_coverage)
