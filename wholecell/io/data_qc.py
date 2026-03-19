@@ -90,28 +90,21 @@ class RnaseqComparisonResult:
 def compare_rnaseq_tables(
     ref_df: pd.DataFrame,
     expt_df: pd.DataFrame,
-    *,
-    ref_tpm_col: str = "tpm_mean",
-    expt_tpm_col: str = "tpm_mean",
-    gene_id_col: str = "gene_id",
     gene_annotations: Optional[pd.DataFrame] = None,
     essential_genes: Optional[Set[str]] = None,
 ) -> RnaseqComparisonResult:
     """
     Compare experimental RNA-seq TPM table against a reference.
 
+    Both DataFrames must follow ``RnaseqTpmTableSchema`` (columns: ``gene_id``,
+    ``tpm_mean``).
+
     Parameters
     ----------
     ref_df:
-        Reference TPM table with at least ``gene_id_col`` and ``ref_tpm_col``.
+        Reference TPM table.
     expt_df:
-        Experimental TPM table with at least ``gene_id_col`` and ``expt_tpm_col``.
-    ref_tpm_col:
-        Column name for TPM values in reference DataFrame.
-    expt_tpm_col:
-        Column name for TPM values in experimental DataFrame.
-    gene_id_col:
-        Column name for gene identifiers in both DataFrames.
+        Experimental TPM table.
     gene_annotations:
         Optional DataFrame with columns [gene_id, gene_name] for adding gene symbols.
         Can be loaded via ``load_gene_annotations()``.
@@ -125,18 +118,18 @@ def compare_rnaseq_tables(
         Contains comparison table, summary statistics, and missing gene lists.
     """
     # Prepare reference subset
-    ref_subset = ref_df[[gene_id_col, ref_tpm_col]].copy()
-    ref_subset = ref_subset.rename(columns={ref_tpm_col: "ref_tpm"})
+    ref_subset = ref_df[["gene_id", "tpm_mean"]].copy()
+    ref_subset = ref_subset.rename(columns={"tpm_mean": "ref_tpm"})
 
     # Prepare experimental subset
-    expt_subset = expt_df[[gene_id_col, expt_tpm_col]].copy()
-    expt_subset = expt_subset.rename(columns={expt_tpm_col: "expt_tpm"})
+    expt_subset = expt_df[["gene_id", "tpm_mean"]].copy()
+    expt_subset = expt_subset.rename(columns={"tpm_mean": "expt_tpm"})
 
     # Outer join
     comparison = pd.merge(
         ref_subset,
         expt_subset,
-        on=gene_id_col,
+        on="gene_id",
         how="outer",
     )
 
@@ -155,10 +148,10 @@ def compare_rnaseq_tables(
 
     # Identify missing genes
     genes_only_in_ref = comparison.loc[
-        comparison["expt_tpm"].isna(), gene_id_col
+        comparison["expt_tpm"].isna(), "gene_id"
     ].tolist()
     genes_only_in_expt = comparison.loc[
-        comparison["ref_tpm"].isna(), gene_id_col
+        comparison["ref_tpm"].isna(), "gene_id"
     ].tolist()
 
     # Compute summary stats on genes present in both

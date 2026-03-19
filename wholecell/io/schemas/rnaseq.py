@@ -103,12 +103,6 @@ RnaseqSamplesManifestSchema = pa.DataFrameSchema(
             required=False,
             description="Optional: cultivation condition descriptor (e.g. 'Modified_M9_N_Fe').",
         ),
-        # "is_basal": pa.Column(
-        #     bool,
-        #     nullable=True,
-        #     required=False,
-        #     description="Optional: True if this sample is the default basal condition for ParCa.",
-        # ),
     },
     strict="filter",
     coerce=True,

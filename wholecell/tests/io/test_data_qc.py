@@ -85,19 +85,6 @@ class TestCompareRnaseqTables(unittest.TestCase):
             ["gene_id", "gene_name", "gene_essential", "ref_tpm", "expt_tpm"],
         )
 
-    def test_custom_column_names(self):
-        """Should handle custom TPM column names."""
-        ref = pd.DataFrame({"gene_id": ["A", "B"], "my_ref_tpm": [10.0, 20.0]})
-        expt = pd.DataFrame({"gene_id": ["A", "B"], "my_expt_tpm": [15.0, 25.0]})
-
-        result = data_qc.compare_rnaseq_tables(
-            ref, expt, ref_tpm_col="my_ref_tpm", expt_tpm_col="my_expt_tpm"
-        )
-
-        self.assertEqual(result.summary_stats["n_genes_matched"], 2)
-        self.assertIn("ref_tpm", result.comparison_table.columns)
-        self.assertIn("expt_tpm", result.comparison_table.columns)
-
     def test_fold_change_with_zeros(self):
         """Fold change should handle zeros via pseudocount."""
         ref = pd.DataFrame({"gene_id": ["A", "B"], "tpm_mean": [0.0, 100.0]})

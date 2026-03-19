@@ -146,6 +146,19 @@ class TestIngestion(unittest.TestCase):
             with self.assertRaises(pa_errors.SchemaError):
                 ingestion.ingest_rnaseq_manifest(path)
 
+    def test_ingest_rnaseq_tpm_table_fails_duplicate_gene_id(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "bad.tsv"
+            df = pd.DataFrame(
+                {
+                    "gene_id": ["EG10001", "EG10001"],
+                    "tpm_mean": [10.0, 20.0],
+                }
+            )
+            df.to_csv(path, sep="\t", index=False)
+            with self.assertRaises(pa_errors.SchemaError):
+                ingestion.ingest_rnaseq_tpm_table(path)
+
     def test_ingest_transcriptome_fails_unknown_dataset_id(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)
