@@ -193,7 +193,6 @@ def compare_rnaseq_tables(
 def _compute_summary_stats(
     ref_tpm: np.ndarray,
     expt_tpm: np.ndarray,
-    *,
     n_ref_total: int,
     n_expt_total: int,
     n_only_ref: int,
