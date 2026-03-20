@@ -167,14 +167,17 @@ def compare_rnaseq_tables(
 
     # Add essentiality-specific stats if available
     if essential_genes is not None:
-        matched_essential = matched[matched["gene_id"].isin(essential_genes)]
+        matched_essential = matched[matched["gene_essential"]]
         summary_stats["n_essential_genes_matched"] = len(matched_essential)
         summary_stats["n_essential_genes_total"] = len(essential_genes)
 
-        essential_only_in_ref = [g for g in genes_only_in_ref if g in essential_genes]
-        essential_only_in_expt = [g for g in genes_only_in_expt if g in essential_genes]
-        summary_stats["n_essential_only_in_ref"] = len(essential_only_in_ref)
-        summary_stats["n_essential_only_in_expt"] = len(essential_only_in_expt)
+        mask_essential = comparison["gene_essential"]
+        summary_stats["n_essential_only_in_ref"] = int(
+            (comparison["expt_tpm"].isna() & mask_essential).sum()
+        )
+        summary_stats["n_essential_only_in_expt"] = int(
+            (comparison["ref_tpm"].isna() & mask_essential).sum()
+        )
 
     # Reorder columns: gene_id, gene_name, gene_essential, ref_tpm, expt_tpm
     preferred_order = ["gene_id", "gene_name", "gene_essential", "ref_tpm", "expt_tpm"]
