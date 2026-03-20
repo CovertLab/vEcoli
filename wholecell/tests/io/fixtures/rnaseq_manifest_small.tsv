@@ -1,0 +1,2 @@
+dataset_id	dataset_description	file_path	data_source	data_source_experiment_id	data_source_date	strain	condition
+ref_small	small reference-style TPM fixture	rnaseq_tpm_small.tsv	reconstruction/flat/rna_seq_data	n/a	n/a	n/a	M9, Glucose, Aerobic, 37C
