@@ -141,6 +141,9 @@ def plot(
     # Altair scatter with error bars
     # ------------------------------------------------------------------
     pearson_r = float(np.corrcoef(sim_means_num, toya_means_num)[0, 1])
+    ss_res = np.sum((sim_means_num - toya_means_num) ** 2)
+    ss_tot = np.sum((toya_means_num - np.mean(toya_means_num)) ** 2)
+    r_squared = float(1 - ss_res / ss_tot)
     flux_unit_str = FLUX_UNITS.strUnit()
 
     df = pl.DataFrame(
@@ -181,7 +184,7 @@ def plot(
     chart = (
         (points + x_errorbars + y_errorbars)
         .properties(
-            title=f"Central Carbon Metabolism Flux, Pearson R = {pearson_r:.2f}",
+            title=f"Central Carbon Metabolism Flux \n Pearson R² = {pearson_r**2:.2f}, R² = {r_squared:.2f}",
             width=500,
             height=450,
         )

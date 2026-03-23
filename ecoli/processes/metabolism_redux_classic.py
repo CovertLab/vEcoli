@@ -143,10 +143,10 @@ class MetabolismReduxClassic(Step):
         "concentration_updates": None,
         "maintenance_reaction": {},
         "objective_weights": {
-            "secretion": 0.0000291836683368938,
-            "efficiency": 0.0000143864966692813,  # decrease efficiency
-            "kinetics": 0.000587985945457892,  # 0.00001
-            "diversity": 0.001,  # 0.001 Heena's addition to minimize number of reactions with no flow
+            "secretion": 0.01,
+            "efficiency": 0.000001,
+            "kinetics": 0.0000001,
+            "diversity": 0,  # Heena's addition to minimize number of reactions with no flow
             "homeostatic": 1,
         },
     }
@@ -789,8 +789,7 @@ class NetworkFlowModel:
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
         loss = 0
-        # Must normalize by metabolite concentrations to prevent negative counts
-
+        # Must normalize by metabolite concentrations to prevent negative counts.
         homeostatic_term = cp.norm1(
             (dm[self.homeostatic_idx] - homeostatic_dm_targets) / homeostatic_concs
         )
@@ -823,13 +822,25 @@ class NetworkFlowModel:
         diversity_term = cp.sum(cp.pos(target_minimal_flux - v))
         loss += (
             objective_weights["diversity"] * diversity_term
+            # 0 * diversity_term
             if "diversity" in objective_weights
             else loss
         )
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
-        p.solve(solver=solver, verbose=False)
+        p.solve(
+            solver=solver,
+            verbose=False,
+            # mosek_params={
+            #     "MSK_IPAR_INTPNT_MAX_ITERATIONS": 100,  # default 200 exhausted on harder timesteps
+            #     "MSK_DPAR_INTPNT_CO_TOL_PFEAS": 5e-7,  # relaxed from 1e-8 for conic program
+            #     "MSK_DPAR_INTPNT_CO_TOL_DFEAS": 5e-7,
+            #     "MSK_DPAR_INTPNT_CO_TOL_MU_RED": 5e-7,
+            #     "MSK_DPAR_INTPNT_CO_TOL_REL_GAP": 1e-6,
+            # },
+        )
+
         if p.status != "optimal":
             raise ValueError(
                 "Network flow model of metabolism did not "

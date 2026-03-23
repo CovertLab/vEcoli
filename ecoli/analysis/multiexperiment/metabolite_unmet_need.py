@@ -23,11 +23,10 @@ from ecoli.library.parquet_emitter import (
 if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
 
-DEFAULT_TOP_N = 5
-TIME_BIN_MIN = 0.5
+DEFAULT_TOP_N = 8
 PASTEL = [
     "#8dd3c7",
-    "#ffffb3",
+    "#EECE9D",
     "#bebada",
     "#fb8072",
     "#80b1d3",
@@ -52,8 +51,6 @@ def plot(
     """Plot top-5 unmet need bar chart and metabolite-of-interest time series (Altair)."""
     top_n = params.get("top_n", DEFAULT_TOP_N)
     metabolites_of_interest = params.get("metabolites_of_interest")  # None => use top_n
-    kinetics_weight = params.get("kinetics_weight")
-    time_bin_min = params.get("time_bin_min", TIME_BIN_MIN)
 
     try:
         homeostatic_ids = field_metadata(
@@ -124,11 +121,9 @@ def plot(
     raw = raw.with_columns(
         ((pl.col("time") - pl.col("t_min")) / 60.0).alias("Time_min")
     )
-    time_bin = (pl.col("Time_min") / time_bin_min).floor() * time_bin_min
-    raw = raw.with_columns(time_bin.alias("Time_bin"))
 
     # Long format: one row per (row, metabolite)
-    id_vars = ["time", "Time_bin", "generation", "lineage_seed", "agent_id"]
+    id_vars = ["Time_min", "generation", "lineage_seed", "agent_id"]
     value_vars = [f"unmet_{i}" for i in range(n_met)]
     long = raw.select(id_vars + value_vars).melt(
         id_vars=id_vars,
@@ -142,11 +137,11 @@ def plot(
     met_df = pl.DataFrame({"met_idx": range(n_met), "metabolite": homeostatic_ids})
     long = long.join(met_df, on="met_idx")
 
-    # Aggregate: mean per (Time_bin, metabolite)
+    # Aggregate: mean per (Time_min, metabolite)
     agg = (
-        long.group_by("Time_bin", "metabolite")
+        long.group_by("Time_min", "metabolite")
         .agg(pl.col("unmet_need").mean().alias("unmet_need"))
-        .sort("Time_bin", "metabolite")
+        .sort("Time_min", "metabolite")
     )
 
     # Top N by mean absolute unmet need over time
@@ -167,6 +162,7 @@ def plot(
         line_mets = top_mets
 
     agg_line = agg.filter(pl.col("metabolite").is_in(line_mets))
+
     df_bar = top_bar.to_pandas()
     df_line = agg_line.to_pandas()
 
@@ -175,56 +171,66 @@ def plot(
     color_domain = all_mets
     color_range = [PASTEL[i % len(PASTEL)] for i in range(len(color_domain))]
 
-    # Top: bar chart
-    bar_chart = (
-        alt.Chart(df_bar)
-        .mark_bar(cornerRadiusEnd=8, size=28)
-        .encode(
-            x=alt.X("metabolite:N", title="Metabolite", sort="-y"),
-            y=alt.Y(
-                "mean_abs_unmet:Q",
-                title="Unmet need (mean |L1 diff|)",
-                scale=alt.Scale(type="log"),
-            ),
-            color=alt.Color(
-                "metabolite:N",
-                scale=alt.Scale(domain=color_domain, range=color_range),
-                legend=None,
-            ),
-            tooltip=["metabolite:N", "mean_abs_unmet:Q"],
-        )
-        .properties(height=220, width=600)
+    # Top: bar chart — mean_abs_unmet is always positive, use symlog to handle near-zero
+    bar_base = alt.Chart(df_bar).encode(
+        x=alt.X("metabolite:N", title="Metabolite", sort="-y"),
+        color=alt.Color(
+            "metabolite:N",
+            scale=alt.Scale(domain=color_domain, range=color_range),
+            legend=None,
+        ),
+        tooltip=["metabolite:N", "mean_abs_unmet:Q"],
     )
 
-    # Bottom: line chart (metabolites of interest over time)
+    bars = bar_base.mark_bar(cornerRadiusEnd=8, size=28).encode(
+        y=alt.Y(
+            "mean_abs_unmet:Q",
+            title="Unmet need (mean |L1 diff|)",
+            scale=alt.Scale(
+                type="symlog"
+            ),  # ✅ safe here since mean_abs_unmet > 0 always
+        ),
+    )
+
+    bar_labels = bar_base.mark_text(
+        align="center",
+        baseline="bottom",
+        dy=-4,  # small offset above bar top
+        fontSize=12,
+        fontWeight="bold",
+    ).encode(
+        y=alt.Y("mean_abs_unmet:Q", scale=alt.Scale(type="symlog")),
+        text=alt.Text(
+            "mean_abs_unmet:Q", format=".2e"
+        ),  # ✅ scientific notation e.g. 5.1e+03
+    )
+
+    bar_chart = (bars + bar_labels).properties(height=220, width=600)
+
+    # Bottom: line chart — unmet_need can be negative, so NO log scale
     line_chart = (
         alt.Chart(df_line)
         .mark_line(strokeWidth=2)
         .encode(
-            x=alt.X("Time_bin:Q", title="Time (min)"),
+            x=alt.X("Time_min:Q", title="Time (min)"),
             y=alt.Y(
                 "unmet_need:Q",
                 title="L1 |Target - Estimate|",
-                scale=alt.Scale(type="log"),
             ),
             color=alt.Color(
                 "metabolite:N",
                 scale=alt.Scale(domain=color_domain, range=color_range),
                 legend=alt.Legend(title="Metabolite"),
             ),
-            tooltip=["Time_bin:Q", "metabolite:N", "unmet_need:Q"],
+            tooltip=["Time_min:Q", "metabolite:N", "unmet_need:Q"],
         )
         .properties(height=380, width=600)
     )
 
     title = "Unmet homeostatic need summary + culprit metabolite timeseries"
-    if kinetics_weight is not None:
-        title += f". λkin = {kinetics_weight}"
 
     combined = alt.vconcat(bar_chart, line_chart).properties(title=title)
 
-    save_path = os.path.join(outdir, "figures")
-    os.makedirs(save_path, exist_ok=True)
-    html_path = os.path.join(save_path, "WC_metabolite_unmet_need.html")
-    combined.save(html_path)
-    print(f"Saved metabolite unmet need to {html_path}")
+    combined.save(os.path.join(outdir, "WC_metabolite_unmet_need.html"))
+    print(f"Saved metabolite unmet need to {outdir}")
+    return

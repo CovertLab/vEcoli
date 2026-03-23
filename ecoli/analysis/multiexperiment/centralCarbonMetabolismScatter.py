@@ -58,7 +58,7 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    # plot_by = params.get("plot_by", "generation")
+    plot_by = params.get("plot_by", "generation")
     REDUXCLASSIC = params.get("is_reduxclassic", True)
 
     with open_arbitrary_sim_data(sim_data_dict) as f:
@@ -127,6 +127,13 @@ def plot(
     all_dfs = []
     for sim in sim_meta:
         mask = raw["sim_meta"] == sim
+        sim_row = raw.filter(mask).row(0, named=True)
+
+        experiment_id = sim_row["experiment_id"]
+        variant = sim_row["variant"]
+        lineage_seed = sim_row["lineage_seed"]
+        generation = sim_row["generation"]
+
         cell_masses_ref = units.fg * raw.filter(mask)["cell_mass"]
         dry_masses_ref = units.fg * raw.filter(mask)["dry_mass"]
 
@@ -162,6 +169,7 @@ def plot(
         ss_tot = np.sum((toya_means_num - np.mean(toya_means_num)) ** 2)
         r_squared = float(1 - ss_res / ss_tot)
         pearson_r = float(np.corrcoef(sim_means_num, toya_means_num)[0, 1])
+        pearson_r2 = pearson_r**2
 
         all_dfs.append(
             pl.DataFrame(
@@ -175,9 +183,13 @@ def plot(
                     "toya_hi": toya_means_num + toya_stdevs_num,
                     "sim_lo": sim_means_num - sim_stdevs_num,
                     "sim_hi": sim_means_num + sim_stdevs_num,
-                    "sim_meta": [sim] * len(toya_reactions),  # ✅ facet key
-                    "pearson_r": [pearson_r] * len(toya_reactions),  # ✅ per-facet stat
-                    "r_squared": [r_squared] * len(toya_reactions),  # ✅ per-facet stat
+                    "sim_meta": [sim] * len(toya_reactions),
+                    "pearson_r2": [pearson_r2] * len(toya_reactions),
+                    "r_squared": [r_squared] * len(toya_reactions),
+                    "experiment_id": [experiment_id] * len(toya_reactions),
+                    "variant": [variant] * len(toya_reactions),
+                    "lineage_seed": [lineage_seed] * len(toya_reactions),
+                    "generation": [generation] * len(toya_reactions),
                 }
             )
         )
@@ -189,58 +201,66 @@ def plot(
     # --- Build chart facet by sim_meta -------------
     # -----------------------------------------------
     base = alt.Chart().encode(
-        x=alt.X("toya_mean:Q", title=f"Toya 2010 Reaction Flux {flux_unit_str}"),
-        y=alt.Y("sim_mean:Q", title=f"Mean WCM Reaction Flux {flux_unit_str}"),
+        x=alt.X("mean(toya_mean):Q", title=f"Toya 2010 Reaction Flux {flux_unit_str}"),
+        y=alt.Y("mean(sim_mean):Q", title=f"Mean WCM Reaction Flux {flux_unit_str}"),
+        detail=alt.Detail("reaction:N"),
         tooltip=[
             "reaction:N",
-            "toya_mean:Q",
-            "sim_mean:Q",
-            "pearson_r:Q",
-            "r_squared:Q",
+            "mean(toya_mean):Q",
+            "mean(sim_mean):Q",
         ],
     )
 
     points = base.mark_point(color="steelblue", size=50, filled=True)
 
-    x_errorbars = base.mark_errorbar().encode(
-        x=alt.X("toya_lo:Q", title=f"Toya 2010 Reaction Flux {flux_unit_str}"),
-        x2="toya_hi:Q",
-        color=alt.value("black"),
+    x_errorbars = (
+        alt.Chart()
+        .mark_rule(color="black", strokeWidth=1)
+        .encode(
+            x=alt.X("mean(toya_lo):Q"),
+            x2="mean(toya_hi):Q",
+            y=alt.Y("mean(sim_mean):Q"),
+            detail=alt.Detail("reaction:N"),
+        )
     )
 
-    y_errorbars = base.mark_errorbar().encode(
-        y=alt.Y("sim_lo:Q", title=f"Mean WCM Reaction Flux {flux_unit_str}"),
-        y2="sim_hi:Q",
-        color=alt.value("black"),
+    y_errorbars = (
+        alt.Chart()
+        .mark_rule(color="black", strokeWidth=1)
+        .encode(
+            y=alt.Y("mean(sim_lo):Q"),
+            y2="mean(sim_hi):Q",
+            x=alt.X("mean(toya_mean):Q"),
+            detail=alt.Detail("reaction:N"),
+        )
     )
 
     # Annotation layer for per-facet stats
     annotation = (
         alt.Chart()
-        .mark_text(align="left", baseline="top", dx=5, dy=5, fontSize=11)
+        .mark_text(
+            lineBreak="\n", align="left", baseline="top", dx=5, dy=5, fontSize=11
+        )
         .encode(
             x=alt.value(0),
             y=alt.value(0),
-            text=alt.Text(
-                "pearson_r:Q", format=".2f"
-            ),  # or use transform_calculate to combine both
         )
         .transform_aggregate(
-            pearson_r="mean(pearson_r)",
+            pearson_r2="mean(pearson_r2)",
             r_squared="mean(r_squared)",
-            groupby=["sim_meta"],
+            groupby=[plot_by],
         )
         .transform_calculate(
-            label="'Pearson R = ' + format(datum.pearson_r, '.2f') + "
-            "', R² to y=x is ' + format(datum.r_squared, '.2f')"
+            multiline_label="'Pearson R² = ' + format(datum.pearson_r2, '.2f') + '\\n' + "
+            "'R² to y=x is ' + format(datum.r_squared, '.2f')"
         )
-        .encode(text="label:N")
+        .encode(text="multiline_label:N")
     )
 
     final_chart = (
         alt.layer(points, x_errorbars, y_errorbars, annotation, data=df_all)
-        # .properties(width=500, height=450)
-        .facet(facet=alt.Facet("sim_meta:N", title="Simulation"), columns=5)
+        .properties(width=300, height=300)
+        .facet(facet=alt.Facet(f"{plot_by}:N", title=f"{plot_by}"), columns=5)
         .resolve_scale(y="independent")
         .configure_view(strokeWidth=0, fill=None)
         .properties(title="Central Carbon Metabolism Flux")
