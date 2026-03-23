@@ -191,8 +191,6 @@ keys in your configuration JSON (note the top-level ``sherlock`` key):
       # Path (relative or absolute, including file name) of Apptainer image to
       # build (or use directly, if build_image is false)
       "container_image": "",
-      # Boolean, whether to run using HyperQueue.
-      "hyperqueue": false,
       # Boolean, denotes that a workflow is being run as part of Jenkins
       # continuous integration testing. Randomizes the initial seed and
       # ensures that all STDOUT and STDERR is piped to the launching process
@@ -211,23 +209,14 @@ enough space to store your workflow outputs.
    (run ``sh_quota`` to view). Make sure to use an absolute path
    (e.g. ``/scratch/users/{username}``).
 
-If using the Parquet emitter and ``threaded`` is not set to false under
-``emitter_arg``, a warning will be printed suggesting that you set ``threaded``
-to false. This ensures that simulations use only a single CPU core, the default
-that is allocated per simulation on Sherlock (regardless of whether HyperQueue
-is used). On Sherlock, storage speed is not a bottleneck, so performance with
-``threaded`` set to false and 1 core per simulation is comparable to running
-with ``threaded`` unset (default: true) and 2 cores per simulation.
-
-If storage speed was a bottleneck, the additional thread would allow
-simulation execution to continue while Polars writes Parquet files to disk.
-To properly take advantage of this, you would also need to increase the number
-of cores per simulation to 2 by modifying the ``cpus`` directive under the
-``sherlock`` and ``sherlock_hq`` profiles in ``runscripts/nextflow/config.template``.
-
 .. warning::
   ``~`` and environment variables like ``$SCRATCH`` are not expanded in the
   configuration JSON. See the warning box at :doc:`workflows`.
+
+We also strongly recommend running workflows with HyperQueue enabled to
+reduce the time spent waiting in the queue. To do this, set the top-level
+``HYPERQUEUE`` option to true. See :ref:`hq-info` for more information about
+HyperQueue.
 
 .. _sherlock-running:
 
@@ -519,16 +508,11 @@ manually specify the same paths when running interactive containers
 If your cluster does not have Apptainer, you can try the following steps:
 
 1. Completely follow the local setup instructions in the README (install uv, etc).
-2. Delete the following lines from ``runscripts/nextflow/config.template``:
-
-.. code-block:: bash
-
-    process.container = 'IMAGE_NAME'
-    ...
-    apptainer.enabled = true
-
-3. Make sure to always set ``build_runtime_image`` to false in your config JSONs
-   (see :ref:`sherlock-config`)
+2. Delete all lines mentioning ``container`` or ``singularity`` from
+   ``runscripts/nextflow/config.template``.
+3. Make sure to always set ``build_image`` to false in your config JSONs
+   (see :ref:`sherlock-config`).
+4. Follow the instructions in :ref:`cluster-options` to add a new cluster configuration.
 
 
 .. _cluster-options:
@@ -536,20 +520,16 @@ If your cluster does not have Apptainer, you can try the following steps:
 Cluster Options
 ===============
 
-If your HPC cluster uses the SLURM scheduler,
-you can use vEcoli on that cluster by changing the ``queue`` option in
-``runscripts/nextflow/config.template`` and ``runscripts/nextflow/template.nf``
-and all instances of ``--partition=QUEUE(S)`` in :py:mod:`runscripts.workflow`
-to the right queue(s) for your cluster. Also, remove the ``--prefer="CPU_GEN...``
-``clusterOptions`` in those same files.
+If your HPC cluster uses the SLURM scheduler, you can use vEcoli on that cluster
+by simply adding a new cluster configuration under
+:py:data:`runscripts.workflow.CLUSTER_PRESETS`. 
 
-If your HPC cluster uses a different scheduler, refer to the Nextflow
-`executor documentation <https://www.nextflow.io/docs/latest/executor.html>`_
-for more information on configuring the right executor. Beyond the changes above,
-you will at least need to modify the ``executor`` directives for the ``sherlock``
-and ``sherlock_hq`` profiles in ``runscripts/nextflow/config.template`` and for the
-``hqWorker`` process in ``runscripts/nextflow/template.nf``. Additionally, you will
-need to replace the SLURM submission directives in :py:func:`runscripts.workflow.main`
+For other HPC schedulers, in addition to adding a new cluster configuration,
+you will at least need to modify the ``executor`` directives for the ``slurm``
+and ``slurm_hq`` profiles in ``runscripts/nextflow/config.template`` (see
+`here <https://www.nextflow.io/docs/latest/executor.html>`_). Additionally,
+you will need to replace the SLURM submission directives constructed by
+:py:func:`~runscripts.workflow._render_slurm_directives`
 with equivalent directives for your scheduler.
 
 
@@ -569,9 +549,8 @@ HyperQueue for all workflows that span more than a handful of generations.
 Internal Logic
 ==============
 
-If the ``hyperqueue`` option is set to true under the ``sherlock`` key in the
-configuration JSON used to run ``runscripts/workflow.py``, the following steps
-will occur in order:
+If the top-level ``HYPERQUEUE`` option is set to true in the configuration JSON
+used to run ``runscripts/workflow.py``, the following steps will occur in order:
 
 #. If ``build_image`` is True, submit a SLURM job to build the container image.
 #. Submit a single long-running SLURM job on the dedicated Covert Lab partition
@@ -580,10 +559,13 @@ will occur in order:
 #. Nextflow submits a SLURM job to run the ParCa then another to create variants.
    Both must finish for Nextflow to calculate the maximum number of concurrent
    simulations ``# seeds * # variants``.
-#. Nextflow submits SLURM jobs to start ``(# seeds * # variants) // 4`` HyperQueue
-   workers, each worker with 4 cores, 16GB RAM, and a 24 hour limit. A
-   proportionally smaller worker is potentially created to handle the remainder
-   (e.g. for 2 leftover, 2 cores, 8GB RAM, and same 24 hour limit).
+#. Nextflow submits SLURM jobs to start ``(# seeds * # variants) // (HQ_CORES // SIM_CPUS)``.
+   HyperQueue workers. Each worker has ``HQ_CORES`` cores, ``SIM_MEM * (HQ_CORES // SIM_CPUS)``
+   GB of RAM, and a 24 hour time limit. ``HQ_CORES``, ``SIM_CPUS``, and ``SIM_MEM`` are top-level
+   options in the configuration JSON. A proportionally smaller worker is potentially
+   created to handle any remainder sims. For example, if ``HQ_CORES=16``, ``SIM_CPUS=2``,
+   ``SIM_MEM=4``, and there are 18 concurrent simulations, 3 workers are started:
+   2 with 16 cores and 32GB RAM (8 sims each) and 1 with 4 cores and 8GB RAM (2 sims).
 #. Nextflow submits simulation tasks to the HyperQueue head server, which schedules
    them on the available workers.
 #. Nextflow submits analysis tasks to SLURM directly as they do not hold up the
@@ -597,6 +579,60 @@ will occur in order:
    after 5 minutes of inactivity.
 #. Upon completion of the Nextflow workflow, the HyperQueue head server terminates
    any remaining workers and exits.
+
+Considerations for HyperQueue Configuration Settings
+====================================================
+
+There is no one right answer for how to set HyperQueue options as it depends
+on the specifics of your workflow, cluster, and priorities.
+
+Maximums to keep in mind (cluster-dependent):
+
+- Maximum number of concurrent active jobs a user can have at once
+- Maximum number of cores a user can have at once
+- Grid executor queue size limits
+
+General guidelines:
+
+- Having smaller workers (smaller ``HQ_CORES``) increases scheduling flexibility,
+  reduces wasted resources on partially utilized workers, and
+  results in the least disruption in the unlikely event one worker fails.
+  However, this increases the total number of jobs submitted to the scheduler,
+  which may lead to longer queue times. Further, most clusters have a maximum
+  number of concurrent active jobs a user can have at once, which may limit the
+  number of workers you can run simultaneously.
+- Increasing ``SIM_CPUS`` *may* speed up individual simulations, but comes at
+  the cost of reducing the total number of concurrent simulations and
+  increasing the minimum size of HyperQueue workers. In the interest of maximizing
+  throughput, we recommend setting this to 1 if your maximum number of
+  concurrent sims is large, and no larger than 2 otherwise. The second CPU
+  per sim may help in scenarios where the Parquet emitter ends up competing
+  with sim execution for a single thread on 1 CPU.
+- Increasing ``HQ_CORES`` may mean the job takes longer to allocate because
+  it is requesting more resources at once. However, this reduces the total
+  number of jobs submitted to the scheduler, which may reduce queue time.
+  Further, larger workers can run more simulations concurrently, which may
+  reduce the overall workflow runtime if the cluster has a long queue time.
+
+Examples:
+
+(Assuming cluster maximum per user is 20 concurrent active jobs and 256 cores)
+
+- If you have 25 maximum concurrent simulations (e.g. 1 variant, 25 seeds, 8
+  gens), setting ``HQ_CORES=4``, ``SIM_CPUS=2``, and ``SIM_MEM=4`` results in 12
+  workers of 4 cores and 8GB RAM (2 sims each) and 1 worker of 2 cores and 4
+  GB RAM (1 sim). This stays within the job limit, runs all possible
+  simulations concurrently, should be allocated quickly, and minimizes wasted
+  resources.
+- If you have 250 maximum concurrent simulations (e.g. 10 variants, 25 seeds, 8
+  gens), setting ``HQ_CORES=25```, ``SIM_CPUS=1``, and ``SIM_MEM=4`` results
+  in 10 workers of 25 cores and 100GB RAM (25 sims each). This stays within
+  the job limit, runs all possible simulations concurrently,
+  and minimizes wasted resources. If instead you were to do ``HQ_CORES=50``,
+  ``SIM_CPUS=2``, and ``SIM_MEM=4``, then even though you would still be
+  requesting 10 workers (of 50 cores and 100GB RAM) with 25 sims each and
+  staying below the job limit, the core limit would be exceeded (``10 * 50 = 500 > 256``), so only 5
+  workers would be allocated (``5 * 50 = 250 < 256``) and only 125 simulations would run concurrently.
 
 
 Monitoring

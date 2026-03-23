@@ -323,7 +323,7 @@ def run_simulation(config):
         environment_composite = environment_composer.generate()
         del environment_composer
         # Add field timeline process if timeline given
-        if len(spatial_config["field_timeline"].get("timeline")) > 0:
+        if len(spatial_config.get("field_timeline", {}).get("timeline", [])) > 0:
             field_timeline = FieldTimeline(spatial_config["field_timeline"])
             environment_composite.merge(
                 processes={"field_timeline": field_timeline},

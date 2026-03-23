@@ -707,7 +707,7 @@ class TestRunAnalysisLoop:
         variant_names = {"test_exp": "test_variant"}
 
         # Run analysis loop
-        stats = run_analysis_loop(
+        stats, last_exit_code = run_analysis_loop(
             config,
             conn,
             "SELECT * FROM history",
@@ -723,6 +723,7 @@ class TestRunAnalysisLoop:
         assert stats["total_runs"] == 1
         assert stats["skipped"] == 0
         assert stats["errors"] == 0
+        assert last_exit_code is None
 
         # Check that plot was called
         assert len(mock_analysis.plot_calls) == 1
@@ -739,7 +740,7 @@ class TestRunAnalysisLoop:
             "multiseed": {},  # Empty
         }
 
-        stats = run_analysis_loop(
+        stats, last_exit_code = run_analysis_loop(
             config,
             conn,
             "SELECT * FROM history",
@@ -753,6 +754,7 @@ class TestRunAnalysisLoop:
 
         assert stats["skipped"] == 1
         assert stats["total_runs"] == 0
+        assert last_exit_code is None
 
     def test_run_with_missing_analysis_type(self, tmp_path):
         """Test that missing analysis type raises KeyError"""
@@ -797,7 +799,7 @@ class TestRunAnalysisLoop:
             "multiseed": {"test_analysis": {}},
         }
 
-        stats = run_analysis_loop(
+        stats, last_exit_code = run_analysis_loop(
             config,
             conn,
             "SELECT * FROM history",
@@ -811,6 +813,7 @@ class TestRunAnalysisLoop:
 
         assert stats["errors"] == 1
         assert stats["total_runs"] == 0
+        assert last_exit_code is None
 
     def test_run_auto_detects_analysis_types(self, tmp_path, monkeypatch):
         """Test that analysis types are auto-detected when not specified"""
@@ -838,7 +841,7 @@ class TestRunAnalysisLoop:
             "multivariant": {"another_analysis": {}},
         }
 
-        stats = run_analysis_loop(
+        stats, last_exit_code = run_analysis_loop(
             config,
             conn,
             "SELECT * FROM history",
@@ -855,6 +858,7 @@ class TestRunAnalysisLoop:
         assert "analysis_types" in config
         assert "multiseed" in config["analysis_types"]
         assert "multivariant" in config["analysis_types"]
+        assert last_exit_code is None
 
     def test_run_filters_variants_correctly(self, tmp_path, monkeypatch):
         """Test that variants are filtered correctly for each analysis"""
@@ -915,7 +919,7 @@ class TestRunAnalysisLoop:
         }
         variant_names = {"test_exp": "test_variant"}
 
-        stats = run_analysis_loop(
+        stats, last_exit_code = run_analysis_loop(
             config,
             conn,
             "SELECT * FROM history",
@@ -928,12 +932,51 @@ class TestRunAnalysisLoop:
         )
 
         assert stats["total_runs"] == 2  # One for variant 0, one for variant 1
+        assert last_exit_code is None
 
         # Check that filtered data was passed to plot
         for call in mock_analysis.plot_calls:
             # Should only have variants 0 or 1, not 2
             assert 2 not in call["variant_metadata"].get("test_exp", {})
             assert 2 not in call["sim_data_dict"].get("test_exp", {})
+
+
+def test_exit_code_propagation(monkeypatch, tmp_path):
+    """Ensure a non-zero return code on exceptions is captured and returned."""
+
+    class MockErr(Exception):
+        def __init__(self, msg, returncode):
+            super().__init__(msg)
+            self.returncode = returncode
+
+    def mock_import(name):
+        raise MockErr("mock failure", 42)
+
+    monkeypatch.setattr(importlib, "import_module", mock_import)
+
+    outdir = tmp_path / "out"
+    outdir.mkdir()
+
+    config = {
+        "outdir": str(outdir),
+        "analysis_types": ["multiseed"],
+        "multiseed": {"test_analysis": {}},
+    }
+
+    stats, last_exit_code = run_analysis_loop(
+        config,
+        MockConnection([("test_exp", 0)]),
+        "SELECT * FROM history",
+        "SELECT * FROM config",
+        "SELECT * FROM success",
+        "experiment_id = 'test_exp'",
+        {},
+        {},
+        {},
+    )
+
+    assert stats["errors"] == 1
+    assert last_exit_code == 42
 
 
 if __name__ == "__main__":

@@ -22,14 +22,16 @@ from typing import Optional, Dict, Any
 from urllib import parse
 
 import numpy as np
+from fsspec import open as fsspec_open
 from vivarium.core.engine import Engine
 from vivarium.core.composer import deep_merge
 from vivarium.core.process import Process
 from vivarium.core.serialize import deserialize_value, serialize_value
 from vivarium.library.dict_utils import deep_merge_check
 from vivarium.library.topology import inverse_topology
-from vivarium.library.topology import assoc_path
+from vivarium.library.topology import assoc_path, get_in
 from ecoli.library.logging_tools import write_json
+from wholecell.utils.filepath import cloud_path_join
 import ecoli.composites.ecoli_master
 
 # Environment composer for spatial environment sim
@@ -90,7 +92,7 @@ def get_git_revision_hash() -> str:
     try:
         return (
             subprocess.check_output(["git", "-C", CONFIG_DIR_PATH, "rev-parse", "HEAD"])
-            .decode("ascii")
+            .decode("utf-8")
             .strip()
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -386,9 +388,10 @@ class SimConfig:
         the currently loaded config.
 
         Args:
-            path: The file path of the JSON config to merge in.
+            path: The file path of the JSON config to merge in. Supports
+                local paths and cloud URIs (s3://, gs://).
         """
-        with open(path, "r") as f:
+        with fsspec_open(path, "r") as f:
             new_config = json.load(f)
         new_config = deserialize_value(new_config)
         for config_name in new_config.get("inherit_from", []):
@@ -706,7 +709,13 @@ class EcoliSim:
 
         # get initial state
         initial_cell_state = ecoli_composer.initial_state()
-        initial_cell_state = assoc_path({}, path, initial_cell_state)
+        # If division or spatial environment is enabled,
+        # ensure that inner cell state is nested at correct path.
+        # Note: cell states loaded from saved JSONs may already
+        # have the correct nesting (e.g. saved daughter cell states
+        # from sims with spatial environment).
+        if get_in(initial_cell_state, path) is None:
+            initial_cell_state = assoc_path({}, path, initial_cell_state)
 
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
@@ -728,8 +737,11 @@ class EcoliSim:
                 initial_state_config
             )
             self.ecoli.merge(environment_composite)
+            # In case initial state already contains environment state
+            # (e.g. from a daughter cell state saved after division),
+            # give priority to existing environment state
             self.generated_initial_state = deep_merge(
-                self.generated_initial_state, initial_environment
+                initial_environment, self.generated_initial_state
             )
 
     def update_experiment(self, time_to_update: float = 0.0):
@@ -747,16 +759,26 @@ class EcoliSim:
         except DivisionDetected:
             state = self.ecoli_experiment.state.get_value(condition=not_a_process)
             assert len(state["agents"]) == 2
-            for i, agent_state in enumerate(state["agents"].values()):
+            # Daughter state should include all of the additional
+            # non-agent state (e.g. environment state)
+            non_agent_state = {k: v for k, v in state.items() if k != "agents"}
+            for i, (agent_id, agent_state) in enumerate(state["agents"].items()):
                 prepare_save_state(agent_state)
-                daughter_path = os.path.join(
-                    self.daughter_outdir, f"daughter_state_{i}.json"
+                daughter_filename = f"daughter_state_{i}.json"
+                daughter_path = cloud_path_join(self.daughter_outdir, daughter_filename)
+                write_json(
+                    daughter_path,
+                    {**non_agent_state, "agents": {agent_id: agent_state}},
                 )
-                write_json(daughter_path, agent_state)
+                # Write daughter state URI to local file for Nextflow to read
+                with open(f"daughter_state_{i}_uri.txt", "w") as f:
+                    f.write(daughter_path)
             print(
                 f"Divided at t = {self.ecoli_experiment.global_time} after "
                 f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
             )
+            # Nextflow workflows will source division time to determine
+            # initial global time to use for daughter cells
             with open("division_time.sh", "w") as f:
                 f.write(f"export division_time={self.ecoli_experiment.global_time}")
             # Tell Parquet emitter that simulation was successful
@@ -981,6 +1003,9 @@ class EcoliSim:
         metadata["git_diff"] = get_git_diff()
         metadata["processes"] = [k for k in metadata["processes"].keys()]
         metadata["time"] = datetime.now()
+        # Needed for data types that Polars cannot serialize
+        # (e.g. Pint Quantities inside a list)
+        metadata = serialize_value(metadata)
         return metadata
 
     def output_metadata(self) -> dict[str, Any]:

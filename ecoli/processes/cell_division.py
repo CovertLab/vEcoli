@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 import binascii
 import numpy as np
-from vivarium.core.process import Step
+from vivarium.core.process import Process, Step
 
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.schema import attrs
@@ -145,7 +145,9 @@ class Division(Step):
                     for process in composite.steps.values()
                     if "process" in process.parameters
                 }
-                initial_state = {"process": process_states}
+                initial_state = {
+                    "process": process_states,
+                }
                 daughter_updates.append(
                     {
                         "key": daughter_id,
@@ -171,7 +173,7 @@ class DivisionDetected(Exception):
     pass
 
 
-class StopAfterDivision(Step):
+class StopAfterDivision(Process):
     """
     Detect division and raise an exception that must be caught.
     """
@@ -183,8 +185,16 @@ class StopAfterDivision(Step):
             "agents": {"*": {}},
         }
 
-    def next_update(self, timestep, states):
-        # Raise exception once division has occurred
+    def calculate_timestep(self, states):
+        # Make sure update_condition is checked every timestep
+        return 0
+
+    def update_condition(self, timestep, states):
+        # Use this solely to check for division
+        # Never actually updates so does not interfere with timestepping
         if len(states["agents"]) > 1:
             raise DivisionDetected("More than one cell in agents store.")
-        return {}
+        return False
+
+    def next_update(self, timestep, states):
+        raise RuntimeError("This should never be called.")
