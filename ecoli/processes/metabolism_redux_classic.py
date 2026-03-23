@@ -272,7 +272,11 @@ class MetabolismReduxClassic(Step):
                     "_emit": True,
                     "_divider": "empty_dict",
                 },
-                "gtp_to_hydrolyze": {"_default": 0, "_emit": True, "_divider": "zero"},
+                "gtp_to_hydrolyze": {
+                    "_default": 0.0,
+                    "_emit": True,
+                    "_divider": "zero",
+                },
             },
             "listeners": {
                 "mass": listener_schema({"cell_mass": 0.0, "dry_mass": 0.0}),

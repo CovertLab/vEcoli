@@ -3,6 +3,8 @@ import json
 import numpy as np
 import concurrent.futures
 
+from fsspec import open as fsspec_open
+
 from ecoli.library.schema import MetadataArray
 
 from vivarium.core.serialize import deserialize_value
@@ -10,7 +12,8 @@ from wholecell.utils import units
 
 
 def load_states(path):
-    with open(path, "r") as states_file:
+    """Load JSON state from local file or cloud URI (s3://, gs://)."""
+    with fsspec_open(path, "r") as states_file:
         states = json.load(states_file)
     return states
 
