@@ -1,7 +1,7 @@
 process analysisSingle {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}", mode: "copy"
+    publishDir { "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}" }, mode: "copy"
 
-    tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
+    tag { "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}" }
 
     label "slurm_submit"
 
@@ -49,9 +49,9 @@ process analysisSingle {
 }
 
 process analysisMultiDaughter {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}", mode: "copy"
+    publishDir { "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}" }, mode: "copy"
 
-    tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
+    tag { "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}" }
 
     label "slurm_submit"
 
@@ -97,9 +97,9 @@ process analysisMultiDaughter {
 }
 
 process analysisMultiGeneration {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}", mode: "copy"
+    publishDir { "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}" }, mode: "copy"
 
-    tag "variant=${variant}/lineage_seed=${lineage_seed}"
+    tag { "variant=${variant}/lineage_seed=${lineage_seed}" }
 
     label "slurm_submit"
 
@@ -143,9 +143,9 @@ process analysisMultiGeneration {
 }
 
 process analysisMultiSeed {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}", mode: "copy"
+    publishDir { "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}" }, mode: "copy"
 
-    tag "variant=${variant}"
+    tag { "variant=${variant}" }
 
     label "slurm_submit"
 
@@ -187,7 +187,7 @@ process analysisMultiSeed {
 }
 
 process analysisMultiVariant {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses", mode: "copy"
+    publishDir { "${params.publishDir}/${params.experimentId}/analyses" }, mode: "copy"
 
     label "slurm_submit"
 

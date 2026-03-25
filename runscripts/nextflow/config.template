@@ -6,6 +6,24 @@ params {
     publishDir = 'PUBLISH_DIR'
     container_image = 'IMAGE_NAME'
     hyperqueue = false
+    google_location = {
+        try {
+            def proc = "gcloud config get compute/region".execute()
+            proc.waitFor()
+            return proc.text.trim()
+        } catch (Exception e) {
+            return ''
+        }
+    }()
+    google_project = {
+        try {
+            def proc = "gcloud config get project".execute()
+            proc.waitFor()
+            return proc.text.trim()
+        } catch (Exception e) {
+            return ''
+        }
+    }()
 }
 
 trace.enabled = true
@@ -23,13 +41,12 @@ profiles {
                 memory = params.parca_cpus * 2.GB
             }
             errorStrategy = {
-                // Codes: 137 (out-of-memory), 50001 - 50006 (Google Batch task fail:
+                // Codes: 50001 - 50006 (Google Batch task fail:
                 // https://cloud.google.com/batch/docs/troubleshooting#reserved-exit-codes)
-                (((task.exitStatus == 137) || (task.exitStatus >= 50001 && task.exitStatus <= 50006))
-                && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore'
+                ((task.exitStatus >= 50001 && task.exitStatus <= 50006)
+                && (task.attempt <= task.maxRetries)) ? 'retry' : 'ignore'
             }
-            // Retry once with more RAM if OOM
-            memory = { 4.GB * task.attempt }
+            memory = 4.GB
             maxRetries = 1
             // Using single core is slightly slower but much cheaper
             cpus = 1
@@ -38,34 +55,19 @@ profiles {
             // Necessary otherwise symlinks to other files in bucket can break
             containerOptions = '--volume /mnt/disks/BUCKET:/mnt/disks/BUCKET'
             // Check Google Cloud latest spot pricing / performance
-            machineType = {
-                def cpus = task.cpus
-                def powerOf2 = 1
-                while (powerOf2 < cpus && powerOf2 < 64) {
-                    powerOf2 *= 2
-                }
-                return "t2d-standard-${powerOf2}"
-            }
+            machineType = "t2d-*"
         }
         // For this script to work on a Compute Engine VM, you must
         // - Set default Compute Engine region and zone for your project
         // - Set access scope to "Allow full access to all Cloud APIs" when
         //   creating VM
         // - Run gcloud init in VM
-        google.project = {
-            def project_proc = "gcloud config get project".execute()
-            project_proc.waitFor()
-            return project_proc.text.trim()
-        }()
-        google.location = {
-            def location_proc = "gcloud config get compute/region".execute()
-            location_proc.waitFor()
-            return location_proc.text.trim()
-        }()
+        google.project = params.google_project
+        google.location = params.google_location
         google.batch.spot = true
         google.batch.usePrivateAddress = true
         google.batch.network = 'global/networks/default'
-        google.batch.subnetwork = "regions/${google.location}/subnetworks/default"
+        google.batch.subnetwork = "regions/${params.google_location}/subnetworks/default"
         docker.enabled = true
         params.projectRoot = '/vEcoli'
         workflow.failOnIgnore = true
@@ -109,7 +111,7 @@ profiles {
                 // Default value for exitStatus is max integer value, this
                 // is a catch-all for errors that leave no exit code
                 ((task.exitStatus in [137, 140, 143, Integer.MAX_VALUE])
-                && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore'
+                && (task.attempt <= task.maxRetries)) ? 'retry' : 'ignore'
             }
             maxRetries = 3
         }
@@ -184,7 +186,7 @@ profiles {
             }
             errorStrategy = {
                 ((task.exitStatus in [137, 140, 143, Integer.MAX_VALUE])
-                && (task.attempt <= process.maxRetries)) ? 'retry' : 'ignore'
+                && (task.attempt <= task.maxRetries)) ? 'retry' : 'ignore'
             }
             maxRetries = 3
         }
