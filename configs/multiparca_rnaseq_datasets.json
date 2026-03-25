@@ -1,0 +1,56 @@
+{
+    "experiment_id": "multiparca_rnaseq_datasets",
+    "suffix_time": true,
+    "sim_data_path": null,
+    "generations": 3,
+    "n_init_sims": 3,
+    "lineage_seed": 0,
+    "single_daughters": true,
+
+    "parca_options": {
+        "cpus": 4,
+        "operons": true,
+        "rnaseq_manifest_path": "reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv",
+        "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas",
+        "rnaseq_fill_missing_genes_from_ref": true
+    },
+
+    "parca_variants": [
+        { "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas" },
+        { "rnaseq_basal_dataset_id": "gbw_vegas_wt_m9glc_3h" },
+        { "rnaseq_basal_dataset_id": "gbw_vegas_wt_m9glc_34h" },
+        { "rnaseq_basal_dataset_id": "gbw_vegas_wt_m9glc_5h" },
+        { "rnaseq_basal_dataset_id": "gbw_bermuda_ctrl" },
+        { "rnaseq_basal_dataset_id": "precise_RPO:wt" },
+        { "rnaseq_basal_dataset_id": "precise_SNPv1:D-Glucose_NH4Cl" },
+        { "rnaseq_basal_dataset_id": "precise_SNPv2:Glucose_NH4Cl" },
+        { "rnaseq_basal_dataset_id": "precise_abx_media:m9_ctrl" },
+        { "rnaseq_basal_dataset_id": "precise_eep:BOP27" },
+        { "rnaseq_basal_dataset_id": "precise_ica:wt_glc" },
+        { "rnaseq_basal_dataset_id": "precise_oxyR:wt_glc" },
+        { "rnaseq_basal_dataset_id": "precise_minspan:wt_glc" },
+        { "rnaseq_basal_dataset_id": "precise_misc:wt_no_te" },
+        { "rnaseq_basal_dataset_id": "precise_control:wt_glc" },
+        { "rnaseq_basal_dataset_id": "precise_ytf:wt_glc" },
+        { "rnaseq_basal_dataset_id": "precise_ytf2:wt_glc" },
+        { "rnaseq_basal_dataset_id": "precise_ytf3:wt_glc2" },
+        { "rnaseq_basal_dataset_id": "precise_ytf5:wt_glc" }
+    ],
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "single": {
+            "mass_fraction_summary": {}
+        },
+        "multigeneration": {
+            "ribosome_components": {},
+            "ribosome_production": {},
+            "ribosome_usage": {}
+        },
+        "multiseed": {
+            "cd1_higher_order_properties": {}
+        }
+    }
+}

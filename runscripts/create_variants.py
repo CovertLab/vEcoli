@@ -134,14 +134,15 @@ def apply_and_save_variants(
     variant_name: str,
     outdir: str,
     skip_baseline: bool,
+    offset: int = 0,
 ):
     """
     Applies variant function to ``sim_data`` with each parameter dictionary
     in ``param_dicts``. Saves each variant as ``{i}.cPickle``
     in ``outdir``, where ``i`` is the index of the parameter dictionary in
-    ``param_dicts`` used to create that variant. Also saves ``metadata.json``
-    in ``outdir`` that maps each ``{i}`` to the parameter
-    dictionary used to create it.
+    ``param_dicts`` used to create that variant (shifted by ``offset``).
+    Also saves ``metadata.json`` in ``outdir`` that maps each ``{i}`` to the
+    parameter dictionary used to create it.
 
     Args:
         sim_data: Simulation data object to modify
@@ -149,16 +150,19 @@ def apply_and_save_variants(
         variant_name: Name of variant function file in ``ecoli/variants`` folder
         outdir: Path to folder where variant ``sim_data`` pickles are saved
         skip_baseline: Whether to save metadata for baseline sim_data
+        offset: Index offset applied to all variant indices. Used when multiple
+            ParCa runs contribute variants to the same experiment so that each
+            ParCa's variants occupy a non-overlapping range of indices.
     """
     variant_mod = importlib.import_module(f"ecoli.variants.{variant_name}")
     variant_metadata: dict[int, str | dict[str, Any]] = {}
     if not skip_baseline:
-        variant_metadata[0] = "baseline"
+        variant_metadata[offset] = "baseline"
     for i, params in enumerate(param_dicts):
         sim_data_copy = copy.deepcopy(sim_data)
-        variant_metadata[i + 1] = params
+        variant_metadata[offset + i + 1] = params
         variant_sim_data = variant_mod.apply_variant(sim_data_copy, params)
-        outpath = os.path.join(outdir, f"{i + 1}.cPickle")
+        outpath = os.path.join(outdir, f"{offset + i + 1}.cPickle")
         with open(outpath, "wb") as f:
             pickle.dump(variant_sim_data, f)
     with open(os.path.join(outdir, "metadata.json"), "w") as f:
@@ -275,6 +279,17 @@ def main():
         type=str,
         help="Path to folder where variant sim_data and metadata are written.",
     )
+    parser.add_argument(
+        "--offset",
+        action="store",
+        type=int,
+        default=0,
+        help=(
+            "Index offset applied to all variant indices. Use when multiple "
+            "ParCa runs contribute variants to the same experiment so that "
+            "each ParCa's variants occupy a non-overlapping range of indices."
+        ),
+    )
     args = parser.parse_args()
     with open(default_config, "r") as f:
         config = json.load(f)
@@ -285,6 +300,7 @@ def main():
         if v is not None:
             config[k] = v
 
+    offset = config.get("offset", 0)
     print("Loading sim_data...")
     with open(os.path.join(config["kb"], "simData.cPickle"), "rb") as f:
         sim_data = pickle.load(f)
@@ -294,7 +310,7 @@ def main():
         print("Skipping baseline sim_data...")
     else:
         print("Saving baseline sim_data...")
-        with open(os.path.join(config_outdir, "0.cPickle"), "wb") as f:
+        with open(os.path.join(config_outdir, f"{offset}.cPickle"), "wb") as f:
             pickle.dump(sim_data, f)
     variant_config = config.get("variants", {})
     if len(variant_config) > 1:
@@ -315,10 +331,11 @@ def main():
             variant_name,
             config_outdir,
             config["skip_baseline"],
+            offset=offset,
         )
     else:
         with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
-            json.dump({None: {0: "baseline"}}, f)
+            json.dump({None: {offset: "baseline"}}, f)
     print("Done.")
 
 

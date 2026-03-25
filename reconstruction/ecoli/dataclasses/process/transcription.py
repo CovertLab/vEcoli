@@ -1160,9 +1160,10 @@ class Transcription(object):
         self.cistron_expression["basal"] = cistron_expression / cistron_expression.sum()
 
         # Keep record of cistrons whose expression was corrected
-        self.cistron_data["uses_corrected_seq_counts"][np.array(corrected_indexes)] = (
-            True
-        )
+        if corrected_indexes:
+            self.cistron_data["uses_corrected_seq_counts"][
+                np.array(corrected_indexes)
+            ] = True
 
     def _build_mature_rna_data(self, raw_data, sim_data):
         """

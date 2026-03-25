@@ -26,6 +26,7 @@
     "fail_at_max_duration": false,
 
     "variants": {},
+    "parca_variants": [],
     "skip_baseline": false,
     "n_init_sims": 1,
     "generations": null,

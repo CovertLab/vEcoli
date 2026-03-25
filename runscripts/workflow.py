@@ -1,4 +1,6 @@
 import argparse
+import copy
+import importlib.util
 import json
 import os
 import pathlib
@@ -254,16 +256,86 @@ def generate_lineage(
     return sim_imports, sim_workflow
 
 
-def generate_code(config):
+def _count_pickles_per_parca(config):
+    """
+    Return the number of variant sim_data pickles each ParCa run will produce.
+    Used to compute non-overlapping index offsets across multiple ParCa runs.
+    """
+    variant_config = config.get("variants", {})
+    skip_baseline = config.get("skip_baseline", False)
+    if not variant_config:
+        return 0 if skip_baseline else 1
+    # Dynamically load parse_variants from create_variants.py (same directory)
+    spec = importlib.util.spec_from_file_location(
+        "create_variants",
+        os.path.join(os.path.dirname(__file__), "create_variants.py"),
+    )
+    create_variants_mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(create_variants_mod)
+    variant_name = list(variant_config.keys())[0]
+    params_copy = copy.deepcopy(variant_config[variant_name])
+    n_variants = len(create_variants_mod.parse_variants(params_copy))
+    return n_variants + (0 if skip_baseline else 1)
+
+
+def generate_code(config, parca_config_uris):
+    """
+    Generate the three Nextflow code strings that are substituted into
+    template.nf: RUN_PARCA (ParCa + createVariants setup), IMPORTS, WORKFLOW.
+
+    Args:
+        config: Fully merged workflow configuration dict.
+        parca_config_uris: List of paths/URIs to per-ParCa config JSON files,
+            one per entry in config["parca_variants"] (or a single-element list
+            for the default single-ParCa case).
+    """
+    n_parca = len(parca_config_uris)
+    pickles_per_parca = _count_pickles_per_parca(config)
+
     sim_data_path = config.get("sim_data_path")
+    run_parca = []
+
     if sim_data_path is not None:
+        # Bypass ParCa: use a pre-computed sim_data directory directly.
+        if n_parca > 1:
+            raise RuntimeError(
+                "Cannot combine sim_data_path with parca_variants. "
+                "sim_data_path is a single-parca bypass."
+            )
         kb_dir = os.path.dirname(sim_data_path)
-        run_parca = [
-            f"\tfile('{kb_dir}').copyTo(\"${{params.publishDir}}/${{params.experimentId}}/parca/kb\")",
+        run_parca += [
+            f"\tfile('{kb_dir}').copyTo(\"${{params.publishDir}}/${{params.experimentId}}/parca_0/kb\")",
             f"\tChannel.fromPath('{kb_dir}').toList().set {{ kb }}",
+            f"\tChannel.fromPath('{kb_dir}').map {{ kb -> tuple(0, kb, 0) }}.set {{ kbWithOffsetCh }}",
         ]
     else:
-        run_parca = ["\trunParca(params.config)", "\trunParca.out.toList().set {kb}"]
+        # Build a channel of (parca_id, config_path) tuples and run ParCa.
+        channel_items = ", ".join(
+            f"[{i}, file('{uri}')]" for i, uri in enumerate(parca_config_uris)
+        )
+        run_parca += [
+            f"\tChannel.of({channel_items}).set {{ parcaInputCh }}",
+            "\trunParca(parcaInputCh)",
+            # Primary kb (parca_id == 0) is used for validation data in analyses.
+            "\trunParca.out.filter { parca_id, kb -> parca_id == 0 }.map { parca_id, kb -> kb }.toList().set { kb }",
+            # Pair each (parca_id, kb) with its pre-computed offset.
+        ]
+        offset_items = ", ".join(
+            f"[{i}, {i * pickles_per_parca}]" for i in range(n_parca)
+        )
+        run_parca += [
+            f"\tChannel.of({offset_items}).set {{ parcaOffsetCh }}",
+            "\trunParca.out.combine(parcaOffsetCh, by: 0).set { kbWithOffsetCh }",
+        ]
+
+    # createVariants and metadata merge (common to both paths above)
+    run_parca += [
+        "\tcreateVariants(params.config, kbWithOffsetCh)",
+        "\tcreateVariants.out.variantSimData.flatten().set { variantCh }",
+        "\tmergeVariantMetadata(createVariants.out.variantMetadata.collect())",
+        "\tmergeVariantMetadata.out.set { variantMetadataCh }",
+    ]
+
     seed = config.get("seed", 0)
     generations = config.get("generations", 0)
     if generations:
@@ -452,6 +524,30 @@ def main():
     if args.resume is None:
         copy_to_filesystem(temp_config_path, final_config_path, filesystem)
 
+    # Write per-parca config files (one per entry in parca_variants, or one
+    # default file that mirrors the full config for single-parca workflows).
+    parca_variants_list = config.get("parca_variants") or [{}]
+    parca_config_uris = []
+    for i, override in enumerate(parca_variants_list):
+        per_parca = copy.deepcopy(config)
+        per_parca.setdefault("parca_options", {})
+        per_parca["parca_options"].update(override)
+        # Resolve relative paths in parca_options to absolute paths so that
+        # parca.py can find them when running from a Nextflow work directory.
+        manifest = per_parca["parca_options"].get("rnaseq_manifest_path")
+        if manifest and not os.path.isabs(manifest):
+            per_parca["parca_options"]["rnaseq_manifest_path"] = os.path.join(
+                repo_dir, manifest
+            )
+        local_parca_path = os.path.join(local_outdir, f"parca_config_{i}.json")
+        with open(local_parca_path, "w") as f:
+            json.dump(per_parca, f)
+        final_parca_path = os.path.join(outdir, f"parca_config_{i}.json")
+        final_parca_uri = os.path.join(out_uri, f"parca_config_{i}.json")
+        if args.resume is None:
+            copy_to_filesystem(local_parca_path, final_parca_path, filesystem)
+        parca_config_uris.append(final_parca_uri)
+
     nf_config = os.path.join(os.path.dirname(__file__), "nextflow", "config.template")
     with open(nf_config, "r") as f:
         nf_config = f.readlines()
@@ -544,7 +640,7 @@ def main():
     with open(local_config, "w") as f:
         f.writelines(nf_config)
 
-    run_parca, sim_imports, sim_workflow = generate_code(config)
+    run_parca, sim_imports, sim_workflow = generate_code(config, parca_config_uris)
 
     nf_template_path = os.path.join(
         os.path.dirname(__file__), "nextflow", "template.nf"

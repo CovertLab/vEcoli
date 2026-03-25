@@ -1,2 +1,0 @@
-This is intended for temporary development purposes, to demonstrate that experimental data can be ingested from an arbitrary file path.
-We anticipate recommending data storage be moved external to this repository

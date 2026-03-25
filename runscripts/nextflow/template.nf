@@ -1,14 +1,16 @@
 process runParca {
-    // Run ParCa using parca_options from config JSON
-    publishDir { "${params.publishDir}/${params.experimentId}/parca" }, mode: "copy"
+    // Run ParCa using parca_options from config JSON.
+    // parca_id distinguishes runs when multiple ParCa instances are used
+    // (e.g. different RNAseq datasets). For single-parca workflows parca_id=0.
+    publishDir { "${params.publishDir}/${params.experimentId}/parca_${parca_id}" }, mode: "copy"
 
     label "parca"
 
     input:
-    path config
+    tuple val(parca_id), path(config)
 
     output:
-    path 'kb'
+    tuple val(parca_id), path('kb')
 
     script:
     """
@@ -54,33 +56,70 @@ process analysisParca {
 }
 
 process createVariants {
-    // Parse variants in config JSON to generate variants
+    // Parse variants in config JSON to generate variants.
+    // offset shifts all variant indices so that variants from different ParCa
+    // runs occupy non-overlapping index ranges within the same experiment.
     publishDir "${params.publishDir}/${params.experimentId}/variant_sim_data", mode: "copy"
 
     label "slurm_submit"
 
     input:
     path config
-    path kb
+    tuple val(parca_id), path(kb), val(offset)
 
     output:
     path '*.cPickle', emit: variantSimData
-    path 'metadata.json', emit: variantMetadata
+    path "metadata_${parca_id}.json", emit: variantMetadata
 
     script:
     """
     python ${params.projectRoot}/runscripts/create_variants.py \
-        --config "$config" --kb "$kb" -o "\$(pwd)"
+        --config "$config" --kb "$kb" --offset $offset -o "\$(pwd)"
+    mv metadata.json metadata_${parca_id}.json
     """
 
     stub:
     """
-    cp $kb/simData.cPickle variant_1.cPickle
-    echo "Mock variant 1" >> variant_1.cPickle
-    cp $kb/simData.cPickle variant_2.cPickle
-    echo "Mock variant 2" >> variant_2.cPickle
-    echo "Mock metadata.json" > metadata.json
-    cp $kb/simData.cPickle baseline.cPickle
+    cp $kb/simData.cPickle ${offset}.cPickle
+    echo "Mock metadata" > metadata_${parca_id}.json
+    """
+}
+
+process mergeVariantMetadata {
+    // Merge metadata JSON files from multiple createVariants runs into one.
+    // For single-parca workflows this is a pass-through (one file in, one out).
+    publishDir "${params.publishDir}/${params.experimentId}/variant_sim_data", mode: "copy"
+
+    input:
+    path 'metadata_*.json'
+
+    output:
+    path 'metadata.json'
+
+    script:
+    """
+    python -c "
+import json, glob
+merged = {}
+for f in sorted(glob.glob('metadata_*.json')):
+    with open(f) as fh:
+        merged.update(json.load(fh))
+with open('metadata.json', 'w') as fh:
+    json.dump(merged, fh)
+"
+    """
+
+    stub:
+    """
+    python -c "
+import json, glob
+merged = {}
+for f in sorted(glob.glob('metadata_*.json')):
+    with open(f) as fh:
+        merged.update(json.load(fh))
+with open('metadata.json', 'w') as fh:
+    json.dump(merged, fh)
+"
     """
 }
 
@@ -143,13 +182,6 @@ IMPORTS
 
 workflow {
 RUN_PARCA
-    createVariants(params.config, kb)
-        .variantSimData
-        .flatten()
-        .set { variantCh }
-    createVariants.out
-        .variantMetadata
-        .set { variantMetadataCh }
 WORKFLOW
     // Start a HyperQueue worker for every 4 concurrent sims
     if ( params.hyperqueue ) {
