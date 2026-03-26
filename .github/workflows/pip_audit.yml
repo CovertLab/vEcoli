@@ -1,8 +1,7 @@
 name: pip-audit
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 on:
   schedule:
@@ -16,9 +15,14 @@ concurrency:
 
 jobs:
   audit:
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
 
       - name: Set up uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
@@ -44,16 +48,24 @@ jobs:
           ./apply_security_upgrades.sh
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
-        with:
-          commit-message: |
-            fix(security): update package versions
-          sign-commits: true
-          title: |
-            Security updates
-          body-path: vulnerability_report.md
-          delete-branch: true
-          branch: security-updates
-          add-paths: uv.lock
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet uv.lock; then
+            echo "No changes to uv.lock, skipping PR creation"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          gh auth setup-git
+          git checkout -B security-updates
+          git add uv.lock
+          git commit -m "fix(security): update package versions"
+          git push -f origin security-updates
+          if ! gh pr list --head security-updates --state open --json number --jq '.[0].number' | grep -q '^[0-9]'; then
+            gh pr create \
+              --title "Security updates" \
+              --body-file vulnerability_report.md \
+              --head security-updates \
+              --base master
+          fi
