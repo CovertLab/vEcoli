@@ -55,6 +55,9 @@ dependencies = [
     # Required to save Altair charts as PNG
     "vl-convert-python",
     "pandera",
+    "plum>=2.8.0",
+    "process-bigraph>=1.0.6",
+    "bigraph-schema>=1.0.14",
 ]
 
 [project.optional-dependencies]
@@ -75,7 +78,7 @@ docs = [
 ]
 
 [tool.setuptools]
-packages = {find = {include = ["configs*", "ecoli*", "reconstruction*", "runscripts*", "validation*", "wholecell*"]}}
+packages = {find = {include = ["genecoli*", "configs*", "ecoli*", "reconstruction*", "runscripts*", "validation*", "wholecell*"]}}
 include-package-data = true
 
 [dependency-groups]

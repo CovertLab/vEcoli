@@ -1,0 +1,34 @@
+{
+    "outputs": {
+        "environment": [
+            "environment_store",
+        ],
+        "exchange_e0": [
+            "exchange_store_0"
+        ],
+        "mass_e0": [
+            "mass_store_0"
+        ],
+        "t_e0": [
+            "t_store_0"
+        ],
+        "exchange_e1": [
+            "exchange_store_1"
+        ],
+        "mass_e1": [
+            "mass_store_1"
+        ],
+        "t_e1": [
+            "t_store_1"
+        ],
+        "exchange_e2": [
+            "exchange_store_2"
+        ],
+        "mass_e2": [
+            "mass_store_2"
+        ],
+        "t_e2": [
+            "t_store_2"
+        ]
+    }
+}

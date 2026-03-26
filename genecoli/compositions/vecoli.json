@@ -1,0 +1,34 @@
+{
+    "ecoli0": {
+        "_type": "process",
+        "_address": "local:vecoli-process",
+        "config": {
+            "config_path": "ecoli_configs/single_cell.json"
+        },
+        "inputs": {
+            "env": [
+                "env_store"
+            ]
+        },
+        "outputs": {
+            "env": [
+                "env_store"
+            ]
+        }
+    },
+    "emitter": {
+        "_type": "step",
+        "_address": "local:ram-emitter",
+        "config": {
+            "emit": {
+                "env": "tree[any]"
+            }
+        },
+        "inputs": {
+            "env": [
+                "env_store"
+            ]
+        }
+    },
+    "global_time": 0.0
+}
