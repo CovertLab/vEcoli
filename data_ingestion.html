@@ -1,0 +1,512 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Experimental Data Ingestion &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Output" href="output.html" />
+    <link rel="prev" title="Workflows" href="workflows.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Experimental Data Ingestion</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#philosophy">Philosophy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#currently-supported-data-types">Currently Supported Data Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#rna-seq">RNA-seq</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#file-organization">File Organization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#manifest-schema">Manifest Schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tpm-table-schema">TPM Table Schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#validation-errors">Validation Errors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#python-api">Python API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-your-own-data">Adding Your Own Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aws.html">Amazon Web Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="diffs.html">Model Differences From wcEcoli</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Experimental Data Ingestion</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/data_ingestion.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="experimental-data-ingestion">
+<h1>Experimental Data Ingestion<a class="headerlink" href="#experimental-data-ingestion" title="Link to this heading"></a></h1>
+<p>This document describes how to provide custom experimental data to the model,
+allowing users to substitute their own measurements for the reference data
+shipped with the repository.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The vEcoli model ships with curated reference data in <code class="docutils literal notranslate"><span class="pre">reconstruction/ecoli/flat/</span></code>.
+This data was compiled from public databases and literature and represents a
+“default” <em>E. coli</em> K-12 MG1655 grown in M9 minimal medium with glucose.</p>
+<p>In many cases, users want to parameterize the model with their own experimental
+measurements—for example, RNA-seq data from a different strain, growth condition,
+or laboratory. The <strong>experimental data ingestion</strong> system provides a structured
+way to do this without modifying the core reference files.</p>
+<section id="philosophy">
+<h3>Philosophy<a class="headerlink" href="#philosophy" title="Link to this heading"></a></h3>
+<p>The ingestion system follows these principles:</p>
+<ol class="arabic simple">
+<li><p><strong>Like-for-like substitution</strong>: Custom data must match the format and semantics
+of the reference data it replaces. For RNA-seq, this means gene-level TPM values
+that can be mapped to the model’s gene set.</p></li>
+<li><p><strong>Schema validation</strong>: All ingested data is validated against Pandera schemas
+(see <a class="reference internal" href="reference/api/wholecell/wholecell.io.schemas.html#module-wholecell.io.schemas" title="wholecell.io.schemas"><code class="xref py py-mod docutils literal notranslate"><span class="pre">wholecell.io.schemas</span></code></a>) to catch formatting errors early.</p></li>
+<li><p><strong>Manifest-based organization</strong>: Datasets are registered in manifest files that
+provide metadata (source, strain, condition) alongside file paths. This keeps
+the data self-documenting.</p></li>
+<li><p><strong>Config-driven selection</strong>: Users specify which dataset to use via configuration
+options, making it easy to switch between datasets without code changes.</p></li>
+</ol>
+</section>
+<section id="currently-supported-data-types">
+<h3>Currently Supported Data Types<a class="headerlink" href="#currently-supported-data-types" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Data Type</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Status</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>RNA-seq (transcriptome)</p></td>
+<td><p>Gene-level TPM expression values</p></td>
+<td><p>✓ Supported</p></td>
+</tr>
+<tr class="row-odd"><td><p>Proteomics</p></td>
+<td><p>Protein abundance measurements</p></td>
+<td><p>Planned, near term</p></td>
+</tr>
+<tr class="row-even"><td><p>Metabolomics</p></td>
+<td><p>Metabolite concentrations</p></td>
+<td><p>Under consideration</p></td>
+</tr>
+<tr class="row-odd"><td><p>Metabolic fluxes</p></td>
+<td><p>Flux values</p></td>
+<td><p>Under consideration</p></td>
+</tr>
+<tr class="row-even"><td><p>Growth physiology</p></td>
+<td><p>Growth rates, cell size, etc.</p></td>
+<td><p>Under consideration</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="rna-seq">
+<h2>RNA-seq<a class="headerlink" href="#rna-seq" title="Link to this heading"></a></h2>
+<p>RNA-seq data provides gene expression levels used by the ParCa (parameter calculator)
+to set basal transcription rates. By default, ParCa uses expression data from the
+reference files. With the ingestion system, you can substitute your own RNA-seq
+measurements.</p>
+<section id="file-organization">
+<h3>File Organization<a class="headerlink" href="#file-organization" title="Link to this heading"></a></h3>
+<p>RNA-seq data is organized as:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>reconstruction/
+└── ecoli/
+    └── experimental_data/
+        └── rnaseq/
+            ├── manifest.tsv        # Lists all available datasets
+            ├── ref_0001.tsv       # TPM table for dataset ref_0001
+            ├── ref_0002.tsv       # TPM table for dataset ref_0002
+            ├── gbw_0001.tsv       # TPM table for dataset gbw_0001
+            └── ...
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">manifest.tsv</span></code> file is the entry point—it lists all available datasets and
+their metadata. Each dataset has a corresponding TPM table file.</p>
+</section>
+<section id="manifest-schema">
+<h3>Manifest Schema<a class="headerlink" href="#manifest-schema" title="Link to this heading"></a></h3>
+<p>The manifest is a tab-separated file validated against
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">RnaseqSamplesManifestSchema</span></code>.</p>
+<p><strong>Required columns:</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dataset_id</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Unique identifier for this dataset (e.g., <code class="docutils literal notranslate"><span class="pre">gbw_0001</span></code>). Referenced in config.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dataset_description</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Human-readable description of the dataset.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">file_path</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Path to the TPM table file (relative to manifest or absolute).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">data_source</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Origin of the data (e.g., <code class="docutils literal notranslate"><span class="pre">Ginkgo</span> <span class="pre">Bioworks</span></code>, <code class="docutils literal notranslate"><span class="pre">PNNL</span></code>).</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Optional columns:</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">data_source_experiment_id</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Experiment identifier from the data source.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">data_source_date</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Date of the experiment (e.g., <code class="docutils literal notranslate"><span class="pre">2026-01-15</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">strain</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Strain descriptor (e.g., <code class="docutils literal notranslate"><span class="pre">MG1655</span> <span class="pre">rph+</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">condition</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Cultivation condition (e.g., <code class="docutils literal notranslate"><span class="pre">M9,</span> <span class="pre">Glucose,</span> <span class="pre">Aerobic,</span> <span class="pre">37C</span></code>).</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example manifest:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>dataset_id  dataset_description     file_path       data_source     strain  condition
+ref_0001    Reference M9 Glucose minus AAs  ref_0001.tsv    reference       MG1655  M9, Glucose, Aerobic
+gbw_0001    MG1655 rph+ in Modified M9      gbw_0001.tsv    Ginkgo Bioworks MG1655 rph+     Modified_M9_N_Fe
+</pre></div>
+</div>
+</section>
+<section id="tpm-table-schema">
+<h3>TPM Table Schema<a class="headerlink" href="#tpm-table-schema" title="Link to this heading"></a></h3>
+<p>Each TPM table is a tab-separated file validated against
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">RnaseqTpmTableSchema</span></code>.</p>
+<p><strong>Required columns:</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gene_id</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Gene identifier matching the model’s gene set (EcoCyc IDs, e.g., <code class="docutils literal notranslate"><span class="pre">EG10001</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tpm_mean</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Mean TPM (transcripts per million) for this gene. Must be ≥ 0.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Optional columns:</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tpm_std</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Standard deviation of TPM across replicates. Must be ≥ 0.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example TPM table:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>gene_id     tpm_mean        tpm_std
+EG10001     1234.56 45.2
+EG10002     567.89  23.1
+EG10003     0.0     0.0
+...
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Gene IDs must match the EcoCyc identifiers used by the model. Genes not found
+in the model’s gene set will be ignored with a warning.</p>
+</div>
+</section>
+<section id="configuration">
+<h3>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h3>
+<p>To use custom RNA-seq data, add the following options under <code class="docutils literal notranslate"><span class="pre">parca_options</span></code>
+in your configuration JSON:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 15.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rnaseq_manifest_path</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Path to the manifest TSV file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rnaseq_basal_dataset_id</span></code></p></td>
+<td><p>string</p></td>
+<td><p>The <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code> to use as the basal transcriptome.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">basal_expression_condition</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Modeled condition name (default: <code class="docutils literal notranslate"><span class="pre">&quot;M9</span> <span class="pre">Glucose</span> <span class="pre">minus</span> <span class="pre">AAs&quot;</span></code>).</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example configuration:</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;parca_options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;cpus&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;outdir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;out/custom_rnaseq&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;rnaseq_manifest_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;rnaseq_basal_dataset_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gbw_0001&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;basal_expression_condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;M9 Glucose minus AAs&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Default behavior (backward compatible):</strong></p>
+<p>If <code class="docutils literal notranslate"><span class="pre">rnaseq_manifest_path</span></code> is <code class="docutils literal notranslate"><span class="pre">null</span></code> or omitted, ParCa uses the legacy
+reference data from <code class="docutils literal notranslate"><span class="pre">reconstruction/ecoli/flat/rna_seq_data/</span></code>.</p>
+</section>
+<section id="validation-errors">
+<h3>Validation Errors<a class="headerlink" href="#validation-errors" title="Link to this heading"></a></h3>
+<p>The ingestion system validates data early and provides clear error messages:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Error</p></th>
+<th class="head"><p>Cause</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ValueError:</span> <span class="pre">rnaseq_manifest_path</span> <span class="pre">is</span> <span class="pre">set</span> <span class="pre">but</span> <span class="pre">rnaseq_basal_dataset_id</span> <span class="pre">is</span> <span class="pre">None</span></code></p></td>
+<td><p>You specified a manifest but forgot to specify which dataset to use.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FileNotFoundError:</span> <span class="pre">...</span></code></p></td>
+<td><p>The manifest file or a TPM table file doesn’t exist.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">KeyError:</span> <span class="pre">Dataset_id</span> <span class="pre">'xyz'</span> <span class="pre">not</span> <span class="pre">found</span> <span class="pre">in</span> <span class="pre">manifest</span></code></p></td>
+<td><p>The <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code> you specified isn’t in the manifest.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SchemaError:</span> <span class="pre">...</span></code></p></td>
+<td><p>A file doesn’t match the expected schema (missing columns, wrong types, etc.).</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="python-api">
+<h2>Python API<a class="headerlink" href="#python-api" title="Link to this heading"></a></h2>
+<p>For programmatic access, use the functions in <a class="reference internal" href="reference/api/wholecell/wholecell.io.ingestion.html#module-wholecell.io.ingestion" title="wholecell.io.ingestion"><code class="xref py py-mod docutils literal notranslate"><span class="pre">wholecell.io.ingestion</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">wholecell.io.ingestion</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ingest_rnaseq_manifest</span><span class="p">,</span>
+    <span class="n">ingest_rnaseq_tpm_table</span><span class="p">,</span>
+    <span class="n">ingest_transcriptome</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Load and validate a manifest</span>
+<span class="n">manifest</span> <span class="o">=</span> <span class="n">ingest_rnaseq_manifest</span><span class="p">(</span><span class="s2">&quot;reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv&quot;</span><span class="p">)</span>
+
+<span class="c1"># Load a single TPM table</span>
+<span class="n">tpm_df</span> <span class="o">=</span> <span class="n">ingest_rnaseq_tpm_table</span><span class="p">(</span><span class="s2">&quot;reconstruction/ecoli/experimental_data/rnaseq/gbw_0001.tsv&quot;</span><span class="p">)</span>
+
+<span class="c1"># Convenience: load a dataset by ID (validates manifest + TPM table)</span>
+<span class="n">tpm_df</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">ingest_transcriptome</span><span class="p">(</span>
+    <span class="s2">&quot;reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv&quot;</span><span class="p">,</span>
+    <span class="n">dataset_id</span><span class="o">=</span><span class="s2">&quot;gbw_0001&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="adding-your-own-data">
+<h2>Adding Your Own Data<a class="headerlink" href="#adding-your-own-data" title="Link to this heading"></a></h2>
+<p>To add your own RNA-seq data:</p>
+<ol class="arabic simple">
+<li><p><strong>Prepare your TPM table</strong> as a tab-separated file with <code class="docutils literal notranslate"><span class="pre">gene_id</span></code> and <code class="docutils literal notranslate"><span class="pre">tpm_mean</span></code>
+columns. Ensure gene IDs are EcoCyc identifiers.</p></li>
+<li><p><strong>Place the file</strong> in <code class="docutils literal notranslate"><span class="pre">reconstruction/ecoli/experimental_data/rnaseq/</span></code> (or another location).</p></li>
+<li><p><strong>Add an entry to the manifest</strong> with a unique <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>, description,
+and the path to your file.</p></li>
+<li><p><strong>Update your config</strong> to point to the manifest and specify your <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>.</p></li>
+<li><p><strong>Run ParCa</strong> to generate new simulation parameters using your data.</p></li>
+</ol>
+<p><strong>Example workflow:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. Add your TPM file</span>
+cp<span class="w"> </span>my_experiment_tpm.tsv<span class="w"> </span>reconstruction/ecoli/experimental_data/rnaseq/my_exp_001.tsv
+
+<span class="c1"># 2. Edit manifest.tsv to add a row for my_exp_001</span>
+
+<span class="c1"># 3. Create a config file</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span>configs/my_experiment.json<span class="w"> </span><span class="s">&lt;&lt; &#39;EOF&#39;</span>
+<span class="s">{</span>
+<span class="s">    &quot;parca_options&quot;: {</span>
+<span class="s">        &quot;cpus&quot;: 4,</span>
+<span class="s">        &quot;outdir&quot;: &quot;out/my_experiment&quot;,</span>
+<span class="s">        &quot;rnaseq_manifest_path&quot;: &quot;reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv&quot;,</span>
+<span class="s">        &quot;rnaseq_basal_dataset_id&quot;: &quot;my_exp_001&quot;</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+<span class="c1"># 4. Run ParCa</span>
+python<span class="w"> </span>runscripts/parca.py<span class="w"> </span>--config<span class="w"> </span>configs/my_experiment.json
+</pre></div>
+</div>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Schemas: <a class="reference internal" href="reference/api/wholecell/wholecell.io.schemas.rnaseq.html#module-wholecell.io.schemas.rnaseq" title="wholecell.io.schemas.rnaseq"><code class="xref py py-mod docutils literal notranslate"><span class="pre">wholecell.io.schemas.rnaseq</span></code></a></p></li>
+<li><p>Ingestion functions: <a class="reference internal" href="reference/api/wholecell/wholecell.io.ingestion.html#module-wholecell.io.ingestion" title="wholecell.io.ingestion"><code class="xref py py-mod docutils literal notranslate"><span class="pre">wholecell.io.ingestion</span></code></a></p></li>
+<li><p>ParCa configuration: <a class="reference internal" href="workflows.html"><span class="std std-ref">Workflows</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="workflows.html" class="btn btn-neutral float-left" title="Workflows" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="output.html" class="btn btn-neutral float-right" title="Output" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2026, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

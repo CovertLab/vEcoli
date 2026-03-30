@@ -1,0 +1,790 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>runscripts.workflow &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="validation" href="../validation/validation.html" />
+    <link rel="prev" title="runscripts.test_workflow" href="runscripts.test_workflow.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_ingestion.html">Experimental Data Ingestion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aws.html">Amazon Web Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diffs.html">Model Differences From wcEcoli</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ecoli/ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="runscripts.debug.html"><code class="docutils literal notranslate"><span class="pre">runscripts.debug</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.analysis.html"><code class="docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.create_variants.html"><code class="docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.parca.html"><code class="docutils literal notranslate"><span class="pre">runscripts.parca</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.sim.html"><code class="docutils literal notranslate"><span class="pre">runscripts.sim</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.test_analysis_comprehensive.html"><code class="docutils literal notranslate"><span class="pre">runscripts.test_analysis_comprehensive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.test_config_inheritance.html"><code class="docutils literal notranslate"><span class="pre">runscripts.test_config_inheritance</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.test_workflow.html"><code class="docutils literal notranslate"><span class="pre">runscripts.test_workflow</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/runscripts/runscripts.workflow.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-runscripts.workflow">
+<span id="runscripts-workflow"></span><h1><code class="docutils literal notranslate"><span class="pre">runscripts.workflow</span></code><a class="headerlink" href="#module-runscripts.workflow" title="Link to this heading"></a></h1>
+<dl class="py data">
+<dt class="sig sig-object py" id="runscripts.workflow.CLUSTER_PRESETS">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">CLUSTER_PRESETS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#runscripts.workflow.CLUSTER_PRESETS" title="Link to this definition"></a></dt>
+<dd><p>Default config values for different SLURM clusters.</p>
+<p>Each key is a cluster name and each value is a dictionary with the following
+structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="c1"># Environment variables to load for string substitution in any of</span>
+    <span class="c1"># the options in the following sections. Note that the variables</span>
+    <span class="c1"># &quot;outdir&quot; (experiment output directory from emitter_arg --&gt; out_dir)</span>
+    <span class="c1"># and &quot;experiment_id&quot; are always available for substitution.</span>
+    <span class="s2">&quot;env_vars&quot;</span><span class="p">:</span> <span class="p">{</span> <span class="o">...</span> <span class="p">},</span>
+    <span class="c1"># SLURM options for building container image</span>
+    <span class="s2">&quot;build_image&quot;</span><span class="p">:</span> <span class="p">{</span> <span class="o">...</span> <span class="p">},</span>
+    <span class="c1"># Strings to substitute in Nextflow config file (only QUEUE and</span>
+    <span class="c1"># CLUSTER_OPTIONS are required, others use defaults from</span>
+    <span class="c1"># configs/default.json)</span>
+    <span class="s2">&quot;nf_config_overrides&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="c1"># SLURM partition to run HyperQueue workers and non-HyperQueue jobs on</span>
+        <span class="s2">&quot;QUEUE&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="c1"># Number of cores to allocate each HyperQueue worker</span>
+        <span class="s2">&quot;HQ_CORES&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="c1"># Number of CPUs to allocate per simulation (max 2)</span>
+        <span class="s2">&quot;SIM_CPUS&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="c1"># Amount of memory to allocate per simulation in GB</span>
+        <span class="s2">&quot;SIM_MEM&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="c1"># Whether to use HyperQueue for simulation job scheduling</span>
+        <span class="s2">&quot;HYPERQUEUE&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="c1"># Additional cluster options to pass to SLURM</span>
+        <span class="s2">&quot;CLUSTER_OPTIONS&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+    <span class="p">},</span>
+    <span class="c1"># SLURM options for Nextflow job</span>
+    <span class="s2">&quot;nextflow&quot;</span><span class="p">:</span> <span class="p">{</span> <span class="o">...</span> <span class="p">},</span>
+    <span class="c1"># Shell commands to setup environment in Nextflow job script</span>
+    <span class="s2">&quot;nf_setup&quot;</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">ClusterConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">build_options</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nextflow_options</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nf_config_overrides</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nf_setup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#ClusterConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.ClusterConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Resolved configuration for running on a SLURM HPC cluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>config_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>build_options</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em>)</p></li>
+<li><p><strong>nextflow_options</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em>)</p></li>
+<li><p><strong>nf_config_overrides</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em>)</p></li>
+<li><p><strong>nf_setup</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig._coerce_positive_int">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_coerce_positive_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#ClusterConfig._coerce_positive_int"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.ClusterConfig._coerce_positive_int" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>)</p></li>
+<li><p><strong>field_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig.apply_config_overrides">
+<span class="sig-name descname"><span class="pre">apply_config_overrides</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nf_config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#ClusterConfig.apply_config_overrides"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.ClusterConfig.apply_config_overrides" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>nf_config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig.build_image">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">build_image</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><a class="headerlink" href="#runscripts.workflow.ClusterConfig.build_image" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig.build_options">
+<span class="sig-name descname"><span class="pre">build_options</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#runscripts.workflow.ClusterConfig.build_options" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig.config_dict">
+<span class="sig-name descname"><span class="pre">config_dict</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#runscripts.workflow.ClusterConfig.config_dict" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig.jenkins">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">jenkins</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><a class="headerlink" href="#runscripts.workflow.ClusterConfig.jenkins" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><a class="headerlink" href="#runscripts.workflow.ClusterConfig.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig.nextflow_options">
+<span class="sig-name descname"><span class="pre">nextflow_options</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#runscripts.workflow.ClusterConfig.nextflow_options" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig.nf_config_overrides">
+<span class="sig-name descname"><span class="pre">nf_config_overrides</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#runscripts.workflow.ClusterConfig.nf_config_overrides" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig.nf_setup">
+<span class="sig-name descname"><span class="pre">nf_setup</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#runscripts.workflow.ClusterConfig.nf_setup" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="runscripts.workflow.ClusterConfig.require_container_image">
+<span class="sig-name descname"><span class="pre">require_container_image</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#ClusterConfig.require_container_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.ClusterConfig.require_container_image" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="runscripts.workflow.LIST_KEYS_TO_MERGE">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">LIST_KEYS_TO_MERGE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('save_times',</span> <span class="pre">'add_processes',</span> <span class="pre">'exclude_processes',</span> <span class="pre">'processes',</span> <span class="pre">'engine_process_reports',</span> <span class="pre">'initial_state_overrides')</span></em><a class="headerlink" href="#runscripts.workflow.LIST_KEYS_TO_MERGE" title="Link to this definition"></a></dt>
+<dd><p>Special configuration keys that are list values which are concatenated
+together when they are found in multiple sources (e.g. default JSON and
+user-specified JSON) instead of being directly overriden.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="runscripts.workflow._FormatDict">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">_FormatDict</span></span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#_FormatDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow._FormatDict" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow._apply_nf_config_overrides">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">_apply_nf_config_overrides</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nf_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overrides</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#_apply_nf_config_overrides"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow._apply_nf_config_overrides" title="Link to this definition"></a></dt>
+<dd><p>Apply configuration overrides to a Nextflow config string.</p>
+<p>The keys in <code class="docutils literal notranslate"><span class="pre">overrides</span></code> are treated as literal placeholders in <code class="docutils literal notranslate"><span class="pre">nf_config</span></code>
+and replaced with their stringified values. The special key
+<code class="docutils literal notranslate"><span class="pre">&quot;CLUSTER_OPTIONS&quot;</span></code> may contain a dictionary of options, which is
+serialized into a command-line style string via <code class="docutils literal notranslate"><span class="pre">_serialize_cluster_options</span></code>.
+Boolean values are converted to their lowercase string representation
+(<code class="docutils literal notranslate"><span class="pre">&quot;true&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;false&quot;</span></code>) before substitution to match JSON-style booleans.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nf_config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>overrides</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow._confirm_overwrite">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">_confirm_overwrite</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#_confirm_overwrite"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow._confirm_overwrite" title="Link to this definition"></a></dt>
+<dd><p>Prompt the user to confirm building and pushing container image to
+an existing AWS ECR repository or GCP Artifact Registry manifest.</p>
+<p>Returns True if the user confirms, False otherwise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow._ecr_image_exists">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">_ecr_image_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">repo_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_tag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">region</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#_ecr_image_exists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow._ecr_image_exists" title="Link to this definition"></a></dt>
+<dd><p>Return True if the given tag already exists in an ECR repository.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>repo_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>image_tag</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>region</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow._format_recursive">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">_format_recursive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formatter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_missing</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#_format_recursive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow._format_recursive" title="Link to this definition"></a></dt>
+<dd><p>Recursively apply string formatting to nested configuration values.</p>
+<p>This helper walks over <code class="docutils literal notranslate"><span class="pre">value</span></code>, which may be a plain value, string, or
+nested mapping, and formats any strings using the provided <code class="docutils literal notranslate"><span class="pre">formatter</span></code>
+(typically a <a class="reference internal" href="#runscripts.workflow._FormatDict" title="runscripts.workflow._FormatDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">_FormatDict</span></code></a> used with <code class="docutils literal notranslate"><span class="pre">str.format_map</span></code>).</p>
+<p>The current location within the nested structure is tracked via <code class="docutils literal notranslate"><span class="pre">path</span></code>,
+which is extended as the recursion descends into dictionaries. When a
+placeholder in a string cannot be resolved by <code class="docutils literal notranslate"><span class="pre">formatter</span></code>, a
+<a class="reference external" href="https://docs.python.org/3/library/exceptions.html#KeyError" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyError</span></code></a> is raised, the missing placeholder name is reported to
+the <code class="docutils literal notranslate"><span class="pre">on_missing</span></code> callback together with the corresponding <code class="docutils literal notranslate"><span class="pre">path</span></code>, and
+the function returns the internal <code class="docutils literal notranslate"><span class="pre">_MISSING_SENTINEL</span></code> so that the
+missing entry can be skipped by the caller.</p>
+<p>Non-string, non-mapping values are returned unchanged.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>formatter</strong> (<a class="reference internal" href="#runscripts.workflow._FormatDict" title="runscripts.workflow._FormatDict"><em>_FormatDict</em></a>)</p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>)</p></li>
+<li><p><strong>on_missing</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em>[</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em><em>, </em><em>None</em><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow._format_template_section">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">_format_template_section</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">section</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">section_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#_format_template_section"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow._format_template_section" title="Link to this definition"></a></dt>
+<dd><p>Format a configuration or template section using the provided context.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">section</span></code> value (which may be a string, mapping, or nested structure)
+is traversed and any <code class="docutils literal notranslate"><span class="pre">str.format</span></code>-style placeholders are resolved using
+keys from <code class="docutils literal notranslate"><span class="pre">context</span></code>. If a placeholder cannot be resolved, the
+corresponding entry is skipped from the resulting structure and a warning
+is emitted indicating the missing placeholder and its location within
+<code class="docutils literal notranslate"><span class="pre">cluster_name.section_name</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>section</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – The configuration or template section to format. May be
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, in which case <code class="docutils literal notranslate"><span class="pre">None</span></code> is returned.</p></li>
+<li><p><strong>context</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em>) – Mapping of placeholder names to their replacement values.</p></li>
+<li><p><strong>cluster_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the cluster, used only for constructing
+human-readable warning messages.</p></li>
+<li><p><strong>section_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the section being formatted, used in warning
+messages and as the root path when reporting missing placeholders.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The formatted section with all resolvable placeholders substituted and
+entries with missing placeholders omitted, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if <code class="docutils literal notranslate"><span class="pre">section</span></code>
+is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow._gcloud_image_exists">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">_gcloud_image_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">full_image_uri</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#_gcloud_image_exists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow._gcloud_image_exists" title="Link to this definition"></a></dt>
+<dd><p>Return True if the given image already exists in GCP Artifact Registry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>full_image_uri</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow._load_cluster_env_values">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">_load_cluster_env_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cluster_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_var_map</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#_load_cluster_env_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow._load_cluster_env_values" title="Link to this definition"></a></dt>
+<dd><p>Load environment variable values for a cluster configuration.</p>
+<p>This helper resolves placeholders used in a cluster’s configuration by reading
+their corresponding environment variables. For each entry in <code class="docutils literal notranslate"><span class="pre">env_var_map</span></code>,
+it looks up the environment variable name and, if the value is set and
+non-empty, includes it in the returned mapping. When an environment variable
+is missing or empty, a warning is emitted and any options that depend on the
+associated placeholder will be skipped.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cluster_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the cluster whose configuration is being prepared.</p></li>
+<li><p><strong>env_var_map</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>) – Mapping from placeholder names to environment variable names.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A mapping from placeholder names to resolved environment variable values
+for the given cluster.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow._merge_configs">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">_merge_configs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlay_config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#_merge_configs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow._merge_configs" title="Link to this definition"></a></dt>
+<dd><p>Merge overlay_config into base_config, with overlay taking priority.
+Mutates base_config in place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>base_config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Configuration to update (lower priority)</p></li>
+<li><p><strong>overlay_config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Configuration to merge in (higher priority)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow._render_slurm_directives">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">_render_slurm_directives</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">options</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#_render_slurm_directives"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow._render_slurm_directives" title="Link to this definition"></a></dt>
+<dd><p>Convert a mapping of SLURM options into <cite>#SBATCH</cite> directive lines.</p>
+<p>Each key in <code class="docutils literal notranslate"><span class="pre">options</span></code> is treated as a SLURM option name (without the leading
+<code class="docutils literal notranslate"><span class="pre">--</span></code>). Values that are <code class="docutils literal notranslate"><span class="pre">None</span></code> or the empty string are skipped entirely.
+Boolean values are interpreted as flags: if the value is <code class="docutils literal notranslate"><span class="pre">True</span></code>, a directive
+of the form <code class="docutils literal notranslate"><span class="pre">#SBATCH</span> <span class="pre">--&lt;key&gt;</span></code> is emitted; if <code class="docutils literal notranslate"><span class="pre">False</span></code>, the option is
+omitted. All other values are rendered as <code class="docutils literal notranslate"><span class="pre">#SBATCH</span> <span class="pre">--&lt;key&gt;=&lt;value&gt;</span></code>.</p>
+<p>The returned string contains one directive per line, separated by newlines.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>options</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow._serialize_cluster_options">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">_serialize_cluster_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">options</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#_serialize_cluster_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow._serialize_cluster_options" title="Link to this definition"></a></dt>
+<dd><p>Serialize cluster options into a command-line string.</p>
+<p>Each dictionary item is converted into a <code class="docutils literal notranslate"><span class="pre">--key=value</span></code> flag. Keys that do
+not already start with <code class="docutils literal notranslate"><span class="pre">&quot;--&quot;</span></code> are automatically prefixed. Options with a
+value of <code class="docutils literal notranslate"><span class="pre">None</span></code> or the empty string are skipped. Values containing
+whitespace are wrapped in double quotes so they are treated as a single
+argument by the shell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>options</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.build_cluster_container_image">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">build_cluster_container_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cluster_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experiment_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_outdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thread_executor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#build_cluster_container_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.build_cluster_container_image" title="Link to this definition"></a></dt>
+<dd><p>Build container image on HPC cluster using SLURM batch job.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cluster_config</strong> (<a class="reference internal" href="#runscripts.workflow.ClusterConfig" title="runscripts.workflow.ClusterConfig"><em>ClusterConfig</em></a>)</p></li>
+<li><p><strong>experiment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>local_outdir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>thread_executor</strong> (<em>ThreadPoolExecutor</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.build_image_cmd">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">build_image_cmd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apptainer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#build_image_cmd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.build_image_cmd" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.compute_file_hash">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">compute_file_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8192</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#compute_file_hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.compute_file_hash" title="Link to this definition"></a></dt>
+<dd><p>Compute SHA256 hash of a file.</p>
+<p>Works with both local files and cloud URIs (via fsspec when available).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Local path or cloud URI to the file</p></li>
+<li><p><strong>chunk_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of chunks to read at a time</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Hexadecimal SHA256 hash of the file contents</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.copy_to_filesystem">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">copy_to_filesystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filesystem</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#copy_to_filesystem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.copy_to_filesystem" title="Link to this definition"></a></dt>
+<dd><p>Robustly copy the contents of a local source file to a destination path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Path to source file on local filesystem</p></li>
+<li><p><strong>dest</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Path to destination file on filesystem</p></li>
+<li><p><strong>filesystem</strong> (<em>AbstractFileSystem</em><em> | </em><em>None</em>) – LocalFileSystem or fsspec filesystem</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.generate_code">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">generate_code</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#generate_code"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.generate_code" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.generate_colony">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">generate_colony</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seeds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#generate_colony"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.generate_colony" title="Link to this definition"></a></dt>
+<dd><p>Create strings to import and compose Nextflow processes for colony sims.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seeds</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.generate_lineage">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">generate_lineage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_init_sims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">single_daughters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analysis_config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#generate_lineage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.generate_lineage" title="Link to this definition"></a></dt>
+<dd><p>Create strings to import and compose Nextflow processes for lineage sims:
+cells that divide for a number of generations but do not interact. Also
+contains import statements and workflow jobs for analysis scripts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – First seed for first sim</p></li>
+<li><p><strong>n_init_sims</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of sims to initialize with different seeds</p></li>
+<li><p><strong>generations</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of generations to run for each seed</p></li>
+<li><p><strong>single_daughters</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, only simulate one daughter cell each gen</p></li>
+<li><p><strong>analysis_config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>]</em><em>]</em>) – <p>Dictionary with any of the following keys:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>{
+    &#39;variant&#39;: analyses to run on output of all cells combined,
+    &#39;cohort&#39;: analyses to run on output grouped by variant,
+    &#39;multigen&#39;: analyses to run on output grouped by variant &amp; seed,
+    &#39;single&#39;: analyses to run on output for each individual cell,
+    &#39;parca&#39;: analyses to run on parameter calculator output
+}
+
+Each key corresponds to a mapping from analysis name (as defined
+in ``ecol/analysis/__init__.py``) to keyword arguments.
+</pre></div>
+</div>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>2-element tuple containing</p>
+<ul class="simple">
+<li><p><strong>sim_imports</strong>: All <cite>include</cite> statements for Nextflow sim processes</p></li>
+<li><p><strong>sim_workflow</strong>: Fully composed workflow for entire lineage</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.get_cluster_config">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">get_cluster_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experiment_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#get_cluster_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.get_cluster_config" title="Link to this definition"></a></dt>
+<dd><p>Resolve cluster settings using CLUSTER_PRESETS description.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>outdir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>experiment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#runscripts.workflow.ClusterConfig" title="runscripts.workflow.ClusterConfig"><em>ClusterConfig</em></a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.hyperqueue_snippets">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">hyperqueue_snippets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#hyperqueue_snippets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.hyperqueue_snippets" title="Link to this definition"></a></dt>
+<dd><p>Return init and exit shell snippets for HyperQueue if enabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>outdir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.load_config_with_inheritance">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">load_config_with_inheritance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#load_config_with_inheritance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.load_config_with_inheritance" title="Link to this definition"></a></dt>
+<dd><p>Load a config file and recursively resolve all inheritance chains.</p>
+<p>Priority order: Current config &gt; First inherited &gt; … &gt; Last inherited
+If config A inherits from [B, D] and B inherits from [C]:
+Priority is A &gt; B &gt; C &gt; D</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Path to the configuration file</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Fully resolved configuration dictionary</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.main">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.merge_dicts">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">merge_dicts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#merge_dicts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.merge_dicts" title="Link to this definition"></a></dt>
+<dd><p>Recursively merges dictionary b into dictionary a.
+This mutates dictionary a.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.parse_uri">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">parse_uri</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uri</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#parse_uri"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.parse_uri" title="Link to this definition"></a></dt>
+<dd><p>Parse URI and return appropriate filesystem and path.</p>
+<p>For cloud/remote URIs (when fsspec is available), returns fsspec filesystem.
+For local paths, returns None and absolute path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>uri</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<em>AbstractFileSystem</em> | None, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.run_ecr_script">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">run_ecr_script</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">build</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">region</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'us-gov-west-1'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#run_ecr_script"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.run_ecr_script" title="Link to this definition"></a></dt>
+<dd><p>Run the ECR build script to either build/push or just resolve the URI.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Image specification, either full URI or repo:tag format.</p></li>
+<li><p><strong>build</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, build and push the image. If False, just resolve the URI.</p></li>
+<li><p><strong>region</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – AWS region for ECR (e.g., ‘us-gov-west-1’ for GovCloud).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Full ECR image URI.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.stream_log">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">stream_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_log</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sleep_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_event</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#stream_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.stream_log" title="Link to this definition"></a></dt>
+<dd><p>Periodically stream appended content from <code class="docutils literal notranslate"><span class="pre">output_log</span></code> to stdout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_log</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>sleep_time</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+<li><p><strong>stop_event</strong> (<a class="reference external" href="https://docs.python.org/3/library/threading.html#threading.Event" title="(in Python v3.14)"><em>Event</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.strip_resource_keys">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">strip_resource_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#strip_resource_keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.strip_resource_keys" title="Link to this definition"></a></dt>
+<dd><p>Create a copy of the config with resource-only keys removed.</p>
+<p>This allows changing resource allocations (memory, CPUs, time limits)
+without invalidating Nextflow’s cache, since these keys should not
+affect simulation output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Full configuration dictionary</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Config dictionary with resource-only keys stripped</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.workflow.submit_cluster_nextflow_job">
+<span class="sig-prename descclassname"><span class="pre">runscripts.workflow.</span></span><span class="sig-name descname"><span class="pre">submit_cluster_nextflow_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cluster_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experiment_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_outdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workflow_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">report_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resume</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyperqueue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filesystem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thread_executor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/workflow.html#submit_cluster_nextflow_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.workflow.submit_cluster_nextflow_job" title="Link to this definition"></a></dt>
+<dd><p>Submit Nextflow workflow as SLURM batch job on HPC cluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cluster_config</strong> (<a class="reference internal" href="#runscripts.workflow.ClusterConfig" title="runscripts.workflow.ClusterConfig"><em>ClusterConfig</em></a>)</p></li>
+<li><p><strong>experiment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>local_outdir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>outdir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>config_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>workflow_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>report_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>workdir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>resume</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
+<li><p><strong>hyperqueue</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
+<li><p><strong>filesystem</strong> (<em>AbstractFileSystem</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>thread_executor</strong> (<em>ThreadPoolExecutor</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="runscripts.test_workflow.html" class="btn btn-neutral float-left" title="runscripts.test_workflow" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../validation/validation.html" class="btn btn-neutral float-right" title="validation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2026, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

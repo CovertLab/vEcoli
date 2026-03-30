@@ -1,0 +1,571 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amazon Web Services &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Continuous Integration" href="ci.html" />
+    <link rel="prev" title="Google Cloud" href="gcloud.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_ingestion.html">Experimental Data Ingestion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Amazon Web Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#fresh-account-setup">Fresh Account Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#installing-and-configuring-aws-cli">Installing and Configuring AWS CLI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setting-up-required-services">Setting Up Required Services</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#create-vpc">Create VPC</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#create-iam-roles">Create IAM Roles</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#setup-batch">Setup Batch</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#launch-an-ec2-instance">Launch an EC2 Instance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#create-an-instance">Create an Instance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#connect-to-your-instance">Connect to Your Instance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#install-dependencies">Install Dependencies</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#setup-workflow">Setup Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#create-s3-bucket">Create S3 Bucket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configure-your-workflow">Configure Your Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#build-and-push-image">Build and Push Image</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#running-workflows">Running Workflows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#handling-outputs">Handling Outputs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aws-interactive-containers">AWS Interactive Containers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="diffs.html">Model Differences From wcEcoli</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Amazon Web Services</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/aws.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="amazon-web-services">
+<h1>Amazon Web Services<a class="headerlink" href="#amazon-web-services" title="Link to this heading"></a></h1>
+<p>Large vEcoli workflows can be run cost-effectively on Amazon Web Services (AWS).
+This section covers setup starting from a fresh account, running workflows, and
+handling outputs.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>In all instructions below, “navigate to X console” means to search for
+X in the AWS Console search bar and click on the corresponding service.</p>
+</div>
+<section id="fresh-account-setup">
+<h2>Fresh Account Setup<a class="headerlink" href="#fresh-account-setup" title="Link to this heading"></a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This section about creating a fresh AWS account is only necessary if starting
+from scratch. If you have access to the Covert Lab GovCloud account, skip to
+<a class="reference internal" href="#aws-launch-ec2"><span class="std std-ref">Launch an EC2 Instance</span></a>.</p>
+</div>
+<p>Create a new AWS account at <a class="reference external" href="https://aws.amazon.com/">AWS Sign Up</a>. Once you
+have created your account, navigate to the AWS Console and familiarize yourself
+with the following services that vEcoli uses:</p>
+<ul class="simple">
+<li><p><strong>Batch</strong>: Manages compute resources for running workflow tasks</p></li>
+<li><p><strong>S3 (Simple Storage Service)</strong>: Object storage for workflow outputs</p></li>
+<li><p><strong>EC2 (Elastic Compute Cloud)</strong>: Virtual machines for running Nextflow and workflow tasks</p></li>
+<li><p><strong>ECR (Elastic Container Registry)</strong>: Stores Docker images for workflow tasks</p></li>
+<li><p><strong>ECS (Elastic Container Service)</strong>: Orchestrates Docker containers</p></li>
+<li><p><strong>CloudWatch</strong>: Monitors and logs AWS resources</p></li>
+<li><p><strong>IAM (Identity and Access Management)</strong>: Manages access to AWS resources</p></li>
+</ul>
+<p>The following sections will guide you through a minimal setup for running vEcoli
+workflows on a fresh AWS account. Users requiring more advanced configurations
+(e.g., custom VPCs, security groups, etc.) should refer to the AWS documentation
+for those services.</p>
+<section id="installing-and-configuring-aws-cli">
+<h3>Installing and Configuring AWS CLI<a class="headerlink" href="#installing-and-configuring-aws-cli" title="Link to this heading"></a></h3>
+<p>Install the AWS CLI following the
+<a class="reference external" href="https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html">official documentation</a>.</p>
+<p>After installation, configure your AWS credentials:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>aws<span class="w"> </span>configure
+</pre></div>
+</div>
+<p>You will be prompted for:</p>
+<ul class="simple">
+<li><p>AWS Access Key ID</p></li>
+<li><p>AWS Secret Access Key</p></li>
+<li><p>Default region name (e.g., <code class="docutils literal notranslate"><span class="pre">us-west-2</span></code>)</p></li>
+<li><p>Default output format (<code class="docutils literal notranslate"><span class="pre">json</span></code> recommended)</p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Authentication to Stanford’s GovCloud account requires running
+<code class="docutils literal notranslate"><span class="pre">aws</span> <span class="pre">configure</span> <span class="pre">sso</span></code> with our custom start URL (contact admin).
+Set the profile name to <code class="docutils literal notranslate"><span class="pre">default</span></code> when prompted to avoid
+having to specify <code class="docutils literal notranslate"><span class="pre">--profile</span> <span class="pre">&lt;profile</span> <span class="pre">name&gt;</span></code> for every AWS CLI command.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We strongly recommend choosing one specific region for all AWS resources to avoid
+unexpected cross-region data transfer costs.</p>
+</div>
+</section>
+<section id="setting-up-required-services">
+<h3>Setting Up Required Services<a class="headerlink" href="#setting-up-required-services" title="Link to this heading"></a></h3>
+<section id="create-vpc">
+<h4>Create VPC<a class="headerlink" href="#create-vpc" title="Link to this heading"></a></h4>
+<p>Navigate to the VPC console and create a new VPC.</p>
+<ol class="arabic simple">
+<li><p>Under “Resources to create”, select “VPC and more”.</p></li>
+<li><p>Under “Name tag auto-generation”, choose a name. The generated VPC will be
+called <code class="docutils literal notranslate"><span class="pre">&lt;your</span> <span class="pre">name&gt;-vpc</span></code>.</p></li>
+<li><p>We recommend choosing the maximum number of availability zones in your
+chosen region to maximize resource availability.</p></li>
+<li><p>Change the number of private subnets to 0.</p></li>
+<li><p>Set VPC endpoints to None.</p></li>
+<li><p>Leave other settings as default.</p></li>
+</ol>
+</section>
+<section id="create-iam-roles">
+<h4>Create IAM Roles<a class="headerlink" href="#create-iam-roles" title="Link to this heading"></a></h4>
+<p>vEcoli workflows require specific permissions. We recommend creating two IAM roles:</p>
+<ol class="arabic simple">
+<li><p><strong>Nextflow</strong>: For head VMs that run the Nextflow workflow manager</p></li>
+<li><p><strong>Batch</strong>: For AWS Batch jobs that run workflow tasks</p></li>
+</ol>
+<p>Before creating the Nextflow role, first create an IAM policy with the required
+permissions. To create an IAM policy, navigate to the IAM console, click “Policies”
+in the sidebar, and then click “Create policy”. Switch to the JSON tab and paste in
+<a class="reference external" href="https://www.nextflow.io/docs/latest/aws.html#aws-iam-policies">these permissions</a>
+under the <code class="docutils literal notranslate"><span class="pre">Action</span></code> list. In addition to those permissions, paste the following
+permissions to let <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a> build and push vEcoli Docker
+images to ECR using <code class="docutils literal notranslate"><span class="pre">runscripts/container/build-and-push-ecr.sh</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ecr:CompleteLayerUpload</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ecr:CreateRepository</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ecr:InitiateLayerUpload</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ecr:PutImage</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ecr:UploadLayerPart</span></code></p></li>
+</ul>
+<p>Nextflow also requires access to S3, which must be granted as
+<a class="reference external" href="https://www.nextflow.io/docs/latest/aws.html#s3-policies">described here</a>.
+The easiest way to do this is to grant full S3 access to the Nextflow policy
+by pasting <code class="docutils literal notranslate"><span class="pre">s3:*</span></code> to the list of allowed actions.</p>
+<p>Then, add <code class="docutils literal notranslate"><span class="pre">&quot;*&quot;</span></code> to the <code class="docutils literal notranslate"><span class="pre">Resource</span></code> list to make the allowed actions defined
+in this permission policy valid for all AWS resources. Click “Next”, give the
+policy a name and description, and create the policy.</p>
+<p>After creating the policy, create a new IAM role for Nextflow by clicking “Roles”
+in the sidebar and then “Create role”. Select “AWS service” as the trusted entity
+type and “EC2” as the use case. Click “Next”, then attach the policy you just created.
+Click “Next”, give the role a name and description, and create the role.</p>
+<p>For the Batch role, create a new IAM role as described above but attach the
+AWS-managed policies <code class="docutils literal notranslate"><span class="pre">AmazonS3FullAccess</span></code> and <code class="docutils literal notranslate"><span class="pre">AmazonEC2ContainerServiceforEC2Role</span></code>
+(<a class="reference external" href="https://www.nextflow.io/docs/latest/aws.html#get-started">see here</a> for more details).</p>
+</section>
+<section id="setup-batch">
+<h4>Setup Batch<a class="headerlink" href="#setup-batch" title="Link to this heading"></a></h4>
+<p>AWS Batch manages the compute resources for running vEcoli workflows. Follow
+these steps to set it up:</p>
+<ol class="arabic simple">
+<li><p>Navigate to the AWS Batch console</p></li>
+</ol>
+<p>2. Click “Environments” in the sidebar, then “Create environment –&gt; Compute environment”
+2. Use the following settings to create the new compute environment:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Environment type: “Amazon Elastic Compute Cloud (Amazon EC2)”</p></li>
+<li><p>Name: Choose a name</p></li>
+<li><p>Orchestration type: “Managed”</p></li>
+<li><p>Instance role: Select the Batch role you created earlier</p></li>
+<li><p>Use EC2 Spot instances: True (optional, but strongly recommended for cost savings)</p></li>
+<li><p>Maximum vCPUs: Set based on maximum # of lineages you want to run in parallel
+(AWS Batch will create and terminate VM instances as needed to meet demand up
+to this limit)</p></li>
+<li><p>Allowed instance types: See below for recommendations</p></li>
+<li><p>VPC ID: Select the VPC you created earlier</p></li>
+<li><p>Subnets: Select all subnets in that VPC</p></li>
+<li><p>Leave other settings as default</p></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p>Create a Job Queue:</p>
+<ul class="simple">
+<li><p>Orchestration type: “Amazon Elastic Compute Cloud (Amazon EC2)”</p></li>
+<li><p>Name: Choose a name. This is the name you will use for the
+<code class="docutils literal notranslate"><span class="pre">batch_queue</span></code> key in your config JSON.</p></li>
+<li><p>Connected compute environments: Select your compute environment</p></li>
+</ul>
+</li>
+</ol>
+<p>We strongly recommend using the latest generation of general-purpose Graviton EC2
+instances (<code class="docutils literal notranslate"><span class="pre">M8g</span></code> as of Feb 2026). These instances offer excellent price-performance
+for vEcoli workflows, which are CPU-bound and benefit from the lack of hyperthreading
+on Graviton processors. They also offer 4 GiB of memory per vCPU, which is the default
+memory/CPU allocation for each simulation.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Do not mix Graviton (ARM) and non-Graviton (x86) instances in the same compute
+environment. If you choose Graviton instances, make sure to use a Graviton
+instance (e.g., <code class="docutils literal notranslate"><span class="pre">t4g.medium</span></code>) for your head node as well (see below).</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>To retrieve the latest price/physical CPU for different instance types,
+run <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">runscripts/cloud_pricing/aws.py</span> <span class="pre">--region</span> <span class="pre">&lt;your</span> <span class="pre">region&gt;</span></code>.
+Benchmark workflow performance on different instance types to find the best
+price-performance for your specific workflow configuration.</p>
+</div>
+</section>
+</section>
+</section>
+<section id="launch-an-ec2-instance">
+<span id="aws-launch-ec2"></span><h2>Launch an EC2 Instance<a class="headerlink" href="#launch-an-ec2-instance" title="Link to this heading"></a></h2>
+<section id="create-an-instance">
+<h3>Create an Instance<a class="headerlink" href="#create-an-instance" title="Link to this heading"></a></h3>
+<p>Create a small EC2 instance to run Nextflow. Navigate to the EC2 console and launch
+a new instance with:</p>
+<ul class="simple">
+<li><p>An Amazon Linux 2023 Amazon Machine Image (AMI), pick “64-bit (ARM)” architecture
+if using Graviton instances or “64-bit (x86)” if using non-Graviton instances</p></li>
+<li><p>Instance type: Min. 4 GiB memory, must match Batch compute environment CPU
+architecture, try <code class="docutils literal notranslate"><span class="pre">t4g.medium</span></code> (Graviton) or <code class="docutils literal notranslate"><span class="pre">t3.medium</span></code> (non-Graviton)</p></li>
+<li><p>Key pair: Create a new key pair or use an existing one to SSH into the instance</p></li>
+<li><p>Network: Select the VPC you created earlier</p></li>
+<li><p>Security group: Create a new one allowing SSH traffic from your IP only</p></li>
+<li><p>Storage: 30 GiB gp3</p></li>
+<li><p>Under Advanced details, set IAM instance profile to the Nextflow role you created
+(<code class="docutils literal notranslate"><span class="pre">ECR</span></code> for the Stanford GovCloud account).</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Run <code class="docutils literal notranslate"><span class="pre">chmod</span> <span class="pre">400</span> <span class="pre">/path/to/your-key.pem</span></code> on your private key file to ensure
+it has the correct permissions for SSH.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Remember to stop your EC2 instance when your workflow finishes to avoid
+unnecessary charges.</p>
+</div>
+</section>
+<section id="connect-to-your-instance">
+<h3>Connect to Your Instance<a class="headerlink" href="#connect-to-your-instance" title="Link to this heading"></a></h3>
+<p>SSH into your newly created EC2 instance using the private key from above:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh<span class="w"> </span>-i<span class="w"> </span>/path/to/your-key.pem<span class="w"> </span>ec2-user@&lt;instance-public-dns&gt;
+</pre></div>
+</div>
+</section>
+<section id="install-dependencies">
+<span id="aws-deps"></span><h3>Install Dependencies<a class="headerlink" href="#install-dependencies" title="Link to this heading"></a></h3>
+<p>On the EC2 instance, install Git, Docker, and Java:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Update package manager</span>
+sudo<span class="w"> </span>yum<span class="w"> </span>update<span class="w"> </span>-y
+
+<span class="c1"># Install Git, Java (required for Nextflow), and Docker</span>
+sudo<span class="w"> </span>yum<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>git<span class="w"> </span>java<span class="w"> </span>docker
+
+<span class="c1"># Start Docker service and enable on boot</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>docker
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>docker
+
+<span class="c1"># Add your user to the docker group</span>
+sudo<span class="w"> </span>usermod<span class="w"> </span>-aG<span class="w"> </span>docker<span class="w"> </span><span class="nv">$USER</span>
+
+<span class="c1"># Set AWS CLI default region (us-gov-west-1 for Stanford GovCloud)</span>
+aws<span class="w"> </span>configure<span class="w"> </span><span class="nb">set</span><span class="w"> </span>region<span class="w"> </span>&lt;your-region&gt;
+
+<span class="c1"># Log out and back in for group changes to take effect</span>
+</pre></div>
+</div>
+<p>Clone the vEcoli repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/CovertLab/vEcoli.git<span class="w"> </span>--filter<span class="o">=</span>blob:none
+<span class="nb">cd</span><span class="w"> </span>vEcoli
+</pre></div>
+</div>
+<p><a class="reference external" href="https://docs.astral.sh/uv/getting-started/installation/">Install uv</a>, then
+create a new virtual environment and install S3FS:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-LsSf<span class="w"> </span>https://astral.sh/uv/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
+<span class="nb">source</span><span class="w"> </span>~/.bashrc
+uv<span class="w"> </span>venv
+uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>s3fs<span class="w"> </span>boto3
+</pre></div>
+</div>
+<p>Run the following to automatically activate the virtual environment:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;source ~/vEcoli/.venv/bin/activate&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
+<span class="nb">source</span><span class="w"> </span>~/.bashrc
+</pre></div>
+</div>
+<p>Finally, <a class="reference external" href="https://www.nextflow.io/docs/latest/install.html">install Nextflow</a>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-s<span class="w"> </span>https://get.nextflow.io<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
+sudo<span class="w"> </span>mv<span class="w"> </span>nextflow<span class="w"> </span>/usr/local/bin/
+chmod<span class="w"> </span>+x<span class="w"> </span>/usr/local/bin/nextflow
+</pre></div>
+</div>
+</section>
+</section>
+<section id="setup-workflow">
+<h2>Setup Workflow<a class="headerlink" href="#setup-workflow" title="Link to this heading"></a></h2>
+<section id="create-s3-bucket">
+<h3>Create S3 Bucket<a class="headerlink" href="#create-s3-bucket" title="Link to this heading"></a></h3>
+<p>vEcoli workflows use S3 for output storage. Create a new S3 bucket using
+the AWS Console or AWS CLI:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>aws<span class="w"> </span>s3<span class="w"> </span>mb<span class="w"> </span>s3://your-vecoli-bucket-name
+</pre></div>
+</div>
+<p>Replace <code class="docutils literal notranslate"><span class="pre">your-vecoli-bucket-name</span></code> with a globally unique bucket name.</p>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Do NOT use underscores in your bucket name. Use hyphens instead.
+Bucket names must be DNS-compliant.</p>
+</div>
+</section>
+<section id="configure-your-workflow">
+<h3>Configure Your Workflow<a class="headerlink" href="#configure-your-workflow" title="Link to this heading"></a></h3>
+<p>Tell vEcoli to use your S3 bucket by setting the <code class="docutils literal notranslate"><span class="pre">out_uri</span></code> key under the
+<code class="docutils literal notranslate"><span class="pre">emitter_arg</span></code> key in your config JSON (see <a class="reference internal" href="experiments.html#json-config"><span class="std std-ref">JSON Config Files</span></a>). The URI
+should be in the form <code class="docutils literal notranslate"><span class="pre">s3://your-vecoli-bucket-name</span></code>. Remember to remove
+the <code class="docutils literal notranslate"><span class="pre">out_dir</span></code> key under <code class="docutils literal notranslate"><span class="pre">emitter_arg</span></code> if present.</p>
+<p>On AWS, each job in a workflow (ParCa, sim 1, sim 2, etc.) is run using
+Docker containers managed by AWS ECS. vEcoli uses a build script to create
+and push Docker images to Amazon ECR.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Files that match the patterns in <code class="docutils literal notranslate"><span class="pre">.dockerignore</span></code> are excluded from the
+Docker image.</p>
+</div>
+<p>The following configuration keys, in addition to the <code class="docutils literal notranslate"><span class="pre">out_uri</span></code> key under
+<code class="docutils literal notranslate"><span class="pre">emitter_arg</span></code>, are <strong>REQUIRED</strong> to run <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a> on AWS:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;aws&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="c1"># Boolean, whether to build a fresh Docker image. If files that are</span>
+    <span class="c1"># not excluded by .dockerignore did not change since your last build,</span>
+    <span class="c1"># you can set this to false to skip building the image.</span>
+    <span class="s2">&quot;build_image&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+    <span class="c1"># Name of Docker image to build (or use directly, if build_image is false)</span>
+    <span class="s2">&quot;container_image&quot;</span><span class="p">:</span> <span class="s2">&quot;vecoli-workflow&quot;</span><span class="p">,</span>
+    <span class="c1"># AWS region (optional, defaults to us-gov-west-1)</span>
+    <span class="s2">&quot;region&quot;</span><span class="p">:</span> <span class="s2">&quot;us-west-2&quot;</span><span class="p">,</span>
+    <span class="c1"># AWS Batch job queue name (optional, defaults to &quot;vecoli&quot;)</span>
+    <span class="s2">&quot;batch_queue&quot;</span><span class="p">:</span> <span class="s2">&quot;vecoli&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>We strongly recommend setting <code class="docutils literal notranslate"><span class="pre">progress_bar</span></code> to <code class="docutils literal notranslate"><span class="pre">false</span></code> in your config JSON
+when running workflows on AWS to reduce the amount of generated logs,
+which are billed as <a class="reference external" href="https://aws.amazon.com/cloudwatch/pricing/">described here</a>.</p>
+</div>
+</section>
+<section id="build-and-push-image">
+<h3>Build and Push Image<a class="headerlink" href="#build-and-push-image" title="Link to this heading"></a></h3>
+<p>The build process is handled automatically when you launch a workflow with
+<code class="docutils literal notranslate"><span class="pre">build_image:</span> <span class="pre">true</span></code>. However, you can also manually build and push images
+using the <code class="docutils literal notranslate"><span class="pre">runscripts/container/build-and-push-ecr.sh</span></code> script.</p>
+</section>
+</section>
+<section id="running-workflows">
+<h2>Running Workflows<a class="headerlink" href="#running-workflows" title="Link to this heading"></a></h2>
+<p>After setting the required options in your configuration JSON, use <code class="docutils literal notranslate"><span class="pre">screen</span></code> or <code class="docutils literal notranslate"><span class="pre">tmux</span></code>
+to open a virtual console that will persist after your SSH connection is closed.
+In that console, invoke <a class="reference internal" href="reference/api/runscripts/runscripts.workflow.html#module-runscripts.workflow" title="runscripts.workflow"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a> as normal to start a workflow:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">runscripts</span><span class="o">/</span><span class="n">workflow</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">config</span> <span class="n">your_config</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Unlike workflows run locally, AWS workflows are run using containers with a
+snapshot of the repository at the time the workflow was launched. This means
+that any changes made to the repository after launching a workflow will not
+be reflected in that workflow.</p>
+</div>
+<p>Once your workflow has started, you can press “Ctrl+A D” (for screen) or
+“Ctrl+B D” (for tmux) to detach from the virtual console and close your SSH
+connection. The EC2 instance must continue to run until the workflow is complete.
+You can SSH into your instance and reconnect to the virtual terminal with
+<code class="docutils literal notranslate"><span class="pre">screen</span> <span class="pre">-r</span></code> or <code class="docutils literal notranslate"><span class="pre">tmux</span> <span class="pre">attach</span></code> to monitor progress.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>AWS Batch Spot instances can be interrupted at any time. Analysis scripts that
+take more than a few hours to run should be excluded from workflow configurations
+and manually run using <a class="reference internal" href="reference/api/runscripts/runscripts.analysis.html#module-runscripts.analysis" title="runscripts.analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a> afterwards. If you require
+guaranteed compute, modify your Batch compute environment to not use Spot instances.</p>
+</div>
+</section>
+<section id="handling-outputs">
+<h2>Handling Outputs<a class="headerlink" href="#handling-outputs" title="Link to this heading"></a></h2>
+<p>Once a workflow is complete, all outputs should be in your S3 bucket at the
+URI specified in the <code class="docutils literal notranslate"><span class="pre">out_uri</span></code> key under <code class="docutils literal notranslate"><span class="pre">emitter_arg</span></code> in the configuration
+JSON.</p>
+<p>We strongly discourage users from downloading large amounts of data from S3,
+as that will incur significant data transfer charges. Instead, run analyses
+on an EC2 instance in the same region as your S3 bucket - this avoids data
+transfer fees.</p>
+<p>Data stored in S3 incurs charges based on:</p>
+<ol class="arabic simple">
+<li><p><strong>Storage amount</strong>: Costs vary by region and storage class</p></li>
+<li><p><strong>Storage duration</strong>: Charges are prorated</p></li>
+<li><p><strong>Data transfer</strong>: Transfers out of AWS or between regions incur charges</p></li>
+<li><p><strong>Request costs</strong>: GET, PUT, etc. have per-request costs</p></li>
+</ol>
+<p>Storing terabytes of simulation data can cost $1000+/year. For cost
+management:</p>
+<ul class="simple">
+<li><p>Delete workflow output data from S3 as soon as you finish your analyses</p></li>
+<li><p>Consider using S3 Lifecycle policies to automatically move data to cheaper
+storage classes (e.g., S3 Glacier) after a certain period</p></li>
+<li><p>Use S3 Intelligent-Tiering for automatic cost optimization</p></li>
+<li><p>Run analyses on EC2 instances in the same region as your S3 bucket</p></li>
+</ul>
+<p>If necessary, it is likely cheaper to re-run the workflow to regenerate data
+later than to keep it around long-term.</p>
+</section>
+<section id="aws-interactive-containers">
+<span id="id2"></span><h2>AWS Interactive Containers<a class="headerlink" href="#aws-interactive-containers" title="Link to this heading"></a></h2>
+<p>Since all steps of the workflow are run inside Docker containers, it can be
+helpful to launch an interactive instance of the container for debugging. This
+is also useful for running standalone analyses on workflow outputs.</p>
+<p>For simplicity, we recommend reusing the same EC2 instance that you created to
+launch workflows. If you need more compute power (e.g., to run ad-hoc analyses),
+you can change the instance type to a more powerful one following
+<a class="reference external" href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-resize.html">these instructions</a>.
+Make sure to choose an instance type that matches the CPU architecture of
+your Docker image (Graviton/ARM vs. non-Graviton/x86) and remember to change
+it back to a smaller instance when done to save costs.</p>
+<p>If you need more storage, create and attach a new EBS volume following
+<a class="reference external" href="https://docs.aws.amazon.com/ebs/latest/userguide/ebs-attaching-volume.html">these instructions</a>.
+Then, follow
+<a class="reference external" href="https://docs.aws.amazon.com/ebs/latest/userguide/ebs-using-volumes.html">these instructions</a>
+to make the new volume available for use.</p>
+<p>From inside your cloned repository on your EC2 instance, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>runscripts/container/interactive.sh<span class="w"> </span>-r<span class="w"> </span>aws<span class="w"> </span>-i<span class="w"> </span>container_image
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">container_image</span></code> should match the name in your config JSON (e.g.,
+<code class="docutils literal notranslate"><span class="pre">vecoli-workflow</span></code>). A copy of the config JSON should be saved to your
+S3 bucket with the other output for reference (see <a class="reference internal" href="workflows.html#id9"><span class="std std-ref">Output</span></a>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Inside the interactive container, you can use <code class="docutils literal notranslate"><span class="pre">python</span></code> or <code class="docutils literal notranslate"><span class="pre">ipython</span></code>
+directly in addition to the usual <code class="docutils literal notranslate"><span class="pre">uv</span></code> commands.</p>
+</div>
+<p>Inside the container, navigate to <code class="docutils literal notranslate"><span class="pre">/vEcoli</span></code> and add breakpoints as you see fit.
+Note the working directory (see <a class="reference internal" href="workflows.html#troubleshooting"><span class="std std-ref">Troubleshooting</span></a>) of the Nextflow task you
+want to debug. Download the <code class="docutils literal notranslate"><span class="pre">.command.run</span></code> file for your task from S3 to a
+temporary debug directory and run it:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>debug
+<span class="nb">cd</span><span class="w"> </span>debug
+aws<span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span>s3://your-vecoli-bucket-name/path/to/workdir/.command.run<span class="w"> </span>.
+chmod<span class="w"> </span>+x<span class="w"> </span>.command.run
+./command.run
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Any changes that you make to <code class="docutils literal notranslate"><span class="pre">/vEcoli</span></code> inside the container are discarded
+when the container terminates.</p>
+</div>
+<p>The files located in <code class="docutils literal notranslate"><span class="pre">/vEcoli</span></code> are a copy of your cloned repository (excluding
+files ignored by <code class="docutils literal notranslate"><span class="pre">.dockerignore</span></code>) at the time the workflow was launched.
+To start an interactive container that reflects the current state of your
+cloned repository, add the <code class="docutils literal notranslate"><span class="pre">-d</span></code> flag to start a “development” container.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gcloud.html" class="btn btn-neutral float-left" title="Google Cloud" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ci.html" class="btn btn-neutral float-right" title="Continuous Integration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2026, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

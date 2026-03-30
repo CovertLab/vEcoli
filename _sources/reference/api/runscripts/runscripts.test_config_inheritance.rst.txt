@@ -1,0 +1,8 @@
+``runscripts.test_config_inheritance``
+======================================
+.. automodule:: runscripts.test_config_inheritance
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

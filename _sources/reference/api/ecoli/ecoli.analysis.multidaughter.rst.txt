@@ -1,0 +1,6 @@
+``ecoli.analysis.multidaughter``
+================================
+.. automodule:: ecoli.analysis.multidaughter
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,13 @@
+``wholecell.io.schemas``
+========================
+.. automodule:: wholecell.io.schemas
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   wholecell.io.schemas.rnaseq

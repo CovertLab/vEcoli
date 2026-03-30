@@ -1,0 +1,203 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>runscripts.test_workflow &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="runscripts.workflow" href="runscripts.workflow.html" />
+    <link rel="prev" title="runscripts.test_config_inheritance" href="runscripts.test_config_inheritance.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_ingestion.html">Experimental Data Ingestion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aws.html">Amazon Web Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diffs.html">Model Differences From wcEcoli</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ecoli/ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="runscripts.debug.html"><code class="docutils literal notranslate"><span class="pre">runscripts.debug</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.analysis.html"><code class="docutils literal notranslate"><span class="pre">runscripts.analysis</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.create_variants.html"><code class="docutils literal notranslate"><span class="pre">runscripts.create_variants</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.parca.html"><code class="docutils literal notranslate"><span class="pre">runscripts.parca</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.sim.html"><code class="docutils literal notranslate"><span class="pre">runscripts.sim</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.test_analysis_comprehensive.html"><code class="docutils literal notranslate"><span class="pre">runscripts.test_analysis_comprehensive</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.test_config_inheritance.html"><code class="docutils literal notranslate"><span class="pre">runscripts.test_config_inheritance</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">runscripts.test_workflow</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="runscripts.workflow.html"><code class="docutils literal notranslate"><span class="pre">runscripts.workflow</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wholecell/wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">runscripts.test_workflow</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/runscripts/runscripts.test_workflow.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-runscripts.test_workflow">
+<span id="runscripts-test-workflow"></span><h1><code class="docutils literal notranslate"><span class="pre">runscripts.test_workflow</span></code><a class="headerlink" href="#module-runscripts.test_workflow" title="Link to this heading"></a></h1>
+<p>Tests for Nextflow workflow generation in workflow.py</p>
+<p>These tests verify the correctness of:
+- Channel grouping templates (MULTIDAUGHTER_CHANNEL, MULTIGENERATION_CHANNEL, etc.)
+- Analysis batching logic with group_size for cache invalidation
+- Full workflow generation via –build-only
+- Nextflow stub execution to validate generated workflow files</p>
+<dl class="simple">
+<dt>Note: The mock createVariants stub always creates 3 variants:</dt><dd><ul class="simple">
+<li><p>variant_1, variant_2, baseline</p></li>
+</ul>
+</dd>
+</dl>
+<p>This is used to verify exact group_size calculations in stub tests.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="runscripts.test_workflow.TestGenerateCode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">runscripts.test_workflow.</span></span><span class="sig-name descname"><span class="pre">TestGenerateCode</span></span><a class="reference internal" href="../../../_modules/runscripts/test_workflow.html#TestGenerateCode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.test_workflow.TestGenerateCode" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Test the generate_code function.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="runscripts.test_workflow.TestGenerateLineage">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">runscripts.test_workflow.</span></span><span class="sig-name descname"><span class="pre">TestGenerateLineage</span></span><a class="reference internal" href="../../../_modules/runscripts/test_workflow.html#TestGenerateLineage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.test_workflow.TestGenerateLineage" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Test the generate_lineage function output.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="runscripts.test_workflow.TestGroupSizeValues">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">runscripts.test_workflow.</span></span><span class="sig-name descname"><span class="pre">TestGroupSizeValues</span></span><a class="reference internal" href="../../../_modules/runscripts/test_workflow.html#TestGroupSizeValues"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.test_workflow.TestGroupSizeValues" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Test that group_size values are calculated correctly for different configurations.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="runscripts.test_workflow.TestNextflowStubExecution">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">runscripts.test_workflow.</span></span><span class="sig-name descname"><span class="pre">TestNextflowStubExecution</span></span><a class="reference internal" href="../../../_modules/runscripts/test_workflow.html#TestNextflowStubExecution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.test_workflow.TestNextflowStubExecution" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Integration tests that generate workflow files and run Nextflow in stub mode.</p>
+<p>These tests require Nextflow to be installed and available on PATH.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="runscripts.test_workflow.TestNextflowStubExecution.pytestmark">
+<span class="sig-name descname"><span class="pre">pytestmark</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[Mark(name='skipif',</span> <span class="pre">args=(True,),</span> <span class="pre">kwargs={'reason':</span> <span class="pre">'Nextflow</span> <span class="pre">not</span> <span class="pre">available</span> <span class="pre">on</span> <span class="pre">PATH'}),</span> <span class="pre">Mark(name='slow',</span> <span class="pre">args=(),</span> <span class="pre">kwargs={})]</span></em><a class="headerlink" href="#runscripts.test_workflow.TestNextflowStubExecution.pytestmark" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.test_workflow._check_nextflow_available">
+<span class="sig-prename descclassname"><span class="pre">runscripts.test_workflow.</span></span><span class="sig-name descname"><span class="pre">_check_nextflow_available</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/test_workflow.html#_check_nextflow_available"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.test_workflow._check_nextflow_available" title="Link to this definition"></a></dt>
+<dd><p>Check if Nextflow is available on PATH.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="runscripts.test_workflow.temp_config_dir">
+<span class="sig-prename descclassname"><span class="pre">runscripts.test_workflow.</span></span><span class="sig-name descname"><span class="pre">temp_config_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tmp_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/runscripts/test_workflow.html#temp_config_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#runscripts.test_workflow.temp_config_dir" title="Link to this definition"></a></dt>
+<dd><p>Create a temporary directory for test configs.</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="runscripts.test_config_inheritance.html" class="btn btn-neutral float-left" title="runscripts.test_config_inheritance" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="runscripts.workflow.html" class="btn btn-neutral float-right" title="runscripts.workflow" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2026, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

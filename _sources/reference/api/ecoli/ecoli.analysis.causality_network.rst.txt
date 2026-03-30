@@ -1,0 +1,16 @@
+``ecoli.analysis.causality_network``
+====================================
+.. automodule:: ecoli.analysis.causality_network
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 4
+
+   ecoli.analysis.causality_network.buildCausalityNetwork
+   ecoli.analysis.causality_network.build_network
+   ecoli.analysis.causality_network.network_components
+   ecoli.analysis.causality_network.read_dynamics

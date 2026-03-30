@@ -1,0 +1,407 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>wholecell.io.data_qc &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_ingestion.html">Experimental Data Ingestion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aws.html">Amazon Web Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diffs.html">Model Differences From wcEcoli</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">wholecell.io.data_qc</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for wholecell.io.data_qc</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Quality control utilities for comparing experimental data against reference datasets.</span>
+
+<span class="sd">This module provides stateless, composable functions that operate on DataFrames</span>
+<span class="sd">(typically already validated by ``wholecell.io.ingestion``).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">spearmanr</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">PathLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span>
+
+<span class="c1"># Default paths relative to repository root</span>
+<span class="n">DEFAULT_GENES_TSV</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;reconstruction/ecoli/flat/genes.tsv&quot;</span><span class="p">)</span>
+<span class="n">DEFAULT_ESSENTIAL_GENES_TSV</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;validation/ecoli/flat/essential_genes.tsv&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="load_gene_annotations">
+<a class="viewcode-back" href="../../../reference/api/wholecell/wholecell.io.data_qc.html#wholecell.io.data_qc.load_gene_annotations">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_gene_annotations</span><span class="p">(</span>
+    <span class="n">genes_tsv_path</span><span class="p">:</span> <span class="n">PathLike</span> <span class="o">=</span> <span class="n">DEFAULT_GENES_TSV</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load gene annotations (id -&gt; symbol mapping) from genes.tsv.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    genes_tsv_path:</span>
+<span class="sd">        Path to genes.tsv file.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pd.DataFrame</span>
+<span class="sd">        DataFrame with columns [gene_id, gene_name].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">genes_tsv_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span><span class="p">[[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;symbol&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;gene_id&quot;</span><span class="p">,</span> <span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="s2">&quot;gene_name&quot;</span><span class="p">})</span></div>
+
+
+
+<div class="viewcode-block" id="load_essential_genes">
+<a class="viewcode-back" href="../../../reference/api/wholecell/wholecell.io.data_qc.html#wholecell.io.data_qc.load_essential_genes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_essential_genes</span><span class="p">(</span>
+    <span class="n">essential_genes_tsv_path</span><span class="p">:</span> <span class="n">PathLike</span> <span class="o">=</span> <span class="n">DEFAULT_ESSENTIAL_GENES_TSV</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load set of essential gene IDs from essential_genes.tsv.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    essential_genes_tsv_path:</span>
+<span class="sd">        Path to essential_genes.tsv file.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Set[str]</span>
+<span class="sd">        Set of essential gene FrameIDs (e.g., {&quot;EG10068&quot;, &quot;EG10117&quot;, ...}).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">essential_genes_tsv_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;FrameID&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="RnaseqComparisonResult">
+<a class="viewcode-back" href="../../../reference/api/wholecell/wholecell.io.data_qc.html#wholecell.io.data_qc.RnaseqComparisonResult">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RnaseqComparisonResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Result of comparing two RNA-seq TPM tables.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    comparison_table:</span>
+<span class="sd">        Outer join of reference and experimental TPMs. Core columns:</span>
+<span class="sd">        [gene_id, ref_tpm, expt_tpm]. If annotations provided, also includes</span>
+<span class="sd">        [gene_name, gene_essential].</span>
+<span class="sd">    summary_stats:</span>
+<span class="sd">        Dictionary of summary statistics (correlation, RMSE, gene counts, etc.).</span>
+<span class="sd">    genes_only_in_ref:</span>
+<span class="sd">        List of gene_ids present in reference but missing from experimental.</span>
+<span class="sd">    genes_only_in_expt:</span>
+<span class="sd">        List of gene_ids present in experimental but missing from reference.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">comparison_table</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+    <span class="n">summary_stats</span><span class="p">:</span> <span class="nb">dict</span>
+    <span class="n">genes_only_in_ref</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">genes_only_in_expt</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="compare_rnaseq_tables">
+<a class="viewcode-back" href="../../../reference/api/wholecell/wholecell.io.data_qc.html#wholecell.io.data_qc.compare_rnaseq_tables">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_rnaseq_tables</span><span class="p">(</span>
+    <span class="n">ref_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">expt_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">gene_annotations</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">essential_genes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RnaseqComparisonResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compare experimental RNA-seq TPM table against a reference.</span>
+
+<span class="sd">    Both DataFrames must follow ``RnaseqTpmTableSchema`` (columns: ``gene_id``,</span>
+<span class="sd">    ``tpm_mean``).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ref_df:</span>
+<span class="sd">        Reference TPM table.</span>
+<span class="sd">    expt_df:</span>
+<span class="sd">        Experimental TPM table.</span>
+<span class="sd">    gene_annotations:</span>
+<span class="sd">        Optional DataFrame with columns [gene_id, gene_name] for adding gene symbols.</span>
+<span class="sd">        Can be loaded via ``load_gene_annotations()``.</span>
+<span class="sd">    essential_genes:</span>
+<span class="sd">        Optional set of essential gene IDs for adding essentiality flag.</span>
+<span class="sd">        Can be loaded via ``load_essential_genes()``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    RnaseqComparisonResult</span>
+<span class="sd">        Contains comparison table, summary statistics, and missing gene lists.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Prepare reference subset</span>
+    <span class="n">ref_subset</span> <span class="o">=</span> <span class="n">ref_df</span><span class="p">[[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">,</span> <span class="s2">&quot;tpm_mean&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">ref_subset</span> <span class="o">=</span> <span class="n">ref_subset</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;tpm_mean&quot;</span><span class="p">:</span> <span class="s2">&quot;ref_tpm&quot;</span><span class="p">})</span>
+
+    <span class="c1"># Prepare experimental subset</span>
+    <span class="n">expt_subset</span> <span class="o">=</span> <span class="n">expt_df</span><span class="p">[[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">,</span> <span class="s2">&quot;tpm_mean&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">expt_subset</span> <span class="o">=</span> <span class="n">expt_subset</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;tpm_mean&quot;</span><span class="p">:</span> <span class="s2">&quot;expt_tpm&quot;</span><span class="p">})</span>
+
+    <span class="c1"># Outer join</span>
+    <span class="n">comparison</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+        <span class="n">ref_subset</span><span class="p">,</span>
+        <span class="n">expt_subset</span><span class="p">,</span>
+        <span class="n">on</span><span class="o">=</span><span class="s2">&quot;gene_id&quot;</span><span class="p">,</span>
+        <span class="n">how</span><span class="o">=</span><span class="s2">&quot;outer&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Add gene annotations if provided</span>
+    <span class="k">if</span> <span class="n">gene_annotations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">comparison</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+            <span class="n">comparison</span><span class="p">,</span>
+            <span class="n">gene_annotations</span><span class="p">,</span>
+            <span class="n">on</span><span class="o">=</span><span class="s2">&quot;gene_id&quot;</span><span class="p">,</span>
+            <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Add essentiality flag if provided</span>
+    <span class="k">if</span> <span class="n">essential_genes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">comparison</span><span class="p">[</span><span class="s2">&quot;gene_essential&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">comparison</span><span class="p">[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">essential_genes</span><span class="p">)</span>
+
+    <span class="c1"># Identify missing genes</span>
+    <span class="n">genes_only_in_ref</span> <span class="o">=</span> <span class="n">comparison</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+        <span class="n">comparison</span><span class="p">[</span><span class="s2">&quot;expt_tpm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">(),</span> <span class="s2">&quot;gene_id&quot;</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">genes_only_in_expt</span> <span class="o">=</span> <span class="n">comparison</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+        <span class="n">comparison</span><span class="p">[</span><span class="s2">&quot;ref_tpm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">(),</span> <span class="s2">&quot;gene_id&quot;</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+    <span class="c1"># Compute summary stats on genes present in both</span>
+    <span class="n">matched</span> <span class="o">=</span> <span class="n">comparison</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ref_tpm&quot;</span><span class="p">,</span> <span class="s2">&quot;expt_tpm&quot;</span><span class="p">])</span>
+    <span class="n">summary_stats</span> <span class="o">=</span> <span class="n">_compute_summary_stats</span><span class="p">(</span>
+        <span class="n">matched</span><span class="p">[</span><span class="s2">&quot;ref_tpm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+        <span class="n">matched</span><span class="p">[</span><span class="s2">&quot;expt_tpm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+        <span class="n">n_ref_total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">ref_subset</span><span class="p">),</span>
+        <span class="n">n_expt_total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">expt_subset</span><span class="p">),</span>
+        <span class="n">n_only_ref</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">genes_only_in_ref</span><span class="p">),</span>
+        <span class="n">n_only_expt</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">genes_only_in_expt</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Add essentiality-specific stats if available</span>
+    <span class="k">if</span> <span class="n">essential_genes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">matched_essential</span> <span class="o">=</span> <span class="n">matched</span><span class="p">[</span><span class="n">matched</span><span class="p">[</span><span class="s2">&quot;gene_essential&quot;</span><span class="p">]]</span>
+        <span class="n">summary_stats</span><span class="p">[</span><span class="s2">&quot;n_essential_genes_matched&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched_essential</span><span class="p">)</span>
+        <span class="n">summary_stats</span><span class="p">[</span><span class="s2">&quot;n_essential_genes_total&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">essential_genes</span><span class="p">)</span>
+
+        <span class="n">mask_essential</span> <span class="o">=</span> <span class="n">comparison</span><span class="p">[</span><span class="s2">&quot;gene_essential&quot;</span><span class="p">]</span>
+        <span class="n">summary_stats</span><span class="p">[</span><span class="s2">&quot;n_essential_only_in_ref&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">comparison</span><span class="p">[</span><span class="s2">&quot;expt_tpm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">mask_essential</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">summary_stats</span><span class="p">[</span><span class="s2">&quot;n_essential_only_in_expt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">comparison</span><span class="p">[</span><span class="s2">&quot;ref_tpm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">mask_essential</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Reorder columns: gene_id, gene_name, gene_essential, ref_tpm, expt_tpm</span>
+    <span class="n">preferred_order</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;gene_id&quot;</span><span class="p">,</span> <span class="s2">&quot;gene_name&quot;</span><span class="p">,</span> <span class="s2">&quot;gene_essential&quot;</span><span class="p">,</span> <span class="s2">&quot;ref_tpm&quot;</span><span class="p">,</span> <span class="s2">&quot;expt_tpm&quot;</span><span class="p">]</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">preferred_order</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">comparison</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="n">cols</span> <span class="o">+=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">comparison</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">]</span>
+    <span class="n">comparison</span> <span class="o">=</span> <span class="n">comparison</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">RnaseqComparisonResult</span><span class="p">(</span>
+        <span class="n">comparison_table</span><span class="o">=</span><span class="n">comparison</span><span class="p">,</span>
+        <span class="n">summary_stats</span><span class="o">=</span><span class="n">summary_stats</span><span class="p">,</span>
+        <span class="n">genes_only_in_ref</span><span class="o">=</span><span class="n">genes_only_in_ref</span><span class="p">,</span>
+        <span class="n">genes_only_in_expt</span><span class="o">=</span><span class="n">genes_only_in_expt</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_compute_summary_stats">
+<a class="viewcode-back" href="../../../reference/api/wholecell/wholecell.io.data_qc.html#wholecell.io.data_qc._compute_summary_stats">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_compute_summary_stats</span><span class="p">(</span>
+    <span class="n">ref_tpm</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">expt_tpm</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">n_ref_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_expt_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_only_ref</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_only_expt</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute summary statistics for matched gene pairs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ref_tpm:</span>
+<span class="sd">        Reference TPM values (matched genes only).</span>
+<span class="sd">    expt_tpm:</span>
+<span class="sd">        Experimental TPM values (matched genes only).</span>
+<span class="sd">    n_ref_total:</span>
+<span class="sd">        Total number of genes in reference.</span>
+<span class="sd">    n_expt_total:</span>
+<span class="sd">        Total number of genes in experimental.</span>
+<span class="sd">    n_only_ref:</span>
+<span class="sd">        Genes present only in reference.</span>
+<span class="sd">    n_only_expt:</span>
+<span class="sd">        Genes present only in experimental.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Summary statistics including correlations, RMSE, and gene counts.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_matched</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_tpm</span><span class="p">)</span>
+
+    <span class="c1"># Handle edge case of no matched genes</span>
+    <span class="k">if</span> <span class="n">n_matched</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;n_genes_matched&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;n_genes_ref_total&quot;</span><span class="p">:</span> <span class="n">n_ref_total</span><span class="p">,</span>
+            <span class="s2">&quot;n_genes_expt_total&quot;</span><span class="p">:</span> <span class="n">n_expt_total</span><span class="p">,</span>
+            <span class="s2">&quot;n_genes_only_in_ref&quot;</span><span class="p">:</span> <span class="n">n_only_ref</span><span class="p">,</span>
+            <span class="s2">&quot;n_genes_only_in_expt&quot;</span><span class="p">:</span> <span class="n">n_only_expt</span><span class="p">,</span>
+            <span class="s2">&quot;pct_ref_covered&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">&quot;pct_expt_covered&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">&quot;pearson_r&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;spearman_r&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;rmse&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;log2_fold_change_mean&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;log2_fold_change_std&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="c1"># Pearson correlation</span>
+    <span class="n">pearson_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">corrcoef</span><span class="p">(</span><span class="n">ref_tpm</span><span class="p">,</span> <span class="n">expt_tpm</span><span class="p">)[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Spearman correlation (rank-based)</span>
+    <span class="n">spearman_r</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">spearmanr</span><span class="p">(</span><span class="n">ref_tpm</span><span class="p">,</span> <span class="n">expt_tpm</span><span class="p">)</span>
+
+    <span class="c1"># RMSE</span>
+    <span class="n">rmse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">ref_tpm</span> <span class="o">-</span> <span class="n">expt_tpm</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="c1"># Log2 fold change (with pseudocount to handle zeros)</span>
+    <span class="n">pseudocount</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">log2_fc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">((</span><span class="n">expt_tpm</span> <span class="o">+</span> <span class="n">pseudocount</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">ref_tpm</span> <span class="o">+</span> <span class="n">pseudocount</span><span class="p">))</span>
+    <span class="n">log2_fc_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log2_fc</span><span class="p">)</span>
+    <span class="n">log2_fc_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">log2_fc</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;n_genes_matched&quot;</span><span class="p">:</span> <span class="n">n_matched</span><span class="p">,</span>
+        <span class="s2">&quot;n_genes_ref_total&quot;</span><span class="p">:</span> <span class="n">n_ref_total</span><span class="p">,</span>
+        <span class="s2">&quot;n_genes_expt_total&quot;</span><span class="p">:</span> <span class="n">n_expt_total</span><span class="p">,</span>
+        <span class="s2">&quot;n_genes_only_in_ref&quot;</span><span class="p">:</span> <span class="n">n_only_ref</span><span class="p">,</span>
+        <span class="s2">&quot;n_genes_only_in_expt&quot;</span><span class="p">:</span> <span class="n">n_only_expt</span><span class="p">,</span>
+        <span class="s2">&quot;pct_ref_covered&quot;</span><span class="p">:</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">n_matched</span> <span class="o">/</span> <span class="n">n_ref_total</span> <span class="k">if</span> <span class="n">n_ref_total</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s2">&quot;pct_expt_covered&quot;</span><span class="p">:</span> <span class="p">(</span>
+            <span class="mf">100.0</span> <span class="o">*</span> <span class="n">n_matched</span> <span class="o">/</span> <span class="n">n_expt_total</span> <span class="k">if</span> <span class="n">n_expt_total</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;pearson_r&quot;</span><span class="p">:</span> <span class="n">pearson_r</span><span class="p">,</span>
+        <span class="s2">&quot;spearman_r&quot;</span><span class="p">:</span> <span class="n">spearman_r</span><span class="p">,</span>
+        <span class="s2">&quot;rmse&quot;</span><span class="p">:</span> <span class="n">rmse</span><span class="p">,</span>
+        <span class="s2">&quot;log2_fold_change_mean&quot;</span><span class="p">:</span> <span class="n">log2_fc_mean</span><span class="p">,</span>
+        <span class="s2">&quot;log2_fold_change_std&quot;</span><span class="p">:</span> <span class="n">log2_fc_std</span><span class="p">,</span>
+    <span class="p">}</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2026, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

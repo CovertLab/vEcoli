@@ -1,0 +1,316 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>wholecell.io.data_qc &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="wholecell.io.ingestion" href="wholecell.io.ingestion.html" />
+    <link rel="prev" title="wholecell.io.schemas.rnaseq" href="wholecell.io.schemas.rnaseq.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_ingestion.html">Experimental Data Ingestion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aws.html">Amazon Web Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diffs.html">Model Differences From wcEcoli</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../api_ref.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ecoli/ecoli.html"><code class="docutils literal notranslate"><span class="pre">ecoli</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reconstruction/reconstruction.html"><code class="docutils literal notranslate"><span class="pre">reconstruction</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../runscripts/runscripts.html"><code class="docutils literal notranslate"><span class="pre">runscripts</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/validation.html"><code class="docutils literal notranslate"><span class="pre">validation</span></code></a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="wholecell.io.html"><code class="docutils literal notranslate"><span class="pre">wholecell.io</span></code></a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="wholecell.io.schemas.html"><code class="docutils literal notranslate"><span class="pre">wholecell.io.schemas</span></code></a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">wholecell.io.data_qc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="wholecell.io.ingestion.html"><code class="docutils literal notranslate"><span class="pre">wholecell.io.ingestion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="wholecell.io.qc_standalone.html"><code class="docutils literal notranslate"><span class="pre">wholecell.io.qc_standalone</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="wholecell.io.tsv.html"><code class="docutils literal notranslate"><span class="pre">wholecell.io.tsv</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="wholecell.tests.html"><code class="docutils literal notranslate"><span class="pre">wholecell.tests</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="wholecell.utils.html"><code class="docutils literal notranslate"><span class="pre">wholecell.utils</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../api_ref.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="wholecell.html"><code class="docutils literal notranslate"><span class="pre">wholecell</span></code></a></li>
+          <li class="breadcrumb-item"><a href="wholecell.io.html"><code class="docutils literal notranslate"><span class="pre">wholecell.io</span></code></a></li>
+      <li class="breadcrumb-item active"><code class="docutils literal notranslate"><span class="pre">wholecell.io.data_qc</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/reference/api/wholecell/wholecell.io.data_qc.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-wholecell.io.data_qc">
+<span id="wholecell-io-data-qc"></span><h1><code class="docutils literal notranslate"><span class="pre">wholecell.io.data_qc</span></code><a class="headerlink" href="#module-wholecell.io.data_qc" title="Link to this heading"></a></h1>
+<p>Quality control utilities for comparing experimental data against reference datasets.</p>
+<p>This module provides stateless, composable functions that operate on DataFrames
+(typically already validated by <code class="docutils literal notranslate"><span class="pre">wholecell.io.ingestion</span></code>).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="wholecell.io.data_qc.RnaseqComparisonResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">wholecell.io.data_qc.</span></span><span class="sig-name descname"><span class="pre">RnaseqComparisonResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comparison_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary_stats</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genes_only_in_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genes_only_in_expt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/wholecell/io/data_qc.html#RnaseqComparisonResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#wholecell.io.data_qc.RnaseqComparisonResult" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Result of comparing two RNA-seq TPM tables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>comparison_table</strong> (<em>DataFrame</em>)</p></li>
+<li><p><strong>summary_stats</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>genes_only_in_ref</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>)</p></li>
+<li><p><strong>genes_only_in_expt</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="wholecell.io.data_qc.RnaseqComparisonResult.comparison_table">
+<span class="sig-name descname"><span class="pre">comparison_table</span></span><a class="headerlink" href="#wholecell.io.data_qc.RnaseqComparisonResult.comparison_table" title="Link to this definition"></a></dt>
+<dd><p>Outer join of reference and experimental TPMs. Core columns:
+[gene_id, ref_tpm, expt_tpm]. If annotations provided, also includes
+[gene_name, gene_essential].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas.core.frame.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="wholecell.io.data_qc.RnaseqComparisonResult.summary_stats">
+<span class="sig-name descname"><span class="pre">summary_stats</span></span><a class="headerlink" href="#wholecell.io.data_qc.RnaseqComparisonResult.summary_stats" title="Link to this definition"></a></dt>
+<dd><p>Dictionary of summary statistics (correlation, RMSE, gene counts, etc.).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="wholecell.io.data_qc.RnaseqComparisonResult.genes_only_in_ref">
+<span class="sig-name descname"><span class="pre">genes_only_in_ref</span></span><a class="headerlink" href="#wholecell.io.data_qc.RnaseqComparisonResult.genes_only_in_ref" title="Link to this definition"></a></dt>
+<dd><p>List of gene_ids present in reference but missing from experimental.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="wholecell.io.data_qc.RnaseqComparisonResult.genes_only_in_expt">
+<span class="sig-name descname"><span class="pre">genes_only_in_expt</span></span><a class="headerlink" href="#wholecell.io.data_qc.RnaseqComparisonResult.genes_only_in_expt" title="Link to this definition"></a></dt>
+<dd><p>List of gene_ids present in experimental but missing from reference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">comparison_table</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">DataFrame</span></em><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">genes_only_in_expt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">genes_only_in_ref</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-name descname"><span class="pre">summary_stats</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#id3" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="wholecell.io.data_qc._compute_summary_stats">
+<span class="sig-prename descclassname"><span class="pre">wholecell.io.data_qc.</span></span><span class="sig-name descname"><span class="pre">_compute_summary_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref_tpm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expt_tpm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ref_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_expt_total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_only_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_only_expt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/wholecell/io/data_qc.html#_compute_summary_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#wholecell.io.data_qc._compute_summary_stats" title="Link to this definition"></a></dt>
+<dd><p>Compute summary statistics for matched gene pairs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref_tpm</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a>) – Reference TPM values (matched genes only).</p></li>
+<li><p><strong>expt_tpm</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a>) – Experimental TPM values (matched genes only).</p></li>
+<li><p><strong>n_ref_total</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Total number of genes in reference.</p></li>
+<li><p><strong>n_expt_total</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Total number of genes in experimental.</p></li>
+<li><p><strong>n_only_ref</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Genes present only in reference.</p></li>
+<li><p><strong>n_only_expt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Genes present only in experimental.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Summary statistics including correlations, RMSE, and gene counts.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="wholecell.io.data_qc.compare_rnaseq_tables">
+<span class="sig-prename descclassname"><span class="pre">wholecell.io.data_qc.</span></span><span class="sig-name descname"><span class="pre">compare_rnaseq_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expt_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gene_annotations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">essential_genes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/wholecell/io/data_qc.html#compare_rnaseq_tables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#wholecell.io.data_qc.compare_rnaseq_tables" title="Link to this definition"></a></dt>
+<dd><p>Compare experimental RNA-seq TPM table against a reference.</p>
+<p>Both DataFrames must follow <code class="docutils literal notranslate"><span class="pre">RnaseqTpmTableSchema</span></code> (columns: <code class="docutils literal notranslate"><span class="pre">gene_id</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tpm_mean</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref_df</strong> (<em>DataFrame</em>) – Reference TPM table.</p></li>
+<li><p><strong>expt_df</strong> (<em>DataFrame</em>) – Experimental TPM table.</p></li>
+<li><p><strong>gene_annotations</strong> (<em>DataFrame</em><em> | </em><em>None</em>) – Optional DataFrame with columns [gene_id, gene_name] for adding gene symbols.
+Can be loaded via <code class="docutils literal notranslate"><span class="pre">load_gene_annotations()</span></code>.</p></li>
+<li><p><strong>essential_genes</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.14)"><em>Set</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><em>None</em>) – Optional set of essential gene IDs for adding essentiality flag.
+Can be loaded via <code class="docutils literal notranslate"><span class="pre">load_essential_genes()</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Contains comparison table, summary statistics, and missing gene lists.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#wholecell.io.data_qc.RnaseqComparisonResult" title="wholecell.io.data_qc.RnaseqComparisonResult">RnaseqComparisonResult</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="wholecell.io.data_qc.load_essential_genes">
+<span class="sig-prename descclassname"><span class="pre">wholecell.io.data_qc.</span></span><span class="sig-name descname"><span class="pre">load_essential_genes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">essential_genes_tsv_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">PosixPath('validation/ecoli/flat/essential_genes.tsv')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/wholecell/io/data_qc.html#load_essential_genes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#wholecell.io.data_qc.load_essential_genes" title="Link to this definition"></a></dt>
+<dd><p>Load set of essential gene IDs from essential_genes.tsv.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>essential_genes_tsv_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – Path to essential_genes.tsv file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Set of essential gene FrameIDs (e.g., {“EG10068”, “EG10117”, …}).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="wholecell.io.data_qc.load_gene_annotations">
+<span class="sig-prename descclassname"><span class="pre">wholecell.io.data_qc.</span></span><span class="sig-name descname"><span class="pre">load_gene_annotations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">genes_tsv_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">PosixPath('reconstruction/ecoli/flat/genes.tsv')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/wholecell/io/data_qc.html#load_gene_annotations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#wholecell.io.data_qc.load_gene_annotations" title="Link to this definition"></a></dt>
+<dd><p>Load gene annotations (id -&gt; symbol mapping) from genes.tsv.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>genes_tsv_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a>) – Path to genes.tsv file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with columns [gene_id, gene_name].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="wholecell.io.schemas.rnaseq.html" class="btn btn-neutral float-left" title="wholecell.io.schemas.rnaseq" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="wholecell.io.ingestion.html" class="btn btn-neutral float-right" title="wholecell.io.ingestion" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2026, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

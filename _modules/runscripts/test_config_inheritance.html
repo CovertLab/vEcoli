@@ -1,0 +1,478 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>runscripts.test_config_inheritance &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_ingestion.html">Experimental Data Ingestion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../aws.html">Amazon Web Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../diffs.html">Model Differences From wcEcoli</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">runscripts.test_config_inheritance</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for runscripts.test_config_inheritance</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Unit tests for configuration inheritance helper functions in workflow.py</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">runscripts.workflow</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">load_config_with_inheritance</span><span class="p">,</span>
+    <span class="n">_merge_configs</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="TestMergeConfigs">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_config_inheritance.html#runscripts.test_config_inheritance.TestMergeConfigs">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestMergeConfigs</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Test cases for the _merge_configs helper function&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_simple_key_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that overlay values override base values for simple keys&quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;value2&quot;</span><span class="p">}</span>
+        <span class="n">overlay</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;new_value2&quot;</span><span class="p">,</span> <span class="s2">&quot;key3&quot;</span><span class="p">:</span> <span class="s2">&quot;value3&quot;</span><span class="p">}</span>
+
+        <span class="n">_merge_configs</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">overlay</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">base</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;new_value2&quot;</span><span class="p">,</span> <span class="s2">&quot;key3&quot;</span><span class="p">:</span> <span class="s2">&quot;value3&quot;</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_nested_dict_merge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test recursive merging of nested dictionaries&quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;nested&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;level1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;value2&quot;</span><span class="p">}}}</span>
+        <span class="n">overlay</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;nested&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;level1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;new_value2&quot;</span><span class="p">,</span> <span class="s2">&quot;key3&quot;</span><span class="p">:</span> <span class="s2">&quot;value3&quot;</span><span class="p">}}}</span>
+
+        <span class="n">_merge_configs</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">overlay</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">base</span> <span class="o">==</span> <span class="p">{</span>
+            <span class="s2">&quot;nested&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;level1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;new_value2&quot;</span><span class="p">,</span> <span class="s2">&quot;key3&quot;</span><span class="p">:</span> <span class="s2">&quot;value3&quot;</span><span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_list_keys_merge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that LIST_KEYS_TO_MERGE are concatenated and deduplicated&quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;save_times&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="s2">&quot;other_key&quot;</span><span class="p">:</span> <span class="s2">&quot;value&quot;</span><span class="p">}</span>
+        <span class="n">overlay</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;save_times&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]}</span>
+
+        <span class="n">_merge_configs</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">overlay</span><span class="p">)</span>
+
+        <span class="c1"># Should concatenate, deduplicate, and sort</span>
+        <span class="k">assert</span> <span class="n">base</span><span class="p">[</span><span class="s2">&quot;save_times&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">base</span><span class="p">[</span><span class="s2">&quot;other_key&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;value&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_engine_process_reports_tuple_conversion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that engine_process_reports items are converted to tuples&quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;engine_process_reports&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;path&quot;</span><span class="p">,</span> <span class="s2">&quot;to&quot;</span><span class="p">,</span> <span class="s2">&quot;process1&quot;</span><span class="p">]]}</span>
+        <span class="n">overlay</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;engine_process_reports&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s2">&quot;path&quot;</span><span class="p">,</span> <span class="s2">&quot;to&quot;</span><span class="p">,</span> <span class="s2">&quot;process2&quot;</span><span class="p">]]}</span>
+
+        <span class="n">_merge_configs</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">overlay</span><span class="p">)</span>
+
+        <span class="c1"># Should convert lists to tuples</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">base</span><span class="p">[</span><span class="s2">&quot;engine_process_reports&quot;</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">base</span><span class="p">[</span><span class="s2">&quot;engine_process_reports&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_list_key_deduplication</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that duplicate items in list keys are removed&quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;processes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;proc1&quot;</span><span class="p">,</span> <span class="s2">&quot;proc2&quot;</span><span class="p">]}</span>
+        <span class="n">overlay</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;processes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;proc2&quot;</span><span class="p">,</span> <span class="s2">&quot;proc3&quot;</span><span class="p">,</span> <span class="s2">&quot;proc1&quot;</span><span class="p">]}</span>
+
+        <span class="n">_merge_configs</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">overlay</span><span class="p">)</span>
+
+        <span class="c1"># Should deduplicate and sort</span>
+        <span class="k">assert</span> <span class="n">base</span><span class="p">[</span><span class="s2">&quot;processes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="s2">&quot;proc1&quot;</span><span class="p">,</span> <span class="s2">&quot;proc2&quot;</span><span class="p">,</span> <span class="s2">&quot;proc3&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_dict_overwrite_non_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that dict values overwrite non-dict values&quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;string_value&quot;</span><span class="p">}</span>
+        <span class="n">overlay</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;nested&quot;</span><span class="p">:</span> <span class="s2">&quot;dict_value&quot;</span><span class="p">}}</span>
+
+        <span class="n">_merge_configs</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">overlay</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">base</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;nested&quot;</span><span class="p">:</span> <span class="s2">&quot;dict_value&quot;</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_non_dict_overwrite_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that non-dict values overwrite dict values&quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;nested&quot;</span><span class="p">:</span> <span class="s2">&quot;dict_value&quot;</span><span class="p">}}</span>
+        <span class="n">overlay</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;string_value&quot;</span><span class="p">}</span>
+
+        <span class="n">_merge_configs</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">overlay</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">base</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;string_value&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_empty_base_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test merging into empty base config&quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">overlay</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]}</span>
+
+        <span class="n">_merge_configs</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">overlay</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">base</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_empty_overlay_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test merging empty overlay config&quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">}</span>
+        <span class="n">overlay</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">_merge_configs</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">overlay</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">base</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_multiple_list_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test merging multiple LIST_KEYS_TO_MERGE simultaneously&quot;&quot;&quot;</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;save_times&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;processes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;proc1&quot;</span><span class="p">]}</span>
+        <span class="n">overlay</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;save_times&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+            <span class="s2">&quot;processes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;proc2&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;add_processes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;new_proc&quot;</span><span class="p">],</span>
+        <span class="p">}</span>
+
+        <span class="n">_merge_configs</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">overlay</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">base</span><span class="p">[</span><span class="s2">&quot;save_times&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">base</span><span class="p">[</span><span class="s2">&quot;processes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="s2">&quot;proc1&quot;</span><span class="p">,</span> <span class="s2">&quot;proc2&quot;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">base</span><span class="p">[</span><span class="s2">&quot;add_processes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="s2">&quot;new_proc&quot;</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="TestLoadConfigWithInheritance">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_config_inheritance.html#runscripts.test_config_inheritance.TestLoadConfigWithInheritance">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestLoadConfigWithInheritance</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Test cases for load_config_with_inheritance function&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestLoadConfigWithInheritance.temp_config_dir">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_config_inheritance.html#runscripts.test_config_inheritance.TestLoadConfigWithInheritance.temp_config_dir">[docs]</a>
+    <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">temp_config_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a temporary directory for config files&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">Path</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TestLoadConfigWithInheritance.write_config">
+<a class="viewcode-back" href="../../reference/api/runscripts/runscripts.test_config_inheritance.html#runscripts.test_config_inheritance.TestLoadConfigWithInheritance.write_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper to write a config file&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_no_inheritance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp_config_dir</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test loading a config with no inheritance&quot;&quot;&quot;</span>
+        <span class="n">config_path</span> <span class="o">=</span> <span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;config.json&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;value2&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">load_config_with_inheritance</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">config_path</span><span class="p">))</span>
+
+        <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="n">config</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_single_level_inheritance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp_config_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test loading a config that inherits from one other config&quot;&quot;&quot;</span>
+        <span class="c1"># Patch CONFIG_DIR_PATH to use our temp directory</span>
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="s2">&quot;runscripts.workflow.CONFIG_DIR_PATH&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span><span class="p">))</span>
+
+        <span class="c1"># Create base config</span>
+        <span class="n">base_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;base_value&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;base_value2&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;base.json&quot;</span><span class="p">,</span> <span class="n">base_config</span><span class="p">)</span>
+
+        <span class="c1"># Create config that inherits from base</span>
+        <span class="n">child_config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;base.json&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;child_value2&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;key3&quot;</span><span class="p">:</span> <span class="s2">&quot;child_value3&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;child.json&quot;</span><span class="p">,</span> <span class="n">child_config</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">load_config_with_inheritance</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;child.json&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Child should override key2, inherit key1, and add key3</span>
+        <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="p">{</span>
+            <span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;base.json&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;base_value&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;child_value2&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;key3&quot;</span><span class="p">:</span> <span class="s2">&quot;child_value3&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="c1"># inherit_from should still appear in result (for record-keeping)</span>
+        <span class="k">assert</span> <span class="s2">&quot;inherit_from&quot;</span> <span class="ow">in</span> <span class="n">result</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_multi_level_inheritance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp_config_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test A inherits from B which inherits from C&quot;&quot;&quot;</span>
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="s2">&quot;runscripts.workflow.CONFIG_DIR_PATH&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span><span class="p">))</span>
+
+        <span class="c1"># C (base)</span>
+        <span class="n">c_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;c_value&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;c_value&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;c.json&quot;</span><span class="p">,</span> <span class="n">c_config</span><span class="p">)</span>
+
+        <span class="c1"># B inherits from C</span>
+        <span class="n">b_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;c.json&quot;</span><span class="p">],</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;b_value&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;b.json&quot;</span><span class="p">,</span> <span class="n">b_config</span><span class="p">)</span>
+
+        <span class="c1"># A inherits from B</span>
+        <span class="n">a_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;b.json&quot;</span><span class="p">],</span> <span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;a_value&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;a.json&quot;</span><span class="p">,</span> <span class="n">a_config</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">load_config_with_inheritance</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;a.json&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Priority: A &gt; B &gt; C</span>
+        <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="p">{</span>
+            <span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;b.json&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;a_value&quot;</span><span class="p">,</span>  <span class="c1"># From A (highest priority)</span>
+            <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;b_value&quot;</span><span class="p">,</span>  <span class="c1"># From B (overrode C)</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_multiple_inheritance_priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp_config_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test A inherits from [B, D] with correct priority: A &gt; B &gt; D&quot;&quot;&quot;</span>
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="s2">&quot;runscripts.workflow.CONFIG_DIR_PATH&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span><span class="p">))</span>
+
+        <span class="c1"># D</span>
+        <span class="n">d_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;d_value&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;d_value&quot;</span><span class="p">,</span> <span class="s2">&quot;key3&quot;</span><span class="p">:</span> <span class="s2">&quot;d_value&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;d.json&quot;</span><span class="p">,</span> <span class="n">d_config</span><span class="p">)</span>
+
+        <span class="c1"># B</span>
+        <span class="n">b_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;b_value&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;b_value&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;b.json&quot;</span><span class="p">,</span> <span class="n">b_config</span><span class="p">)</span>
+
+        <span class="c1"># A inherits from [B, D] - B should have higher priority than D</span>
+        <span class="n">a_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;b.json&quot;</span><span class="p">,</span> <span class="s2">&quot;d.json&quot;</span><span class="p">],</span> <span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;a_value&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;a.json&quot;</span><span class="p">,</span> <span class="n">a_config</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">load_config_with_inheritance</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;a.json&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Priority: A &gt; B &gt; D</span>
+        <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="p">{</span>
+            <span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;b.json&quot;</span><span class="p">,</span> <span class="s2">&quot;d.json&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;a_value&quot;</span><span class="p">,</span>  <span class="c1"># From A (highest)</span>
+            <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;b_value&quot;</span><span class="p">,</span>  <span class="c1"># From B</span>
+            <span class="s2">&quot;key3&quot;</span><span class="p">:</span> <span class="s2">&quot;d_value&quot;</span><span class="p">,</span>  <span class="c1"># From D (lowest)</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_complex_inheritance_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp_config_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test A inherits from [B, D] where B inherits from C&quot;&quot;&quot;</span>
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="s2">&quot;runscripts.workflow.CONFIG_DIR_PATH&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span><span class="p">))</span>
+
+        <span class="c1"># C</span>
+        <span class="n">c_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="s2">&quot;key3&quot;</span><span class="p">:</span> <span class="s2">&quot;c&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;c.json&quot;</span><span class="p">,</span> <span class="n">c_config</span><span class="p">)</span>
+
+        <span class="c1"># B inherits from C</span>
+        <span class="n">b_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;c.json&quot;</span><span class="p">],</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;b.json&quot;</span><span class="p">,</span> <span class="n">b_config</span><span class="p">)</span>
+
+        <span class="c1"># D</span>
+        <span class="n">d_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;key3&quot;</span><span class="p">:</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;key4&quot;</span><span class="p">:</span> <span class="s2">&quot;d&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;d.json&quot;</span><span class="p">,</span> <span class="n">d_config</span><span class="p">)</span>
+
+        <span class="c1"># A inherits from [B, D]</span>
+        <span class="n">a_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;b.json&quot;</span><span class="p">,</span> <span class="s2">&quot;d.json&quot;</span><span class="p">],</span> <span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;a&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;a.json&quot;</span><span class="p">,</span> <span class="n">a_config</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">load_config_with_inheritance</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;a.json&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Priority: A &gt; B &gt; C &gt; D</span>
+        <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="p">{</span>
+            <span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;b.json&quot;</span><span class="p">,</span> <span class="s2">&quot;d.json&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span>  <span class="c1"># From A (highest)</span>
+            <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span>  <span class="c1"># From B</span>
+            <span class="s2">&quot;key3&quot;</span><span class="p">:</span> <span class="s2">&quot;c&quot;</span><span class="p">,</span>  <span class="c1"># From C</span>
+            <span class="s2">&quot;key4&quot;</span><span class="p">:</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span>  <span class="c1"># From D (lowest)</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_list_merge_through_inheritance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp_config_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that LIST_KEYS_TO_MERGE accumulate through inheritance chain&quot;&quot;&quot;</span>
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="s2">&quot;runscripts.workflow.CONFIG_DIR_PATH&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span><span class="p">))</span>
+
+        <span class="c1"># Base config</span>
+        <span class="n">base_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;save_times&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="s2">&quot;processes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;proc1&quot;</span><span class="p">]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;base.json&quot;</span><span class="p">,</span> <span class="n">base_config</span><span class="p">)</span>
+
+        <span class="c1"># Child config</span>
+        <span class="n">child_config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;base.json&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;save_times&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+            <span class="s2">&quot;processes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;proc2&quot;</span><span class="p">],</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;child.json&quot;</span><span class="p">,</span> <span class="n">child_config</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">load_config_with_inheritance</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;child.json&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Lists should be merged, deduplicated, and sorted</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;save_times&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;processes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="s2">&quot;proc1&quot;</span><span class="p">,</span> <span class="s2">&quot;proc2&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_nested_dict_merge_through_inheritance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp_config_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test nested dictionary merging through inheritance&quot;&quot;&quot;</span>
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="s2">&quot;runscripts.workflow.CONFIG_DIR_PATH&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span><span class="p">))</span>
+
+        <span class="c1"># Base config with nested dict</span>
+        <span class="n">base_config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;emitter_arg&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;out_dir&quot;</span><span class="p">:</span> <span class="s2">&quot;/base/path&quot;</span><span class="p">,</span> <span class="s2">&quot;setting1&quot;</span><span class="p">:</span> <span class="s2">&quot;base_value&quot;</span><span class="p">}</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;base.json&quot;</span><span class="p">,</span> <span class="n">base_config</span><span class="p">)</span>
+
+        <span class="c1"># Child overrides part of nested dict</span>
+        <span class="n">child_config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;base.json&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;emitter_arg&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;out_dir&quot;</span><span class="p">:</span> <span class="s2">&quot;/child/path&quot;</span><span class="p">,</span> <span class="s2">&quot;setting2&quot;</span><span class="p">:</span> <span class="s2">&quot;child_value&quot;</span><span class="p">},</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;child.json&quot;</span><span class="p">,</span> <span class="n">child_config</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">load_config_with_inheritance</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;child.json&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Nested dicts should be merged</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;emitter_arg&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">{</span>
+            <span class="s2">&quot;out_dir&quot;</span><span class="p">:</span> <span class="s2">&quot;/child/path&quot;</span><span class="p">,</span>  <span class="c1"># Child overrides</span>
+            <span class="s2">&quot;setting1&quot;</span><span class="p">:</span> <span class="s2">&quot;base_value&quot;</span><span class="p">,</span>  <span class="c1"># Inherited from base</span>
+            <span class="s2">&quot;setting2&quot;</span><span class="p">:</span> <span class="s2">&quot;child_value&quot;</span><span class="p">,</span>  <span class="c1"># Added by child</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_diamond_inheritance_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp_config_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test diamond pattern: A inherits from [B, C], both B and C inherit from D&quot;&quot;&quot;</span>
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="s2">&quot;runscripts.workflow.CONFIG_DIR_PATH&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span><span class="p">))</span>
+
+        <span class="c1"># D (base)</span>
+        <span class="n">d_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;key_d&quot;</span><span class="p">:</span> <span class="s2">&quot;d&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;d.json&quot;</span><span class="p">,</span> <span class="n">d_config</span><span class="p">)</span>
+
+        <span class="c1"># B inherits from D</span>
+        <span class="n">b_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;d.json&quot;</span><span class="p">],</span> <span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;key_b&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;b.json&quot;</span><span class="p">,</span> <span class="n">b_config</span><span class="p">)</span>
+
+        <span class="c1"># C inherits from D</span>
+        <span class="n">c_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;d.json&quot;</span><span class="p">],</span> <span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="s2">&quot;key_c&quot;</span><span class="p">:</span> <span class="s2">&quot;c&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;c.json&quot;</span><span class="p">,</span> <span class="n">c_config</span><span class="p">)</span>
+
+        <span class="c1"># A inherits from [B, C]</span>
+        <span class="n">a_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;b.json&quot;</span><span class="p">,</span> <span class="s2">&quot;c.json&quot;</span><span class="p">],</span> <span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;a&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;a.json&quot;</span><span class="p">,</span> <span class="n">a_config</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">load_config_with_inheritance</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;a.json&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Priority: A &gt; B &gt; ... &gt; C &gt; D</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;key1&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;a&quot;</span>  <span class="c1"># A overrides all</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;key_b&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;b&quot;</span>  <span class="c1"># From B</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;key_c&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span>  <span class="c1"># From C</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;key_d&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;d&quot;</span>  <span class="c1"># From D</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_empty_inherit_from_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp_config_dir</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test config with empty inherit_from list&quot;&quot;&quot;</span>
+        <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="s2">&quot;runscripts.workflow.CONFIG_DIR_PATH&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span><span class="p">))</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_config</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;config.json&quot;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">load_config_with_inheritance</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">temp_config_dir</span> <span class="o">/</span> <span class="s2">&quot;config.json&quot;</span><span class="p">))</span>
+
+        <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;key1&quot;</span><span class="p">:</span> <span class="s2">&quot;value1&quot;</span><span class="p">,</span> <span class="s2">&quot;inherit_from&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="k">assert</span> <span class="s2">&quot;inherit_from&quot;</span> <span class="ow">in</span> <span class="n">result</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">pytest</span><span class="o">.</span><span class="n">main</span><span class="p">([</span><span class="vm">__file__</span><span class="p">,</span> <span class="s2">&quot;-v&quot;</span><span class="p">])</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2026, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

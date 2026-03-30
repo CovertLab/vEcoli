@@ -1,0 +1,8 @@
+``ecoli.analysis.causality_network.build_network``
+==================================================
+.. automodule:: ecoli.analysis.causality_network.build_network
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:

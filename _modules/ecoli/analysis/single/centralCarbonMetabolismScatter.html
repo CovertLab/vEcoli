@@ -1,0 +1,300 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ecoli.analysis.single.centralCarbonMetabolismScatter &mdash; Vivarium E. coli 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Vivarium E. coli
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../stores.html">Stores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../processes.html">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../composites.html">Composites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../experiments.html">Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_ingestion.html">Experimental Data Ingestion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../output.html">Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docs.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hpc.html">HPC Clusters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gcloud.html">Google Cloud</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../aws.html">Amazon Web Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ci.html">Continuous Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pycharm.html">PyCharm Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../diffs.html">Model Differences From wcEcoli</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reference/api_ref.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Vivarium E. coli</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ecoli.analysis.single.centralCarbonMetabolismScatter</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ecoli.analysis.single.centralCarbonMetabolismScatter</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Central Carbon Metabolism Flux comparison against Toya 2010 measured fluxes.</span>
+
+<span class="sd">Scatter plot of mean simulated reaction fluxes (y-axis) vs. Toya 2010</span>
+<span class="sd">experimentally measured fluxes (x-axis), with error bars on both axes</span>
+<span class="sd">and a Pearson R correlation in the title.</span>
+
+<span class="sd">Ported from wcEcoli</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">wholecell.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">units</span><span class="p">,</span> <span class="n">toya</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fsspec</span><span class="w"> </span><span class="kn">import</span> <span class="nb">open</span> <span class="k">as</span> <span class="n">fsspec_open</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ecoli.library.parquet_emitter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">field_metadata</span><span class="p">,</span>
+    <span class="n">ndlist_to_ndarray</span><span class="p">,</span>
+    <span class="n">open_arbitrary_sim_data</span><span class="p">,</span>
+    <span class="n">read_stacked_columns</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">altair</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">alt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">duckdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">DuckDBPyConnection</span>
+
+<span class="c1"># --- Import and Define Units ---</span>
+<span class="n">COUNTS_UNITS</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">mmol</span>
+<span class="n">VOLUME_UNITS</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">L</span>
+<span class="n">MASS_UNITS</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">g</span>
+<span class="n">TIME_UNITS</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">s</span>
+<span class="n">CONC_UNITS</span> <span class="o">=</span> <span class="n">COUNTS_UNITS</span> <span class="o">/</span> <span class="n">VOLUME_UNITS</span>
+<span class="n">FLUX_UNITS</span> <span class="o">=</span> <span class="n">COUNTS_UNITS</span> <span class="o">/</span> <span class="n">VOLUME_UNITS</span> <span class="o">/</span> <span class="n">TIME_UNITS</span>
+
+<span class="n">TIMESTEP</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="n">TIME_UNITS</span>  <span class="c1"># time step of the simulation</span>
+
+
+<div class="viewcode-block" id="plot">
+<a class="viewcode-back" href="../../../../reference/api/ecoli/ecoli.analysis.single.centralCarbonMetabolismScatter.html#ecoli.analysis.single.centralCarbonMetabolismScatter.plot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="s2">&quot;DuckDBPyConnection&quot;</span><span class="p">,</span>
+    <span class="n">history_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">config_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">success_sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sim_data_paths</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">validation_data_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">variant_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">variant_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        params: Unused; reserved for future parameters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># -------------------------------------------</span>
+    <span class="c1"># --- Load Simulation and Validation Data ---</span>
+    <span class="c1"># -------------------------------------------</span>
+    <span class="k">with</span> <span class="n">open_arbitrary_sim_data</span><span class="p">(</span><span class="n">sim_data_paths</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">sim_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">fsspec_open</span><span class="p">(</span><span class="n">validation_data_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">validation_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="n">cell_density</span> <span class="o">=</span> <span class="n">sim_data</span><span class="o">.</span><span class="n">constants</span><span class="o">.</span><span class="n">cell_density</span>
+
+    <span class="c1"># --------------------------------------</span>
+    <span class="c1"># --- Read mass and FBA flux columns ---</span>
+    <span class="c1"># --------------------------------------</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;listeners__mass__cell_mass AS cell_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__mass__dry_mass AS dry_mass&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;listeners__fba_results__base_reaction_fluxes AS base_reaction_fluxes&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="n">raw</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">read_stacked_columns</span><span class="p">(</span><span class="n">history_sql</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">order_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">cell_masses</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">fg</span> <span class="o">*</span> <span class="n">raw</span><span class="p">[</span><span class="s2">&quot;cell_mass&quot;</span><span class="p">]</span>  <span class="c1"># (n_timesteps,)</span>
+    <span class="n">dry_masses</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">fg</span> <span class="o">*</span> <span class="n">raw</span><span class="p">[</span><span class="s2">&quot;dry_mass&quot;</span><span class="p">]</span>  <span class="c1"># (n_timesteps,)</span>
+    <span class="n">flux_matrix</span> <span class="o">=</span> <span class="n">ndlist_to_ndarray</span><span class="p">(</span>
+        <span class="n">raw</span><span class="p">[</span><span class="s2">&quot;base_reaction_fluxes&quot;</span><span class="p">]</span>
+    <span class="p">)</span>  <span class="c1"># (n_timesteps, n_rxns)</span>
+
+    <span class="n">sim_reaction_fluxes</span> <span class="o">=</span> <span class="n">CONC_UNITS</span> <span class="o">/</span> <span class="n">TIMESTEP</span> <span class="o">*</span> <span class="n">flux_matrix</span>  <span class="c1"># mmol/L/s</span>
+
+    <span class="c1"># Retrieve reaction IDs from config metadata</span>
+    <span class="n">reaction_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="n">field_metadata</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">config_sql</span><span class="p">,</span> <span class="s2">&quot;listeners__fba_results__base_reaction_fluxes&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># -----------------------------</span>
+    <span class="c1"># --- Load Toya 2010 Fluxes ---</span>
+    <span class="c1"># -----------------------------</span>
+    <span class="n">toya_reactions</span> <span class="o">=</span> <span class="n">validation_data</span><span class="o">.</span><span class="n">reactionFlux</span><span class="o">.</span><span class="n">toya2010fluxes</span><span class="p">[</span><span class="s2">&quot;reactionID&quot;</span><span class="p">]</span>
+
+    <span class="n">toya_fluxes</span> <span class="o">=</span> <span class="n">toya</span><span class="o">.</span><span class="n">adjust_toya_data</span><span class="p">(</span>
+        <span class="n">validation_data</span><span class="o">.</span><span class="n">reactionFlux</span><span class="o">.</span><span class="n">toya2010fluxes</span><span class="p">[</span><span class="s2">&quot;reactionFlux&quot;</span><span class="p">],</span>
+        <span class="n">cell_masses</span><span class="p">,</span>
+        <span class="n">dry_masses</span><span class="p">,</span>
+        <span class="n">cell_density</span><span class="p">,</span>
+    <span class="p">)</span>  <span class="c1"># outputs in mmol/L/s</span>
+    <span class="n">toya_stdevs</span> <span class="o">=</span> <span class="n">toya</span><span class="o">.</span><span class="n">adjust_toya_data</span><span class="p">(</span>
+        <span class="n">validation_data</span><span class="o">.</span><span class="n">reactionFlux</span><span class="o">.</span><span class="n">toya2010fluxes</span><span class="p">[</span><span class="s2">&quot;reactionFluxStdev&quot;</span><span class="p">],</span>
+        <span class="n">cell_masses</span><span class="p">,</span>
+        <span class="n">dry_masses</span><span class="p">,</span>
+        <span class="n">cell_density</span><span class="p">,</span>
+    <span class="p">)</span>  <span class="c1"># outputs in mmol/L/s</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Align simulated and Toya fluxes to matching reaction IDs</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">sim_flux_means</span><span class="p">,</span> <span class="n">sim_flux_stdevs</span> <span class="o">=</span> <span class="n">toya</span><span class="o">.</span><span class="n">process_simulated_fluxes</span><span class="p">(</span>
+        <span class="n">toya_reactions</span><span class="p">,</span> <span class="n">reaction_ids</span><span class="p">,</span> <span class="n">sim_reaction_fluxes</span>
+    <span class="p">)</span>
+    <span class="n">toya_flux_means</span> <span class="o">=</span> <span class="n">toya</span><span class="o">.</span><span class="n">process_toya_data</span><span class="p">(</span>
+        <span class="n">toya_reactions</span><span class="p">,</span> <span class="n">toya_reactions</span><span class="p">,</span> <span class="n">toya_fluxes</span>
+    <span class="p">)</span>
+    <span class="n">toya_flux_stdevs</span> <span class="o">=</span> <span class="n">toya</span><span class="o">.</span><span class="n">process_toya_data</span><span class="p">(</span>
+        <span class="n">toya_reactions</span><span class="p">,</span> <span class="n">toya_reactions</span><span class="p">,</span> <span class="n">toya_stdevs</span>
+    <span class="p">)</span>
+
+    <span class="n">sim_means_num</span> <span class="o">=</span> <span class="n">sim_flux_means</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">FLUX_UNITS</span><span class="p">)</span>
+    <span class="n">sim_stdevs_num</span> <span class="o">=</span> <span class="n">sim_flux_stdevs</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">FLUX_UNITS</span><span class="p">)</span>
+    <span class="n">toya_means_num</span> <span class="o">=</span> <span class="n">toya_flux_means</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">FLUX_UNITS</span><span class="p">)</span>
+    <span class="n">toya_stdevs_num</span> <span class="o">=</span> <span class="n">toya_flux_stdevs</span><span class="o">.</span><span class="n">asNumber</span><span class="p">(</span><span class="n">FLUX_UNITS</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Altair scatter with error bars</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">pearson_r</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">corrcoef</span><span class="p">(</span><span class="n">sim_means_num</span><span class="p">,</span> <span class="n">toya_means_num</span><span class="p">)[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">flux_unit_str</span> <span class="o">=</span> <span class="n">FLUX_UNITS</span><span class="o">.</span><span class="n">strUnit</span><span class="p">()</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;reaction&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">toya_reactions</span><span class="p">),</span>
+            <span class="s2">&quot;toya_mean&quot;</span><span class="p">:</span> <span class="n">toya_means_num</span><span class="p">,</span>
+            <span class="s2">&quot;toya_stdev&quot;</span><span class="p">:</span> <span class="n">toya_stdevs_num</span><span class="p">,</span>
+            <span class="s2">&quot;sim_mean&quot;</span><span class="p">:</span> <span class="n">sim_means_num</span><span class="p">,</span>
+            <span class="s2">&quot;sim_stdev&quot;</span><span class="p">:</span> <span class="n">sim_stdevs_num</span><span class="p">,</span>
+            <span class="c1"># Pre-compute error bar bounds so Altair can encode them directly</span>
+            <span class="s2">&quot;toya_lo&quot;</span><span class="p">:</span> <span class="n">toya_means_num</span> <span class="o">-</span> <span class="n">toya_stdevs_num</span><span class="p">,</span>
+            <span class="s2">&quot;toya_hi&quot;</span><span class="p">:</span> <span class="n">toya_means_num</span> <span class="o">+</span> <span class="n">toya_stdevs_num</span><span class="p">,</span>
+            <span class="s2">&quot;sim_lo&quot;</span><span class="p">:</span> <span class="n">sim_means_num</span> <span class="o">-</span> <span class="n">sim_stdevs_num</span><span class="p">,</span>
+            <span class="s2">&quot;sim_hi&quot;</span><span class="p">:</span> <span class="n">sim_means_num</span> <span class="o">+</span> <span class="n">sim_stdevs_num</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="n">base</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;toya_mean:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Toya 2010 Reaction Flux </span><span class="si">{</span><span class="n">flux_unit_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span><span class="s2">&quot;sim_mean:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Mean WCM Reaction Flux </span><span class="si">{</span><span class="n">flux_unit_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+        <span class="n">tooltip</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;reaction:N&quot;</span><span class="p">,</span> <span class="s2">&quot;toya_mean:Q&quot;</span><span class="p">,</span> <span class="s2">&quot;sim_mean:Q&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="n">points</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">mark_point</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;steelblue&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">filled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">x_errorbars</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">mark_errorbar</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;toya_lo:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Toya 2010 Reaction Flux </span><span class="si">{</span><span class="n">flux_unit_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+        <span class="n">x2</span><span class="o">=</span><span class="s2">&quot;toya_hi:Q&quot;</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">value</span><span class="p">(</span><span class="s2">&quot;black&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">y_errorbars</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">mark_errorbar</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span><span class="s2">&quot;sim_lo:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Mean WCM Reaction Flux </span><span class="si">{</span><span class="n">flux_unit_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+        <span class="n">y2</span><span class="o">=</span><span class="s2">&quot;sim_hi:Q&quot;</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">value</span><span class="p">(</span><span class="s2">&quot;black&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">chart</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">points</span> <span class="o">+</span> <span class="n">x_errorbars</span> <span class="o">+</span> <span class="n">y_errorbars</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">properties</span><span class="p">(</span>
+            <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Central Carbon Metabolism Flux, Pearson R = </span><span class="si">{</span><span class="n">pearson_r</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">width</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="mi">450</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">configure_view</span><span class="p">(</span><span class="n">strokeWidth</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">chart</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;centralCarbonMetabolismScatter.html&quot;</span><span class="p">))</span>
+    <span class="n">chart</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;centralCarbonMetabolismScatter.svg&quot;</span><span class="p">))</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2026, The Vivarium E. coli Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,8 @@
+``ecoli.analysis.multiseed.ecocyc_table``
+=========================================
+.. automodule:: ecoli.analysis.multiseed.ecocyc_table
+   :private-members:
+   :exclude-members: _abc_impl
+   :members:
+   :undoc-members:
+   :show-inheritance:
