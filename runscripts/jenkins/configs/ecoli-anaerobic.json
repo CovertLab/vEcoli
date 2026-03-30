@@ -19,7 +19,7 @@
     "skip_baseline": true,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "/scratch/groups/mcovert/vecoli",
+        "out_dir": "/scratch/groups/mcovert/vecoli/jenkins_anaerobic",
         "threaded": false
     },
     "analysis_options": {
@@ -30,13 +30,16 @@
     "variants": {
         "condition": {"condition": {"value": ["no_oxygen"]}}
     },
-    "sherlock": {
-        "container_image": "container-image",
-        "build_image": true,
-        "hyperqueue": true,
-        "jenkins": true
-    },
     "parca_options": {
         "cpus": 4
-    }
+    },
+    "carina": {
+        "build_image": true,
+        "container_image": "vecoli",
+        "jenkins": true
+    },
+    "HQ_CORES": 2,
+    "SIM_MEM": 4,
+    "SIM_CPUS": 2,
+    "HYPERQUEUE": true
 }

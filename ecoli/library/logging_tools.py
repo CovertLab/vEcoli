@@ -1,7 +1,10 @@
 import os
 import json
 
+from fsspec import open as fsspec_open
 from vivarium.core.serialize import serialize_value
+
+from wholecell.utils.filepath import is_cloud_uri
 
 
 def make_logging_process(process_class):
@@ -25,7 +28,9 @@ def make_logging_process(process_class):
 
 
 def write_json(path, numpy_dict):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    """Write JSON state to local file or cloud URI (s3://, gs://)."""
+    if not is_cloud_uri(path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
 
-    with open(path, "w") as outfile:
+    with fsspec_open(path, "w") as outfile:
         json.dump(serialize_value(numpy_dict), outfile)

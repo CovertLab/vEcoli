@@ -2,6 +2,7 @@
     "steps": [
         {
             "name": "docker",
+            "env": ["DOCKER_API_VERSION=1.41"],
             "args": [
                 "build",
                 "--build-arg", "git_hash=${_GIT_HASH}",
@@ -19,5 +20,9 @@
     "images": [
         "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${_IMAGE}:latest",
         "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/vecoli/${_IMAGE}:${_GIT_HASH}"
-    ]
+    ],
+    "logsBucket": "gs://vecoli-cloudbuild-log",
+    "options": {
+        "logging": "GCS_ONLY"
+    }
 }
