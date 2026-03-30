@@ -245,6 +245,11 @@ reason, we recommend that you delete workflow output data from your bucket as so
 you are done with your analyses. If necessary, it will likely be cheaper to re-run the
 workflow to regenerate that data later than to keep it around.
 
+.. tip::
+  We strongly recommend setting ``progress_bar`` to ``false`` in your config JSON
+  when running workflows on Google Cloud to reduce the amount of generated logs,
+  which are billed as `described here <https://cloud.google.com/stackdriver/pricing#logging-pricing-summary>`_.
+
 .. _interactive-containers:
 
 ----------------------------

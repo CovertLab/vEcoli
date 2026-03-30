@@ -48,6 +48,7 @@ in the Vivarium documentation.
    docs
    hpc
    gcloud
+   aws
    ci
    pycharm
    diffs

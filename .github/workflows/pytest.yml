@@ -26,7 +26,7 @@ jobs:
       uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
-        version: "0.7.12"
+        version: "0.10.6"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Cache ParCa simulation data
@@ -55,7 +55,7 @@ jobs:
       uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
-        version: "0.7.12"
+        version: "0.10.6"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Mypy
@@ -69,7 +69,7 @@ jobs:
       uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
-        version: "0.7.12"
+        version: "0.10.6"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen --extra dev
     - name: Ruff

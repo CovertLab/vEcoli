@@ -17,6 +17,12 @@
     "mar_regulon": false,
     "amp_lysis": false,
 
+    "SIM_CPUS": 1,
+    "HYPERQUEUE": false,
+    "HQ_CORES": 1,
+    "SIM_MEM": 4,
+    "SIM_TIME": 4,
+
     "initial_state_file": "",
     "initial_state_overrides": [],
     "initial_state": {},
@@ -35,6 +41,8 @@
 
     "parca_options": {
         "cpus": 1,
+        "memory_gb": 8,
+        "slurm_time_hrs": 1,
         "outdir": "out",
         "operons": true,
         "ribosome_fitting": true,
@@ -56,7 +64,9 @@
     },
 
     "analysis_options": {
-        "cpus": 1
+        "cpus": 1,
+        "memory_gb": 4,
+        "slurm_time_hrs": 4
     },
 
     "gcloud": null,

@@ -17,13 +17,13 @@ from typing import TYPE_CHECKING, Any
 from duckdb import DuckDBPyConnection
 import numpy as np
 import polars as pl
+from fsspec import open as fsspec_open
 from scipy.stats import pearsonr
 
 from ecoli.library.parquet_emitter import (
     config_value,
     field_metadata,
     open_arbitrary_sim_data,
-    open_output_file,
     num_cells,
     read_stacked_columns,
     skip_n_gens,
@@ -82,7 +82,7 @@ def plot(
 ):
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data: "SimulationDataEcoli" = pickle.load(f)
-    with open_output_file(validation_data_paths[0]) as f:
+    with fsspec_open(validation_data_paths[0], "rb") as f:
         validation_data = pickle.load(f)
 
     ignore_first_n_gens = params.get("ignore_first_n_gens", IGNORE_FIRST_N_GENS)
