@@ -6,7 +6,7 @@
     "sim_data_path": null,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "/scratch/groups/mcovert/vecoli",
+        "out_dir": "/scratch/groups/mcovert/vecoli/jenkins_optional",
         "threaded": false
     },
     "parca_options": {
@@ -47,9 +47,13 @@
             "op": "zip"
         }
     },
-    "sherlock": {
-        "container_image": "container-image",
-        "hyperqueue": false,
+    "carina": {
+        "build_image": false,
+        "container_image": "vecoli",
         "jenkins": true
-    }
+    },
+    "HQ_CORES": 2,
+    "SIM_MEM": 4,
+    "SIM_CPUS": 2,
+    "HYPERQUEUE": true
 }

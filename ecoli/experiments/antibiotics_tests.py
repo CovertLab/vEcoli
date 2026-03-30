@@ -80,6 +80,9 @@ def test_lysis_rxn_dff_environment(max_duration=10):
             for abbrev in mass_listener.compartment_abbrev_to_index
         ]
     )
+    # Tuples as dictionary keys cannot be serialized by orjson
+    # so remove them to avoid serialization when emitting metadata
+    sim.config["process_configs"].pop("bulk-timeline")
     sim.run()
 
     # retrieve data and pre-process for plotting
