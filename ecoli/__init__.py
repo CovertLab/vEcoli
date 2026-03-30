@@ -2,6 +2,7 @@ from vivarium.core.registry import (
     divider_registry,
     emitter_registry,
     serializer_registry,
+    updater_registry,
 )
 
 from ecoli.library.parquet_emitter import ParquetEmitter
@@ -13,6 +14,7 @@ from ecoli.library.schema import (
     divide_RNAs_by_domain,
     divide_set_none,
     empty_dict_divider,
+    bulk_numpy_updater,
 )
 from ecoli.library.serialize import (
     MethodSerializer,
@@ -48,6 +50,7 @@ inverse_updater_registry.register(
 )
 inverse_updater_registry.register("bulk_numpy", inverse_update_bulk_numpy)
 inverse_updater_registry.register("unique_numpy", inverse_update_unique_numpy)
+updater_registry.register("bulk_numpy", bulk_numpy_updater)
 
 
 # register :term:`dividers`

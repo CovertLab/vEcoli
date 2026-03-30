@@ -41,7 +41,7 @@ jobs:
       uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
       with:
         enable-cache: true
-        version: "0.7.12"
+        version: "0.10.6"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen
     - name: Test ParCa reproducibility
@@ -89,7 +89,7 @@ jobs:
       uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
       with:
         enable-cache: true
-        version: "0.7.12"
+        version: "0.10.6"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen
     - name: Install nextflow edge
@@ -104,4 +104,14 @@ jobs:
     - name: Show stderr for failed Nextflow tasks
       if: ${{ failure() }}
       run: |
-        nextflow log -q | tail -n 1 | awk '{print $1}' | xargs -I {} nextflow log {} -f name,stderr -F "status == 'FAILED'"
+        RUN_ID=$(nextflow log -q | tail -n 1 | awk '{print $1}')
+        echo "Checking run: $RUN_ID"
+        nextflow log $RUN_ID -f name,workdir,status -F "status == 'FAILED'" | while IFS=$'\t' read -r name workdir status; do
+          echo "===== Failed task: $name ====="
+          if [ -f "$workdir/.command.err" ]; then
+            cat "$workdir/.command.err"
+          else
+            echo "No .command.err file found"
+          fi
+          echo ""
+        done
