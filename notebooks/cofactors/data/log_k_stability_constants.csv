@@ -1,0 +1,29 @@
+Metal,M9 cells [Metal]buffered (M) [2],LB cells [Metal]buffered (M) [3],Glutathione Log K1,Cysteine Log K1,Histidine Log K1,GSSG Log K1,Asp Log K1,Citrate Log K1,ATP Log K1
+Mn (II),2.08E-06,7.00E-06,2.7 [1],3.0 [5],3.1 [6],,2.77 [5],3.67 [7],4.8 [8]
+Fe (II),6.18E-08,1.90E-06,5.1 [1],6.2 [1],4.4 [6],,3.9 [5],~4.4 [9],~4.9 [10]
+Co (II),2.42E-10,7.00E-11,~5.8 [*],7.0 [5],6.5 [6],,4.79 [5],4.5 [7],4.8 [8]
+Zn (II),1.04E-11,9.40E-12,8.9 [11],9.2 [5],6.5 [6],5.1 [12],5.18 [5],4.7 [7],4.9 [8]
+Ni (II),2.56E-12,1.30E-13,11~20 [4],10.2 [5],8.68~20 [4],9~15 [4],5.2~7 [4],6.86 [4],4.9 [4]
+Cu (II),1.46E-20,4.50E-20,8.8 [5][†],12.0 [5][†],10.2 [6],~6.7 [13],8.87 [5],5.9 [5],6.1 [8]
+,,,[GSH] ~2-10 mM,[His] ~20 �M,,,,,
+,,,,,,,,,
+Notes,,,,,,,,,
+[*] Estimated from the Irving-Williams order (Mn < Fe < Co < Ni < Cu > Zn); Fe(II)-GSH = 5.1 [1] is the nearest measured value; no primary aqueous measurement of Co(II)-GSH log K was located.,,,,,,,,,
+[†] Cu(II) values; Cu(II) can oxidise free thiols in vivo. The physiologically relevant cytosolic species is Cu(I): Cu(I)-GSH log K ~12-16; Cu(I)-Cys log K ~14-17 (Corazza A et al. 1996 Eur J Biochem 236:697-702).,,,,,,,,,
+Fe(II)-citrate [9] and Fe(II)-ATP [10] are less well-characterised than the corresponding Fe(III) complexes. Values are approximate and taken from speciation analysis of the cytoplasmic iron pool.,,,,,,,,,
+GSSG data for Mn / Fe / Co are not tabulated because no reliable primary measurements were located; those metals bind GSSG only weakly (no free thiol) and the data are absent from standard compilations.,,,,,,,,,
+,,,,,,,,,
+References,,,,,,,,,
+[1] Hider RC & Kong XL (2011) Glutathione: a key component of the cytoplasmic labile iron pool. BioMetals 24:1179-1187,,,,,,,,,
+[2] Clough et al. (2025) bioRxiv,,,,,,,,,
+[3] Foster AW et al. (2022) Metallomics 14,,,,,,,,,
+[4] Lacasse MJ & Zamble DB (2023) Direct Detection of the Labile Nickel Pool in Escherichia coli: New Perspectives on Labile Metal Pools. JACS,,,,,,,,,
+[5] Martell AE & Smith RM (1974) Critical Stability Constants Vol 1: Amino Acids. Plenum Press New York,,,,,,,,,
+[6] Williams DR (1970) Stability constants and thermodynamic parameters for Mn(II) Fe(II) Co(II) Ni(II) Cu(II) Zn(II) with histidine and tryptophan. J Chem Soc A 1550-1555,,,,,,,,,
+[7] Wyrzykowski D & Chmurzyński L (2010) Thermodynamics of citrate complexation with Mn2+ Co2+ Ni2+ and Zn2+ ions. J Therm Anal Calorim 102:61-64. Values cited therein for log K(M2+ + HCit3- -> [MHCit]-) at 298 K,,,,,,,,,
+[8] Perrin DD & Sharma VS (1966) The stability constants of metal-adenosine triphosphate complexes. Biochim Biophys Acta 127:35-41. Confirmed by Sigel H (1987) Isomeric equilibria in complexes of ATP with divalent metal ions. Eur J Biochem 165:65-72,,,,,,,,,
+[9] Approximate log K1 for Fe(II) + Cit3- -> [FeCit]-; Fe(III)-citrate log K >> 11. Fe(II) value inferred from Pham AN & Waite TD (2008) Oxygenation of Fe(II) in presence of citrate. J Phys Chem A 112:643-651,,,,,,,,,
+[10] Approximate log K1 for Fe(II)-ATP; Fe(II) not covered in Sigel 1987. Value estimated from cytoplasmic iron speciation analysis in Hider RC & Kong XL (2013) Iron speciation in the cytosol: an overview. Dalton Trans 42:3220-3229,,,,,,,,,
+[11] Fuhr BJ & Rabenstein DL (1973) NMR studies of the solution chemistry of metal complexes: binding of Cd Zn Pb and Hg by glutathione. J Am Chem Soc 95:6944-6948,,,,,,,,,
+[12] Krezel A et al. (2011) Zn(II) complexes of glutathione disulfide: structural basis of elevated stabilities. Inorg Chem 50:72-85,,,,,,,,,
+[13] Estimated from potentiometric and NMR data on Cu(II)-GSSG complexes; Postal M et al. (1985) The binding of copper(II) and zinc(II) to oxidized glutathione. Inorg Chim Acta 108:L19-L21; Ruzza P et al. (2004) Biopolymers 75:154-162,,,,,,,,,

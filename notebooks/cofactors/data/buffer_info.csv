@@ -1,0 +1,26 @@
+﻿Metal,M9 cells Free [Metal] (M) [2],LB cells Free [Metal] (M) [3],M9 [Metal] buffered (M) [11],M9 [Metal] buffered STD (M) [11],Glutathione Log K1,Cysteine Log K1,Histidine Log K1,GSSG Log K1,Asp Log K1,Citrate logK1,ATP,Tryptophan,Methionine,Alanine,Leucine,Valine,Glycine
+Mn (II),2.08E-06,7.00E-06,1.40E-06,7.00E-07,2.7 [1],,3.914871818,,3.91 [13],3.67 [7],5.19 [9],3.34 [5], 3.59 [5],3.24 [5],2.15 [5],2.84 [5],3.20 [5]
+Fe (II),6.18E-08,1.90E-06,8.00E-05,2.00E-05,5.4 [1],6.2 [1],5.883093359,,,5.24 [8],5.13 [10],3.922725458,,,,,
+Co (II),2.42E-10,7.00E-11,,,,,7.442479769,,6.69 [13],4.5 [7],5.21 [9],4.34 [5],3.85 [5],4.82 [5],4.49 [5],,5.23 [5]
+Zn (II),1.04E-11,9.40E-12,1.30E-05,3.00E-06,8.31 [16],,7.068185862,"5.1 [12], 7.6 [16]",5.35 [13],4.7 [7],5.52 [9],5.00 [5],4.46 [5],5.16 [5],4.92 [5],5.00 [5],5.16 [5]
+Ni (II),2.56E-12,1.30E-13,1.50E-05,2.00E-06,"11~20 [4], 11.15 with two ligands [16]",,8.68~20 [4] or 9.20 [6],"9~15 [4], 9.08 [16]",5.2~7 [4],6.86 [4],4.9 [4],5.756636108,,,,,
+Cu (II),1.46E-20,4.50E-20,1.00E-05,2.00E-06,,,,,8.78 [13],,6.83 [9],"8.05 [5], 15.56 ML2 [14]",7.96 [5],"8.18 [5], 14.94 ML2 [14]","7.00 [5], 15.174 [14]","7.92 [5], 14.91 [14]","8.22 [5], 14.86 ML2 [14]"
+,,,,,~2-10mM,20 uM,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,
+[1] Hider et al 2011 Biometals,,,,,,,,,,,,,,,,,
+[2] Clough et al 2025 Biorxiv,,,,,,,,,,,,,,,,,
+[3] Foster et al 2022 Metallomics,,,,,,,,,,,,,,,,,
+[4] Direct Detection of the Labile Nickel Pool in Escherichia coli: New Perspectives on Labile Metal Pools,,,,,,,,,,,,,,,,,
+"[5] Complex Bilding Behavior of L-Tryptophan and Related Amino Acids, a Comparative Investigation",,,,,,,,,,,,,,,,,
+[6] Williams DR (1970) Stability constants and thermodynamic parameters for Mn(II) Fe(II) Co(II) Ni(II) Cu(II) Zn(II) with histidine and tryptophan. J Chem Soc A 1550-1555,,,,,,,,,,,,,,,,,
+[7] Wyrzykowski D & Chmurzy≈Ñski L (2010) Thermodynamics of citrate complexation with Mn2+ Co2+ Ni2+ and Zn2+ ions. J Therm Anal Calorim 102:61-64. Values cited therein for log K(M2+ + HCit3- -> [MHCit]-) at 298 K,,,,,,,,,,,,,,,,,
+[8] Oxygenation of Fe(II) in the Presence of Citrate in Aqueous Solutions at pH 6.0−8.0 and 25 °C:  Interpretation from an Fe(II)/Citrate Speciation Perspective,,,,,,,,,,,,,,,,,
+[9] THE STABILITY CONSTANTS OF METAL-ADENOSINE TRIPHOSPHATE COMPLEXES ,,,,,,,,,,,,,,,,,
+[10] Characterization and elucidation of coordination requirements of adenine nucleotides complexes with Fe(II) ions,,,,,,,,,,,,,,,,,
+[11] Low-molecular-mass labile metal pools in Escherichia coli: advances using chromatography and mass spectrometry,,,,,,,,,,,,,,,,,
+[12] Krezel A et al. (2011) Zn(II) complexes of glutathione disulfide: structural basis of elevated stabilities. Inorg Chem 50:72-85,,,,,,,,,,,,,,,,,
+"[13] Metal ion–binding properties of the L-aspartic acid and tartaric acid, a comparative investigation. How can be increased the dosage of mineral absorption in the body",,,,,,,,,,,,,,,,,
+"[14] Stability constants of bio-relevant, redox-active metals with amino acids: The challenges of weakly binding ligands",,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,
+"[16] Studies of Zinc(II) and Nickel(lI) Complexes of GSH,GSSG and Their Analogs Shed More Light on Their Biological",,,,,,,,,,,,,,,,,
