@@ -678,23 +678,26 @@ class NetworkFlowModel:
         homeostatic_term = cp.norm1(
             (dm[self.homeostatic_idx] - homeostatic_dm_targets) / homeostatic_concs
         )
-        loss += objective_weights["homeostatic"] * homeostatic_term
+        loss += (
+            objective_weights["homeostatic"] * homeostatic_term
+            if "homeostatic" in objective_weights
+            else 0
+        )
         loss += (
             objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
             if "secretion" in objective_weights
-            else loss
+            else 0
         )
         loss += (
             objective_weights["efficiency"] * (cp.sum(v))
             if "efficiency" in objective_weights
-            else loss
+            else 0
         )
-        loss = (
-            loss
-            + objective_weights["kinetics"]
+        loss += (
+            objective_weights["kinetics"]
             * cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
             if "kinetics" in objective_weights
-            else loss
+            else 0
         )
 
         p = cp.Problem(cp.Minimize(loss), constr)
