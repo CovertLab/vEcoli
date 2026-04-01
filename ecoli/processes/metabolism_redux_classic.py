@@ -47,7 +47,7 @@ BAD_RXNS = [
     "R15-RXN-MET/CPD-479//CPD-479/MET.25.",
     "TRANS-RXN-218",
     "TRANS-RXN0-601-PROTON//PROTON.15. (reverse)",
-    "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71."
+    "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71."  # Commented on Heena's branch?
     "DEPHOSICITDEHASE-RXN",
     "PHOSICITDEHASE-RXN",
     "GLYCOLALD-DEHYDROG-RXN",
@@ -63,6 +63,12 @@ BAD_RXNS = [
     "RXN-22461",
     "RXN-22462",
     "RXN-22463",
+    "PYRROLINECARBDEHYDROG-RXN",
+    "RXN0-7008-PRO/UBIQUINONE-8//L-DELTA1-PYRROLINE_5-CARBOXYLATE/CPD-9956/PROTON.67.",
+    "GLUCOKIN-RXN-GLC/ATP//ALPHA-GLC-6-P/ADP/PROTON.34.",  # gets confused with PTS
+    "PRPPSYN-RXN-CPD-15318/ATP//PRPP/AMP/PROTON.31.",  # duplicate
+    "TRANS-RXN0-574-GLC//GLC.9.",  # duplicate
+    "GLUCOKIN-RXN-GLC/ATP//D-glucopyranose-6-phosphate/ADP/PROTON.48.",  # duplicate
 ]
 
 # not key central carbon met
@@ -134,6 +140,12 @@ class MetabolismReduxClassic(Step):
         "cell_density": 1100 * units.g / units.L,
         "concentration_updates": None,
         "maintenance_reaction": {},
+        "objective_weights": {
+            "secretion": 0.01,
+            "efficiency": 0.000001,
+            "kinetics": 0.0000001,
+            "homeostatic": 1,
+        },
     }
 
     def __init__(self, parameters):
@@ -454,14 +466,11 @@ class MetabolismReduxClassic(Step):
         target_kinetic_values = enzyme_kinetic_boundaries[:, 1]
         target_kinetic_bounds = enzyme_kinetic_boundaries[:, [0, 2]]
 
-        # TODO (Cyrus) solve network flow problem to get fluxes
-        objective_weights = {
-            "secretion": 0.01,
-            "efficiency": 0.000001,
-            "kinetics": 0.0000001,
-        }
+        objective_weights = self.parameters["objective_weights"]
+
         solution: FlowResult = self.network_flow_model.solve(
-            homeostatic_targets=target_homeostatic_dmdt,
+            homeostatic_concs=homeostatic_metabolite_concentrations,
+            homeostatic_dm_targets=target_homeostatic_dmdt,
             maintenance_target=maintenance_target,
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
@@ -634,7 +643,8 @@ class NetworkFlowModel:
 
     def solve(
         self,
-        homeostatic_targets: Optional[Iterable[float]] = None,
+        homeostatic_concs: Iterable[float],
+        homeostatic_dm_targets: Iterable[float],
         maintenance_target: float = 0,
         kinetic_targets: Optional[Iterable[float]] = None,
         binary_kinetic_idx: Optional[Iterable[int]] = None,
@@ -658,13 +668,17 @@ class NetworkFlowModel:
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == maintenance_target)
         # If enzymes not present, constrain rxn flux to 0
-        if binary_kinetic_idx:
+        if binary_kinetic_idx is not None:
             constr.append(v[binary_kinetic_idx] == 0)
 
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
         loss = 0
-        loss += cp.norm1(dm[self.homeostatic_idx] - homeostatic_targets)
+        # Must normalize by metabolite concentrations to prevent negative counts.
+        homeostatic_term = cp.norm1(
+            (dm[self.homeostatic_idx] - homeostatic_dm_targets) / homeostatic_concs
+        )
+        loss += objective_weights["homeostatic"] * homeostatic_term
         loss += (
             objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
             if "secretion" in objective_weights
