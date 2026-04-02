@@ -48,28 +48,14 @@ jobs:
           ./apply_security_upgrades.sh
 
       - name: Create Pull Request
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if git diff --quiet uv.lock; then
-            echo "No changes to uv.lock, skipping PR creation"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          gh auth setup-git
-          git checkout -B security-updates
-          git add uv.lock
-          git commit -m "fix(security): update package versions"
-          git push -f origin security-updates
-          PR_NUMBER=$(gh pr list --head security-updates --state open --json number --jq '.[0].number')
-          if echo "$PR_NUMBER" | grep -q '^[0-9]'; then
-            gh pr edit "$PR_NUMBER" \
-              --body-file vulnerability_report.md
-          else
-            gh pr create \
-              --title "Security updates" \
-              --body-file vulnerability_report.md \
-              --head security-updates \
-              --base master
-          fi
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
+        with:
+          commit-message: |
+            fix(security): update package versions
+          sign-commits: true
+          title: |
+            Security updates
+          body-path: vulnerability_report.md
+          delete-branch: true
+          branch: security-updates
+          add-paths: uv.lock
