@@ -62,7 +62,11 @@ jobs:
           git add uv.lock
           git commit -m "fix(security): update package versions"
           git push -f origin security-updates
-          if ! gh pr list --head security-updates --state open --json number --jq '.[0].number' | grep -q '^[0-9]'; then
+          PR_NUMBER=$(gh pr list --head security-updates --state open --json number --jq '.[0].number')
+          if echo "$PR_NUMBER" | grep -q '^[0-9]'; then
+            gh pr edit "$PR_NUMBER" \
+              --body-file vulnerability_report.md
+          else
             gh pr create \
               --title "Security updates" \
               --body-file vulnerability_report.md \
