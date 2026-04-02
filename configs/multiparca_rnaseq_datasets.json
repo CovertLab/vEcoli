@@ -17,24 +17,9 @@
 
     "parca_variants": [
         { "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas" },
-        { "rnaseq_basal_dataset_id": "gbw_vegas_wt_m9glc_3h" },
-        { "rnaseq_basal_dataset_id": "gbw_vegas_wt_m9glc_34h" },
-        { "rnaseq_basal_dataset_id": "gbw_vegas_wt_m9glc_5h" },
-        { "rnaseq_basal_dataset_id": "gbw_bermuda_ctrl" },
-        { "rnaseq_basal_dataset_id": "precise_RPO:wt" },
-        { "rnaseq_basal_dataset_id": "precise_SNPv1:D-Glucose_NH4Cl" },
-        { "rnaseq_basal_dataset_id": "precise_SNPv2:Glucose_NH4Cl" },
-        { "rnaseq_basal_dataset_id": "precise_abx_media:m9_ctrl" },
-        { "rnaseq_basal_dataset_id": "precise_eep:BOP27" },
-        { "rnaseq_basal_dataset_id": "precise_ica:wt_glc" },
-        { "rnaseq_basal_dataset_id": "precise_oxyR:wt_glc" },
-        { "rnaseq_basal_dataset_id": "precise_minspan:wt_glc" },
-        { "rnaseq_basal_dataset_id": "precise_misc:wt_no_te" },
-        { "rnaseq_basal_dataset_id": "precise_control:wt_glc" },
-        { "rnaseq_basal_dataset_id": "precise_ytf:wt_glc" },
-        { "rnaseq_basal_dataset_id": "precise_ytf2:wt_glc" },
-        { "rnaseq_basal_dataset_id": "precise_ytf3:wt_glc2" },
-        { "rnaseq_basal_dataset_id": "precise_ytf5:wt_glc" }
+        { "rnaseq_basal_dataset_id": "gbw_vegas_wt_m9glc_34h_no_ssrA_no_METpwy" },
+        { "rnaseq_basal_dataset_id": "gbw_vegas_wt_m9glc_4h_no_ssrA_no_METpwy" },
+        { "rnaseq_basal_dataset_id": "gbw_vegas_wt_m9glc_5h_no_ssrA_no_METpwy" }
     ],
     "emitter": "parquet",
     "emitter_arg": {

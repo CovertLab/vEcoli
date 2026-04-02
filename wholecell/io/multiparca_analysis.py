@@ -219,6 +219,26 @@ def _get_parca_error(workdir: str) -> str:
         return ""
 
 
+def _get_genes_filled_from_ref(workdir: str) -> int | None:
+    """
+    Parse the UserWarning logged when missing genes are filled from the reference
+    dataset.  Returns the count, 0 if the warning was not emitted (no missing
+    genes), or None if .command.err is not available.
+    """
+    if not workdir:
+        return None
+    err_path = Path(workdir) / ".command.err"
+    if not err_path.exists():
+        return None
+    try:
+        with open(err_path) as f:
+            text = f.read()
+        m = re.search(r"(\d+) genes were missing from experimental RNA-seq", text)
+        return int(m.group(1)) if m else 0
+    except OSError:
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Higher-order properties (from cd1_higher_order_properties multiseed analysis)
 # ---------------------------------------------------------------------------
@@ -678,6 +698,7 @@ def run(out_dir: str, output_dir: str):
                 "parca_status": status,
                 "parca_error": parca_error,
                 "parca_duration_min": duration_min,
+                "n_genes_filled_from_ref": _get_genes_filled_from_ref(workdir),
                 **per_gen,
                 "sim_errors": sim_errors.get(parca_id, ""),
             }
