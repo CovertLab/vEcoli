@@ -30,18 +30,24 @@ jobs:
           enable-cache: true
           version: "0.10.6"
 
+      - name: Install pip-audit and packaging
+        run: |
+          pip install pip-audit==2.10.0 packaging==26.0
+          # Check that pip-audit and packaging do not have known vulnerabilities themselves
+          pip-audit .
+
       - name: Audit dependencies and identify vulnerabilities
         run: |
           # Export requirements for pip-audit to analyze
           uv export --all-extras --format requirements-txt --no-emit-project > requirements.txt
           
           # Run pip-audit but don't fail if vulnerabilities are found
-          uvx pip-audit -r requirements.txt --disable-pip --desc off --format json > pip_audit_results.txt || true
+          pip-audit -r requirements.txt --disable-pip --desc off --format json > pip_audit_results.txt || true
       
       - name: Process audit information
         run: |
           # Avoid downloading and installing entire project and all dependencies
-          uv run --no-sync --isolated --with packaging runscripts/debug/process_vulnerabilities.py pip_audit_results.txt
+          python runscripts/debug/process_vulnerabilities.py pip_audit_results.txt
 
       - name: Apply package updates
         run: |
