@@ -95,7 +95,7 @@ def parse_variants(
                 np_func = getattr(np, param_type)
             except AttributeError as e:
                 raise TypeError(f"{param_name} is unknown type {param_type}.") from e
-            parsed[param_name] = np_func(**param_vals)
+            parsed[param_name] = np_func(**param_vals).tolist()
 
     # Apply parameter operations
     if operation == "prod":
