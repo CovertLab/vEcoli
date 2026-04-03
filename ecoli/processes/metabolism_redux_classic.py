@@ -743,8 +743,9 @@ def test_network_flow_model():
     model.set_up_exchanges(exchanges=exchanges, uptakes=uptakes)
 
     solution: FlowResult = model.solve(
-        homeostatic_targets=list(homeostatic_metabolites.values()),
-        objective_weights={"secretion": 0.01, "efficiency": 0.0001},
+        homeostatic_concs=[0.1],
+        homeostatic_dm_targets=list(homeostatic_metabolites.values()),
+        objective_weights={"homeostatic": 1, "secretion": 0.01, "efficiency": 0.0001},
         upper_flux_bound=100,
         solver=cp.GLOP,
     )
