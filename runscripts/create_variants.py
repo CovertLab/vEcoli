@@ -203,6 +203,68 @@ def test_parse_variants():
     ]
 
 
+def test_parse_variants_zip():
+    """
+    Test variant parameter parsing with zip operation.
+    """
+    variant_config = {
+        "x": {"value": [10, 20, 30]},
+        "y": {"value": ["a", "b", "c"]},
+        "op": "zip",
+    }
+    parsed_params = parse_variants(variant_config)
+    assert parsed_params == [
+        {"x": 10, "y": "a"},
+        {"x": 20, "y": "b"},
+        {"x": 30, "y": "c"},
+    ]
+
+
+def test_parse_variants_add():
+    """
+    Test variant parameter parsing with add operation (concatenation).
+    """
+    variant_config = {
+        "x": {"value": [1, 2]},
+        "y": {"value": [3, 4]},
+        "op": "add",
+    }
+    parsed_params = parse_variants(variant_config)
+    assert parsed_params == [
+        {"x__y": 1},
+        {"x__y": 2},
+        {"x__y": 3},
+        {"x__y": 4},
+    ]
+
+
+def test_parse_variants_single():
+    """
+    Test variant parameter parsing with a single parameter (no op key).
+    """
+    variant_config = {"z": {"value": [100, 200, 300]}}
+    parsed_params = parse_variants(variant_config)
+    assert parsed_params == [{"z": 100}, {"z": 200}, {"z": 300}]
+
+
+def test_parse_variants_numpy():
+    """
+    Test variant parameter parsing using numpy functions (e.g. linspace, arange).
+    """
+    # Test np.linspace
+    variant_config = {"rate": {"linspace": {"start": [0.0], "stop": [1.0], "num": 3}}}
+    parsed_params = parse_variants(variant_config)
+    assert len(parsed_params) == 3
+    assert parsed_params[0] == {"rate": [0.0]}
+    assert parsed_params[1] == {"rate": [0.5]}
+    assert parsed_params[2] == {"rate": [1.0]}
+
+    # Test np.arange
+    variant_config = {"step": {"arange": {"start": 2, "stop": 8, "step": 2}}}
+    parsed_params = parse_variants(variant_config)
+    assert parsed_params == [{"step": 2}, {"step": 4}, {"step": 6}]
+
+
 class SimData:
     """
     Mock sim_data class for testing.
@@ -255,6 +317,7 @@ def test_create_variants():
             assert variant_sim_data.b == variant_params["b"]
             assert variant_sim_data.d == variant_params["c"]["d"]
             assert variant_sim_data.e == variant_params["c"]["e"]
+            assert variant_sim_data.f == variant_params["c"]["f"]
     finally:
         shutil.rmtree("test_create_variants", ignore_errors=True)
 
