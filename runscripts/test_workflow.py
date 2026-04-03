@@ -602,6 +602,193 @@ class TestNextflowStubExecution:
             if out_dir.exists():
                 shutil.rmtree(out_dir)
 
+    def test_stub_seeds_same_for_all_variants_when_not_decorrelated(
+        self, temp_config_dir
+    ):
+        """Without decorrelation every variant runs with the same seed range.
+
+        The simGen0 stub creates daughter-state directories named
+        seed=<lineage_seed>, so we can read the filesystem to check which
+        (variant, seed) pairs were actually executed.
+        """
+        lineage_seed = 10
+        n_init_sims = 2
+
+        exp_id = f"test_correlated_seeds_{uuid.uuid4().hex[:8]}"
+        config = {
+            "experiment_id": exp_id,
+            "suffix_time": False,
+            "analysis_options": {},
+            "emitter_arg": {"out_dir": str(temp_config_dir / "out")},
+            "sim_data_path": None,
+            "generations": 1,
+            "n_init_sims": n_init_sims,
+            "single_daughters": True,
+            "lineage_seed": lineage_seed,
+            "decorrelate_variant_seeds": False,
+        }
+        config_path = temp_config_dir / "test_correlated.json"
+        with open(config_path, "w") as f:
+            json.dump(config, f)
+
+        repo_dir = Path(__file__).parent.parent
+        build_dir = repo_dir / "nextflow_temp" / exp_id
+        out_dir = temp_config_dir / "out" / exp_id
+
+        try:
+            result = subprocess.run(
+                [
+                    "python",
+                    "-m",
+                    "runscripts.workflow",
+                    "--config",
+                    str(config_path),
+                    "--build-only",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            assert result.returncode == 0, f"Build failed: {result.stderr}"
+
+            result = subprocess.run(
+                [
+                    "nextflow",
+                    "run",
+                    str(build_dir / "main.nf"),
+                    "-stub",
+                    "-c",
+                    str(build_dir / "nextflow.config"),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=build_dir,
+            )
+            assert result.returncode == 0, (
+                f"Stub run failed:\n{result.stdout}\n{result.stderr}"
+            )
+
+            daughter_states_dir = out_dir / "daughter_states"
+            assert daughter_states_dir.exists(), "daughter_states directory not created"
+
+            # All 3 mock variants should have the same shared seed range
+            expected_seeds = {f"seed={lineage_seed + i}" for i in range(n_init_sims)}
+            for variant in ["0", "1", "2"]:
+                variant_dir = daughter_states_dir / f"variant={variant}"
+                assert variant_dir.exists(), f"variant={variant} dir not found"
+                actual_seeds = {p.name for p in variant_dir.iterdir() if p.is_dir()}
+                assert actual_seeds == expected_seeds, (
+                    f"variant={variant}: expected {expected_seeds}, got {actual_seeds}"
+                )
+
+        finally:
+            if build_dir.exists():
+                shutil.rmtree(build_dir)
+            if out_dir.exists():
+                shutil.rmtree(out_dir)
+
+    def test_stub_seeds_unique_per_variant_when_decorrelated(self, temp_config_dir):
+        """With decorrelation each variant gets a non-overlapping seed range.
+
+        With lineage_seed=10 and n_init_sims=2 the expected assignment is:
+          variant "10" (index 0) → seed=10, seed=11
+          variant "11" (index 1) → seed=12, seed=13
+          variant "12" (index 2) → seed=14, seed=15
+        """
+        lineage_seed = 10
+        n_init_sims = 2
+
+        exp_id = f"test_decorrelated_seeds_{uuid.uuid4().hex[:8]}"
+        config = {
+            "experiment_id": exp_id,
+            "suffix_time": False,
+            "analysis_options": {},
+            "emitter_arg": {"out_dir": str(temp_config_dir / "out")},
+            "sim_data_path": None,
+            "generations": 1,
+            "n_init_sims": n_init_sims,
+            "single_daughters": True,
+            "lineage_seed": lineage_seed,
+            "decorrelate_variant_seeds": True,
+        }
+        config_path = temp_config_dir / "test_decorrelated.json"
+        with open(config_path, "w") as f:
+            json.dump(config, f)
+
+        repo_dir = Path(__file__).parent.parent
+        build_dir = repo_dir / "nextflow_temp" / exp_id
+        out_dir = temp_config_dir / "out" / exp_id
+
+        try:
+            result = subprocess.run(
+                [
+                    "python",
+                    "-m",
+                    "runscripts.workflow",
+                    "--config",
+                    str(config_path),
+                    "--build-only",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            assert result.returncode == 0, f"Build failed: {result.stderr}"
+
+            result = subprocess.run(
+                [
+                    "nextflow",
+                    "run",
+                    str(build_dir / "main.nf"),
+                    "-stub",
+                    "-c",
+                    str(build_dir / "nextflow.config"),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=build_dir,
+            )
+            assert result.returncode == 0, (
+                f"Stub run failed:\n{result.stdout}\n{result.stderr}"
+            )
+
+            daughter_states_dir = out_dir / "daughter_states"
+            assert daughter_states_dir.exists(), "daughter_states directory not created"
+
+            # The mock createVariants stub emits variant names "0", "1", "2".
+            # With decorrelation, variant i gets seeds:
+            #   [lineage_seed + i*n_init_sims, ..., lineage_seed + (i+1)*n_init_sims - 1]
+            all_seed_sets = []
+            for variant_idx, variant in enumerate(["0", "1", "2"]):
+                variant_dir = daughter_states_dir / f"variant={variant}"
+                assert variant_dir.exists(), f"variant={variant} dir not found"
+                actual_seeds = {p.name for p in variant_dir.iterdir() if p.is_dir()}
+
+                expected_seeds = {
+                    f"seed={lineage_seed + variant_idx * n_init_sims + i}"
+                    for i in range(n_init_sims)
+                }
+                assert actual_seeds == expected_seeds, (
+                    f"variant={variant}: expected {expected_seeds}, got {actual_seeds}"
+                )
+                all_seed_sets.append(actual_seeds)
+
+            # Verify all seed ranges are disjoint across variants
+            for i in range(len(all_seed_sets)):
+                for j in range(i + 1, len(all_seed_sets)):
+                    assert all_seed_sets[i].isdisjoint(all_seed_sets[j]), (
+                        f"Variants {i} and {j} share seeds: "
+                        f"{all_seed_sets[i] & all_seed_sets[j]}"
+                    )
+
+        finally:
+            if build_dir.exists():
+                shutil.rmtree(build_dir)
+            if out_dir.exists():
+                shutil.rmtree(out_dir)
+
 
 class TestGroupSizeValues:
     """Test that group_size values are calculated correctly for different configurations."""
