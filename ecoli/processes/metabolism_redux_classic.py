@@ -5,7 +5,6 @@ MetabolismRedux
 import numpy as np
 import numpy.typing as npt
 import time
-
 from unum import Unum
 import warnings
 from scipy.sparse import csr_matrix

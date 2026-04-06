@@ -145,6 +145,24 @@ class MetadataArray(np.ndarray):
         else:
             return super(MetadataArray, self).__array_wrap__(out_arr, context)
 
+    def __reduce__(self):
+        """Ensure metadata is preserved during pickling."""
+        # Get the parent's __reduce__ tuple
+        pickled_state = super(MetadataArray, self).__reduce__()
+        # Get the current state and add metadata
+        new_state = pickled_state[2] + (self.metadata,)
+        # Return modified pickle tuple
+        return (pickled_state[0], pickled_state[1], new_state)
+
+    def __setstate__(self, state):
+        """Restore metadata after unpickling."""
+        # Last element is metadata
+        self.metadata = state[-1] if len(state) > 2 else 0
+        # Call parent's __setstate__ with everything except metadata
+        super(MetadataArray, self).__setstate__(
+            state[0:-1] if len(state) > 2 else state
+        )
+
 
 def array_from(d: dict) -> np.ndarray:
     """Makes a Numpy array from dictionary values.
@@ -278,7 +296,7 @@ def numpy_schema(name: str, emit: bool = True) -> Dict[str, Any]:
 
 
 def bulk_name_to_idx(
-    names: str | (List | np.ndarray), bulk_names: List | np.ndarray
+    names: str | (List | np.ndarray), bulk_names: List | np.ndarray, strict: bool = True
 ) -> int | np.ndarray:
     """Primarily used to retrieve indices for groups of bulk molecules (e.g. NTPs)
     in the first run of a process and cache for future runs
@@ -286,21 +304,32 @@ def bulk_name_to_idx(
     Args:
         names: List or array of things to find. Can also be single string.
         bulk_names: List of array of things to search
+        strict: If ``True``, raise ValueError if any name in ``names`` is not found
 
     Returns:
         Index or indices such that ``bulk_names[indices] == names``
+
+    Raises:
+        ValueError: If any name in names is not found in bulk_names and strict is True
     """
     # Convert from string names to indices in bulk array
     if isinstance(names, np.ndarray) or isinstance(names, list):
         # Big brain solution from https://stackoverflow.com/a/32191125
-        # One downside: all values in names MUST be in bulk_names
-        # Can mask missing values with bulk_names[return value] == names
-        sorter = np.argsort(bulk_names)
-        return np.take(
-            sorter, np.searchsorted(bulk_names, names, sorter=sorter), mode="clip"
+        bulk_names_array = np.array(bulk_names)
+        sorter = np.argsort(bulk_names_array)
+        indices = np.take(
+            sorter, np.searchsorted(bulk_names_array, names, sorter=sorter), mode="clip"
         )
+        # Verify that all names were found
+        if strict and not np.all(bulk_names_array[indices] == names):
+            missing = np.array(names)[bulk_names_array[indices] != names]
+            raise ValueError(f"Names not found in bulk_names: {missing.tolist()}")
+        return indices
     else:
-        return np.where(np.array(bulk_names) == names)[0][0]
+        result = np.where(np.array(bulk_names) == names)[0]
+        if len(result) == 0:
+            raise ValueError(f"Name not found in bulk_names: {names}")
+        return result[0]
 
 
 def bulk_numpy_updater(
@@ -322,7 +351,10 @@ def bulk_numpy_updater(
     # Bulk updates are lists of tuples, where first value
     # in each tuple is an array of indices to update and
     # second value is array of updates to apply
-    result = current
+    if not current.flags.owndata:
+        result = current.copy()
+    else:
+        result = current
     # Numpy arrays are read-only outside of updater
     result.flags.writeable = True
     for idx, value in update:
@@ -519,7 +551,10 @@ class UniqueNumpyUpdater:
         if not update.get("update", False):
             return current
 
-        result = current
+        if not current.flags.owndata:
+            result = current.copy()
+        else:
+            result = current
         # Numpy arrays are read-only outside of updater
         result.flags.writeable = True
         active_mask = result["_entryState"].view(np.bool_)

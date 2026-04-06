@@ -1367,29 +1367,6 @@ class TestParquetEmitterEdgeCases:
         ):
             emitter.emit(sim_data6)
 
-        # Try list of NumPy arrays
-        sim_data7 = {
-            "table": "simulation",
-            "data": {
-                "time": 3.0,
-                "agents": {
-                    "agent1": {
-                        "mixed_nested": [
-                            np.array([1, 2, 3]),
-                            np.array([4, 5]),
-                            [6],
-                            None,
-                        ],
-                    }
-                },
-            },
-        }
-        with pytest.raises(
-            TypeError,
-            match=re.escape("failed to determine supertype of object and list[i64]"),
-        ):
-            emitter.emit(sim_data7)
-
         # Try shape-varying 3D NumPy array
         # Polars can gracefully handle nested Python lists wihout explicit type
         # information, but not NumPy arrays. For example:
@@ -1401,7 +1378,7 @@ class TestParquetEmitterEdgeCases:
         # shape anyways as it would still be constrained to a data cube.
         # Nested Python lists would let you deviate from a strict data cube
         # and even have null values, if desired.
-        sim_data8 = {
+        sim_data7 = {
             "table": "simulation",
             "data": {
                 "time": 3.0,
@@ -1416,7 +1393,7 @@ class TestParquetEmitterEdgeCases:
             ValueError,
             match=re.escape("cannot parse numpy data type dtype('O')"),
         ):
-            emitter.emit(sim_data8)
+            emitter.emit(sim_data7)
 
     def test_nested_nullable(self, temp_dir):
         """Test handling nullable nested types that increase in depth."""

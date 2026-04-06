@@ -8,7 +8,6 @@ defaults:
 
 permissions:
   contents: read
-  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.merge_group.head_sha || github.ref }}
@@ -25,16 +24,24 @@ on:
 jobs:
   Reproducibility:
     runs-on: macos-latest
-    if: |
-      github.event_name == 'push' || github.event_name == 'merge_group' ||
-      contains(github.event.pull_request.labels.*.name, 'long ci')
     steps:
-    - uses: actions/checkout@v6
+    - name: Check for long ci label
+      if: github.event_name == 'pull_request'
+      env:
+        HAS_LONG_CI: ${{ contains(github.event.pull_request.labels.*.name, 'long ci') }}
+      run: |
+        if [[ "$HAS_LONG_CI" != 'true' ]]; then
+          echo "Error: Add the 'long ci' label to this PR once it is ready for review."
+          exit 1
+        fi
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      with:
+          persist-credentials: false
     - name: Install uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
       with:
         enable-cache: true
-        version: "0.7.12"
+        version: "0.10.6"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen
     - name: Test ParCa reproducibility
@@ -65,16 +72,24 @@ jobs:
         uv run --env-file .env runscripts/debug/diff_simouts.py -o "out" "parca_1*" "parca_2*"
   Two-gens:
     runs-on: macos-latest
-    if: |
-      github.event_name == 'push' || github.event_name == 'merge_group' ||
-      contains(github.event.pull_request.labels.*.name, 'long ci')
     steps:
-    - uses: actions/checkout@v6
+    - name: Check for long ci label
+      if: github.event_name == 'pull_request'
+      env:
+        HAS_LONG_CI: ${{ contains(github.event.pull_request.labels.*.name, 'long ci') }}
+      run: |
+        if [[ "$HAS_LONG_CI" != 'true' ]]; then
+          echo "Error: Add the 'long ci' label to this PR once it is ready for review."
+          exit 1
+        fi
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      with:
+          persist-credentials: false
     - name: Install uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
       with:
         enable-cache: true
-        version: "0.7.12"
+        version: "0.10.6"
     - name: Install model
       run: USE_CYTHON=1 uv sync --frozen
     - name: Install nextflow edge
@@ -89,4 +104,14 @@ jobs:
     - name: Show stderr for failed Nextflow tasks
       if: ${{ failure() }}
       run: |
-        nextflow log -q | tail -n 1 | awk '{print $1}' | xargs -I {} nextflow log {} -f name,stderr -F "status == 'FAILED'"
+        RUN_ID=$(nextflow log -q | tail -n 1 | awk '{print $1}')
+        echo "Checking run: $RUN_ID"
+        nextflow log $RUN_ID -f name,workdir,status -F "status == 'FAILED'" | while IFS=$'\t' read -r name workdir status; do
+          echo "===== Failed task: $name ====="
+          if [ -f "$workdir/.command.err" ]; then
+            cat "$workdir/.command.err"
+          else
+            echo "No .command.err file found"
+          fi
+          echo ""
+        done

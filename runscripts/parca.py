@@ -1,10 +1,11 @@
 import argparse
+import hashlib
 import json
 import os
 import pickle
-import shutil
 import time
 
+from fsspec import open as fsspec_open
 from configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
 from reconstruction.ecoli.knowledge_base_raw import KnowledgeBaseEcoli
@@ -13,20 +14,28 @@ from validation.ecoli.validation_data_raw import ValidationDataRawEcoli
 from validation.ecoli.validation_data import ValidationDataEcoli
 from wholecell.utils import constants
 import wholecell.utils.filepath as fp
+from wholecell.utils.filepath import cloud_path_join, is_cloud_uri
 
 
 def run_parca(config):
-    # Make output directory
-    kb_directory = fp.makedirs(config["outdir"], constants.KB_DIR)
+    """Run ParCa and return the SHA256 hash of sim_data for cache invalidation."""
+    # Make output directory - use appropriate method for cloud vs local
+    outdir = config["outdir"]
+    if is_cloud_uri(outdir):
+        # For cloud URIs, just construct the path - fsspec creates dirs on write
+        kb_directory = cloud_path_join(outdir, constants.KB_DIR)
+    else:
+        # For local paths, create the directory
+        kb_directory = fp.makedirs(outdir, constants.KB_DIR)
 
-    raw_data_file = os.path.join(kb_directory, constants.SERIALIZED_RAW_DATA)
-    sim_data_file = os.path.join(kb_directory, constants.SERIALIZED_SIM_DATA_FILENAME)
-    raw_validation_data_file = os.path.join(
+    # Use appropriate path join for cloud vs local
+    path_join = cloud_path_join if is_cloud_uri(outdir) else os.path.join
+    raw_data_file = path_join(kb_directory, constants.SERIALIZED_RAW_DATA)
+    sim_data_file = path_join(kb_directory, constants.SERIALIZED_SIM_DATA_FILENAME)
+    raw_validation_data_file = path_join(
         kb_directory, constants.SERIALIZED_RAW_VALIDATION_DATA
     )
-    validation_data_file = os.path.join(
-        kb_directory, constants.SERIALIZED_VALIDATION_DATA
-    )
+    validation_data_file = path_join(kb_directory, constants.SERIALIZED_VALIDATION_DATA)
 
     print(f"{time.ctime()}: Instantiating raw_data with operons={config['operons']}")
     raw_data = KnowledgeBaseEcoli(
@@ -37,7 +46,7 @@ def run_parca(config):
         new_genes_option=config["new_genes"],
     )
     print(f"{time.ctime()}: Saving raw_data")
-    with open(raw_data_file, "wb") as f:
+    with fsspec_open(raw_data_file, "wb") as f:
         pickle.dump(raw_data, f)
 
     print(f"{time.ctime()}: Instantiating sim_data with operons={config['operons']}")
@@ -53,23 +62,32 @@ def run_parca(config):
         disable_ribosome_capacity_fitting=(not config["ribosome_fitting"]),
         disable_rnapoly_capacity_fitting=(not config["rnapoly_fitting"]),
         cache_dir=config["cache_dir"],
+        rnaseq_manifest_path=config["rnaseq_manifest_path"],
+        rnaseq_basal_dataset_id=config["rnaseq_basal_dataset_id"],
+        basal_expression_condition=config["basal_expression_condition"],
+        rnaseq_fill_missing_genes_from_ref=config["rnaseq_fill_missing_genes_from_ref"],
     )
     print(f"{time.ctime()}: Saving sim_data")
-    with open(sim_data_file, "wb") as f:
-        pickle.dump(sim_data, f)
+    # Serialize to bytes first so we can compute hash
+    sim_data_bytes = pickle.dumps(sim_data)
+    sim_data_hash = hashlib.sha256(sim_data_bytes).hexdigest()
+    with fsspec_open(sim_data_file, "wb") as f:
+        f.write(sim_data_bytes)
 
     print(f"{time.ctime()}: Instantiating raw_validation_data")
     raw_validation_data = ValidationDataRawEcoli()
     print(f"{time.ctime()}: Saving raw_validation_data")
-    with open(raw_validation_data_file, "wb") as f:
+    with fsspec_open(raw_validation_data_file, "wb") as f:
         pickle.dump(raw_validation_data, f)
 
     print(f"{time.ctime()}: Instantiating validation_data")
     validation_data = ValidationDataEcoli()
     validation_data.initialize(raw_validation_data, raw_data)
     print(f"{time.ctime()}: Saving validation_data")
-    with open(validation_data_file, "wb") as f:
+    with fsspec_open(validation_data_file, "wb") as f:
         pickle.dump(validation_data, f)
+
+    return sim_data_hash
 
 
 def main():
@@ -167,6 +185,24 @@ def main():
         " (currently increases rates for ribosomal proteins)."
         " Usually set this consistently between runParca and runSim.",
     )
+    parser.add_argument(
+        "--rnaseq-manifest-path",
+        type=str,
+        help="Path to RNA-seq manifest TSV. If set, ParCa uses the new"
+        " ingestion layer instead of legacy raw_data tables.",
+    )
+    parser.add_argument(
+        "--rnaseq-basal-dataset-id",
+        type=str,
+        help="dataset_id from manifest to use as basal transcriptome."
+        " Required if --rnaseq-manifest-path is set.",
+    )
+    parser.add_argument(
+        "--basal-expression-condition",
+        type=str,
+        help="Modeled condition name for the baseline growth state."
+        " Default = 'M9 Glucose minus AAs'.",
+    )
 
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
     args = parser.parse_args()
@@ -174,7 +210,7 @@ def main():
         config = json.load(f)
     if args.config is not None:
         config_file = args.config
-        with open(os.path.join(args.config), "r") as f:
+        with fsspec_open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
     # ParCa options are defined under `parca_options` key in config JSON
     # Merge these with CLI arguments, which take precedence
@@ -182,20 +218,39 @@ def main():
     for k, v in vars(args).items():
         if v is not None:
             parca_options[k] = v
-    # Expand outdir to absolute path
-    parca_options["outdir"] = os.path.abspath(parca_options["outdir"])
-    # Set cache directory for ParCa to outdir/cache
-    parca_options["cache_dir"] = os.path.join(parca_options["outdir"], "cache")
+    # Handle outdir - only expand to absolute path for local paths
+    outdir = parca_options["outdir"]
+    if not is_cloud_uri(outdir):
+        outdir = os.path.abspath(outdir)
+    parca_options["outdir"] = outdir
+    # Set cache directory for ParCa - always local for performance
+    if is_cloud_uri(outdir):
+        parca_options["cache_dir"] = os.path.join(os.getcwd(), "parca_cache")
+    else:
+        parca_options["cache_dir"] = os.path.join(outdir, "cache")
     os.makedirs(parca_options["cache_dir"], exist_ok=True)
     # If config defines a sim_data_path, skip ParCa
     if config["sim_data_path"] is not None:
-        out_kb = os.path.join(parca_options["outdir"], "kb")
-        if not os.path.exists(out_kb):
-            os.makedirs(out_kb)
-        print(f"{time.ctime()}: Skipping ParCa. Using {config['sim_data_path']}")
-        shutil.copy(config["sim_data_path"], out_kb)
+        # Copy existing sim_data to output location using fsspec
+        path_join = cloud_path_join if is_cloud_uri(outdir) else os.path.join
+        out_kb = path_join(outdir, "kb")
+        out_sim_data = path_join(out_kb, constants.SERIALIZED_SIM_DATA_FILENAME)
+        print(
+            f"{time.ctime()}: Skipping ParCa. Copying {config['sim_data_path']} to {out_sim_data}"
+        )
+        # Use fsspec to copy and compute hash
+        with fsspec_open(config["sim_data_path"], "rb") as src:
+            data = src.read()
+        kb_hash = hashlib.sha256(data).hexdigest()
+        with fsspec_open(out_sim_data, "wb") as dst:
+            dst.write(data)
     else:
-        run_parca(parca_options)
+        kb_hash = run_parca(parca_options)
+
+    # Write hash to file for Nextflow to read
+    with open("kb_hash.txt", "w") as f:
+        f.write(kb_hash)
+    print(f"{time.ctime()}: KB hash: {kb_hash}")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 import argparse
 import copy
+import hashlib
 import importlib
 import itertools
 import json
@@ -7,13 +8,16 @@ import os
 import pickle
 import shutil
 import subprocess
+import time
 from pathlib import Path
+from fsspec import open as fsspec_open
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
 from configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
+from wholecell.utils.filepath import cloud_path_join, is_cloud_uri
 
 if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
@@ -134,7 +138,7 @@ def apply_and_save_variants(
     variant_name: str,
     outdir: str,
     skip_baseline: bool,
-):
+) -> list[tuple[int, str]]:
     """
     Applies variant function to ``sim_data`` with each parameter dictionary
     in ``param_dicts``. Saves each variant as ``{i}.cPickle``
@@ -149,20 +153,31 @@ def apply_and_save_variants(
         variant_name: Name of variant function file in ``ecoli/variants`` folder
         outdir: Path to folder where variant ``sim_data`` pickles are saved
         skip_baseline: Whether to save metadata for baseline sim_data
+
+    Returns:
+        List of (variant_idx, hash) tuples for each variant written
     """
+    # Use appropriate path join for cloud vs local paths
+    path_join = cloud_path_join if is_cloud_uri(outdir) else os.path.join
     variant_mod = importlib.import_module(f"ecoli.variants.{variant_name}")
     variant_metadata: dict[int, str | dict[str, Any]] = {}
+    variant_hashes: list[tuple[int, str]] = []
     if not skip_baseline:
         variant_metadata[0] = "baseline"
     for i, params in enumerate(param_dicts):
         sim_data_copy = copy.deepcopy(sim_data)
         variant_metadata[i + 1] = params
         variant_sim_data = variant_mod.apply_variant(sim_data_copy, params)
-        outpath = os.path.join(outdir, f"{i + 1}.cPickle")
-        with open(outpath, "wb") as f:
-            pickle.dump(variant_sim_data, f)
-    with open(os.path.join(outdir, "metadata.json"), "w") as f:
+        outpath = path_join(outdir, f"{i + 1}.cPickle")
+        # Serialize and compute hash
+        data_bytes = pickle.dumps(variant_sim_data)
+        data_hash = hashlib.sha256(data_bytes).hexdigest()
+        variant_hashes.append((i + 1, data_hash))
+        with fsspec_open(outpath, "wb") as f:
+            f.write(data_bytes)
+    with fsspec_open(path_join(outdir, "metadata.json"), "w") as f:
         json.dump({variant_name: variant_metadata}, f)
+    return variant_hashes
 
 
 def test_parse_variants():
@@ -279,23 +294,44 @@ def main():
     with open(default_config, "r") as f:
         config = json.load(f)
     if args.config is not None:
-        with open(os.path.join(args.config), "r") as f:
+        with fsspec_open(args.config, "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
     for k, v in vars(args).items():
         if v is not None:
             config[k] = v
 
+    # Handle cloud vs local paths
+    kb_path = config["kb"]
+    outdir = config["outdir"]
+    path_join = cloud_path_join if is_cloud_uri(kb_path) else os.path.join
+
     print("Loading sim_data...")
-    with open(os.path.join(config["kb"], "simData.cPickle"), "rb") as f:
+    with fsspec_open(path_join(kb_path, "simData.cPickle"), "rb") as f:
         sim_data = pickle.load(f)
-    config_outdir = os.path.abspath(config["outdir"])
-    os.makedirs(config_outdir, exist_ok=True)
+
+    # Handle output directory - only expand to absolute for local paths
+    if is_cloud_uri(outdir):
+        config_outdir = outdir
+        out_path_join = cloud_path_join
+    else:
+        config_outdir = os.path.abspath(outdir)
+        os.makedirs(config_outdir, exist_ok=True)
+        out_path_join = os.path.join
+
+    # Track variant info: (uri, hash, variant_idx)
+    variant_info: list[tuple[int, str, str]] = []
+
     if config["skip_baseline"]:
         print("Skipping baseline sim_data...")
     else:
         print("Saving baseline sim_data...")
-        with open(os.path.join(config_outdir, "0.cPickle"), "wb") as f:
-            pickle.dump(sim_data, f)
+        baseline_path = out_path_join(config_outdir, "0.cPickle")
+        baseline_bytes = pickle.dumps(sim_data)
+        baseline_hash = hashlib.sha256(baseline_bytes).hexdigest()
+        with fsspec_open(baseline_path, "wb") as f:
+            f.write(baseline_bytes)
+        variant_info.append((baseline_path, baseline_hash, 0))
+
     variant_config = config.get("variants", {})
     if len(variant_config) > 1:
         raise RuntimeError(
@@ -309,16 +345,32 @@ def main():
         print("Parsing variants...")
         parsed_params = parse_variants(variant_params)
         print("Applying variants and saving variant sim_data...")
-        apply_and_save_variants(
+        variant_hashes = apply_and_save_variants(
             sim_data,
             parsed_params,
             variant_name,
             config_outdir,
             config["skip_baseline"],
         )
+        # Add variant info
+        for var_idx, var_hash in variant_hashes:
+            var_path = out_path_join(config_outdir, f"{var_idx}.cPickle")
+            variant_info.append((var_path, var_hash, var_idx))
     else:
-        with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
+        with fsspec_open(out_path_join(config_outdir, "metadata.json"), "w") as f:
             json.dump({None: {0: "baseline"}}, f)
+
+    # Write metadata_uri to file for Nextflow (cloud URI of metadata.json)
+    metadata_uri = out_path_join(config_outdir, "metadata.json")
+    with open("metadata_uri.txt", "w") as f:
+        f.write(metadata_uri)
+
+    # Write variant info to file for Nextflow (local only)
+    # Each line: variant_name<TAB>sim_data_uri<TAB>sim_data_hash
+    with open("variant_info.txt", "w") as f:
+        for var_idx, var_uri, var_hash in variant_info:
+            f.write(f"{var_idx}\t{var_uri}\t{var_hash}\n")
+    print(f"{time.ctime()}: Wrote {len(variant_info)} variant(s) to {config_outdir}")
     print("Done.")
 
 

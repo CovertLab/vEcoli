@@ -8,6 +8,8 @@ import os
 from itertools import product
 
 import numpy as np
+import json
+import tempfile
 import pytest
 import warnings
 
@@ -59,6 +61,95 @@ def run_two_second_simulation(flag_overrides):
         sim.config[flag_key] = flag_value
     sim.build_ecoli()
     sim.run()
+
+
+def test_daughter_state_includes_non_agent_state():
+    """
+    Test that daughter states include all non-agent state
+    """
+    # Use actual daughter_outdir to match where files are saved
+    outdir = "out"
+    os.makedirs(outdir, exist_ok=True)
+
+    # Create temporary config file that inherits from spatial.json
+    temp_config = {
+        "inherit_from": ["spatial.json"],
+        "initial_state_file": "vivecoli_t2526",
+        "generations": 1,
+        "divide": True,
+        "agent_id": "0",
+        "max_duration": 4,
+    }
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False, dir="configs"
+    ) as f:
+        temp_config_file = f.name
+        json.dump(temp_config, f)
+
+    temp_config_basename = os.path.basename(temp_config_file).replace(".json", "")
+
+    try:
+        sim = EcoliSim.from_file(f"configs/{temp_config_basename}.json")
+        sim.build_ecoli()
+
+        try:
+            sim.run()
+        except SystemExit:
+            # Expected to exit after division
+            pass
+
+        # Check that daughter state files were created in the expected location
+        daughter_outdir = sim.config.get("daughter_outdir", "out")
+        daughter_files = [
+            os.path.join(daughter_outdir, f"daughter_state_{i}.json") for i in range(2)
+        ]
+
+        try:
+            daughter_agent_ids = []
+            for daughter_file in daughter_files:
+                assert os.path.exists(daughter_file), (
+                    f"Daughter state file {daughter_file} was not created"
+                )
+
+                # Load daughter state and verify structure
+                with open(daughter_file, "r") as f:
+                    daughter_state = json.load(f)
+
+                # Should have "agents" key with exactly one agent
+                assert "agents" in daughter_state, (
+                    "Daughter state missing 'agents' key - bug not fixed!"
+                )
+                assert len(daughter_state["agents"]) == 1, (
+                    "Daughter state should have exactly one agent"
+                )
+
+                # Extract agent_id and agent state
+                agent_id = list(daughter_state["agents"].keys())[0]
+                daughter_agent_ids.append(agent_id)
+                # Agent IDs should be different from parent
+                assert agent_id != sim.config["agent_id"]
+                agent_state = daughter_state["agents"][agent_id]
+
+                # Agent state should have expected keys
+                assert "bulk" in agent_state
+
+                # Environment state should be preserved (from spatial.json)
+                assert "fields" in daughter_state, (
+                    "Daughter state missing environment 'fields' - non-agent state not preserved!"
+                )
+            assert len(set(daughter_agent_ids)) == 2, (
+                "Daughter cells should have unique agent IDs"
+            )
+        finally:
+            # Clean up daughter files
+            for daughter_file in daughter_files:
+                if os.path.exists(daughter_file):
+                    os.remove(daughter_file)
+    finally:
+        # Clean up temp config file
+        if os.path.exists(temp_config_file):
+            os.remove(temp_config_file)
 
 
 @pytest.mark.slow
@@ -370,6 +461,7 @@ test_library = {
     "4": test_lattice_lysis,
     "5": test_emit_unique,
     "6": test_translation_flag_harness,
+    "7": test_daughter_state_includes_non_agent_state,
 }
 
 # run experiments in test_library from the command line with:

@@ -1,21 +1,24 @@
 import os
 import argparse
 import json
+import sys
 from collections import defaultdict
 
 
 # First, do minimal argument parsing just to get the CPU count
 def parse_cpu_arg():
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--cpus", "-n", default=1, type=int)
+    parser.add_argument("--cpus", "-n", type=int)
     parser.add_argument("--config")
     # Only arguments necessary to determine CPU count
     args, _ = parser.parse_known_args()
-    if args.config is None:
+    if args.cpus is not None:
         return args.cpus
+    if args.config is None:
+        return 1
     with open(args.config, "r") as f:
         config = json.load(f)
-    return config["analysis_options"].get("cpus", args.cpus)
+    return config["analysis_options"].get("cpus", 1)
 
 
 # Set Polars thread count before any imports might load it
@@ -29,14 +32,13 @@ import warnings  # noqa: E402
 from urllib import parse  # noqa: E402
 from typing import Any  # noqa: E402
 
-from fsspec import url_to_fs  # noqa: E402
+from fsspec import open as fsspec_open, url_to_fs  # noqa: E402
 
 from configs import CONFIG_DIR_PATH  # noqa: E402
 from ecoli.experiments.ecoli_master_sim import SimConfig  # noqa: E402
 from ecoli.library.parquet_emitter import (  # noqa: E402
     dataset_sql,
     create_duckdb_conn,
-    open_output_file,
 )
 
 FILTERS = {
@@ -88,7 +90,7 @@ def parse_variant_data_dir(
     sim_data_dict = {}
     variant_names = {}
     for e_id, v_data_dir in zip(experiment_id, variant_data_dir):
-        with open_output_file(os.path.join(v_data_dir, "metadata.json")) as f:
+        with fsspec_open(os.path.join(v_data_dir, "metadata.json"), "r") as f:
             v_metadata = json.load(f)
             variant_name = list(v_metadata.keys())[0]
             variant_names[e_id] = variant_name
@@ -262,7 +264,7 @@ def load_variant_metadata(
             config["experiment_id"], config["variant_data_dir"]
         )
     elif "variant_metadata_path" in config:
-        with open(config["variant_metadata_path"], "r") as f:
+        with fsspec_open(config["variant_metadata_path"], "r") as f:
             variant_metadata = json.load(f)
             variant_name = list(variant_metadata.keys())[0]
             variant_metadata = {
@@ -428,7 +430,7 @@ def run_analysis_loop(
     variant_metadata: dict,
     sim_data_dict: dict,
     variant_names: dict,
-) -> dict[str, int]:
+) -> tuple[dict[str, int], int | None]:
     """
     Run the main analysis loop for all configured analysis types.
 
@@ -448,6 +450,7 @@ def run_analysis_loop(
         {"total_runs": N, "skipped": M, "errors": K}
     """
     stats = {"total_runs": 0, "skipped": 0, "errors": 0}
+    last_exit_code: int | None = None
 
     # If no explicit analysis type given, run all types in config JSON
     if "analysis_types" not in config:
@@ -504,6 +507,18 @@ def run_analysis_loop(
                         variant_set, variant_metadata, sim_data_dict, variant_names
                     )
 
+                    # Create analysis-specific output directory
+                    analysis_outdir = os.path.join(
+                        curr_outdir, f"analysis={analysis_name}"
+                    )
+                    if os.path.exists(analysis_outdir):
+                        raise FileExistsError(
+                            f"{analysis_outdir} already exists, indicating this "
+                            "analysis has been run. Please delete/move it or "
+                            "specify a different output directory."
+                        )
+                    os.makedirs(analysis_outdir)
+
                     analysis_mod.plot(
                         config[analysis_type][analysis_name],
                         conn,
@@ -512,16 +527,40 @@ def run_analysis_loop(
                         success_q,
                         filtered_sim_data_dict,
                         config.get("validation_data_path", []),
-                        curr_outdir,
+                        analysis_outdir,
                         filtered_variant_metadata,
                         filtered_variant_names,
                     )
+
+                    # Write metadata.json for this analysis
+                    analysis_metadata = {
+                        "analysis_type": analysis_type,
+                        "analysis_name": analysis_name,
+                        "data_filters": data_filters,
+                        "config": config[analysis_type][analysis_name],
+                    }
+                    with open(os.path.join(analysis_outdir, "metadata.json"), "w") as f:
+                        json.dump(analysis_metadata, f)
+
                     stats["total_runs"] += 1
             except Exception as e:
                 print(f"Error running {analysis_type} {analysis_name}: {e}")
                 stats["errors"] += 1
+                rc = None
+                # Try to extract a return/exit code from common exception attributes
+                if hasattr(e, "returncode"):
+                    rc = getattr(e, "returncode")
+                elif hasattr(e, "errno"):
+                    rc = getattr(e, "errno")
+                elif isinstance(e, SystemExit):
+                    rc = e.code
+                try:
+                    if isinstance(rc, int) and rc != 0:
+                        last_exit_code = rc
+                except Exception:
+                    pass
 
-    return stats
+    return stats, last_exit_code
 
 
 def main():
@@ -613,28 +652,64 @@ def main():
         " the single scripts 32 times (16 * 2 agent IDs). If you only want to run"
         " the single and multivariant scripts, specify -t single multivariant.",
     )
+    parser.add_argument(
+        "--analysis_name",
+        nargs="*",
+        help=(
+            "Limit to specific analysis script name(s) within the selected "
+            "analysis type(s)."
+        ),
+    )
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
     args = parser.parse_args()
     with open(config_file, "r") as f:
         config = json.load(f)
     if args.config is not None:
         config_file = args.config
-        with open(os.path.join(args.config), "r") as f:
+        with fsspec_open(args.config, "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
     if "out_uri" not in config["emitter_arg"]:
         out_uri = os.path.abspath(config["emitter_arg"]["out_dir"])
-        gcs_bucket = False
+        object_store = ""
     else:
         out_uri = config["emitter_arg"]["out_uri"]
-        assert (
-            parse.urlparse(out_uri).scheme == "gcs"
-            or parse.urlparse(out_uri).scheme == "gs"
+        object_store = parse.urlparse(out_uri).scheme
+        assert object_store in ("gcs", "gs", "s3"), (
+            f"Unsupported URI scheme {object_store} in out_uri. Must be one of gcs, gs, or s3."
         )
-        gcs_bucket = True
     config = config["analysis_options"]
     for k, v in vars(args).items():
         if v is not None:
             config[k] = v
+
+    analysis_names = config.get("analysis_name")
+    if analysis_names:
+        analysis_types = config.get("analysis_types")
+        if analysis_types is None:
+            analysis_types = [
+                analysis_type
+                for analysis_type in ANALYSIS_TYPES
+                if analysis_type in config
+            ]
+        missing = set(analysis_names)
+        selected_types: list[str] = []
+        for analysis_type in analysis_types:
+            if analysis_type not in config or not isinstance(
+                config[analysis_type], dict
+            ):
+                continue
+            analyses = config[analysis_type]
+            filtered = {
+                name: analyses[name] for name in analysis_names if name in analyses
+            }
+            if filtered:
+                selected_types.append(analysis_type)
+                missing.difference_update(filtered.keys())
+            config[analysis_type] = filtered
+        if missing:
+            missing_list = ", ".join(sorted(missing))
+            raise KeyError(f"No analyses found for name(s): {missing_list}")
+        config["analysis_types"] = selected_types
 
     # If neither experiment_id nor variant_data_dir provided, require experiment_batch_dir
     # and parse experiment_id (and optionally variant_data_dir) from that folder.
@@ -654,7 +729,7 @@ def main():
         if variant_dirs is not None:
             config["variant_data_dir"] = variant_dirs
         out_uri = os.path.abspath(config["experiment_batch_dir"])
-        gcs_bucket = False
+        object_store = ""
 
     # Set up DuckDB filters for data
     duckdb_filter = build_duckdb_filter(config)
@@ -662,24 +737,15 @@ def main():
     # Load variant metadata
     variant_metadata, sim_data_dict, variant_names = load_variant_metadata(config)
 
-    # Save copy of config JSON with parameters for plots
+    # Create output directory
     os.makedirs(config["outdir"], exist_ok=True)
-    metadata_path = os.path.join(os.path.abspath(config["outdir"]), "metadata.json")
-    if os.path.exists(metadata_path):
-        raise FileExistsError(
-            f"{metadata_path} already exists, indicating an analysis has "
-            f"been run with output directory {config['outdir']}. Please "
-            "delete/move it or specify a different output directory."
-        )
-    with open(metadata_path, "w") as f:
-        json.dump(config, f)
 
     # Establish DuckDB connection
-    conn = create_duckdb_conn(out_uri, gcs_bucket, config.get("cpus"))
+    conn = create_duckdb_conn(config["outdir"], object_store, config.get("cpus"))
     history_sql, config_sql, success_sql = dataset_sql(out_uri, config["experiment_id"])
 
     # Run the analysis loop
-    stats = run_analysis_loop(
+    stats, last_exit_code = run_analysis_loop(
         config,
         conn,
         history_sql,
@@ -696,6 +762,14 @@ def main():
         f"{stats['skipped']} skipped, {stats['errors']} errors"
     )
 
+    # Propagate a non-zero exit code if any errors occurred. Prefer the
+    # last observed non-zero exit code from exceptions; otherwise return 1.
+    if stats.get("errors", 0) > 0:
+        if last_exit_code is not None:
+            return int(last_exit_code)
+        return 1
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

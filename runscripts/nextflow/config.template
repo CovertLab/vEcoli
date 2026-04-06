@@ -3,9 +3,23 @@ params {
     experimentId = 'EXPERIMENT_ID'
     config = 'CONFIG_FILE'
     parca_cpus = PARCA_CPUS
+    parca_mem = PARCA_MEM
+    parca_time = PARCA_TIME
+    sim_cpus = SIM_CPUS
+    sim_time = SIM_TIME
+    analysis_cpus = ANALYSIS_CPUS
+    duckdb_threads = DUCKDB_THREADS
+    analysis_mem = ANALYSIS_MEM
+    analysis_time = ANALYSIS_TIME
     publishDir = 'PUBLISH_DIR'
     container_image = 'IMAGE_NAME'
-    hyperqueue = false
+    hyperqueue = HYPERQUEUE
+    hq_cores = HQ_CORES
+    sim_mem = SIM_MEM
+    queue = 'QUEUE'
+    aws_region = 'AWS_REGION'
+    cluster_options = 'CLUSTER_OPTIONS'
+    slurm_env = '--env SLURM_CPUS_ON_NODE=$SLURM_CPUS_ON_NODE --env SLURM_MEM_PER_NODE=$SLURM_MEM_PER_NODE --env SLURM_MEM_PER_CPU=$SLURM_MEM_PER_CPU'
     google_location = {
         try {
             def proc = "gcloud config get compute/region".execute()
@@ -33,29 +47,92 @@ trace.sep = ','
 trace.fields = 'name,native_id,status,submit,start,complete,duration,realtime,exit,%cpu,%mem,rss,peak_rss,error_action,attempt,cpu_model,workdir'
 trace.file = "trace--${params.experimentId}--" + new java.text.SimpleDateFormat("yyyy-MM-dd--HH-mm-ss").format(new Date()) + ".csv"
 
+process {
+    withLabel: parca {
+        cpus = params.parca_cpus
+        memory = {
+            if ( task.exitStatus == 137 ) {
+                1.GB * params.parca_mem * task.attempt
+            } else {
+                // Do not scale further if mem was not issue last time
+                // Using task.attempts - 1 is inexact if a process experiences
+                // multiple failures. For example, a process can fail due to OOM
+                // (137), fail its first retry due to pre-emption (50001), then
+                // fail its second retry due to OOM (137). On its third attempt, it
+                // will get memory equivalent to if it had failed from OOM three
+                // times instead of twice. I feel it is better to overallocate than
+                // underallocate. Additionally, if users are seeing retries due to
+                // resource underallocation, they should just bump the base resource
+                // requests in their config files.
+                1.GB * params.parca_mem * Math.max(1, task.attempt - 1)
+            }
+        }
+    }
+    withLabel: analysis {
+        cpus = params.analysis_cpus
+        memory = {
+            if ( task.exitStatus == 137 ) {
+                1.GB * params.analysis_mem * task.attempt
+            } else {
+                // Do not scale further if mem was not issue last time
+                1.GB * params.analysis_mem * Math.max(1, task.attempt - 1)
+            }
+        }
+    }
+    memory = {
+        if ( task.exitStatus == 137 ) {
+            1.GB * params.sim_mem * task.attempt
+        } else {
+            // Do not scale further if mem was not issue last time
+            1.GB * params.sim_mem * Math.max(1, task.attempt - 1)
+        }
+    }
+    maxRetries = 3
+    cpus = params.sim_cpus
+}
+workflow.failOnIgnore = true
+// Different executors have different default queue size limits.
+// See: https://nextflow.io/docs/latest/reference/config.html#executor-specific-defaults
+// 2000 was set arbitrarily (limit for jobs/user on Sherlock)
+executor.queueSize = 2000
+
 profiles {
+    aws {
+        process {
+            errorStrategy = {
+                ((task.exitStatus == 137) && (task.attempt <= task.maxRetries)) ? 'retry' : 'ignore'
+            }
+            executor = 'awsbatch'
+            container = params.container_image
+            queue = params.queue
+            // Necessary for S3 access inside container
+            containerOptions = "--env AWS_DEFAULT_REGION=${params.aws_region}"
+        }
+        aws {
+            region = params.aws_region
+            batch {
+                // Spot preemption handled by Batch
+                maxSpotAttempts = 10
+                maxTransferAttempts = 10
+            }
+        }
+        docker.enabled = true
+        params.projectRoot = '/vEcoli'
+    }
     gcloud {
         process {
-            withLabel: parca {
-                cpus = params.parca_cpus
-                memory = params.parca_cpus * 2.GB
-            }
             errorStrategy = {
-                // Codes: 50001 - 50006 (Google Batch task fail:
-                // https://cloud.google.com/batch/docs/troubleshooting#reserved-exit-codes)
-                ((task.exitStatus >= 50001 && task.exitStatus <= 50006)
-                && (task.attempt <= task.maxRetries)) ? 'retry' : 'ignore'
+                // Codes: 137 (out-of-memory), 202 (image streaming error)
+                ((task.exitStatus in [137, 202]) && (task.attempt <= task.maxRetries)) ? 'retry' : 'ignore'
             }
-            memory = 4.GB
-            maxRetries = 1
-            // Using single core is slightly slower but much cheaper
-            cpus = 1
             executor = 'google-batch'
             container = params.container_image
-            // Necessary otherwise symlinks to other files in bucket can break
-            containerOptions = '--volume /mnt/disks/BUCKET:/mnt/disks/BUCKET'
-            // Check Google Cloud latest spot pricing / performance
+            // Run runscripts/gcp_price.py to find best spot pricing / performance
             machineType = "t2d-*"
+            withLabel: sim {
+                array = 4
+                machineType = "t2d-standard-4"
+            }
         }
         // For this script to work on a Compute Engine VM, you must
         // - Set default Compute Engine region and zone for your project
@@ -68,54 +145,74 @@ profiles {
         google.batch.usePrivateAddress = true
         google.batch.network = 'global/networks/default'
         google.batch.subnetwork = "regions/${params.google_location}/subnetworks/default"
+        // Spot preemption handled by Batch
+        google.batch.maxSpotAttempts = 10
         docker.enabled = true
         params.projectRoot = '/vEcoli'
-        workflow.failOnIgnore = true
     }
-    sherlock {
+    slurm {
         process {
+            // Nextflow does not merge withLabel directives so some duplication
+            // required to make time directives only apply to SLURM profiles
             withLabel: parca {
                 cpus = params.parca_cpus
-                memory = params.parca_cpus * 2.GB
+                memory = {
+                    if ( task.exitStatus == 137 ) {
+                        1.GB * params.parca_mem * task.attempt
+                    } else {
+                        1.GB * params.parca_mem * Math.max(1, task.attempt - 1)
+                    }
+                }
                 time = {
                     if ( task.exitStatus == 140 ) {
-                        1.h * task.attempt
+                        1.h * params.parca_time * task.attempt
                     } else {
-                        1.h
+                        // Do not scale further if time was not issue last time
+                        1.h * params.parca_time * Math.max(1, task.attempt - 1)
+                    }
+                }
+            }
+            withLabel: analysis {
+                cpus = params.analysis_cpus
+                memory = {
+                    if ( task.exitStatus == 137 ) {
+                        1.GB * params.analysis_mem * task.attempt
+                    } else {
+                        // Do not scale further if mem was not issue last time
+                        1.GB * params.analysis_mem * Math.max(1, task.attempt - 1)
+                    }
+                }
+                time = {
+                    if ( task.exitStatus == 140 ) {
+                        1.h * params.analysis_time * task.attempt
+                    } else {
+                        // Do not scale further if time was not issue last time
+                        1.h * params.analysis_time * Math.max(1, task.attempt - 1)
                     }
                 }
             }
             container = params.container_image
-            containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
-            queue = 'owners,normal'
-            // Run on newer, faster CPUs
-            clusterOptions = '--prefer="CPU_GEN:GEN|CPU_GEN:SPR" --constraint="CPU_GEN:RME|CPU_GEN:MLN|CPU_GEN:BGM|CPU_GEN:SIE|CPU_GEN:GEN|CPU_GEN:SPR"'
+            containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir} ${params.slurm_env}"
+            queue = params.queue
+            clusterOptions = params.cluster_options
             executor = 'slurm'
-            cpus = 1
-            memory = {
-                if ( task.exitStatus in [137, 140] ) {
-                    4.GB * task.attempt
-                } else {
-                    4.GB
-                }
-            }
             time = {
                 if ( task.exitStatus == 140 ) {
-                    4.h * task.attempt
+                    1.h * params.sim_time * task.attempt
                 } else {
-                    4.h
+                    // Do not scale further if time was not issue last time
+                    1.h * params.sim_time * Math.max(1, task.attempt - 1)
                 }
             }
             errorStrategy = {
-                // Codes: 137(OOM), 140 (SLURM job limits), 143 (SLURM preemption)
+                // Codes: 137 (OOM), 140 (SLURM job limits), 143 (SLURM preemption)
                 // Default value for exitStatus is max integer value, this
                 // is a catch-all for errors that leave no exit code
                 ((task.exitStatus in [137, 140, 143, Integer.MAX_VALUE])
                 && (task.attempt <= task.maxRetries)) ? 'retry' : 'ignore'
             }
-            maxRetries = 3
         }
-        apptainer.enabled = true
+        singularity.enabled = true
         params.projectRoot = '/vEcoli'
         // Avoid getting queue status too frequently (can cause job status mixups)
         executor.queueStatInterval = '2 min'
@@ -130,83 +227,88 @@ profiles {
         executor.retry.maxDelay = '5 min'
         // Throttle submission rate to avoid overwhelming scheduler
         executor.submitRateLimit = '20/min'
-        // Raise limit to maximum allowed on Sherlock normal partition
-        executor.queueSize = 2000
         // Give NFS time to update and sync before raising errors
         executor.exitReadTimeout = '10 min'
-        workflow.failOnIgnore = true
     }
-    sherlock_hq {
+    slurm_hq {
         process {
             // Run ParCa in separate SLURM job to allow >1 CPU
             withLabel: parca {
+                // Nextflow does not merge withLabel directives so must repeat
                 cpus = params.parca_cpus
-                memory = params.parca_cpus * 2.GB
+                memory = {
+                    if ( task.exitStatus == 137 ) {
+                        1.GB * params.parca_mem * task.attempt
+                    } else {
+                        1.GB * params.parca_mem * Math.max(1, task.attempt - 1)
+                    }
+                }
                 executor = 'slurm'
-                queue = 'owners,normal'
-                // Run on newer, faster CPUs
-                clusterOptions = '--prefer="CPU_GEN:GEN|CPU_GEN:SPR" --constraint="CPU_GEN:RME|CPU_GEN:MLN|CPU_GEN:BGM|CPU_GEN:SIE|CPU_GEN:GEN|CPU_GEN:SPR"'
+                queue = params.queue
+                clusterOptions = params.cluster_options
                 time = {
                     if ( task.exitStatus == 140 ) {
-                        1.h * task.attempt
+                        1.h * params.parca_time * task.attempt
                     } else {
-                        1.h
+                        // Do not scale further if time was not issue last time
+                        1.h * params.parca_time * Math.max(1, task.attempt - 1)
                     }
                 }
             }
             // Creating variants happens before the HyperQueue workers
             // are allocated and requires a separate SLURM job
-            // Analyses do not hold up the workflow and can be
-            // scheduled on separate SLURM jobs to keep the HyperQueue
-            // workers fully focused on running simulations
             withLabel: slurm_submit {
                 executor = 'slurm'
-                queue = 'owners,normal'
-                clusterOptions = ''
+                queue = params.queue
+                clusterOptions = params.cluster_options
+            }
+            // Schedule analyses on separate SLURM jobs to avoid
+            // stalling sims and allow custom resource requests
+            withLabel: analysis {
+                cpus = params.analysis_cpus
+                memory = {
+                    if ( task.exitStatus == 137 ) {
+                        1.GB * params.analysis_mem * task.attempt
+                    } else {
+                        // Do not scale further if mem was not issue last time
+                        1.GB * params.analysis_mem * Math.max(1, task.attempt - 1)
+                    }
+                }
+                time = {
+                    if ( task.exitStatus == 140 ) {
+                        1.h * params.analysis_time * task.attempt
+                    } else {
+                        // Do not scale further if time was not issue last time
+                        1.h * params.analysis_time * Math.max(1, task.attempt - 1)
+                    }
+                }
+                executor = 'slurm'
+                queue = params.queue
+                clusterOptions = params.cluster_options
             }
             executor = 'hq'
             container = params.container_image
-            containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir}"
+            containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir} ${params.slurm_env}"
             // Use Nextflow's retry logic instead of HyperQueue's built-in logic
             clusterOptions = '--crash-limit=1'
-            cpus = 1
-            memory = {
-                if ( task.exitStatus in [137, 140] ) {
-                    4.GB * task.attempt
-                } else {
-                    4.GB
-                }
-            }
             time = {
                 if ( task.exitStatus == 140 ) {
-                    4.h * task.attempt
+                    1.h * params.sim_time * task.attempt
                 } else {
-                    4.h
+                    // Do not scale further if time was not issue last time
+                    1.h * params.sim_time * Math.max(1, task.attempt - 1)
                 }
             }
             errorStrategy = {
                 ((task.exitStatus in [137, 140, 143, Integer.MAX_VALUE])
                 && (task.attempt <= task.maxRetries)) ? 'retry' : 'ignore'
             }
-            maxRetries = 3
         }
         params.hyperqueue = true
-        // Raise limit to maximum allowed on Sherlock normal partition
-        executor.queueSize = 2000
-        apptainer.enabled = true
+        singularity.enabled = true
         params.projectRoot = '/vEcoli'
-        workflow.failOnIgnore = true
     }
     standard {
         params.projectRoot = "${launchDir}"
-        workflow.failOnIgnore = true
-        process {
-            withLabel: parca {
-                cpus = params.parca_cpus
-                memory = params.parca_cpus * 2.GB
-            }
-            executor = 'local'
-            errorStrategy = 'ignore'
-        }
     }
 }
