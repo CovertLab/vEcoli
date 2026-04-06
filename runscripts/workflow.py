@@ -717,7 +717,7 @@ def generate_lineage(
     generations: int,
     single_daughters: bool,
     analysis_config: dict[str, dict[str, dict]],
-    decorrelate_variant_seeds: bool = False,
+    different_seeds_per_variant: bool = False,
 ):
     """
     Create strings to import and compose Nextflow processes for lineage sims:
@@ -729,7 +729,7 @@ def generate_lineage(
         n_init_sims: Number of sims to initialize with different seeds
         generations: Number of generations to run for each seed
         single_daughters: If True, only simulate one daughter cell each gen
-        decorrelate_variant_seeds: If True, each variant ``i`` is given seeds
+        different_seeds_per_variant: If True, each variant ``i`` is given seeds
             ``[seed + i*n_init_sims, seed + (i+1)*n_init_sims)`` so that
             different variants simulate statistically independent cells.
             If False (default), all variants share the same seed range
@@ -754,7 +754,7 @@ def generate_lineage(
         - **sim_workflow**: Fully composed workflow for entire lineage
     """
     sim_imports = []
-    if decorrelate_variant_seeds:
+    if different_seeds_per_variant:
         # Emit relative seeds 0..<n_init_sims; absolute seeds are computed
         # per-variant in the gen-0 map below.
         sim_workflow = [f"\tchannel.of( 0..<{n_init_sims} ).set {{ seedCh }}"]
@@ -773,7 +773,7 @@ def generate_lineage(
             )
             # variantCh emits (config_uri, config_hash, sim_data_uri, sim_data_hash, variant_name)
             # Combine with seedCh for lineage_seed, then add generation=1
-            if decorrelate_variant_seeds:
+            if different_seeds_per_variant:
                 # Offset absolute seed by (variant index) * (# of seeds) so each variant gets
                 # a distinct, non-overlapping seed range.
                 sim_workflow.append(
@@ -944,7 +944,7 @@ def generate_code(config):
             generations,
             single_daughters,
             config.get("analysis_options", {}),
-            config.get("decorrelate_variant_seeds", False),
+            config.get("different_seeds_per_variant", False),
         )
     else:
         sim_imports, sim_workflow = generate_colony(seed)
