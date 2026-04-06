@@ -602,10 +602,9 @@ class TestNextflowStubExecution:
             if out_dir.exists():
                 shutil.rmtree(out_dir)
 
-    def test_stub_seeds_same_for_all_variants_when_not_decorrelated(
-        self, temp_config_dir
-    ):
-        """Without decorrelation every variant runs with the same seed range.
+    def test_stub_seeds_same_for_all_variants_by_default(self, temp_config_dir):
+        """Without different_seeds_per_variant set to True,
+        every variant runs with the same seed range.
 
         The simGen0 stub creates daughter-state directories named
         seed=<lineage_seed>, so we can read the filesystem to check which
@@ -625,7 +624,7 @@ class TestNextflowStubExecution:
             "n_init_sims": n_init_sims,
             "single_daughters": True,
             "lineage_seed": lineage_seed,
-            "decorrelate_variant_seeds": False,
+            "different_seeds_per_variant": False,
         }
         config_path = temp_config_dir / "test_correlated.json"
         with open(config_path, "w") as f:
@@ -688,18 +687,19 @@ class TestNextflowStubExecution:
             if out_dir.exists():
                 shutil.rmtree(out_dir)
 
-    def test_stub_seeds_unique_per_variant_when_decorrelated(self, temp_config_dir):
-        """With decorrelation each variant gets a non-overlapping seed range.
+    def test_stub_seeds_unique_per_variant(self, temp_config_dir):
+        """With different_seeds_per_variant set to True,
+        each variant gets a non-overlapping seed range.
 
         With lineage_seed=10 and n_init_sims=2 the expected assignment is:
-          variant "10" (index 0) → seed=10, seed=11
-          variant "11" (index 1) → seed=12, seed=13
-          variant "12" (index 2) → seed=14, seed=15
+          variant index 0 → seed=10, seed=11
+          variant index 1 → seed=12, seed=13
+          variant index 2 → seed=14, seed=15
         """
         lineage_seed = 10
         n_init_sims = 2
 
-        exp_id = f"test_decorrelated_seeds_{uuid.uuid4().hex[:8]}"
+        exp_id = f"test_different_seeds_per_variant_{uuid.uuid4().hex[:8]}"
         config = {
             "experiment_id": exp_id,
             "suffix_time": False,
@@ -710,9 +710,9 @@ class TestNextflowStubExecution:
             "n_init_sims": n_init_sims,
             "single_daughters": True,
             "lineage_seed": lineage_seed,
-            "decorrelate_variant_seeds": True,
+            "different_seeds_per_variant": True,
         }
-        config_path = temp_config_dir / "test_decorrelated.json"
+        config_path = temp_config_dir / "test_different_seeds_per_variant.json"
         with open(config_path, "w") as f:
             json.dump(config, f)
 

@@ -590,7 +590,7 @@ top-level configuration options:
   the first generation of a lineage, where a lineage is defined
   as a group of cell simulations with the same first generation initial
   seed (called a lineage seed) and variant simulation data object
-- ``decorrelate_variant_seeds``: If True, each variant ``i`` is given initial
+- ``different_seeds_per_variant``: If True, each variant ``i`` is given initial
   seeds ``[lineage_seed + i*n_init_sims, lineage_seed + (i+1)*n_init_sims)``
   so that different variants simulate statistically independent cell lineages.
   If False (default), all variants share the same initial seed range
