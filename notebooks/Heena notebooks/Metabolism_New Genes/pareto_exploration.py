@@ -24,7 +24,6 @@ import argparse
 import os
 import warnings
 from typing import Optional
-
 import altair as alt
 import cvxpy as cp
 import numpy as np
@@ -68,6 +67,16 @@ def log_uniform_sample(n_samples: int, seed: int = 42) -> np.ndarray:
         log_samples = rng.uniform(np.log10(lo), np.log10(hi), size=n_samples)
         samples.append(10**log_samples)
     return np.column_stack(samples)  # (n_samples, 4)
+
+
+# ---------------------------------------------------------------------------
+# Get R-square of central metabolism reactions against Toya
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Map Sim Flux to Base Reaction Flux
+# ---------------------------------------------------------------------------
 
 
 # ---------------------------------------------------------------------------
@@ -129,6 +138,15 @@ def solve_one(
             target_minimal_flux=counts_to_molar[-1],
             solver=solver_choice,
         )
+
+        # solution_flux = solution.velocities
+        # solution_flux_df = pl.DataFrame(
+        #     {
+        #         "reaction": reaction_names,
+        #         "flux": solution_flux,
+        #     }
+        # )
+
         return {
             "lambda_sec": lam_sec,
             "lambda_eff": lam_eff,
@@ -140,6 +158,7 @@ def solve_one(
             "obj_eff": solution.efficiency_term,
             "obj_sec": solution.secretion_term,
             "obj_div": solution.diversity_term,
+            "solution_flux": solution.velocities,
         }
     except Exception:
         return None
@@ -456,7 +475,9 @@ def run(
 
     def _solve(i):
         lam_sec, lam_eff, lam_kin, lam_div = weight_samples[i]
-        return solve_one(lam_sec, lam_eff, lam_kin, lam_div, **fixed)
+
+        results = solve_one(lam_sec, lam_eff, lam_kin, lam_div, **fixed)
+        return results
 
     print(f"Solving {n_samples} problems ({n_jobs} parallel job(s))...")
     if n_jobs == 1:
