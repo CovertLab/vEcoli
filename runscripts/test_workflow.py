@@ -268,6 +268,42 @@ class TestNextflowStubExecution:
     These tests require Nextflow to be installed and available on PATH.
     """
 
+    @staticmethod
+    def _build_workflow(config_path):
+        """Run workflow.py with --build-only and assert success."""
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "runscripts.workflow",
+                "--config",
+                str(config_path),
+                "--build-only",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert result.returncode == 0, f"Build failed: {result.stderr}"
+
+    @staticmethod
+    def _run_stub(build_dir):
+        """Run Nextflow in stub mode and return the CompletedProcess."""
+        return subprocess.run(
+            [
+                "nextflow",
+                "run",
+                str(build_dir / "main.nf"),
+                "-stub",
+                "-c",
+                str(build_dir / "nextflow.config"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            cwd=build_dir,
+        )
+
     def test_build_only_creates_required_files(self, temp_config_dir):
         """Test that --build-only creates main.nf, nextflow.config, and workflow_config.json."""
         exp_id = f"test_build_only_{uuid.uuid4().hex[:8]}"
@@ -288,21 +324,7 @@ class TestNextflowStubExecution:
             json.dump(config, f)
 
         # Run workflow.py with --build-only
-        result = subprocess.run(
-            [
-                "python",
-                "-m",
-                "runscripts.workflow",
-                "--config",
-                str(config_path),
-                "--build-only",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-
-        assert result.returncode == 0, f"Build failed: {result.stderr}"
+        self._build_workflow(config_path)
 
         # Check that files were created
         repo_dir = Path(__file__).parent.parent
@@ -365,36 +387,10 @@ class TestNextflowStubExecution:
 
         try:
             # Build workflow
-            result = subprocess.run(
-                [
-                    "python",
-                    "-m",
-                    "runscripts.workflow",
-                    "--config",
-                    str(config_path),
-                    "--build-only",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            assert result.returncode == 0, f"Build failed: {result.stderr}"
+            self._build_workflow(config_path)
 
             # Run stub
-            result = subprocess.run(
-                [
-                    "nextflow",
-                    "run",
-                    str(build_dir / "main.nf"),
-                    "-stub",
-                    "-c",
-                    str(build_dir / "nextflow.config"),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120,
-                cwd=build_dir,
-            )
+            self._run_stub(build_dir)
 
             # Find and check stub output files
             work_dir = build_dir / "work"
@@ -476,20 +472,7 @@ class TestNextflowStubExecution:
 
         try:
             # Build workflow
-            result = subprocess.run(
-                [
-                    "python",
-                    "-m",
-                    "runscripts.workflow",
-                    "--config",
-                    str(config_path),
-                    "--build-only",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            assert result.returncode == 0, f"Build failed: {result.stderr}"
+            self._build_workflow(config_path)
 
             # Check main.nf includes correct groupTuple size parameters
             main_nf_content = (build_dir / "main.nf").read_text()
@@ -521,20 +504,7 @@ class TestNextflowStubExecution:
 
             # Run stub (may fail on some analyses due to path handling, but
             # the important thing is that the workflow parses correctly)
-            result = subprocess.run(
-                [
-                    "nextflow",
-                    "run",
-                    str(build_dir / "main.nf"),
-                    "-stub",
-                    "-c",
-                    str(build_dir / "nextflow.config"),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120,
-                cwd=build_dir,
-            )
+            self._run_stub(build_dir)
 
             # Collect and verify stub outputs
             work_dir = build_dir / "work"
@@ -635,35 +605,9 @@ class TestNextflowStubExecution:
         out_dir = temp_config_dir / "out" / exp_id
 
         try:
-            result = subprocess.run(
-                [
-                    "python",
-                    "-m",
-                    "runscripts.workflow",
-                    "--config",
-                    str(config_path),
-                    "--build-only",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            assert result.returncode == 0, f"Build failed: {result.stderr}"
+            self._build_workflow(config_path)
 
-            result = subprocess.run(
-                [
-                    "nextflow",
-                    "run",
-                    str(build_dir / "main.nf"),
-                    "-stub",
-                    "-c",
-                    str(build_dir / "nextflow.config"),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120,
-                cwd=build_dir,
-            )
+            result = self._run_stub(build_dir)
             assert result.returncode == 0, (
                 f"Stub run failed:\n{result.stdout}\n{result.stderr}"
             )
@@ -721,35 +665,9 @@ class TestNextflowStubExecution:
         out_dir = temp_config_dir / "out" / exp_id
 
         try:
-            result = subprocess.run(
-                [
-                    "python",
-                    "-m",
-                    "runscripts.workflow",
-                    "--config",
-                    str(config_path),
-                    "--build-only",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            assert result.returncode == 0, f"Build failed: {result.stderr}"
+            self._build_workflow(config_path)
 
-            result = subprocess.run(
-                [
-                    "nextflow",
-                    "run",
-                    str(build_dir / "main.nf"),
-                    "-stub",
-                    "-c",
-                    str(build_dir / "nextflow.config"),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120,
-                cwd=build_dir,
-            )
+            result = self._run_stub(build_dir)
             assert result.returncode == 0, (
                 f"Stub run failed:\n{result.stdout}\n{result.stderr}"
             )
