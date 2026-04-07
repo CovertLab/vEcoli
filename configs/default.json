@@ -36,9 +36,9 @@
     "n_init_sims": 1,
     "generations": null,
     "single_daughters": true,
-    "different_seeds_per_variant": false,
     "daughter_outdir": "out",
     "lineage_seed": 0,
+    "different_seeds_per_variant": false,
 
     "parca_options": {
         "cpus": 1,
