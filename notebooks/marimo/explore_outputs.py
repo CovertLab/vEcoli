@@ -11,14 +11,12 @@ def _():
     import pickle
     import numpy as np
     import pandas as pd
-    import duckdb
     import sys
     import altair as alt
     import polars as pl
     from scipy.stats import pearsonr
-    import itertools
 
-    return alt, duckdb, itertools, mo, np, os, pd, pearsonr, pickle, pl, sys
+    return alt, mo, np, os, pd, pearsonr, pickle, pl, sys
 
 
 @app.cell
@@ -83,6 +81,9 @@ def _(get_bulk_ids, get_rxn_ids, np, sim_data, sim_data_path):
     bulk_ids_biocyc = [bulk_id[:-3] for bulk_id in bulk_ids]
     bulk_names_unique = list(np.unique(bulk_ids_biocyc))
     bulk_common_names = get_common_names(bulk_names_unique, sim_data)
+    bulk_names2biocyc = {
+        key: val for key, val in zip(bulk_common_names, bulk_names_unique)
+    }
     rxn_ids = get_rxn_ids(sim_data_path)
     cistron_data = sim_data.process.transcription.cistron_data
     mrna_cistron_ids = cistron_data["id"][cistron_data["is_mRNA"]].tolist()
@@ -97,6 +98,7 @@ def _(get_bulk_ids, get_rxn_ids, np, sim_data, sim_data_path):
     return (
         bulk_common_names,
         bulk_ids_biocyc,
+        bulk_names2biocyc,
         bulk_names_unique,
         monomer_ids,
         monomer_names,
@@ -125,7 +127,7 @@ def _(mo):
     <p style="font-family: Arial, sans-serif;">
         </p>
 
-    By default, vEcoli uses the Parquet emitter. It saves simulation output in a tabular file format, inside a nexted directory structure called Hive partitioning. The Hive partitioning structure represents a hierarchical classification to annotate individual single cell simulations uniquely. In this strcuture, each single cell output is saved to folder with the following pattern of path:
+    By default, vEcoli uses the Parquet emitter. It saves simulation output in a tabular file format, inside a nested directory structure called Hive partitioning. The Hive partitioning structure represents a hierarchical classification to annotate individual single cell simulations uniquely. In this strcuture, each single cell output is saved to folder with the following pattern of path:
 
 
 
@@ -165,8 +167,8 @@ def _(mo):
 
 
 @app.cell
-def _(mo, os, wd_root):
-    exp_select = mo.ui.dropdown(options=os.listdir(os.path.join(wd_root, "out")))
+def _(get_exp, mo, outdir_tree):
+    exp_select = mo.ui.dropdown(options=get_exp(outdir_tree))
     y_scale = mo.ui.dropdown(options=["linear", "log", "symlog"], value="linear")
 
     return exp_select, y_scale
@@ -202,23 +204,28 @@ def _(mo):
 
 
 @app.cell
-def _(exp_select, get_variants, mo):
-    variant_select = mo.ui.dropdown(options=get_variants(exp_id=exp_select.value))
+def _(exp_select, get_variants, mo, outdir_tree):
+    variant_select = mo.ui.dropdown(
+        options=get_variants(outdir_tree, exp_id=exp_select.value)
+    )
     return (variant_select,)
 
 
 @app.cell
-def _(exp_select, get_seeds, mo, variant_select):
+def _(exp_select, get_seeds, mo, outdir_tree, variant_select):
     seed_select = mo.ui.dropdown(
-        options=get_seeds(exp_id=exp_select.value, var_id=variant_select.value)
+        options=get_seeds(
+            outdir_tree, exp_id=exp_select.value, var_id=variant_select.value
+        )
     )
     return (seed_select,)
 
 
 @app.cell
-def _(exp_select, get_gens, mo, seed_select, variant_select):
+def _(exp_select, get_gens, mo, outdir_tree, seed_select, variant_select):
     gen_select = mo.ui.dropdown(
         options=get_gens(
+            outdir_tree,
             exp_id=exp_select.value,
             var_id=variant_select.value,
             seed_id=seed_select.value,
@@ -228,9 +235,18 @@ def _(exp_select, get_gens, mo, seed_select, variant_select):
 
 
 @app.cell
-def _(exp_select, gen_select, get_agents, mo, seed_select, variant_select):
+def _(
+    exp_select,
+    gen_select,
+    get_agents,
+    mo,
+    outdir_tree,
+    seed_select,
+    variant_select,
+):
     agent_select = mo.ui.dropdown(
         options=get_agents(
+            outdir_tree,
             exp_id=exp_select.value,
             var_id=variant_select.value,
             seed_id=seed_select.value,
@@ -249,79 +265,14 @@ def _(analysis_select, get_db_filter, partitions_dict):
 
 
 @app.cell
-def _(dataset_sql, db_filter, exp_select, os, wd_root):
-    pq_columns = [
-        "bulk",
-        "listeners__fba_results__base_reaction_fluxes",
-        "listeners__rna_counts__full_mRNA_cistron_counts",
-        "listeners__monomer_counts",
-    ]
+def _(dataset_sql, exp_select, os, wd_root):
+    datapoints_cap = 2000
 
     history_sql_base, _, _ = dataset_sql(
         os.path.join(wd_root, "out"), experiment_ids=[exp_select.value]
     )
-    history_sql_filtered = f"SELECT {','.join(pq_columns)},time FROM ({history_sql_base}) WHERE {db_filter} ORDER BY time"
-    return history_sql_base, history_sql_filtered
 
-
-@app.cell
-def _(bulk_sp_plot, get_bulk_sp_traj, history_sql_filtered, load_outputs, np):
-    output_loaded = load_outputs(history_sql_filtered)
-
-    bulk_mtx = np.stack(output_loaded["bulk"].values)
-
-    sp_trajs = [get_bulk_sp_traj(bulk_id, bulk_mtx) for bulk_id in bulk_sp_plot.value]
-
-    return output_loaded, sp_trajs
-
-
-@app.cell
-def _(
-    bulk_common_names,
-    bulk_ids_biocyc,
-    bulk_names_unique,
-    molecule_id_type,
-    np,
-):
-    def get_bulk_sp_traj(sp_input, bulk_mtx):
-        if molecule_id_type.value == "Common name":
-            sp_name = bulk_names_unique[bulk_common_names.index(sp_input)]
-
-        elif molecule_id_type.value == "BioCyc ID":
-            sp_name = sp_input
-
-        sp_idxs = [
-            index for index, item in enumerate(bulk_ids_biocyc) if item == sp_name
-        ]
-
-        bulk_sp_traj = np.sum(bulk_mtx[:, sp_idxs], 1)
-
-        return bulk_sp_traj
-
-    return (get_bulk_sp_traj,)
-
-
-@app.cell
-def _(bulk_sp_plot, output_loaded, pd, sp_trajs):
-    plot_dict = {key: val for (key, val) in zip(bulk_sp_plot.value, sp_trajs)}
-
-    plot_dict["time"] = output_loaded["time"]
-
-    plot_df = pd.DataFrame(plot_dict)
-
-    return (plot_df,)
-
-
-@app.cell
-def _(downsample, plot_df):
-    df_long = plot_df.melt(
-        id_vars=["time"],  # Columns to keep as identifier variables
-        var_name="Compounds",  # Name for the new column containing original column headers
-        value_name="counts",  # Name for the new column containing original column values
-    )
-
-    dfds_long = downsample(df_long)
-    return (dfds_long,)
+    return datapoints_cap, history_sql_base
 
 
 @app.cell
@@ -403,12 +354,54 @@ def _(bulk_sp_plot, mo, molecule_id_type, y_scale):
 
 
 @app.cell
-def _(alt, dfds_long, y_scale):
-    alt.Chart(dfds_long).mark_line().encode(
-        x=alt.X("time:Q", scale=alt.Scale(type="linear"), axis=alt.Axis(tickCount=4)),
-        y=alt.Y("counts:Q", scale=alt.Scale(type=y_scale.value)),
-        color="Compounds:N",
-    )
+def _(
+    bulk_ids_biocyc,
+    bulk_names2biocyc,
+    bulk_sp_plot,
+    conn,
+    datapoints_cap,
+    db_filter,
+    get_plot_df_bulk,
+    history_sql_base,
+    molecule_id_type,
+):
+    plot_df_bulk = None
+    if bulk_sp_plot.value:
+        plot_df_bulk = get_plot_df_bulk(
+            bulk_sp_plot,
+            bulk_ids_biocyc,
+            bulk_names2biocyc,
+            history_sql_base,
+            db_filter,
+            datapoints_cap,
+            conn,
+            molecule_id_type,
+        )
+    return (plot_df_bulk,)
+
+
+@app.cell
+def _(alt, bulk_sp_plot, plot_df_bulk, y_scale):
+    chart_compounds = None
+
+    if bulk_sp_plot.value:
+        chart_compounds = (
+            alt.Chart(plot_df_bulk)
+            .mark_line()
+            .encode(
+                x=alt.X(
+                    "time:Q",
+                    scale=alt.Scale(type="linear"),
+                    axis=alt.Axis(tickCount=4),
+                    title="Time (s)",
+                ),
+                y=alt.Y(
+                    "counts:Q", scale=alt.Scale(type=y_scale.value), title="Counts"
+                ),
+                color=alt.Color("compound:N", legend=alt.Legend(title="Compound")),
+            )
+        )
+    chart_compounds
     return
 
 
@@ -506,59 +499,59 @@ def _(
 
 
 @app.cell
-def _(mrna_cistron_names, mrna_gene_ids, rna_label_type):
-    def get_mrna_traj(mrna_input, mrna_mtx):
-        if rna_label_type.value == "gene name":
-            mrna_name = mrna_input
-        elif rna_label_type.value == "BioCyc ID":
-            mrna_name = mrna_cistron_names[mrna_gene_ids.index(mrna_input)]
-
-        mrna_idx = mrna_cistron_names.index(mrna_name)
-
-        mrna_traj = mrna_mtx[:, mrna_idx]
-
-        return mrna_traj
-
-    return (get_mrna_traj,)
-
-
-@app.cell
-def _(downsample, get_mrna_traj, mrna_select_plot, np, output_loaded, pd):
-    mrna_mtx = np.stack(
-        output_loaded["listeners__rna_counts__full_mRNA_cistron_counts"]
-    )
-
-    mrna_trajs = [
-        get_mrna_traj(mrna_id, mrna_mtx) for mrna_id in mrna_select_plot.value
-    ]
-
-    # mrna_trajs = [mrna_mtx[:, mrna_idx] for mrna_idx in mrna_idxs]
-
-    mrna_plot_dict = {
-        key: val for (key, val) in zip(mrna_select_plot.value, mrna_trajs)
-    }
-
-    mrna_plot_dict["time"] = output_loaded["time"]
-
-    mrna_plot_df = pd.DataFrame(mrna_plot_dict)
-
-    mrna_df_long = mrna_plot_df.melt(
-        id_vars=["time"],  # Columns to keep as identifier variables
-        var_name="Genes",  # Name for the new column containing original column headers
-        value_name="counts",  # Name for the new column containing original column values
-    )
-
-    mrna_dfds_long = downsample(mrna_df_long)
-    return (mrna_dfds_long,)
+def _(
+    conn,
+    datapoints_cap,
+    db_filter,
+    get_plot_df,
+    history_sql_base,
+    mrna_cistron_names,
+    mrna_gene_ids,
+    mrna_select_plot,
+    rna_label_type,
+):
+    plot_df_mrna = None
+    if mrna_select_plot.value:
+        plot_df_mrna = get_plot_df(
+            mrna_gene_ids,
+            mrna_select_plot,
+            "listeners__rna_counts__full_mRNA_cistron_counts",
+            "mrna_counts",
+            "Genes",
+            "counts",
+            history_sql_base,
+            db_filter,
+            datapoints_cap,
+            conn,
+            mrna_cistron_names,
+            rna_label_type,
+        )
+    return (plot_df_mrna,)
 
 
 @app.cell
-def _(alt, mrna_dfds_long, y_scale_mrna):
-    alt.Chart(mrna_dfds_long).mark_line().encode(
-        x=alt.X("time:Q", scale=alt.Scale(type="linear"), axis=alt.Axis(tickCount=4)),
-        y=alt.Y("counts:Q", scale=alt.Scale(type=y_scale_mrna.value)),
-        color="Genes:N",
-    )
+def _(alt, mrna_select_plot, plot_df_mrna, y_scale):
+    chart_mrna = None
+
+    if mrna_select_plot.value:
+        chart_mrna = (
+            alt.Chart(plot_df_mrna)
+            .mark_line()
+            .encode(
+                x=alt.X(
+                    "time:Q",
+                    scale=alt.Scale(type="linear"),
+                    axis=alt.Axis(tickCount=4),
+                    title="Time (s)",
+                ),
+                y=alt.Y(
+                    "counts:Q", scale=alt.Scale(type=y_scale.value), title="Counts"
+                ),
+                color=alt.Color("Genes:N", legend=alt.Legend(title="Genes")),
+            )
+        )
+
+    chart_mrna
     return
 
 
@@ -592,62 +585,63 @@ def _(mo, monomer_label_type, monomer_select_plot, y_scale_monomers):
 
 
 @app.cell
-def _(monomer_ids, monomer_label_type, monomer_names):
-    def get_monomer_traj(monomer_input, monomer_mtx):
-        if monomer_label_type.value == "common name":
-            monomer_name = monomer_input
-        if monomer_label_type.value == "BioCyc ID":
-            monomer_name = monomer_names[monomer_ids.index(monomer_input)]
-
-        monomer_idx = monomer_names.index(monomer_name)
-        monomer_traj = monomer_mtx[:, monomer_idx]
-
-        return monomer_traj
-
-    return (get_monomer_traj,)
-
-
-@app.cell
 def _(
-    downsample,
-    get_monomer_traj,
+    conn,
+    datapoints_cap,
+    db_filter,
+    get_plot_df,
+    history_sql_base,
+    monomer_ids,
+    monomer_label_type,
+    monomer_names,
     monomer_select_plot,
-    np,
-    output_loaded,
-    pd,
 ):
-    monomer_mtx = np.stack(output_loaded["listeners__monomer_counts"])
+    plot_df_monomers = None
 
-    monomer_trajs = [
-        get_monomer_traj(monomer_id, monomer_mtx)
-        for monomer_id in monomer_select_plot.value
-    ]
+    if monomer_select_plot.value:
+        plot_df_monomers = get_plot_df(
+            monomer_ids,
+            monomer_select_plot,
+            "listeners__monomer_counts",
+            "monomer_counts",
+            "protein names",
+            "counts",
+            history_sql_base,
+            db_filter,
+            datapoints_cap,
+            conn,
+            monomer_names,
+            monomer_label_type,
+        )
 
-    monomer_plot_dict = {
-        key: val for (key, val) in zip(monomer_select_plot.value, monomer_trajs)
-    }
-
-    monomer_plot_dict["time"] = output_loaded["time"]
-
-    monomer_plot_df = pd.DataFrame(monomer_plot_dict)
-
-    monomer_df_long = monomer_plot_df.melt(
-        id_vars=["time"],
-        var_name="protein names",
-        value_name="counts",
-    )
-
-    monomer_dfds_long = downsample(monomer_df_long)
-    return (monomer_dfds_long,)
+    return (plot_df_monomers,)
 
 
 @app.cell
-def _(alt, monomer_dfds_long, y_scale_monomers):
-    alt.Chart(monomer_dfds_long).mark_line().encode(
-        x=alt.X("time:Q", scale=alt.Scale(type="linear"), axis=alt.Axis(tickCount=4)),
-        y=alt.Y("counts:Q", scale=alt.Scale(type=y_scale_monomers.value)),
-        color="protein names:N",
-    )
+def _(alt, monomer_select_plot, plot_df_monomers, y_scale_monomers):
+    chart_monomers = None
+
+    if monomer_select_plot.value:
+        chart_monomers = (
+            alt.Chart(plot_df_monomers)
+            .mark_line()
+            .encode(
+                x=alt.X(
+                    "time:Q",
+                    scale=alt.Scale(type="linear"),
+                    axis=alt.Axis(tickCount=4),
+                    title="Time (s)",
+                ),
+                y=alt.Y(
+                    "counts:Q",
+                    scale=alt.Scale(type=y_scale_monomers.value),
+                    title="Counts",
+                ),
+                color=alt.Color("protein names:N", legend=alt.Legend(title="Proteins")),
+            )
+        )
+
+    chart_monomers
     return
 
 
@@ -684,38 +678,61 @@ def _(mo, rxn_ids, rxn_override, select_pathway):
 
 
 @app.cell
-def _(downsample, np, output_loaded, pd, rxn_ids, select_rxns):
-    rxns_mtx = np.stack(
-        output_loaded["listeners__fba_results__base_reaction_fluxes"].values
-    )
+def _(
+    conn,
+    datapoints_cap,
+    db_filter,
+    get_plot_df,
+    history_sql_base,
+    rxn_ids,
+    select_rxns,
+):
+    plot_df_rxns = None
 
-    rxns_idxs = [rxn_ids.index(rxn) for rxn in select_rxns.value]
-
-    rxn_trajs = [rxns_mtx[:, rxn_idx] for rxn_idx in rxns_idxs]
-
-    plot_rxns_dict = {key: val for (key, val) in zip(select_rxns.value, rxn_trajs)}
-
-    plot_rxns_dict["time"] = output_loaded["time"]
-
-    plot_rxns_df = pd.DataFrame(plot_rxns_dict)
-
-    rxns_df_long = plot_rxns_df.melt(
-        id_vars=["time"],  # Columns to keep as identifier variables
-        var_name="reaction_id",  # Name for the new column containing original column headers
-        value_name="flux",  # Name for the new column containing original column values
-    )
-
-    rxns_dfds_long = downsample(rxns_df_long)
-    return (rxns_dfds_long,)
+    if select_rxns.value:
+        plot_df_rxns = get_plot_df(
+            rxn_ids,
+            select_rxns,
+            "listeners__fba_results__base_reaction_fluxes",
+            "reaction_fluxes",
+            "reaction_id",
+            "flux",
+            history_sql_base,
+            db_filter,
+            datapoints_cap,
+            conn,
+            dtype="FLOAT",
+        )
+    return (plot_df_rxns,)
 
 
 @app.cell
-def _(alt, rxns_dfds_long, y_scale_rxns):
-    alt.Chart(rxns_dfds_long).mark_line().encode(
-        x=alt.X("time:Q", scale=alt.Scale(type="linear"), axis=alt.Axis(tickCount=4)),
-        y=alt.Y("flux:Q", scale=alt.Scale(type=y_scale_rxns.value)),
-        color="reaction_id:N",
-    )
+def _(alt, plot_df_rxns, select_rxns, y_scale_rxns):
+    chart_rxns = None
+
+    if select_rxns.value:
+        chart_rxns = (
+            alt.Chart(plot_df_rxns)
+            .mark_line()
+            .encode(
+                x=alt.X(
+                    "time:Q",
+                    scale=alt.Scale(type="linear"),
+                    axis=alt.Axis(tickCount=4),
+                    title="Time (s)",
+                ),
+                y=alt.Y(
+                    "flux:Q",
+                    scale=alt.Scale(type=y_scale_rxns.value),
+                    title="Reaction Flux (mmol/s)",
+                ),
+                color=alt.Color(
+                    "reaction_id:N", legend=alt.Legend(title="Reaction ID (BioCyc)")
+                ),
+            )
+        )
+
+    chart_rxns
     return
 
 
@@ -929,101 +946,12 @@ def _(alt, np, pearsonr, pl, val_id_select, val_options):
 
 
 @app.cell
-def _(val_chart, val_dataset_select):
-    val_chart(val_dataset_select.value)
+def _(val_chart, val_dataset_select, val_id_select):
+    chart_val = None
+    if val_id_select.value:
+        chart_val = val_chart(val_dataset_select.value)
+    chart_val
     return
-
-
-@app.cell
-def _(exp_select, os, wd_root):
-    def get_variants(exp_id, outdir=os.path.join(wd_root, "out")):
-        try:
-            vars_ls = os.listdir(
-                os.path.join(
-                    outdir,
-                    exp_select.value,
-                    "history",
-                    f"experiment_id={exp_select.value}",
-                )
-            )
-
-            variant_folders = [
-                folder for folder in vars_ls if not folder.startswith(".")
-            ]
-
-            variants = [var.split("variant=")[1] for var in variant_folders]
-
-        except (FileNotFoundError, TypeError):
-            variants = ["N/A"]
-
-        return variants
-
-    def get_seeds(exp_id, var_id, outdir=os.path.join(wd_root, "out")):
-        try:
-            seeds_ls = os.listdir(
-                os.path.join(
-                    outdir,
-                    exp_select.value,
-                    "history",
-                    f"experiment_id={exp_select.value}",
-                    f"variant={var_id}",
-                )
-            )
-            seed_folders = [folder for folder in seeds_ls if not folder.startswith(".")]
-
-            seeds = [seed.split("lineage_seed=")[1] for seed in seed_folders]
-        except (FileNotFoundError, TypeError):
-            seeds = ["N/A"]
-
-        return seeds
-
-    def get_gens(exp_id, var_id, seed_id, outdir=os.path.join(wd_root, "out")):
-        try:
-            gens_ls = os.listdir(
-                os.path.join(
-                    outdir,
-                    exp_select.value,
-                    "history",
-                    f"experiment_id={exp_select.value}",
-                    f"variant={var_id}",
-                    f"lineage_seed={seed_id}",
-                )
-            )
-
-            gen_folders = [folder for folder in gens_ls if not folder.startswith(".")]
-
-            gens = [gen.split("generation=")[1] for gen in gen_folders]
-        except (FileNotFoundError, TypeError):
-            gens = ["N/A"]
-
-        return gens
-
-    def get_agents(
-        exp_id, var_id, seed_id, gen_id, outdir=os.path.join(wd_root, "out")
-    ):
-        try:
-            agents_ls = os.listdir(
-                os.path.join(
-                    outdir,
-                    exp_select.value,
-                    "history",
-                    f"experiment_id={exp_select.value}",
-                    f"variant={var_id}",
-                    f"lineage_seed={seed_id}",
-                    f"generation={gen_id}",
-                )
-            )
-
-            agent_folders = [
-                folder for folder in agents_ls if not folder.startswith(".")
-            ]
-            agents = [agent.split("agent_id=")[1] for agent in agent_folders]
-        except (FileNotFoundError, TypeError):
-            agents = ["N/A"]
-
-        return agents
-
-    return get_agents, get_gens, get_seeds, get_variants
 
 
 @app.cell
@@ -1086,25 +1014,6 @@ def _(agent_select, exp_select, gen_select, seed_select, variant_select):
         return partitions_selected
 
     return partition_groups, partitions_display, read_partitions
-
-
-@app.cell
-def _(duckdb, itertools, np):
-    def load_outputs(sql):
-        outputs_df = duckdb.sql(sql).df()
-        outputs_df = outputs_df.groupby("time", as_index=False).sum()
-
-        return outputs_df
-
-    def downsample(df_long):
-        tp_all = np.unique(df_long["time"]).astype(int)
-        ds_ratio = int(np.ceil(np.shape(df_long)[0] / 20000))
-        tp_ds = list(itertools.islice(tp_all, 0, max(tp_all), ds_ratio))
-        df_ds = df_long[np.isin(df_long["time"], tp_ds)]
-
-        return df_ds
-
-    return downsample, load_outputs
 
 
 @app.function
@@ -1274,6 +1183,286 @@ def _(
         protein_val_override,
         rxn_override,
     )
+
+
+@app.cell
+def _(np, pl):
+    def get_plot_df_bulk(
+        bulk_select_ui,
+        bulk_ids_biocyc,
+        bulk_names2biocyc,
+        sql_base,
+        db_filter,
+        datapoints_cap,
+        conn,
+        molecule_id_ui,
+    ):
+        if molecule_id_ui.value == "Common name":
+            bulk_sp_ids = [bulk_names2biocyc[name] for name in bulk_select_ui.value]
+        else:
+            bulk_sp_ids = bulk_select_ui.value
+
+        sp_idxs_selected = [
+            [
+                f"bulk[{index + 1}]"
+                for index, item in enumerate(bulk_ids_biocyc)
+                if item == sp_i
+            ]
+            for sp_i in bulk_sp_ids
+        ]
+
+        sp_idxs_alias = [
+            "+".join(sp_idxs_i) + f" as compound_{count}"
+            for count, sp_idxs_i in enumerate(sp_idxs_selected)
+        ]
+
+        bulk_sql_opt = (
+            f"SELECT {','.join(sp_idxs_alias)},time FROM ({sql_base}) WHERE {db_filter}"
+        )
+
+        bulk_sql_opt_sum = (
+            "SELECT"
+            + ",".join(
+                [
+                    f" CAST (SUM(compound_{sp_idx}) AS BIGINT) AS compound_{sp_idx}"
+                    for sp_idx, _ in enumerate(bulk_sp_ids)
+                ]
+            )
+            + f", time FROM ({bulk_sql_opt}) GROUP BY time"
+        )
+
+        bulk_sql_list = (
+            "SELECT ("
+            + "+".join([f"[compound_{sp_idx}]" for sp_idx, _ in enumerate(bulk_sp_ids)])
+            + f") AS bulk_counts, time FROM ({bulk_sql_opt_sum})"
+        )
+
+        bulk_sql_ds = sql_downsample(
+            bulk_sql_list, bulk_sp_ids, "bulk_counts", datapoints_cap
+        )
+
+        df_bulk_read = conn.sql(bulk_sql_ds).pl()
+
+        bulk_counts_mtx = np.stack(df_bulk_read["bulk_counts"])
+        bulk_counts_list = [
+            bulk_counts_mtx[:, col] for col in range(np.shape(bulk_counts_mtx)[1])
+        ]
+        bulk_plot_dict = {
+            key: val for (key, val) in zip(bulk_select_ui.value, bulk_counts_list)
+        }
+        bulk_plot_dict["time"] = df_bulk_read["time"].to_list()
+        bulk_plot_df = pl.DataFrame(bulk_plot_dict)
+        bulk_plot_df_melted = bulk_plot_df.unpivot(
+            index="time", variable_name="compound", value_name="counts"
+        )
+
+        return bulk_plot_df_melted
+
+    return (get_plot_df_bulk,)
+
+
+@app.cell
+def _(np, pl):
+    def get_plot_df(
+        default_id_list,
+        item_selector_ui,
+        listener_name,
+        col_name,
+        var_name,
+        val_name,
+        sql_base,
+        db_filter,
+        datapoints_cap,
+        conn,
+        default_name_list=None,
+        label_ui=None,
+        dtype="BIGINT",
+    ):
+        if label_ui:
+            if label_ui.value == "BioCyc ID":
+                ids_selected = item_selector_ui.value
+            else:
+                ids_selected = [
+                    default_id_list[default_name_list.index(name)]
+                    for name in item_selector_ui.value
+                ]
+        else:
+            ids_selected = item_selector_ui.value
+
+        idxs_selected = [
+            f"{col_name}[{default_id_list.index(id) + 1}] AS {col_name}_{idx}"
+            for idx, id in enumerate(ids_selected)
+        ]
+        col_sql_base = f"SELECT {listener_name} as {col_name}, time FROM ({sql_base}) WHERE {db_filter}"
+        col_sql_sliced = f"SELECT {','.join(idxs_selected)}, time FROM ({col_sql_base})"
+        col_sql_sum = (
+            "SELECT"
+            + ",".join(
+                [
+                    f" CAST (SUM({col_name}_{idx}) AS {dtype}) as {col_name}_{idx}"
+                    for idx, _ in enumerate(ids_selected)
+                ]
+            )
+            + f",time FROM ({col_sql_sliced}) GROUP BY time"
+        )
+        col_sql_list = (
+            "SELECT ("
+            + "+".join([f"[{col_name}_{idx}]" for idx, _ in enumerate(ids_selected)])
+            + f") AS {col_name}, time FROM ({col_sql_sum})"
+        )
+        col_sql_ds = sql_downsample(
+            col_sql_list, ids_selected, col_name, datapoints_cap
+        )
+
+        col_read_df = conn.sql(col_sql_ds).pl()
+
+        counts_mtx = np.stack(col_read_df[col_name])
+        counts_list = [counts_mtx[:, col] for col in range(np.shape(counts_mtx)[1])]
+        plot_dict = {
+            key: val for (key, val) in zip(item_selector_ui.value, counts_list)
+        }
+        plot_dict["time"] = col_read_df["time"].to_list()
+        plot_df = pl.DataFrame(plot_dict)
+        plot_df_melted = plot_df.unpivot(
+            index="time", variable_name=var_name, value_name=val_name
+        )
+
+        return plot_df_melted
+
+    return (get_plot_df,)
+
+
+@app.function
+def sql_downsample(sql_original, items_list, list_col_name, datapoints_cap=2000):
+    ds_sql = f"""
+    WITH 
+    indexed_data AS (
+      SELECT 
+        *, 
+        ROW_NUMBER() OVER (ORDER BY time) AS rn
+    FROM ({sql_original})
+    ),
+    data_shape AS (
+    SELECT
+        COUNT(*) AS time_points,
+        time_points*{len(items_list)} as data_points,
+        data_points/{datapoints_cap} as ds_ratio_frac,
+        CEILING(ds_ratio_frac) as ds_ratio
+
+    FROM ({sql_original}))
+
+    SELECT {list_col_name},time
+    FROM indexed_data
+    CROSS JOIN data_shape
+    WHERE rn % data_shape.ds_ratio = 0
+    ORDER BY time
+    """
+
+    return ds_sql
+
+
+@app.cell
+def _():
+    from pathlib import Path
+
+    def tree_to_dict(path):
+        path = Path(path)
+        # Define the dictionary structure for this level
+        d = {"name": path.name}
+
+        if path.is_dir():
+            d["type"] = "directory"
+            # Recursively call tree_to_dict for every child in the directory
+            d["children"] = [tree_to_dict(child) for child in path.iterdir()]
+        else:
+            d["type"] = "file"
+
+        return d
+
+    def get_dir_tree(path):
+        path = Path(path)
+
+        if path.is_file():
+            return None
+
+        # Filter: Only include children that don't start with '.'
+        return {
+            child.name: get_dir_tree(child)
+            for child in path.iterdir()
+            if not child.name.startswith(".")
+        }
+
+    # Usage
+    return Path, get_dir_tree
+
+
+@app.cell
+def _(Path, get_dir_tree, wd_root):
+    outdir_path = Path(wd_root) / "out"
+    outdir_tree = get_dir_tree(outdir_path)
+    return (outdir_tree,)
+
+
+@app.cell
+def _(outdir_tree):
+    def get_exp(tree):
+        exp_list = list(outdir_tree.keys())
+        exp_list.sort()
+        return exp_list
+
+    def get_variants(tree, exp_id):
+        try:
+            variant_folders = tree[exp_id]["history"][f"experiment_id={exp_id}"].keys()
+
+            variants = [var.split("variant=")[1] for var in variant_folders]
+
+            variants.sort()
+
+        except KeyError:
+            variants = ["N/A"]
+        return variants
+
+    def get_seeds(tree, exp_id, var_id):
+        try:
+            seed_folders = tree[exp_id]["history"][f"experiment_id={exp_id}"][
+                f"variant={var_id}"
+            ].keys()
+
+            seeds = [seed.split("lineage_seed=")[1] for seed in seed_folders]
+
+            seeds.sort()
+
+        except KeyError:
+            seeds = ["N/A"]
+        return seeds
+
+    def get_gens(tree, exp_id, var_id, seed_id):
+        try:
+            gen_folders = tree[exp_id]["history"][f"experiment_id={exp_id}"][
+                f"variant={var_id}"
+            ][f"lineage_seed={seed_id}"].keys()
+
+            gens = [gen.split("generation=")[1] for gen in gen_folders]
+
+            gens.sort()
+
+        except KeyError:
+            gens = ["N/A"]
+
+        return gens
+
+    def get_agents(tree, exp_id, var_id, seed_id, gen_id):
+        try:
+            agent_folders = tree[exp_id]["history"][f"experiment_id={exp_id}"][
+                f"variant={var_id}"
+            ][f"lineage_seed={seed_id}"][f"generation={gen_id}"].keys()
+            agents = [agent.split("agent_id=")[1] for agent in agent_folders]
+            agents.sort()
+        except KeyError:
+            agents = ["N/A"]
+        return agents
+
+    return get_agents, get_exp, get_gens, get_seeds, get_variants
 
 
 if __name__ == "__main__":

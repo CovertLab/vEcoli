@@ -1,3 +1,8 @@
+"""
+TODO: doc string, explain functions
+
+"""
+
 import os
 import xmltodict
 import pandas as pd
