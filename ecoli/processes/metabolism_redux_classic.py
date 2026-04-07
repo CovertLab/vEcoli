@@ -305,7 +305,6 @@ class MetabolismReduxClassic(Step):
                         "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
                         "target_kinetic_fluxes": [],
-                        "target_kinetic_bounds": [],
                         "reaction_catalyst_counts": [],
                         "maintenance_target": 0,
                     }
@@ -516,7 +515,6 @@ class MetabolismReduxClassic(Step):
                     "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
                     "target_homeostatic_dmdt": target_homeostatic_dmdt,
                     "target_kinetic_fluxes": target_kinetic_flux,
-                    "target_kinetic_bounds": target_kinetic_bounds,
                     "estimated_exchange_dmdt": estimated_exchange_dmdt,
                     "estimated_intermediate_dmdt": estimated_intermediate_dmdt,
                     "maintenance_target": target_maintenance_flux,
@@ -755,7 +753,53 @@ def test_network_flow_model():
     )
 
 
-# TODO (Cyrus) Add test for entire process
+# def test_redux_classic():
+#     from ecoli.experiments.ecoli_master_sim import EcoliSim
+
+#     config = {
+#         "experiment_id" : "metabolism_redux",
+#         "fail_at_max_duration": True,
+#         "generations": 2,
+#         "n_init_sims": 2,
+#         "emitter": "parquet",
+#         "emitter_arg": {"out_dir": "out/"},
+#         "fixed_media": "minimal",
+#         "condition": "basal",
+
+#         "swap_processes" : {
+#             "ecoli-metabolism" : "ecoli-metabolism-redux-classic"
+#         },
+#         "exclude_processes": ["exchange_data"],
+#         "flow": {
+#             "ecoli-metabolism-redux-classic": [["ecoli-chromosome-structure"]],
+#             "ecoli-mass-listener": [["ecoli-metabolism-redux-classic"]],
+#             "RNA_counts_listener": [["ecoli-metabolism-redux-classic"]],
+#             "rna_synth_prob_listener": [["ecoli-metabolism-redux-classic"]],
+#             "monomer_counts_listener": [["ecoli-metabolism-redux-classic"]],
+#             "dna_supercoiling_listener": [["ecoli-metabolism-redux-classic"]],
+#             "replication_data_listener": [["ecoli-metabolism-redux-classic"]],
+#             "rnap_data_listener": [["ecoli-metabolism-redux-classic"]],
+#             "unique_molecule_counts": [["ecoli-metabolism-redux-classic"]],
+#             "ribosome_data_listener": [["ecoli-metabolism-redux-classic"]]
+#         },
+#         "raw_output": False,
+#         "operons": True,
+#         "trna_charging": False,
+#         "ppgpp_regulation": False,
+#         "initial_state_gaussian": True,
+#         "trna_attenuation": False,
+#         "variable_elongation_transcription": True,
+#         "variable_elongation_translation": False,
+#         "mechanistic_translation_supply": False,
+#         "mechanistic_aa_transport": False,
+#         "translation_supply": False,
+#         "aa_supply_in_charging": False,
+#         "adjust_timestep_for_charging": False,
+#         "disable_ppgpp_elongation_inhibition": True,
+#     }
+
+#     sim = EcoliSim.from_file().merge(EcoliSim(config)).export_json("")
+
 
 if __name__ == "__main__":
     test_network_flow_model()
