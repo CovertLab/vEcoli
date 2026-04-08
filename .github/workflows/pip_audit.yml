@@ -30,18 +30,24 @@ jobs:
           enable-cache: true
           version: "0.10.6"
 
+      - name: Install pip-audit and packaging
+        run: |
+          pip install pip-audit==2.10.0 packaging==26.0
+          # Check that pip-audit and packaging do not have known vulnerabilities themselves
+          pip-audit .
+
       - name: Audit dependencies and identify vulnerabilities
         run: |
           # Export requirements for pip-audit to analyze
           uv export --all-extras --format requirements-txt --no-emit-project > requirements.txt
           
           # Run pip-audit but don't fail if vulnerabilities are found
-          uvx pip-audit -r requirements.txt --disable-pip --desc off --format json > pip_audit_results.txt || true
+          pip-audit -r requirements.txt --disable-pip --desc off --format json > pip_audit_results.txt || true
       
       - name: Process audit information
         run: |
           # Avoid downloading and installing entire project and all dependencies
-          uv run --no-sync --isolated --with packaging runscripts/debug/process_vulnerabilities.py pip_audit_results.txt
+          python runscripts/debug/process_vulnerabilities.py pip_audit_results.txt
 
       - name: Apply package updates
         run: |
@@ -55,14 +61,60 @@ jobs:
             echo "No changes to uv.lock, skipping PR creation"
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          gh auth setup-git
-          git checkout -B security-updates
-          git add uv.lock
-          git commit -m "fix(security): update package versions"
-          git push -f origin security-updates
-          PR_NUMBER=$(gh pr list --head security-updates --state open --json number --jq '.[0].number')
+
+          REPO="${GITHUB_REPOSITORY}"
+          BRANCH="security-updates"
+          HEAD_SHA=$(git rev-parse HEAD)
+
+          # Compare git blob SHAs to check if remote already matches
+          REMOTE_FILE_SHA=$(gh api "repos/$REPO/contents/uv.lock?ref=$BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+          LOCAL_FILE_SHA=$(git hash-object uv.lock)
+          if [ "$REMOTE_FILE_SHA" = "$LOCAL_FILE_SHA" ]; then
+            echo "uv.lock already matches remote $BRANCH, skipping push"
+            exit 0
+          fi
+
+          # Build a new signed commit via the REST API (required for commit signing)
+          BASE_TREE=$(gh api "repos/$REPO/git/commits/$HEAD_SHA" --jq '.tree.sha')
+
+          ENCODED_LOCK=$(mktemp)
+          trap 'rm -f "$ENCODED_LOCK"' EXIT
+          base64 -w 0 uv.lock > "$ENCODED_LOCK"
+          BLOB_SHA=$(jq -n --rawfile content "$ENCODED_LOCK" \
+            '{"encoding":"base64","content":($content | rtrimstr("\n"))}' \
+            | gh api "repos/$REPO/git/blobs" --method POST --input - --jq '.sha')
+
+          TREE_SHA=$(gh api "repos/$REPO/git/trees" \
+            --method POST \
+            -f base_tree="$BASE_TREE" \
+            -f "tree[][path]=uv.lock" \
+            -f "tree[][mode]=100644" \
+            -f "tree[][type]=blob" \
+            -f "tree[][sha]=$BLOB_SHA" \
+            --jq '.sha')
+
+          COMMIT_SHA=$(gh api "repos/$REPO/git/commits" \
+            --method POST \
+            -f message="fix(security): update package versions" \
+            -f tree="$TREE_SHA" \
+            -f "parents[]=$HEAD_SHA" \
+            --jq '.sha')
+
+          # Force-update (or create) the branch ref to the new commit
+          if gh api "repos/$REPO/git/ref/heads/$BRANCH" --jq '.object.sha' > /dev/null 2>&1; then
+            gh api "repos/$REPO/git/refs/heads/$BRANCH" \
+              --method PATCH \
+              -f sha="$COMMIT_SHA" \
+              -F force=true
+          else
+            gh api "repos/$REPO/git/refs" \
+              --method POST \
+              -f ref="refs/heads/$BRANCH" \
+              -f sha="$COMMIT_SHA"
+          fi
+
+          PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
           if echo "$PR_NUMBER" | grep -q '^[0-9]'; then
             gh pr edit "$PR_NUMBER" \
               --body-file vulnerability_report.md
@@ -70,6 +122,6 @@ jobs:
             gh pr create \
               --title "Security updates" \
               --body-file vulnerability_report.md \
-              --head security-updates \
+              --head "$BRANCH" \
               --base master
           fi
