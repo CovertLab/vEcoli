@@ -268,6 +268,42 @@ class TestNextflowStubExecution:
     These tests require Nextflow to be installed and available on PATH.
     """
 
+    @staticmethod
+    def _build_workflow(config_path):
+        """Run workflow.py with --build-only and assert success."""
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "runscripts.workflow",
+                "--config",
+                str(config_path),
+                "--build-only",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert result.returncode == 0, f"Build failed: {result.stderr}"
+
+    @staticmethod
+    def _run_stub(build_dir):
+        """Run Nextflow in stub mode and return the CompletedProcess."""
+        return subprocess.run(
+            [
+                "nextflow",
+                "run",
+                str(build_dir / "main.nf"),
+                "-stub",
+                "-c",
+                str(build_dir / "nextflow.config"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            cwd=build_dir,
+        )
+
     def test_build_only_creates_required_files(self, temp_config_dir):
         """Test that --build-only creates main.nf, nextflow.config, and workflow_config.json."""
         exp_id = f"test_build_only_{uuid.uuid4().hex[:8]}"
@@ -288,21 +324,7 @@ class TestNextflowStubExecution:
             json.dump(config, f)
 
         # Run workflow.py with --build-only
-        result = subprocess.run(
-            [
-                "python",
-                "-m",
-                "runscripts.workflow",
-                "--config",
-                str(config_path),
-                "--build-only",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-
-        assert result.returncode == 0, f"Build failed: {result.stderr}"
+        self._build_workflow(config_path)
 
         # Check that files were created
         repo_dir = Path(__file__).parent.parent
@@ -365,36 +387,10 @@ class TestNextflowStubExecution:
 
         try:
             # Build workflow
-            result = subprocess.run(
-                [
-                    "python",
-                    "-m",
-                    "runscripts.workflow",
-                    "--config",
-                    str(config_path),
-                    "--build-only",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            assert result.returncode == 0, f"Build failed: {result.stderr}"
+            self._build_workflow(config_path)
 
             # Run stub
-            result = subprocess.run(
-                [
-                    "nextflow",
-                    "run",
-                    str(build_dir / "main.nf"),
-                    "-stub",
-                    "-c",
-                    str(build_dir / "nextflow.config"),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120,
-                cwd=build_dir,
-            )
+            self._run_stub(build_dir)
 
             # Find and check stub output files
             work_dir = build_dir / "work"
@@ -476,20 +472,7 @@ class TestNextflowStubExecution:
 
         try:
             # Build workflow
-            result = subprocess.run(
-                [
-                    "python",
-                    "-m",
-                    "runscripts.workflow",
-                    "--config",
-                    str(config_path),
-                    "--build-only",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            assert result.returncode == 0, f"Build failed: {result.stderr}"
+            self._build_workflow(config_path)
 
             # Check main.nf includes correct groupTuple size parameters
             main_nf_content = (build_dir / "main.nf").read_text()
@@ -521,20 +504,7 @@ class TestNextflowStubExecution:
 
             # Run stub (may fail on some analyses due to path handling, but
             # the important thing is that the workflow parses correctly)
-            result = subprocess.run(
-                [
-                    "nextflow",
-                    "run",
-                    str(build_dir / "main.nf"),
-                    "-stub",
-                    "-c",
-                    str(build_dir / "nextflow.config"),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120,
-                cwd=build_dir,
-            )
+            self._run_stub(build_dir)
 
             # Collect and verify stub outputs
             work_dir = build_dir / "work"
@@ -597,6 +567,98 @@ class TestNextflowStubExecution:
 
         finally:
             # Cleanup
+            if build_dir.exists():
+                shutil.rmtree(build_dir)
+            if out_dir.exists():
+                shutil.rmtree(out_dir)
+
+    @pytest.mark.parametrize("different_seeds_per_variant", [False, True])
+    def test_stub_different_seeds_per_variant(
+        self, different_seeds_per_variant, temp_config_dir
+    ):
+        """With different_seeds_per_variant set to False,
+        every variant runs with the same seed range. When set
+        to True, each variant gets a distinct, non-overlapping seed range.
+
+        The simGen0 stub creates daughter-state directories named
+        seed=<lineage_seed>, so we can read the filesystem to check which
+        (variant, seed) pairs were actually executed.
+        """
+        lineage_seed = 10
+        n_init_sims = 2
+
+        exp_id = f"test_correlated_seeds_{uuid.uuid4().hex[:8]}"
+        config = {
+            "experiment_id": exp_id,
+            "suffix_time": False,
+            "analysis_options": {},
+            "emitter_arg": {"out_dir": str(temp_config_dir / "out")},
+            "sim_data_path": None,
+            "generations": 1,
+            "n_init_sims": n_init_sims,
+            "single_daughters": True,
+            "lineage_seed": lineage_seed,
+            "different_seeds_per_variant": different_seeds_per_variant,
+        }
+        config_path = temp_config_dir / "test_correlated.json"
+        with open(config_path, "w") as f:
+            json.dump(config, f)
+
+        repo_dir = Path(__file__).parent.parent
+        build_dir = repo_dir / "nextflow_temp" / exp_id
+        out_dir = temp_config_dir / "out" / exp_id
+
+        try:
+            self._build_workflow(config_path)
+
+            result = self._run_stub(build_dir)
+            assert result.returncode == 0, (
+                f"Stub run failed:\n{result.stdout}\n{result.stderr}"
+            )
+
+            daughter_states_dir = out_dir / "daughter_states"
+            assert daughter_states_dir.exists(), "daughter_states directory not created"
+
+            if not different_seeds_per_variant:
+                # All 3 mock variants should have the same shared seed range
+                expected_seeds = {
+                    f"seed={lineage_seed + i}" for i in range(n_init_sims)
+                }
+                for variant in ["0", "1", "2"]:
+                    variant_dir = daughter_states_dir / f"variant={variant}"
+                    assert variant_dir.exists(), f"variant={variant} dir not found"
+                    actual_seeds = {p.name for p in variant_dir.iterdir() if p.is_dir()}
+                    assert actual_seeds == expected_seeds, (
+                        f"variant={variant}: expected {expected_seeds}, got {actual_seeds}"
+                    )
+            else:
+                # The mock createVariants stub emits variant names "0", "1", "2".
+                # With decorrelation, variant i gets seeds:
+                #   [lineage_seed + i*n_init_sims, ..., lineage_seed + (i+1)*n_init_sims - 1]
+                all_seed_sets = []
+                for variant_idx, variant in enumerate(["0", "1", "2"]):
+                    variant_dir = daughter_states_dir / f"variant={variant}"
+                    assert variant_dir.exists(), f"variant={variant} dir not found"
+                    actual_seeds = {p.name for p in variant_dir.iterdir() if p.is_dir()}
+
+                    expected_seeds = {
+                        f"seed={lineage_seed + variant_idx * n_init_sims + i}"
+                        for i in range(n_init_sims)
+                    }
+                    assert actual_seeds == expected_seeds, (
+                        f"variant={variant}: expected {expected_seeds}, got {actual_seeds}"
+                    )
+                    all_seed_sets.append(actual_seeds)
+
+                # Verify all seed ranges are disjoint across variants
+                for i in range(len(all_seed_sets)):
+                    for j in range(i + 1, len(all_seed_sets)):
+                        assert all_seed_sets[i].isdisjoint(all_seed_sets[j]), (
+                            f"Variants {i} and {j} share seeds: "
+                            f"{all_seed_sets[i] & all_seed_sets[j]}"
+                        )
+
+        finally:
             if build_dir.exists():
                 shutil.rmtree(build_dir)
             if out_dir.exists():

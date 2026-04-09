@@ -20,7 +20,8 @@ def apply_variant(
                 'b': str,
                 'c': {
                     'd': int,
-                    'e': float
+                    'e': float,
+                    'f': list[float]
                 }
             }
 
@@ -31,6 +32,7 @@ def apply_variant(
             sim_data.b
             sim_data.d
             sim_data.e
+            sim_data.f
 
     """
     sim_data.a = params["a"]  # type: ignore[attr-defined]
@@ -52,6 +54,7 @@ def variant_test_2(
             {
                 'd': int,
                 'e': float,
+                'f': list[float]
             }
 
     Returns:
@@ -59,8 +62,10 @@ def variant_test_2(
 
             sim_data.d
             sim_data.e
+            sim_data.f
 
     """
     sim_data.d = params["d"]  # type: ignore[attr-defined]
     sim_data.e = params["e"]  # type: ignore[attr-defined]
+    sim_data.f = params["f"]  # type: ignore[attr-defined]
     return sim_data
