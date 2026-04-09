@@ -5,6 +5,7 @@ MetabolismRedux
 import numpy as np
 import numpy.typing as npt
 import time
+import pytest
 from unum import Unum
 import warnings
 from scipy.sparse import csr_matrix
@@ -753,53 +754,70 @@ def test_network_flow_model():
     )
 
 
-# def test_redux_classic():
-#     from ecoli.experiments.ecoli_master_sim import EcoliSim
+@pytest.fixture
+def temp_config_dir(tmp_path):
+    """Create a temporary directory for test configs."""
+    return tmp_path
 
-#     config = {
-#         "experiment_id" : "metabolism_redux",
-#         "fail_at_max_duration": True,
-#         "generations": 2,
-#         "n_init_sims": 2,
-#         "emitter": "parquet",
-#         "emitter_arg": {"out_dir": "out/"},
-#         "fixed_media": "minimal",
-#         "condition": "basal",
 
-#         "swap_processes" : {
-#             "ecoli-metabolism" : "ecoli-metabolism-redux-classic"
-#         },
-#         "exclude_processes": ["exchange_data"],
-#         "flow": {
-#             "ecoli-metabolism-redux-classic": [["ecoli-chromosome-structure"]],
-#             "ecoli-mass-listener": [["ecoli-metabolism-redux-classic"]],
-#             "RNA_counts_listener": [["ecoli-metabolism-redux-classic"]],
-#             "rna_synth_prob_listener": [["ecoli-metabolism-redux-classic"]],
-#             "monomer_counts_listener": [["ecoli-metabolism-redux-classic"]],
-#             "dna_supercoiling_listener": [["ecoli-metabolism-redux-classic"]],
-#             "replication_data_listener": [["ecoli-metabolism-redux-classic"]],
-#             "rnap_data_listener": [["ecoli-metabolism-redux-classic"]],
-#             "unique_molecule_counts": [["ecoli-metabolism-redux-classic"]],
-#             "ribosome_data_listener": [["ecoli-metabolism-redux-classic"]]
-#         },
-#         "raw_output": False,
-#         "operons": True,
-#         "trna_charging": False,
-#         "ppgpp_regulation": False,
-#         "initial_state_gaussian": True,
-#         "trna_attenuation": False,
-#         "variable_elongation_transcription": True,
-#         "variable_elongation_translation": False,
-#         "mechanistic_translation_supply": False,
-#         "mechanistic_aa_transport": False,
-#         "translation_supply": False,
-#         "aa_supply_in_charging": False,
-#         "adjust_timestep_for_charging": False,
-#         "disable_ppgpp_elongation_inhibition": True,
-#     }
+def test_redux_classic(temp_config_dir):
+    import json
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
 
-#     sim = EcoliSim.from_file().merge(EcoliSim(config)).export_json("")
+    config = {
+        "experiment_id": "metabolism_redux",
+        "fail_at_max_duration": False,
+        "max_duration": 10,
+        "progress_bar": True,
+        "emitter": "timeseries",
+        "fixed_media": "minimal",
+        "condition": "basal",
+        "swap_processes": {"ecoli-metabolism": "ecoli-metabolism-redux-classic"},
+        "exclude_processes": ["exchange_data"],
+        "flow": {
+            "ecoli-metabolism-redux-classic": [["ecoli-chromosome-structure"]],
+            "ecoli-mass-listener": [["ecoli-metabolism-redux-classic"]],
+            "RNA_counts_listener": [["ecoli-metabolism-redux-classic"]],
+            "rna_synth_prob_listener": [["ecoli-metabolism-redux-classic"]],
+            "monomer_counts_listener": [["ecoli-metabolism-redux-classic"]],
+            "dna_supercoiling_listener": [["ecoli-metabolism-redux-classic"]],
+            "replication_data_listener": [["ecoli-metabolism-redux-classic"]],
+            "rnap_data_listener": [["ecoli-metabolism-redux-classic"]],
+            "unique_molecule_counts": [["ecoli-metabolism-redux-classic"]],
+            "ribosome_data_listener": [["ecoli-metabolism-redux-classic"]],
+        },
+        "raw_output": False,
+        "operons": True,
+        "trna_charging": False,
+        "ppgpp_regulation": False,
+        "initial_state_gaussian": True,
+        "trna_attenuation": False,
+        "variable_elongation_transcription": True,
+        "variable_elongation_translation": False,
+        "mechanistic_translation_supply": False,
+        "mechanistic_aa_transport": False,
+        "translation_supply": False,
+        "aa_supply_in_charging": False,
+        "adjust_timestep_for_charging": False,
+        "disable_ppgpp_elongation_inhibition": True,
+    }
+
+    config_path = temp_config_dir / "test_metabolism_redux_classic.json"
+    with open(config_path, "w") as f:
+        json.dump(config, f)
+
+    sim = EcoliSim.from_file(config_path)
+    sim.build_ecoli()
+    sim.run()
+
+    data = sim.query()
+    assert data is not None
 
 
 if __name__ == "__main__":
+    from tempfile import TemporaryDirectory
+    from pathlib import Path
+
     test_network_flow_model()
+    with TemporaryDirectory() as tmp_path:
+        test_redux_classic(Path(tmp_path))
