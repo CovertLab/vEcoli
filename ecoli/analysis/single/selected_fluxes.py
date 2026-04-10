@@ -1,4 +1,13 @@
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+
 from typing import Any, TYPE_CHECKING
+from ecoli.library.parquet_emitter import (
+    read_stacked_columns,
+    field_metadata,
+    named_idx,
+)
 
 if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
@@ -63,4 +72,45 @@ def plot(
             in one of the same two methods used for sim_data_paths.
     """
 
-    pass
+    # Set up subplots according to parameters
+    n_subplots = len(params["plot_reactions"])
+    fig, axs = plt.subplots(n_subplots, 1)
+
+    # Retrieve reaction IDs from config metadata
+    reaction_ids = np.array(
+        field_metadata(conn, config_sql, "listeners__fba_results__base_reaction_fluxes")
+    )
+
+    for reaction_set, ax in zip(params["plot_reactions"], axs):
+        if isinstance(reaction_set, str):
+            reaction_set = {reaction_set: reaction_set}
+        elif isinstance(reaction_set, list):
+            reaction_set = dict(zip(reaction_set, reaction_set))
+
+        reaction_idx = list(
+            np.where(np.isin(reaction_ids, list(reaction_set.keys())))[0]
+        )
+        flux_data = read_stacked_columns(
+            history_sql,
+            [
+                named_idx(
+                    "listeners__fba_results__base_reaction_fluxes",
+                    list(reaction_set.keys()),
+                    [reaction_idx],
+                )
+            ],
+            conn=conn,
+        )
+
+        for reaction_id, label in reaction_set.items():
+            ax.plot(flux_data["time"], flux_data[reaction_id], label=label)
+
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Flux")
+        ax.legend()
+
+    fig.set_size_inches(8, len(axs) * 4)
+    fig.tight_layout()
+
+    fig.savefig(os.path.join(outdir, "selected_fluxes.svg"))
+    fig.savefig(os.path.join(outdir, "selected_fluxes.png"))

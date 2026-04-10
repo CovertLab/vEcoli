@@ -18,7 +18,7 @@
         "variant_data_dir": ["out/test_installation/variant_sim_data"],
         "single": {
             "selected_fluxes": {
-                "reactions" : ["test"]
+                "plot_reactions" : [{"RXN-16659" : "TP", "RXN-16649": "RXN-16649"}, {"RXN-17392": "Recycling"}, {"H2PTEROATESYNTH-RXN": "Dihydropteroate-synthase"}]
             }
         }
     }
