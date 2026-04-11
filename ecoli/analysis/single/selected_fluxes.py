@@ -81,12 +81,21 @@ def plot(
         field_metadata(conn, config_sql, "listeners__fba_results__base_reaction_fluxes")
     )
 
+    # Plot each reaction set in a separate axis
     for reaction_set, ax in zip(params["plot_reactions"], axs):
         if isinstance(reaction_set, str):
             reaction_set = {reaction_set: reaction_set}
         elif isinstance(reaction_set, list):
             reaction_set = dict(zip(reaction_set, reaction_set))
 
+        # Complain if any reaction ids don't exist in the data
+        for rxnid in reaction_set.keys():
+            if rxnid not in reaction_ids:
+                raise KeyError(
+                    f"Reaction with ID {rxnid} was not found in the set of metabolic reactions!"
+                )
+
+        # Get reactions indices and read flux values
         reaction_idx = list(
             np.where(np.isin(reaction_ids, list(reaction_set.keys())))[0]
         )
@@ -102,9 +111,11 @@ def plot(
             conn=conn,
         )
 
+        # Plot flux traces
         for reaction_id, label in reaction_set.items():
             ax.plot(flux_data["time"], flux_data[reaction_id], label=label)
 
+        # Axis aesthetics
         ax.set_xlabel("Time")
         ax.set_ylabel("Flux")
         ax.legend()
