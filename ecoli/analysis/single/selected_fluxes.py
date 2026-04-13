@@ -120,7 +120,7 @@ def plot(
         ax.set_ylabel("Flux")
         ax.legend()
 
-    fig.set_size_inches(8, len(axs) * 4)
+    fig.set_size_inches(6, len(axs) * 3)
     fig.tight_layout()
 
     fig.savefig(os.path.join(outdir, "selected_fluxes.svg"))
