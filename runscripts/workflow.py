@@ -1396,7 +1396,9 @@ def main():
         out_bucket = parsed_uri.netloc
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
-        config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
+        # Only resolve to absolute path for local paths; leave cloud URIs (e.g. s3://) unchanged
+        if parse.urlparse(config["sim_data_path"]).scheme in ("", "file", "local"):
+            config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
     filesystem, outdir = parse_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
     exp_outdir = os.path.dirname(outdir)
