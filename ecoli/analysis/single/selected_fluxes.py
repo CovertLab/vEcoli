@@ -72,6 +72,10 @@ def plot(
             in one of the same two methods used for sim_data_paths.
     """
 
+    # Overwrite default parameters with provided values
+    defaults = {"plot_reactions": [[]]}
+    params = {**defaults, **params}
+
     # Set up subplots according to parameters
     n_subplots = len(params["plot_reactions"])
     fig, axs = plt.subplots(n_subplots, 1)
