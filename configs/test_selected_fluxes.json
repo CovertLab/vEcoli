@@ -19,6 +19,8 @@
         "single": {
             "selected_fluxes": {
                 "show_enzyme_counts": true,
+                "row_height": 4,
+                "col_width": 4,
                 "figsize": [12, 9],
                 "plot_reactions" : [
                     "PGLUCISOM-RXN",

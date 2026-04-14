@@ -50,6 +50,12 @@ def plot(
             // show_enzyme_counts: whether to show enzyme counts along with fluxes
             "show_enzyme_counts": true,
 
+            // Height of each row and width of each column in inches.
+            // Defaults to 3 and 4 inches, respectively.
+            // Overidden if "figsize" is provided!
+            "row_height": 3,
+            "col_width": 4,
+
             // figsize: custom figure size
             "figsize": [12, 9],
 
@@ -74,7 +80,13 @@ def plot(
     MARKER_SYMBOLS = "ovs+*DX"
 
     # Overwrite default parameters with provided values
-    defaults = {"show_enzyme_counts": False, "figsize": None, "plot_reactions": [[]]}
+    defaults = {
+        "show_enzyme_counts": False,
+        "figsize": None,
+        "row_height": 3,
+        "col_width": 4,
+        "plot_reactions": [[]],
+    }
     params = {**defaults, **params}
 
     # Set up subplots according to parameters
@@ -266,7 +278,7 @@ def plot(
         ax.legend()
 
     if params["figsize"] is None:
-        fig.set_size_inches(6 if not params["show_enzyme_counts"] else 12, n_rows * 3)
+        fig.set_size_inches(params["col_width"] * n_cols, params["row_height"] * n_rows)
     else:
         fig.set_size_inches(*params["figsize"])
     fig.tight_layout()
