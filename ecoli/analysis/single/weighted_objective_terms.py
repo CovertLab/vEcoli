@@ -21,10 +21,10 @@ COLORS_256 = [  # From colorbrewer2.org, qualitative 8-class set 1
 COLORS = ["#%02x%02x%02x" % (color[0], color[1], color[2]) for color in COLORS_256]
 
 OBJECTIVE_WEIGHTS = {
-    # "secretion": 0.01,
-    "efficiency": 0.0000001,  # decrease efficiency
-    # "kinetics": 0.005,  # 0.00001
-    # "diversity": 0.0001, # 0.001 Heena's addition to minimize number of reactions with no flow
+    "secretion": 2.70225350134521e-06,
+    "efficiency": 1.00762391690677e-08,
+    "kinetics": 0.000430262706478104,
+    "diversity": 0.000171366013420771,
     "homeostatic": 1,
 }
 

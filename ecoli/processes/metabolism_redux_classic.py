@@ -142,10 +142,14 @@ class MetabolismReduxClassic(Step):
         "concentration_updates": None,
         "maintenance_reaction": {},
         "objective_weights": {
-            "secretion": 0,  # 0.01
-            "efficiency": 0,  # 0.000001
-            "kinetics": 0,  # 0.0000001
-            "diversity": 0,  # Heena's addition to minimize number of reactions with no flow
+            # "secretion": 0.01,
+            # "efficiency": 0.000001,
+            # "kinetics": 0.0000001,
+            # "diversity": 0,  # Heena's addition to minimize number of reactions with no flow
+            "secretion": 2.70225350134521e-06,
+            "efficiency": 1.00762391690677e-08,
+            "kinetics": 0.000430262706478104,
+            "diversity": 0.000171366013420771,
             "homeostatic": 1,
         },
     }
@@ -363,10 +367,10 @@ class MetabolismReduxClassic(Step):
                             self.parameters["reaction_catalysts"],
                         ),
                         "homeostatic_term": (0.0, self.parameters["objective_weights"]),
-                        # "secretion_term": 0.0,
-                        # "efficiency_term": 0.0,
-                        # "kinetics_term": 0.0,
-                        # "diversity_term": 0.0,
+                        "secretion_term": 0.0,
+                        "efficiency_term": 0.0,
+                        "kinetics_term": 0.0,
+                        "diversity_term": 0.0,
                         "binary_kinetic_idx": [],
                         "maintenance_target": 0.0,
                         "base_reaction_fluxes": (
@@ -614,14 +618,14 @@ class MetabolismReduxClassic(Step):
                     "reaction_catalyst_counts": reaction_catalyst_counts,
                     "homeostatic_term": solution.homeostatic_term
                     * objective_weights["homeostatic"],
-                    # "secretion_term": solution.secretion_term
-                    # * objective_weights["secretion"],
-                    # "efficiency_term": solution.efficiency_term
-                    # * objective_weights["efficiency"],
-                    # "kinetics_term": solution.kinetics_term
-                    # * objective_weights["kinetics"],
-                    # "diversity_term": solution.diversity_term
-                    # * objective_weights["diversity"],
+                    "secretion_term": solution.secretion_term
+                    * objective_weights["secretion"],
+                    "efficiency_term": solution.efficiency_term
+                    * objective_weights["efficiency"],
+                    "kinetics_term": solution.kinetics_term
+                    * objective_weights["kinetics"],
+                    "diversity_term": solution.diversity_term
+                    * objective_weights["diversity"],
                     "binary_kinetic_idx": self.binary_kinetic_idx[0],
                     "base_reaction_fluxes": self.reaction_mapping_matrix.dot(
                         estimated_reaction_fluxes
@@ -673,10 +677,10 @@ class FlowResult:
     exchanges: Iterable[float]
     objective: float
     homeostatic_term: float
-    # kinetics_term: float
-    # secretion_term: float
-    # efficiency_term: float
-    # diversity_term: float
+    kinetics_term: float
+    secretion_term: float
+    efficiency_term: float
+    diversity_term: float
 
 
 class NetworkFlowModel:
@@ -796,35 +800,34 @@ class NetworkFlowModel:
 
         # flux_sum_part_obj = objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
 
-        # secretion_term = cp.sum(e[self.secretion_idx])
-        # loss += (
-        #     objective_weights["secretion"] * secretion_term
-        #     if "secretion" in objective_weights
-        #     else loss
-        # )
+        secretion_term = cp.sum(e[self.secretion_idx])
+        loss += (
+            objective_weights["secretion"] * secretion_term
+            if "secretion" in objective_weights
+            else loss
+        )
 
-        # efficiency_term = cp.sum(v)
-        # loss += (
-        #     objective_weights["efficiency"] * efficiency_term
-        #     if "efficiency" in objective_weights
-        #     else loss
-        # )
+        efficiency_term = cp.sum(v)
+        loss += (
+            objective_weights["efficiency"] * efficiency_term
+            if "efficiency" in objective_weights
+            else loss
+        )
 
-        # kinetics_term = cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
-        # loss = (
-        #     loss + objective_weights["kinetics"] * kinetics_term
-        #     if "kinetics" in objective_weights
-        #     else loss
-        # )
+        kinetics_term = cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
+        loss = (
+            loss + objective_weights["kinetics"] * kinetics_term
+            if "kinetics" in objective_weights
+            else loss
+        )
 
         # Heena's addition: minimize number of reactions with no flow
-        # diversity_term = cp.sum(cp.pos(target_minimal_flux - v))
-        # loss += (
-        #     objective_weights["diversity"] * diversity_term
-        #     # 0 * diversity_term
-        #     if "diversity" in objective_weights
-        #     else loss
-        # )
+        diversity_term = cp.sum(cp.pos(target_minimal_flux - v))
+        loss += (
+            objective_weights["diversity"] * diversity_term
+            if "diversity" in objective_weights
+            else loss
+        )
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
@@ -857,10 +860,10 @@ class NetworkFlowModel:
             exchanges=exchanges,
             objective=objective,
             homeostatic_term=homeostatic_term.value,
-            # kinetics_term=kinetics_term.value,
-            # secretion_term=secretion_term.value,
-            # efficiency_term=efficiency_term.value,
-            # diversity_term=diversity_term.value,
+            kinetics_term=kinetics_term.value,
+            secretion_term=secretion_term.value,
+            efficiency_term=efficiency_term.value,
+            diversity_term=diversity_term.value,
         )
 
 

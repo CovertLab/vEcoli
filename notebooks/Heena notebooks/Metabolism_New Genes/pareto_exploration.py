@@ -20,10 +20,14 @@ from ecoli.processes.metabolism_redux_classic import (
     FREE_RXNS,
     NetworkFlowModel,
 )
+from wholecell.utils import units, toya
 import argparse
 import os
 import warnings
 from typing import Optional
+import pickle
+import json
+from fsspec import open as fsspec_open
 import altair as alt
 import cvxpy as cp
 import numpy as np
@@ -34,20 +38,30 @@ from tqdm import tqdm
 
 os.chdir(os.path.expanduser("~/dev/vEcoli/"))
 
+# --- Import and Define Units ---
+COUNTS_UNITS = units.mmol
+VOLUME_UNITS = units.L
+MASS_UNITS = units.g
+TIME_UNITS = units.s
+CONC_UNITS = COUNTS_UNITS / VOLUME_UNITS
+FLUX_UNITS = COUNTS_UNITS / VOLUME_UNITS / TIME_UNITS
 
 # ---------------------------------------------------------------------------
 # Feasible weight ranges (from pairwise analysis). Log-spaced sampling.
 # Homeostatic weight is always fixed at 1.
 # ---------------------------------------------------------------------------
 WEIGHT_RANGES = {
-    "secretion": (1e-5, 1e-3),
-    "efficiency": (1e-6, 1e-4),
-    "kinetics": (1e-4, 1e-2),
-    "diversity": (1e-4, 1e-2),
+    "secretion": (1e-8, 1e-4),  # 2.12E-4
+    "efficiency": (1e-8, 1e-4),  # 2.34E-5
+    "kinetics": (1e-8, 1e-4),  # 1.64E-3
+    "diversity": (1e-8, 1e-2),  # 8.53E-3
 }
 
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_init_shrunk_1000samples"
+OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_init_selective_2000samples"
 os.makedirs(OUT_DIR, exist_ok=True)
+
+with open(f"{OUT_DIR}/weight_info.json", "w") as fp:
+    json.dump(WEIGHT_RANGES, fp)
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +73,7 @@ def log_uniform_sample(n_samples: int, seed: int = 42) -> np.ndarray:
     term's feasible range.
 
     Returns array of shape (n_samples, 4) with columns ordered as
-    WEIGHT_RANGES: [secretion, efficiency, kinetics, diversity].
+    WEIGHT_RANGES: [efficiency, kinetics, secretion, diversity].
     """
     rng = np.random.default_rng(seed)
     samples = []
@@ -72,11 +86,51 @@ def log_uniform_sample(n_samples: int, seed: int = 42) -> np.ndarray:
 # ---------------------------------------------------------------------------
 # Get R-square of central metabolism reactions against Toya
 # ---------------------------------------------------------------------------
+def correlations_toya_fluxes(
+    reaction_ids: str, sim_reaction_flux: np.ndarray
+) -> tuple[float, float, np.ndarray]:
+    # Load validation data (Toya 2010 fluxes and stdevs)
+    validation_data_path = "out/kb/validationData.cPickle"
+    with fsspec_open(validation_data_path, "rb") as f:
+        validation_data = pickle.load(f)
 
+    cell_mass = units.fg * 1745.814482240506  # mean cell mass from a sim
+    dry_mass = units.fg * 524.0582963771143  # mean dry mass from a sim
+    cell_density = units.g / units.L * 1100  # constant
 
-# ---------------------------------------------------------------------------
-# Map Sim Flux to Base Reaction Flux
-# ---------------------------------------------------------------------------
+    toya_reactions = validation_data.reactionFlux.toya2010fluxes["reactionID"]
+    toya_fluxes = toya.adjust_toya_data(
+        validation_data.reactionFlux.toya2010fluxes["reactionFlux"],
+        cell_mass,
+        dry_mass,
+        cell_density,
+    )  # outputs in mmol/L/s
+
+    # Align simulated and Toya fluxes to matching reaction IDs
+    # Comment: we are using a single time point FBA, so we can't get stdevs out
+    #          to still use the process_simulated_fluxes function, we will pass
+    #          a dummy time course array of (2, n_reactions) where the two time
+    #          points are identical (the single FBA solution)
+    sim_reaction_fluxes = FLUX_UNITS * np.vstack(
+        [sim_reaction_flux, sim_reaction_flux]
+    )  # (2, n_reactions)
+    sim_flux_means, sim_flux_stdevs = toya.process_simulated_fluxes(
+        toya_reactions, reaction_ids, sim_reaction_fluxes
+    )
+
+    toya_flux_means = toya.process_toya_data(
+        toya_reactions, toya_reactions, toya_fluxes
+    )
+
+    sim_means_num = sim_flux_means.asNumber(FLUX_UNITS)
+    toya_means_num = toya_flux_means.asNumber(FLUX_UNITS)
+
+    pearson_r_squared = float(np.corrcoef(sim_means_num, toya_means_num)[0, 1]) ** 2
+    ss_res = np.sum((sim_means_num - toya_means_num) ** 2)
+    ss_tot = np.sum((toya_means_num - np.mean(toya_means_num)) ** 2)
+    r_squared = float(1 - ss_res / ss_tot)
+
+    return pearson_r_squared, r_squared, toya_fluxes
 
 
 # ---------------------------------------------------------------------------
@@ -139,14 +193,6 @@ def solve_one(
             solver=solver_choice,
         )
 
-        # solution_flux = solution.velocities
-        # solution_flux_df = pl.DataFrame(
-        #     {
-        #         "reaction": reaction_names,
-        #         "flux": solution_flux,
-        #     }
-        # )
-
         return {
             "lambda_sec": lam_sec,
             "lambda_eff": lam_eff,
@@ -192,9 +238,12 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
                 color=alt.condition(
                     interval,
                     alt.Color(
-                        f"{lam_col}:Q",
-                        scale=alt.Scale(scheme="viridis"),
-                        title=f"λ_{title[:3].lower()}",
+                        "toya_r_squared:Q",
+                        scale=alt.Scale(scheme="viridis", domain=[0, 1.0]),
+                        legend=alt.Legend(
+                            title="R² (Coefficient of Determination)",
+                            values=[0, 0.2, 0.4, 0.6, 0.8, 1.0],
+                        ),
                     ),
                     alt.value("lightgray"),
                 ),
@@ -204,17 +253,21 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
                     alt.Tooltip(
                         f"{lam_col}:Q", format=".2e", title=f"λ_{title[:3].lower()}"
                     ),
+                    alt.Tooltip("toya_r_squared:Q", format=".3f", title="R² (COD)"),
                 ],
             )
             .properties(title=f"Homeostatic vs {title}", width=280, height=250)
         ).add_selection(interval)
         charts.append(chart)
 
-    combined_scatter = ((charts[0] | charts[1]) & (charts[2] | charts[3])).properties(
-        title="Pairwise Pareto: Homeostatic vs Secondary Objectives"
-    )
+    combined_scatter = (
+        ((charts[0] | charts[1]) & (charts[2] | charts[3]))
+        .properties(title="Pairwise Pareto: Homeostatic vs Secondary Objectives")
+        .resolve_scale(color="shared")
+    )  # shared color scale across all charts
 
-    # --- Make Table Alongside Selection (Rank By Homeostatic Objective)---
+    # --- Make Table Alongside Selection ---
+    # --- Rank by fit to Toya fluxes and largest lambda_norm ---
     # Base chart for data tables
     ranked_text = (
         alt.Chart(df)
@@ -229,7 +282,11 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
         )
         .transform_window(
             rank="rank()",
-            sort=[alt.SortField("lambda_norm", order="descending")],
+            sort=[
+                alt.SortField("toya_r_squared", order="descending"),
+                alt.SortField("toya_pearson_r_squared", order="descending"),
+                alt.SortField("lambda_norm", order="descending"),
+            ],
         )
         .transform_filter(alt.datum.rank <= 10)
         .properties(height=240)
@@ -248,15 +305,21 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
     lambda_div = ranked_text.encode(
         text=alt.Text("lambda_div:Q", format=".2e")
     ).properties(title=alt.Title(text="λ_div", align="right"))
-    obj_homeo = ranked_text.encode(
-        text=alt.Text("obj_homeo:Q", format=".3e")
-    ).properties(title=alt.Title(text="Homeostatic Obj.", align="right"))
+    # obj_homeo = ranked_text.encode(
+    #     text=alt.Text("obj_homeo:Q", format=".3e")
+    # ).properties(title=alt.Title(text="Homeostatic Obj.", align="right"))
     obj_kinetic = ranked_text.encode(
         text=alt.Text("obj_kin:Q", format=".3f")
     ).properties(title=alt.Title(text="Unweighted Kinetic Obj.", align="right"))
-    obj_secretion = ranked_text.encode(
-        text=alt.Text("obj_sec:Q", format=".3f")
-    ).properties(title=alt.Title(text="Unweighted Secretion Obj.", align="right"))
+    # obj_secretion = ranked_text.encode(
+    #     text=alt.Text("obj_sec:Q", format=".3f")
+    # ).properties(title=alt.Title(text="Unweighted Secretion Obj.", align="right"))
+    toya_r2 = ranked_text.encode(
+        text=alt.Text("toya_r_squared:Q", format=".3f")
+    ).properties(title=alt.Title(text="R² (COD)", align="right"))
+    toya_pearson_r2 = ranked_text.encode(
+        text=alt.Text("toya_pearson_r_squared:Q", format=".3f")
+    ).properties(title=alt.Title(text="Pearson R²", align="right"))
 
     # Combine Columns to Display
     text = alt.hconcat(
@@ -264,9 +327,11 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
         lambda_eff,
         lambda_kin,
         lambda_div,
-        obj_homeo,
+        # obj_homeo,
         obj_kinetic,
-        obj_secretion,
+        # obj_secretion,
+        toya_r2,
+        toya_pearson_r2,
     )
 
     # --- Plot Lambda Distributions for Selected Points ---
@@ -477,6 +542,23 @@ def run(
         lam_sec, lam_eff, lam_kin, lam_div = weight_samples[i]
 
         results = solve_one(lam_sec, lam_eff, lam_kin, lam_div, **fixed)
+
+        # convert solution_flux to base_reaction flux
+        if results is not None:
+            solution_flux = results["solution_flux"]  # in  mmol/L/s
+            base_reaction_flux = metabolism.reaction_mapping_matrix.dot(
+                solution_flux
+            )  # units of mmol/L/s
+            pearson_r_squared, r_squared, toya_fluxes = correlations_toya_fluxes(
+                metabolism.base_reaction_ids, base_reaction_flux
+            )
+
+            results.pop(
+                "solution_flux", None
+            )  # drop large flux array from results dict
+            results["toya_pearson_r_squared"] = pearson_r_squared
+            results["toya_r_squared"] = r_squared
+
         return results
 
     print(f"Solving {n_samples} problems ({n_jobs} parallel job(s))...")

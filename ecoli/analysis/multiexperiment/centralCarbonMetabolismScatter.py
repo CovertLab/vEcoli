@@ -58,7 +58,7 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    plot_by = params.get("plot_by", "generation")
+    plot_by = params.get("plot_by", "sim_meta")
     REDUXCLASSIC = params.get("is_reduxclassic", True)
 
     with open_arbitrary_sim_data(sim_data_dict) as f:
@@ -260,7 +260,7 @@ def plot(
     final_chart = (
         alt.layer(points, x_errorbars, y_errorbars, annotation, data=df_all)
         .properties(width=300, height=300)
-        .facet(facet=alt.Facet(f"{plot_by}:N", title=f"{plot_by}"), columns=5)
+        .facet(facet=alt.Facet(f"{plot_by}:N", title=f"{plot_by}"), columns=4)
         .resolve_scale(y="independent")
         .configure_view(strokeWidth=0, fill=None)
         .properties(title="Central Carbon Metabolism Flux")

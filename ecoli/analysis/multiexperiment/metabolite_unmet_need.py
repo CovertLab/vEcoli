@@ -186,9 +186,7 @@ def plot(
         y=alt.Y(
             "mean_abs_unmet:Q",
             title="Unmet need (mean |L1 diff|)",
-            scale=alt.Scale(
-                type="symlog"
-            ),  # ✅ safe here since mean_abs_unmet > 0 always
+            scale=alt.Scale(type="symlog"),
         ),
     )
 
@@ -200,9 +198,7 @@ def plot(
         fontWeight="bold",
     ).encode(
         y=alt.Y("mean_abs_unmet:Q", scale=alt.Scale(type="symlog")),
-        text=alt.Text(
-            "mean_abs_unmet:Q", format=".2e"
-        ),  # ✅ scientific notation e.g. 5.1e+03
+        text=alt.Text("mean_abs_unmet:Q", format=".2e"),
     )
 
     bar_chart = (bars + bar_labels).properties(height=220, width=600)
