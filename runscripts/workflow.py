@@ -922,7 +922,8 @@ def generate_code(config):
         run_parca = [
             f"\tfile('{kb_dir}').copyTo(\"${{params.publishDir}}/${{params.experimentId}}/parca/kb\")",
             # Create parca_out channel with config URI, config hash, kb URI, kb hash
-            f"\tChannel.of(tuple(params.config, '{config_hash}', '{kb_dir}', '{kb_hash}')).set {{ parca_out }}",
+            # Create value channel so it can be read unlimited times by downstream analyses
+            f"\tChannel.value(tuple(params.config, '{config_hash}', '{kb_dir}', '{kb_hash}')).set {{ parca_out }}",
         ]
     else:
         run_parca = [
