@@ -19,6 +19,12 @@ if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
 
 
+def esc_latex(s):
+    """Helper function to escape a string for LaTeX."""
+
+    return s.replace("_", r"\_")
+
+
 def plot(
     params: dict[str, Any],
     conn: "DuckDBPyConnection",
@@ -175,6 +181,7 @@ def plot(
                 {
                     rxnid: reaction_catalyst_mapping[rxnid]
                     for rxnid in base_reaction_id_to_reaction_ids[baseid]
+                    if rxnid in reaction_catalyst_mapping
                 }
                 for baseid in reaction_set
             ]
@@ -224,8 +231,8 @@ def plot(
                     for j, catalyst in enumerate(catalysts):
                         # Create label for this catalyst
                         label = ""
-                        label += f"{r'$\bf{' + base_rxn_label + '}$\n  ' if i == 0 and j == 0 else '  '}"
-                        label += f"{'\n  '.join(r'$\bf{' + line + '}$' for line in textwrap.wrap(suffix, width=40)) + '\n    ' if j == 0 and len(suffix) > 0 else '  '}"
+                        label += f"{r'$\bf{' + esc_latex(base_rxn_label) + '}$\n  ' if i == 0 and j == 0 else '  '}"
+                        label += f"{'\n  '.join(r'$\bf{' + esc_latex(line) + '}$' for line in textwrap.wrap(suffix, width=40)) + '\n    ' if j == 0 and len(suffix) > 0 else '  '}"
                         label += catalyst
 
                         # Plot catalyst counts vs time
