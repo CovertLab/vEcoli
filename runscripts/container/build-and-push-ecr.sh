@@ -175,6 +175,12 @@ echo "Git Branch: ${GIT_BRANCH}"
 echo "Timestamp: ${TIMESTAMP}"
 echo ""
 
+# Optional: bake an ecoli-sources data repo into the image. Pass the git URL
+# and ref as env vars (e.g. by the atlantis build job) so that parca can
+# read primary data without a per-task S3 fetch. Empty = skip the bake.
+ECOLI_SOURCES_REPO_URL="${ECOLI_SOURCES_REPO_URL:-}"
+ECOLI_SOURCES_REF="${ECOLI_SOURCES_REF:-main}"
+
 # Build the image
 docker build \
   -f runscripts/container/Dockerfile \
@@ -182,6 +188,8 @@ docker build \
   --build-arg git_hash="${GIT_HASH}" \
   --build-arg git_branch="${GIT_BRANCH}" \
   --build-arg timestamp="${TIMESTAMP}" \
+  --build-arg ECOLI_SOURCES_REPO_URL="${ECOLI_SOURCES_REPO_URL}" \
+  --build-arg ECOLI_SOURCES_REF="${ECOLI_SOURCES_REF}" \
   .
 
 # Also tag with latest for convenience

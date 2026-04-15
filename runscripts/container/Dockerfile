@@ -21,7 +21,7 @@ RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
 # g++ greatly improves performance of GillesPy2
 # ca-certificates and unzip necessary for AWS CLI installation
 # AWS CLI installation necessary for Nextflow's AWS Batch executor
-RUN apt-get update && apt-get install -y gcc procps nano curl g++ ca-certificates unzip \
+RUN apt-get update && apt-get install -y gcc procps nano curl g++ ca-certificates unzip git \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install AWS CLI v2 for S3 access in AWS Batch (supports both x86_64 and ARM64)
@@ -37,6 +37,27 @@ RUN ARCH=$(uname -m) \
     && unzip -q awscliv2.zip \
     && ./aws/install \
     && rm -rf awscliv2.zip aws
+
+# Optionally bake the public ecoli-sources data repo into the image so that
+# parca can read primary RNA-seq + adjustment data without a per-task S3 GET.
+# Driven by build-args:
+#   ECOLI_SOURCES_REPO_URL — git URL to clone (empty = skip the bake)
+#   ECOLI_SOURCES_REF      — branch / tag / commit (default: main)
+# When skipped, the container relies on a runtime ECOLI_SOURCES env var
+# (e.g. an S3 URI synced via `atlantis simulation run --sources …`).
+ARG ECOLI_SOURCES_REPO_URL=""
+ARG ECOLI_SOURCES_REF="main"
+RUN if [ -n "$ECOLI_SOURCES_REPO_URL" ]; then \
+        echo "=== Baking ecoli-sources into image: $ECOLI_SOURCES_REPO_URL @ $ECOLI_SOURCES_REF ===" \
+        && git clone --depth 1 --branch "$ECOLI_SOURCES_REF" \
+            "$ECOLI_SOURCES_REPO_URL" /ecoli-sources \
+        && echo "Baked $(ls /ecoli-sources/data/*.tsv 2>/dev/null | wc -l) TSVs from ecoli-sources"; \
+    else \
+        echo "=== Skipping ecoli-sources bake (ECOLI_SOURCES_REPO_URL unset) ==="; \
+    fi
+# Default ECOLI_SOURCES to the baked location. Workflows that override this
+# at runtime (e.g. with an s3:// URI) take precedence.
+ENV ECOLI_SOURCES=/ecoli-sources
 
 # Install the project into `/vEcoli`
 WORKDIR /vEcoli

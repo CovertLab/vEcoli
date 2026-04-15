@@ -90,41 +90,84 @@ def _cartesian_grid(param_grid: dict) -> list[dict]:
     return [dict(zip(keys, combo)) for combo in itertools.product(*value_lists)]
 
 
-def _generate_datasets(spec: dict, perturbations, manifest: pd.DataFrame,
-                       ecoli_sources_dir: Path) -> tuple[pd.DataFrame, list[str]]:
+def _expected_dataset_id(
+    perturbations,
+    operator: str,
+    source_dataset_id: str,
+    params: dict,
+    binary_partner: str | None = None,
+) -> str:
+    """
+    Reproduce the dataset_id naming convention used by
+    ``perturbations.make_(binary_)perturbation_variant`` so we can detect
+    pre-existing entries in the manifest before re-running the operator.
+    """
+    if binary_partner is not None:
+        params_for_record = {**params, "source_b": binary_partner}
+        params_hash = perturbations._hash_params(params_for_record)
+        return f"{source_dataset_id}__{operator}__{binary_partner}__{params_hash}"
+    params_hash = perturbations._hash_params(params)
+    return f"{source_dataset_id}__{operator}__{params_hash}"
+
+
+def _generate_datasets(
+    spec: dict, perturbations, manifest: pd.DataFrame, ecoli_sources_dir: Path,
+    *, regenerate: bool = False,
+) -> tuple[pd.DataFrame, list[str], int, int]:
+    """
+    Returns: (updated_manifest, generated_ids, n_new, n_reused).
+
+    Idempotent: if a perturbation with the expected dataset_id already exists
+    in the manifest, it is reused as-is unless ``regenerate=True``.
+    """
     operator = spec["operator"]
     data_dir = str(ecoli_sources_dir / "data")
     grid = _cartesian_grid(spec["param_grid"])
 
     is_binary = operator in perturbations.BINARY_OPERATORS
     generated_ids: list[str] = []
+    n_new = 0
+    n_reused = 0
 
-    if is_binary:
-        partner = spec.get("binary_partner")
-        if not partner:
-            raise ValueError(f"operator {operator!r} is binary; "
-                             f"spec must set 'binary_partner'")
-        for params in grid:
+    partner = spec.get("binary_partner")
+    if is_binary and not partner:
+        raise ValueError(
+            f"operator {operator!r} is binary; spec must set 'binary_partner'"
+        )
+
+    existing_ids: set[str] = set(manifest["dataset_id"])
+    source_id = spec["source_dataset_id"]
+
+    for params in grid:
+        expected_did = _expected_dataset_id(
+            perturbations, operator, source_id, params,
+            binary_partner=partner if is_binary else None,
+        )
+
+        if expected_did in existing_ids and not regenerate:
+            generated_ids.append(expected_did)
+            n_reused += 1
+            continue
+
+        if expected_did in existing_ids and regenerate:
+            # Drop the existing row so the driver's uniqueness check passes;
+            # the TSV will be overwritten in place.
+            manifest = manifest[manifest["dataset_id"] != expected_did].reset_index(drop=True)
+            existing_ids.discard(expected_did)
+
+        if is_binary:
             manifest, did = perturbations.make_binary_perturbation_variant(
-                manifest,
-                (spec["source_dataset_id"], partner),
-                operator,
-                params,
-                data_dir,
+                manifest, (source_id, partner), operator, params, data_dir,
             )
-            generated_ids.append(did)
-    else:
-        for params in grid:
+        else:
             manifest, did = perturbations.make_perturbation_variant(
-                manifest,
-                spec["source_dataset_id"],
-                operator,
-                params,
-                data_dir,
+                manifest, source_id, operator, params, data_dir,
             )
-            generated_ids.append(did)
+        generated_ids.append(did)
+        existing_ids.add(did)
+        n_new += 1
 
-    return manifest, generated_ids
+    return manifest, generated_ids, n_new, n_reused
 
 
 def _build_config(spec: dict, generated_ids: list[str]) -> dict:
@@ -155,7 +198,9 @@ def _build_config(spec: dict, generated_ids: list[str]) -> dict:
     return config
 
 
-def run_campaign(spec_path: str, *, dry_run: bool = False) -> str:
+def run_campaign(
+    spec_path: str, *, dry_run: bool = False, regenerate: bool = False,
+) -> str:
     with open(spec_path) as f:
         spec = json.load(f)
 
@@ -167,7 +212,7 @@ def run_campaign(spec_path: str, *, dry_run: bool = False) -> str:
         grid = _cartesian_grid(spec["param_grid"])
         print(f"[dry-run] campaign {name!r}: operator={spec['operator']!r} "
               f"source={spec['source_dataset_id']!r}")
-        print(f"[dry-run] would generate {len(grid)} perturbed datasets and "
+        print(f"[dry-run] would generate up to {len(grid)} perturbed datasets and "
               f"a multi-parca config with "
               f"{len(grid) + (1 if spec.get('include_source_as_baseline', True) else 0)} "
               f"parca_variants")
@@ -176,11 +221,18 @@ def run_campaign(spec_path: str, *, dry_run: bool = False) -> str:
     perturbations = _import_perturbations(ecoli_sources)
 
     initial_rows = len(manifest)
-    manifest, generated_ids = _generate_datasets(
-        spec, perturbations, manifest, ecoli_sources
+    manifest, generated_ids, n_new, n_reused = _generate_datasets(
+        spec, perturbations, manifest, ecoli_sources, regenerate=regenerate,
     )
-    print(f"Generated {len(generated_ids)} perturbed datasets "
-          f"({initial_rows} -> {len(manifest)} manifest rows)")
+    if n_reused:
+        print(
+            f"Reused {n_reused} existing perturbations "
+            f"(pass --regenerate to overwrite)"
+        )
+    print(
+        f"Generated {n_new} new perturbed datasets "
+        f"({initial_rows} -> {len(manifest)} manifest rows)"
+    )
 
     config = _build_config(spec, generated_ids)
 
@@ -210,9 +262,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--spec", required=True, help="Path to campaign JSON spec")
     p.add_argument("--dry-run", action="store_true",
                    help="Report what would be generated, don't write anything")
+    p.add_argument(
+        "--regenerate", action="store_true",
+        help="Re-run operators for any param combos whose perturbed dataset_id "
+        "already exists in the manifest (overwrites the TSV in place). Default "
+        "behavior reuses existing perturbations and only generates new ones.",
+    )
     args = p.parse_args(argv)
 
-    run_campaign(args.spec, dry_run=args.dry_run)
+    run_campaign(args.spec, dry_run=args.dry_run, regenerate=args.regenerate)
     return 0
 
 

@@ -77,7 +77,9 @@ if [ "$RUN_LOCAL" -ne 0 ]; then
   docker build -f runscripts/container/Dockerfile -t "${IMAGE}" \
     --build-arg git_hash="${GIT_HASH}" \
     --build-arg git_branch="${GIT_BRANCH}" \
-    --build-arg timestamp="${TIMESTAMP}" .
+    --build-arg timestamp="${TIMESTAMP}" \
+    --build-arg ECOLI_SOURCES_REPO_URL="${ECOLI_SOURCES_REPO_URL:-}" \
+    --build-arg ECOLI_SOURCES_REF="${ECOLI_SOURCES_REF:-main}" .
 elif [ "$BUILD_APPTAINER" -ne 0 ]; then
   # Create a temporary file for find exclude patterns
   EXCLUDE_PATTERNS=$(mktemp)
