@@ -117,7 +117,13 @@ documented in :ref:`/workflows.rst`.
         # or absolute) to output folder OR "out_uri" with URI for Google Cloud Storage
         # bucket. Only provide one of the above. Other Parquet emitter options are
         # documented under the Parquet Emitter section in the Output page.
-        "emitter_arg": {"out_dir": "out"},
+        "emitter_arg": {
+            "out_dir": "out",
+            # Whether to use background thread to write Parquet emits. Can
+            # marginally improve performance if disk speed is more of a
+            # bottleneck than CPU speed.
+            "threaded": true
+        },
         # See API documentation on vivarium-core for vivarium.core.engine.Engine.
         # Can usually leave as false.
         "emit_topology" : false,
@@ -366,7 +372,12 @@ documented in :ref:`/workflows.rst`.
             "rnap_data_listener": [["ecoli-metabolism"]],
             "unique_molecule_counts": [["ecoli-metabolism"]],
             "ribosome_data_listener": [["ecoli-metabolism"]]
-        }
+        },
+        # List of paths in the global simulation state to emit data for.
+        # No other paths in the simulations will be emitted. This is useful
+        # when running massive batches of simulations where only a few listeners
+        # will be read in downstream analyses.
+        "emit_paths": []
     }
 
 Here are some general rules to remember when writing your own JSON config files:

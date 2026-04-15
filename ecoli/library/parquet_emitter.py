@@ -8,6 +8,7 @@ import duckdb
 import numpy as np
 import polars as pl
 from polars.datatypes import DataTypeClass
+from fsspec import open as fsspec_open
 from fsspec.core import filesystem, url_to_fs, OpenFile
 from fsspec.spec import AbstractFileSystem
 from tqdm import tqdm
@@ -84,7 +85,11 @@ def json_to_parquet(
     temp_outfile = outfile
     if parse.urlparse(outfile).scheme in ("", "file", "local"):
         temp_outfile = outfile + ".tmp"
-    tbl.write_parquet(temp_outfile)
+    tbl.write_parquet(
+        temp_outfile,
+        # Increase retry attempts to handle S3/GCS failures
+        storage_options={"max_retries": 50, "retry_timeout_ms": 300000},
+    )
     if temp_outfile != outfile:
         filesystem.mv(temp_outfile, outfile)
 
@@ -106,25 +111,39 @@ def union_by_name(query_sql: str) -> str:
 
 
 def create_duckdb_conn(
-    temp_dir: str = "/tmp", gcs: bool = False, cpus: Optional[int] = None
+    temp_dir: str = "/tmp", object_store: str = "", cpus: Optional[int] = None
 ) -> duckdb.DuckDBPyConnection:
     """
     Create a DuckDB connection.
 
     Args:
         temp_dir: Temporary directory for spilling to disk.
-        gcs: Set to True if reading from Google Cloud Storage.
+        object_store: URI scheme of object store to register with DuckDB (e.g. "gcs" or "s3").
         cpus: Number of cores to use (by default, use all detected cores).
     """
     conn = duckdb.connect()
-    if gcs:
-        conn.register_filesystem(filesystem("gcs"))
+    if object_store == "s3":
+        # Use DuckDB's built-in HTTPFS extension for S3
+        # credential_chain uses AWS credential chain (env vars, ~/.aws/credentials,
+        # EC2 instance role, etc.) - works automatically on EC2 with IAM roles
+        conn.execute("INSTALL httpfs; LOAD httpfs;")
+        conn.execute("""
+            CREATE OR REPLACE SECRET secret (
+                TYPE s3,
+                PROVIDER credential_chain
+            );
+        """)
+    elif object_store:
+        # For GCS and other object stores, use fsspec
+        conn.register_filesystem(filesystem(object_store))
     # Temp directory so DuckDB can spill to disk when data larger than RAM
     conn.execute(f"SET temp_directory = '{temp_dir}'")
     # Turning this off reduces RAM usage
     conn.execute("SET preserve_insertion_order = false")
-    # Cache Parquet metadata so only needs to be scanned once
-    conn.execute("SET enable_object_cache = true")
+    # Do not cache Parquet metadata to reduce RAM usage
+    conn.execute("SET parquet_metadata_cache = false")
+    # Turn off Parquet file caching to reduce RAM usage
+    conn.execute("SET enable_external_file_cache = false")
     # Set number of threads for DuckDB
     if cpus is not None:
         conn.execute(f"SET threads = {cpus}")
@@ -509,22 +528,6 @@ def plot_metadata(
     }
 
 
-def open_output_file(outfile: str) -> OpenFile:
-    """
-    Open a file by its path, whether that be a path on local storage or
-    Google Cloud Storage.
-
-    Args:
-        outfile: Path to file. Must have ``gs://`` or ``gcs://`` prefix if
-            on Google Cloud Storage. Can be relative or absolute path if
-            on local storage.
-
-    Returns:
-        File object that supports reading, seeking, etc. in bytes
-    """
-    return url_to_fs(outfile)[0].open(outfile)
-
-
 def open_arbitrary_sim_data(sim_data_dict: dict[str, dict[int, Any]]) -> OpenFile:
     """
     Given a mapping from experiment ID(s) to mappings from variant ID(s)
@@ -539,7 +542,7 @@ def open_arbitrary_sim_data(sim_data_dict: dict[str, dict[int, Any]]) -> OpenFil
         with ``pickle.load``
     """
     sim_data_path = next(iter(next(iter(sim_data_dict.values())).values()))
-    return open_output_file(sim_data_path)
+    return fsspec_open(sim_data_path, "rb")
 
 
 def read_stacked_columns(

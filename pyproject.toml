@@ -13,7 +13,7 @@ build-backend = "setuptools.build_meta"
 name = "vEcoli"
 version = "1.1.0"
 description = "Whole Cell E. coli Model"
-requires-python = "==3.12.9"
+requires-python = "==3.12.12"
 dependencies = [
     "numpy",
     "scipy",
@@ -54,6 +54,11 @@ dependencies = [
     # Required to save Altair charts as PNG
     "vl-convert-python",
     "pandera",
+    "gillespy2>=1.8.3",
+    "pymc>=5.27.0",
+    "arviz-plots>=0.7.0",
+    "arviz>=0.23.0",
+    "s3fs>=2025.5.1",
 ]
 
 [project.optional-dependencies]
@@ -64,7 +69,12 @@ dev = [
     "ruff",
     "pre-commit",
     "jupyter",
-    "marimo[sql,lsp]"
+    "marimo[sql,lsp]",
+    "rdkit>=2025.9.3",
+    "google-cloud-billing",
+    "google-cloud-compute",
+    "boto3>=1.41.5",
+    "botocore[crt]>=1.41.5",
 ]
 docs = [
     "Sphinx",

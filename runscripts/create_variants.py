@@ -1,5 +1,6 @@
 import argparse
 import copy
+import hashlib
 import importlib
 import itertools
 import json
@@ -7,13 +8,16 @@ import os
 import pickle
 import shutil
 import subprocess
+import time
 from pathlib import Path
+from fsspec import open as fsspec_open
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
 from configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
+from wholecell.utils.filepath import cloud_path_join, is_cloud_uri
 
 if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
@@ -91,7 +95,7 @@ def parse_variants(
                 np_func = getattr(np, param_type)
             except AttributeError as e:
                 raise TypeError(f"{param_name} is unknown type {param_type}.") from e
-            parsed[param_name] = np_func(**param_vals)
+            parsed[param_name] = np_func(**param_vals).tolist()
 
     # Apply parameter operations
     if operation == "prod":
@@ -134,15 +138,14 @@ def apply_and_save_variants(
     variant_name: str,
     outdir: str,
     skip_baseline: bool,
-    offset: int = 0,
-):
+) -> list[tuple[int, str]]:
     """
     Applies variant function to ``sim_data`` with each parameter dictionary
     in ``param_dicts``. Saves each variant as ``{i}.cPickle``
     in ``outdir``, where ``i`` is the index of the parameter dictionary in
-    ``param_dicts`` used to create that variant (shifted by ``offset``).
-    Also saves ``metadata.json`` in ``outdir`` that maps each ``{i}`` to the
-    parameter dictionary used to create it.
+    ``param_dicts`` used to create that variant. Also saves ``metadata.json``
+    in ``outdir`` that maps each ``{i}`` to the parameter
+    dictionary used to create it.
 
     Args:
         sim_data: Simulation data object to modify
@@ -150,23 +153,31 @@ def apply_and_save_variants(
         variant_name: Name of variant function file in ``ecoli/variants`` folder
         outdir: Path to folder where variant ``sim_data`` pickles are saved
         skip_baseline: Whether to save metadata for baseline sim_data
-        offset: Index offset applied to all variant indices. Used when multiple
-            ParCa runs contribute variants to the same experiment so that each
-            ParCa's variants occupy a non-overlapping range of indices.
+
+    Returns:
+        List of (variant_idx, hash) tuples for each variant written
     """
+    # Use appropriate path join for cloud vs local paths
+    path_join = cloud_path_join if is_cloud_uri(outdir) else os.path.join
     variant_mod = importlib.import_module(f"ecoli.variants.{variant_name}")
     variant_metadata: dict[int, str | dict[str, Any]] = {}
+    variant_hashes: list[tuple[int, str]] = []
     if not skip_baseline:
-        variant_metadata[offset] = "baseline"
+        variant_metadata[0] = "baseline"
     for i, params in enumerate(param_dicts):
         sim_data_copy = copy.deepcopy(sim_data)
-        variant_metadata[offset + i + 1] = params
+        variant_metadata[i + 1] = params
         variant_sim_data = variant_mod.apply_variant(sim_data_copy, params)
-        outpath = os.path.join(outdir, f"{offset + i + 1}.cPickle")
-        with open(outpath, "wb") as f:
-            pickle.dump(variant_sim_data, f)
-    with open(os.path.join(outdir, "metadata.json"), "w") as f:
+        outpath = path_join(outdir, f"{i + 1}.cPickle")
+        # Serialize and compute hash
+        data_bytes = pickle.dumps(variant_sim_data)
+        data_hash = hashlib.sha256(data_bytes).hexdigest()
+        variant_hashes.append((i + 1, data_hash))
+        with fsspec_open(outpath, "wb") as f:
+            f.write(data_bytes)
+    with fsspec_open(path_join(outdir, "metadata.json"), "w") as f:
         json.dump({variant_name: variant_metadata}, f)
+    return variant_hashes
 
 
 def test_parse_variants():
@@ -190,6 +201,68 @@ def test_parse_variants():
         {"a": 2, "b": "two", "c": {"d": 3, "e": 5}},
         {"a": 2, "b": "two", "c": {"d": 4, "e": 6}},
     ]
+
+
+def test_parse_variants_zip():
+    """
+    Test variant parameter parsing with zip operation.
+    """
+    variant_config = {
+        "x": {"value": [10, 20, 30]},
+        "y": {"value": ["a", "b", "c"]},
+        "op": "zip",
+    }
+    parsed_params = parse_variants(variant_config)
+    assert parsed_params == [
+        {"x": 10, "y": "a"},
+        {"x": 20, "y": "b"},
+        {"x": 30, "y": "c"},
+    ]
+
+
+def test_parse_variants_add():
+    """
+    Test variant parameter parsing with add operation (concatenation).
+    """
+    variant_config = {
+        "x": {"value": [1, 2]},
+        "y": {"value": [3, 4]},
+        "op": "add",
+    }
+    parsed_params = parse_variants(variant_config)
+    assert parsed_params == [
+        {"x__y": 1},
+        {"x__y": 2},
+        {"x__y": 3},
+        {"x__y": 4},
+    ]
+
+
+def test_parse_variants_single():
+    """
+    Test variant parameter parsing with a single parameter (no op key).
+    """
+    variant_config = {"z": {"value": [100, 200, 300]}}
+    parsed_params = parse_variants(variant_config)
+    assert parsed_params == [{"z": 100}, {"z": 200}, {"z": 300}]
+
+
+def test_parse_variants_numpy():
+    """
+    Test variant parameter parsing using numpy functions (e.g. linspace, arange).
+    """
+    # Test np.linspace
+    variant_config = {"rate": {"linspace": {"start": [0.0], "stop": [1.0], "num": 3}}}
+    parsed_params = parse_variants(variant_config)
+    assert len(parsed_params) == 3
+    assert parsed_params[0] == {"rate": [0.0]}
+    assert parsed_params[1] == {"rate": [0.5]}
+    assert parsed_params[2] == {"rate": [1.0]}
+
+    # Test np.arange
+    variant_config = {"step": {"arange": {"start": 2, "stop": 8, "step": 2}}}
+    parsed_params = parse_variants(variant_config)
+    assert parsed_params == [{"step": 2}, {"step": 4}, {"step": 6}]
 
 
 class SimData:
@@ -244,6 +317,7 @@ def test_create_variants():
             assert variant_sim_data.b == variant_params["b"]
             assert variant_sim_data.d == variant_params["c"]["d"]
             assert variant_sim_data.e == variant_params["c"]["e"]
+            assert variant_sim_data.f == variant_params["c"]["f"]
     finally:
         shutil.rmtree("test_create_variants", ignore_errors=True)
 
@@ -279,39 +353,48 @@ def main():
         type=str,
         help="Path to folder where variant sim_data and metadata are written.",
     )
-    parser.add_argument(
-        "--offset",
-        action="store",
-        type=int,
-        default=0,
-        help=(
-            "Index offset applied to all variant indices. Use when multiple "
-            "ParCa runs contribute variants to the same experiment so that "
-            "each ParCa's variants occupy a non-overlapping range of indices."
-        ),
-    )
     args = parser.parse_args()
     with open(default_config, "r") as f:
         config = json.load(f)
     if args.config is not None:
-        with open(os.path.join(args.config), "r") as f:
+        with fsspec_open(args.config, "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
     for k, v in vars(args).items():
         if v is not None:
             config[k] = v
 
-    offset = config.get("offset", 0)
+    # Handle cloud vs local paths
+    kb_path = config["kb"]
+    outdir = config["outdir"]
+    path_join = cloud_path_join if is_cloud_uri(kb_path) else os.path.join
+
     print("Loading sim_data...")
-    with open(os.path.join(config["kb"], "simData.cPickle"), "rb") as f:
+    with fsspec_open(path_join(kb_path, "simData.cPickle"), "rb") as f:
         sim_data = pickle.load(f)
-    config_outdir = os.path.abspath(config["outdir"])
-    os.makedirs(config_outdir, exist_ok=True)
+
+    # Handle output directory - only expand to absolute for local paths
+    if is_cloud_uri(outdir):
+        config_outdir = outdir
+        out_path_join = cloud_path_join
+    else:
+        config_outdir = os.path.abspath(outdir)
+        os.makedirs(config_outdir, exist_ok=True)
+        out_path_join = os.path.join
+
+    # Track variant info: (uri, hash, variant_idx)
+    variant_info: list[tuple[int, str, str]] = []
+
     if config["skip_baseline"]:
         print("Skipping baseline sim_data...")
     else:
         print("Saving baseline sim_data...")
-        with open(os.path.join(config_outdir, f"{offset}.cPickle"), "wb") as f:
-            pickle.dump(sim_data, f)
+        baseline_path = out_path_join(config_outdir, "0.cPickle")
+        baseline_bytes = pickle.dumps(sim_data)
+        baseline_hash = hashlib.sha256(baseline_bytes).hexdigest()
+        with fsspec_open(baseline_path, "wb") as f:
+            f.write(baseline_bytes)
+        variant_info.append((baseline_path, baseline_hash, 0))
+
     variant_config = config.get("variants", {})
     if len(variant_config) > 1:
         raise RuntimeError(
@@ -325,17 +408,32 @@ def main():
         print("Parsing variants...")
         parsed_params = parse_variants(variant_params)
         print("Applying variants and saving variant sim_data...")
-        apply_and_save_variants(
+        variant_hashes = apply_and_save_variants(
             sim_data,
             parsed_params,
             variant_name,
             config_outdir,
             config["skip_baseline"],
-            offset=offset,
         )
+        # Add variant info
+        for var_idx, var_hash in variant_hashes:
+            var_path = out_path_join(config_outdir, f"{var_idx}.cPickle")
+            variant_info.append((var_path, var_hash, var_idx))
     else:
-        with open(os.path.join(config_outdir, "metadata.json"), "w") as f:
-            json.dump({None: {offset: "baseline"}}, f)
+        with fsspec_open(out_path_join(config_outdir, "metadata.json"), "w") as f:
+            json.dump({None: {0: "baseline"}}, f)
+
+    # Write metadata_uri to file for Nextflow (cloud URI of metadata.json)
+    metadata_uri = out_path_join(config_outdir, "metadata.json")
+    with open("metadata_uri.txt", "w") as f:
+        f.write(metadata_uri)
+
+    # Write variant info to file for Nextflow (local only)
+    # Each line: variant_name<TAB>sim_data_uri<TAB>sim_data_hash
+    with open("variant_info.txt", "w") as f:
+        for var_idx, var_uri, var_hash in variant_info:
+            f.write(f"{var_idx}\t{var_uri}\t{var_hash}\n")
+    print(f"{time.ctime()}: Wrote {len(variant_info)} variant(s) to {config_outdir}")
     print("Done.")
 
 

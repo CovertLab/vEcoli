@@ -2,9 +2,6 @@ name: Docker Build and Security Scan
 
 permissions:
   contents: read
-  security-events: write
-  pull-requests: write
-  actions: read
 
 on:
   push:
@@ -22,16 +19,24 @@ concurrency:
 
 jobs:
   buildx:
+    permissions:
+      contents: read
+      actions: read            # Required for upload-sarif to get workflow run info
+      security-events: write   # Required for uploading SARIF results
+      pull-requests: write     # Required for PR comments summarizing vulnerabilities
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
 
       - name: Build image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294
         with:
           context: .
           file: runscripts/container/Dockerfile
@@ -41,14 +46,14 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Analyze for critical and high CVEs
         id: docker-scout-cves
-        uses: docker/scout-action@v1
+        uses: docker/scout-action@8910519cee8ac046f3ee99686b0dc6654d5ba1a7
         with:
           command: cves,recommendations
           image: vecoli:latest
@@ -57,6 +62,6 @@ jobs:
 
       - name: Upload SARIF result
         id: upload-sarif
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@7434149006143a4d75b82a2f411ef15b03ccc2d7
         with:
           sarif_file: sarif.output.json
