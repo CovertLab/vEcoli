@@ -2,8 +2,8 @@
   "experiment_id": "pilot_expression_noise",
   "suffix_time": true,
   "sim_data_path": null,
-  "generations": 2,
-  "n_init_sims": 2,
+  "generations": 3,
+  "n_init_sims": 3,
   "lineage_seed": 0,
   "single_daughters": true,
   "parca_options": {
@@ -69,6 +69,11 @@
     },
     "multiseed": {
       "cd1_higher_order_properties": {}
+    },
+    "multivariant": {
+      "sensitivity_overview": {
+        "campaign_sidecar": "configs/campaigns/pilot_expression_noise.campaign.json"
+      }
     }
   }
 }
