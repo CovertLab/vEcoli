@@ -1,6 +1,7 @@
 import argparse
 import copy
 import hashlib
+import importlib.util
 import json
 import os
 import pathlib
@@ -903,14 +904,70 @@ def generate_lineage(
         )
 
     if analysis_config.get("parca", False):
-        sim_workflow.append("\tanalysisParca(parca_out)")
+        # analysisParca is per-parca: feed the full multi-parca channel rather
+        # than the single-tuple parca_out (which is just parca_0). For
+        # single-parca workflows the channel emits one element so behavior
+        # is identical to the prior `analysisParca(parca_out)` call.
+        sim_workflow.append(
+            "\tanalysisParca(parca_out_full"
+            ".map { id, c_uri, c_hash, k_uri, k_hash, off -> "
+            "tuple(c_uri, c_hash, k_uri, k_hash) })"
+        )
 
     return sim_imports, sim_workflow
 
 
-def generate_code(config):
+def _count_pickles_per_parca(config: dict) -> int:
+    """
+    Compute how many sim_data pickles each ParCa run will produce,
+    given the workflow's variant + skip_baseline configuration.
+
+    Result = (# variants, or 1 if no variants) + (1 if not skip_baseline else 0).
+    Used to allocate non-overlapping variant index ranges across parcas.
+
+    Imports `parse_variants` from `runscripts/create_variants.py` via importlib
+    to avoid pulling its heavyweight dependencies into workflow.py.
+    """
+    variant_config = config.get("variants") or {}
+    skip_baseline = bool(config.get("skip_baseline", False))
+
+    n_variants = 0
+    if variant_config:
+        spec = importlib.util.spec_from_file_location(
+            "_create_variants_for_count",
+            os.path.join(NEXTFLOW_DIR, "..", "create_variants.py"),
+        )
+        if spec is None or spec.loader is None:
+            raise RuntimeError("could not load create_variants.py for variant counting")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        # parse_variants mutates its input dict (.pop('op')); pass a deepcopy.
+        variant_name = next(iter(variant_config))
+        n_variants = len(mod.parse_variants(copy.deepcopy(variant_config[variant_name])))
+
+    return n_variants + (0 if skip_baseline else 1)
+
+
+def generate_code(config, parca_config_uris=None):
+    """
+    Generate the Nextflow workflow body that gets substituted into template.nf
+    at the RUN_PARCA / IMPORTS / WORKFLOW markers.
+
+    parca_config_uris is a list of per-parca workflow_config URIs. For
+    single-parca workflows it is a single-element list (the global config URI).
+    For multi-parca it is one URI per entry in `config["parca_variants"]`.
+    """
+    if parca_config_uris is None:
+        parca_config_uris = []
+    n_parca = max(1, len(parca_config_uris))
+    pickles_per_parca = _count_pickles_per_parca(config)
+
     sim_data_path = config.get("sim_data_path")
     if sim_data_path is not None:
+        if n_parca > 1:
+            raise RuntimeError(
+                "sim_data_path bypasses parca; cannot combine with parca_variants."
+            )
         # Pre-existing sim_data: compute hashes for cache invalidation
         kb_dir = os.path.dirname(sim_data_path)
         kb_hash = compute_file_hash(sim_data_path)
@@ -919,15 +976,35 @@ def generate_code(config):
         config_hash = hashlib.sha256(
             json.dumps(stripped, sort_keys=True).encode()
         ).hexdigest()
+        # Stage kb into the parca_0/ slot so downstream paths line up with
+        # the multi-parca convention. Then construct the same shape as
+        # runParca.out.parca_out so workflow logic is uniform.
         run_parca = [
-            f"\tfile('{kb_dir}').copyTo(\"${{params.publishDir}}/${{params.experimentId}}/parca/kb\")",
-            # Create parca_out channel with config URI, config hash, kb URI, kb hash
-            f"\tChannel.of(tuple(params.config, '{config_hash}', '{kb_dir}', '{kb_hash}')).set {{ parca_out }}",
+            f"\tfile('{kb_dir}').copyTo(\"${{params.publishDir}}/${{params.experimentId}}/parca_0/kb\")",
+            f"\tChannel.of(tuple(0, params.config, '{config_hash}', "
+            f"\"${{params.publishDir}}/${{params.experimentId}}/parca_0/kb\", "
+            f"'{kb_hash}', 0)).set {{ parca_out_full }}",
         ]
     else:
+        # Single- or multi-parca: build a channel of (parca_id, config_uri, file(config_uri), offset) tuples
+        # and let runParca fan out automatically.
+        if not parca_config_uris:
+            # Defensive: this branch shouldn't be hit if main() always passes a list,
+            # but keep a safe fallback (single-parca on params.config).
+            parca_config_uris = ["params.config"]
+            # In that fallback we emit it raw (no quoting) so it resolves to params.config.
+            channel_items = (
+                f"[0, params.config, file(params.config), 0]"
+            )
+        else:
+            channel_items = ", ".join(
+                f"[{i}, '{uri}', file('{uri}'), {i * pickles_per_parca}]"
+                for i, uri in enumerate(parca_config_uris)
+            )
         run_parca = [
-            "\trunParca(params.config)",
-            "\trunParca.out.parca_out.set { parca_out }",
+            f"\tChannel.of({channel_items}).set {{ parcaInputCh }}",
+            "\trunParca(parcaInputCh)",
+            "\trunParca.out.parca_out.set { parca_out_full }",
         ]
     seed = config.get("seed", 0)
     generations = config.get("generations", 0)
@@ -1358,21 +1435,6 @@ def main():
     user_config = load_config_with_inheritance(args.config)
     _merge_configs(config, user_config)
 
-    # Multi-parca support is being re-implemented on top of master's content-
-    # addressed parca_out / variant_info channels. The previous implementation
-    # (channel of (parca_id, kb, offset) tuples + mergeVariantMetadata) does
-    # not compose with the new caching API. Fail loudly so users with old
-    # configs aren't silently downgraded to single-parca.
-    # See: .claude/plans/dataset-sensitivity-exploration.md (Part 4).
-    if config.get("parca_variants"):
-        raise NotImplementedError(
-            "`parca_variants` (multi-parca workflow) is temporarily disabled "
-            "after the master merge introduced content-addressed parca caching. "
-            "It will be re-implemented on top of the new tuple shape — see the "
-            "follow-up task tracked in the merge commit. For now, run a single "
-            "parca per workflow invocation, or sequence multiple workflow runs."
-        )
-
     experiment_id = config["experiment_id"]
     if experiment_id is None:
         raise RuntimeError("No experiment ID was provided.")
@@ -1460,6 +1522,37 @@ def main():
         json.dump(stripped_config, f)
     if args.resume is None:
         copy_to_filesystem(temp_stripped_path, final_stripped_path, filesystem)
+
+    # Per-parca config files: one per entry in `parca_variants` (or a single
+    # default when `parca_variants` is unset). Each file is the stripped
+    # config with that entry's `parca_options` overrides merged in. The URIs
+    # are passed into generate_code() so the ParCa channel knows which
+    # config + offset each parca should use.
+    parca_variants_list = config.get("parca_variants") or []
+    parca_config_uris: list[str] = []
+    if parca_variants_list:
+        for i, override in enumerate(parca_variants_list):
+            per_parca = copy.deepcopy(stripped_config)
+            per_parca.setdefault("parca_options", {})
+            per_parca["parca_options"].update(override)
+            # Resolve $ECOLI_SOURCES in rnaseq_manifest_path so containers
+            # downstream see an absolute path; expand env-var first so
+            # `os.path.isabs` doesn't misclassify the literal '$' string.
+            manifest = per_parca["parca_options"].get("rnaseq_manifest_path")
+            if manifest:
+                from wholecell.io.ingestion import resolve_ecoli_sources_path
+                manifest = resolve_ecoli_sources_path(manifest)
+                if not os.path.isabs(manifest) and not parse.urlparse(manifest).scheme:
+                    manifest = os.path.join(repo_dir, manifest)
+                per_parca["parca_options"]["rnaseq_manifest_path"] = manifest
+            local_parca_path = os.path.join(local_outdir, f"parca_config_{i}.json")
+            with open(local_parca_path, "w") as f:
+                json.dump(per_parca, f)
+            final_parca_path = os.path.join(outdir, f"parca_config_{i}.json")
+            final_parca_uri = os.path.join(out_uri, f"parca_config_{i}.json")
+            if args.resume is None:
+                copy_to_filesystem(local_parca_path, final_parca_path, filesystem)
+            parca_config_uris.append(final_parca_uri)
 
     nf_config = os.path.join(os.path.dirname(__file__), "nextflow", "config.template")
     with open(nf_config, "r") as f:
@@ -1553,7 +1646,7 @@ def main():
     with open(local_config, "w") as f:
         f.writelines(nf_config)
 
-    run_parca, sim_imports, sim_workflow = generate_code(config)
+    run_parca, sim_imports, sim_workflow = generate_code(config, parca_config_uris)
 
     nf_template_path = os.path.join(
         os.path.dirname(__file__), "nextflow", "template.nf"

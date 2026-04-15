@@ -138,14 +138,14 @@ def apply_and_save_variants(
     variant_name: str,
     outdir: str,
     skip_baseline: bool,
+    offset: int = 0,
 ) -> list[tuple[int, str]]:
     """
     Applies variant function to ``sim_data`` with each parameter dictionary
     in ``param_dicts``. Saves each variant as ``{i}.cPickle``
-    in ``outdir``, where ``i`` is the index of the parameter dictionary in
-    ``param_dicts`` used to create that variant. Also saves ``metadata.json``
-    in ``outdir`` that maps each ``{i}`` to the parameter
-    dictionary used to create it.
+    in ``outdir``, where ``i = offset + (1-based index) of the parameter
+    dictionary in ``param_dicts``. Also saves ``metadata.json`` in ``outdir``
+    that maps each ``i`` to the parameter dictionary used to create it.
 
     Args:
         sim_data: Simulation data object to modify
@@ -153,6 +153,11 @@ def apply_and_save_variants(
         variant_name: Name of variant function file in ``ecoli/variants`` folder
         outdir: Path to folder where variant ``sim_data`` pickles are saved
         skip_baseline: Whether to save metadata for baseline sim_data
+        offset: Index offset applied to all variant indices. Used when multiple
+            ParCa runs contribute variants to the same experiment so that each
+            ParCa's variants occupy a non-overlapping range of indices. The
+            baseline (when not skipped) is stored at ``{offset}.cPickle`` and
+            variants at ``{offset + 1}``, ``{offset + 2}``, ...
 
     Returns:
         List of (variant_idx, hash) tuples for each variant written
@@ -163,16 +168,17 @@ def apply_and_save_variants(
     variant_metadata: dict[int, str | dict[str, Any]] = {}
     variant_hashes: list[tuple[int, str]] = []
     if not skip_baseline:
-        variant_metadata[0] = "baseline"
+        variant_metadata[offset] = "baseline"
     for i, params in enumerate(param_dicts):
         sim_data_copy = copy.deepcopy(sim_data)
-        variant_metadata[i + 1] = params
+        idx = offset + i + 1
+        variant_metadata[idx] = params
         variant_sim_data = variant_mod.apply_variant(sim_data_copy, params)
-        outpath = path_join(outdir, f"{i + 1}.cPickle")
+        outpath = path_join(outdir, f"{idx}.cPickle")
         # Serialize and compute hash
         data_bytes = pickle.dumps(variant_sim_data)
         data_hash = hashlib.sha256(data_bytes).hexdigest()
-        variant_hashes.append((i + 1, data_hash))
+        variant_hashes.append((idx, data_hash))
         with fsspec_open(outpath, "wb") as f:
             f.write(data_bytes)
     with fsspec_open(path_join(outdir, "metadata.json"), "w") as f:
@@ -353,6 +359,19 @@ def main():
         type=str,
         help="Path to folder where variant sim_data and metadata are written.",
     )
+    parser.add_argument(
+        "--offset",
+        action="store",
+        type=int,
+        default=0,
+        help=(
+            "Index offset applied to all variant indices. Use when multiple "
+            "ParCa runs contribute variants to the same experiment so that "
+            "each ParCa's variants occupy a non-overlapping range of indices. "
+            "Baseline becomes {offset}.cPickle, variants are "
+            "{offset+1}.cPickle, etc."
+        ),
+    )
     args = parser.parse_args()
     with open(default_config, "r") as f:
         config = json.load(f)
@@ -381,6 +400,8 @@ def main():
         os.makedirs(config_outdir, exist_ok=True)
         out_path_join = os.path.join
 
+    offset: int = config.get("offset", 0)
+
     # Track variant info: (uri, hash, variant_idx)
     variant_info: list[tuple[int, str, str]] = []
 
@@ -388,12 +409,12 @@ def main():
         print("Skipping baseline sim_data...")
     else:
         print("Saving baseline sim_data...")
-        baseline_path = out_path_join(config_outdir, "0.cPickle")
+        baseline_path = out_path_join(config_outdir, f"{offset}.cPickle")
         baseline_bytes = pickle.dumps(sim_data)
         baseline_hash = hashlib.sha256(baseline_bytes).hexdigest()
         with fsspec_open(baseline_path, "wb") as f:
             f.write(baseline_bytes)
-        variant_info.append((baseline_path, baseline_hash, 0))
+        variant_info.append((baseline_path, baseline_hash, offset))
 
     variant_config = config.get("variants", {})
     if len(variant_config) > 1:
@@ -414,6 +435,7 @@ def main():
             variant_name,
             config_outdir,
             config["skip_baseline"],
+            offset=offset,
         )
         # Add variant info
         for var_idx, var_hash in variant_hashes:
@@ -421,7 +443,7 @@ def main():
             variant_info.append((var_path, var_hash, var_idx))
     else:
         with fsspec_open(out_path_join(config_outdir, "metadata.json"), "w") as f:
-            json.dump({None: {0: "baseline"}}, f)
+            json.dump({None: {offset: "baseline"}}, f)
 
     # Write metadata_uri to file for Nextflow (cloud URI of metadata.json)
     metadata_uri = out_path_join(config_outdir, "metadata.json")

@@ -1,21 +1,29 @@
 process runParca {
-    // Run ParCa using parca_options from config JSON
-    // Outputs directly to publishDir via fsspec and returns URIs + hash for downstream processes
+    // Run ParCa using parca_options from config JSON.
+    // Outputs directly to publishDir via fsspec and returns URIs + hash for
+    // downstream processes.
+    //
+    // parca_id distinguishes parallel ParCa runs (e.g. different RNA-seq
+    // datasets in a multi-parca workflow). For single-parca workflows it is 0.
+    // offset is the index shift applied by the downstream createVariants
+    // process so variants from different parcas occupy non-overlapping
+    // index ranges; 0 for single-parca.
 
     label "parca"
 
     input:
-    path config
+    tuple val(parca_id), val(config_uri), path(config), val(offset)
 
     output:
-    // Output URIs and hash for cache invalidation in downstream processes
-    // Use params.config for the full URI since config is now a staged local path
-    tuple val(params.config), env('config_hash'), val("${params.publishDir}/${params.experimentId}/parca/kb"), env('kb_hash'), emit: parca_out
+    // (parca_id, config_uri, config_hash, kb_uri, kb_hash, offset)
+    // config_hash is the sha256 of the *per-parca* config so cache invalidation
+    // is per-parca-correct even though config_uri may be the global config.
+    tuple val(parca_id), val(config_uri), env('config_hash'), val("${params.publishDir}/${params.experimentId}/parca_${parca_id}/kb"), env('kb_hash'), val(offset), emit: parca_out
 
     script:
-    def publish_path = "${params.publishDir}/${params.experimentId}/parca"
+    def publish_path = "${params.publishDir}/${params.experimentId}/parca_${parca_id}"
     """
-    # Compute config hash for cache invalidation
+    # Compute config hash for cache invalidation (per-parca config content)
     export config_hash=\$(sha256sum $config | cut -d' ' -f1)
 
     # Run parca, outputting directly to publish location via fsspec
@@ -29,7 +37,7 @@ process runParca {
 
     stub:
     // Only intended for local testing (not on AWS/GCP)
-    def publish_path = "${params.publishDir}/${params.experimentId}/parca/kb"
+    def publish_path = "${params.publishDir}/${params.experimentId}/parca_${parca_id}/kb"
     """
     export config_hash=\$(sha256sum $config | cut -d' ' -f1)
     mkdir -p ${publish_path}
@@ -71,42 +79,91 @@ process analysisParca {
 }
 
 process createVariants {
-    // Parse variants in config JSON to generate variants
-    // Outputs directly to publishDir via fsspec and returns variant URIs + hashes
+    // Parse variants in config JSON to generate variants.
+    // Outputs directly to publishDir via fsspec and returns variant URIs + hashes.
+    //
+    // parca_id + offset enable multi-parca: each parca's variants land at
+    // distinct indices, and metadata is namespaced by parca_id so that
+    // mergeVariantMetadata can deep-merge them.
 
     label "slurm_submit"
 
     input:
-    // Accept URIs and hashes (hashes for cache invalidation)
-    tuple val(config_uri), val(config_hash), val(kb_uri), val(kb_hash)
+    tuple val(parca_id), val(config_uri), val(config_hash), val(kb_uri), val(kb_hash), val(offset)
 
     output:
-    // Output variant URIs, hashes, and metadata URI (no file staging for metadata)
+    // (config_uri, config_hash, variant_info_path)  — variant_info.txt rows
+    // are offset-shifted, so flattening across parcas yields globally unique
+    // variant indices.
     tuple val(config_uri), val(config_hash), path('variant_info.txt'), emit: variantInfo
-    env 'metadata_uri', emit: variantMetadataUri
+    // Per-parca metadata file; mergeVariantMetadata combines all of them.
+    path "metadata_${parca_id}.json", emit: variantMetadata
 
     script:
     def publish_path = "${params.publishDir}/${params.experimentId}/variant_sim_data"
     """
-    # Run create_variants.py - it reads kb and writes outputs directly via fsspec
     PYTHONUNBUFFERED=1 python ${params.projectRoot}/runscripts/create_variants.py \\
-        --config "${config_uri}" --kb "${kb_uri}" -o "${publish_path}"
+        --config "${config_uri}" --kb "${kb_uri}" --offset ${offset} \\
+        -o "${publish_path}"
 
-    # Read metadata URI from file written by create_variants.py
-    export metadata_uri=\$(cat metadata_uri.txt)
+    # Rename metadata.json to metadata_<parca_id>.json so per-parca files don't
+    # collide in the merge step.
+    mv metadata.json metadata_${parca_id}.json
     """
 
     stub:
     def publish_path = "${params.publishDir}/${params.experimentId}/variant_sim_data"
     """
     mkdir -p ${publish_path}
-    echo "baseline" > ${publish_path}/0.cPickle
-    echo "variant_1" > ${publish_path}/1.cPickle
-    echo "variant_2" > ${publish_path}/2.cPickle
+    echo "baseline" > ${publish_path}/${offset}.cPickle
+    echo "variant_${parca_id}_1" > ${publish_path}/\$((${offset} + 1)).cPickle
+    echo "variant_${parca_id}_2" > ${publish_path}/\$((${offset} + 2)).cPickle
+    echo '{"null": {"${offset}": "baseline"}}' > metadata_${parca_id}.json
+    echo "${publish_path}/${offset}.cPickle\tmock_hash_${parca_id}_0\t${offset}" > variant_info.txt
+    echo "${publish_path}/\$((${offset} + 1)).cPickle\tmock_hash_${parca_id}_1\t\$((${offset} + 1))" >> variant_info.txt
+    echo "${publish_path}/\$((${offset} + 2)).cPickle\tmock_hash_${parca_id}_2\t\$((${offset} + 2))" >> variant_info.txt
+    """
+}
+
+
+process mergeVariantMetadata {
+    // Combine per-parca metadata_<parca_id>.json files into the unified
+    // metadata.json that downstream analyses expect. For single-parca workflows
+    // this is a near-no-op (one file in, one file out, but written to a stable
+    // URI that downstream can reference).
+    //
+    // Deep-merges by variant_name so that the same variant key across parcas
+    // gets its variant_idx -> params dicts combined (rather than overwritten).
+
+    label "slurm_submit"
+
+    input:
+    path 'metadata_*.json'
+
+    output:
+    env 'metadata_uri', emit: variantMetadataUri
+
+    script:
+    def publish_path = "${params.publishDir}/${params.experimentId}/variant_sim_data"
+    """
+    python <<'PY'
+import json, glob, fsspec
+merged = {}
+for f in sorted(glob.glob('metadata_*.json')):
+    with open(f) as fh:
+        for vname, vmeta in json.load(fh).items():
+            merged.setdefault(vname, {}).update(vmeta)
+with fsspec.open('${publish_path}/metadata.json', 'w') as fh:
+    json.dump(merged, fh)
+PY
+    export metadata_uri='${publish_path}/metadata.json'
+    """
+
+    stub:
+    def publish_path = "${params.publishDir}/${params.experimentId}/variant_sim_data"
+    """
+    mkdir -p ${publish_path}
     echo '{"null": {"0": "baseline"}}' > ${publish_path}/metadata.json
-    echo "${publish_path}/0.cPickle\tmock_hash_0\t0" > variant_info.txt
-    echo "${publish_path}/1.cPickle\tmock_hash_1\t1" >> variant_info.txt
-    echo "${publish_path}/2.cPickle\tmock_hash_2\t2" >> variant_info.txt
     export metadata_uri=${publish_path}/metadata.json
     """
 }
@@ -167,22 +224,32 @@ IMPORTS
 
 workflow {
 RUN_PARCA
-    createVariants(parca_out)
-    // Parse variant_info.txt to create channel of (config_uri, config_hash, sim_data_uri, sim_data_hash, variant_name)
+    // parca_out_full carries (parca_id, config_uri, config_hash, kb_uri, kb_hash, offset)
+    // — one element per parca run. createVariants fans out automatically.
+    createVariants(parca_out_full)
+    // variantInfo emits (config_uri, config_hash, variant_info.txt) per parca;
+    // flattening across parcas produces globally unique (offset-shifted) variant rows.
     createVariants.out
         .variantInfo
         .map { config_uri, config_hash, variant_file ->
             variant_file.readLines().collect { line ->
                 def parts = line.split('\t')
-                // variant_info.txt format: sim_data_uri<TAB>sim_data_hash<TAB>variant_name
+                // variant_info.txt format: sim_data_uri<TAB>sim_data_hash<TAB>variant_idx
                 tuple(config_uri, config_hash, parts[0], parts[1], parts[2])
             }
         }
         .flatMap { it }
         .set { variantCh }
-    createVariants.out
-        .variantMetadataUri
-        .set { variantMetadataCh }
+    // Collect per-parca metadata files and merge into one metadata.json.
+    // For single-parca runs this is a 1-in-1-out pass-through.
+    mergeVariantMetadata(createVariants.out.variantMetadata.collect())
+    mergeVariantMetadata.out.variantMetadataUri.set { variantMetadataCh }
+    // Single tuple for cross-parca analyses (analysisMultiVariant, analysisParca,
+    // ...) — use parca_0's, since validationData doesn't depend on rnaseq_options.
+    parca_out_full
+        .filter { it[0] == 0 }
+        .map { parca_id, c_uri, c_hash, k_uri, k_hash, off -> tuple(c_uri, c_hash, k_uri, k_hash) }
+        .set { parca_out }
 WORKFLOW
     // Fit as many sims per worker as possible based on available cores
     def simsPerWorker = Math.max(1, params.hq_cores.intdiv(params.sim_cpus))

@@ -7,11 +7,17 @@ This module is intentionally narrow for now:
 - Validate them against the RNA-seq schemas.
 - Provide a small convenience wrapper to fetch a single transcriptome
   given a manifest and ``dataset_id``.
+
+Paths passed into the public entry points may be local paths OR cloud URIs
+(``s3://``, ``gs://``, ``gcs://``). Cloud URIs are handled transparently via
+fsspec (``s3fs`` / ``gcsfs`` are project dependencies) — existence checks,
+file-path normalization, and pandas reads all understand both flavors.
 """
 
 from __future__ import annotations
 
 import os
+import posixpath
 from pathlib import Path
 from typing import Tuple, Union
 
@@ -21,6 +27,7 @@ from wholecell.io.schemas.rnaseq import (
     RnaseqSamplesManifestSchema,
     RnaseqTpmTableSchema,
 )
+from wholecell.utils.filepath import is_cloud_uri
 
 PathLike = Union[str, Path]
 
@@ -39,6 +46,9 @@ def resolve_ecoli_sources_path(path: PathLike | None) -> str | None:
     If the environment variable is unset, falls back to the sibling
     ``<vEcoli-repo-root>/../ecoli-sources`` directory. Returns ``None`` for
     a ``None`` input so legacy "no manifest" configs keep working.
+
+    Cloud URIs are preserved intact (``os.path.expanduser`` is a no-op on
+    ``s3://…``).
     """
     if path is None:
         return None
@@ -49,10 +59,33 @@ def resolve_ecoli_sources_path(path: PathLike | None) -> str | None:
     return os.path.expanduser(s)
 
 
+def path_exists(path: PathLike) -> bool:
+    """
+    Existence check that works for both local paths and cloud URIs.
+
+    For ``s3://``, ``gs://``, ``gcs://`` URIs this consults the fsspec
+    filesystem (``s3fs`` / ``gcsfs``). For local paths it returns
+    ``os.path.isfile``.
+    """
+    s = str(path)
+    if is_cloud_uri(s):
+        import fsspec
+        fs, key = fsspec.core.url_to_fs(s)
+        return bool(fs.exists(key))
+    return os.path.isfile(s)
+
+
 def _read_tsv(path: PathLike) -> pd.DataFrame:
-    """Read a tab-delimited file into a DataFrame."""
-    path = Path(path)
-    return pd.read_csv(path, sep="\t")
+    """
+    Read a tab-delimited file into a DataFrame. Accepts local paths and
+    cloud URIs; cloud URIs are passed through to pandas as strings so
+    pandas + fsspec handle them natively (wrapping in :class:`pathlib.Path`
+    corrupts ``s3://`` prefixes).
+    """
+    s = str(path)
+    if is_cloud_uri(s):
+        return pd.read_csv(s, sep="\t")
+    return pd.read_csv(Path(s), sep="\t")
 
 
 def ingest_rnaseq_tpm_table(path: PathLike) -> pd.DataFrame:
@@ -79,48 +112,90 @@ def ingest_rnaseq_manifest(path: PathLike) -> pd.DataFrame:
     Load and validate an RNA-seq samples manifest.
 
     Relative ``file_path`` entries are resolved relative to the manifest
-    directory for convenience.
+    directory for convenience. The manifest path may be a local path or a
+    cloud URI (``s3://…``, ``gs://…``); ``file_path`` entries are normalized
+    against whichever scheme the manifest itself uses, so a manifest at
+    ``s3://bucket/sources/data/manifest.tsv`` with relative
+    ``file_path = vecoli.tsv`` becomes ``s3://bucket/sources/data/vecoli.tsv``.
 
-    Parameters
-    ----------
-    path:
-        Path to the manifest TSV file.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Validated manifest with ``file_path`` normalized to absolute paths.
+    Absolute paths (``/foo/...``) and cloud URIs (``s3://...``) in
+    ``file_path`` are kept as-is.
     """
-    path = Path(path)
-    df = _read_tsv(path)
+    s = str(path)
+    df = _read_tsv(s)
     manifest = RnaseqSamplesManifestSchema.validate(df)
 
-    base_dir = path.parent
+    if is_cloud_uri(s):
+        # Cloud manifest: derive the parent directory as a URI string and
+        # normalize relative file_path entries with posixpath (cloud paths
+        # are always forward-slash).
+        base_dir = posixpath.dirname(s)
 
-    def _normalize_file_path(p: str) -> str:
-        if os.path.isabs(p):
-            return p
-        return str((base_dir / p).resolve())
+        def _normalize_file_path(p: str) -> str:
+            if is_cloud_uri(p) or os.path.isabs(p):
+                return p
+            return posixpath.join(base_dir, p)
+    else:
+        base_dir_path = Path(s).parent
+
+        def _normalize_file_path(p: str) -> str:
+            if is_cloud_uri(p) or os.path.isabs(p):
+                return p
+            return str((base_dir_path / p).resolve())
 
     manifest["file_path"] = manifest["file_path"].astype(str).map(_normalize_file_path)
     return manifest
+
+
+_URI_SCHEMES = ("s3", "gs", "gcs", "file", "http", "https")
+
+
+def _split_overlay_separator(raw: str) -> list[str]:
+    """
+    Split a separator-list of paths/URIs.
+
+    Prefers ``;`` (URI-safe) when present. Falls back to ``:`` while
+    rejoining pieces of the form ``<scheme>:<//rest>`` so that
+    ``s3://bucket/a.tsv:s3://bucket/b.tsv`` and
+    ``/local/a.tsv:s3://bucket/b.tsv`` both parse correctly.
+    """
+    if not raw:
+        return []
+    if ";" in raw:
+        return [p.strip() for p in raw.split(";") if p.strip()]
+    parts = raw.split(":")
+    out: list[str] = []
+    i = 0
+    while i < len(parts):
+        head = parts[i].strip()
+        # Reattach <scheme>:// fragments that the colon-split tore apart.
+        if (
+            i + 1 < len(parts)
+            and head in _URI_SCHEMES
+            and parts[i + 1].startswith("//")
+        ):
+            out.append(f"{head}:{parts[i + 1]}")
+            i += 2
+            continue
+        if head:
+            out.append(head)
+        i += 1
+    return out
 
 
 def _overlay_manifest_paths() -> list[str]:
     """
     Parse ``$ECOLI_SOURCES_OVERLAYS`` into a list of manifest paths.
 
-    Value format: colon-separated paths to overlay ``manifest.tsv`` files.
-    Each path may include ``$ECOLI_SOURCES`` (resolved the same way as the
-    primary manifest path) or ``~`` for home-dir expansion. Empty entries
-    are ignored. Missing env var → empty list.
+    Value format: ``;``-separated (preferred, URI-safe) or ``:``-separated
+    paths to overlay ``manifest.tsv`` files. Each path may include
+    ``$ECOLI_SOURCES`` (resolved the same way as the primary manifest path)
+    or ``~`` for home-dir expansion. Empty entries are ignored. Missing
+    env var → empty list. Cloud URIs (``s3://…``) are preserved intact.
     """
     raw = os.environ.get("ECOLI_SOURCES_OVERLAYS", "")
     out: list[str] = []
-    for item in raw.split(":"):
-        item = item.strip()
-        if not item:
-            continue
+    for item in _split_overlay_separator(raw):
         resolved = resolve_ecoli_sources_path(item)
         if resolved:
             out.append(resolved)
