@@ -43,6 +43,7 @@ in the Vivarium documentation.
    experiments
    workflows
    data_ingestion
+   sensitivity_campaigns
    output
    tutorial
    docs

@@ -155,3 +155,15 @@ uv run ecoli/experiments/ecoli_master_sim.py --config configs/my_config.json
   `mass_fraction_summary` (single), `ribosome_components/production/usage`
   (multigeneration). Next step: increase `generations` and `n_init_sims` for richer
   validation.
+
+- **Sensitivity campaigns** (`.claude/plans/dataset-sensitivity-exploration.md`):
+  end-to-end infrastructure for perturbation-based sensitivity studies across
+  input data. User-facing guide at `doc/sensitivity_campaigns.rst`. Key pieces:
+  `$ECOLI_SOURCES` sibling repo for data, perturbation operator library in
+  `ecoli-sources/processing/perturbations.py`, meta-runner
+  `runscripts/run_sensitivity_campaign.py` that emits multi-parca configs,
+  cross-variant analysis `ecoli/analysis/multivariant/sensitivity_overview.py`,
+  atlantis `--sources` flag in sms-api that syncs to S3 and threads
+  `ECOLI_SOURCES` / `ECOLI_SOURCES_OVERLAYS` onto the Batch container.
+  Branch: `multi-parca-aws` (re-implemented multi-parca on top of master's
+  content-addressed parca_out / variantInfo channels after merge).

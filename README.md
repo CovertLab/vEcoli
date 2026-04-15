@@ -24,6 +24,14 @@ model parameters (e.g. transcription probabilities). These parameters are used t
 [processes](ecoli/processes) that are linked together into a
 [complete simulation](ecoli/experiments/ecoli_master_sim.py).
 
+### Sensitivity campaigns
+
+Multi-parca sensitivity workflows perturb RNA-seq input data and map how the
+simulation responds. See [`doc/sensitivity_campaigns.rst`](doc/sensitivity_campaigns.rst)
+for the end-to-end workflow (campaign specs, perturbation operators, the
+sibling `ecoli-sources` data repo, and AWS Batch execution via atlantis) and
+`.claude/plans/dataset-sensitivity-exploration.md` for the research design.
+
 ## Setup
 
 > **Note:** The following instructions assume a local Linux or MacOS system. Windows users can
