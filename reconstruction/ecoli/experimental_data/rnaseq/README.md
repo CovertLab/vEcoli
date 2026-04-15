@@ -1,17 +1,22 @@
-# Deprecated: RNA-seq TSVs now live in `ecoli-sources`
+# Empty: RNA-seq data has moved
 
-**This directory is being phased out.**
+This directory previously held RNA-seq TPM TSVs + a manifest. All datasets
+have been migrated to sibling repos:
 
-Public RNA-seq datasets have moved to the sibling repo
-[`ecoli-sources`](https://github.com/…/ecoli-sources) at
-`ecoli-sources/data/`. Configs reference it via
-`"rnaseq_manifest_path": "$ECOLI_SOURCES/data/manifest.tsv"` (resolved by
-`wholecell.io.ingestion.resolve_ecoli_sources_path`).
+- **Public datasets** (`vecoli_*`, `precise_*`) →
+  [`ecoli-sources`](https://github.com/…/ecoli-sources) at `$ECOLI_SOURCES/data/`.
+- **Private overlays** (e.g. `gbw_vegas_*`) → separate private repos
+  (e.g. `ecoli-sources-vegas/data/`); loaded via the
+  `$ECOLI_SOURCES_OVERLAYS` environment variable.
 
-What remains here is **private** Ginkgo Bioworks (`gbw_*`) data that cannot
-go into `ecoli-sources`. Once a private-overlay repo is set up
-(`$ECOLI_SOURCES_PRIVATE`), these files will also be removed and this
-directory will be deleted entirely.
+vEcoli configs reference them as:
 
-Do not add new datasets here. New TSVs go in `ecoli-sources/data/` (public)
-or the private overlay (private).
+```json
+"rnaseq_manifest_path": "$ECOLI_SOURCES/data/manifest.tsv"
+```
+
+Overlays are loaded automatically by `wholecell.io.ingestion.ingest_transcriptome`
+whenever `ECOLI_SOURCES_OVERLAYS` is set (colon-separated list of overlay
+manifest paths).
+
+This directory is kept as a signpost; do not add data here.

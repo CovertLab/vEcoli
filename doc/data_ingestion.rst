@@ -242,6 +242,27 @@ in your configuration JSON:
 If ``rnaseq_manifest_path`` is ``null`` or omitted, ParCa uses the legacy
 reference data from ``reconstruction/ecoli/flat/rna_seq_data/``.
 
+Private / non-public overlays
+=============================
+
+Additional RNA-seq datasets that cannot live in the public ``ecoli-sources``
+repo (e.g. proprietary vendor data) can be kept in a sibling *overlay* repo
+with the same ``data/`` layout (TSVs + a `manifest.tsv` validated by
+``RnaseqSamplesManifestSchema``). Tell ParCa about overlays by exporting:
+
+.. code-block:: bash
+
+    export ECOLI_SOURCES=/path/to/ecoli-sources
+    export ECOLI_SOURCES_OVERLAYS=/path/to/ecoli-sources-vegas/data/manifest.tsv
+
+``ECOLI_SOURCES_OVERLAYS`` is a colon-separated list of overlay manifest
+paths; each path may use ``$ECOLI_SOURCES`` or ``~`` expansion. The loader
+concatenates the primary + overlay manifests; ``dataset_id`` must be unique
+across the union (collisions raise ``ValueError``). Configs don't need to
+change — ``"rnaseq_manifest_path": "$ECOLI_SOURCES/data/manifest.tsv"`` works
+regardless of whether overlays are active, and dataset ids from overlays
+simply resolve transparently.
+
 Validation Errors
 =================
 
