@@ -10,15 +10,15 @@
     "parca_options": {
         "cpus": 4,
         "operons": true,
-        "rnaseq_manifest_path": "reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv",
-        "rnaseq_basal_dataset_id": "ref_0001",
+        "rnaseq_manifest_path": "$ECOLI_SOURCES/data/manifest.tsv",
+        "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas",
         "rnaseq_fill_missing_genes_from_ref": true
     },
 
     "parca_variants": [
-        { "rnaseq_basal_dataset_id": "ref_0001" },
-        { "rnaseq_basal_dataset_id": "ref_0002" },
-        { "rnaseq_basal_dataset_id": "gbw_0001_v2" }
+        { "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas" },
+        { "rnaseq_basal_dataset_id": "vecoli_m9_glucose_plus_aas" },
+        { "rnaseq_basal_dataset_id": "precise_control:wt_glc" }
     ],
     "emitter": "parquet",
     "emitter_arg": {

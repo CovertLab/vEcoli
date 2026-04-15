@@ -1,6 +1,4 @@
 dataset_id	dataset_description	file_path	data_source	data_source_experiment_id	data_source_date	strain	condition
-vecoli_m9_glucose_minus_aas	vecoli reference: M9 Glucose Minus AAs	vecoli_m9_glucose_minus_aas.tsv	vecoli				
-vecoli_m9_glucose_plus_aas	vecoli reference: M9 Glucose Plus AAs	vecoli_m9_glucose_plus_aas.tsv	vecoli				
 gbw_vegas_wt_m9glc_3h	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 3h	gbw_vegas_wt_m9glc_3h.tsv	Ginkgo Bioworks	exp96546		MG1655 rph+	Modified_M9_N_Fe
 gbw_vegas_wt_m9glc_3h_no_ssrA	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 3h, no SSRAs	gbw_vegas_wt_m9glc_3h_no_ssrA.tsv	Ginkgo Bioworks	exp96546		MG1655 rph+	Modified_M9_N_Fe
 gbw_vegas_wt_m9glc_4h	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 4h	gbw_vegas_wt_m9glc_4h.tsv	Ginkgo Bioworks	exp96546		MG1655 rph+	Modified_M9_N_Fe
@@ -9,30 +7,10 @@ gbw_vegas_wt_m9glc_5h	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 5h	gbw_vegas_wt_m
 gbw_vegas_wt_m9glc_5h_no_ssrA	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 5h, no SSRAs	gbw_vegas_wt_m9glc_5h_no_ssrA.tsv	Ginkgo Bioworks	exp96546		MG1655 rph+	Modified_M9_N_Fe
 gbw_vegas_wt_m9glc_34h	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 3+4h	gbw_vegas_wt_m9glc_34h.tsv	Ginkgo Bioworks	exp96546		MG1655 rph+	Modified_M9_N_Fe
 gbw_vegas_wt_m9glc_34h_no_ssrA	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 3+4h, no SSRAs	gbw_vegas_wt_m9glc_34h_no_ssrA.tsv	Ginkgo Bioworks	exp96546		MG1655 rph+	Modified_M9_N_Fe
-gbw_bermuda_ctrl	Ginkgo Antibiotic Expt: MG1655 rph-, No treatment	gbw_bermuda_ctrl.tsv	Ginkgo Bioworks	gbw_bermuda_expt		MG1655 rph-	Control: 0minh
-gbw_bermuda_ctrl_no_ssrA	Ginkgo Antibiotic Expt: MG1655 rph-, No treatment, no SSRAs	gbw_bermuda_ctrl_no_ssrA.tsv	Ginkgo Bioworks	gbw_bermuda_expt		MG1655 rph-	Control: 0minh
-precise_RPO:wt	Precise Dataset: RPO:wt	precise_RPO:wt.tsv	PRECISE-MG1655	RPO:wt		MG1655	M9 Glucose (ref)
-precise_SNPv1:D-Glucose_NH4Cl	Precise Dataset: SNPv1:D-Glucose_NH4Cl	precise_SNPv1:D-Glucose_NH4Cl.tsv	PRECISE-MG1655	SNPv1:D-Glucose_NH4Cl		MG1655	M9 Glucose (ref)
-precise_SNPv2:Glucose_NH4Cl	Precise Dataset: SNPv2:Glucose_NH4Cl	precise_SNPv2:Glucose_NH4Cl.tsv	PRECISE-MG1655	SNPv2:Glucose_NH4Cl		MG1655	M9 Glucose (ref)
-precise_abx_media:m9_ctrl	Precise Dataset: abx_media:m9_ctrl	precise_abx_media:m9_ctrl.tsv	PRECISE-MG1655	abx_media:m9_ctrl		MG1655	M9 Glucose (ref)
-precise_control:wt_glc	Precise Dataset: control:wt_glc	precise_control:wt_glc.tsv	PRECISE-MG1655	control:wt_glc		MG1655	M9 Glucose (ref)
-precise_eep:BOP27	Precise Dataset: eep:BOP27	precise_eep:BOP27.tsv	PRECISE-MG1655	eep:BOP27		MG1655	M9 Glucose (ref)
-precise_ica:wt_glc	Precise Dataset: ica:wt_glc	precise_ica:wt_glc.tsv	PRECISE-MG1655	ica:wt_glc		MG1655	M9 Glucose (ref)
-precise_minspan:wt_glc	Precise Dataset: minspan:wt_glc	precise_minspan:wt_glc.tsv	PRECISE-MG1655	minspan:wt_glc		MG1655	M9 Glucose (ref)
-precise_misc:wt_no_te	Precise Dataset: misc:wt_no_te	precise_misc:wt_no_te.tsv	PRECISE-MG1655	misc:wt_no_te		MG1655	M9 Glucose (ref)
-precise_oxyR:wt_glc	Precise Dataset: oxyR:wt_glc	precise_oxyR:wt_glc.tsv	PRECISE-MG1655	oxyR:wt_glc		MG1655	M9 Glucose (ref)
-precise_tcs:wt_m9p	Precise Dataset: tcs:wt_m9p	precise_tcs:wt_m9p.tsv	PRECISE-MG1655	tcs:wt_m9p		MG1655	M9 Glucose (ref)
-precise_ytf:wt_glc	Precise Dataset: ytf:wt_glc	precise_ytf:wt_glc.tsv	PRECISE-MG1655	ytf:wt_glc		MG1655	M9 Glucose (ref)
-precise_ytf2:wt_glc	Precise Dataset: ytf2:wt_glc	precise_ytf2:wt_glc.tsv	PRECISE-MG1655	ytf2:wt_glc		MG1655	M9 Glucose (ref)
-precise_ytf3:wt_glc2	Precise Dataset: ytf3:wt_glc2	precise_ytf3:wt_glc2.tsv	PRECISE-MG1655	ytf3:wt_glc2		MG1655	M9 Glucose (ref)
-precise_ytf5:wt_glc	Precise Dataset: ytf5:wt_glc	precise_ytf5:wt_glc.tsv	PRECISE-MG1655	ytf5:wt_glc		MG1655	M9 Glucose (ref)
-precise_ytf5:wt_glc_24hr	Precise Dataset: ytf5:wt_glc_24hr	precise_ytf5:wt_glc_24hr.tsv	PRECISE-MG1655	ytf5:wt_glc_24hr		MG1655	M9 Glucose (ref)
 gbw_vegas_j3_m9glc_34h	Ginkgo Ambr250: J3, M9 Glucose, 3+4h	gbw_vegas_j3_m9glc_34h.tsv	Ginkgo Bioworks	exp96546		11_J3	Modified_M9_N_Fe
 gbw_vegas_j3_m9glc_34h_no_ssrA	Ginkgo Ambr250: J3, M9 Glucose, 3+4h, no SSRAs	gbw_vegas_j3_m9glc_34h_no_ssrA.tsv	Ginkgo Bioworks	exp96546		11_J3	Modified_M9_N_Fe
 gbw_vegas_wt_m9glc_34h_no_ssrA_no_cyuA	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 3+4h, no SSRAs (excluding 1 genes)	gbw_vegas_wt_m9glc_34h_no_ssrA_no_cyuA.tsv	Ginkgo Bioworks	exp96546		MG1655 rph+	Modified_M9_N_Fe
 gbw_vegas_wt_m9glc_34h_no_ssrA_no_CYSpwy	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 3+4h, no SSRAs (excluding 5 genes)	gbw_vegas_wt_m9glc_34h_no_ssrA_no_CYSpwy.tsv	Ginkgo Bioworks	exp96546		MG1655 rph+	Modified_M9_N_Fe
-precise_abx_media:m9_ctrl_no_TRPpwy	Precise Dataset: abx_media:m9_ctrl (excluding 3 genes)	precise_abx_media:m9_ctrl_no_TRPpwy.tsv	PRECISE-MG1655	abx_media:m9_ctrl		MG1655	M9 Glucose (ref)
-precise_ytf5:wt_glc_no_ILEpwy	Precise Dataset: ytf5:wt_glc (excluding 2 genes)	precise_ytf5:wt_glc_no_ILEpwy.tsv	PRECISE-MG1655	ytf5:wt_glc		MG1655	M9 Glucose (ref)
 gbw_vegas_wt_m9glc_34h_no_ssrA_no_METpwy	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 3+4h, no SSRAs (excluding 2 genes)	gbw_vegas_wt_m9glc_34h_no_ssrA_no_METpwy.tsv	Ginkgo Bioworks	exp96546		MG1655 rph+	Modified_M9_N_Fe
 gbw_vegas_wt_m9glc_34h_no_ssrA_no_CYS_METpwy	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 3+4h, no SSRAs (excluding 5 genes) (excluding 2 genes)	gbw_vegas_wt_m9glc_34h_no_ssrA_no_CYS_METpwy.tsv	Ginkgo Bioworks	exp96546		MG1655 rph+	Modified_M9_N_Fe
 gbw_vegas_wt_m9glc_4h_no_ssrA_no_METpwy	Ginkgo Ambr250: MG1655 rph+, M9 Glucose, 4h, no SSRAs (excluding 2 genes)	gbw_vegas_wt_m9glc_4h_no_ssrA_no_METpwy.tsv	Ginkgo Bioworks	exp96546		MG1655 rph+	Modified_M9_N_Fe

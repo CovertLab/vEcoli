@@ -1,0 +1,74 @@
+{
+  "experiment_id": "pilot_expression_noise",
+  "suffix_time": true,
+  "sim_data_path": null,
+  "generations": 2,
+  "n_init_sims": 2,
+  "lineage_seed": 0,
+  "single_daughters": true,
+  "parca_options": {
+    "cpus": 4,
+    "operons": true,
+    "rnaseq_manifest_path": "$ECOLI_SOURCES/data/manifest.tsv",
+    "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas",
+    "rnaseq_fill_missing_genes_from_ref": true
+  },
+  "parca_variants": [
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__e74d2efa"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__49080e6e"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__97e94133"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__e8e44a96"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__4f13151b"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__ad49312d"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__38c89b67"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__6e639cf0"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__d89f5c87"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__58b7e74d"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__ae88eab8"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__ec1ec94f"
+    }
+  ],
+  "emitter": "parquet",
+  "emitter_arg": {
+    "out_dir": "out"
+  },
+  "analysis_options": {
+    "single": {
+      "mass_fraction_summary": {}
+    },
+    "multigeneration": {
+      "ribosome_components": {},
+      "ribosome_production": {},
+      "ribosome_usage": {}
+    },
+    "multiseed": {
+      "cd1_higher_order_properties": {}
+    }
+  }
+}

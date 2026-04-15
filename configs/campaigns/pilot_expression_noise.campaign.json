@@ -1,0 +1,41 @@
+{
+  "spec": {
+    "name": "pilot_expression_noise",
+    "source_dataset_id": "vecoli_m9_glucose_minus_aas",
+    "operator": "add_log_normal_noise",
+    "param_grid": {
+      "sigma": [
+        0.1,
+        0.2,
+        0.4,
+        0.8
+      ],
+      "seed": [
+        0,
+        1,
+        2
+      ]
+    },
+    "include_source_as_baseline": true,
+    "base_config": "configs/test_multi_parca.json",
+    "sim": {
+      "generations": 2,
+      "n_init_sims": 2
+    }
+  },
+  "generated_dataset_ids": [
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__e74d2efa",
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__49080e6e",
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__97e94133",
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__e8e44a96",
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__4f13151b",
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__ad49312d",
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__38c89b67",
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__6e639cf0",
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__d89f5c87",
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__58b7e74d",
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__ae88eab8",
+    "vecoli_m9_glucose_minus_aas__add_log_normal_noise__ec1ec94f"
+  ],
+  "include_source_as_baseline": true
+}

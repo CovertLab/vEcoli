@@ -57,6 +57,8 @@ class SimulationDataEcoli(object):
                 raise ValueError(
                     "rnaseq_basal_dataset_id is required when rnaseq_manifest_path is set."
                 )
+            from wholecell.io.ingestion import resolve_ecoli_sources_path
+            rnaseq_manifest_path = resolve_ecoli_sources_path(rnaseq_manifest_path)
             if not os.path.isfile(rnaseq_manifest_path):
                 raise FileNotFoundError(
                     f"rnaseq_manifest_path not found: {rnaseq_manifest_path}"

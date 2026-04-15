@@ -109,7 +109,7 @@ Configuration options for the ParCa are all located in a dictionary under the
   for translation.
 - ``rnaseq_manifest_path``: Path to an RNA-seq manifest TSV file listing available
   datasets. If null (default), ParCa uses the legacy ``raw_data.rna_seq_data`` tables.
-  See ``experimental_data/rnaseq/manifest.tsv`` for the expected format.
+  See the sibling ``ecoli-sources`` repo (``$ECOLI_SOURCES/data/manifest.tsv``) for the expected format.
 - ``rnaseq_basal_dataset_id``: The ``dataset_id`` from the manifest to use as the
   basal transcriptome. Required if ``rnaseq_manifest_path`` is set.
 - ``basal_expression_condition``: When using the legacy code path

@@ -25,6 +25,30 @@ from wholecell.io.schemas.rnaseq import (
 PathLike = Union[str, Path]
 
 
+def _default_ecoli_sources_dir() -> str:
+    """Sibling-repo default: <vEcoli-repo-root>/../ecoli-sources."""
+    import wholecell
+    repo_root = Path(wholecell.__file__).resolve().parents[1]
+    return str((repo_root.parent / "ecoli-sources").resolve())
+
+
+def resolve_ecoli_sources_path(path: PathLike | None) -> str | None:
+    """
+    Expand ``$ECOLI_SOURCES`` (or ``${ECOLI_SOURCES}``) in a config path.
+
+    If the environment variable is unset, falls back to the sibling
+    ``<vEcoli-repo-root>/../ecoli-sources`` directory. Returns ``None`` for
+    a ``None`` input so legacy "no manifest" configs keep working.
+    """
+    if path is None:
+        return None
+    s = str(path)
+    if "$ECOLI_SOURCES" in s or "${ECOLI_SOURCES}" in s:
+        sources = os.environ.get("ECOLI_SOURCES") or _default_ecoli_sources_dir()
+        s = s.replace("${ECOLI_SOURCES}", sources).replace("$ECOLI_SOURCES", sources)
+    return os.path.expanduser(s)
+
+
 def _read_tsv(path: PathLike) -> pd.DataFrame:
     """Read a tab-delimited file into a DataFrame."""
     path = Path(path)
@@ -113,6 +137,7 @@ def ingest_transcriptome(
     ValueError
         If multiple rows share the same ``dataset_id``.
     """
+    manifest_path = resolve_ecoli_sources_path(manifest_path)
     manifest = ingest_rnaseq_manifest(manifest_path)
     matches = manifest[manifest["dataset_id"] == dataset_id]
 

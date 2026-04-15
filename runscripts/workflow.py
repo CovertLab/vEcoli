@@ -534,11 +534,15 @@ def main():
         per_parca["parca_options"].update(override)
         # Resolve relative paths in parca_options to absolute paths so that
         # parca.py can find them when running from a Nextflow work directory.
+        # Also expand $ECOLI_SOURCES before the isabs check so env-var paths
+        # don't get misinterpreted as repo-relative.
         manifest = per_parca["parca_options"].get("rnaseq_manifest_path")
-        if manifest and not os.path.isabs(manifest):
-            per_parca["parca_options"]["rnaseq_manifest_path"] = os.path.join(
-                repo_dir, manifest
-            )
+        if manifest:
+            from wholecell.io.ingestion import resolve_ecoli_sources_path
+            manifest = resolve_ecoli_sources_path(manifest)
+            if not os.path.isabs(manifest):
+                manifest = os.path.join(repo_dir, manifest)
+            per_parca["parca_options"]["rnaseq_manifest_path"] = manifest
         local_parca_path = os.path.join(local_outdir, f"parca_config_{i}.json")
         with open(local_parca_path, "w") as f:
             json.dump(per_parca, f)

@@ -46,9 +46,10 @@ def _():
 
 @app.cell
 def _(Path):
-    MANIFEST_PATH = Path("reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv")
-    REF_DATASET_ID = "ref_0001"
-    EXPT_DATASET_ID = "gbw_0001_v2"
+    from wholecell.io.ingestion import resolve_ecoli_sources_path
+    MANIFEST_PATH = Path(resolve_ecoli_sources_path("$ECOLI_SOURCES/data/manifest.tsv"))
+    REF_DATASET_ID = "vecoli_m9_glucose_minus_aas"
+    EXPT_DATASET_ID = "vecoli_m9_glucose_plus_aas"
     return EXPT_DATASET_ID, MANIFEST_PATH, REF_DATASET_ID
 
 

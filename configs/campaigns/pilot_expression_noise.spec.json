@@ -1,0 +1,15 @@
+{
+    "name": "pilot_expression_noise",
+    "source_dataset_id": "vecoli_m9_glucose_minus_aas",
+    "operator": "add_log_normal_noise",
+    "param_grid": {
+        "sigma": [0.1, 0.2, 0.4, 0.8],
+        "seed":  [0, 1, 2]
+    },
+    "include_source_as_baseline": true,
+    "base_config": "configs/test_multi_parca.json",
+    "sim": {
+        "generations": 2,
+        "n_init_sims": 2
+    }
+}
