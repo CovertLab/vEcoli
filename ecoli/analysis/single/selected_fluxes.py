@@ -8,6 +8,7 @@ import polars as pl
 from typing import Any, TYPE_CHECKING
 from functools import reduce
 from operator import add, or_
+from collections import defaultdict
 from ecoli.library.parquet_emitter import (
     read_stacked_columns,
     field_metadata,
@@ -123,12 +124,9 @@ def plot(
         )
 
         # Invert reaction_id_to_base_reaction_id
-        base_reaction_id_to_reaction_ids = {}
+        base_reaction_id_to_reaction_ids = defaultdict(list)
         for rxnid, baseid in reaction_id_to_base_reaction_id.items():
-            if baseid in base_reaction_id_to_reaction_ids:
-                base_reaction_id_to_reaction_ids[baseid].append(rxnid)
-            else:
-                base_reaction_id_to_reaction_ids[baseid] = [rxnid]
+            base_reaction_id_to_reaction_ids[baseid].append(rxnid)
 
         # Pull catalyst IDs
         catalyst_ids = field_metadata(
