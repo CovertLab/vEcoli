@@ -1,0 +1,82 @@
+{
+  "experiment_id": "pilot_mixed",
+  "suffix_time": true,
+  "sim_data_path": null,
+  "generations": 3,
+  "n_init_sims": 3,
+  "lineage_seed": 0,
+  "single_daughters": true,
+  "parca_options": {
+    "cpus": 4,
+    "operons": true,
+    "rnaseq_manifest_path": "$ECOLI_SOURCES/data/manifest.tsv",
+    "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas",
+    "rnaseq_fill_missing_genes_from_ref": true
+  },
+  "parca_variants": [
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__e74d2efa"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__e8e44a96"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__38c89b67"
+    },
+    {
+      "rnaseq_basal_dataset_id": "vecoli_m9_glucose_minus_aas__add_log_normal_noise__58b7e74d"
+    },
+    {
+      "rnaseq_basal_dataset_id": "precise_control:wt_glc"
+    },
+    {
+      "rnaseq_basal_dataset_id": "precise_abx_media:m9_ctrl"
+    },
+    {
+      "rnaseq_basal_dataset_id": "precise_abx_media:m9_ctrl_no_TRPpwy"
+    },
+    {
+      "rnaseq_basal_dataset_id": "precise_ica:wt_glc"
+    },
+    {
+      "rnaseq_basal_dataset_id": "gbw_vegas_wt_m9glc_34h_no_ssrA"
+    },
+    {
+      "rnaseq_basal_dataset_id": "gbw_vegas_wt_m9glc_34h_no_ssrA_no_CYSpwy"
+    },
+    {
+      "rnaseq_basal_dataset_id": "gbw_bermuda_ctrl"
+    },
+    {
+      "rnaseq_basal_dataset_id": "gbw_bermuda_ctrl_no_ssrA"
+    }
+  ],
+  "emitter": "parquet",
+  "emitter_arg": {
+    "out_dir": "out"
+  },
+  "analysis_options": {
+    "single": {
+      "mass_fraction_summary": {}
+    },
+    "multigeneration": {
+      "ribosome_components": {},
+      "ribosome_production": {},
+      "ribosome_usage": {}
+    },
+    "multiseed": {
+      "cd1_higher_order_properties": {}
+    },
+    "multivariant": {
+      "sensitivity_overview": {
+        "campaign_sidecar": "configs/campaigns/pilot_mixed.campaign.json"
+      },
+      "doubling_time_line": {},
+      "doubling_time_hist": {},
+      "cell_mass": {}
+    }
+  }
+}

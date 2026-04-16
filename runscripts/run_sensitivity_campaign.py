@@ -187,11 +187,13 @@ def _build_config(spec: dict, generated_ids: list[str]) -> dict:
     config["parca_options"]["rnaseq_basal_dataset_id"] = spec["source_dataset_id"]
     config["parca_options"]["rnaseq_manifest_path"] = "$ECOLI_SOURCES/data/manifest.tsv"
 
-    # Variants
+    # Variants: baseline + operator-generated + extra pre-existing datasets
     variants = []
     if spec.get("include_source_as_baseline", True):
         variants.append({"rnaseq_basal_dataset_id": spec["source_dataset_id"]})
     for did in generated_ids:
+        variants.append({"rnaseq_basal_dataset_id": did})
+    for did in spec.get("extra_dataset_ids", []):
         variants.append({"rnaseq_basal_dataset_id": did})
     config["parca_variants"] = variants
 
@@ -241,6 +243,13 @@ def run_campaign(
     with open(out_path, "w") as f:
         json.dump(config, f, indent=2)
 
+    extra_ids = spec.get("extra_dataset_ids", [])
+    if extra_ids:
+        print(f"Added {len(extra_ids)} extra pre-existing datasets as parca_variants")
+
+    total_variants = len(config["parca_variants"])
+    print(f"Total parca_variants: {total_variants}")
+
     # Also write a sidecar that records the spec + generated ids for
     # post-hoc traceability.
     sidecar_path = CAMPAIGNS_CONFIG_DIR / f"{name}.campaign.json"
@@ -248,6 +257,7 @@ def run_campaign(
         json.dump({
             "spec": spec,
             "generated_dataset_ids": generated_ids,
+            "extra_dataset_ids": extra_ids,
             "include_source_as_baseline": spec.get("include_source_as_baseline", True),
         }, f, indent=2)
 

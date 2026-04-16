@@ -121,6 +121,19 @@ def _build_variant_label_table(sidecar: dict | None, axis_param: str | None) -> 
             "operator": operator,
         })
 
+    # Extra pre-existing datasets (Annabelle's exclusions, real alternate
+    # datasets, overlay datasets) are appended after the operator grid.
+    extra_ids = sidecar.get("extra_dataset_ids", [])
+    extra_offset = variant_offset + len(expanded)
+    for i, did in enumerate(extra_ids):
+        rows.append({
+            "variant": extra_offset + i,
+            "axis_value": None,
+            "seed": None,
+            "dataset_id": did,
+            "operator": "extra",
+        })
+
     return pl.DataFrame(rows)
 
 
