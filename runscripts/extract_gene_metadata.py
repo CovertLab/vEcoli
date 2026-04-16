@@ -62,6 +62,7 @@ def main():
     meta_path = os.path.join(args.output_dir, "gene_metadata.tsv")
     gene_meta_df.to_csv(meta_path, sep="\t", index=False)
     print(f"  Written: {meta_path}  ({len(gene_meta_df)} genes)")
+    _print_role_summary(gene_meta_df)
 
     print("Building ref_basal_abundances.tsv ...")
     abundances_df = build_ref_basal_abundances(sim_data)
@@ -109,6 +110,9 @@ def build_gene_metadata(sim_data, essential_genes_path=None):
         monomer_id_to_cistron,
         cistron_id_to_gene_id,
     )
+    reaction_table_gene_ids = _reaction_table_gene_ids(
+        sim_data, monomer_id_to_cistron, cistron_id_to_gene_id
+    )
 
     essential_gene_ids = _read_essential_genes(essential_genes_path)
 
@@ -121,6 +125,8 @@ def build_gene_metadata(sim_data, essential_genes_path=None):
 
     rows = []
     for gene_id, symbol in all_genes:
+        in_reaction_table = gene_id in reaction_table_gene_ids
+        is_tf = gene_id in tf_gene_ids
         rows.append(
             {
                 "gene_id": gene_id,
@@ -128,9 +134,11 @@ def build_gene_metadata(sim_data, essential_genes_path=None):
                 "in_model": gene_id in in_model_set,
                 "is_essential": gene_id in essential_gene_ids,
                 "aa_pway_enzyme": gene_id in aa_pway_gene_ids,
-                "is_tf": gene_id in tf_gene_ids,
+                "is_tf": is_tf,
                 "is_ribosomal_translation_mach": gene_id in ribosomal_gene_ids,
                 "is_rnap_transcription_mach": gene_id in rnap_gene_ids,
+                "in_reaction_table": in_reaction_table,
+                "any_role": in_reaction_table or is_tf,
                 "has_expression_adjustment": gene_id in expr_adj_by_gene,
                 "expression_adjustment_factor": expr_adj_by_gene.get(gene_id, np.nan),
                 "has_deg_rate_adjustment": gene_id in deg_adj_by_gene,
@@ -157,6 +165,70 @@ def _aa_pway_enzyme_genes(sim_data, monomer_id_to_cistron, cistron_id_to_gene_id
                     gene_id = cistron_id_to_gene_id.get(cistron_id)
                     if gene_id:
                         gene_ids.add(gene_id)
+    return gene_ids
+
+
+def _print_role_summary(df):
+    """Print counts for each role flag and the in_model × any_role cross-tab."""
+    total = len(df)
+    in_model = int(df["in_model"].sum())
+    print(f"\nGene role summary ({total} total genes; {in_model} in_model):")
+    role_cols = [
+        "aa_pway_enzyme",
+        "is_tf",
+        "is_ribosomal_translation_mach",
+        "is_rnap_transcription_mach",
+        "in_reaction_table",
+        "any_role",
+    ]
+    for col in role_cols:
+        n_all = int(df[col].sum())
+        n_in_model = int((df[col] & df["in_model"]).sum())
+        print(f"  {col:32s} {n_all:5d}  ({n_in_model} also in_model)")
+
+    # Cross-tab: in_model × any_role — the "expressed but passive" cell is the
+    # count we actually care about for the research question.
+    passive = int((df["in_model"] & ~df["any_role"]).sum())
+    active_not_expressed = int((~df["in_model"] & df["any_role"]).sum())
+    print(f"\n  in_model ∧ ¬any_role (expressed but passive): {passive}")
+    print(f"  any_role ∧ ¬in_model (role but not transcribed): {active_not_expressed}")
+
+
+def _reaction_table_gene_ids(sim_data, monomer_id_to_cistron, cistron_id_to_gene_id):
+    """Return gene_ids whose monomer (directly, or as a subunit of a referenced
+    complex) appears in any of the model's reaction tables.
+
+    Sources unioned:
+      - metabolism.catalyst_ids              (enzymes for metabolic reactions)
+      - complexation.molecule_names          (subunits + complexes)
+      - equilibrium.molecule_names           (ligand/receptor participants)
+      - two_component_system.molecule_names  (sensor/response regulator participants)
+
+    Non-protein participants (metabolites) are filtered out automatically: they
+    don't appear in monomer_data, so monomer_id_to_cistron lookup returns None.
+    TFs that don't appear in any of these tables are handled separately via the
+    existing is_tf column; OR them in at the call site for `any_role`.
+    """
+    complexation = sim_data.process.complexation
+
+    participant_ids = set()
+    participant_ids.update(sim_data.process.metabolism.catalyst_ids)
+    participant_ids.update(sim_data.process.complexation.molecule_names)
+    participant_ids.update(sim_data.process.equilibrium.molecule_names)
+    participant_ids.update(sim_data.process.two_component_system.molecule_names)
+
+    gene_ids = set()
+    for participant_id in participant_ids:
+        try:
+            subunit_ids = complexation.get_monomers(participant_id)["subunitIds"]
+        except Exception:
+            subunit_ids = [participant_id]
+        for monomer_id in subunit_ids:
+            cistron_id = monomer_id_to_cistron.get(monomer_id)
+            if cistron_id:
+                gene_id = cistron_id_to_gene_id.get(cistron_id)
+                if gene_id:
+                    gene_ids.add(gene_id)
     return gene_ids
 
 
