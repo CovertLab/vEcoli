@@ -1,5 +1,5 @@
 {
-  "suffix_time": true,
+  "suffix_time": false,
   "sim_data_path": null,
   "generations": 3,
   "n_init_sims": 3,

@@ -183,6 +183,15 @@ def _build_config(spec: dict, generated_ids: list[str]) -> dict:
     # suffixed `sim{simulator_id}-{experiment_id}-{uuid4}` instead keeps the
     # configmap names unique per run.
 
+    # Force suffix_time off. The sms-api K8s output downloader hardcodes the
+    # S3 prefix as `{experiment_id}/{experiment_id}/…` (no timestamp suffix).
+    # When the base config has `suffix_time: true`, vEcoli's workflow.py
+    # renames the inner dir to `{experiment_id}_YYYYMMDD-HHMMSS` and the
+    # downloader finds an empty `analyses/` listing — so only
+    # `workflow_config.json` ends up in the returned tarball.
+    # unique_experiment_id already has a uuid suffix, so no collision risk.
+    config["suffix_time"] = False
+
     # Sim overrides
     for k, v in spec.get("sim", {}).items():
         config[k] = v
