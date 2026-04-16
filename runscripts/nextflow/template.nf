@@ -96,19 +96,23 @@ process createVariants {
     // are offset-shifted, so flattening across parcas yields globally unique
     // variant indices.
     tuple val(config_uri), val(config_hash), path('variant_info.txt'), emit: variantInfo
-    // Per-parca metadata file; mergeVariantMetadata combines all of them.
-    path "metadata_${parca_id}.json", emit: variantMetadata
+    // Per-parca metadata file URI; mergeVariantMetadata collects all of them
+    // and deep-merges via fsspec. URI-based (not staged) because the file
+    // lives on cloud storage written directly by create_variants.py.
+    env 'metadata_uri', emit: variantMetadataUri
 
     script:
     def publish_path = "${params.publishDir}/${params.experimentId}/variant_sim_data"
     """
     PYTHONUNBUFFERED=1 python ${params.projectRoot}/runscripts/create_variants.py \\
         --config "${config_uri}" --kb "${kb_uri}" --offset ${offset} \\
+        --parca-id ${parca_id} \\
         -o "${publish_path}"
 
-    # Rename metadata.json to metadata_<parca_id>.json so per-parca files don't
-    # collide in the merge step.
-    mv metadata.json metadata_${parca_id}.json
+    # create_variants.py writes metadata_<parca_id>.json directly to
+    # publish_path via fsspec; it leaves metadata_uri.txt locally for
+    # Nextflow to slurp into the env emit.
+    export metadata_uri=\$(cat metadata_uri.txt)
     """
 
     stub:
@@ -118,39 +122,44 @@ process createVariants {
     echo "baseline" > ${publish_path}/${offset}.cPickle
     echo "variant_${parca_id}_1" > ${publish_path}/\$((${offset} + 1)).cPickle
     echo "variant_${parca_id}_2" > ${publish_path}/\$((${offset} + 2)).cPickle
-    echo '{"null": {"${offset}": "baseline"}}' > metadata_${parca_id}.json
+    echo '{"null": {"${offset}": "baseline"}}' > ${publish_path}/metadata_${parca_id}.json
     echo "${publish_path}/${offset}.cPickle\tmock_hash_${parca_id}_0\t${offset}" > variant_info.txt
     echo "${publish_path}/\$((${offset} + 1)).cPickle\tmock_hash_${parca_id}_1\t\$((${offset} + 1))" >> variant_info.txt
     echo "${publish_path}/\$((${offset} + 2)).cPickle\tmock_hash_${parca_id}_2\t\$((${offset} + 2))" >> variant_info.txt
+    export metadata_uri=${publish_path}/metadata_${parca_id}.json
     """
 }
 
 
 process mergeVariantMetadata {
-    // Combine per-parca metadata_<parca_id>.json files into the unified
-    // metadata.json that downstream analyses expect. For single-parca workflows
-    // this is a near-no-op (one file in, one file out, but written to a stable
-    // URI that downstream can reference).
+    // Combine per-parca metadata_<parca_id>.json files into a unified
+    // metadata.json that downstream analyses expect. For single-parca
+    // workflows this is a near-no-op (one URI in, same content re-written).
     //
-    // Deep-merges by variant_name so that the same variant key across parcas
+    // Deep-merges by variant_name so the same variant key across parcas
     // gets its variant_idx -> params dicts combined (rather than overwritten).
+    // Input is a LIST of URIs (collected from per-parca createVariants runs)
+    // and each file is fetched via fsspec — no local staging.
 
     label "slurm_submit"
 
     input:
-    path 'metadata_*.json'
+    val metadata_uris
 
     output:
     env 'metadata_uri', emit: variantMetadataUri
 
     script:
     def publish_path = "${params.publishDir}/${params.experimentId}/variant_sim_data"
+    def uri_list = metadata_uris instanceof List ? metadata_uris : [metadata_uris]
+    def uri_args = uri_list.collect { "\"${it}\"" }.join(' ')
     """
-    python <<'PY'
-import json, glob, fsspec
+    python <<PY
+import json, fsspec, sys
+uris = [${uri_list.collect { "'${it}'" }.join(', ')}]
 merged = {}
-for f in sorted(glob.glob('metadata_*.json')):
-    with open(f) as fh:
+for uri in uris:
+    with fsspec.open(uri, 'r') as fh:
         for vname, vmeta in json.load(fh).items():
             merged.setdefault(vname, {}).update(vmeta)
 with fsspec.open('${publish_path}/metadata.json', 'w') as fh:
@@ -240,9 +249,9 @@ RUN_PARCA
         }
         .flatMap { it }
         .set { variantCh }
-    // Collect per-parca metadata files and merge into one metadata.json.
+    // Collect per-parca metadata URIs and merge into one metadata.json.
     // For single-parca runs this is a 1-in-1-out pass-through.
-    mergeVariantMetadata(createVariants.out.variantMetadata.collect())
+    mergeVariantMetadata(createVariants.out.variantMetadataUri.collect())
     mergeVariantMetadata.out.variantMetadataUri.set { variantMetadataCh }
     // Single tuple for cross-parca analyses (analysisMultiVariant, analysisParca,
     // ...) — use parca_0's, since validationData doesn't depend on rnaseq_options.

@@ -139,6 +139,7 @@ def apply_and_save_variants(
     outdir: str,
     skip_baseline: bool,
     offset: int = 0,
+    metadata_filename: str = "metadata.json",
 ) -> list[tuple[int, str]]:
     """
     Applies variant function to ``sim_data`` with each parameter dictionary
@@ -181,7 +182,7 @@ def apply_and_save_variants(
         variant_hashes.append((idx, data_hash))
         with fsspec_open(outpath, "wb") as f:
             f.write(data_bytes)
-    with fsspec_open(path_join(outdir, "metadata.json"), "w") as f:
+    with fsspec_open(path_join(outdir, metadata_filename), "w") as f:
         json.dump({variant_name: variant_metadata}, f)
     return variant_hashes
 
@@ -372,6 +373,19 @@ def main():
             "{offset+1}.cPickle, etc."
         ),
     )
+    parser.add_argument(
+        "--parca-id",
+        action="store",
+        type=int,
+        default=None,
+        help=(
+            "ParCa identifier used to name this run's metadata file "
+            "(``metadata_{parca_id}.json`` instead of ``metadata.json``) so "
+            "multiple parallel parcas writing to the same publish dir don't "
+            "overwrite each other. Required for multi-parca workflows. "
+            "Omit for legacy single-parca behavior."
+        ),
+    )
     args = parser.parse_args()
     with open(default_config, "r") as f:
         config = json.load(f)
@@ -401,6 +415,10 @@ def main():
         out_path_join = os.path.join
 
     offset: int = config.get("offset", 0)
+    parca_id = config.get("parca_id")
+    metadata_filename = (
+        "metadata.json" if parca_id is None else f"metadata_{parca_id}.json"
+    )
 
     # Track variant info: (uri, hash, variant_idx)
     variant_info: list[tuple[int, str, str]] = []
@@ -436,17 +454,18 @@ def main():
             config_outdir,
             config["skip_baseline"],
             offset=offset,
+            metadata_filename=metadata_filename,
         )
         # Add variant info
         for var_idx, var_hash in variant_hashes:
             var_path = out_path_join(config_outdir, f"{var_idx}.cPickle")
             variant_info.append((var_path, var_hash, var_idx))
     else:
-        with fsspec_open(out_path_join(config_outdir, "metadata.json"), "w") as f:
+        with fsspec_open(out_path_join(config_outdir, metadata_filename), "w") as f:
             json.dump({None: {offset: "baseline"}}, f)
 
     # Write metadata_uri to file for Nextflow (cloud URI of metadata.json)
-    metadata_uri = out_path_join(config_outdir, "metadata.json")
+    metadata_uri = out_path_join(config_outdir, metadata_filename)
     with open("metadata_uri.txt", "w") as f:
         f.write(metadata_uri)
 
