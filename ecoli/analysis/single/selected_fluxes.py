@@ -150,16 +150,16 @@ def plot(
                 )
 
         # Get reactions indices and read flux values
-        reaction_idx = list(
-            np.where(np.isin(reaction_ids, list(reaction_set.keys())))[0]
-        )
+        reaction_idx = np.nonzero(
+            np.array(list(reaction_set.keys()))[:, np.newaxis] == reaction_ids
+        )[1]
         flux_data = read_stacked_columns(
             history_sql,
             [
                 named_idx(
                     "listeners__fba_results__base_reaction_fluxes",
                     list(reaction_set.keys()),
-                    [reaction_idx],
+                    [list(reaction_idx)],
                 )
             ],
             remove_first=True,
@@ -195,14 +195,16 @@ def plot(
             )
 
             # Get catalyst indices and read counts
-            catalyst_idx = list(np.where(np.isin(catalyst_ids, catalysts))[0])
+            catalyst_idx = np.nonzero(
+                np.array(catalysts)[:, np.newaxis] == catalyst_ids
+            )[1]
             catalyst_counts = read_stacked_columns(
                 history_sql,
                 [
                     named_idx(
                         "listeners__fba_results__catalyst_counts",
                         catalysts,
-                        [catalyst_idx],
+                        [list(catalyst_idx)],
                     )
                 ],
                 remove_first=True,
