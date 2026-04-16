@@ -175,8 +175,13 @@ def _build_config(spec: dict, generated_ids: list[str]) -> dict:
     with open(REPO_ROOT / base_path) as f:
         config = json.load(f)
 
-    # Header
-    config["experiment_id"] = spec["name"]
+    # NOTE: deliberately do NOT set config["experiment_id"] here.
+    # When the sms-api K8s backend builds a configmap for the Nextflow job,
+    # it names it `nf-<experiment_id>-config`. If the config has a hardcoded
+    # experiment_id, every re-run of the same campaign tries to create the
+    # same configmap → 409 Conflict. Letting the server fill in its uuid-
+    # suffixed `sim{simulator_id}-{experiment_id}-{uuid4}` instead keeps the
+    # configmap names unique per run.
 
     # Sim overrides
     for k, v in spec.get("sim", {}).items():
