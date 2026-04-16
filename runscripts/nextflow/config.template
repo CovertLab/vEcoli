@@ -90,7 +90,14 @@ process {
     maxRetries = 3
     cpus = params.sim_cpus
 }
-workflow.failOnIgnore = true
+// Sensitivity campaigns perturb RNA-seq inputs; some perturbations legitimately
+// make ParCa fail to converge (kcat=0, Solver not finding optimal, Inf ligand
+// concentration, etc.) — those failures ARE the data we want. errorStrategy
+// below is already 'ignore'; without this flag, Nextflow would still exit
+// non-zero at the end because ≥1 task was ignored ("fail-on-ignore" mode,
+// default true in Nextflow 24+). Opt out so the workflow reports success
+// when all *surviving* tasks succeed.
+workflow.failOnIgnore = false
 // Different executors have different default queue size limits.
 // See: https://nextflow.io/docs/latest/reference/config.html#executor-specific-defaults
 // 2000 was set arbitrarily (limit for jobs/user on Sherlock)
