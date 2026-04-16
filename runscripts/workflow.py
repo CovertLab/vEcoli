@@ -1433,7 +1433,22 @@ def main():
     args = parser.parse_args()
     config = load_config_with_inheritance(config_file)
     user_config = load_config_with_inheritance(args.config)
+    # Log the incoming user config's parca_variants count so the Batch logs
+    # self-diagnose server-side serialization issues (multi-parca sensitivity
+    # campaigns rely on this list being preserved through the config pipeline).
+    _user_variants = user_config.get("parca_variants") or []
+    print(
+        f"[workflow.py] incoming user config: "
+        f"parca_variants={len(_user_variants)} "
+        f"generations={user_config.get('generations')} "
+        f"n_init_sims={user_config.get('n_init_sims')}"
+    )
     _merge_configs(config, user_config)
+    _merged_variants = config.get("parca_variants") or []
+    print(
+        f"[workflow.py] after default-config merge: "
+        f"parca_variants={len(_merged_variants)}"
+    )
 
     experiment_id = config["experiment_id"]
     if experiment_id is None:
