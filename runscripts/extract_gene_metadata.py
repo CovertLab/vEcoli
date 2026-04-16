@@ -216,6 +216,14 @@ def _reaction_table_gene_ids(sim_data, monomer_id_to_cistron, cistron_id_to_gene
     participant_ids.update(sim_data.process.complexation.molecule_names)
     participant_ids.update(sim_data.process.equilibrium.molecule_names)
     participant_ids.update(sim_data.process.two_component_system.molecule_names)
+    # tRNA charging: synthetase enzymes
+    participant_ids.update(sim_data.process.transcription.synthetase_names)
+    # RNA decay: endo- and exo-ribonucleases
+    participant_ids.update(sim_data.process.rna_decay.endoRNase_ids)
+    participant_ids.update(sim_data.molecule_groups.exoRNases)
+    # DNA replication: replisome subunits (DnaB, DnaG, ligase, etc.)
+    participant_ids.update(sim_data.molecule_groups.replisome_trimer_subunits)
+    participant_ids.update(sim_data.molecule_groups.replisome_monomer_subunits)
 
     gene_ids = set()
     for participant_id in participant_ids:
