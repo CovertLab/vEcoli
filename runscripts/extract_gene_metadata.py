@@ -92,7 +92,7 @@ def build_gene_metadata(sim_data, essential_genes_path=None):
     all_genes = _read_genes_tsv(os.path.join(FLAT_DIR, "genes.tsv"))
     symbol_to_gene_id = {symbol: gene_id for gene_id, symbol in all_genes}
 
-    aa_pway_gene_ids = _aa_pway_enzyme_genes(
+    aa_pway_gene_aas = _aa_pway_enzyme_genes(
         sim_data, monomer_id_to_cistron, cistron_id_to_gene_id
     )
     tf_gene_ids = {
@@ -133,7 +133,8 @@ def build_gene_metadata(sim_data, essential_genes_path=None):
                 "gene_symbol": symbol,
                 "in_model": gene_id in in_model_set,
                 "is_essential": gene_id in essential_gene_ids,
-                "aa_pway_enzyme": gene_id in aa_pway_gene_ids,
+                "aa_pway_enzyme": gene_id in aa_pway_gene_aas,
+                "aa_pway_list": ",".join(sorted(aa_pway_gene_aas.get(gene_id, ()))),
                 "is_tf": is_tf,
                 "is_ribosomal_translation_mach": gene_id in ribosomal_gene_ids,
                 "is_rnap_transcription_mach": gene_id in rnap_gene_ids,
@@ -150,9 +151,17 @@ def build_gene_metadata(sim_data, essential_genes_path=None):
 
 
 def _aa_pway_enzyme_genes(sim_data, monomer_id_to_cistron, cistron_id_to_gene_id):
+    """Return {gene_id: {AA_codes}} for genes encoding subunits of any enzyme in
+    the AA synthesis pathways dict (forward or reverse direction). AA codes are
+    stripped of the compartment tag (e.g. "CYS[c]" -> "CYS").
+    """
     complexation = sim_data.process.complexation
-    gene_ids = set()
-    for pathway in sim_data.process.metabolism.aa_synthesis_pathways.values():
+    gene_to_aas = {}
+    for (
+        pathway_key,
+        pathway,
+    ) in sim_data.process.metabolism.aa_synthesis_pathways.items():
+        aa_code = pathway_key.split("[")[0]
         all_enzymes = list(pathway["enzymes"]) + list(pathway["reverse enzymes"])
         for enzyme_id in all_enzymes:
             try:
@@ -164,8 +173,8 @@ def _aa_pway_enzyme_genes(sim_data, monomer_id_to_cistron, cistron_id_to_gene_id
                 if cistron_id:
                     gene_id = cistron_id_to_gene_id.get(cistron_id)
                     if gene_id:
-                        gene_ids.add(gene_id)
-    return gene_ids
+                        gene_to_aas.setdefault(gene_id, set()).add(aa_code)
+    return gene_to_aas
 
 
 def _print_role_summary(df):
