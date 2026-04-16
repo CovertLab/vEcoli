@@ -26,6 +26,9 @@ process simGen0 {
     seed_d1 = lineage_seed + 2
     def daughter_outdir = "${params.publishDir}/${params.experimentId}/daughter_states/variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
     """
+    # Belt-and-suspenders: source /vEcoli/.env so ECOLI_SOURCES resolves
+    # correctly even when the container's ENTRYPOINT is bypassed.
+    [[ -f /vEcoli/.env ]] && set -a && source /vEcoli/.env && set +a || true
     # Use 1 Polars thread to avoid oversubscription on HPC/cloud
     # Access config and sim_data directly via cloud URIs (fsspec handles both S3 and GCS)
     # Daughter states are written directly to cloud storage via fsspec
@@ -89,6 +92,9 @@ process sim {
     seed_d1 = sim_seed + 2
     def daughter_outdir = "${params.publishDir}/${params.experimentId}/daughter_states/variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
     """
+    # Belt-and-suspenders: source /vEcoli/.env so ECOLI_SOURCES resolves
+    # correctly even when the container's ENTRYPOINT is bypassed.
+    [[ -f /vEcoli/.env ]] && set -a && source /vEcoli/.env && set +a || true
     # Use 1 Polars thread to avoid oversubscription on HPC/cloud
     # Access config, sim_data, and initial_state directly via cloud URIs (fsspec handles both S3 and GCS)
     # Daughter states are written directly to cloud storage via fsspec

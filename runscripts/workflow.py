@@ -1550,16 +1550,17 @@ def main():
             per_parca = copy.deepcopy(stripped_config)
             per_parca.setdefault("parca_options", {})
             per_parca["parca_options"].update(override)
-            # Resolve $ECOLI_SOURCES in rnaseq_manifest_path so containers
-            # downstream see an absolute path; expand env-var first so
-            # `os.path.isabs` doesn't misclassify the literal '$' string.
+            # Leave `$ECOLI_SOURCES`-style env-var placeholders intact in the
+            # per-parca config — each Batch task's container resolves them at
+            # runtime from its own env (sourced from /vEcoli/.env). Only
+            # handle the legacy repo-relative case here (e.g. someone passing
+            # "reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv"):
+            # prepend repo_dir so the path resolves inside the container.
             manifest = per_parca["parca_options"].get("rnaseq_manifest_path")
-            if manifest:
-                from wholecell.io.ingestion import resolve_ecoli_sources_path
-                manifest = resolve_ecoli_sources_path(manifest)
+            if manifest and "$" not in manifest:
                 if not os.path.isabs(manifest) and not parse.urlparse(manifest).scheme:
                     manifest = os.path.join(repo_dir, manifest)
-                per_parca["parca_options"]["rnaseq_manifest_path"] = manifest
+                    per_parca["parca_options"]["rnaseq_manifest_path"] = manifest
             local_parca_path = os.path.join(local_outdir, f"parca_config_{i}.json")
             with open(local_parca_path, "w") as f:
                 json.dump(per_parca, f)

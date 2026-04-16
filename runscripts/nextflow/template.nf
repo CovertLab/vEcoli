@@ -23,6 +23,11 @@ process runParca {
     script:
     def publish_path = "${params.publishDir}/${params.experimentId}/parca_${parca_id}"
     """
+    # Belt-and-suspenders: source /vEcoli/.env so ECOLI_SOURCES resolves
+    # correctly even when the container's ENTRYPOINT is bypassed
+    # (e.g. K8s `command:` override, some Batch executor configs).
+    [[ -f /vEcoli/.env ]] && set -a && source /vEcoli/.env && set +a || true
+
     # Compute config hash for cache invalidation (per-parca config content)
     export config_hash=\$(sha256sum $config | cut -d' ' -f1)
 
@@ -63,6 +68,7 @@ process analysisParca {
 
     script:
     """
+    [[ -f /vEcoli/.env ]] && set -a && source /vEcoli/.env && set +a || true
     PYTHONUNBUFFERED=1 python ${params.projectRoot}/runscripts/analysis.py \
         --config "${config_uri}" \
         --sim_data_path="${kb_uri}/simData.cPickle" \
@@ -104,6 +110,10 @@ process createVariants {
     script:
     def publish_path = "${params.publishDir}/${params.experimentId}/variant_sim_data"
     """
+    # Belt-and-suspenders: source /vEcoli/.env so ECOLI_SOURCES resolves
+    # correctly even when the container's ENTRYPOINT is bypassed.
+    [[ -f /vEcoli/.env ]] && set -a && source /vEcoli/.env && set +a || true
+
     PYTHONUNBUFFERED=1 python ${params.projectRoot}/runscripts/create_variants.py \\
         --config "${config_uri}" --kb "${kb_uri}" --offset ${offset} \\
         --parca-id ${parca_id} \\
