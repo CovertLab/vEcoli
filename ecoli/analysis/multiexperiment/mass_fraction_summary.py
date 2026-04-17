@@ -57,7 +57,19 @@ def plot(
             + pl.col("generation").cast(pl.Utf8)
             + pl.lit(", seed=")
             + pl.col("lineage_seed").cast(pl.Utf8)
-        )
+        ),
+        sim_meta=(
+            pl.concat_str(
+                pl.lit("experiment_id="),
+                pl.col("experiment_id"),
+                pl.lit(", variant="),
+                pl.col("variant").cast(pl.Utf8),
+                pl.lit(", seed="),
+                pl.col("lineage_seed").cast(pl.Utf8),
+                pl.lit(", generation="),
+                pl.col("generation").cast(pl.Utf8),
+            )
+        ),
     )
 
     # Relative time per (generation, lineage_seed) so each generation starts at t=0
@@ -90,6 +102,7 @@ def plot(
         "group_by": mass_data[group_by],
         "experiment_id": mass_data["experiment_id"],
         "generation": mass_data["generation"],
+        "sim_meta": mass_data["sim_meta"],
         **{
             f"{k} ({fractions[k]:.3f})": mass_data[v] / mass_data[v][0]
             for k, v in mass_columns.items()
@@ -100,7 +113,7 @@ def plot(
 
     # Long form to follow altair format (include generation so we can break lines at division)
     melted = mass_fold_change_df.melt(
-        id_vars=["Time (min)", "group_by", "generation", "experiment_id"],
+        id_vars=["Time (min)", "group_by", "generation", "experiment_id", "sim_meta"],
         variable_name="Submass",
         value_name="Mass (normalized by t = 0 min)",
     )
@@ -154,7 +167,7 @@ def plot(
     # --- Save Plot 2: Individual Cell Component Mass per Experiment (Mean across gen and seed) ---
     figure_individual = (
         alt.layer(spread, line, data=melted)
-        .facet(facet=alt.Facet("experiment_id:N"), columns=5)
+        .facet(facet=alt.Facet("sim_meta:N"), columns=4)
         .resolve_scale(
             x="independent"
         )  # tight x-axis per facet, 0 to max for that group

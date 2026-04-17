@@ -46,7 +46,7 @@ def plot(
         - "lineage_seed": distribution of lineage doubling time considering all experiments and variants
         - "gen_seed": distribution of doubling time of gen_seed combo, grouping experiment_id and variant
     """
-    skip_n_gens_val = params.get("skip_n_gens", 8)
+    skip_n_gens_val = params.get("skip_n_gens", 0)
     plot_by = params.get("plot_by", "gen_seed")
     doubling_time_sql = skip_n_gens(doubling_time_sql, skip_n_gens_val)
 

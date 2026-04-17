@@ -118,12 +118,25 @@ def plot(
             + pl.col("generation").cast(pl.Utf8)
             + pl.lit(", seed=")
             + pl.col("lineage_seed").cast(pl.Utf8)
-        )
+        ),
+        sim_meta=(
+            pl.concat_str(
+                pl.lit("experiment_id="),
+                pl.col("experiment_id"),
+                pl.lit(", variant="),
+                pl.col("variant").cast(pl.Utf8),
+                pl.lit(", seed="),
+                pl.col("lineage_seed").cast(pl.Utf8),
+                pl.lit(", generation="),
+                pl.col("generation").cast(pl.Utf8),
+            )
+        ),
     )
 
     new_columns = {
         "Time (min)": raw["Time (min)"],
         "group_by": raw[group_by],
+        "sim_meta": raw["sim_meta"],
         "experiment_id": raw["experiment_id"],
         "generation": raw["generation"],
         "enzyme count": raw["enzyme_count"],
@@ -170,19 +183,23 @@ def plot(
             ),
             color=alt.Color(
                 "trace:N",
-                scale=color_scale,  # ✅ same shared scale
+                scale=color_scale,
                 legend=alt.Legend(title="Trace"),
             ),
             detail=alt.Detail("generation:N"),
         )
     )
 
+    # Facets default to a shared x (and y) domain across panels, which stretches
+    # each subplot to the global time range and leaves empty "dead zones" when
+    # per-panel time is cell-cycle-relative. Independent x (and y) per facet
+    # fits each panel to its own data extent.
     chart = (
         alt.layer(line_enz, line_need, data=df_plot)
         .resolve_scale(y="independent")
         .properties(width=600, height=300)
-        .facet(facet=alt.Facet("experiment_id:N"), columns=2)
-        .resolve_scale(y="independent")
+        .facet(facet=alt.Facet("group_by:N"), columns=2)
+        .resolve_scale(x="independent", y="independent")
         .properties(title="Mean enzyme counts and unmet need across experiments")
     )
 

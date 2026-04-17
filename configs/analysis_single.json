@@ -1,16 +1,42 @@
 {
     "emitter_arg": {
-        "out_dir": "out/objective_weight_batch/"
+        "out_dir": "out/objective_weight_parquet/batch_apr_two_seed_gen/"
     },
     "analysis_options": {
-        "experiment_id": ["metabolism_weights_1_20260311-013054"],
-        "variant_data_dir": ["/Users/heenasaqib/dev/vEcoli/out/objective_weight_batch/metabolism_weights_1_20260311-013054/variant_sim_data"],
-        "validation_data_path": ["out/kb/validationData.cPickle"],
-        "outdir": "out/objective_weight_batch/metabolism_weights_1_20260311-013054/analysis/",
+        "experiment_id": ["metabolism_weights_424_20260415-010340",
+                          "metabolism_weights_432_20260415-005336",
+                          "metabolism_weights_728_20260415-000101",
+                          "metabolism_weights_2001_20260415-021051",
+                          "metabolism_weights_1918_20260415-014721"],
+        "variant_data_dir": [
+            "out/objective_weight_parquet/batch_apr_two_seed_gen/metabolism_weights_424_20260415-010340/variant_sim_data",
+            "out/objective_weight_parquet/batch_apr_two_seed_gen/metabolism_weights_432_20260415-005336/variant_sim_data",
+            "out/objective_weight_parquet/batch_apr_two_seed_gen/metabolism_weights_728_20260415-000101/variant_sim_data",
+            "out/objective_weight_parquet/batch_apr_two_seed_gen/metabolism_weights_2001_20260415-021051/variant_sim_data",
+            "out/objective_weight_parquet/batch_apr_two_seed_gen/metabolism_weights_1918_20260415-014721/variant_sim_data"],
+        "validation_data_path": ["out/kb/validationData.cPickle","out/kb/validationData.cPickle"],
+        "outdir": "out/objective_weight_parquet/analysis/apr_two_seed_gen_analysis/specific_experiments",
         "cpus": 1,
 
-        "single": {"weighted_objective_terms": {},
-                   "mass_fraction_summary": {}
+        "multiexperiment": {
+            "mean_flux_distribution": {
+                "plot_by": "sim_meta",
+                "in_molar": false,
+                "bin_edges": [0, 1E-6, 1e-3, 1, 1e3, 1E6, 1E9, 1E12],
+                "facet_columns": 4,
+                "n_bins": 25
+            },
+            "enzyme_availability_flux":
+                {"group_by": "sim_meta"},
+            "metabolite_unmet_need": {
+                "facet_columns": 4,
+                "group_by": "sim_meta"
+            },
+            "centralCarbonMetabolismScatter": {},
+            "centralCarbonMetabolismBoxScatter": {},
+            "cell_mass": {},
+            "weighted_objective_terms": {},
+            "mass_fraction_summary": {}
         }
     }
 }

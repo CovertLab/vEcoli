@@ -1,15 +1,30 @@
 {
     "emitter_arg": {
-        "out_dir": "out/objective_weight_batch_analysis_4/"
+        "out_dir": "out/objective_weight_parquet/"
     },
     "analysis_options": {
-        "experiment_batch_dir": "out/objective_weight_batch/",
+        "experiment_batch_dir": "out/objective_weight_parquet/batch_apr_selective_1seed_4gen_KD/",
         "validation_data_path": ["out/kb/validationData.cPickle"],
-        "outdir": "out/objective_weight_batch_analysis_4/",
+        "outdir": "out/objective_weight_parquet/analysis/batch_apr_selective_1seed_4gen_analysis/",
         "cpus": 1,
 
-        "single": {
-            "centralCarbonMetabolismScatter": {}
+        "multiexperiment": {
+            "centralCarbonMetabolismScatter": {},
+            "centralCarbonMetabolismBoxScatter": {},
+            "cell_mass": {},
+            "cell_mass_individual": {},
+            "doubling_time_hist":{"plot_by": "experiment_id"},
+            "weighted_objective_terms": {},
+            "mass_fraction_summary": {},
+            "enzyme_availability_flux": {},
+            "metabolite_unmet_need": {},
+            "mean_flux_distribution": {
+                "plot_by": "experiment_id",
+                "in_molar": false,
+                "bin_edges": [0, 1E-6, 1e-3, 1, 1e3, 1E6, 1E9, 1E12],
+                "facet_columns": 4,
+                "n_bins": 25
+            }
         }
     }
 }

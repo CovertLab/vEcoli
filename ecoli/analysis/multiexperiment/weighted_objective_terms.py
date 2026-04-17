@@ -69,7 +69,19 @@ def plot(
             + pl.col("generation").cast(pl.Utf8)
             + pl.lit(", seed=")
             + pl.col("lineage_seed").cast(pl.Utf8)
-        )
+        ),
+        sim_meta=(
+            pl.concat_str(
+                pl.lit("experiment_id="),
+                pl.col("experiment_id"),
+                pl.lit(", variant="),
+                pl.col("variant").cast(pl.Utf8),
+                pl.lit(", seed="),
+                pl.col("lineage_seed").cast(pl.Utf8),
+                pl.lit(", generation="),
+                pl.col("generation").cast(pl.Utf8),
+            )
+        ),
     )
 
     if group_by == "gen_seed" or group_by == "generation":
@@ -88,6 +100,7 @@ def plot(
     new_columns = {
         "Time (min)": (objective_data["time"] - objective_data["time"].min()) / 60,
         "group_by": objective_data[group_by],
+        "sim_meta": objective_data["sim_meta"],
         "experiment_id": objective_data["experiment_id"],
         "generation": objective_data["generation"],
         **{
@@ -104,7 +117,7 @@ def plot(
 
     # Long form for plotting
     melted = df.melt(
-        id_vars=["Time (min)", "group_by", "generation", "experiment_id"],
+        id_vars=["Time (min)", "group_by", "generation", "experiment_id", "sim_meta"],
         variable_name="Term",
         value_name="Objective Term",
     )
@@ -155,7 +168,7 @@ def plot(
     # --- Save Plot 2: Individual Objective Term per Experiment (Mean across gen and seed) ---
     figure_individual = (
         alt.layer(spread, line, data=melted)
-        .facet(facet=alt.Facet("experiment_id:N"), columns=5)
+        .facet(facet=alt.Facet("sim_meta:N"), columns=4)
         .resolve_scale(
             x="independent"
         )  # tight x-axis per facet, 0 to max for that group
