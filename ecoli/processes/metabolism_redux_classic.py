@@ -516,14 +516,26 @@ class MetabolismReduxClassic(Step):
             # ) as f:
             #     reduced_kinetic_targets_80pct = pickle.load(f)
 
+            # with open(
+            #     "notebooks/Heena notebooks/Riley New Genes/"
+            #     "all_below_line_essential_reaction_constraint_dict_variant16.pkl",
+            #     "rb",
+            # ) as f:
+            #     all_below_line_reaction_constraint_dict = pickle.load(f)
+            # with open(
+            #     "notebooks/Heena notebooks/Riley New Genes/"
+            #     "reduced_kinetic_targets_80pct_essential_variant16.pkl",
+            #     "rb",
+            # ) as f:
+            #     reduced_kinetic_targets_80pct = pickle.load(f)
             with open(
-                "notebooks/Heena notebooks/Riley New Genes/"
+                "/Users/rjuene/dev/vEcoli/reconstruction/ecoli/flat/"
                 "all_below_line_essential_reaction_constraint_dict_variant16.pkl",
                 "rb",
             ) as f:
                 all_below_line_reaction_constraint_dict = pickle.load(f)
             with open(
-                "notebooks/Heena notebooks/Riley New Genes/"
+                "/Users/rjuene/dev/vEcoli/reconstruction/ecoli/flat"
                 "reduced_kinetic_targets_80pct_essential_variant16.pkl",
                 "rb",
             ) as f:
