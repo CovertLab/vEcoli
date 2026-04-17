@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import polars as pl
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, cast
 from collections import defaultdict
 from ecoli.library.parquet_emitter import (
     read_stacked_columns,
@@ -79,7 +79,7 @@ def plot(
     MARKER_SYMBOLS = "ovs+*DX"
 
     # Overwrite default parameters with provided values
-    defaults = {
+    defaults: dict[str, Any] = {
         "show_enzyme_counts": False,
         "figsize": None,
         "row_height": 3,
@@ -152,17 +152,20 @@ def plot(
         reaction_idx = np.nonzero(
             np.array(reaction_set_ids)[:, np.newaxis] == reaction_ids
         )[1]
-        flux_data = read_stacked_columns(
-            history_sql,
-            [
-                named_idx(
-                    "listeners__fba_results__base_reaction_fluxes",
-                    reaction_set_ids,
-                    [list(reaction_idx)],
-                )
-            ],
-            remove_first=True,
-            conn=conn,
+        flux_data = cast(
+            pl.DataFrame,
+            read_stacked_columns(
+                history_sql,
+                [
+                    named_idx(
+                        "listeners__fba_results__base_reaction_fluxes",
+                        reaction_set_ids,
+                        [list(reaction_idx)],
+                    )
+                ],
+                remove_first=True,
+                conn=conn,
+            ),
         )
 
         # Plot flux traces
@@ -173,7 +176,9 @@ def plot(
         if params["show_enzyme_counts"]:
             # Get a tree mapping from catalysts in this subplot (root)
             # to base reactions (level 2) to fba reactions (level 3)
-            catalysts_to_reactions_mapping = defaultdict(lambda: defaultdict(list))
+            catalysts_to_reactions_mapping: defaultdict[
+                str, defaultdict[str, list[str]]
+            ] = defaultdict(lambda: defaultdict(list))
             for baseid in reaction_set:
                 # Get fba reactions of this base reaction
                 fba_reactions = base_reaction_id_to_reaction_ids[baseid]
@@ -192,17 +197,20 @@ def plot(
             catalyst_idx = np.nonzero(
                 np.array(catalyst_set_ids)[:, np.newaxis] == catalyst_ids
             )[1]
-            catalyst_counts = read_stacked_columns(
-                history_sql,
-                [
-                    named_idx(
-                        "listeners__fba_results__catalyst_counts",
-                        catalyst_set_ids,
-                        [list(catalyst_idx)],
-                    )
-                ],
-                remove_first=True,
-                conn=conn,
+            catalyst_counts = cast(
+                pl.DataFrame,
+                read_stacked_columns(
+                    history_sql,
+                    [
+                        named_idx(
+                            "listeners__fba_results__catalyst_counts",
+                            catalyst_set_ids,
+                            [list(catalyst_idx)],
+                        )
+                    ],
+                    remove_first=True,
+                    conn=conn,
+                ),
             )
 
             # Plot counts for each catalyst
@@ -237,17 +245,13 @@ def plot(
 
                 # Plot markers separately to sub-sample timepoints
                 N_POINTS = 20
-                if len(catalyst_counts) <= N_POINTS:
-                    subsampled_counts = catalyst_counts
-                else:
-                    len_t = len(catalyst_counts["time"])
-                    max_t = catalyst_counts["time"].max()
-                    subsampled_times = catalyst_counts["time"][
-                        np.arange(0, len_t, int(max_t // N_POINTS))
-                    ]
-                    subsampled_counts = catalyst_counts.filter(
-                        pl.col("time").is_in(subsampled_times)
-                    )
+
+                len_t = len(catalyst_counts["time"])
+                step = max(1, len_t // N_POINTS)
+                subsampled_times = catalyst_counts["time"][::step]
+                subsampled_counts = catalyst_counts.filter(
+                    pl.col("time").is_in(subsampled_times)
+                )
 
                 legend_handles.append(
                     ax2.scatter(
