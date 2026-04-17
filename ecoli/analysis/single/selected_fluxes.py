@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 import polars as pl
 
 from typing import Any, TYPE_CHECKING
-from functools import reduce
-from operator import add, or_
 from collections import defaultdict
 from ecoli.library.parquet_emitter import (
     read_stacked_columns,
@@ -173,38 +171,33 @@ def plot(
 
         # Plot enzyme counts, if requested
         if params["show_enzyme_counts"]:
-            # For each reaction in this subplot,
-            # get a mapping from specific fba reactions to catalysts
-            fba_reaction_to_catalysts_mappings = [
-                {
-                    rxnid: reaction_catalyst_mapping[rxnid]
-                    for rxnid in base_reaction_id_to_reaction_ids[baseid]
-                    if rxnid in reaction_catalyst_mapping
-                }
-                for baseid in reaction_set
-            ]
+            # Get a tree mapping from catalysts in this subplot (root)
+            # to base reactions (level 2) to fba reactions (level 3)
+            catalysts_to_reactions_mapping = defaultdict(lambda: defaultdict(list))
+            for baseid in reaction_set:
+                # Get fba reactions of this base reaction
+                fba_reactions = base_reaction_id_to_reaction_ids[baseid]
 
-            # Make flat list of all catalyst ids for this reaction set
-            catalysts = list(
-                reduce(
-                    or_,
-                    [
-                        set(reduce(add, mapping.values()))
-                        for mapping in fba_reaction_to_catalysts_mappings
-                    ],
-                )
-            )
+                # Collect catalysts of the fba reactions and store
+                for rxnid in fba_reactions:
+                    catalysts = reaction_catalyst_mapping.get(rxnid, [])
+                    if len(catalysts) > 0:
+                        for catalyst in catalysts:
+                            catalysts_to_reactions_mapping[catalyst][baseid].append(
+                                rxnid
+                            )
 
             # Get catalyst indices and read counts
+            catalyst_set_ids = list(catalysts_to_reactions_mapping.keys())
             catalyst_idx = np.nonzero(
-                np.array(catalysts)[:, np.newaxis] == catalyst_ids
+                np.array(catalyst_set_ids)[:, np.newaxis] == catalyst_ids
             )[1]
             catalyst_counts = read_stacked_columns(
                 history_sql,
                 [
                     named_idx(
                         "listeners__fba_results__catalyst_counts",
-                        catalysts,
+                        catalyst_set_ids,
                         [list(catalyst_idx)],
                     )
                 ],
@@ -212,61 +205,59 @@ def plot(
                 conn=conn,
             )
 
-            # Plot catalyst counts
-            # (catalysts for same base reaction share same color, different symbols)
+            # Plot counts for each catalyst
             legend_handles = []
-            for (base_rxn, base_rxn_label), fba_rxn_to_catalysts in zip(
-                reaction_set.items(), fba_reaction_to_catalysts_mappings
+            for i, (catalyst, base_to_fba_reaction_mapping) in enumerate(
+                catalysts_to_reactions_mapping.items()
             ):
-                # Make label for base reaction
-                base_rxn_label = base_rxn + (
-                    rf"\ ({base_rxn_label})" if base_rxn_label != base_rxn else ""
+                # Build label based on base reactions and fba reactions of this catalyst
+                label = f"$\\bf{{{esc_latex(catalyst)}}}$"
+                for base_rxn, fba_rxns in base_to_fba_reaction_mapping.items():
+                    base_rxn_label = reaction_set[base_rxn]
+                    label += f"\n  {base_rxn}" + (
+                        f" ({base_rxn_label})" if base_rxn_label != base_rxn else ""
+                    )
+
+                    for fba_rxn in fba_rxns:
+                        # Get suffix distinguishing fba reaction from base reaction
+                        suffix = fba_rxn[len(base_rxn) :]
+                        if len(suffix) > 0:
+                            label += "\n    + " + textwrap.fill(
+                                suffix, width=40, subsequent_indent="      "
+                            )
+
+                # Plot catalyst counts vs time
+                # (Store color so markers plotted separately share color)
+                lines = ax2.plot(
+                    catalyst_counts["time"],
+                    catalyst_counts[catalyst],
+                    linestyle="--",
                 )
+                color = lines[0].get_color()
 
-                for i, (fba_rxn, catalysts) in enumerate(fba_rxn_to_catalysts.items()):
-                    # Get suffix differentiation fba_rxn from base_rxn
-                    suffix = fba_rxn[len(base_rxn) :]
+                # Plot markers separately to sub-sample timepoints
+                N_POINTS = 20
+                if len(catalyst_counts) <= N_POINTS:
+                    subsampled_counts = catalyst_counts
+                else:
+                    len_t = len(catalyst_counts["time"])
+                    max_t = catalyst_counts["time"].max()
+                    subsampled_times = catalyst_counts["time"][
+                        np.arange(0, len_t, int(max_t // N_POINTS))
+                    ]
+                    subsampled_counts = catalyst_counts.filter(
+                        pl.col("time").is_in(subsampled_times)
+                    )
 
-                    color = None
-                    for j, catalyst in enumerate(catalysts):
-                        # Create label for this catalyst
-                        label = ""
-                        label += f"{r'$\bf{' + esc_latex(base_rxn_label) + '}$\n  ' if i == 0 and j == 0 else '  '}"
-                        label += f"{'\n  '.join(r'$\bf{' + esc_latex(line) + '}$' for line in textwrap.wrap(suffix, width=40)) + '\n    ' if j == 0 and len(suffix) > 0 else '  '}"
-                        label += catalyst
-
-                        # Plot catalyst counts vs time
-                        lines = ax2.plot(
-                            catalyst_counts["time"],
-                            catalyst_counts[catalyst],
-                            color=color,
-                            linestyle="--",
-                        )
-                        color = lines[0].get_color()
-
-                        # Plot markers separately to sub-sample timepoints
-                        N_POINTS = 20
-                        if len(catalyst_counts) <= N_POINTS:
-                            subsampled_counts = catalyst_counts
-                        else:
-                            len_t = len(catalyst_counts["time"])
-                            max_t = catalyst_counts["time"].max()
-                            subsampled_times = catalyst_counts["time"][
-                                np.arange(0, len_t, int(max_t // N_POINTS))
-                            ]
-                            subsampled_counts = catalyst_counts.filter(
-                                pl.col("time").is_in(subsampled_times)
-                            )
-
-                        legend_handles.append(
-                            ax2.scatter(
-                                subsampled_counts["time"],
-                                subsampled_counts[catalyst],
-                                color=color,
-                                marker=MARKER_SYMBOLS[j % len(MARKER_SYMBOLS)],
-                                label=label,
-                            )
-                        )
+                legend_handles.append(
+                    ax2.scatter(
+                        subsampled_counts["time"],
+                        subsampled_counts[catalyst],
+                        color=color,
+                        marker=MARKER_SYMBOLS[i % len(MARKER_SYMBOLS)],
+                        label=label,
+                    )
+                )
 
             # Axis aesthetics
             ax2.set_ylabel("Enzyme count")
