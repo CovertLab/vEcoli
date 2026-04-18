@@ -5,6 +5,7 @@ MetabolismRedux
 import numpy as np
 import numpy.typing as npt
 import time
+import pytest
 from unum import Unum
 import warnings
 from scipy.sparse import csr_matrix
@@ -796,29 +797,30 @@ class NetworkFlowModel:
         homeostatic_term = cp.norm1(
             (dm[self.homeostatic_idx] - homeostatic_dm_targets) / homeostatic_concs
         )
-        loss += objective_weights["homeostatic"] * homeostatic_term
-
-        # flux_sum_part_obj = objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
-
+        loss += (
+            objective_weights["homeostatic"] * homeostatic_term
+            if "homeostatic" in objective_weights
+            else 0
+        )
         secretion_term = cp.sum(e[self.secretion_idx])
         loss += (
             objective_weights["secretion"] * secretion_term
             if "secretion" in objective_weights
-            else loss
+            else 0
         )
 
         efficiency_term = cp.sum(v)
         loss += (
             objective_weights["efficiency"] * efficiency_term
             if "efficiency" in objective_weights
-            else loss
+            else 0
         )
 
         kinetics_term = cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
-        loss = (
-            loss + objective_weights["kinetics"] * kinetics_term
+        loss += (
+            objective_weights["kinetics"] * kinetics_term
             if "kinetics" in objective_weights
-            else loss
+            else 0
         )
 
         # Heena's addition: minimize number of reactions with no flow
@@ -891,8 +893,9 @@ def test_network_flow_model():
     model.set_up_exchanges(exchanges=exchanges, uptakes=uptakes)
 
     solution: FlowResult = model.solve(
-        homeostatic_targets=list(homeostatic_metabolites.values()),
-        objective_weights={"secretion": 0.01, "efficiency": 0.0001},
+        homeostatic_concs=[0.1],
+        homeostatic_dm_targets=list(homeostatic_metabolites.values()),
+        objective_weights={"homeostatic": 1, "secretion": 0.01, "efficiency": 0.0001},
         upper_flux_bound=100,
         solver=cp.GLOP,
     )
@@ -902,7 +905,70 @@ def test_network_flow_model():
     )
 
 
-# TODO (Cyrus) Add test for entire process
+@pytest.fixture
+def temp_config_dir(tmp_path):
+    """Create a temporary directory for test configs."""
+    return tmp_path
+
+
+def test_redux_classic(temp_config_dir):
+    import json
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
+
+    config = {
+        "experiment_id": "metabolism_redux",
+        "fail_at_max_duration": False,
+        "max_duration": 10,
+        "progress_bar": True,
+        "emitter": "timeseries",
+        "fixed_media": "minimal",
+        "condition": "basal",
+        "swap_processes": {"ecoli-metabolism": "ecoli-metabolism-redux-classic"},
+        "exclude_processes": ["exchange_data"],
+        "flow": {
+            "ecoli-metabolism-redux-classic": [["ecoli-chromosome-structure"]],
+            "ecoli-mass-listener": [["ecoli-metabolism-redux-classic"]],
+            "RNA_counts_listener": [["ecoli-metabolism-redux-classic"]],
+            "rna_synth_prob_listener": [["ecoli-metabolism-redux-classic"]],
+            "monomer_counts_listener": [["ecoli-metabolism-redux-classic"]],
+            "dna_supercoiling_listener": [["ecoli-metabolism-redux-classic"]],
+            "replication_data_listener": [["ecoli-metabolism-redux-classic"]],
+            "rnap_data_listener": [["ecoli-metabolism-redux-classic"]],
+            "unique_molecule_counts": [["ecoli-metabolism-redux-classic"]],
+            "ribosome_data_listener": [["ecoli-metabolism-redux-classic"]],
+        },
+        "raw_output": False,
+        "operons": True,
+        "trna_charging": False,
+        "ppgpp_regulation": False,
+        "initial_state_gaussian": True,
+        "trna_attenuation": False,
+        "variable_elongation_transcription": True,
+        "variable_elongation_translation": False,
+        "mechanistic_translation_supply": False,
+        "mechanistic_aa_transport": False,
+        "translation_supply": False,
+        "aa_supply_in_charging": False,
+        "adjust_timestep_for_charging": False,
+        "disable_ppgpp_elongation_inhibition": True,
+    }
+
+    config_path = temp_config_dir / "test_metabolism_redux_classic.json"
+    with open(config_path, "w") as f:
+        json.dump(config, f)
+
+    sim = EcoliSim.from_file(config_path)
+    sim.build_ecoli()
+    sim.run()
+
+    data = sim.query()
+    assert data is not None
+
 
 if __name__ == "__main__":
+    from tempfile import TemporaryDirectory
+    from pathlib import Path
+
     test_network_flow_model()
+    with TemporaryDirectory() as tmp_path:
+        test_redux_classic(Path(tmp_path))
