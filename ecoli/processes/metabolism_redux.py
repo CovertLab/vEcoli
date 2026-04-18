@@ -47,7 +47,74 @@ BAD_RXNS = [
     "TRANS-RXN-300",
     "TRANS-RXN-8",
     "R15-RXN-MET/CPD-479//CPD-479/MET.25.",
+    "TRANS-RXN-218",
+    "TRANS-RXN0-601-PROTON//PROTON.15. (reverse)",
+    "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71."
+    "DEPHOSICITDEHASE-RXN",
+    "PHOSICITDEHASE-RXN",
+    "GLYCOLALD-DEHYDROG-RXN",
+    "ARCBTRANS-RXN",
+    "RXN0-7332",
+    "RXN0-7336",
+    "2.7.1.121-RXN",
+    "TRANS-RXN0-574-GLC//Glucopyranose.19.",
+    "6PFRUCTPHOS-RXN__6PFK-2-CPX",
+    "RXN0-313",
+    "RXN0-7169",
+    "RXN0-1483[CCO-PERI-BAC]-FE+2/PROTON/OXYGEN-MOLECULE//FE+3/WATER.54.",
+    "RXN-22461",
+    "RXN-22462",
+    "RXN-22463",
+    "GABATRANSAM-RXN",
+    "GABATRANSAM-RXN__G6646-MONOMER",
+    "PUTTRANSAM-RXN",
 ]
+
+# not key central carbon met
+BAD_RXNS.extend(
+    [
+        "RXN-6161",
+        "R15-RXN-MET/PYRUVATE//CPD-479/L-ALPHA-ALANINE.38.",
+        "R15-RXN-MET/GLYOX//CPD-479/GLY.23. (reverse)",
+    ]
+)
+
+# isomers, that might be used but not in conditions tested
+BAD_RXNS.extend(
+    [
+        "ASPAMINOTRANS-RXN__TYRB-DIMER",
+        "325-BISPHOSPHATE-NUCLEOTIDASE-RXN",
+        "ACETOLACTSYN-RXN",
+        "ASNSYNA-RXN__ASNSYNB-CPLX",
+        "ASPARTATEKIN-RXN__ASPKINIHOMOSERDEHYDROGI-CPLX",
+        "DAHPSYN-RXN__AROH-CPLX",
+        "F16ALDOLASE-RXN__FRUCBISALD-CLASSI",
+        "RXN-9535__FABB-CPLX",
+        "MALATE-DEH-RXN (reverse)",
+    ]
+)
+
+# alt electron transfer
+BAD_RXNS.extend(["1.5.1.20-RXN-CPD-1302/NADP//CPD-12996/NADPH/PROTON.38."])
+
+# weird atp cycling
+BAD_RXNS.extend(
+    [
+        "BARA-RXN",
+        "RXN0-6561",
+        "RXN0-7337",
+        "CHEBDEP-RXN",
+        "RXN0-6542",
+        "RXN0-6547",
+        "NRIIPHOS-RXN",
+        "RXN0-7372",
+        "RXN0-7380",
+        "RXN0-7378",
+        "URIDYLREM-RXN",
+        "URITRANS-RXN",
+        "RXN-16381",
+    ]
+)
 
 
 class MetabolismRedux(Step):
@@ -392,6 +459,24 @@ class MetabolismRedux(Step):
                                 self.network_flow_model.homeostatic_idx
                             ],
                         ),
+                        "target_homeostatic_dmdt_conc": (
+                            [],
+                            np.array(self.network_flow_model.mets)[
+                                self.network_flow_model.homeostatic_idx
+                            ],
+                        ),
+                        "estimated_homeostatic_dmdt_conc_raw": (
+                            [],
+                            np.array(self.network_flow_model.mets)[
+                                self.network_flow_model.homeostatic_idx
+                            ],
+                        ),
+                        "estimated_homeostatic_dmdt_conc": (
+                            [],
+                            np.array(self.network_flow_model.mets)[
+                                self.network_flow_model.homeostatic_idx
+                            ],
+                        ),
                         "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
                         "target_kinetic_fluxes": [],
@@ -617,6 +702,12 @@ class MetabolismRedux(Step):
         self.metabolite_exchange = solution.exchanges
         self.maintenance_flux = solution.maintenance_flux
 
+        # Preserve concentration-space values before conversion to counts
+        target_homeostatic_dmdt_conc = target_homeostatic_dmdt
+        estimated_homeostatic_dmdt_conc_raw = self.metabolite_dmdt[
+            self.network_flow_model.homeostatic_idx
+        ]
+
         # recalculate flux concentrations to counts
         estimated_reaction_fluxes = self.concentrationToCounts(self.reaction_fluxes)
         metabolite_dmdt_counts = self.concentrationToCounts(self.metabolite_dmdt)
@@ -635,6 +726,12 @@ class MetabolismRedux(Step):
         )
         estimated_homeostatic_dmdt = (
             final_metabolite_counts - homeostatic_metabolite_counts
+        )
+        # Clipped estimate back in concentration-per-second units
+        estimated_homeostatic_dmdt_conc = (
+            estimated_homeostatic_dmdt
+            * self.counts_to_molar.asNumber(CONC_UNITS)
+            / self.timestep
         )
         estimated_intermediate_dmdt = metabolite_dmdt_counts[
             self.network_flow_model.intermediates_idx
@@ -661,6 +758,9 @@ class MetabolismRedux(Step):
                     "estimated_fluxes": estimated_reaction_fluxes,
                     "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
                     "target_homeostatic_dmdt": target_homeostatic_dmdt,
+                    "target_homeostatic_dmdt_conc": target_homeostatic_dmdt_conc,
+                    "estimated_homeostatic_dmdt_conc_raw": estimated_homeostatic_dmdt_conc_raw,
+                    "estimated_homeostatic_dmdt_conc": estimated_homeostatic_dmdt_conc,
                     "target_kinetic_fluxes": target_kinetic_flux,
                     "target_kinetic_bounds": target_kinetic_bounds,
                     "estimated_exchange_dmdt": estimated_exchange_dmdt,

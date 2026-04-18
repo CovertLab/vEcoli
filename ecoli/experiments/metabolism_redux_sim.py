@@ -22,66 +22,90 @@ import dill
 
 def run_ecoli_with_metabolism_redux(
     filename="metabolism_redux",
-    max_duration=5000,
+    max_duration=600,
     divide=True,
-    initial_state_file="wcecoli_t0",
+    fail_at_max_duration=False,
+    # initial_state_file="wcecoli_t0",
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",
-    name="metabolism-redux",
+    name="metabolism_redux_metabolic_engineering",
     raw_output=False,
-    save=False,
-    # save_times=4,
+    save=True,
+    save_times=[400],
+    condition="basal",
+    fixed_media="minimal",
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
     sim.max_duration = max_duration
+    sim.fail_at_max_duration = fail_at_max_duration
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
-    sim.initial_state = get_state_from_file(path=f"data/{initial_state_file}.json")
+    # sim.initial_state = get_state_from_file(path=f"data/{initial_state_file}.json")
     sim.raw_output = raw_output
-    sim.save = save
 
+    if save:
+        sim.save = save
+        sim.save_times = save_times
+
+    sim.emitter = emitter
+    if emitter == "parquet":
+        sim.emitter_arg = {"out_dir": f"out/{name}/{condition}/"}
+
+    sim.condition = condition
+    sim.fixed_media = fixed_media
+    sim.media_timeline = ((0, fixed_media),)
     sim.build_ecoli()
     sim.run()
 
     query = []
-    folder = f"out/fbagd/{name}_{max_duration}_{datetime.date.today()}/"
-    save_sim_output(folder, query, sim, save_model=True)
+    folder = f"out/metabolic_engineering/{condition}/{name}_{max_duration}_{datetime.date.today()}/"
+    if emitter == "timeseries":
+        save_sim_output(folder, query, sim, save_model=True)
 
 
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
     filename="metabolism_redux_classic",
-    max_duration=10,
+    max_duration=600,
     divide=True,
+    fail_at_max_duration=False,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
     log_updates=False,
-    emitter="timeseries",  # 'timeseries',
-    name="convex_kinetics_minimal",
+    emitter="timeseries",  # 'timeseries','parquet'
+    name="april_2000samples_index1151",
     raw_output=False,
-    save=True,
-    save_times=[1, 10],
-    condition="basal",  # basal, with_aa
-    fixed_media="minimal",  # minimal, minimal_plus_amino_acids
+    save=False,
+    save_times=[1],
+    condition="basal",  # basal, with_aa, acetate
+    fixed_media="minimal",  # minimal, minimal_plus_amino_acids, minimal_acetate
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
     sim.max_duration = max_duration
+    sim.fail_at_max_duration = fail_at_max_duration
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
-    sim.emitter = emitter
+
     # sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
-    sim.save = save
-    sim.save_times = save_times
+
+    if save:
+        sim.save = save
+        sim.save_times = save_times
+
+    sim.emitter = emitter
+    if emitter == "parquet":
+        sim.emitter_arg = {"out_dir": "out/objective_weight/basal/"}
 
     sim.condition = condition
     sim.fixed_media = fixed_media
+    sim.media_timeline = ((0, fixed_media),)
 
     sim.seed = 12
 
@@ -104,13 +128,16 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.run()
 
     query = []
-    folder = f"out/cofactors/{name}_{max_duration}_{datetime.date.today()}/"
-    save_sim_output(folder, query, sim, save_model=True)
+
+    folder = f"out/objective_weight/{condition}/{name}_{max_duration}_{datetime.date.today()}/"
+
+    if emitter == "timeseries":
+        save_sim_output(folder, query, sim, save_model=True)
 
 
 def run_colony(
     filename="metabolism_redux_classic",
-    max_duration=1400,
+    max_duration=1500,
     divide=True,
     # initial_state_file='wcecoli_t0', # 'met_division_test_state',
     progress_bar=True,
@@ -138,7 +165,7 @@ def run_colony(
     sim.condition = condition
     sim.fixed_media = fixed_media
 
-    for seed in [i for i in range(4, 9, 1)]:
+    for seed in [i for i in range(20, 29, 1)]:
         sim.seed = seed
 
         sim.build_ecoli()
@@ -231,31 +258,33 @@ def test_ecoli_with_metabolism_classic(
     sim.run()
 
 
-# @pytest.mark.slow
-# def test_ecoli_with_metabolism_classic_div(
-#         filename='metabolism_redux_classic',
-#         max_duration=10,
-#         divide=True,
-#         emitter='timeseries',
-#         initial_state_file='met_division_test_state',
-# ):
-#     # TODO (Cyrus) - Add test that affirms structure of output query.
-#     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
-#     sim.max_duration = max_duration
-#     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
-#
-#     sim.divide = divide
-#     sim.emitter = emitter
-#
-#     # this means that sims will not create conflicting random indices
-#     sim.seed += int(sim.initial_state['agents']['0']['global_time'])
-#
-#     sim.build_ecoli()
-#
-#     sim.run()
-#
-#     # assert division occured
-#     assert len(sim.query()['agents']) == 3, "Cell did not divide in metabolism division test"
+@pytest.mark.slow
+def test_ecoli_with_metabolism_classic_div(
+    filename="metabolism_redux_classic",
+    max_duration=10,
+    divide=True,
+    emitter="timeseries",
+    initial_state_file="met_division_test_state",
+):
+    # TODO (Cyrus) - Add test that affirms structure of output query.
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
+    sim.max_duration = max_duration
+    sim.initial_state = get_state_from_file(path=f"data/{initial_state_file}.json")
+
+    sim.divide = divide
+    sim.emitter = emitter
+
+    # this means that sims will not create conflicting random indices
+    sim.seed += int(sim.initial_state["agents"]["0"]["global_time"])
+
+    sim.build_ecoli()
+
+    sim.run()
+
+    # assert division occured
+    assert len(sim.query()["agents"]) == 3, (
+        "Cell did not divide in metabolism division test"
+    )
 
 
 def run_ecoli_with_default_metabolism(
@@ -264,7 +293,7 @@ def run_ecoli_with_default_metabolism(
     divide=False,
     progress_bar=True,
     log_updates=False,
-    emitter="timeseries",
+    emitter="parquet",
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
     sim.max_duration = max_duration
@@ -272,6 +301,7 @@ def run_ecoli_with_default_metabolism(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
+    sim.emitter_arg = {"out_dir": "out/parquet_tryout"}
     sim.build_ecoli()
 
     sim.run()
@@ -309,6 +339,7 @@ def save_sim_output(folder, query, sim, save_model=False):
                 ("agents", agent, "listeners", "fba_results"),
                 ("agents", agent, "listeners", "mass"),
                 ("agents", agent, "listeners", "unique_molecule_counts"),
+                ("agents", agent, "listeners", "enzyme_kinetics"),
                 ("agents", agent, "bulk"),
             ]
         )
