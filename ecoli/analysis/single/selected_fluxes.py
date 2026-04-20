@@ -109,9 +109,13 @@ def plot(
 
     # If selected, pull necessary information to plot enzyme counts
     if params["show_enzyme_counts"]:
-        # Get mappings from sim_data: reactions to catalysts, and fba reaction ids to base reaction ids
-        # TODO: Is this the best way to access this information from a multi-variant sim?
-        # I think this information is more directly available if using metabolism_redux_classic as well
+        # Get mappings from sim_data: reactions to catalysts, and fba reaction ids to base reaction ids.
+        #
+        # NOTE: Will NOT work in multivariant sims where the mapping from reactions to catalysts changes between variants
+        # (currently, this is not something we've had to model).
+        # If that becomes necessary in the future, we'd probably want to actually parse the sim_data_paths dictionary
+        # to get those mappings for each variant. Since this is currently just a single analysis, using open_arbitrary_sim_data
+        # is fine as it will just open the only possible option: the sim data corresponding to the variant for the given cell.
         with open_arbitrary_sim_data(sim_data_paths) as f:
             sim_data = pickle.load(f)
         reaction_catalyst_mapping = sim_data.process.metabolism.reaction_catalysts
