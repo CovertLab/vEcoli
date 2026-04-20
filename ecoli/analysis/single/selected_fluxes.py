@@ -37,43 +37,41 @@ def plot(
     variant_names: dict[str, str],
 ):
     """
+    All options have default values (do not need to be explicitly provided).
+
     Args:
         params: Dictionary of parameters given under analysis
-            name in configuration JSON.
+            name in configuration JSON. Config options look like this:
 
-        Config options look like this:
+            .. code-block:: json
 
-        ```{json}
-        "selected_fluxes": {
+                {
 
-            // show_enzyme_counts: whether to show enzyme counts along with fluxes
-            "show_enzyme_counts": true,
+                    // show_enzyme_counts: whether to show enzyme counts along with fluxes
+                    "show_enzyme_counts": true,
 
-            // Height of each row and width of each column in inches.
-            // Defaults to 3 and 4 inches, respectively.
-            // Overidden if "figsize" is provided!
-            "row_height": 3,
-            "col_width": 4,
+                    // Height of each row and width of each column in inches.
+                    // Defaults to 3 and 4 inches, respectively.
+                    // Overidden if "figsize" is provided!
+                    "row_height": 3,
+                    "col_width": 4,
 
-            // figsize: custom figure size
-            "figsize": [12, 9],
+                    // figsize: custom figure size
+                    "figsize": [12, 9],
 
-            // plot_reactions: list of reaction-sets to plot in each row.
-            "plot_reactions" : [
-                // "Reaction-sets" can be:
-                // (1) single strings, for the ID of a single reaction
-                "PGLUCISOM-RXN",
+                    // plot_reactions: list of reaction-sets to plot in each row.
+                    "plot_reactions" : [
+                        // "Reaction-sets" can be:
+                        // (1) single strings, for the ID of a single reaction
+                        "PGLUCISOM-RXN",
 
-                // (2) lists of string IDs
-                ["3PGAREARR-RXN", "RXN-15513"],
+                        // (2) lists of string IDs
+                        ["3PGAREARR-RXN", "RXN-15513"],
 
-                // (3) dictionaries of string IDs paired with human-readable labels
-                {"PEPDEPHOS-RXN" : "PEP kinase", "PEPSYNTH-RXN": "PEP synthase"}
-            ]
-        }
-        ```
-
-        All options have default values (do not need to be explicitly provided).
+                        // (3) dictionaries of string IDs paired with human-readable labels
+                        {"PEPDEPHOS-RXN" : "PEP kinase", "PEPSYNTH-RXN": "PEP synthase"}
+                    ]
+                }
     """
     # Marker symbols to loop through for enzyme counts
     MARKER_SYMBOLS = "ovs+*DX"
