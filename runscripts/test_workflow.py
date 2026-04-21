@@ -233,8 +233,10 @@ class TestGenerateCode:
 
         run_parca, sim_imports, sim_workflow = generate_code(config)
 
-        # Should run runParca process
-        assert "runParca(params.config)" in run_parca
+        # Should run runParca process (fed via the parcaInputCh fan-out channel
+        # that carries params.config as its first tuple element).
+        assert "runParca(parcaInputCh)" in run_parca
+        assert "params.config" in run_parca
 
 
 @pytest.fixture
@@ -657,6 +659,122 @@ class TestNextflowStubExecution:
                             f"Variants {i} and {j} share seeds: "
                             f"{all_seed_sets[i] & all_seed_sets[j]}"
                         )
+
+        finally:
+            if build_dir.exists():
+                shutil.rmtree(build_dir)
+            if out_dir.exists():
+                shutil.rmtree(out_dir)
+
+    def test_stub_sim_data_path_skips_parca(self, temp_config_dir):
+        """Test that supplying sim_data_path skips ParCa and sims run correctly.
+
+        Verifies with 2 generations and 2 seeds (n_init_sims=2, single_daughters=True):
+        - main.nf uses Channel.value(...) for parca_out instead of running runParca
+        - Stub succeeds (exit code 0)
+        - daughter_states has expected structure:
+            3 variants × 2 seeds × 2 generations
+        - The kb directory was copied to the output parca/kb location
+        """
+        generations = 2
+        n_init_sims = 2
+        lineage_seed = 0
+
+        # Create a dummy kb directory with a simData.cPickle file so
+        # compute_file_hash and file().copyTo() both work correctly
+        kb_dir = temp_config_dir / "kb"
+        kb_dir.mkdir()
+        sim_data_file = kb_dir / "simData.cPickle"
+        sim_data_file.write_bytes(b"Mock sim_data for testing")
+
+        exp_id = f"test_sim_data_path_{uuid.uuid4().hex[:8]}"
+        config = {
+            "experiment_id": exp_id,
+            "suffix_time": False,
+            "analysis_options": {
+                "single": True,
+            },
+            "emitter_arg": {"out_dir": str(temp_config_dir / "out")},
+            "sim_data_path": str(sim_data_file),
+            "generations": generations,
+            "n_init_sims": n_init_sims,
+            "single_daughters": True,
+            "lineage_seed": lineage_seed,
+        }
+        config_path = temp_config_dir / "test_sim_data_path.json"
+        with open(config_path, "w") as f:
+            json.dump(config, f)
+
+        repo_dir = Path(__file__).parent.parent
+        build_dir = repo_dir / "nextflow_temp" / exp_id
+        out_dir = temp_config_dir / "out" / exp_id
+
+        try:
+            self._build_workflow(config_path)
+
+            # Verify main.nf skips runParca and uses Channel.value for parca_out
+            main_nf_content = (build_dir / "main.nf").read_text()
+            assert "Channel.value(" in main_nf_content, (
+                "Expected Channel.value(...) for parca_out when sim_data_path is set"
+            )
+            assert "runParca(params.config)" not in main_nf_content, (
+                "runParca should not appear in main.nf when sim_data_path is set"
+            )
+
+            result = self._run_stub(build_dir)
+            assert result.returncode == 0, (
+                f"Stub run failed:\n{result.stdout}\n{result.stderr}"
+            )
+
+            # Verify kb was copied to parca output location (parca_0 under the
+            # multi-parca convention; sim_data_path always stages as parca_0).
+            parca_kb_dir = out_dir / "parca_0" / "kb"
+            assert parca_kb_dir.exists(), (
+                "parca_0/kb directory should exist after file().copyTo()"
+            )
+            assert (parca_kb_dir / "simData.cPickle").exists(), (
+                "simData.cPickle should be present in the copied parca_0/kb directory"
+            )
+
+            # Verify daughter_states directory structure:
+            # MOCK_NUM_VARIANTS variants × n_init_sims seeds × generations generations
+            daughter_states_dir = out_dir / "daughter_states"
+            assert daughter_states_dir.exists(), "daughter_states directory not created"
+
+            expected_seeds = {f"seed={lineage_seed + i}" for i in range(n_init_sims)}
+            expected_generations = {f"generation={g + 1}" for g in range(generations)}
+
+            for variant in ["0", "1", "2"]:
+                variant_dir = daughter_states_dir / f"variant={variant}"
+                assert variant_dir.exists(), f"variant={variant} dir not found"
+
+                actual_seeds = {p.name for p in variant_dir.iterdir() if p.is_dir()}
+                assert actual_seeds == expected_seeds, (
+                    f"variant={variant}: expected seeds {expected_seeds}, "
+                    f"got {actual_seeds}"
+                )
+
+                for seed_dir in variant_dir.iterdir():
+                    actual_generations = {
+                        p.name for p in seed_dir.iterdir() if p.is_dir()
+                    }
+                    assert actual_generations == expected_generations, (
+                        f"variant={variant}/{seed_dir.name}: "
+                        f"expected generations {expected_generations}, "
+                        f"got {actual_generations}"
+                    )
+
+            # Verify analysisSingle ran once per simulation:
+            # MOCK_NUM_VARIANTS variants × n_init_sims seeds × generations = 12 runs
+            expected_single_count = MOCK_NUM_VARIANTS * n_init_sims * generations
+            analyses_dir = out_dir / "analyses"
+            assert analyses_dir.exists(), "analyses directory not created"
+            single_outputs = list(analyses_dir.rglob("test.txt"))
+            assert len(single_outputs) == expected_single_count, (
+                f"Expected {expected_single_count} analysisSingle outputs "
+                f"(MOCK_NUM_VARIANTS={MOCK_NUM_VARIANTS} × n_init_sims={n_init_sims} "
+                f"× generations={generations}), got {len(single_outputs)}"
+            )
 
         finally:
             if build_dir.exists():

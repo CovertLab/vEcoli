@@ -265,9 +265,11 @@ RUN_PARCA
     mergeVariantMetadata.out.variantMetadataUri.set { variantMetadataCh }
     // Single tuple for cross-parca analyses (analysisMultiVariant, analysisParca,
     // ...) — use parca_0's, since validationData doesn't depend on rnaseq_options.
+    // .first() converts to a value channel so downstream analyses can re-read it.
     parca_out_full
         .filter { it[0] == 0 }
         .map { parca_id, c_uri, c_hash, k_uri, k_hash, off -> tuple(c_uri, c_hash, k_uri, k_hash) }
+        .first()
         .set { parca_out }
 WORKFLOW
     // Fit as many sims per worker as possible based on available cores
