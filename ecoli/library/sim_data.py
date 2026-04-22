@@ -1236,6 +1236,24 @@ class LoadSimData:
             "fba_new_reaction_ids": metabolism.new_reaction_ids,
         }
 
+        # If metabolism_redux_classic_objective_weights variant has been called,
+        # load those objective weights into the config
+        if hasattr(metabolism, "redux_classic_objective_weights"):
+            print(
+                "Triggered metabolism_redux_classic_objective_weights variant, loading objective weights into config."
+            )
+
+            objective_weights_dict = {
+                "secretion": metabolism.redux_classic_objective_weights["secretion"],
+                "efficiency": metabolism.redux_classic_objective_weights["efficiency"],
+                "kinetics": metabolism.redux_classic_objective_weights["kinetics"],
+                "diversity": metabolism.redux_classic_objective_weights["diversity"],
+                "homeostatic": metabolism.redux_classic_objective_weights[
+                    "homeostatic"
+                ],
+            }
+            metabolism_config["objective_weights"] = objective_weights_dict
+
         # TODO Create new config-get with only necessary parts.
 
         return metabolism_config
