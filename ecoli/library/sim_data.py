@@ -1233,6 +1233,9 @@ class LoadSimData:
             # in the FBA solution to the fluxes of base reactions
             "base_reaction_ids": metabolism.base_reaction_ids,
             "fba_reaction_ids_to_base_reaction_ids": metabolism.reaction_id_to_base_reaction_id,
+            "homeostatic_target_scale": getattr(
+                self.sim_data, "homeostatic_target_scale", 1.0
+            ),
         }
 
         # TODO Create new config-get with only necessary parts.

@@ -1,0 +1,56 @@
+{
+    "experiment_id" : "homeostatic_target_scale_sweep",
+    "sim_data_path": null,
+    "swap_processes" : {
+        "ecoli-metabolism" : "ecoli-metabolism-redux"
+    },
+    "exclude_processes": ["exchange_data"],
+    "flow": {
+        "ecoli-metabolism-redux": [["ecoli-chromosome-structure"]],
+        "ecoli-mass-listener": [["ecoli-metabolism-redux"]],
+        "RNA_counts_listener": [["ecoli-metabolism-redux"]],
+        "rna_synth_prob_listener": [["ecoli-metabolism-redux"]],
+        "monomer_counts_listener": [["ecoli-metabolism-redux"]],
+        "dna_supercoiling_listener": [["ecoli-metabolism-redux"]],
+        "replication_data_listener": [["ecoli-metabolism-redux"]],
+        "rnap_data_listener": [["ecoli-metabolism-redux"]],
+        "unique_molecule_counts": [["ecoli-metabolism-redux"]],
+        "ribosome_data_listener": [["ecoli-metabolism-redux"]]
+    },
+    "raw_output": false,
+    "operons": true,
+    "trna_charging": false,
+    "ppgpp_regulation": false,
+    "initial_state_gaussian": true,
+    "trna_attenuation": false,
+    "variable_elongation_transcription": true,
+    "variable_elongation_translation": false,
+    "mechanistic_translation_supply": false,
+    "mechanistic_aa_transport": false,
+    "translation_supply": false,
+    "aa_supply_in_charging": false,
+    "adjust_timestep_for_charging": false,
+    "disable_ppgpp_elongation_inhibition": true,
+    "suffix_time": true,
+    "parca_options": {
+        "cpus": 6
+    },
+    "generations": 10,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "variants": {
+        "homeostatic_target_scale": {
+            "scale": {"value": [1.0, 0.98, 0.95, 0.90]}
+        }
+    },
+    "analysis_options": {
+      "multivariant": {
+        "doubling_time_line": {},
+        "doubling_time_sweep_csv": {}
+      }
+    }
+}

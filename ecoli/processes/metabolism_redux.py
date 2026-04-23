@@ -150,6 +150,7 @@ class MetabolismRedux(Step):
         "doubling_time": 44.0 * units.min,
         "amino_acid_ids": {},
         "linked_metabolites": None,
+        "homeostatic_target_scale": 1.0,
         "aa_exchange_names": [],
         "removed_aa_uptake": [],
         "seed": 0,
@@ -285,6 +286,11 @@ class MetabolismRedux(Step):
         conc_dict.update(self.getBiomassAsConcentrations(doubling_time))
         if self.include_ppgpp:
             conc_dict[self.ppgpp_id] = self.getppGppConc(doubling_time)
+        # Variant-supplied uniform scale on homeostatic targets.
+        # Defaults to 1.0 so unrelated runs are unaffected.
+        scale = self.parameters.get("homeostatic_target_scale", 1.0)
+        if scale != 1.0:
+            conc_dict = {k: v * scale for k, v in conc_dict.items()}
         self.homeostatic_objective = dict(
             (key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict
         )
