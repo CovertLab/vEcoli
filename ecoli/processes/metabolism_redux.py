@@ -49,7 +49,7 @@ BAD_RXNS = [
     "R15-RXN-MET/CPD-479//CPD-479/MET.25.",
     "TRANS-RXN-218",
     "TRANS-RXN0-601-PROTON//PROTON.15. (reverse)",
-    "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71."
+    "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71.",
     "DEPHOSICITDEHASE-RXN",
     "PHOSICITDEHASE-RXN",
     "GLYCOLALD-DEHYDROG-RXN",
@@ -177,8 +177,13 @@ class MetabolismRedux(Step):
         self.aa_targets_not_updated = self.parameters["aa_targets_not_updated"]
 
         stoich_dict = dict(sorted(self.parameters["stoich_dict"].items()))
+        # Skip BAD_RXNS entries that are also kinetic-targeted — removing them
+        # would desync stoich_dict from the fixed-length kinetic arrays
+        # (get_kinetic_constraints, active_constraints_mask, etc.)
+        kinetic_rxns_set = set(self.parameters["kinetic_constraint_reactions"])
         for rxn in BAD_RXNS:
-            stoich_dict.pop(rxn)
+            if rxn not in kinetic_rxns_set:
+                stoich_dict.pop(rxn, None)
         # Add maintenance reaction
         stoich_dict["maintenance_reaction"] = self.parameters["maintenance_reaction"]
 

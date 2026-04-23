@@ -1,0 +1,4 @@
+{
+    "inherit_from": ["metabolism_redux.json"],
+    "sim_data_path": null
+}

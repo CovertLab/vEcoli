@@ -60,6 +60,7 @@ dependencies = [
     "arviz>=0.23.0",
     "s3fs>=2025.5.1",
     "cobra==0.31.1",
+    "nbformat>=5.10.4",
 ]
 
 [project.optional-dependencies]
