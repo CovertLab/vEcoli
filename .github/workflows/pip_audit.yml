@@ -70,9 +70,16 @@ jobs:
           REMOTE_FILE_SHA=$(gh api "repos/$REPO/contents/uv.lock?ref=$BRANCH" \
             --jq '.sha' 2>/dev/null || echo "")
           LOCAL_FILE_SHA=$(git hash-object uv.lock)
+          PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
           if [ "$REMOTE_FILE_SHA" = "$LOCAL_FILE_SHA" ]; then
-            echo "uv.lock already matches remote $BRANCH, skipping push"
-            exit 0
+            echo "uv.lock already matches remote $BRANCH"
+            if echo "$PR_NUMBER" | grep -Eq '^[0-9]+$'; then
+              echo "Updating body of existing PR #$PR_NUMBER"
+              gh pr edit "$PR_NUMBER" \
+                --body-file vulnerability_report.md
+              exit 0
+            fi
+            echo "No open PR found for $BRANCH; continuing to PR create/edit logic"
           fi
 
           # Build a new signed commit via the REST API (required for commit signing)
@@ -114,8 +121,7 @@ jobs:
               -f sha="$COMMIT_SHA"
           fi
 
-          PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
-          if echo "$PR_NUMBER" | grep -q '^[0-9]'; then
+          if echo "$PR_NUMBER" | grep -Eq '^[0-9]+$'; then
             gh pr edit "$PR_NUMBER" \
               --body-file vulnerability_report.md
           else

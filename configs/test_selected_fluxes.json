@@ -19,11 +19,13 @@
         "single": {
             "selected_fluxes": {
                 "show_enzyme_counts": true,
-                "figsize": [15, 12],
+                "row_height": 4,
+                "col_width": 4,
+                "figsize": [12, 9],
                 "plot_reactions" : [
-                    {"RXN-16659" : "TP", "RXN-16649": "RXN-16649"},
-                    {"RXN-17392": "Recycling"},
-                    {"H2PTEROATESYNTH-RXN": "Dihydropteroate-synthase"}
+                    "PGLUCISOM-RXN",
+                    ["3PGAREARR-RXN", "RXN-15513"],
+                    {"PEPDEPHOS-RXN" : "PEP kinase", "PEPSYNTH-RXN": "PEP synthase"}
                 ]
             }
         }

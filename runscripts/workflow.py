@@ -922,7 +922,8 @@ def generate_code(config):
         run_parca = [
             f"\tfile('{kb_dir}').copyTo(\"${{params.publishDir}}/${{params.experimentId}}/parca/kb\")",
             # Create parca_out channel with config URI, config hash, kb URI, kb hash
-            f"\tChannel.of(tuple(params.config, '{config_hash}', '{kb_dir}', '{kb_hash}')).set {{ parca_out }}",
+            # Create value channel so it can be read unlimited times by downstream analyses
+            f"\tChannel.value(tuple(params.config, '{config_hash}', '{kb_dir}', '{kb_hash}')).set {{ parca_out }}",
         ]
     else:
         run_parca = [
@@ -1396,7 +1397,10 @@ def main():
         out_bucket = parsed_uri.netloc
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
-        config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
+        # Only resolve plain local filesystem paths; leave any URI unchanged
+        parsed_sim_data_path = parse.urlparse(config["sim_data_path"])
+        if parsed_sim_data_path.scheme == "":
+            config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
     filesystem, outdir = parse_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
     exp_outdir = os.path.dirname(outdir)
