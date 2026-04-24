@@ -2,7 +2,6 @@ process simGen0 {
     // Daughter states are written directly to cloud storage via fsspec
 
     label "sim"
-    errorStrategy 'ignore'
 
     tag { "variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}" }
 
@@ -67,7 +66,6 @@ process sim {
     // Daughter states are written directly to cloud storage via fsspec
 
     label "sim"
-    errorStrategy 'ignore'
 
     tag { "variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}" }
 

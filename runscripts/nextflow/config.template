@@ -310,5 +310,8 @@ profiles {
     }
     standard {
         params.projectRoot = "${launchDir}"
+         process {
+            errorStrategy = 'ignore'
+        }
     }
 }
