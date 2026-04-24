@@ -22,7 +22,18 @@ import cvxpy as cp
 from typing import Iterable, Mapping
 from dataclasses import dataclass
 
+from ortools.glop import parameters_pb2 as _glop_pb2
+
 from reconstruction.ecoli.dataclasses.process.metabolism import REVERSE_TAG
+
+# Relaxed GLOP tolerances. The defaults (~1e-7) are tight enough that small
+# homeostatic-target scaling can push the LP into numerical infeasibility
+# mid-sim. Bump the feasibility tolerances by ~100x so GLOP accepts
+# borderline solutions instead of raising SolverError.
+_GLOP_PARAMS = _glop_pb2.GlopParameters()
+_GLOP_PARAMS.primal_feasibility_tolerance = 1e-5
+_GLOP_PARAMS.dual_feasibility_tolerance = 1e-5
+_GLOP_PARAMS.solution_feasibility_tolerance = 1e-5
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
@@ -1070,7 +1081,7 @@ class NetworkFlowModel:
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
-        p.solve(solver=solver, verbose=False)
+        p.solve(solver=solver, verbose=False, parameters_proto=_GLOP_PARAMS)
         if p.status != "optimal":
             raise ValueError(
                 "Network flow model of metabolism did not "

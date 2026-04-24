@@ -41,7 +41,7 @@
     },
     "variants": {
         "homeostatic_target_scale": {
-            "scale": {"value": [1.0, 0.99, 0.98, 0.95]}
+            "scale": {"value": [1.0, 0.995, 0.99, 0.985]}
         }
     },
     "analysis_options": {
