@@ -177,13 +177,8 @@ class MetabolismRedux(Step):
         self.aa_targets_not_updated = self.parameters["aa_targets_not_updated"]
 
         stoich_dict = dict(sorted(self.parameters["stoich_dict"].items()))
-        # Skip BAD_RXNS entries that are also kinetic-targeted — removing them
-        # would desync stoich_dict from the fixed-length kinetic arrays
-        # (get_kinetic_constraints, active_constraints_mask, etc.)
-        kinetic_rxns_set = set(self.parameters["kinetic_constraint_reactions"])
         for rxn in BAD_RXNS:
-            if rxn not in kinetic_rxns_set:
-                stoich_dict.pop(rxn, None)
+            stoich_dict.pop(rxn, None)
         # Add maintenance reaction
         stoich_dict["maintenance_reaction"] = self.parameters["maintenance_reaction"]
 
@@ -253,8 +248,19 @@ class MetabolismRedux(Step):
         self.concentration_updates = self.parameters["concentration_updates"]
         self.exchange_constraints = self.parameters["exchange_constraints"]
         self.get_kinetic_constraints = self.parameters["get_kinetic_constraints"]
-        self.kinetic_constraint_reactions = self.parameters[
-            "kinetic_constraint_reactions"
+        # Filter BAD_RXNS from the kinetic set; mask is applied in next_update
+        # to slice the unfiltered get_kinetic_constraints output.
+        bad_set = set(BAD_RXNS)
+        self.kinetic_keep_mask = np.array(
+            [
+                rxn not in bad_set
+                for rxn in self.parameters["kinetic_constraint_reactions"]
+            ]
+        )
+        self.kinetic_constraint_reactions = [
+            rxn
+            for rxn in self.parameters["kinetic_constraint_reactions"]
+            if rxn not in bad_set
         ]
 
         # Include ppGpp concentration target in objective if not handled
@@ -683,6 +689,8 @@ class MetabolismRedux(Step):
             .asNumber(CONC_UNITS)
             .astype(float)
         )
+        # Realign with self.kinetic_constraint_reactions (filtered in __init__).
+        enzyme_kinetic_boundaries = enzyme_kinetic_boundaries[self.kinetic_keep_mask, :]
         target_kinetic_values = enzyme_kinetic_boundaries[:, 1]
         target_kinetic_bounds = enzyme_kinetic_boundaries[:, [0, 2]]
 
