@@ -26,14 +26,13 @@ from ortools.glop import parameters_pb2 as _glop_pb2
 
 from reconstruction.ecoli.dataclasses.process.metabolism import REVERSE_TAG
 
-# Relaxed GLOP tolerances. The defaults (~1e-7) are tight enough that small
-# homeostatic-target scaling can push the LP into numerical infeasibility
-# mid-sim. Bump the feasibility tolerances by ~100x so GLOP accepts
-# borderline solutions instead of raising SolverError.
+# Relaxed GLOP tolerances. Keep primal/dual feasibility at GLOP's defaults
+# (1e-8) so the algorithm converges the same as stock; only bump the final
+# solution-feasibility tolerance 10x and disable the "change to imprecise"
+# downgrade so borderline-but-usable solutions still come back as OPTIMAL.
 _GLOP_PARAMS = _glop_pb2.GlopParameters()
-_GLOP_PARAMS.primal_feasibility_tolerance = 1e-5
-_GLOP_PARAMS.dual_feasibility_tolerance = 1e-5
 _GLOP_PARAMS.solution_feasibility_tolerance = 1e-5
+_GLOP_PARAMS.change_status_to_imprecise = False
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
