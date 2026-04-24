@@ -1102,8 +1102,21 @@ class ParquetEmitter(Emitter):
                             self.buffered_emits[k] = self.buffered_emits[k][
                                 :emit_idx
                             ].tolist() + [None] * (self.batch_size - emit_idx)
-                # Fall back Polars serialization
-                v = pl.Series([v])
+                # Fall back Polars serialization. Polars cannot construct a
+                # Series from a list containing a multi-dim ndarray — convert
+                # to a nested Python list so it serializes as List(List(...)).
+                if isinstance(v, np.ndarray) and v.ndim > 1:
+                    v = v.tolist()
+                try:
+                    v = pl.Series([v])
+                except ValueError as exc:
+                    raise ValueError(
+                        f"Polars could not serialize field {k!r}; "
+                        f"value type={type(v).__name__}, "
+                        f"dtype={getattr(v, 'dtype', None)}, "
+                        f"shape={getattr(v, 'shape', None)}. "
+                        f"Sample (truncated): {repr(v)[:200]}"
+                    ) from exc
                 # Ensure type consistency
                 curr_type = self.pl_types.setdefault(k, pl.Null)
                 if v.dtype != curr_type:

@@ -2,6 +2,7 @@ process simGen0 {
     // Daughter states are written directly to cloud storage via fsspec
 
     label "sim"
+    errorStrategy 'ignore'
 
     tag { "variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}" }
 
@@ -24,7 +25,7 @@ process simGen0 {
     agent_id_d1 = agent_id + '1'
     seed_d0 = lineage_seed + 1
     seed_d1 = lineage_seed + 2
-    def daughter_outdir = "${params.publishDir}/${params.experimentId}/daughter_states/variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
+    daughter_outdir = "${params.publishDir}/${params.experimentId}/daughter_states/variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
     """
     # Use 1 Polars thread to avoid oversubscription on HPC/cloud
     # Access config and sim_data directly via cloud URIs (fsspec handles both S3 and GCS)
@@ -51,7 +52,7 @@ process simGen0 {
     agent_id_d1 = agent_id + '1'
     seed_d0 = lineage_seed + 1
     seed_d1 = lineage_seed + 2
-    def daughter_outdir = "${params.publishDir}/${params.experimentId}/daughter_states/variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
+    daughter_outdir = "${params.publishDir}/${params.experimentId}/daughter_states/variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
     """
     mkdir -p ${daughter_outdir}
     echo "$config_uri $sim_data_uri $lineage_seed $generation" > ${daughter_outdir}/daughter_state_0.json
@@ -66,6 +67,7 @@ process sim {
     // Daughter states are written directly to cloud storage via fsspec
 
     label "sim"
+    errorStrategy 'ignore'
 
     tag { "variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}" }
 
@@ -87,7 +89,7 @@ process sim {
     agent_id_d1 = agent_id + '1'
     seed_d0 = sim_seed + 1
     seed_d1 = sim_seed + 2
-    def daughter_outdir = "${params.publishDir}/${params.experimentId}/daughter_states/variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
+    daughter_outdir = "${params.publishDir}/${params.experimentId}/daughter_states/variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
     """
     # Use 1 Polars thread to avoid oversubscription on HPC/cloud
     # Access config, sim_data, and initial_state directly via cloud URIs (fsspec handles both S3 and GCS)
@@ -115,7 +117,7 @@ process sim {
     agent_id_d1 = agent_id + '1'
     seed_d0 = sim_seed + 1
     seed_d1 = sim_seed + 2
-    def daughter_outdir = "${params.publishDir}/${params.experimentId}/daughter_states/variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
+    daughter_outdir = "${params.publishDir}/${params.experimentId}/daughter_states/variant=${variant}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
     """
     mkdir -p ${daughter_outdir}
     echo "$config_uri $sim_data_uri $lineage_seed $generation" > ${daughter_outdir}/daughter_state_0.json
