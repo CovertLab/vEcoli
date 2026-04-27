@@ -1,30 +1,41 @@
-﻿Metal,M9 cells Free [Metal] (M) [2],LB cells Free [Metal] (M) [3],M9 [Metal] buffered (M) [11],M9 [Metal] buffered STD (M) [11],Glutathione Log K1,Cysteine Log K1,Histidine Log K1,GSSG Log K1,Asp Log K1,Citrate logK1,ATP,Tryptophan,Methionine,Alanine,Leucine,Valine,Glycine
-Mn (II),2.08E-06,7.00E-06,1.40E-06,7.00E-07,2.7 [1],,3.914871818,,3.91 [13],3.42160 [7],5.17 [9],3.34 [5], 3.59 [5],3.24 [5],2.15 [5],2.84 [5],"3.20 [5], 6.63 [15]"
-Fe (II),6.18E-08,1.90E-06,8.00E-05,2.00E-05,5.4 [1],6.2 [1],5.883093359,,,"5.24 [8], 4.81-0.31 [17]","5.18 [10], 5.2 [inference from 9]",,,7.3 ML2 [15],,6.8 ML2 [ 15],7.8 ML2 [15]
-Co (II),2.42E-10,7.00E-11,,,,,7.442479769,,6.69 [13],4.54365 [7],5.21 [9],4.34 [5],3.85 [5],"4.82 [5], 8.55 ML2 [15]","4.49 [5], 8.16 ML2 [15]",8.24 ML2 [15],"5.23 [5], 9.10 ML2 [15]"
-Ni (II),2.56E-12,1.30E-13,1.50E-05,2.00E-06,"11~20 [4], 11.15 with two ligands [16]",,8.68~20 [4] or 9.20 [6],"9~15 [4], 9.08 [16]",5.2~7 [4],"6.86 [4], 5.07555 [7]","4.9 [4], 5.32 [9]",5.756636108,,10.66 ML2 [15],10.18 ML2 [15],,11.15 ML2 [15]
-Cu (II),1.46E-20,4.50E-20,1.00E-05,2.00E-06,,,,,8.78 [13],15.03 M2L2 [17],6.83 [9],"8.05 [5], 15.56 ML2 [14]",7.96 [5],"8.18 [5], 14.94 ML2 [14], 15.21 [15]","7.00 [5], 15.174 [14]","7.92 [5], 14.91 [14]","8.22 [5], 14.86 ML2 [14], 15.63 ML2 [15]"
-Zn (II),1.04E-11,9.40E-12,1.30E-05,3.00E-06,8.31 [16],,7.068185862,"5.1 [12], 7.6 [16]",5.35 [13],4.56427 [7],5.52 [9],5.00 [5],4.46 [5],5.16 [5],4.92 [5],5.00 [5],5.16 [5]
+﻿Metal,M9 cells Free [Metal] (M) [2],LB cells Free [Metal] (M) [3],M9 [Metal] buffered (M) [11],M9 [Metal] buffered STD (M) [11],Glutathione,Cysteine,Histidine,GSSG,Asp,Methionine,Alanine,Leucine,Valine,Glycine,Tryptophan,ATP,Citrate
+Mg(II),0.0027 [23],1E-3 [24],"2.98E-2 [23], [22]",2.29E-3 [23],,"2.75 [25], [26]",,,"2.4 [25], [26]",,"1.96 [25], [26]",,,"1.66 [25], [26]",,"4.03 [25], [26]","3.44 [25], [26]"
+Mn (II),2.08E-06,7.00E-06,1.40E-06,7.00E-07,2.7 [1],"4.75 [25], [26]","3.24 [25], [26]",,3.91 [13],"2.77 [25], [26]","2.43 [25], [26]","2.3 [25], [26], [5]",2.84 [5],"2.27 [25], [26]","2.54 [25], [26]","4.79 [25], [26], [9]","3.79 [25], [26], [7]"
+Fe (II),6.18E-08,1.90E-06,8.00E-05,2.00E-05,"5.1 [25], [26], [1]",6.2 [1],5.883093359 [6],,"4.34 [25], [26]","3.24 [25], [26]","3.54 [25], [26]","3.42 [25], [26]",6.8 ML2 [ 15],,,5.18 [10],4.56 [17]
+Co (II),2.42E-10,7.00E-11,,,,"8.14 [25], [26]","6.7 [25], [26]",,"5.9 [25], [26]","4.17 [25], [26]","4.32 [25], [26], [5]",4.49 [5],8.24 ML2 [15],"4.64 [25], [26]","4.47 [25], [26], [5]","4.6 [25], [26]","4.9 [25], [26], [7]"
+Ni (II),2.56E-12,1.30E-13,1.50E-05,2.00E-06,"7.37 [25], [26]","9.6 [25], [26]","8.43 [25], [26], [4]","9.08 [4], [16]","7.16 [25], [26], [4]","5.27 [25], [26]","5.2 [25], [26]","5.33 [25], [26]",,"5.59 [25], [26]","5.35 [25], [26]","4.86 [25], [26], [4]","5.3 [25], [26], [7]"
+Cu (I),1.46E-20,4.50E-20,1.00E-05,2.00E-06,11.6 [21],11.1 [21],"9.82 [25], [26]","13.37 [25], [26]","8.75 [25], [26], [13]","7.68 [25], [26], [5]","7.95 [25], [26], [5]","7.00 [5], 15.174 [14]","7.97 [25], [26], [5]","7.99 [25], [26], [5]","8.01 [25], [26], [5]","6.34 [25], [26]","8.22 [25], [26]"
+Zn (II),1.04E-11,9.40E-12,1.30E-05,3.00E-06,"7.98 [25], [26]","9.11 [25], [26]","6.35  [25], [26]",7.60 [16],"5.82 [25], [26], [13]","4.3 [25], [26], [5]",5.16 [5],4.92 [5],"4.51 [25], [26], [5]","4.87 [25], [26], [5]","4.54 [25], [26], [5]","5.16 [25], [26]","4.64 [25], [26],[18]"
 ,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,
 [1] Hider et al 2011 Biometals,,,,,,,,,,,,,,,,,
 [2] Clough et al 2025 Biorxiv,,,,,,,,,,,,,,,,,
-[3] Foster et al 2022 Metallomics,,,,,,,,,,,,,,,,,
+"[3] Metalation calculators for E. coli strain JM109 (DE3): Aerobic, anaerobic and hydrogen peroxide exposed cells cultured in LB media",,,,,,,,,,,,,,,,,
 [4] Direct Detection of the Labile Nickel Pool in Escherichia coli: New Perspectives on Labile Metal Pools,,,,,,,,,,,,,,,,,
 "[5] Complex Bilding Behavior of L-Tryptophan and Related Amino Acids, a Comparative Investigation",,,,,,,,,,,,,,,,,
 [6] Williams DR (1970) Stability constants and thermodynamic parameters for Mn(II) Fe(II) Co(II) Ni(II) Cu(II) Zn(II) with histidine and tryptophan. J Chem Soc A 1550-1555,,,,,,,,,,,,,,,,,
-[7] Wyrzykowski D & Chmurzy≈Ñski L (2010) Thermodynamics of citrate complexation with Mn2+ Co2+ Ni2+ and Zn2+ ions. J Therm Anal Calorim 102:61-64. Values cited therein for log K(M2+ + HCit3- -> [MHCit]-) at 298 K,,,,,,,,,,,,,,,,,
-[8] Oxygenation of Fe(II) in the Presence of Citrate in Aqueous Solutions at pH 6.0−8.0 and 25 °C:  Interpretation from an Fe(II)/Citrate Speciation Perspective,,,,,,,,,,,,,,,,,
+[7] Bastug @ 25 temp. 1:1 Binary Complexes of Citric Acid with Some Metal Ions: Stability and Thermodynamic Parameters,,,,,,,,,,,,,,,,,
 [9] THE STABILITY CONSTANTS OF METAL-ADENOSINE TRIPHOSPHATE COMPLEXES ,,,,,,,,,,,,,,,,,
 [10] Characterization and elucidation of coordination requirements of adenine nucleotides complexes with Fe(II) ions,,,,,,,,,,,,,,,,,
 [11] Low-molecular-mass labile metal pools in Escherichia coli: advances using chromatography and mass spectrometry,,,,,,,,,,,,,,,,,
-[12] Krezel A et al. (2011) Zn(II) complexes of glutathione disulfide: structural basis of elevated stabilities. Inorg Chem 50:72-85,,,,,,,,,,,,,,,,,
 "[13] Metal ion–binding properties of the L-aspartic acid and tartaric acid, a comparative investigation. How can be increased the dosage of mineral absorption in the body",,,,,,,,,,,,,,,,,
 "[14] Stability constants of bio-relevant, redox-active metals with amino acids: The challenges of weakly binding ligands",,,,,,,,,,,,,,,,,
 [15] Irving-Williams Order in the Framework of Connectivity Index 3χv Enables Simultaneous Prediction of Stability Constants of Bivalent Transition Metal Complexes,,,,,,,,,,,,,,,,,
 "[16] Studies of Zinc(II) and Nickel(lI) Complexes of GSH,GSSG and Their Analogs Shed More Light on Their Biological",,,,,,,,,,,,,,,,,
 [17] Composition and Stability of Iron and Copper Citrate Complexesin Aqueous Solution,,,,,,,,,,,,,,,,,
+"[18] Synergistic use of siderophores
+and weak organic ligands
+during zinc transport
+in the rhizosphere controlled by pH
+and ion strength gradients",,,,,,,,,,,,,,,,,
+"[21] Determination of stability constants of Cu(I), Cd(II) & Zn(II) complexes with thiols using fluorescent probes",,,,,,,,,,,,,,,,,
+[22] Femtomolar Sensitivity of Metalloregulatory Proteins Controlling Zinc Homeostasis,,,,,,,,,,,,,,,,,
+"[23] Bacterial sensors define intracellular free energies
+for correct enzyme metalation",,,,,,,,,,,,,,,,,
+[24] BioNumber. Concentration of total and free magnesium ion (Mg2+),,,,,,,,,,,,,,,,,
+"[25] Donald R. Burgess (2004), NIST SRD 46. Critically Selected Stability Constants of Metal Complexes: Version 8.0 for Windows, National Institute of Standards and Technology, https://doi.org/10.18434/M32154 (Accessed June 25, 2021)",,,,,,,,,,,,,,,,,
+"[26] Naoyuki Hatada, https://github.com/n-hatada/stability-constant-explorer",,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,
-Mn(II) < Fe(II) < Co(II) < Ni(II) < Cu(II) > Zn(II),,,,,,,,,,,,,,,,,
+Mg2+ < Mn2+ < Fe2+ < Co2+ < Ni2+ < Cu2+ (and Cu+) > Zn2+ ,,,,,,,,,,,,,,,,,
+Metals in Motion: Understanding Labile Metal Pools in Bacteri,,,,,,,,,,,,,,,,,
