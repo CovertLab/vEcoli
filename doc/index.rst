@@ -45,6 +45,7 @@ in the Vivarium documentation.
    data_ingestion
    output
    tutorial
+   contributing
    docs
    hpc
    gcloud
