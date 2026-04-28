@@ -922,7 +922,8 @@ def generate_code(config):
         run_parca = [
             f"\tfile('{kb_dir}').copyTo(\"${{params.publishDir}}/${{params.experimentId}}/parca/kb\")",
             # Create parca_out channel with config URI, config hash, kb URI, kb hash
-            f"\tChannel.of(tuple(params.config, '{config_hash}', '{kb_dir}', '{kb_hash}')).set {{ parca_out }}",
+            # Create value channel so it can be read unlimited times by downstream analyses
+            f"\tChannel.value(tuple(params.config, '{config_hash}', '{kb_dir}', '{kb_hash}')).set {{ parca_out }}",
         ]
     else:
         run_parca = [
@@ -1325,7 +1326,35 @@ def stream_log(
         time.sleep(sleep_time)
 
 
+def _load_dotenv(env_file: str) -> None:
+    """Load environment variables from a .env file into os.environ.
+
+    Variables already present in the environment are not overridden, so
+    values set by the caller (e.g. via ``uv run --env-file``) take precedence.
+    Lines that are empty, start with ``#``, or do not contain ``=`` are ignored.
+    """
+    if not os.path.exists(env_file):
+        return
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            os.environ.setdefault(key, value)
+
+
 def main():
+    # Load .env from the repository root so that variables like NXF_VER are
+    # set even when the script is invoked directly with python (e.g. on HPC/
+    # cloud) rather than via ``uv run --env-file .env``.
+    _load_dotenv(
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
+        )
+    )
     parser = argparse.ArgumentParser()
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
     parser.add_argument(
@@ -1396,7 +1425,10 @@ def main():
         out_bucket = parsed_uri.netloc
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
-        config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
+        # Only resolve plain local filesystem paths; leave any URI unchanged
+        parsed_sim_data_path = parse.urlparse(config["sim_data_path"])
+        if parsed_sim_data_path.scheme == "":
+            config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
     filesystem, outdir = parse_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
     exp_outdir = os.path.dirname(outdir)
