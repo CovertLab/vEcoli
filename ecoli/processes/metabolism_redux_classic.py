@@ -142,11 +142,8 @@ class MetabolismReduxClassic(Step):
         "cell_density": 1100 * units.g / units.L,
         "concentration_updates": None,
         "maintenance_reaction": {},
+        # Fallback only: overridden by sim_data.process.metabolism in normal sims
         "objective_weights": {
-            # "secretion": 0.01,
-            # "efficiency": 0.000001,
-            # "kinetics": 0.0000001,
-            # "diversity": 0,  # Heena's addition to minimize number of reactions with no flow
             "secretion": 2.70225350134521e-06,
             "efficiency": 1.00762391690677e-08,
             "kinetics": 0.000430262706478104,

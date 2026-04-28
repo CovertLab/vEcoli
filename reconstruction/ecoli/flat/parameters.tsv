@@ -32,3 +32,8 @@
 "d_period"	20	"units.min"		
 "replisome_elongation_rate"	967	"units.nt / units.s"
 "stable_RNA_half_life"	2880	"units.min"
+"redux_classic_secretion_weight"	0.01			"Heena Apr 2026: create variants of weight combo"
+"redux_classic_efficiency_weight"	0.000001			"Heena Apr 2026: create variants of weight combo"
+"redux_classic_kinetics_weight"	0.0000001			"Heena Apr 2026: create variants of weight combo"
+"redux_classic_diversity_weight"	0.0000001			"Heena Apr 2026: create variants of weight combo"
+"redux_classic_homeostatic_weight"	1.0			"Heena Apr 2026: create variants of weight combo"

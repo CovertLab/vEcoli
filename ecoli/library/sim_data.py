@@ -1234,25 +1234,32 @@ class LoadSimData:
             "base_reaction_ids": metabolism.base_reaction_ids,
             "fba_reaction_ids_to_base_reaction_ids": metabolism.reaction_id_to_base_reaction_id,
             "fba_new_reaction_ids": metabolism.new_reaction_ids,
+            "objective_weights": {
+                "secretion": metabolism.redux_classic_secretion_weight,
+                "efficiency": metabolism.redux_classic_efficiency_weight,
+                "kinetics": metabolism.redux_classic_kinetics_weight,
+                "diversity": metabolism.redux_classic_diversity_weight,
+                "homeostatic": metabolism.redux_classic_homeostatic_weight,
+            },
         }
 
-        # If metabolism_redux_classic_objective_weights variant has been called,
-        # load those objective weights into the config
-        if hasattr(metabolism, "redux_classic_objective_weights"):
-            print(
-                "Triggered metabolism_redux_classic_objective_weights variant, loading objective weights into config."
-            )
-
-            objective_weights_dict = {
-                "secretion": metabolism.redux_classic_objective_weights["secretion"],
-                "efficiency": metabolism.redux_classic_objective_weights["efficiency"],
-                "kinetics": metabolism.redux_classic_objective_weights["kinetics"],
-                "diversity": metabolism.redux_classic_objective_weights["diversity"],
-                "homeostatic": metabolism.redux_classic_objective_weights[
-                    "homeostatic"
-                ],
-            }
-            metabolism_config["objective_weights"] = objective_weights_dict
+        # # If metabolism_redux_classic_objective_weights variant has been called,
+        # # load those objective weights into the config
+        # if hasattr(metabolism, "redux_classic_objective_weights"):
+        #     print(
+        #         "Triggered metabolism_redux_classic_objective_weights variant, loading objective weights into config."
+        #     )
+        #
+        #     objective_weights_dict = {
+        #         "secretion": metabolism.redux_classic_objective_weights["secretion"],
+        #         "efficiency": metabolism.redux_classic_objective_weights["efficiency"],
+        #         "kinetics": metabolism.redux_classic_objective_weights["kinetics"],
+        #         "diversity": metabolism.redux_classic_objective_weights["diversity"],
+        #         "homeostatic": metabolism.redux_classic_objective_weights[
+        #             "homeostatic"
+        #         ],
+        #     }
+        #     metabolism_config["objective_weights"] = objective_weights_dict
 
         # TODO Create new config-get with only necessary parts.
 

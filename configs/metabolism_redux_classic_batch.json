@@ -44,10 +44,10 @@
     "process_configs": {
     "ecoli-metabolism-redux-classic": {
         "objective_weights": {
-            "secretion": 0.000108153,
-            "efficiency": 3.35539e-06,
-            "kinetics": 0.000823749,
-            "diversity": 0.000145507,
+            "secretion": 2,
+            "efficiency": 6,
+            "kinetics": 9,
+            "diversity": 7,
             "homeostatic": 1.0
       }
     }

@@ -30,12 +30,22 @@ def apply_variant(
     """
     # Load the objective weights into sim_data
     print("Applying variant objective weights")
-    sim_data.process.metabolism.redux_classic_objective_weights = {
-        "secretion": params["secretion"],
-        "efficiency": params["efficiency"],
-        "kinetics": params["kinetics"],
-        "diversity": params["diversity"],
-        "homeostatic": params["homeostatic"],
-    }
+    metabolism = sim_data.process.metabolism
+
+    metabolism.redux_classic_secretion_weight = params.get(
+        "secretion", metabolism.redux_classic_secretion_weight
+    )
+    metabolism.redux_classic_efficiency_weight = params.get(
+        "efficiency", metabolism.redux_classic_efficiency_weight
+    )
+    metabolism.redux_classic_kinetics_weight = params.get(
+        "kinetics", metabolism.redux_classic_kinetics_weight
+    )
+    metabolism.redux_classic_diversity_weight = params.get(
+        "diversity", metabolism.redux_classic_diversity_weight
+    )
+    metabolism.redux_classic_homeostatic_weight = params.get(
+        "homeostatic", metabolism.redux_classic_homeostatic_weight
+    )
 
     return sim_data

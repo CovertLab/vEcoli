@@ -1,13 +1,13 @@
 {
+    "experiment_id": "tryout_variant",
     "fail_at_max_duration": true,
     "progress_bar": true,
     "log_updates": false,
-    "generations": 4,
+    "generations": 1,
     "n_init_sims": 1,
     "emitter": "parquet",
     "emitter_arg": {"out_dir": "out/objective_weight_variant"},
-    "sim_data_path": "out/objective_weight_variant/1.cPickle",
-    "kb": "out/kb",
+    "sim_data_path": null,
     "outdir": "out/objective_weight_variant",
     "fixed_media": "minimal",
     "condition": "basal",
@@ -68,12 +68,6 @@
                 "value": [
                     0.000145507,
                     0.00145507
-                ]
-            },
-            "homeostatic": {
-                "value": [
-                    1.0,
-                    1.0
                 ]
             },
             "op": "zip"

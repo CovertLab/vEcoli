@@ -290,6 +290,15 @@ class Metabolism(object):
         )
         self.secretion_penalty_coeff = constants.secretion_penalty_coeff
 
+        # for redux_classic sims, get default objective weights from constants
+        self.redux_classic_secretion_weight = constants.redux_classic_secretion_weight
+        self.redux_classic_efficiency_weight = constants.redux_classic_efficiency_weight
+        self.redux_classic_kinetics_weight = constants.redux_classic_kinetics_weight
+        self.redux_classic_diversity_weight = constants.redux_classic_diversity_weight
+        self.redux_classic_homeostatic_weight = (
+            constants.redux_classic_homeostatic_weight
+        )
+
     def _build_biomass(
         self, raw_data: KnowledgeBaseEcoli, sim_data: "SimulationDataEcoli"
     ):
