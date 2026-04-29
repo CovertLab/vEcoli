@@ -3,11 +3,11 @@
   "fail_at_max_duration": true,
   "progress_bar": true,
   "log_updates": false,
-  "generations": 2,
-  "n_init_sims": 2,
+  "generations": 6,
+  "n_init_sims": 3,
   "emitter": "parquet",
   "emitter_arg": {
-    "out_dir": "out/"
+    "out_dir": "/scratch/users/hsaqibo1/"
   },
   "sim_data_path": null,
   "parca_options": {
@@ -195,8 +195,7 @@
           4.46e-06,
           1.98e-06,
           2.02e-08,
-          0.001844203,
-          NaN
+          0.001844203
         ]
       },
       "homeostatic": {
