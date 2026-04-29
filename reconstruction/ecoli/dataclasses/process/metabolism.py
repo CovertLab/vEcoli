@@ -298,6 +298,9 @@ class Metabolism(object):
         self.redux_classic_homeostatic_weight = (
             constants.redux_classic_homeostatic_weight
         )
+        self.redux_classic_fraction_kinetic_target = (
+            constants.redux_classic_fraction_kinetic_target
+        )
 
     def _build_biomass(
         self, raw_data: KnowledgeBaseEcoli, sim_data: "SimulationDataEcoli"

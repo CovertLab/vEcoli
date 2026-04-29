@@ -150,6 +150,7 @@ class MetabolismReduxClassic(Step):
             "diversity": 0.000171366013420771,
             "homeostatic": 1,
         },
+        "fraction_kinetic_target": 1.0,
     }
 
     def __init__(self, parameters):
@@ -556,6 +557,7 @@ class MetabolismReduxClassic(Step):
         target_kinetic_bounds = enzyme_kinetic_boundaries[:, [0, 2]]
 
         objective_weights = self.parameters["objective_weights"]
+        fraction_kinetic_target = self.parameters["fraction_kinetic_target"]
 
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
@@ -565,6 +567,7 @@ class MetabolismReduxClassic(Step):
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
             target_minimal_flux=self.counts_to_molar.asNumber(),
+            fraction_kinetic_target=fraction_kinetic_target,
             solver=cp.GLOP,
         )
 
@@ -763,6 +766,7 @@ class NetworkFlowModel:
         objective_weights: Optional[Mapping[str, float]] = None,
         upper_flux_bound: float = 100,
         target_minimal_flux: float = 0,
+        fraction_kinetic_target: float = 1.0,
         solver=cp.GLOP,
     ) -> FlowResult:
         """Solve the network flow model for fluxes and dm/dt values."""
@@ -813,6 +817,7 @@ class NetworkFlowModel:
             else 0
         )
 
+        kinetic_targets = kinetic_targets * fraction_kinetic_target
         kinetics_term = cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
         loss += (
             objective_weights["kinetics"] * kinetics_term

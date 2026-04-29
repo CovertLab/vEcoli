@@ -37,3 +37,4 @@
 "redux_classic_kinetics_weight"	0.0000001			"Heena Apr 2026: create variants of weight combo"
 "redux_classic_diversity_weight"	0.0000001			"Heena Apr 2026: create variants of weight combo"
 "redux_classic_homeostatic_weight"	1.0			"Heena Apr 2026: create variants of weight combo"
+"redux_classic_fraction_kinetic_target"	1.0			"Heena Apr 2026: create variants to scale kinetic targets in metabolism_redux_classic"

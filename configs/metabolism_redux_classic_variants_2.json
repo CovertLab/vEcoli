@@ -1,10 +1,10 @@
 {
-  "experiment_id": "best_r_weights",
+  "experiment_id": "apr_index432_kinetic_fraction",
   "fail_at_max_duration": true,
   "progress_bar": true,
   "log_updates": false,
-  "generations": 3,
-  "n_init_sims": 2,
+  "generations": 6,
+  "n_init_sims": 1,
   "emitter": "parquet",
   "emitter_arg": {
     "out_dir": "out/objective_weight_variant"
@@ -88,47 +88,46 @@
   "adjust_timestep_for_charging": false,
   "disable_ppgpp_elongation_inhibition": true,
   "analysis_options": {
-    "single": {
-      "mass_fraction_summary": {}
-    },
-    "multivariant": {
-      "cell_mass": {},
-      "doubling_time_line": {}
+    "outdir": "out/objective_weight_variant/analysis/",
+    "multiexperiment": {
+            "weighted_objective_terms": {},
+            "mass_fraction_summary": {},
+            "enzyme_availability_flux": {}
+        },
+        "multivariant": {
+            "cell_mass": {},
+            "doubling_time_hist": {"skip_n_gens": 0},
+            "centralCarbonMetabolismScatter": {},
+            "centralCarbonMetabolismBoxScatter": {},
+            "weighted_objective_terms": {},
+            "mean_flux_distribution": {
+                "in_molar": false,
+                "bin_edges": [0, 1E-6, 1e-3, 1, 2, 10, 1e3, 1E6, 1E9, 1E12],
+                "facet_columns": 4,
+                "n_bins": 25
+            }
+        }
+  },
+  "process_configs": {
+    "ecoli-metabolism-redux-classic": {
+      "objective_weights": {
+        "secretion": 1.23E-05,
+        "efficiency": 7.47E-06,
+        "kinetics": 4.05E-05,
+        "diversity": 4.46E-06,
+        "homeostatic": 1.0
+      }
     }
   },
   "variants": {
-    "metabolism_redux_classic_objective_weights": {
-      "secretion": {
+    "metabolism_redux_classic_fraction_kinetic_target": {
+      "fraction_kinetic_target": {
         "value": [
-          1.83e-08,
-          1.61e-08
+          0.5,
+          0.8,
+          0.9
         ]
-      },
-      "efficiency": {
-        "value": [
-          3.52e-08,
-          2.44e-08
-        ]
-      },
-      "kinetics": {
-        "value": [
-          1.09e-07,
-          8.2e-08
-        ]
-      },
-      "diversity": {
-        "value": [
-          4.47e-07,
-          0.000497905
-        ]
-      },
-      "homeostatic": {
-        "value": [
-          1.0,
-          1.0
-        ]
-      },
-      "op": "zip"
+      }
     }
   }
 }

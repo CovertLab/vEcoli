@@ -1241,6 +1241,7 @@ class LoadSimData:
                 "diversity": metabolism.redux_classic_diversity_weight,
                 "homeostatic": metabolism.redux_classic_homeostatic_weight,
             },
+            "fraction_kinetic_target": metabolism.redux_classic_fraction_kinetic_target,
         }
 
         # # If metabolism_redux_classic_objective_weights variant has been called,

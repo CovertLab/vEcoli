@@ -1,25 +1,36 @@
 {
     "emitter_arg": {
-        "out_dir": "out/objective_weight_parquet/"
+        "out_dir": "out/objective_weight_variant/"
     },
     "analysis_options": {
-        "experiment_batch_dir": "out/objective_weight_parquet/batch_apr_selective_1seed_4gen_KD/",
+        "experiment_batch_dir": "out/objective_weight_variant/apr_index728_kinetic_fraction_20260429-005240/",
         "validation_data_path": ["out/kb/validationData.cPickle"],
-        "outdir": "out/objective_weight_parquet/analysis/batch_apr_selective_1seed_4gen_analysis/",
+        "outdir": "out/objective_weight_variant/analysis/apr_index728_kinetic_fraction/",
         "cpus": 1,
 
         "multiexperiment": {
-            "centralCarbonMetabolismScatter": {},
-            "centralCarbonMetabolismBoxScatter": {},
-            "cell_mass": {},
-            "cell_mass_individual": {},
-            "doubling_time_hist":{"plot_by": "experiment_id"},
+            "centralCarbonMetabolismScatter": {"plot_by": "variant"},
+            "centralCarbonMetabolismBoxScatter": {"plot_by": "variant"},
             "weighted_objective_terms": {},
             "mass_fraction_summary": {},
             "enzyme_availability_flux": {},
-            "metabolite_unmet_need": {},
+            "metabolite_unmet_need": {"facet_columns": 3},
             "mean_flux_distribution": {
-                "plot_by": "experiment_id",
+                "plot_by": "seed",
+                "in_molar": false,
+                "bin_edges": [0, 1E-6, 1e-3, 1, 1e3, 1E6, 1E9, 1E12],
+                "facet_columns": 4,
+                "n_bins": 25
+            }
+        },
+        "multivariant": {
+            "cell_mass": {},
+            "doubling_time_hist": {"skip_n_gens": 0},
+            "centralCarbonMetabolismScatter": {},
+            "centralCarbonMetabolismBoxScatter": {},
+            "weighted_objective_terms": {},
+            "mean_flux_distribution": {
+                "plot_by": "seed",
                 "in_molar": false,
                 "bin_edges": [0, 1E-6, 1e-3, 1, 1e3, 1E6, 1E9, 1E12],
                 "facet_columns": 4,
