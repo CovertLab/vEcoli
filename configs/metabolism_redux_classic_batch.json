@@ -1,12 +1,16 @@
 {
+    "experiment_id": "objective_weight_variants",
     "fail_at_max_duration": true,
     "progress_bar": true,
     "log_updates": false,
     "generations": 4,
     "n_init_sims": 1,
     "emitter": "parquet",
-    "emitter_arg": {"out_dir": "out/objective_weight_parquet/batch_apr_selective_1seed_4gen"},
-    "sim_data_path": "out/kb/simData.cPickle",
+    "emitter_arg": {"out_dir": "out/"},
+    "sim_data_path": null,
+    "parca_options": {
+        "cpus": 6
+    },
     "fixed_media": "minimal",
     "condition": "basal",
 
@@ -41,17 +45,6 @@
     "adjust_timestep_for_charging": false,
     "disable_ppgpp_elongation_inhibition": true,
 
-    "process_configs": {
-    "ecoli-metabolism-redux-classic": {
-        "objective_weights": {
-            "secretion": 2,
-            "efficiency": 6,
-            "kinetics": 9,
-            "diversity": 7,
-            "homeostatic": 1.0
-      }
-    }
-    },
     "analysis_options": {
         "single": {
             "mass_fraction_summary": {}
