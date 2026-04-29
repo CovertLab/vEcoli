@@ -1,12 +1,12 @@
 {
     "emitter_arg": {
-        "out_dir": "out/objective_weight_variant/"
+        "out_dir": "scratch/users/hsaqibo1"
     },
     "analysis_options": {
-        "experiment_id": ["best_r_weights_20260429-004537"],
-        "variant_data_dir": ["out/objective_weight_variant/best_r_weights_20260429-004537/variant_sim_data"],
-        "validation_data_path": ["out/kb/validationData.cPickle"],
-        "outdir": "out/objective_weight_variant/analysis/best_r_weights_20260429-004537/",
+        "experiment_id": ["objective_weight_variants_20260428-223130"],
+        "variant_data_dir": ["scratch/users/hsaqibo1/objective_weight_variants_20260428-223130/variant_sim_data"],
+        "validation_data_path": ["/home/users/hsaqibo1/vEcoli/test_sherlock/parca/kb/validationData.cPickle"],
+        "outdir": "cratch/users/hsaqibo1/analysis/objective_weight_variants_20260428-223130/",
         "cpus": 1,
 
         "multiexperiment": {
