@@ -72,6 +72,9 @@ their corresponding topologies to the final composite model.
 - ``generations``: Adds :py:class:`~ecoli.processes.cell_division.StopAfterDivision`
   when ``True`` but only if ``divide`` is ``True``
 
+
+.. _log_updates:
+
 -----------
 Log Updates
 -----------
@@ -90,8 +93,10 @@ The analysis plots located in :py:mod:`~ecoli.analysis.single.blame` can be used
 to visualize these updates.
 
 .. warning::
-    This feature should only be turned for debugging purposes and
-    only when using the in-memory emitter (see :ref:`ram_emitter`).
+    This feature should only be turned on for debugging purposes, and only when
+    using the :ref:`in-memory emitter <ram_emitter>` or the
+    :py:mod:`.xarray_emitter`.
+
 
 -------------
 Initial State

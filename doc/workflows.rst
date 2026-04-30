@@ -330,6 +330,7 @@ it has access to.
   folder, you can just create stub files in the appropriate folders
   that simply import the ``plot`` function from a primary analysis script.
 
+
 .. _analysis_config:
 
 Configuration
@@ -501,6 +502,9 @@ All analysis scripts must contain a ``plot`` function with the following signatu
 Refer to :ref:`/output.rst` for more information about how
 to use DuckDB to read and analyze simulation output inside
 analysis scripts.
+
+
+.. _workflows:
 
 ---------
 Workflows
@@ -699,6 +703,7 @@ is a list workflow behaviors enabled in our model to handle unexpected errors.
   job in each chain of job dependencies (e.g. generation 7 of a cell lineage
   depends on generation 6, :py:mod:`runscripts.create_variants` depends on
   :py:mod:`runscripts.parca`, etc).
+
 
 .. _output:
 

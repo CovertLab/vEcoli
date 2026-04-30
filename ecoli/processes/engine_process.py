@@ -1,4 +1,4 @@
-"""
+r"""
 =============
 EngineProcess
 =============
@@ -93,10 +93,10 @@ from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in
 
-from ecoli.library.parquet_emitter import ParquetEmitter
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.schema import remove_properties, empty_dict_divider, not_a_process
 from ecoli.library.updaters import inverse_updater_registry
+from ecoli.library.parquet_emitter import BufferedEmitter
 from ecoli.processes.cell_division import daughter_phylogeny_id
 
 
@@ -312,12 +312,13 @@ class EngineProcess(Process):
         # Only apply overrides to first cell in simulation
         self.parameters["inner_composer_config"].pop("initial_state_overrides", None)
 
+        # Only emit designated stores if specified
         if self.parameters["emit_paths"]:
-            self.sim.state.set_emit_values([tuple()], False)
-            self.sim.state.set_emit_values(
-                self.parameters["emit_paths"],
-                True,
-            )
+            if self.parameters["inner_emitter"] not in ("parquet", "xarray"):
+                state = self.sim.state
+                state.set_emit_value(emit=False, path=tuple())
+                state.set_emit_values(emit=True, paths=self.parameters["emit_paths"])
+
         self.random_state = np.random.RandomState(seed=self.parameters["seed"])
 
         self.updater_registry_reverse = {
@@ -339,6 +340,14 @@ class EngineProcess(Process):
             self.emitter_config = self.parameters["inner_emitter"]
         self.emitter_config["experiment_id"] = self.parameters["experiment_id"]
         self.emitter = get_emitter(self.emitter_config)
+
+        # Only emit designated stores if specified
+        if isinstance(self.emitter, BufferedEmitter):
+            assert self.parameters["inner_emitter"] in ("parquet", "xarray")
+            self.emitter.reset_emit_flags(
+                engine=self.sim,
+                agent=("agents", self.parameters["agent_id"]),
+                emit_paths=self.parameters["emit_paths"])
 
     def ports_schema(self):
         schema = {
@@ -510,7 +519,7 @@ class EngineProcess(Process):
             if force_complete:
                 self.sim.complete()
         except (Exception, KeyboardInterrupt):
-            if isinstance(self.emitter, ParquetEmitter):
+            if isinstance(self.emitter, BufferedEmitter):
                 self.emitter.finalize()
             raise
 
@@ -523,7 +532,7 @@ class EngineProcess(Process):
         ).get_value()
         if self.parameters["divide"] and division_variable >= division_threshold:
             # Finalize emits before division
-            if isinstance(self.emitter, ParquetEmitter):
+            if isinstance(self.emitter, BufferedEmitter):
                 self.emitter.success = True
                 self.emitter.finalize()
             # Perform division.

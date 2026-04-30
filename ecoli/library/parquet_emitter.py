@@ -1,7 +1,9 @@
+
 import os
 import fnmatch
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any, Callable, cast, Mapping, Optional
+from dataclasses import asdict
+from typing import Any, Callable, Mapping, Optional, cast, final
 from urllib import parse
 
 import duckdb
@@ -12,7 +14,15 @@ from fsspec import open as fsspec_open
 from fsspec.core import filesystem, url_to_fs, OpenFile
 from fsspec.spec import AbstractFileSystem
 from tqdm import tqdm
-from vivarium.core.emitter import Emitter
+
+from vivarium.core.types import HierarchyPath
+from vivarium.core.engine import Engine
+
+from .emitter import BlockingExecutor, BufferedEmitter
+
+
+# ==============================================================================
+
 
 METADATA_PREFIX = "output_metadata__"
 """
@@ -60,6 +70,9 @@ USE_UINT32 = {
     "listeners__fba_results__catalyst_counts",
 }
 """uint32 is 2x smaller than int64 for values between 0 - 4,294,967,295."""
+
+
+# ==============================================================================
 
 
 def json_to_parquet(
@@ -839,22 +852,11 @@ def pl_dtype_from_ndarray(arr: np.ndarray) -> pl.DataType:
     return pl_dtype
 
 
-class BlockingExecutor:
-    def submit(self, fn: Callable, *args, **kwargs) -> Future:
-        """
-        Run function in the current thread and return a Future that
-        is already done.
-        """
-        future: Future = Future()
-        try:
-            result = fn(*args, **kwargs)
-            future.set_result(result)
-        except Exception as e:
-            future.set_exception(e)
-        return future
+# ==============================================================================
 
 
-class ParquetEmitter(Emitter):
+@final
+class ParquetEmitter(BufferedEmitter):
     """
     Emit data to a Parquet dataset. Note that :py:meth:`~.finalize`
     must be explicitly called in a ``try...finally`` block around the call to
@@ -907,22 +909,32 @@ class ParquetEmitter(Emitter):
         # was successfully written to Parquet in order to avoid blocking
         self.last_batch_future: Future = Future()
         self.last_batch_future.set_result(None)
-        # Set either by EcoliSim or by EngineProcess if sim reaches division
-        self.success = False
+        super().__init__()
 
-    def finalize(self):
-        """Convert remaining batched emits to Parquet at sim shutdown
-        and mark sim as successful if ``success`` flag was set. In vEcoli,
-        this is done by :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
-        upon reaching division.
+    def reset_emit_flags(
+        self, *,
+        engine: Engine, agent: HierarchyPath, emit_paths: tuple[HierarchyPath]
+    ) -> None:
+        """
+        In this subclass, ``agent`` is ignored and ``emit_paths`` is interpreted
+        as a global path.
+        """
+        assert engine.emitter is self
+        if emit_paths:
+            state = self.ecoli_experiment.state
+            state.set_emit_value(emit=False, path=tuple())
+            state.set_emit_values(emit=True, paths=emit_paths)
+
+    def _finalize(self, *, success: bool):
+        """
+        Convert remaining batched emits to Parquet at sim shutdown and mark sim
+        as successful if ``success`` flag was set.
         """
         # Wait for last batch to finish writing
         self.last_batch_future.result()
         # Flush any remaining buffered emits to Parquet
         outfile = os.path.join(
-            self.out_uri,
-            self.experiment_id,
-            "history",
+            self.out_uri, self.experiment_id, "history",
             self.partitioning_path,
             f"{self.num_emits}.pq",
         )
@@ -934,11 +946,9 @@ class ParquetEmitter(Emitter):
                 self.buffered_emits, outfile, self.pl_types, self.filesystem
             )
         # Hive-partitioned directory that only contains successful sims
-        if self.success:
+        if success:
             success_file = os.path.join(
-                self.out_uri,
-                self.experiment_id,
-                "success",
+                self.out_uri, self.experiment_id, "success",
                 self.partitioning_path,
                 "s.pq",
             )
@@ -986,21 +996,10 @@ class ParquetEmitter(Emitter):
             data = {**data["data"].pop("metadata", {}), **data["data"]}
             data["time"] = data.get("initial_global_time", 0.0)
             # Manually create filepaths with hive partitioning
-            agent_id = data.get("agent_id", "1")
-            quoted_experiment_id = parse.quote_plus(
-                data.get("experiment_id", "default")
-            )
-            partitioning_keys = {
-                "experiment_id": quoted_experiment_id,
-                "variant": data.get("variant", 0),
-                "lineage_seed": data.get("lineage_seed", 0),
-                "generation": len(agent_id),
-                "agent_id": agent_id,
-            }
-            self.experiment_id = quoted_experiment_id
-            self.partitioning_path = os.path.join(
-                *(f"{k}={v}" for k, v in partitioning_keys.items())
-            )
+            partition = self.extract_partition(data)
+            self.partitioning_path = os.path.join(*(
+                f"{k}={v}" for (k, v) in asdict(partition).items()))
+            self.experiment_id = partition.experiment_id
             data = flatten_dict(data)
             config_emit: dict[str, Any] = {}
             config_schema: dict[str, pl.DataType] = {}
@@ -1014,9 +1013,7 @@ class ParquetEmitter(Emitter):
                     config_emit[k] = v
                     config_schema[k] = v.dtype
             outfile = os.path.join(
-                self.out_uri,
-                self.experiment_id,
-                "configuration",
+                self.out_uri, self.experiment_id, "configuration",
                 self.partitioning_path,
                 "config.pq",
             )
@@ -1036,7 +1033,8 @@ class ParquetEmitter(Emitter):
             )
             # Delete any sim output files in final filesystem
             history_outdir = os.path.join(
-                self.out_uri, self.experiment_id, "history", self.partitioning_path
+                self.out_uri, self.experiment_id, "history",
+                self.partitioning_path
             )
             try:
                 self.filesystem.delete(history_outdir, recursive=True)
@@ -1124,9 +1122,7 @@ class ParquetEmitter(Emitter):
             # If last batch of emits failed, exception should be raised here
             self.last_batch_future.result()
             outfile = os.path.join(
-                self.out_uri,
-                self.experiment_id,
-                "history",
+                self.out_uri, self.experiment_id, "history",
                 self.partitioning_path,
                 f"{self.num_emits}.pq",
             )

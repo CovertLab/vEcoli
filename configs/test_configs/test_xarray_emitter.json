@@ -1,0 +1,117 @@
+{
+  "experiment_id": "test_xarray_emitter",
+  "fixed_media": "minimal",
+  "suffix_time": false,
+  "max_duration": 10.0,
+  "fail_at_max_duration": false,
+  "generations": 1,
+  "n_init_sims": 1,
+  "log_updates": true,
+  "emitter": "xarray",
+  "emitter_arg": {
+    "debug": false,
+    "transducer": {
+      "predicate": [
+        [
+          {"subsample": {"interval": 1}},
+          {"fixed": {"steps": [0]}}
+        ]
+      ],
+      "buffer": {
+        "size": 3
+      }
+    },
+    "writer": {
+      "store": "out/store",
+      "threaded": true,
+      "buffers_per_chunk": 2,
+      "backend": "zarr",
+      "backend_config": {
+        "format": 3,
+        "async.concurrency": 3,
+        "threading.max_workers": 3
+      }
+    },
+    "view": [
+      {
+        "root": [],
+        "variables": {
+          "bulk": [{
+            "path": "bulk/bulk_molecule",
+            "dtype": "<i8",
+            "codecs": {
+              "filters_v2": [],
+              "filters_v3": [],
+              "compressors_v2": [{
+                "id": "lzma", "format": 3, "check": -1, "preset": null,
+                "filters": [{"id": 3, "dist": 8}, {"id": 33, "preset": 5}]
+              }],
+              "compressors_v3": [{
+                "name": "numcodecs.lzma",
+                "configuration": {
+                  "format": 3,
+                  "filters": [{"id": 3, "dist": 8}, {"id": 33, "preset": 5}]
+                }
+              }]
+            }
+          }]
+        }
+      },
+      {
+        "root": ["listeners", "mass"],
+        "metadata": false,
+        "variables": {
+          "cell_mass": [{
+            "path": "gauges/cell_mass",
+            "unit": "[fg]",
+            "dtype": "<f4"
+          }],
+          "dry_mass": [{
+            "path": "gauges/dry_mass",
+            "unit": "[fg]",
+            "dtype": "<f4"
+          }]
+        }
+      },
+      {
+        "root": ["log_update", "ecoli-metabolism", "listeners"],
+        "variables": {
+          "fba_results": {
+            "coefficient": [{
+              "path": "gauges/mass_per_vol",
+              "unit": "[g/L]",
+              "dtype": "<f4"
+            }],
+            "reaction_fluxes": [{
+              "path": "metabolism/fluxes/internal/rxn",
+              "unit": "[mmol/L.s]",
+              "dtype": "<f4"
+            }],
+            "external_exchange_fluxes": [{
+              "path": "metabolism/fluxes/exchange/molecule",
+              "unit": "[mmol/g.h]",
+              "dtype": "<f4"
+            }]
+          },
+          "enzyme_kinetics": {
+            "counts_to_molar": [{
+              "path": "gauges/conc_per_count",
+              "unit": "[mmol/L]",
+              "dtype": "<f4"
+            }],
+            "actual_fluxes": [{
+              "path": "metabolism/fluxes/internal/rxn_constrained",
+              "unit": "[mmol/L.s]",
+              "dtype": "<f4"
+            }],
+            "target_fluxes": [{
+              "path": "metabolism/fluxes/internal/rxn_target",
+              "unit": "[mmol/L.s]",
+              "dtype": "<f4"
+            }]
+          }
+        }
+      }
+    ]
+  }
+}
