@@ -1475,6 +1475,9 @@ class LoadSimData:
             "two_component_system_molecule_ids": list(
                 self.sim_data.process.two_component_system.molecule_names
             ),
+            "two_component_system_modified_molecule_ids": list(
+                self.sim_data.process.two_component_system.modified_molecule_names
+            ),
             "two_component_system_complex_ids": list(
                 self.sim_data.process.two_component_system.complex_to_monomer.keys()
             ),
