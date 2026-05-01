@@ -188,9 +188,17 @@ class TwoComponentSystem(object):
             self.independent_molecules == "ATP[c]"
         )[0][0]
 
+        # Build dictionary mapping complexes to their base monomer subunit
+        # composition from the modified_proteins table in the flat file (since
+        # it's not possible to get the base monomers from the raw TCS raw_data files):
         self.complex_to_monomer = self._buildComplexToMonomer(
-            raw_data.modified_proteins, self.molecule_names
+            sim_data, raw_data.modified_proteins, self.molecule_names
         )
+
+        # Build list of molecules that include those from the original molecule
+        # list and molecules from the raw_data.modified_proteins table that are not
+        # in the original molecule list:
+        self.modified_molecules = self.make_modified_molecule_list()
 
         # Mass balance matrix
         self._stoich_matrix_mass = np.array(stoichMatrixMass)
@@ -241,14 +249,20 @@ class TwoComponentSystem(object):
         self._populate_derivative_and_jacobian()
         self.dependency_matrix = self._make_dependency_matrix()
 
-    def _buildComplexToMonomer(self, modifiedFormsMonomers, tcsMolecules):
+    def _buildComplexToMonomer(self, sim_data, modifiedFormsMonomers, tcsMolecules):
         """
-        Maps each complex to a dictionary that maps each subunit of the complex to its stoichiometry
+        Maps each complex to a dictionary that maps each subunit of the complex
+                to its stoichiometry.
+
+                This function also handles correcting compartment tags for subunits
+                where the compartment tag listed in the raw_data.modified_proteins table
+                is inconsistent with the molecule's tag saved in the bulk molecule data.
         """
         D = {}
         for row in modifiedFormsMonomers:
             # tags on the molecule compartment found in tcsMolecules
             molecule_and_location = f"{row['id']}[{row['compartment']}]"
+            # filter by molecules actively being modeled in the simulation:
             if molecule_and_location in tcsMolecules:
                 D[molecule_and_location] = {}
                 for subunit in row["subunits"]:
@@ -257,9 +271,23 @@ class TwoComponentSystem(object):
                     # can skip it for now (see #975)
                     if subunit["monomer"] == "PI[c]":
                         continue
-                    D[molecule_and_location][str(subunit["monomer"])] = float(
-                        subunit["stoichiometry"]
-                    )
+                    # Since the compartment tag for some subunits may be off,
+                    # check if the subunit tag needs to be corrected before
+                    # adding it to the dictionary:
+                    if sim_data.getter.is_valid_molecule(subunit["monomer"]):
+                        D[molecule_and_location][str(subunit["monomer"])] = float(
+                            subunit["stoichiometry"]
+                        )
+                    else:
+                        # Correct the compartment tag:
+                        subunit_wo_tag = subunit["monomer"].split("[")[0]
+                        compartment_tag = sim_data.getter.get_compartment(
+                            subunit_wo_tag
+                        )
+                        new_subunit_ID = f"{subunit_wo_tag}[{compartment_tag[0]}]"
+                        D[molecule_and_location][str(new_subunit_ID)] = float(
+                            subunit["stoichiometry"]
+                        )
 
         return D
 
@@ -295,26 +323,33 @@ class TwoComponentSystem(object):
 
     def stoich_matrix_monomers(self):
         """
-        Builds stoichiometry matrix for monomers (complex subunits)
-        Rows: molecules (complexes and monomers)
-        Columns: complexes
-        Values: monomer stoichiometry
+        Builds stoichiometry matrix for mapping complexes to their base monomers
+        subunits.
+
+                Rows: modified molecules (complexes and monomers, including base monomer
+                subunits that were not included in the original molecule list extracted
+                from raw_data.two_component_systems, but were included in the
+                raw_data.modified_proteins table).
+                Columns: complexes
+                Values: base monomer stoichiometry (not including non-monomer subunits,
+                like metabolites, ATP, etc.)
         """
         ids_complexes = self.complex_to_monomer.keys()
+        molecule_names = list(self.modified_molecules)
         stoichMatrixMonomersI = []
         stoichMatrixMonomersJ = []
         stoichMatrixMonomersV = []
         for colIdx, id_complex in enumerate(ids_complexes):
             D = self.get_monomers(id_complex)
 
-            rowIdx = self.molecule_names.tolist().index(id_complex)
+            rowIdx = molecule_names.index(id_complex)
             stoichMatrixMonomersI.append(rowIdx)
             stoichMatrixMonomersJ.append(colIdx)
             stoichMatrixMonomersV.append(1.0)
 
             for subunitId, subunitStoich in zip(D["subunitIds"], D["subunitStoich"]):
-                if subunitId in self.molecule_names.tolist():
-                    rowIdx = self.molecule_names.tolist().index(subunitId)
+                if subunitId in molecule_names:
+                    rowIdx = molecule_names.index(subunitId)
                     stoichMatrixMonomersI.append(rowIdx)
                     stoichMatrixMonomersJ.append(colIdx)
                     stoichMatrixMonomersV.append(-1.0 * subunitStoich)
@@ -651,7 +686,7 @@ class TwoComponentSystem(object):
         Returns subunits for a complex (or any ID passed).
         If the ID passed is already a monomer returns the
         monomer ID again with a stoichiometric coefficient
-        of zero.
+        of one.
         """
 
         info = self.complex_to_monomer
@@ -661,6 +696,7 @@ class TwoComponentSystem(object):
                 "subunitStoich": list(info[cplxId].values()),
             }
         else:
+            # Return a stoich balue of 1 for monomers passed through:
             out = {"subunitIds": cplxId, "subunitStoich": 1}
         return out
 
@@ -769,3 +805,38 @@ class TwoComponentSystem(object):
         with argument order for solve_ivp.
         """
         return self._stoich_matrix.dot(self._rates_jacobian[1](y, t))
+
+    def make_modified_molecule_list(self):
+        """
+        Since the raw modified_proteins table contains proteins that are either
+
+        1. not in the original molecule pool provided in raw_data.two_component_systems
+        (PHOQ-MONOMER, PHOR-MONOMER, ARCB-MONOMER, and NARX-MONOMER), or,
+        2. in the molecule pool but have different compartment tags from what
+        the simulation expects (DUCS-MONOMER[i] should be DCUS-MONOMER[c]),
+
+        the list of molecules that the stoich_matrix_monomers() function pulls
+        from needs to be manually expanded to include and correct for these cases.
+
+        This function generates a modified molecule list that includes the original
+        molecules from the TCS molecule pool (built in __init__()) and the
+        new proteins from the raw_data.modified_proteins file that were not included
+        in the original list (or were, but needed corrected compartment tags).
+
+        # TODO (mia): Consider/investigate changing the compartment tag for
+        DCUS-MONOMER from [c] to [i] to avoid needing to check for compartment
+        validity here (and potentially be more consistent with known biology).
+        """
+        # Original monomers (extracted from raw_data.two_component_systems):
+        tcs_molecules = self.molecule_names.tolist()
+        # Obtain the new molecules from the complex_to_monomer dictionary
+        # (generated from raw_data.modified_proteins):
+        new_molecules = []
+        for complex in self.complex_to_monomer.keys():
+            # Index to the individual subunit dictionaries for the complex:
+            subunits = self.get_monomers(complex)
+            for subunit in subunits["subunitIds"]:
+                # Append subunits not in the original list to the new list:
+                if subunit not in tcs_molecules and subunit not in new_molecules:
+                    new_molecules.append(subunit)
+        return np.array(tcs_molecules + new_molecules)
