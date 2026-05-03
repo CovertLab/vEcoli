@@ -347,8 +347,8 @@ class TwoComponentSystem(object):
             stoichMatrixMonomersV.append(1.0)
 
             for subunitId, subunitStoich in zip(D["subunitIds"], D["subunitStoich"]):
-                if subunitId in self.molecule_names:
-                    rowIdx = self.molecule_names.index(subunitId)
+                if subunitId in molecule_names:
+                    rowIdx = molecule_names.index(subunitId)
                     stoichMatrixMonomersI.append(rowIdx)
                     stoichMatrixMonomersJ.append(colIdx)
                     stoichMatrixMonomersV.append(-1.0 * subunitStoich)
