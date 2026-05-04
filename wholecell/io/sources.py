@@ -74,6 +74,14 @@ class SourceBundle:
         self._bundle_root: Path = self._manifest_path.parent
 
         df = pd.read_csv(self._manifest_path, sep="\t", comment="#")
+
+        # Defensive validation: shape + canonical-key contract. Catches
+        # malformed or incomplete bundles at load time rather than at
+        # consumer call sites deep in ParCa. Raises with a clear error
+        # listing missing required keys when applicable.
+        from schemas import ReferenceBundleSchema  # ecoli-sources package
+        ReferenceBundleSchema.validate(df, lazy=True)
+
         self._index: dict[str, Path] = {
             str(row["canonical_key"]): (self._bundle_root / str(row["source_path"])).resolve()
             for _, row in df.iterrows()
