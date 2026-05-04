@@ -3,19 +3,44 @@ KnowledgeBase for Ecoli
 Whole-cell knowledge base for Ecoli. Contains all raw, un-fit data processed
 directly from CSV flat files.
 
+Source files are resolved through ``wholecell.io.sources.SourceBundle``,
+which reads the canonical-key bundle manifest shipped with the
+``ecoli-sources`` package (or a variant manifest pinned via
+``bundle_manifest_path``). The filename strings in
+``LIST_OF_DICT_FILENAMES`` / ``LIST_OF_PARAMETER_FILENAMES`` are the
+historical format; each is converted to a canonical key
+(``mass_fractions/glycogen_fractions.tsv`` ->
+``mass_fractions__glycogen_fractions``) before lookup.
 """
 
 import io
 import os
 import json
-from typing import List, Dict
+from typing import List, Dict, Optional
 import warnings
 
 from reconstruction.spreadsheets import read_tsv
 from wholecell.io import tsv
+from wholecell.io.sources import SourceBundle
 from wholecell.utils import units  # used by eval()
 
-FLAT_DIR = os.path.join(os.path.dirname(__file__), "flat")
+
+def _filename_to_canonical_key(filename: str) -> str:
+    """Convert a ``flat/``-relative filename to its canonical key.
+
+    Strips the file extension and replaces path separators with ``__``.
+    Mirrors the naming convention used in
+    ``ecoli-sources/data/reference_bundle.tsv``.
+
+    Examples
+    --------
+    >>> _filename_to_canonical_key("genes.tsv")
+    'genes'
+    >>> _filename_to_canonical_key(os.path.join("mass_fractions", "glycogen_fractions.tsv"))
+    'mass_fractions__glycogen_fractions'
+    """
+    no_ext = os.path.splitext(filename)[0]
+    return no_ext.replace(os.path.sep, "__")
 LIST_OF_DICT_FILENAMES = [
     "amino_acid_export_kms.tsv",
     "amino_acid_export_kms_removed.tsv",
@@ -180,10 +205,23 @@ class KnowledgeBaseEcoli(object):
         remove_rrff: bool,
         stable_rrna: bool,
         new_genes_option: str = "off",
+        bundle_manifest_path: Optional[str] = None,
     ):
         self.operons_on = operons_on
         self.stable_rrna = stable_rrna
         self.new_genes_option = new_genes_option
+
+        # Resolve all source files through the ecoli-sources data bundle.
+        # ``bundle_manifest_path=None`` (default) resolves to the reference
+        # bundle shipped with the installed ``ecoli-sources`` package
+        # (``ecoli_sources.BUNDLE_PATH``); a campaign / variant pins an
+        # alternative manifest by passing its path.
+        self._bundle = SourceBundle(manifest_path=bundle_manifest_path)
+        # Existence-check root for option-driven flat subdirs (e.g.
+        # ``new_gene_data/<subdir>/``); kept separate from the bundle
+        # because vEcoli composes paths from runtime options and just
+        # needs to verify the file on disk.
+        self._flat_root: str = str(self._bundle.bundle_root / "flat")
 
         if not operons_on and remove_rrna_operons:
             warnings.warn(
@@ -270,7 +308,7 @@ class KnowledgeBaseEcoli(object):
         if self.new_genes_option != "off":
             new_gene_subdir = new_genes_option
             new_gene_path = os.path.join("new_gene_data", new_gene_subdir)
-            assert os.path.isdir(os.path.join(FLAT_DIR, new_gene_path)), (
+            assert os.path.isdir(os.path.join(self._flat_root, new_gene_path)), (
                 "This new_genes_data subdirectory is invalid."
             )
             nested_attr = "new_gene_data." + new_gene_subdir + "."
@@ -295,7 +333,7 @@ class KnowledgeBaseEcoli(object):
                 file_path = os.path.join(new_gene_path, f + ".tsv")
                 # If these files are empty, fill in with default values at a
                 # later point
-                assert os.path.isfile(os.path.join(FLAT_DIR, file_path)), (
+                assert os.path.isfile(os.path.join(self._flat_root, file_path)), (
                     f"File {f}.tsv must be present in the new_genes_data"
                     f" subdirectory {new_gene_subdir}."
                 )
@@ -303,7 +341,7 @@ class KnowledgeBaseEcoli(object):
                 self.new_gene_added_data.update({f: nested_attr + f})
 
             rnaseq_path = os.path.join(new_gene_path, "rnaseq_rsem_tpm_mean.tsv")
-            if os.path.isfile(os.path.join(FLAT_DIR, rnaseq_path)):
+            if os.path.isfile(os.path.join(self._flat_root, rnaseq_path)):
                 self.list_of_dict_filenames.append(rnaseq_path)
                 self.new_gene_added_data.update(
                     {
@@ -312,15 +350,27 @@ class KnowledgeBaseEcoli(object):
                     }
                 )
 
-        # Load raw data from TSV files
+        # Load raw data from TSV files. Each filename string from the
+        # historical lists is converted to a canonical key and resolved
+        # through the bundle. ``self._flat_root`` is passed to
+        # ``_load_tsv`` / ``_load_parameters`` only so that those methods'
+        # existing relative-path -> attr-tree-walking logic continues to
+        # produce ``self.<subdir>.<file>`` placement that downstream code
+        # depends on.
         for filename in self.list_of_dict_filenames:
-            self._load_tsv(FLAT_DIR, os.path.join(FLAT_DIR, filename))
+            self._load_tsv(
+                self._flat_root,
+                str(self._bundle.get(_filename_to_canonical_key(filename))),
+            )
 
         for filename in self.list_of_parameter_filenames:
-            self._load_parameters(FLAT_DIR, os.path.join(FLAT_DIR, filename))
+            self._load_parameters(
+                self._flat_root,
+                str(self._bundle.get(_filename_to_canonical_key(filename))),
+            )
 
         self.genome_sequence = self._load_sequence(
-            os.path.join(FLAT_DIR, SEQUENCE_FILE)
+            str(self._bundle.get("sequence")),
         )
 
         self._prune_data()
@@ -347,6 +397,16 @@ class KnowledgeBaseEcoli(object):
 
             self.added_data = self.new_gene_added_data
             self._join_data()
+
+    def __getstate__(self):
+        # ``_bundle`` and ``_flat_root`` are infrastructure used only during
+        # __init__'s load phase. Excluding them from the pickled state keeps
+        # rawData.cPickle a pure data artifact — no absolute machine paths,
+        # no resolver internals, stable hash across runs that share data.
+        state = self.__dict__.copy()
+        state.pop("_bundle", None)
+        state.pop("_flat_root", None)
+        return state
 
     def _load_tsv(self, dir_name, file_name):
         path = self

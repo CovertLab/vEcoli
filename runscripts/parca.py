@@ -44,6 +44,7 @@ def run_parca(config):
         remove_rrff=config["remove_rrff"],
         stable_rrna=config["stable_rrna"],
         new_genes_option=config["new_genes"],
+        bundle_manifest_path=config["bundle_manifest_path"],
     )
     print(f"{time.ctime()}: Saving raw_data")
     with fsspec_open(raw_data_file, "wb") as f:
