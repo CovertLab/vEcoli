@@ -271,22 +271,19 @@ class TwoComponentSystem(object):
                     if subunit["monomer"] == "PI[c]":
                         continue
                     # Since the compartment tag for some subunits may be off,
-                    # check if the subunit tag needs to be corrected before
-                    # adding it to the dictionary:
-                    if sim_data.getter.is_valid_molecule(subunit["monomer"]):
-                        D[molecule_and_location][str(subunit["monomer"])] = float(
-                            subunit["stoichiometry"]
-                        )
+                    # strip the compartment tag from the subunit and check if
+                    # the molecule name is valid
                     else:
-                        # Correct the compartment tag:
                         subunit_wo_tag = subunit["monomer"].split("[")[0]
-                        compartment_tag = sim_data.getter.get_compartment(
-                            subunit_wo_tag
-                        )
-                        new_subunit_ID = f"{subunit_wo_tag}[{compartment_tag[0]}]"
-                        D[molecule_and_location][str(new_subunit_ID)] = float(
-                            subunit["stoichiometry"]
-                        )
+                        # Get the correct compartment tag if the molecule is valid:
+                        if sim_data.getter.is_valid_molecule(subunit_wo_tag):
+                            compartment_tag = sim_data.getter.get_compartment(
+                                subunit_wo_tag
+                            )
+                            new_subunit_ID = f"{subunit_wo_tag}[{compartment_tag[0]}]"
+                            D[molecule_and_location][str(new_subunit_ID)] = float(
+                                subunit["stoichiometry"]
+                            )
 
         return D
 
@@ -695,7 +692,7 @@ class TwoComponentSystem(object):
                 "subunitStoich": list(info[cplxId].values()),
             }
         else:
-            # Return a stoich balue of 1 for monomers passed through:
+            # Return a stoich value of 1 for monomers passed through:
             out = {"subunitIds": cplxId, "subunitStoich": 1}
         return out
 
