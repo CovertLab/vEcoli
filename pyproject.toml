@@ -59,7 +59,18 @@ dependencies = [
     "arviz-plots>=0.7.0",
     "arviz>=0.23.0",
     "s3fs>=2025.5.1",
+    # Cross-repo data-bundle: ecoli-sources provides the canonical-key
+    # bundle manifest + source files. Local-editable during development;
+    # switch to git+ssh pin-by-commit at PR time. See
+    # SMS/.claude/data-ingestion/bundle-migration-plan.md §5.1.
+    "ecoli-sources",
 ]
+
+[tool.uv.sources]
+# Local-editable during development; replace with a git+ssh pin-by-commit
+# entry at PR time:
+#   ecoli-sources = { git = "ssh://git@github.com/vivarium-collective/ecoli-sources.git", rev = "<sha>" }
+ecoli-sources = { path = "../ecoli-sources", editable = true }
 
 [project.optional-dependencies]
 dev = [
