@@ -83,11 +83,6 @@ def fitSimData_1(raw_data, **kwargs):
             bundle_manifest_path (str or None) - path to ecoli-sources bundle
                     manifest TSV. If None, defaults to ecoli_sources.BUNDLE_PATH
                     (the reference bundle shipped with the installed package).
-            rnaseq_manifest_path (str or None) - DEPRECATED. Path to RNA-seq
-                    manifest TSV from the legacy ingestion layer. Removed in a
-                    follow-up commit; use bundle_manifest_path instead.
-            rnaseq_basal_dataset_id (str or None) - DEPRECATED. dataset_id from
-                    legacy manifest. Removed in a follow-up commit.
             basal_expression_condition (str) - modeled condition name for
                     the baseline growth state (default: "M9 Glucose minus AAs",
                     defined in configs/default.json)
@@ -204,8 +199,6 @@ def initialize(sim_data, cell_specs, raw_data=None, **kwargs):
         raw_data=raw_data,
         basal_expression_condition=kwargs.get("basal_expression_condition"),
         bundle_manifest_path=kwargs.get("bundle_manifest_path"),
-        rnaseq_manifest_path=kwargs.get("rnaseq_manifest_path"),
-        rnaseq_basal_dataset_id=kwargs.get("rnaseq_basal_dataset_id"),
         rnaseq_fill_missing_genes_from_ref=kwargs.get(
             "rnaseq_fill_missing_genes_from_ref", True
         ),

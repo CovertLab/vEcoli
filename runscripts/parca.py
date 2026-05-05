@@ -64,8 +64,6 @@ def run_parca(config):
         disable_rnapoly_capacity_fitting=(not config["rnapoly_fitting"]),
         cache_dir=config["cache_dir"],
         bundle_manifest_path=config["bundle_manifest_path"],
-        rnaseq_manifest_path=config["rnaseq_manifest_path"],
-        rnaseq_basal_dataset_id=config["rnaseq_basal_dataset_id"],
         basal_expression_condition=config["basal_expression_condition"],
         rnaseq_fill_missing_genes_from_ref=config["rnaseq_fill_missing_genes_from_ref"],
     )
@@ -194,20 +192,6 @@ def main():
         " (canonical_key -> source_path). Defaults to the reference"
         " bundle shipped in the installed ecoli-sources package"
         " (ecoli_sources.BUNDLE_PATH).",
-    )
-    parser.add_argument(
-        "--rnaseq-manifest-path",
-        type=str,
-        help="DEPRECATED. Path to RNA-seq manifest TSV from the legacy"
-        " ingestion layer. Use --bundle-manifest-path with a bundle"
-        " whose rnaseq_experimental_tpms key points at the desired"
-        " dataset instead. Removed in a follow-up commit.",
-    )
-    parser.add_argument(
-        "--rnaseq-basal-dataset-id",
-        type=str,
-        help="dataset_id from manifest to use as basal transcriptome."
-        " Required if --rnaseq-manifest-path is set.",
     )
     parser.add_argument(
         "--basal-expression-condition",
