@@ -107,18 +107,19 @@ Configuration options for the ParCa are all located in a dictionary under the
   for transcription.
 - ``variable_elongation_translation``: If True, enable variable elongation
   for translation.
-- ``rnaseq_manifest_path``: Path to an RNA-seq manifest TSV file listing available
-  datasets. If null (default), ParCa uses the legacy ``raw_data.rna_seq_data`` tables.
-  See ``experimental_data/rnaseq/manifest.tsv`` for the expected format.
-- ``rnaseq_basal_dataset_id``: The ``dataset_id`` from the manifest to use as the
-  basal transcriptome. Required if ``rnaseq_manifest_path`` is set.
-- ``basal_expression_condition``: When using the legacy code path
-  (``rnaseq_manifest_path`` is null), this must match a column name in the reference
-  RNA-seq tables under ``reconstruction/ecoli/flat/rna_seq_data/`` (e.g.
-  ``"M9 Glucose minus AAs"``, ``"M9 Glucose plus AAs"``). When using the
-  manifest-based path, it is only used to fill missing genes from the reference table
-  (when ``rnaseq_fill_missing_genes_from_ref`` is true). Default is
-  ``"M9 Glucose minus AAs"``.
+- ``bundle_manifest_path``: Path to an ``ecoli-sources`` data bundle
+  manifest TSV (``canonical_key`` → ``source_path``). If null (default),
+  ParCa resolves the bundle to ``ecoli_sources.BUNDLE_PATH`` — the
+  reference bundle shipped with the installed ``ecoli-sources`` package.
+  Set this to point ParCa at a custom or variant bundle. See
+  :doc:`data_ingestion` for the consumer-side data ingestion model.
+- ``basal_expression_condition``: Modeled condition name for the
+  baseline growth state (default: ``"M9 Glucose minus AAs"``). Used to
+  fill missing genes from the basal RNA-seq table when
+  ``rnaseq_fill_missing_genes_from_ref`` is true.
+- ``rnaseq_fill_missing_genes_from_ref``: If true, genes present in the
+  basal RNA-seq table but missing from the experimental table are
+  cross-filled from the basal. Default: true.
 
 .. warning::
   **Omit from workflow configs:** ``parca_options --> outdir``

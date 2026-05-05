@@ -1,210 +1,80 @@
-=========================
-Experimental Data Ingestion
-=========================
+==========================
+Data Ingestion (Bundles)
+==========================
 
-This document describes how to provide custom experimental data to the model,
-allowing users to substitute their own measurements for the reference data
-shipped with the repository.
+vEcoli's data ingestion layer reads experimental and reference inputs from
+an external **data bundle** — a curated package of canonical *E. coli*
+datasets shipped by `vivarium-collective/ecoli-sources <https://github.com/vivarium-collective/ecoli-sources>`_.
+ParCa, the parameter calculator, resolves every flat-file input through
+this bundle, so substituting a different dataset (different RNA-seq
+condition, perturbed metabolite pool sizes, alternative kinetic
+parameters, etc.) is done by pointing ParCa at a different bundle —
+not by modifying files inside vEcoli.
+
+This page describes the consumer side of that contract: how vEcoli
+loads bundle data, what configuration controls the choice of bundle,
+and how to author a custom bundle.
 
 --------
 Overview
 --------
 
-The vEcoli model ships with curated reference data in ``reconstruction/ecoli/flat/``.
-This data was compiled from public databases and literature and represents a
-"default" *E. coli* K-12 MG1655 grown in M9 minimal medium with glucose.
+The system has two repositories with complementary roles:
 
-In many cases, users want to parameterize the model with their own experimental
-measurements—for example, RNA-seq data from a different strain, growth condition,
-or laboratory. The **experimental data ingestion** system provides a structured
-way to do this without modifying the core reference files.
+============================  ==========================================================
+Repository                    Role
+============================  ==========================================================
+``vEcoli`` (this repo)        **Consumer.** Declares which canonical inputs the model
+                              needs; resolves them at ParCa time via ``SourceBundle``.
+``ecoli-sources``             **Supplier.** Hosts the data files, the bundle manifest
+                              that maps canonical keys to source paths, and the
+                              Pandera schemas that validate each file's content.
+============================  ==========================================================
 
-Philosophy
-==========
+A **bundle** is a TSV manifest of the form::
 
-The ingestion system follows these principles:
-
-1. **Like-for-like substitution**: Custom data must match the format and semantics
-   of the reference data it replaces. For RNA-seq, this means gene-level TPM values
-   that can be mapped to the model's gene set.
-
-2. **Schema validation**: All ingested data is validated against Pandera schemas
-   (see :py:mod:`wholecell.io.schemas`) to catch formatting errors early.
-
-3. **Manifest-based organization**: Datasets are registered in manifest files that
-   provide metadata (source, strain, condition) alongside file paths. This keeps
-   the data self-documenting.
-
-4. **Config-driven selection**: Users specify which dataset to use via configuration
-   options, making it easy to switch between datasets without code changes.
-
-Currently Supported Data Types
-==============================
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 40 40
-
-   * - Data Type
-     - Description
-     - Status
-   * - RNA-seq (transcriptome)
-     - Gene-level TPM expression values
-     - ✓ Supported
-   * - Proteomics
-     - Protein abundance measurements
-     - Planned, near term
-   * - Metabolomics
-     - Metabolite concentrations
-     - Under consideration
-   * - Metabolic fluxes
-     - Flux values
-     - Under consideration
-   * - Growth physiology
-     - Growth rates, cell size, etc.
-     - Under consideration
-
-------
-RNA-seq
-------
-
-RNA-seq data provides gene expression levels used by the ParCa (parameter calculator)
-to set basal transcription rates. By default, ParCa uses expression data from the
-reference files. With the ingestion system, you can substitute your own RNA-seq
-measurements.
-
-File Organization
-=================
-
-RNA-seq data is organized as:
-
-.. code-block:: text
-
-    reconstruction/
-    └── ecoli/
-        └── experimental_data/
-            └── rnaseq/
-                ├── manifest.tsv        # Lists all available datasets
-                ├── ref_0001.tsv       # TPM table for dataset ref_0001
-                ├── ref_0002.tsv       # TPM table for dataset ref_0002
-                ├── gbw_0001.tsv       # TPM table for dataset gbw_0001
-                └── ...
-
-The ``manifest.tsv`` file is the entry point—it lists all available datasets and
-their metadata. Each dataset has a corresponding TPM table file.
-
-Manifest Schema
-===============
-
-The manifest is a tab-separated file validated against
-:py:obj:`~wholecell.io.schemas.rnaseq.RnaseqSamplesManifestSchema`.
-
-**Required columns:**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 15 60
-
-   * - Column
-     - Type
-     - Description
-   * - ``dataset_id``
-     - string
-     - Unique identifier for this dataset (e.g., ``gbw_0001``). Referenced in config.
-   * - ``dataset_description``
-     - string
-     - Human-readable description of the dataset.
-   * - ``file_path``
-     - string
-     - Path to the TPM table file (relative to manifest or absolute).
-   * - ``data_source``
-     - string
-     - Origin of the data (e.g., ``Ginkgo Bioworks``, ``PNNL``).
-
-**Optional columns:**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 15 60
-
-   * - Column
-     - Type
-     - Description
-   * - ``data_source_experiment_id``
-     - string
-     - Experiment identifier from the data source.
-   * - ``data_source_date``
-     - string
-     - Date of the experiment (e.g., ``2026-01-15``).
-   * - ``strain``
-     - string
-     - Strain descriptor (e.g., ``MG1655 rph+``).
-   * - ``condition``
-     - string
-     - Cultivation condition (e.g., ``M9, Glucose, Aerobic, 37C``).
-
-**Example manifest:**
-
-.. code-block:: text
-
-    dataset_id	dataset_description	file_path	data_source	strain	condition
-    ref_0001	Reference M9 Glucose minus AAs	ref_0001.tsv	reference	MG1655	M9, Glucose, Aerobic
-    gbw_0001	MG1655 rph+ in Modified M9	gbw_0001.tsv	Ginkgo Bioworks	MG1655 rph+	Modified_M9_N_Fe
-
-TPM Table Schema
-================
-
-Each TPM table is a tab-separated file validated against
-:py:obj:`~wholecell.io.schemas.rnaseq.RnaseqTpmTableSchema`.
-
-**Required columns:**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 15 65
-
-   * - Column
-     - Type
-     - Description
-   * - ``gene_id``
-     - string
-     - Gene identifier matching the model's gene set (EcoCyc IDs, e.g., ``EG10001``).
-   * - ``tpm_mean``
-     - float
-     - Mean TPM (transcripts per million) for this gene. Must be ≥ 0.
-
-**Optional columns:**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 15 65
-
-   * - Column
-     - Type
-     - Description
-   * - ``tpm_std``
-     - float
-     - Standard deviation of TPM across replicates. Must be ≥ 0.
-
-**Example TPM table:**
-
-.. code-block:: text
-
-    gene_id	tpm_mean	tpm_std
-    EG10001	1234.56	45.2
-    EG10002	567.89	23.1
-    EG10003	0.0	0.0
+    canonical_key             source_path                                      description    schema_name
+    rnaseq_basal_tpms         rnaseq_experimental/vecoli_m9_glucose_minus_aas.tsv  Basal TPMs   RnaseqTpmTableSchema
+    rnaseq_experimental_tpms  rnaseq_experimental/vecoli_m9_glucose_minus_aas.tsv  Expt TPMs    RnaseqTpmTableSchema
+    genes                     flat/genes.tsv                                       ParCa input  ...
+    metabolic_reactions       flat/metabolic_reactions.tsv                         ParCa input  ...
     ...
 
-.. note::
-   Gene IDs must match the EcoCyc identifiers used by the model. Genes not found
-   in the model's gene set will be ignored with a warning.
+Each row binds a **canonical key** (an addressable role in the model,
+e.g. ``rnaseq_basal_tpms``, ``metabolic_reactions``, ``genes``) to a
+specific file in the bundle's data tree. The set of required canonical
+keys is enforced by ``ReferenceBundleSchema`` in ecoli-sources; any
+loadable bundle must include all of them.
 
-Configuration
-=============
+vEcoli ships with no per-file plumbing for these inputs. ``KnowledgeBaseEcoli``
+asks the bundle for each canonical key it needs; the bundle resolves the
+key to an absolute path on disk; the file is loaded and validated.
 
-To use custom RNA-seq data, add the following options under ``parca_options``
-in your configuration JSON:
+-----------------
+Default behavior
+-----------------
+
+When ParCa is run with no bundle override, the default reference bundle
+shipped with the installed ``ecoli-sources`` package is used. This
+bundle reproduces the exact set of inputs used by the legacy
+``reconstruction/ecoli/flat/`` directory tree, so the default behavior
+is identical to the pre-migration model.
+
+The default is resolved via:
+
+.. code-block:: python
+
+    from ecoli_sources import BUNDLE_PATH  # absolute path to reference_bundle.tsv
+
+``ecoli-sources`` is pinned in this repo's ``pyproject.toml`` by commit
+SHA; bumping the pin is a visible PR step.
+
+------------------
+ParCa configuration
+------------------
+
+To use a custom bundle, set ``bundle_manifest_path`` under
+``parca_options`` in your config JSON:
 
 .. list-table::
    :header-rows: 1
@@ -213,127 +83,156 @@ in your configuration JSON:
    * - Option
      - Type
      - Description
-   * - ``rnaseq_manifest_path``
-     - string
-     - Path to the manifest TSV file.
-   * - ``rnaseq_basal_dataset_id``
-     - string
-     - The ``dataset_id`` to use as the basal transcriptome.
+   * - ``bundle_manifest_path``
+     - string or null
+     - Path to a bundle manifest TSV (canonical_key → source_path).
+       If null, defaults to ``ecoli_sources.BUNDLE_PATH`` (the reference
+       bundle shipped with the installed package).
    * - ``basal_expression_condition``
      - string
-     - Modeled condition name (default: ``"M9 Glucose minus AAs"``).
+     - Modeled condition name for the baseline growth state.
+       Default: ``"M9 Glucose minus AAs"``.
+   * - ``rnaseq_fill_missing_genes_from_ref``
+     - bool
+     - If true, genes present in the basal RNA-seq table but missing
+       from the experimental table are cross-filled. Default: true.
 
-**Example configuration:**
+**Example:**
 
 .. code-block:: json
 
     {
         "parca_options": {
             "cpus": 4,
-            "outdir": "out/custom_rnaseq",
-            "rnaseq_manifest_path": "reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv",
-            "rnaseq_basal_dataset_id": "gbw_0001",
+            "outdir": "out/custom_bundle",
+            "bundle_manifest_path": "/path/to/my_variant/reference_bundle.tsv",
             "basal_expression_condition": "M9 Glucose minus AAs"
         }
     }
 
-**Default behavior (backward compatible):**
+The legacy ``rnaseq_manifest_path`` and ``rnaseq_basal_dataset_id``
+config keys have been removed; the bundle's
+``rnaseq_basal_tpms`` / ``rnaseq_experimental_tpms`` canonical keys
+fully subsume what those flags used to address.
 
-If ``rnaseq_manifest_path`` is ``null`` or omitted, ParCa uses the legacy
-reference data from ``reconstruction/ecoli/flat/rna_seq_data/``.
+----------------
+Validation
+----------------
 
-Validation Errors
-=================
+Bundles are validated at load time in three layers:
 
-The ingestion system validates data early and provides clear error messages:
+1. **Manifest schema** (``ReferenceBundleSchema``) — checks the TSV's
+   columns and types, and asserts that every required canonical key is
+   present.
+2. **Path resolution** — every ``source_path`` must resolve to an
+   existing file under the bundle's data root.
+3. **Content schemas** — for rows with ``schema_name`` set, the
+   referenced Pandera schema is applied to the file's contents.
 
-.. list-table::
-   :header-rows: 1
-   :widths: 40 60
+Layers 1 and 2 are eager (run at ``SourceBundle.__init__``); layer 3
+runs in ``ecoli-sources``' CI via ``scripts/validate_all.py`` and on
+demand via ``scripts/validate_bundle.py`` against any bundle path.
 
-   * - Error
-     - Cause
-   * - ``ValueError: rnaseq_manifest_path is set but rnaseq_basal_dataset_id is None``
-     - You specified a manifest but forgot to specify which dataset to use.
-   * - ``FileNotFoundError: ...``
-     - The manifest file or a TPM table file doesn't exist.
-   * - ``KeyError: Dataset_id 'xyz' not found in manifest``
-     - The ``dataset_id`` you specified isn't in the manifest.
-   * - ``SchemaError: ...``
-     - A file doesn't match the expected schema (missing columns, wrong types, etc.).
+A malformed or incomplete bundle fails at ParCa load time with an error
+message naming the missing or invalid key, rather than at the first
+deep ``bundle.get(...)`` call inside fitting.
 
------------
+--------------
 Python API
------------
+--------------
 
-For programmatic access, use the functions in :py:mod:`wholecell.io.ingestion`:
+The resolver is a small class in :py:mod:`wholecell.io.sources`:
 
 .. code-block:: python
 
-    from wholecell.io.ingestion import (
-        ingest_rnaseq_manifest,
-        ingest_rnaseq_tpm_table,
-        ingest_transcriptome,
-    )
+    from wholecell.io.sources import SourceBundle
 
-    # Load and validate a manifest
-    manifest = ingest_rnaseq_manifest("reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv")
+    bundle = SourceBundle()  # defaults to ecoli_sources.BUNDLE_PATH
+    # or: SourceBundle(manifest_path="/path/to/my_variant/reference_bundle.tsv")
 
-    # Load a single TPM table
-    tpm_df = ingest_rnaseq_tpm_table("reconstruction/ecoli/experimental_data/rnaseq/gbw_0001.tsv")
+    genes_path = bundle.get("genes")            # absolute Path
+    has_rnaseq = bundle.has("rnaseq_basal_tpms")
 
-    # Convenience: load a dataset by ID (validates manifest + TPM table)
-    tpm_df, metadata = ingest_transcriptome(
-        "reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv",
-        dataset_id="gbw_0001"
-    )
+The bundle is loaded once at the start of ParCa and queried many times.
+``KnowledgeBaseEcoli`` excludes the live bundle handle from its pickled
+state (``__getstate__``) so that ``rawData.cPickle`` does not bake
+absolute machine paths into its contents.
 
--------------------
-Adding Your Own Data
--------------------
+--------------------------
+Currently supported inputs
+--------------------------
 
-To add your own RNA-seq data:
+The default bundle ships 135 canonical keys covering the full ParCa
+input surface. By data category:
 
-1. **Prepare your TPM table** as a tab-separated file with ``gene_id`` and ``tpm_mean``
-   columns. Ensure gene IDs are EcoCyc identifiers.
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
 
-2. **Place the file** in ``reconstruction/ecoli/experimental_data/rnaseq/`` (or another location).
+   * - Category
+     - Notes
+   * - Transcriptomics (RNA-seq)
+     - ``rnaseq_basal_tpms``, ``rnaseq_experimental_tpms``. Per-condition
+       TPM tables; cross-fill of missing genes from the basal table is
+       optional.
+   * - Translation efficiencies
+     - Translation-rate parameters per gene (used as the ingestion path
+       for protein abundance via the protein/RNA ratio).
+   * - Metabolite pool sizes
+     - ``metabolite_concentrations`` (absolute, multi-source consensus)
+       and ``relative_metabolite_concentrations`` (per-condition fold
+       changes); plus ``linked_metabolites`` for paired-ratio
+       constraints.
+   * - Amino-acid uptake fluxes
+     - ``amino_acid_uptake_rates`` with LB/UB; literature-sourced.
+   * - Secretion bounds
+     - ``secretions`` — fixed-bound style for ATP/water/CO₂/etc.
+   * - Media composition
+     - ``condition__media__*`` — sets the *availability* side of
+       exchange (concentration in mmol/L per molecule).
+   * - Growth-rate-dependent parameters
+     - ``growth_rate_dependent_parameters`` — RNAP/ribosome elongation,
+       mass fractions, ppGpp concentration, etc., keyed by doubling
+       time.
+   * - Reaction networks
+     - ``metabolic_reactions``, ``equilibrium_reactions``,
+       ``complexation_reactions``, plus ``*_added`` / ``*_modified`` /
+       ``*_removed`` deltas.
+   * - Regulation
+     - ``fold_changes``, ``ppgpp_regulation``, ``protein_half_lives_*``,
+       ``rna_half_lives``, etc.
 
-3. **Add an entry to the manifest** with a unique ``dataset_id``, description,
-   and the path to your file.
+Macroscopic exchange fluxes (e.g. glucose qS, O₂ qO₂, organic-acid
+qP) and intracellular flux distributions (13C MFA-style) do not yet
+have a native canonical-key slot; introducing one is a future-work
+item tracked on the ``ecoli-sources`` side.
 
-4. **Update your config** to point to the manifest and specify your ``dataset_id``.
+-----------------
+Authoring data
+-----------------
 
-5. **Run ParCa** to generate new simulation parameters using your data.
+Adding a new dataset, schema, or canonical key is done in
+``ecoli-sources``, not vEcoli. See
+`ecoli-sources/BUNDLES.md <https://github.com/vivarium-collective/ecoli-sources/blob/main/BUNDLES.md>`_
+for the bundle authoring guide.
 
-**Example workflow:**
+To use new data once it lives in ecoli-sources, either:
 
-.. code-block:: bash
-
-    # 1. Add your TPM file
-    cp my_experiment_tpm.tsv reconstruction/ecoli/experimental_data/rnaseq/my_exp_001.tsv
-
-    # 2. Edit manifest.tsv to add a row for my_exp_001
-
-    # 3. Create a config file
-    cat > configs/my_experiment.json << 'EOF'
-    {
-        "parca_options": {
-            "cpus": 4,
-            "outdir": "out/my_experiment",
-            "rnaseq_manifest_path": "reconstruction/ecoli/experimental_data/rnaseq/manifest.tsv",
-            "rnaseq_basal_dataset_id": "my_exp_001"
-        }
-    }
-    EOF
-
-    # 4. Run ParCa
-    python runscripts/parca.py --config configs/my_experiment.json
+* **Bump the pinned commit** in ``pyproject.toml`` to a new
+  ``ecoli-sources`` revision that includes the data, and rerun ParCa
+  with the default bundle; or
+* Create a **variant bundle** — a separate ``reference_bundle.tsv``
+  with rows pointing at your custom files — and pass its path via
+  ``--bundle-manifest-path``. The required-canonical-keys contract
+  must still be satisfied; you can override individual rows or add
+  new ones.
 
 ----------
 References
 ----------
 
-- Schemas: :py:mod:`wholecell.io.schemas.rnaseq`
-- Ingestion functions: :py:mod:`wholecell.io.ingestion`
-- ParCa configuration: :ref:`/workflows.rst`
+- Resolver module: :py:mod:`wholecell.io.sources`
+- ParCa configuration overview: :doc:`workflows`
+- Source-of-truth repo: `vivarium-collective/ecoli-sources <https://github.com/vivarium-collective/ecoli-sources>`_
+- Bundle schema (consumer-side validation): ``ReferenceBundleSchema``
+  in ``ecoli-sources/schemas/reference_bundle.py``
