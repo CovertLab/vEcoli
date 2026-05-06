@@ -32,7 +32,7 @@
     "adjust_timestep_for_charging": false,
     "disable_ppgpp_elongation_inhibition": true,
     "suffix_time": true,
-    "generations": 8,
+    "generations": 10,
     "n_init_sims": 1,
     "single_daughters": true,
     "emitter": "parquet",
@@ -41,7 +41,7 @@
     },
     "variants": {
         "homeostatic_target_scale": {
-            "scale": {"value": [1.0, 0.995, 0.99, 0.985]}
+            "scale": {"value": [1.0, 0.95, 0.9, 0.8, 0.5]}
         }
     },
     "analysis_options": {
