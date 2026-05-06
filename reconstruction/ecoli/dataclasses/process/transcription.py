@@ -453,9 +453,11 @@ class Transcription(object):
 
         max_cistron_id_length = max(len(rna["id"]) for rna in all_cistrons)
         max_gene_id_length = max(len(id_) for id_ in gene_id)
-        max_common_name_length = max(
-            len(rna["common_name"]) for rna in all_cistrons
-        )
+        # ``common_name`` is null in rnas.tsv for a small number of cistrons
+        # (e.g. unnamed mRNAs that survive the EXCLUDED_RNA_TYPES filter).
+        # Coerce None -> "" so it round-trips through the unicode column.
+        common_names = [(rna["common_name"] or "") for rna in all_cistrons]
+        max_common_name_length = max(len(name) for name in common_names) or 1
 
         cistron_data = np.zeros(
             n_cistrons,
@@ -484,7 +486,7 @@ class Transcription(object):
 
         cistron_data["id"] = [rna["id"] for rna in all_cistrons]
         cistron_data["gene_id"] = gene_id
-        cistron_data["common_name"] = [rna["common_name"] for rna in all_cistrons]
+        cistron_data["common_name"] = common_names
         cistron_data["length"] = cistron_lengths
         cistron_data["replication_coordinate"] = replication_coordinate
         cistron_data["is_forward"] = is_forward
