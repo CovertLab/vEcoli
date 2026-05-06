@@ -453,12 +453,16 @@ class Transcription(object):
 
         max_cistron_id_length = max(len(rna["id"]) for rna in all_cistrons)
         max_gene_id_length = max(len(id_) for id_ in gene_id)
+        max_common_name_length = max(
+            len(rna["common_name"]) for rna in all_cistrons
+        )
 
         cistron_data = np.zeros(
             n_cistrons,
             dtype=[
                 ("id", "U{}".format(max_cistron_id_length)),
                 ("gene_id", "U{}".format(max_gene_id_length)),
+                ("common_name", "U{}".format(max_common_name_length)),
                 ("length", "i8"),
                 ("replication_coordinate", "i8"),
                 ("is_forward", "bool"),
@@ -480,6 +484,7 @@ class Transcription(object):
 
         cistron_data["id"] = [rna["id"] for rna in all_cistrons]
         cistron_data["gene_id"] = gene_id
+        cistron_data["common_name"] = [rna["common_name"] for rna in all_cistrons]
         cistron_data["length"] = cistron_lengths
         cistron_data["replication_coordinate"] = replication_coordinate
         cistron_data["is_forward"] = is_forward
@@ -500,6 +505,7 @@ class Transcription(object):
         cistron_field_units = {
             "id": None,
             "gene_id": None,
+            "common_name": None,
             "length": units.nt,
             "replication_coordinate": None,
             "is_forward": None,
@@ -519,6 +525,12 @@ class Transcription(object):
         }
 
         self.cistron_data = UnitStructArray(cistron_data, cistron_field_units)
+        # Map cistron_id -> list of synonyms (gene names, locus tags, etc.).
+        # Variable-length per row, so kept as a dict alongside the structured
+        # array rather than as a fixed-width column.
+        self.cistron_id_to_synonyms: dict[str, list[str]] = {
+            rna["id"]: list(rna["synonyms"]) for rna in all_cistrons
+        }
         self._cistron_id_to_index = {
             cistron_id: i for (i, cistron_id) in enumerate(self.cistron_data["id"])
         }

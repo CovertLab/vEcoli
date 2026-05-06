@@ -21,7 +21,6 @@ import pandas as pd
 import pickle
 import json
 import numpy as np
-from ast import literal_eval
 
 
 def main():
@@ -36,17 +35,27 @@ def main():
     # Load complexation and TU index data from sim_data
     sim_data = pickle.load(open(args.sim_data_path, "rb"))
     bulk_names = sim_data.internal_state.bulk_molecules.bulk_data["id"].tolist()
+    cistron_data = sim_data.process.transcription.cistron_data
     cistron_id_to_index = {
-        cistron: idx
-        for idx, cistron in enumerate(sim_data.process.transcription.cistron_data["id"])
+        cistron: idx for idx, cistron in enumerate(cistron_data["id"])
     }
     cistron_tu_mapping = sim_data.process.transcription.cistron_tu_mapping_matrix
     comp_stoich = sim_data.process.complexation.stoich_matrix().astype(np.int64).T
     comp_molecules = [str(i) for i in sim_data.process.complexation.molecule_names]
 
-    rnas = pd.read_table("reconstruction/ecoli/flat/rnas.tsv", comment="#")
-    rnas["synonyms"] = rnas["synonyms"].apply(literal_eval)
-    rnas = rnas.explode("synonyms")
+    # Build a synonym -> cistron-row DataFrame from sim_data: explodes the
+    # cistron_id_to_synonyms mapping into one row per (cistron, synonym) pair,
+    # and joins back to the cistron's id and common_name.
+    cistron_id_to_common_name = dict(
+        zip(cistron_data["id"], cistron_data["common_name"])
+    )
+    rnas = pd.DataFrame(
+        [
+            {"id": cistron_id, "common_name": cistron_id_to_common_name[cistron_id], "synonyms": syn}
+            for cistron_id, syns in sim_data.process.transcription.cistron_id_to_synonyms.items()
+            for syn in syns
+        ]
+    )
 
     # Use fold change from exposure to 1.5 mg/L tetracycline
     tet_FC = pd.read_table("data/marA_binding/tet_FC.tsv")
