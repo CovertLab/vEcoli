@@ -357,26 +357,27 @@ class KnowledgeBaseEcoli(object):
 
         # Load raw data from TSV files. Each filename string from the
         # historical lists is converted to a canonical key and resolved
-        # through the bundle. ``self._flat_root`` is passed to
-        # ``_load_tsv`` / ``_load_parameters`` only so that those methods'
-        # existing relative-path -> attr-tree-walking logic continues to
-        # produce ``self.<subdir>.<file>`` placement that downstream code
-        # depends on.
+        # through the bundle. The historical filename is passed as the
+        # *logical* attr-tree-walking path (so e.g.
+        # ``mass_fractions/glycogen_fractions.tsv`` lands at
+        # ``self.mass_fractions.glycogen_fractions`` regardless of where
+        # the bundle physically resolved the file); the bundle-resolved
+        # absolute path is passed separately for I/O.
         for filename in self.list_of_dict_filenames:
             self._load_tsv(
-                self._flat_root,
+                filename,
                 str(self._bundle.get(_filename_to_canonical_key(filename))),
             )
 
         for filename in self.list_of_parameter_filenames:
             self._load_parameters(
-                self._flat_root,
+                filename,
                 str(self._bundle.get(_filename_to_canonical_key(filename))),
             )
 
         for filename in self.list_of_csv_filenames:
             self._load_csv(
-                self._flat_root,
+                filename,
                 str(self._bundle.get(_filename_to_canonical_key(filename))),
             )
 
@@ -419,16 +420,26 @@ class KnowledgeBaseEcoli(object):
         state.pop("_flat_root", None)
         return state
 
-    def _load_tsv(self, dir_name, file_name):
+    def _load_tsv(self, logical_path, file_path):
+        """Load a TSV file from ``file_path`` and attach it to the
+        attribute tree at ``self.<subdir>.<basename>`` per the *logical*
+        relative path (e.g. ``mass_fractions/glycogen_fractions.tsv`` ->
+        ``self.mass_fractions.glycogen_fractions``).
+
+        The logical path is decoupled from the I/O path so that variant
+        bundles can resolve canonical keys to files anywhere on disk
+        without breaking the attribute-tree placement that downstream
+        code depends on.
+        """
         path = self
-        for sub_path in file_name[len(dir_name) + 1 :].split(os.path.sep)[:-1]:
+        for sub_path in logical_path.split(os.path.sep)[:-1]:
             if not hasattr(path, sub_path):
                 setattr(path, sub_path, DataStore())
             path = getattr(path, sub_path)
-        attr_name = file_name.split(os.path.sep)[-1].split(".")[0]
+        attr_name = os.path.basename(logical_path).split(".")[0]
         setattr(path, attr_name, [])
 
-        rows = read_tsv(file_name)
+        rows = read_tsv(file_path)
         setattr(path, attr_name, rows)
 
     def _load_sequence(self, file_path):
@@ -438,33 +449,40 @@ class KnowledgeBaseEcoli(object):
             for record in SeqIO.parse(handle, "fasta"):
                 return record.seq
 
-    def _load_csv(self, dir_name, file_name):
+    def _load_csv(self, logical_path, file_path):
         """Load a comma-separated reference file as a list of dicts and
-        attach it to the ``self.<subdir>.<basename>`` attribute tree, mirroring
-        the convention of ``_load_tsv``. Used for static reference tables that
-        are not consumed by ParCa fitting (e.g. plotting baselines)."""
+        attach it to the ``self.<subdir>.<basename>`` attribute tree per
+        ``logical_path``, mirroring the convention of ``_load_tsv``. Used
+        for static reference tables that are not consumed by ParCa
+        fitting (e.g. plotting baselines)."""
         path = self
-        for sub_path in file_name[len(dir_name) + 1 :].split(os.path.sep)[:-1]:
+        for sub_path in logical_path.split(os.path.sep)[:-1]:
             if not hasattr(path, sub_path):
                 setattr(path, sub_path, DataStore())
             path = getattr(path, sub_path)
-        attr_name = file_name.split(os.path.sep)[-1].split(".")[0]
+        attr_name = os.path.basename(logical_path).split(".")[0]
 
-        with io.open(file_name, mode="r", encoding="utf-8", newline="") as fh:
+        with io.open(file_path, mode="r", encoding="utf-8", newline="") as fh:
             reader = csv.DictReader(filter(lambda line: not comment_line(line), fh))
             rows = list(reader)
         setattr(path, attr_name, rows)
 
-    def _load_parameters(self, dir_name, file_name):
+    def _load_parameters(self, logical_path, file_path):
+        """Like ``_load_tsv`` but parses each row as a typed parameter
+        (``name``, ``value``, ``units``) and attaches the result as a
+        single dict attribute. ``logical_path`` is the historical
+        relative-path string used for attribute-tree walking; ``file_path``
+        is the bundle-resolved absolute path used for I/O.
+        """
         path = self
-        for sub_path in file_name[len(dir_name) + 1 :].split(os.path.sep)[:-1]:
+        for sub_path in logical_path.split(os.path.sep)[:-1]:
             if not hasattr(path, sub_path):
                 setattr(path, sub_path, DataStore())
             path = getattr(path, sub_path)
-        attr_name = file_name.split(os.path.sep)[-1].split(".")[0]
+        attr_name = os.path.basename(logical_path).split(".")[0]
         param_dict = {}
 
-        with io.open(file_name, "rb") as csvfile:
+        with io.open(file_path, "rb") as csvfile:
             reader = tsv.dict_reader(csvfile)
 
             for row in reader:
