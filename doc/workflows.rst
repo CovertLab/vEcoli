@@ -52,17 +52,20 @@ ParCa
 -----
 
 The parameter calculator (or ParCa) is a Python script that performs certain computations
-on raw, curated experimental data (located in the ``reconstruction/ecoli/flat`` folder)
-to generate the parameters expected by processes in our model. It packages these parameters
-in a pickled :py:class:`~reconstruction.ecoli.simulation_data.SimulationDataEcoli` object
-whose path must be given via the ``sim_data_path`` configuration option to all runscripts
-in ``runscripts/`` and to experiment modules in ``ecoli/experiments`` (default used by
+on raw, curated experimental data (sourced from the ``ecoli-sources`` reference bundle —
+see :doc:`data_ingestion`) to generate the parameters expected by processes in our model.
+It packages these parameters in a pickled
+:py:class:`~reconstruction.ecoli.simulation_data.SimulationDataEcoli` object whose path
+must be given via the ``sim_data_path`` configuration option to all runscripts in
+``runscripts/`` and to experiment modules in ``ecoli/experiments`` (default used by
 :py:mod:`runscripts.workflow` is :py:mod:`~ecoli.experiments.ecoli_master_sim`).
 
-The code responsible for loading data from the raw flat files is contained in
-:py:class:`~reconstruction.ecoli.knowledge_base_raw.KnowledgeBaseEcoli`. The actual logic
-of the ParCa is mostly contained within a single file: :py:mod:`~reconstruction.ecoli.fit_sim_data_1`.
-The main interface for running the ParCa is :py:mod:`runscripts.parca`.
+The code responsible for loading data from the bundle is contained in
+:py:class:`~reconstruction.ecoli.knowledge_base_raw.KnowledgeBaseEcoli`, which resolves
+each canonical key through :py:class:`~wholecell.io.sources.SourceBundle`. The actual
+logic of the ParCa is mostly contained within a single file:
+:py:mod:`~reconstruction.ecoli.fit_sim_data_1`. The main interface for running the
+ParCa is :py:mod:`runscripts.parca`.
 
 Configuration
 =============
@@ -80,9 +83,10 @@ Configuration options for the ParCa are all located in a dictionary under the
 - ``stable_rrna``: If True, set degradation rates of mature rRNAs
   to the values calculated from the half-life in sim_data.constants. If False,
   set degradation rates of mature rRNAs to the average reported degradation rates of mRNAs.
-- ``new_genes``: String folder name in ``reconstruction/ecoli/flat/new_gene_data``
-  containing necessary flat files to add new gene(s) to the model (see templates in
-  ``reconstruction/ecoli/flat/new_gene_data/template``). By default, ``off`` does
+- ``new_genes``: String folder name under ``new_gene_data/`` in the bundle's data tree
+  (i.e. ``ecoli_sources/data/flat/new_gene_data/<name>/`` in the installed
+  ``ecoli-sources`` package) containing necessary flat files to add new gene(s) to
+  the model (see templates in the ``template`` subdir). By default, ``off`` does
   nothing (no new genes).
 - ``debug_parca``: If True, fit only one arbitrarily-chosen transcription
   factor in order to speed up a debug cycle.
