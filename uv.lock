@@ -808,7 +808,7 @@ wheels = [
 [[package]]
 name = "ecoli-sources"
 version = "0.0.1"
-source = { editable = "../ecoli-sources" }
+source = { git = "ssh://git@github.com/vivarium-collective/ecoli-sources.git?rev=7755e72#7755e72be4b46ccb91f298afef6c8b45163f5d6a" }
 dependencies = [
     { name = "anndata" },
     { name = "jupyter" },
@@ -819,19 +819,6 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "scipy" },
     { name = "seaborn" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "anndata", specifier = ">=0.10" },
-    { name = "jupyter", specifier = ">=1.0" },
-    { name = "matplotlib", specifier = ">=3.8" },
-    { name = "numpy", specifier = ">=2.0" },
-    { name = "pandas", specifier = ">=2.0" },
-    { name = "pandera", specifier = ">=0.19" },
-    { name = "scikit-learn", specifier = ">=1.4" },
-    { name = "scipy", specifier = ">=1.12" },
-    { name = "seaborn", specifier = ">=0.13" },
 ]
 
 [[package]]
@@ -4038,7 +4025,7 @@ requires-dist = [
     { name = "cvxpy" },
     { name = "dill" },
     { name = "duckdb" },
-    { name = "ecoli-sources", editable = "../ecoli-sources" },
+    { name = "ecoli-sources", git = "ssh://git@github.com/vivarium-collective/ecoli-sources.git?rev=7755e72" },
     { name = "ecos" },
     { name = "gcsfs" },
     { name = "gillespy2", specifier = ">=1.8.3" },

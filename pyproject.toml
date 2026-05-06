@@ -60,17 +60,17 @@ dependencies = [
     "arviz>=0.23.0",
     "s3fs>=2025.5.1",
     # Cross-repo data-bundle: ecoli-sources provides the canonical-key
-    # bundle manifest + source files. Local-editable during development;
-    # switch to git+ssh pin-by-commit at PR time. See
-    # SMS/.claude/data-ingestion/bundle-migration-plan.md §5.1.
+    # bundle manifest + source files. Pinned by commit SHA below.
     "ecoli-sources",
 ]
 
 [tool.uv.sources]
-# Local-editable during development; replace with a git+ssh pin-by-commit
-# entry at PR time:
-#   ecoli-sources = { git = "ssh://git@github.com/vivarium-collective/ecoli-sources.git", rev = "<sha>" }
-ecoli-sources = { path = "../ecoli-sources", editable = true }
+# ecoli-sources is pinned by commit SHA on the vivarium-collective fork.
+# Bump this revision when ecoli-sources merges PRs that vEcoli depends on.
+# For local development against an in-progress ecoli-sources checkout,
+# override after ``uv sync`` with:
+#   uv pip install -e /path/to/ecoli-sources
+ecoli-sources = { git = "ssh://git@github.com/vivarium-collective/ecoli-sources.git", rev = "7755e72" }
 
 [project.optional-dependencies]
 dev = [
