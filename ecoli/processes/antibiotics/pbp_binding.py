@@ -341,8 +341,9 @@ class PBPBinding(Step):
 def test_pbp_binding():
     # Create process. ``strand_term_p`` normally flows in via
     # ``LoadSimData.get_pbp_binding_config``; this stand-alone test
-    # bypasses LoadSimData and injects the canonical fitted value directly.
-    params = {"beta_lactam": "ampicillin", "strand_term_p": 0.058}
+    # bypasses LoadSimData and injects the canonical fitted value (from
+    # ParCa over the default reference bundle's strand-length CSV).
+    params = {"beta_lactam": "ampicillin", "strand_term_p": 0.07675577224377576}
     process = PBPBinding(params)
     initial_murein = 450000
     timeline_params = {

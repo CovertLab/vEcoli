@@ -1159,10 +1159,14 @@ class Transcription(object):
         # Reset cistron_expression to new values
         self.cistron_expression["basal"] = cistron_expression / cistron_expression.sum()
 
-        # Keep record of cistrons whose expression was corrected
-        self.cistron_data["uses_corrected_seq_counts"][np.array(corrected_indexes)] = (
-            True
-        )
+        # Keep record of cistrons whose expression was corrected.
+        # ``dtype=int`` is needed because ``np.array([])`` would otherwise
+        # default to float64 (an invalid index dtype) when no cistrons
+        # required correction.
+        if corrected_indexes:
+            self.cistron_data["uses_corrected_seq_counts"][
+                np.array(corrected_indexes, dtype=int)
+            ] = True
 
     def _build_mature_rna_data(self, raw_data, sim_data):
         """
