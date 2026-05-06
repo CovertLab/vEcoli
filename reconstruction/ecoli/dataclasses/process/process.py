@@ -2,6 +2,7 @@
 SimulationData process associated data
 """
 
+from .antibiotics import CellWall
 from .chromosome_structure import ChromosomeStructure
 from .complexation import Complexation
 from .equilibrium import Equilibrium
@@ -14,10 +15,24 @@ from .translation import Translation
 from .two_component_system import TwoComponentSystem
 
 
+class Antibiotics(object):
+    """Reference data for conditional antibiotic-related processes.
+
+    Unlike the other ``Process``-attached namespaces, which back universal
+    whole-cell processes ParCa fits, this namespace carries static
+    reference data that conditional processes (cell wall, PBP binding,
+    etc.) consume at simulation time. ParCa does not fit anything here.
+    """
+
+    def __init__(self, raw_data, sim_data):
+        self.cell_wall = CellWall(raw_data, sim_data)
+
+
 class Process(object):
     """Process"""
 
     def __init__(self, raw_data, sim_data):
+        self.antibiotics = Antibiotics(raw_data, sim_data)
         self.chromosome_structure = ChromosomeStructure(raw_data, sim_data)
         self.complexation = Complexation(raw_data, sim_data)
         self.equilibrium = Equilibrium(raw_data, sim_data)

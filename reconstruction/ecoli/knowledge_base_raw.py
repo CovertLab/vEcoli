@@ -13,13 +13,14 @@ historical format; each is converted to a canonical key
 ``mass_fractions__glycogen_fractions``) before lookup.
 """
 
+import csv
 import io
 import os
 import json
 from typing import List, Dict, Optional
 import warnings
 
-from reconstruction.spreadsheets import read_tsv
+from reconstruction.spreadsheets import comment_line, read_tsv
 from wholecell.io import tsv
 from wholecell.io.sources import SourceBundle
 from wholecell.utils import units  # used by eval()
@@ -161,6 +162,9 @@ LIST_OF_PARAMETER_FILENAMES = [
     "mass_parameters.tsv",
     os.path.join("new_gene_data", "new_gene_baseline_expression_parameters.tsv"),
 ]
+LIST_OF_CSV_FILENAMES = [
+    os.path.join("cell_wall", "murein_strand_length_distribution.csv"),
+]
 
 REMOVED_DATA = {
     "amino_acid_export_kms": "amino_acid_export_kms_removed",
@@ -239,6 +243,7 @@ class KnowledgeBaseEcoli(object):
         # running multiple operon workflows through Fireworks
         self.list_of_dict_filenames: List[str] = LIST_OF_DICT_FILENAMES.copy()
         self.list_of_parameter_filenames: List[str] = LIST_OF_PARAMETER_FILENAMES.copy()
+        self.list_of_csv_filenames: List[str] = LIST_OF_CSV_FILENAMES.copy()
         self.removed_data: Dict[str, str] = REMOVED_DATA.copy()
         self.modified_data: Dict[str, str] = MODIFIED_DATA.copy()
         self.added_data: Dict[str, str] = ADDED_DATA.copy()
@@ -369,6 +374,12 @@ class KnowledgeBaseEcoli(object):
                 str(self._bundle.get(_filename_to_canonical_key(filename))),
             )
 
+        for filename in self.list_of_csv_filenames:
+            self._load_csv(
+                self._flat_root,
+                str(self._bundle.get(_filename_to_canonical_key(filename))),
+            )
+
         self.genome_sequence = self._load_sequence(
             str(self._bundle.get("sequence")),
         )
@@ -426,6 +437,23 @@ class KnowledgeBaseEcoli(object):
         with open(file_path, "r") as handle:
             for record in SeqIO.parse(handle, "fasta"):
                 return record.seq
+
+    def _load_csv(self, dir_name, file_name):
+        """Load a comma-separated reference file as a list of dicts and
+        attach it to the ``self.<subdir>.<basename>`` attribute tree, mirroring
+        the convention of ``_load_tsv``. Used for static reference tables that
+        are not consumed by ParCa fitting (e.g. plotting baselines)."""
+        path = self
+        for sub_path in file_name[len(dir_name) + 1 :].split(os.path.sep)[:-1]:
+            if not hasattr(path, sub_path):
+                setattr(path, sub_path, DataStore())
+            path = getattr(path, sub_path)
+        attr_name = file_name.split(os.path.sep)[-1].split(".")[0]
+
+        with io.open(file_name, mode="r", encoding="utf-8", newline="") as fh:
+            reader = csv.DictReader(filter(lambda line: not comment_line(line), fh))
+            rows = list(reader)
+        setattr(path, attr_name, rows)
 
     def _load_parameters(self, dir_name, file_name):
         path = self

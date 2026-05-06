@@ -96,8 +96,11 @@ class CellWall(Process):
             "PBP1B_gamma": "CPLX0-8300[c]",
         },
         # Probability of terminating a strand on the next monomer,
-        # fitted from data
-        "strand_term_p": param_store.get(("cell_wall", "strand_term_p")),
+        # fitted from data. Sourced from sim_data via
+        # ``LoadSimData.get_cell_wall_config``; ``None`` here so callers
+        # that bypass that pathway fail loudly rather than silently
+        # picking up a stale param_store value.
+        "strand_term_p": None,
         # Physical parameters
         "critical_radius": param_store.get(("cell_wall", "critical_radius")),
         "cell_radius": param_store.get(("cell_wall", "cell_radius")),
@@ -120,6 +123,10 @@ class CellWall(Process):
         self.pbp1b_alpha = self.parameters["PBP"]["PBP1B_alpha"]
         self.pbp1b_gamma = self.parameters["PBP"]["PBP1B_gamma"]
         self.strand_term_p = self.parameters["strand_term_p"]
+        assert self.strand_term_p is not None, (
+            "strand_term_p must be supplied via LoadSimData.get_cell_wall_config "
+            "(routed from sim_data.process.antibiotics.cell_wall.strand_term_p)."
+        )
 
         self.cell_radius = self.parameters["cell_radius"]
         self.critical_radius = self.parameters["critical_radius"]

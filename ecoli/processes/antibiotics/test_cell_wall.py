@@ -54,10 +54,14 @@ def create_composite(timeline_data, antibiotics=True):
         },
     )
 
-    # Add cell wall process, pbp binding process, and timeline process into composite
+    # Add cell wall process, pbp binding process, and timeline process into composite.
+    # ``strand_term_p`` normally flows in via ``LoadSimData.get_cell_wall_config``
+    # (and the matching pbp_binding entry); this stand-alone test bypasses
+    # LoadSimData and injects the canonical fitted value directly.
+    cell_wall_params = {"strand_term_p": 0.058}
     processes = {
-        "cell_wall": CellWall({}),
-        "pbp_binding": PBPBinding({}),
+        "cell_wall": CellWall(cell_wall_params),
+        "pbp_binding": PBPBinding(cell_wall_params),
         "murein-division": MureinDivision({}),
         "bulk-timeline": BulkTimelineProcess(timeline),
     }

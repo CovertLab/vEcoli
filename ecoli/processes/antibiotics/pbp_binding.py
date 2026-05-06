@@ -82,8 +82,11 @@ class PBPBinding(Step):
                 },
             },
         },
-        # Parameters to initialize cell wall after division (see cell_wall.py)
-        "strand_term_p": param_store.get(("cell_wall", "strand_term_p")),
+        # Parameters to initialize cell wall after division (see cell_wall.py).
+        # ``strand_term_p`` is sourced from sim_data via
+        # ``LoadSimData.get_pbp_binding_config``; ``None`` here so callers
+        # that bypass that pathway fail loudly.
+        "strand_term_p": None,
         "cell_radius": param_store.get(("cell_wall", "cell_radius")),
         "disaccharide_height": param_store.get(("cell_wall", "disaccharide_height")),
         "disaccharide_width": param_store.get(("cell_wall", "disaccharide_width")),
@@ -117,6 +120,10 @@ class PBPBinding(Step):
 
         # Parameters to initialize cell wall after division
         self.strand_term_p = self.parameters["strand_term_p"]
+        assert self.strand_term_p is not None, (
+            "strand_term_p must be supplied via LoadSimData.get_pbp_binding_config "
+            "(routed from sim_data.process.antibiotics.cell_wall.strand_term_p)."
+        )
         self.cell_radius = self.parameters["cell_radius"]
         self.circumference = 2 * np.pi * self.cell_radius
         self.disaccharide_height = self.parameters["disaccharide_height"]
@@ -332,8 +339,10 @@ class PBPBinding(Step):
 
 
 def test_pbp_binding():
-    # Create process
-    params = {"beta_lactam": "ampicillin"}
+    # Create process. ``strand_term_p`` normally flows in via
+    # ``LoadSimData.get_pbp_binding_config``; this stand-alone test
+    # bypasses LoadSimData and injects the canonical fitted value directly.
+    params = {"beta_lactam": "ampicillin", "strand_term_p": 0.058}
     process = PBPBinding(params)
     initial_murein = 450000
     timeline_params = {
