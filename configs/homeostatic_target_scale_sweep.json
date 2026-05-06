@@ -46,7 +46,7 @@
     },
     "analysis_options": {
       "multivariant": {
-        "doubling_time_line": {},
+        "doubling_time_sweep_line": {},
         "doubling_time_sweep_csv": {}
       }
     }
