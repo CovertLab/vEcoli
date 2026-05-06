@@ -6,6 +6,14 @@ coli" (2014) and Supporting Table 5 of Bernstein et al., "Global analysis of
 mRNA decay and abundance in Escherichi coli at single gene resoluation using
 two-color fluorescent DNA microarrays" (2002). Optionally generates a comparison
 plot for degradation rates reported for the same gene from these two sources.
+
+Migration note (2026-05-06): non-functional after the data bundle migration
+(vEcoli #6, ecoli-sources #1). The legacy ``reconstruction/ecoli/flat/`` and
+``experimental_data/rnaseq/`` directories this script read from / wrote to
+have been deleted; curated data now lives in
+``vivarium-collective/ecoli-sources``. Migrating this script alongside the
+rest of ``reconstruction/ecoli/scripts/`` is tracked at
+https://github.com/vivarium-collective/ecoli-sources/issues/2.
 """
 
 import ast

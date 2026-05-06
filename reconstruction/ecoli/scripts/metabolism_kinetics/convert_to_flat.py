@@ -8,6 +8,14 @@ Process to generate updated file:
 - Download latest data from google sheets and save as kinetics.tsv in this
 directory (File -> Download -> Tab-separated values (.tsv, current sheet))
 - Run this script: `reconstruction/metabolism_kinetics/convert_to_flat.py`
+
+Migration note (2026-05-06): non-functional after the data bundle migration
+(vEcoli #6, ecoli-sources #1). The legacy ``reconstruction/ecoli/flat/`` and
+``experimental_data/rnaseq/`` directories this script read from / wrote to
+have been deleted; curated data now lives in
+``vivarium-collective/ecoli-sources``. Migrating this script alongside the
+rest of ``reconstruction/ecoli/scripts/`` is tracked at
+https://github.com/vivarium-collective/ecoli-sources/issues/2.
 """
 
 import io

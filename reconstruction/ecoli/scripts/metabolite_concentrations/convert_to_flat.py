@@ -21,6 +21,14 @@ Data in sander2019.tsv is from Sander et al. Allosteric Feedback Inhibition
 Enables Robust Amino Acid Biosynthesis in E. coli by Enforcing Enzyme Overabundance.
 2019 Table S7 (tab 'Amino Acids') from
 https://ars.els-cdn.com/content/image/1-s2.0-S2405471218304794-mmc2.xlsx
+
+Migration note (2026-05-06): non-functional after the data bundle migration
+(vEcoli #6, ecoli-sources #1). The legacy ``reconstruction/ecoli/flat/`` and
+``experimental_data/rnaseq/`` directories this script read from / wrote to
+have been deleted; curated data now lives in
+``vivarium-collective/ecoli-sources``. Migrating this script alongside the
+rest of ``reconstruction/ecoli/scripts/`` is tracked at
+https://github.com/vivarium-collective/ecoli-sources/issues/2.
 """
 
 import io

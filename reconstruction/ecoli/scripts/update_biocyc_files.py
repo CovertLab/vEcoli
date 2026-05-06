@@ -4,6 +4,14 @@
 Pulls the lastest versions of the raw data files that are sourced from
 BioCyc/EcoCyc from their webservices server and updates the local versions of
 the files under reconstruction/ecoli/flat.
+
+Migration note (2026-05-06): non-functional after the data bundle migration
+(vEcoli #6, ecoli-sources #1). The legacy ``reconstruction/ecoli/flat/`` and
+``experimental_data/rnaseq/`` directories this script read from / wrote to
+have been deleted; curated data now lives in
+``vivarium-collective/ecoli-sources``. Migrating this script alongside the
+rest of ``reconstruction/ecoli/scripts/`` is tracked at
+https://github.com/vivarium-collective/ecoli-sources/issues/2.
 """
 
 import argparse
