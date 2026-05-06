@@ -4,6 +4,7 @@ SimulationData getter functions
 
 import itertools
 import re
+import warnings
 
 from Bio.Seq import Seq
 import numpy as np
@@ -469,14 +470,23 @@ class GetterFunctions(object):
                 for gene in tu["genes"]
                 if rna_id_to_type[gene_id_to_rna_id[gene]] not in EXCLUDED_RNA_TYPES
             ]
-            if len(set(tu_rna_types)) > 1 and set(tu_rna_types) != {"rRNA", "tRNA"}:
-                raise ValueError(
-                    f"Transcription unit {tu['id']} includes genes"
-                    f" that encode for two or more different types of RNAs."
-                    f" Such transcription units are not supported by this"
-                    f" version of the model with the exception of rRNA"
-                    f" transcription units with tRNA genes."
-                )
+            if len(set(tu_rna_types)) > 1:
+                if set(tu_rna_types) == {"rRNA", "tRNA"}:
+                    pass
+                elif set(tu_rna_types) == {"mRNA", "miscRNA"}:
+                    warnings.warn(
+                        f"Transcription unit {tu['id']} contains both mRNA(s)"
+                        " and miscRNA(s). This type of operon is only partially"
+                        " supported in this version of the model."
+                    )
+                else:
+                    raise ValueError(
+                        f"Transcription unit {tu['id']} includes genes"
+                        f" that encode for two or more different types of RNAs."
+                        f" Such transcription units are not supported by this"
+                        f" version of the model with the exception of rRNA"
+                        f" transcription units with tRNA genes."
+                    )
 
             if len(tu_rna_types) == 1:
                 rna_id_to_type[tu["id"]] = tu_rna_types[0]
