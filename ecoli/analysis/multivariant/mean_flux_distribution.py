@@ -1,7 +1,10 @@
 """
 Distribution of time-mean estimated fluxes across reactions for multivariant simulation.
 
-One Plotly histogram subplot per variant, labeled by variant name.
+One Altair bar-chart (histogram) subplot per variant, faceted in a grid.
+Bins are shared across all variants so panels are directly comparable.
+Each bin is displayed as a nominal category of equal visual width, which
+handles unevenly-spaced (e.g. logarithmic) bin edges gracefully.
 """
 
 from __future__ import annotations
@@ -9,25 +12,32 @@ from __future__ import annotations
 import os
 from typing import Any, TYPE_CHECKING, cast
 
+import altair as alt
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import polars as pl
 
+from ecoli.analysis.multivariant import _variant_label
 from ecoli.library.parquet_emitter import (
     ndlist_to_ndarray,
     read_stacked_columns,
+    field_metadata,
 )
 
 if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
 
+alt.data_transformers.enable("vegafusion")
+
 DEFAULT_FACET_COLUMNS = 2
-PASTEL = px.colors.qualitative.Pastel[0]
+# Pastel salmon — matches the rest of the multivariant palette
+PASTEL_COLOR = "#FBB4AE"
 
 
-def _format_number(x: float) -> str:
-    if x >= 1e3 or x < 1e-2:
+def _fmt(x: float) -> str:
+    """Compact number formatter for bin-edge labels."""
+    if x == 0:
+        return "0"
+    if abs(x) >= 1e3 or abs(x) < 1e-2:
         return f"{x:.0E}"
     return f"{x:.2g}"
 
@@ -44,11 +54,18 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ) -> None:
-    """Histogram of per-reaction mean estimated flux; one subplot per variant."""
+    """Histogram of per-reaction mean estimated flux; one facet per variant."""
+    experiment_id = next(iter(variant_metadata.keys()), None)
+    per_variant_params: dict[int, Any] = (
+        variant_metadata[experiment_id] if experiment_id else {}
+    )
+
     in_molar = params.get("in_molar", True)
     is_reduxclassic = params.get("is_reduxclassic", True)
     facet_columns = int(params.get("facet_columns", DEFAULT_FACET_COLUMNS))
     bin_edges_param = params.get("bin_edges")
+    subplot_w = int(params.get("subplot_width", 400))
+    subplot_h = int(params.get("subplot_height", 300))
 
     hist_subquery = cast(
         str,
@@ -99,91 +116,91 @@ def plot(
 
     unique_variants = sorted(raw["variant"].unique().to_list())
 
+    diversity_weight: float = field_metadata(
+        conn, config_sql, "listeners__fba_results__diversity_term"
+    )[0]
+    # ── Bin edges (shared across all variants) ────────────────────────────────
     if bin_edges_param is not None:
         bin_edges = np.asarray(bin_edges_param, dtype=float)
     else:
         sim_flux_mean_global = flux_matrix.mean(axis=0)
-        lo, hi = (
-            float(np.min(sim_flux_mean_global)),
-            float(np.max(sim_flux_mean_global)),
-        )
+        lo = float(np.min(sim_flux_mean_global))
+        hi = float(np.max(sim_flux_mean_global))
         n_bins = int(params.get("n_bins", 30))
-        bin_edges = np.ceil(np.linspace(lo, hi, n_bins + 1))
+        bin_edges = np.linspace(lo, hi, n_bins + 1)
 
+    # Nominal string labels — one per bin, in order.
+    # Using nominal categories gives each bin equal visual width regardless of
+    # how unevenly spaced the edges are (e.g. log-spaced custom edges).
     bin_labels = [
-        f"[{_format_number(bin_edges[i])}, {_format_number(bin_edges[i + 1])})"
+        f"[{_fmt(bin_edges[i])}, {_fmt(bin_edges[i + 1])})"
         for i in range(len(bin_edges) - 1)
     ]
 
-    traces: list[tuple[str, list[str], np.ndarray]] = []
+    # ── Build tidy DataFrame: one row per (variant, bin) ──────────────────────
     variant_col = raw["variant"].to_numpy()
+    rows: list[dict] = []
     for variant_val in unique_variants:
         mask = variant_col == variant_val
         sim_flux_mean = flux_matrix[mask, :].mean(axis=0)
-        binned_data, _ = np.histogram(sim_flux_mean, bins=bin_edges)
-        label = variant_names.get(variant_val, f"Variant {variant_val}")
-        traces.append((label, bin_labels, binned_data.astype(float)))
+        counts, _ = np.histogram(sim_flux_mean, bins=bin_edges)
+        label_l = _variant_label(variant_val, per_variant_params)
+        label = " ".join(label_l)
+        for i, count in enumerate(counts):
+            rows.append(
+                {
+                    "Variant": label,
+                    "Bin": bin_labels[i],
+                    "bin_order": i,
+                    "Count": float(count),
+                }
+            )
 
-    title = "Distribution of Mean Fluxes Across Reactions by Variant"
-    n = len(traces)
-    cols = max(1, facet_columns) if n > 1 else 1
-    rows = (n + cols - 1) // cols
+    df_plot = pl.DataFrame(rows).to_pandas()
 
-    v_spacing = 0.08 if rows <= 1 else min(0.4, 0.08 * rows / (rows - 1))
-    h_spacing = min(0.3, 0.10)
+    x_enc = alt.X(
+        "Bin:N",
+        sort=bin_labels,
+        title=f"Mean Estimated Flux ({unit_label})",
+        axis=alt.Axis(labelAngle=-40, labelFontSize=10),
+    )
+    y_enc = alt.Y("Count:Q", title="Reaction count")
+    tooltip_enc = [
+        alt.Tooltip("Variant:N"),
+        alt.Tooltip("Bin:N", title="Flux bin"),
+        alt.Tooltip("Count:Q", title="Count"),
+    ]
 
-    fig = make_subplots(
-        rows=rows,
-        cols=cols,
-        subplot_titles=[t[0] for t in traces],
-        vertical_spacing=v_spacing,
-        horizontal_spacing=h_spacing,
+    bars = (
+        alt.Chart(df_plot)
+        .mark_bar(color=PASTEL_COLOR, stroke="white", strokeWidth=0.8)
+        .encode(x=x_enc, y=y_enc, tooltip=tooltip_enc)
     )
 
-    for i, (_label, blabels, binned_data) in enumerate(traces):
-        r = i // cols + 1
-        c = i % cols + 1
-        fig.add_trace(
-            go.Bar(
-                x=blabels,
-                y=binned_data,
-                marker=dict(color=PASTEL, line=dict(color="white", width=1)),
-                text=binned_data,
-                textposition="auto",
-                showlegend=False,
+    labels = (
+        alt.Chart(df_plot)
+        .mark_text(dy=-4, fontSize=10, fontWeight="bold")
+        .encode(
+            x=x_enc,
+            y=y_enc,
+            text=alt.Text("Count:Q", format=".0f"),
+        )
+        .transform_filter("datum.Count > 0")
+    )
+
+    chart = (
+        alt.layer(bars, labels)
+        .properties(width=subplot_w, height=subplot_h)
+        .facet(
+            facet=alt.Facet(
+                "Variant:N",
+                title=f"Variant \n Diversity weight = {diversity_weight:.2e}",
             ),
-            row=r,
-            col=c,
+            columns=facet_columns,
         )
-        fig.update_xaxes(
-            title_text=f"Mean Estimated Flux ({unit_label})",
-            tickangle=-40,
-            tickfont=dict(size=10),
-            row=r,
-            col=c,
-        )
-        fig.update_yaxes(title_text="Count", row=r, col=c)
-
-    subplot_w = int(params.get("subplot_width", 480))
-    subplot_h = int(params.get("subplot_height", 380))
-    fig_w = int(params.get("figure_width", subplot_w * cols))
-    fig_h = int(params.get("figure_height", subplot_h * rows + 80))
-
-    annotation_font_size = max(10, 14 - cols)
-    for ann in fig.layout.annotations:
-        ann.font.size = annotation_font_size
-
-    fig.update_layout(
-        template="plotly_white",
-        showlegend=False,
-        paper_bgcolor="rgba(255,255,255,0)",
-        plot_bgcolor="rgba(255,255,255,0)",
-        title=dict(text=title, font=dict(size=20)),
-        width=fig_w,
-        height=fig_h,
-        margin=dict(t=80 + annotation_font_size * 2, b=60, l=60, r=40),
+        .properties(title="Distribution of Mean Fluxes Across Reactions by Variant")
     )
 
     out_path = os.path.join(outdir, "mean_flux_distribution.html")
-    fig.write_html(out_path, include_plotlyjs="cdn", config={"displayModeBar": True})
+    chart.save(out_path)
     print(f"Saved multivariant mean flux distribution to {out_path}")

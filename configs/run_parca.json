@@ -1,3 +1,6 @@
 {
-    "sim_data_path": null
+    "sim_data_path": null,
+    "parca_options": {
+        "cpus": 6
+    }
 }

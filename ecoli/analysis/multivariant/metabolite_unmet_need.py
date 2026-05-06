@@ -14,6 +14,7 @@ from typing import Any, TYPE_CHECKING
 import altair as alt
 import polars as pl
 
+from ecoli.analysis.multivariant import _variant_label
 from ecoli.library.parquet_emitter import field_metadata, read_stacked_columns
 
 if TYPE_CHECKING:
@@ -48,6 +49,11 @@ def plot(
     variant_names: dict[str, str],
 ) -> None:
     """One bar+line subplot per variant, aggregated across all cells in that variant."""
+    experiment_id = next(iter(variant_metadata.keys()), None)
+    per_variant_params: dict[int, Any] = (
+        variant_metadata[experiment_id] if experiment_id else {}
+    )
+
     top_n = params.get("top_n", DEFAULT_TOP_N)
     metabolites_of_interest = params.get("metabolites_of_interest")
     subplot_width = int(params.get("subplot_width", DEFAULT_SUBPLOT_WIDTH))
@@ -180,7 +186,7 @@ def plot(
 
     subplot_charts: list[alt.TopLevelMixin] = []
     for variant_val, top_bar, agg_line in per_variant_data:
-        label = variant_names.get(variant_val, f"Variant {variant_val}")
+        label = _variant_label(variant_val, per_variant_params)
         df_bar = top_bar.to_pandas()
         df_line = agg_line.to_pandas()
 

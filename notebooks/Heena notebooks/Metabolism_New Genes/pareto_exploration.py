@@ -33,6 +33,7 @@ import cvxpy as cp
 import numpy as np
 import plotly.graph_objects as go
 import polars as pl
+from altair import datum
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
@@ -51,13 +52,16 @@ FLUX_UNITS = COUNTS_UNITS / VOLUME_UNITS / TIME_UNITS
 # Homeostatic weight is always fixed at 1.
 # ---------------------------------------------------------------------------
 WEIGHT_RANGES = {
-    "secretion": (1e-8, 1e-4),  # 2.12E-4
-    "efficiency": (1e-8, 1e-4),  # 2.34E-5
-    "kinetics": (1e-8, 1e-4),  # 1.64E-3
-    "diversity": (1e-8, 1e-2),  # 8.53E-3
+    "homeostatic": (1e-3, 1.0),
+    "secretion": (1e-7, 1e-4),  # 2.12E-4
+    "efficiency": (1e-7, 1e-4),  # 2.34E-5
+    "kinetics": (1e-5, 1e-3),  # 1.64E-3       1e-3 -1e-2 no points
+    "diversity": (1e-5, 1e-2),  # 8.53E-3
 }
 
-OUT_DIR = "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_init_selective_2000samples"
+OUT_DIR = (
+    "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_init_10000samples"
+)
 os.makedirs(OUT_DIR, exist_ok=True)
 
 with open(f"{OUT_DIR}/weight_info.json", "w") as fp:
@@ -137,6 +141,7 @@ def correlations_toya_fluxes(
 # Single solve — wraps existing NetworkFlowModel
 # ---------------------------------------------------------------------------
 def solve_one(
+    lam_hom: float,
     lam_sec: float,
     lam_eff: float,
     lam_kin: float,
@@ -159,7 +164,7 @@ def solve_one(
     Returns a flat dict of weights + objective term values, or None on failure.
     """
     weights = {
-        "homeostatic": 1.0,
+        "homeostatic": lam_hom,
         "secretion": lam_sec,
         "efficiency": lam_eff,
         "kinetics": lam_kin,
@@ -194,6 +199,7 @@ def solve_one(
         )
 
         return {
+            "lambda_hom": lam_hom,
             "lambda_sec": lam_sec,
             "lambda_eff": lam_eff,
             "lambda_kin": lam_kin,
@@ -204,6 +210,12 @@ def solve_one(
             "obj_eff": solution.efficiency_term,
             "obj_sec": solution.secretion_term,
             "obj_div": solution.diversity_term,
+            # Weighted contributions (w_i * T_i) — what the optimizer actually sees
+            "obj_hom_w": lam_hom * solution.homeostatic_term,
+            "obj_kin_w": lam_kin * solution.kinetics_term,
+            "obj_eff_w": lam_eff * solution.efficiency_term,
+            "obj_sec_w": lam_sec * solution.secretion_term,
+            "obj_div_w": lam_div * solution.diversity_term,
             "solution_flux": solution.velocities,
         }
     except Exception:
@@ -232,6 +244,7 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
         chart = (
             alt.Chart(df)
             .mark_circle(size=40, opacity=0.6)
+            .transform_filter(datum.toya_r_squared > 0)  # filter out negative R²
             .encode(
                 y=alt.Y("obj_homeo:Q", title="Homeostatic Objective"),
                 x=alt.X(f"{obj_col}:Q", title=f"{title} Objective"),
@@ -367,6 +380,158 @@ def plot_pairwise_altair(df: pl.DataFrame) -> None:
     )
 
     out = os.path.join(OUT_DIR, "pairwise_analysis.html")
+    combined.save(out)
+    print(f"  Saved: {out}")
+
+
+def plot_pairwise_altair_weighted(df: pl.DataFrame) -> None:
+    """
+    Same layout as plot_pairwise_altair but uses weighted objective contributions
+    (w_i * T_i) so axes reflect what the optimizer actually balances.
+    Saved to pairwise_analysis_weighted.html.
+    """
+    terms = [
+        ("obj_sec_w", "lambda_sec", "Secretion"),
+        ("obj_eff_w", "lambda_eff", "Efficiency"),
+        ("obj_kin_w", "lambda_kin", "Kinetic"),
+        ("obj_div_w", "lambda_div", "Diversity"),
+    ]
+
+    charts = []
+    interval = alt.selection_interval()
+    for obj_col, lam_col, title in terms:
+        chart = (
+            alt.Chart(df)
+            .mark_circle(size=40, opacity=0.6)
+            .transform_filter(datum.toya_r_squared > 0)  # filter out negative R²
+            .encode(
+                y=alt.Y("obj_hom_w:Q", title="Weighted Homeostatic (w·T)"),
+                x=alt.X(f"{obj_col}:Q", title=f"Weighted {title} (w·T)"),
+                color=alt.condition(
+                    interval,
+                    alt.Color(
+                        "toya_r_squared:Q",
+                        scale=alt.Scale(scheme="viridis", domain=[0, 1.0]),
+                        legend=alt.Legend(
+                            title="R² (Coefficient of Determination)",
+                            values=[0, 0.2, 0.4, 0.6, 0.8, 1.0],
+                        ),
+                    ),
+                    alt.value("lightgray"),
+                ),
+                tooltip=[
+                    alt.Tooltip(
+                        "obj_hom_w:Q", format=".4e", title="Weighted Homeostatic"
+                    ),
+                    alt.Tooltip(
+                        f"{obj_col}:Q", format=".4e", title=f"Weighted {title}"
+                    ),
+                    alt.Tooltip(
+                        f"{lam_col}:Q", format=".2e", title=f"λ_{title[:3].lower()}"
+                    ),
+                    alt.Tooltip("toya_r_squared:Q", format=".3f", title="R² (COD)"),
+                ],
+            )
+            .properties(
+                title=f"Weighted Homeostatic vs Weighted {title}", width=280, height=250
+            )
+        ).add_selection(interval)
+        charts.append(chart)
+
+    combined_scatter = (
+        ((charts[0] | charts[1]) & (charts[2] | charts[3]))
+        .properties(
+            title="Pairwise Pareto: Weighted Homeostatic vs Weighted Secondary Objectives"
+        )
+        .resolve_scale(color="shared")
+    )
+
+    ranked_text = (
+        alt.Chart(df)
+        .mark_text(align="right")
+        .encode(y=alt.Y("rank:O", axis=None))
+        .transform_filter(interval)
+        .transform_calculate(
+            lambda_norm="sqrt(datum.lambda_sec * datum.lambda_sec + "
+            "datum.lambda_eff * datum.lambda_eff + "
+            "datum.lambda_kin * datum.lambda_kin + "
+            "datum.lambda_div * datum.lambda_div)"
+        )
+        .transform_window(
+            rank="rank()",
+            sort=[
+                alt.SortField("toya_r_squared", order="descending"),
+                alt.SortField("toya_pearson_r_squared", order="descending"),
+                alt.SortField("lambda_norm", order="descending"),
+            ],
+        )
+        .transform_filter(alt.datum.rank <= 10)
+        .properties(height=240)
+    )
+
+    lambda_sec = ranked_text.encode(
+        text=alt.Text("lambda_sec:Q", format=".2e")
+    ).properties(title=alt.Title(text="λ_sec", align="right"))
+    lambda_eff = ranked_text.encode(
+        text=alt.Text("lambda_eff:Q", format=".2e")
+    ).properties(title=alt.Title(text="λ_eff", align="right"))
+    lambda_kin = ranked_text.encode(
+        text=alt.Text("lambda_kin:Q", format=".2e")
+    ).properties(title=alt.Title(text="λ_kin", align="right"))
+    lambda_div = ranked_text.encode(
+        text=alt.Text("lambda_div:Q", format=".2e")
+    ).properties(title=alt.Title(text="λ_div", align="right"))
+    obj_kinetic_w = ranked_text.encode(
+        text=alt.Text("obj_kin_w:Q", format=".3e")
+    ).properties(title=alt.Title(text="Weighted Kinetic (w·T)", align="right"))
+    toya_r2 = ranked_text.encode(
+        text=alt.Text("toya_r_squared:Q", format=".3f")
+    ).properties(title=alt.Title(text="R² (COD)", align="right"))
+    toya_pearson_r2 = ranked_text.encode(
+        text=alt.Text("toya_pearson_r_squared:Q", format=".3f")
+    ).properties(title=alt.Title(text="Pearson R²", align="right"))
+
+    text = alt.hconcat(
+        lambda_sec,
+        lambda_eff,
+        lambda_kin,
+        lambda_div,
+        obj_kinetic_w,
+        toya_r2,
+        toya_pearson_r2,
+    )
+
+    density = (
+        alt.Chart(df)
+        .transform_filter(interval)
+        .transform_fold(
+            ["lambda_sec", "lambda_eff", "lambda_kin", "lambda_div"],
+            as_=["lambda_type", "value"],
+        )
+        .transform_calculate(log_value="log(datum.value) / log(10)")
+        .mark_bar(opacity=0.4, binSpacing=0)
+        .encode(
+            x=alt.X("log_value:Q", title="log₁₀(Lambda Value)").bin(
+                maxbins=40, base=10
+            ),
+            y=alt.Y("count()", title="Count", stack=False),
+            color=alt.Color(
+                "lambda_type:N",
+                title="Lambda",
+                legend=alt.Legend(orient="none", legendX=550, legendY=300),
+            ),
+        )
+        .properties(title="Distribution of Objective Weights", width=500, height=300)
+    )
+
+    c2 = text & density
+    combined = (
+        (combined_scatter | c2)
+        .configure_title(fontSize=14, anchor="middle")
+        .configure_view(stroke=None)
+    )
+
+    out = os.path.join(OUT_DIR, "pairwise_analysis_weighted.html")
     combined.save(out)
     print(f"  Saved: {out}")
 
@@ -539,9 +704,8 @@ def run(
     )
 
     def _solve(i):
-        lam_sec, lam_eff, lam_kin, lam_div = weight_samples[i]
-
-        results = solve_one(lam_sec, lam_eff, lam_kin, lam_div, **fixed)
+        lam_hom, lam_sec, lam_eff, lam_kin, lam_div = weight_samples[i]
+        results = solve_one(lam_hom, lam_sec, lam_eff, lam_kin, lam_div, **fixed)
 
         # convert solution_flux to base_reaction flux
         if results is not None:
@@ -582,6 +746,7 @@ def run(
 
     print("Generating plots...")
     plot_pairwise_altair(df)
+    plot_pairwise_altair_weighted(df)
     plot_parallel_coordinates_altair(df)
     plot_3d_plotly(df)
     print("Done.")

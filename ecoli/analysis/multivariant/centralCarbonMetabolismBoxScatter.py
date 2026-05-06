@@ -11,6 +11,8 @@ import os
 import pickle
 import numpy as np
 
+from ecoli.analysis.multivariant import _variant_label
+
 from wholecell.utils import units, toya
 from fsspec import open as fsspec_open
 from ecoli.library.parquet_emitter import (
@@ -46,6 +48,11 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
+    experiment_id = next(iter(variant_metadata.keys()), None)
+    per_variant_params: dict[int, Any] = (
+        variant_metadata[experiment_id] if experiment_id else {}
+    )
+
     REDUXCLASSIC = params.get("is_reduxclassic", True)
 
     with open_arbitrary_sim_data(sim_data_dict) as f:
@@ -89,7 +96,8 @@ def plot(
 
     all_dfs = []
     for variant_val in unique_variants:
-        variant_label = variant_names.get(variant_val, f"Variant {variant_val}")
+        variant_label_list = _variant_label(variant_val, per_variant_params)
+        variant_label = " ".join(variant_label_list)
         mask = variant_col == variant_val
 
         cell_masses_ref = units.fg * raw.filter(pl.Series(mask))["cell_mass"]

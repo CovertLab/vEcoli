@@ -2,13 +2,14 @@
 Plot weighted objective function terms over time for multivariant simulation.
 
 One subplot per variant, stacked vertically. Within each variant the mean
-(± CI spread) of each objective term is shown over cell-cycle-relative time,
+(± CI spread) of each objective term is shown over continuous simulation time,
 with lines broken at cell division (detail by generation).
 """
 
 from typing import Any, TYPE_CHECKING
 import os
 
+from ecoli.analysis.multivariant import _variant_label
 from ecoli.library.parquet_emitter import read_stacked_columns
 import altair as alt
 import polars as pl
@@ -38,17 +39,22 @@ def plot(
     variant_names: dict[str, str],
 ):
     """Plot mean weighted objective terms over time, one subplot per variant."""
+    experiment_id = next(iter(variant_metadata.keys()), None)
+    per_variant_params: dict[int, Any] = (
+        variant_metadata[experiment_id] if experiment_id else {}
+    )
+
     query = [f"{listener} AS {term}_term" for term, listener in OBJECTIVE_QUERY.items()]
 
     objective_data = pl.DataFrame(
         read_stacked_columns(history_sql, query, order_results=True, conn=conn)
     )
 
-    # Relative time per (generation, lineage_seed) so each generation starts at t=0
-    min_t = objective_data.group_by(["generation", "lineage_seed"]).agg(
+    # Relative time per lineage_seed so time is continuous across generations
+    min_t = objective_data.group_by(["lineage_seed"]).agg(
         pl.col("time").min().alias("t_min")
     )
-    objective_data = objective_data.join(min_t, on=["generation", "lineage_seed"])
+    objective_data = objective_data.join(min_t, on=["lineage_seed"])
     objective_data = objective_data.with_columns(
         ((pl.col("time") - pl.col("t_min")) / 60).alias("Time (min)")
     )
@@ -95,19 +101,17 @@ def plot(
     variants = melted["variant"].unique().sort()
     plots = []
     for variant_val in variants:
-        variant_name = variant_names.get(variant_val, f"Variant {variant_val}")
+        variant_name = _variant_label(variant_val, per_variant_params)
         variant_melted = melted.filter(pl.col("variant") == variant_val).to_pandas()
 
-        subplot = (
-            alt.layer(spread, line, data=variant_melted)
-            .resolve_scale(x="independent")
-            .properties(width=600, height=250, title=variant_name)
+        subplot = alt.layer(spread, line, data=variant_melted).properties(
+            width=600, height=250, title=variant_name
         )
         plots.append(subplot)
 
     final = (
         alt.vconcat(*plots)
-        .resolve_scale(x="independent", y="independent")
+        .resolve_scale(x="independent", y="independent")  # shared/independent
         .properties(title="Weighted Objective Terms by Variant")
     )
 

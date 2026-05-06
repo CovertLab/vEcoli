@@ -1,10 +1,12 @@
 """
 Plot enzyme availability (bulk counts) vs unmet homeostatic need over
-cell-cycle time for multivariant simulation.
+continuous simulation time for multivariant simulation.
 
 One dual-y-axis Altair subplot per variant, stacked vertically. Within each
-variant, lines represent mean over all cells; generation is used as the detail
-encoding to break lines at cell division.
+variant, lines represent the mean over all cells on a continuous time axis
+(relative to the first timestep of each lineage seed); generation is used as
+the detail encoding to draw separate line segments at each cell division
+without resetting the time axis.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ import altair as alt
 import plotly.express as px
 import polars as pl
 
+from ecoli.analysis.multivariant import _variant_label
 from ecoli.library.parquet_emitter import (
     field_metadata,
     read_stacked_columns,
@@ -44,6 +47,11 @@ def plot(
     variant_names: dict[str, str],
 ) -> None:
     """Plot mean enzyme counts and unmet need vs time, one subplot per variant."""
+    experiment_id = next(iter(variant_metadata.keys()), None)
+    per_variant_params: dict[int, Any] = (
+        variant_metadata[experiment_id] if experiment_id else {}
+    )
+
     enzyme_name = params.get("enzyme_name", DEFAULT_ENZYME_NAME)
     met = params.get("met", DEFAULT_MET)
 
@@ -82,11 +90,10 @@ def plot(
         )
     )
 
-    # Relative time per (generation, lineage_seed) so each generation starts at t=0
-    min_t = raw.group_by(["generation", "lineage_seed"]).agg(
-        pl.col("time").min().alias("t_min")
-    )
-    raw = raw.join(min_t, on=["generation", "lineage_seed"])
+    # Continuous time per lineage_seed: subtract the global minimum time for
+    # each seed so the x-axis starts at 0 and runs unbroken across generations.
+    min_t = raw.group_by(["lineage_seed"]).agg(pl.col("time").min().alias("t_min"))
+    raw = raw.join(min_t, on=["lineage_seed"])
     raw = raw.with_columns(
         ((pl.col("time") - pl.col("t_min")) / 60).alias("Time (min)")
     )
@@ -157,7 +164,7 @@ def plot(
     variants = df_plot["variant"].unique().sort()
     plots = []
     for variant_val in variants:
-        variant_name = variant_names.get(variant_val, f"Variant {variant_val}")
+        variant_name = _variant_label(variant_val, per_variant_params)
         variant_data = df_plot.filter(pl.col("variant") == variant_val).to_pandas()
 
         subplot = (

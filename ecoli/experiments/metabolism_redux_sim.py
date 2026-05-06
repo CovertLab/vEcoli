@@ -62,7 +62,7 @@ def run_ecoli_with_metabolism_redux_classic(
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries','parquet'
-    name="april_2000samples_index1151",
+    name="temp",
     raw_output=False,
     save=False,
     save_times=[1],

@@ -143,13 +143,6 @@ class MetabolismReduxClassic(Step):
         "concentration_updates": None,
         "maintenance_reaction": {},
         # Fallback only: overridden by sim_data.process.metabolism in normal sims
-        "objective_weights": {
-            "secretion": 2.70225350134521e-06,
-            "efficiency": 1.00762391690677e-08,
-            "kinetics": 0.000430262706478104,
-            "diversity": 0.000171366013420771,
-            "homeostatic": 1,
-        },
         "fraction_kinetic_target": 1.0,
     }
 
@@ -365,11 +358,26 @@ class MetabolismReduxClassic(Step):
                             [],
                             self.parameters["reaction_catalysts"],
                         ),
-                        "homeostatic_term": (0.0, self.parameters["objective_weights"]),
-                        "secretion_term": 0.0,
-                        "efficiency_term": 0.0,
-                        "kinetics_term": 0.0,
-                        "diversity_term": 0.0,
+                        "homeostatic_term": (
+                            0.0,
+                            [self.parameters["objective_weights"]["homeostatic"]],
+                        ),
+                        "secretion_term": (
+                            0.0,
+                            [self.parameters["objective_weights"]["secretion"]],
+                        ),
+                        "efficiency_term": (
+                            0.0,
+                            [self.parameters["objective_weights"]["efficiency"]],
+                        ),
+                        "kinetics_term": (
+                            0.0,
+                            [self.parameters["objective_weights"]["kinetics"]],
+                        ),
+                        "diversity_term": (
+                            0.0,
+                            [self.parameters["objective_weights"]["diversity"]],
+                        ),
                         "binary_kinetic_idx": [],
                         "maintenance_target": 0.0,
                         "base_reaction_fluxes": (
@@ -559,6 +567,9 @@ class MetabolismReduxClassic(Step):
         objective_weights = self.parameters["objective_weights"]
         fraction_kinetic_target = self.parameters["fraction_kinetic_target"]
 
+        print(f"objective_weights: {objective_weights}")
+        print(f"fraction_kinetic_target: {fraction_kinetic_target}")
+
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
             homeostatic_dm_targets=target_homeostatic_dmdt,
@@ -571,6 +582,8 @@ class MetabolismReduxClassic(Step):
             solver=cp.GLOP,
         )
 
+        print(f"solution.homeostatic: {solution.homeostatic_term}")
+        print(f"solution.kinetics: {solution.kinetics_term}")
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
         self.metabolite_exchange = solution.exchanges
@@ -609,7 +622,8 @@ class MetabolismReduxClassic(Step):
                     "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
                     "target_homeostatic_dmdt": target_homeostatic_dmdt,
                     "homeostatic_metabolite_counts": homeostatic_metabolite_counts,
-                    "target_kinetic_fluxes": target_kinetic_flux,
+                    "target_kinetic_fluxes": target_kinetic_flux
+                    * self.parameters["fraction_kinetic_target"],
                     # "target_kinetic_bounds": target_kinetic_bounds,
                     # "estimated_exchange_dmdt": estimated_exchange_dmdt,
                     "estimated_intermediate_dmdt": estimated_intermediate_dmdt,

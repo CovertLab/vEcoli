@@ -467,7 +467,7 @@ def field_metadata(
     )[0]
     if isinstance(metadata, list):
         return metadata
-    return list(metadata)
+    return list([metadata])
 
 
 def config_value(

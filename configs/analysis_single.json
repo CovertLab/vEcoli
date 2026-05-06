@@ -1,18 +1,19 @@
 {
     "emitter_arg": {
-        "out_dir": "scratch/users/hsaqibo1"
+        "out_dir": "out/objective_weight_variant/"
     },
     "analysis_options": {
-        "experiment_id": ["objective_weight_variants_20260428-223130"],
-        "variant_data_dir": ["scratch/users/hsaqibo1/objective_weight_variants_20260428-223130/variant_sim_data"],
-        "validation_data_path": ["/home/users/hsaqibo1/vEcoli/test_sherlock/parca/kb/validationData.cPickle"],
-        "outdir": "cratch/users/hsaqibo1/analysis/objective_weight_variants_20260428-223130/",
+        "experiment_id": ["may_high_kinetic_20260505-003206"],
+        "variant_data_dir": ["out/objective_weight_variant/may_high_kinetic_20260505-003206/variant_sim_data"],
+        "validation_data_path": ["out/kb/validationData.cPickle"],
+        "outdir": "out/objective_weight_variant/analysis/may_high_kinetic_20260505-003206/",
         "cpus": 1,
 
         "multiexperiment": {
             "weighted_objective_terms": {},
             "mass_fraction_summary": {},
-            "enzyme_availability_flux": {}
+            "enzyme_availability_flux": {},
+            "metabolite_unmet_need" : {}
         },
         "multivariant": {
             "cell_mass": {},
@@ -20,12 +21,15 @@
             "centralCarbonMetabolismScatter": {},
             "centralCarbonMetabolismBoxScatter": {},
             "weighted_objective_terms": {},
+            "enzyme_availability_flux":{},
             "mean_flux_distribution": {
                 "in_molar": false,
                 "bin_edges": [0, 1E-6, 1e-3, 1, 2, 10, 1e3, 1E6, 1E9, 1E12],
                 "facet_columns": 4,
                 "n_bins": 25
-            }
+            },
+            "kinetic_flux": {},
+            "metabolite_unmet_need": {}
         }
     }
 }

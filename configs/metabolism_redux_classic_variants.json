@@ -1,10 +1,10 @@
 {
-  "experiment_id": "best_r_weights",
+  "experiment_id": "may_various_hom_obj",
   "fail_at_max_duration": true,
   "progress_bar": true,
   "log_updates": false,
   "generations": 3,
-  "n_init_sims": 2,
+  "n_init_sims": 1,
   "emitter": "parquet",
   "emitter_arg": {
     "out_dir": "out/objective_weight_variant"
@@ -87,45 +87,71 @@
   "aa_supply_in_charging": false,
   "adjust_timestep_for_charging": false,
   "disable_ppgpp_elongation_inhibition": true,
-  "analysis_options": {
-    "single": {
-      "mass_fraction_summary": {}
-    },
-    "multivariant": {
-      "cell_mass": {},
-      "doubling_time_line": {}
-    }
-  },
   "variants": {
     "metabolism_redux_classic_objective_weights": {
+      "homeostatic": {
+        "value": [
+          0.920061349,
+          0.336794511,
+          0.259593057,
+          0.877029969,
+          0.365264546,
+          0.175268878,
+          0.162224732,
+          0.18653421,
+          0.394725848
+        ]
+      },
       "secretion": {
         "value": [
-          1.83e-08,
-          1.61e-08
+          1.31e-06,
+          1.13e-06,
+          3.31e-06,
+          1.14125e-05,
+          1.12e-06,
+          1.37e-06,
+          1.09e-06,
+          2.01e-06,
+          6.64e-06
         ]
       },
       "efficiency": {
         "value": [
-          3.52e-08,
-          2.44e-08
+          1.47498e-05,
+          5.11e-06,
+          2.62e-06,
+          4.62e-06,
+          6.13e-06,
+          1.52e-06,
+          1.09e-06,
+          2.3e-06,
+          6.91906e-05
         ]
       },
       "kinetics": {
         "value": [
-          1.09e-07,
-          8.2e-08
+          0.000995747,
+          0.000990469,
+          0.000503472,
+          0.000652952,
+          0.000143328,
+          0.000283009,
+          0.00054464,
+          0.000983262,
+          0.000185206
         ]
       },
       "diversity": {
         "value": [
-          4.47e-07,
-          0.000497905
-        ]
-      },
-      "homeostatic": {
-        "value": [
-          1.0,
-          1.0
+          0.000181955,
+          0.000140908,
+          0.00079803,
+          0.004972512,
+          0.004327741,
+          0.005352472,
+          0.003344402,
+          0.001613331,
+          5.2719e-05
         ]
       },
       "op": "zip"
