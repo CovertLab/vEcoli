@@ -297,10 +297,17 @@ class MetabolismRedux(Step):
         if self.include_ppgpp:
             conc_dict[self.ppgpp_id] = self.getppGppConc(doubling_time)
         # Variant-supplied uniform scale on homeostatic targets.
-        # Defaults to 1.0 so unrelated runs are unaffected.
-        scale = self.parameters.get("homeostatic_target_scale", 1.0)
-        if scale != 1.0:
-            conc_dict = {k: v * scale for k, v in conc_dict.items()}
+        # Defaults to 1.0 so unrelated runs are unaffected. Stash on self
+        # so update() can apply the same scale to per-step conc_updates,
+        # otherwise the merge into homeostatic_objective on each step would
+        # overwrite the scaled biomass/ppGpp/AA targets with unscaled ones.
+        self.homeostatic_target_scale = self.parameters.get(
+            "homeostatic_target_scale", 1.0
+        )
+        if self.homeostatic_target_scale != 1.0:
+            conc_dict = {
+                k: v * self.homeostatic_target_scale for k, v in conc_dict.items()
+            }
         self.homeostatic_objective = dict(
             (key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict
         )
@@ -653,6 +660,16 @@ class MetabolismRedux(Step):
         conc_updates = {
             met: conc.asNumber(CONC_UNITS) for met, conc in conc_updates.items()
         }
+        # Apply the variant scale so that the per-step refresh of biomass /
+        # ppGpp / AA targets stays consistent with the scaled targets set up
+        # in first_update. Without this, merging unscaled conc_updates into
+        # homeostatic_objective overwrites the scaling for those metabolites
+        # every step.
+        if self.homeostatic_target_scale != 1.0:
+            conc_updates = {
+                met: v * self.homeostatic_target_scale
+                for met, v in conc_updates.items()
+            }
 
         self.homeostatic_objective = {**self.homeostatic_objective, **conc_updates}
 

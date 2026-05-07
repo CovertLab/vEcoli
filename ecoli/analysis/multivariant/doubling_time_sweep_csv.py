@@ -1,7 +1,7 @@
 """
 Multivariant analysis for the homeostatic-target-scaling sweep.
 
-Writes three CSVs to ``outdir``:
+Writes two CSVs to ``outdir``:
 
 1. ``doubling_time_sweep.csv`` — per-generation doubling time (seconds) for
    every (variant, lineage_seed, generation, agent_id) tuple, annotated with
@@ -9,13 +9,10 @@ Writes three CSVs to ``outdir``:
    successfully divided.
 2. ``doubling_time_sweep_summary.csv`` — per-variant statistics over the last
    four of ten generations (``generation >= 6``), successful gens only.
-3. ``homeostatic_scale_check.csv`` — sanity check comparing the observed
-   ratio of ``target_homeostatic_dmdt_conc`` magnitudes between each variant
-   and variant 0 against the configured scale, for three reference
-   metabolites.
 
-Also prints PASS/FAIL for the homeostatic scale check and the list of failed
-(variant, lineage_seed, generation) tuples.
+Verification that the configured ``homeostatic_target_scale`` was actually
+applied to ``sim_data`` lives in
+``ecoli/analysis/multivariant/homeostatic_target_verification.py``.
 """
 
 import os
@@ -23,15 +20,11 @@ from typing import Any
 
 # noinspection PyUnresolvedReferences
 from duckdb import DuckDBPyConnection
-import numpy as np
 import polars as pl
 
 from ecoli.library.parquet_emitter import (
     read_stacked_columns,
 )
-
-
-REFERENCE_METABOLITES = ["WATER[c]", "ATP[c]", "L-ALPHA-ALANINE[c]"]
 
 
 def _variant_scale_frame(
@@ -173,94 +166,3 @@ def plot(
     summary_path = os.path.join(outdir, "doubling_time_sweep_summary.csv")
     summary.write_csv(summary_path)
     print(f"Wrote {summary_path}")
-
-    # ------------------------------------------------------------------
-    # 3. Homeostatic scale sanity check
-    # ------------------------------------------------------------------
-    homeostatic_sql = read_stacked_columns(
-        history_sql,
-        [
-            "listeners__fba_results__target_homeostatic_dmdt_conc",
-            "listeners__fba_results__homeostatic_metabolites",
-            "time",
-        ],
-        order_results=False,
-    )
-    # For each variant, grab the first emitted timestep for lineage_seed=0,
-    # generation=0.
-    first_ts = conn.sql(f"""
-        WITH base AS (
-            SELECT variant, time,
-                   listeners__fba_results__target_homeostatic_dmdt_conc AS target,
-                   listeners__fba_results__homeostatic_metabolites AS mets
-            FROM ({homeostatic_sql})
-            WHERE lineage_seed = 0 AND generation = 0
-        ),
-        ranked AS (
-            SELECT variant, time, target, mets,
-                   row_number() OVER (PARTITION BY variant ORDER BY time) AS rn
-            FROM base
-        )
-        SELECT variant, target, mets
-        FROM ranked
-        WHERE rn = 1
-        ORDER BY variant
-    """).pl()
-
-    # Build {variant -> {metabolite -> target}} dict.
-    variant_targets: dict[int, dict[str, float]] = {}
-    for row in first_ts.iter_rows(named=True):
-        variant_idx = int(row["variant"])
-        mets_list = list(row["mets"])
-        target_arr = np.asarray(list(row["target"]), dtype=float)
-        variant_targets[variant_idx] = {
-            met: float(target_arr[i]) for i, met in enumerate(mets_list)
-        }
-
-    scale_lookup = {
-        int(r["variant"]): r["scale"] for r in scale_df.iter_rows(named=True)
-    }
-
-    check_rows: list[dict[str, Any]] = []
-    v0_targets = variant_targets.get(0, {})
-    for variant_idx in sorted(variant_targets.keys()):
-        configured_scale = scale_lookup.get(variant_idx)
-        for met in REFERENCE_METABOLITES:
-            target_v0 = v0_targets.get(met)
-            target_vn = variant_targets[variant_idx].get(met)
-            if target_v0 is None or target_vn is None or abs(target_v0) == 0.0:
-                observed_scale = None
-                abs_error = None
-            else:
-                observed_scale = abs(target_vn) / abs(target_v0)
-                if configured_scale is None:
-                    abs_error = None
-                else:
-                    abs_error = abs(observed_scale - float(configured_scale))
-            check_rows.append(
-                {
-                    "variant": variant_idx,
-                    "configured_scale": configured_scale,
-                    "metabolite": met,
-                    "target_v0": target_v0,
-                    "target_vN": target_vn,
-                    "observed_scale": observed_scale,
-                    "abs_error": abs_error,
-                }
-            )
-
-    check_df = pl.DataFrame(check_rows)
-    check_path = os.path.join(outdir, "homeostatic_scale_check.csv")
-    check_df.write_csv(check_path)
-    print(f"Wrote {check_path}")
-
-    # PASS/FAIL
-    offenders = check_df.filter(
-        (pl.col("abs_error").is_not_null()) & (pl.col("abs_error") >= 1e-6)
-    )
-    if offenders.height == 0:
-        print("[homeostatic_scale_check] PASS")
-    else:
-        print("[homeostatic_scale_check] FAIL")
-        for row in offenders.iter_rows(named=True):
-            print(f"  {row}")

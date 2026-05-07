@@ -1,6 +1,6 @@
 {
     "experiment_id" : "homeostatic_target_scale_sweep",
-    "sim_data_path": "out/homeostatic_target_scale_sweep_20260423-172110/parca/kb/simData.cPickle",
+    "sim_data_path": null,
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-redux"
     },
@@ -47,7 +47,10 @@
     "analysis_options": {
       "multivariant": {
         "doubling_time_sweep_line": {},
-        "doubling_time_sweep_csv": {}
+        "doubling_time_sweep_csv": {},
+        "homeostatic_target_verification": {},
+        "homeostatic_target_vs_estimated": {},
+        "conc_updates_scale_check": {}
       }
     }
 }
