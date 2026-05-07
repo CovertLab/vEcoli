@@ -13,6 +13,9 @@
     "emitter_arg": {
         "out_dir": "out"
     },
+    "swap_processes" : {
+        "ecoli-metabolism" : "ecoli-metabolism-redux-classic"
+    },
     "analysis_options": {
         "experiment_id": ["test_c6_objective"],
         "variant_data_dir": ["out/test_c6_objective/variant_sim_data"],
