@@ -14,6 +14,16 @@
         "out_dir": "out"
     },
     "analysis_options": {
-        "multivariant": {"doubling_time_hist": {"skip_n_gens": 0}}
+        "experiment_id": ["test_c6_objective"],
+        "variant_data_dir": ["out/test_c6_objective/variant_sim_data"],
+        "multivariant": {
+            "doubling_time_hist": {"skip_n_gens": 0}
+        },
+        "single": {
+            "selected_fluxes": {
+                "show_enzyme_counts": true,
+                "plot_reactions" : ["UDP-NACMURALA-GLU-LIG-RXN", "UDP-NACMURALGLDAPLIG-RXN"]
+            }
+        }
     }
 }
