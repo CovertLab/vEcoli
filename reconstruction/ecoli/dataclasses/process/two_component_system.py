@@ -825,24 +825,17 @@ class TwoComponentSystem(object):
 
     def make_modified_molecule_list(self):
         """
-        Since the raw modified_proteins table contains proteins that are either
-
-        1. not in the original molecule pool provided in raw_data.two_component_systems
-        (PHOQ-MONOMER, PHOR-MONOMER, ARCB-MONOMER, and NARX-MONOMER), or,
-        2. in the molecule pool but have different compartment tags from what
-        the simulation expects (DUCS-MONOMER[i] should be DCUS-MONOMER[c]),
-
+        Since the raw modified_proteins table contains proteins that are not in
+        the original molecule pool provided in raw_data.two_component_systems
+        (PHOQ-MONOMER, PHOR-MONOMER, ARCB-MONOMER, and NARX-MONOMER),
         the list of molecules that the stoich_matrix_monomers() function pulls
-        from needs to be manually expanded to include and correct for these cases.
+        from needs to be manually expanded to include these proteins.
 
         This function generates a modified molecule list that includes the original
         molecules from the TCS molecule pool (built in __init__()) and the
         new proteins from the raw_data.modified_proteins file that were not included
-        in the original list (or were, but needed corrected compartment tags).
+        in the original list.
 
-        # TODO (mia): Consider/investigate changing the compartment tag for
-        DCUS-MONOMER from [c] to [i] to avoid needing to check for compartment
-        validity here (and potentially be more consistent with known biology).
         """
         # Original monomers (extracted from raw_data.two_component_systems):
         tcs_molecules = self.molecule_names.tolist()
