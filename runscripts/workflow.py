@@ -114,7 +114,7 @@ CLUSTER_PRESETS: dict[str, dict[str, Any]] = {
             "QUEUE": "owners,normal",
         },
         "nextflow": {
-            "time": "7-00:00:00",
+            "time": "4-00:00:00",
             "cpus-per-task": 1,
             "mem": "4GB",
             # Run nextflow on lab partition for guaranteed
