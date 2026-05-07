@@ -95,6 +95,7 @@ def plot(
     variant_col = raw["variant"].to_numpy()
 
     all_dfs = []
+    summary_rows = []
     for variant_val in unique_variants:
         variant_label_list = _variant_label(variant_val, per_variant_params)
         variant_label = " ".join(variant_label_list)
@@ -137,6 +138,14 @@ def plot(
         pearson_r = float(np.corrcoef(sim_means_num, toya_means_num)[0, 1])
         pearson_r2 = pearson_r**2
 
+        summary_rows.append(
+            {
+                "variant_val": variant_val,
+                "variant_label": variant_label,
+                "pearson_r2": pearson_r2,
+                "r_squared": r_squared,
+            }
+        )
         all_dfs.append(
             pl.DataFrame(
                 {
@@ -157,6 +166,9 @@ def plot(
         )
 
     df_all = pl.concat(all_dfs)
+
+    summary_df = pl.DataFrame(summary_rows)
+    summary_df.write_csv(os.path.join(outdir, "central_metabolism_stats.csv"))
     flux_unit_str = FLUX_UNITS.strUnit()
 
     base = alt.Chart().encode(

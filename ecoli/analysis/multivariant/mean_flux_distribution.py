@@ -145,7 +145,7 @@ def plot(
         sim_flux_mean = flux_matrix[mask, :].mean(axis=0)
         counts, _ = np.histogram(sim_flux_mean, bins=bin_edges)
         label_l = _variant_label(variant_val, per_variant_params)
-        label = " ".join(label_l)
+        label = " ".join(label_l) if isinstance(label_l, list) else label_l
         for i, count in enumerate(counts):
             rows.append(
                 {
@@ -164,7 +164,11 @@ def plot(
         title=f"Mean Estimated Flux ({unit_label})",
         axis=alt.Axis(labelAngle=-40, labelFontSize=10),
     )
-    y_enc = alt.Y("Count:Q", title="Reaction count")
+    y_enc = alt.Y(
+        "Count:Q",
+        title="Reaction count (log scale)",
+        scale=alt.Scale(type="log", domainMin=1),
+    )
     tooltip_enc = [
         alt.Tooltip("Variant:N"),
         alt.Tooltip("Bin:N", title="Flux bin"),

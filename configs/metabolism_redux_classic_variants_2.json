@@ -1,9 +1,9 @@
 {
-  "experiment_id": "may_index1758_kinetic_fraction",
+  "experiment_id": "filtered_index7651_kinetic_fraction",
   "fail_at_max_duration": true,
   "progress_bar": true,
   "log_updates": false,
-  "generations": 2,
+  "generations": 8,
   "n_init_sims": 1,
   "emitter": "parquet",
   "emitter_arg": {
@@ -111,11 +111,11 @@
   "process_configs": {
     "ecoli-metabolism-redux-classic": {
       "objective_weights": {
-        "secretion": 3.60E-06,
-        "efficiency": 9.69E-06,
-        "kinetics": 0.000113756,
-        "diversity": 0.000125429,
-        "homeostatic": 0.826111644
+        "secretion": 0.000000145,
+        "efficiency": 0.00000103,
+        "kinetics": 0.00000546,
+        "diversity": 2.55E-05,
+        "homeostatic": 0.28797016
       }
     }
   },
@@ -123,8 +123,9 @@
     "metabolism_redux_classic_fraction_kinetic_target": {
       "fraction_kinetic_target": {
         "value": [
+          0.8,
           0.5,
-          0.8
+          0.1
         ]
       }
     }

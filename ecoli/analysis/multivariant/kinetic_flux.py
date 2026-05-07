@@ -105,11 +105,13 @@ def plot(
 
     # ── Variant label mapping ──────────────────────────────────────────────────
     unique_variants: list[int] = sorted(raw["variant"].unique().to_list())
-    _variant_label_map = {
-        v: _variant_label(v, per_variant_params) for v in unique_variants
-    }
-    variant_labels = [" ".join(_variant_label_map[v]) for v in unique_variants]
-    variant_label_map = {v: variant_labels[v] for v in unique_variants}
+
+    def _make_label(v: int) -> str:
+        raw_label = _variant_label(v, per_variant_params)
+        return " ".join(raw_label) if isinstance(raw_label, list) else raw_label
+
+    variant_label_map = {v: _make_label(v) for v in unique_variants}
+    variant_labels = [variant_label_map[v] for v in unique_variants]
     color_range = PASTEL[: len(unique_variants)]
     color_scale = alt.Scale(domain=variant_labels, range=color_range)
 
@@ -127,8 +129,7 @@ def plot(
     # log-transformed axes.
     scatter_rows: list[dict] = []
     for v in unique_variants:
-        label_l = variant_label_map[v]
-        label = " ".join(label_l)
+        label = variant_label_map[v]
         mask = variants_col == v
         ctm = counts_to_molar[mask]  # (T_v, 1)
         mean_target = (target_arr[mask] * ctm).mean(axis=0)  # mmol/(L·h)
@@ -250,8 +251,7 @@ def plot(
     )
 
     # ── Line-plot DataFrame ────────────────────────────────────────────────────
-    variant_label_col_l = [variant_label_map[v] for v in raw["variant"].to_list()]
-    variant_label_col = [" ".join(label) for label in variant_label_col_l]
+    variant_label_col = [variant_label_map[v] for v in raw["variant"].to_list()]
     line_df = (
         raw.select(["Time (min)", "generation", "lineage_seed", "kinetics_term"])
         .with_columns(pl.Series("Variant", variant_label_col))

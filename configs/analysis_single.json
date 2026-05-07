@@ -3,10 +3,10 @@
         "out_dir": "out/objective_weight_variant/"
     },
     "analysis_options": {
-        "experiment_id": ["may_high_kinetic_20260505-003206"],
-        "variant_data_dir": ["out/objective_weight_variant/may_high_kinetic_20260505-003206/variant_sim_data"],
+        "experiment_id": ["may_various_hom_obj_20260505-141005"],
+        "variant_data_dir": ["out/objective_weight_variant/may_various_hom_obj_20260505-141005/variant_sim_data"],
         "validation_data_path": ["out/kb/validationData.cPickle"],
-        "outdir": "out/objective_weight_variant/analysis/may_high_kinetic_20260505-003206/",
+        "outdir": "out/objective_weight_variant/analysis/may_various_hom_obj_20260505-141005/",
         "cpus": 1,
 
         "multiexperiment": {

@@ -28,8 +28,8 @@ Outputs saved to  sobol_results_N{N}/  (or --out_dir):
     sobol_problem.json       — sampling config
     saltelli_results.csv     — raw model output for all 12*N samples
     sobol_indices.csv        — S1, S1_conf, ST, ST_conf per (lambda, output)
-    sobol_bar_all.png        — panel of bar charts for all outputs
-    sobol_bar_{output}.png   — individual bar chart per output
+    sobol_bar_all.svg        — panel of bar charts for all outputs
+    sobol_bar_{output}.svg   — individual bar chart per output
 
 Prerequisites:
     pip install SALib
@@ -83,10 +83,16 @@ import pandas as pd
 from fsspec import open as fsspec_open
 from joblib import Parallel, delayed
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+from wholecell.utils import units, toya
+from ecoli.processes.metabolism_redux_classic import (
+    FlowResult,
+    FREE_RXNS,
+    NetworkFlowModel,
+)
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
+plt.style.use("default")
 try:
     # SALib >= 1.5 renamed saltelli -> sobol; fall back for older versions.
     try:
@@ -98,13 +104,6 @@ except ImportError as e:
     raise ImportError(
         "SALib is required for Sobol analysis. Install it with:\n    pip install SALib"
     ) from e
-
-from ecoli.processes.metabolism_redux_classic import (
-    FlowResult,
-    FREE_RXNS,
-    NetworkFlowModel,
-)
-from wholecell.utils import units, toya
 
 os.chdir(os.path.expanduser("~/dev/vEcoli/"))
 
@@ -534,7 +533,7 @@ def _plot_sobol_bars(indices_df: pd.DataFrame, out_dir: str) -> None:
 
     fig.suptitle("Sobol Sensitivity Indices — All Samples", fontsize=12, y=1.01)
     plt.tight_layout()
-    panel_path = os.path.join(out_dir, "sobol_bar_all.png")
+    panel_path = os.path.join(out_dir, "sobol_bar_all.svg")
     fig.savefig(panel_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     print(f"  Saved: {panel_path}")
@@ -572,7 +571,7 @@ def _plot_sobol_bars(indices_df: pd.DataFrame, out_dir: str) -> None:
         plt.tight_layout()
         safe = output_col.replace("/", "_")
         fig.savefig(
-            os.path.join(out_dir, f"sobol_bar_{safe}.png"), dpi=150, bbox_inches="tight"
+            os.path.join(out_dir, f"sobol_bar_{safe}.svg"), dpi=150, bbox_inches="tight"
         )
         plt.close(fig)
 

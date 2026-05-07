@@ -111,7 +111,7 @@ def plot(
 
     final = (
         alt.vconcat(*plots)
-        .resolve_scale(x="independent", y="independent")  # shared/independent
+        .resolve_scale(x="independent", y="shared")
         .properties(title="Weighted Objective Terms by Variant")
     )
 

@@ -1,5 +1,5 @@
 {
-    "experiment_id" : "temp",
+    "experiment_id" : "bob_index5328",
     "parca_options": {
         "cpus": 6
     },
@@ -9,7 +9,7 @@
     "log_updates": false,
     "generations": 1,
     "emitter": "timeseries",
-    "emitter_arg": {"out_dir": "out/temp/"},
+    "emitter_arg": {"out_dir": "out/objective_weight/"},
     "save": false,
     "save_times": [1],
     "fixed_media": "minimal",
@@ -49,12 +49,13 @@
     "process_configs": {
     "ecoli-metabolism-redux-classic": {
         "objective_weights": {
-            "secretion": 1.61894E-05,
-            "efficiency": 1.89694E-05,
-            "kinetics": 0.000675622,
-            "diversity": 0.007915997,
-            "homeostatic": 1.0
-        }
+            "secretion": 2.01E-07,
+            "efficiency": 7.74E-06,
+            "kinetics": 3.22447E-05,
+            "diversity": 0.000954656,
+            "homeostatic": 0.58035203
+        },
+        "fraction_kinetic_target": 1.0
     }
 }
 
