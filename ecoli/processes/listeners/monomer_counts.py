@@ -188,13 +188,13 @@ class MonomerCounts(Step):
         n_active_ribosome = states["unique"]["active_ribosome"]["_entryState"].sum()
         n_active_rnap = states["unique"]["active_RNAP"]["_entryState"].sum()
         n_active_replisome = states["unique"]["active_replisome"]["_entryState"].sum()
-        n_bound_TFs = attrs(states["promoters"], ["bound_TF"])
+        (n_bound_TFs,) = attrs(states["promoters"], ["bound_TF"])
 
         # Calculate the counts of subunits in active unique molecule complexes:
         n_ribosome_subunit = n_active_ribosome * self.ribosome_stoich
         n_rnap_subunit = n_active_rnap * self.rnap_stoich
         n_replisome_subunit = n_active_replisome * self.replisome_stoich
-        n_bound_TF_subunit = np.array(n_bound_TFs).astype(np.int32).sum(axis=(0, 1))
+        n_bound_TF_subunit = n_bound_TFs.astype(np.int32).sum(axis=0)
 
         # Add the counts of all active unique molecule complex subunits to the
         # free counts of each "inactive" subunit in the bulk (note this must
