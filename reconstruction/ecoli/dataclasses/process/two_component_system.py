@@ -270,20 +270,41 @@ class TwoComponentSystem(object):
                     # can skip it for now (see #975)
                     if subunit["monomer"] == "PI[c]":
                         continue
-                    # Since the compartment tag for some subunits may be off,
-                    # strip the compartment tag from the subunit and check if
-                    # the molecule name is valid
-                    else:
-                        subunit_wo_tag = subunit["monomer"].split("[")[0]
-                        # Get the correct compartment tag if the molecule is valid:
-                        if sim_data.getter.is_valid_molecule(subunit_wo_tag):
-                            compartment_tag = sim_data.getter.get_compartment(
-                                subunit_wo_tag
-                            )
-                            new_subunit_ID = f"{subunit_wo_tag}[{compartment_tag[0]}]"
-                            D[molecule_and_location][str(new_subunit_ID)] = float(
-                                subunit["stoichiometry"]
-                            )
+
+                    # Parse subunit ID to extract molecule name and compartment tag
+                    subunit_parts = subunit["monomer"].split("[")
+                    subunit_wo_tag = subunit_parts[0]
+                    original_compartment = (
+                        subunit_parts[1].rstrip("]") if len(subunit_parts) > 1 else None
+                    )
+
+                    # Verify the molecule is valid
+                    if not sim_data.getter.is_valid_molecule(subunit_wo_tag):
+                        raise ValueError(
+                            f"Invalid molecule '{subunit_wo_tag}' found as subunit "
+                            f"in complex '{molecule_and_location}'. "
+                            f"Molecule not recognized in bulk molecule data."
+                        )
+
+                    # Get the compartment tag from bulk molecule data
+                    compartment_tag = sim_data.getter.get_compartment(subunit_wo_tag)
+                    expected_compartment = compartment_tag[0]
+
+                    # Check for compartment tag mismatch
+                    if original_compartment != expected_compartment:
+                        raise ValueError(
+                            f"Compartment tag mismatch for subunit '{subunit['monomer']}' "
+                            f"in complex '{molecule_and_location}': "
+                            f"modified_proteins.tsv has '[{original_compartment}]' but "
+                            f"bulk molecule data has '[{expected_compartment}]'. "
+                            f"Please update reconstruction/ecoli/flat/modified_proteins.tsv "
+                            f"to use '[{expected_compartment}]' for consistency."
+                        )
+
+                    subunit_ID = f"{subunit_wo_tag}[{expected_compartment}]"
+                    D[molecule_and_location][str(subunit_ID)] = float(
+                        subunit["stoichiometry"]
+                    )
 
         return D
 
