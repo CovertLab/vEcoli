@@ -7,7 +7,7 @@
     "fail_at_max_duration": true,
     "sim_data_path": null,
     "generations": 1,
-    "n_init_sims": 4,
+    "n_init_sims": 1,
     "single_daughters": true,
     "emitter": "parquet",
     "emitter_arg": {
@@ -20,13 +20,9 @@
         "experiment_id": ["test_c6_objective"],
         "variant_data_dir": ["out/test_c6_objective/variant_sim_data"],
         "multivariant": {
-            "doubling_time_hist": {"skip_n_gens": 0}
-        },
-        "single": {
-            "selected_fluxes": {
-                "show_enzyme_counts": true,
-                "plot_reactions" : ["UDP-NACMURALA-GLU-LIG-RXN", "UDP-NACMURALGLDAPLIG-RXN"]
-            }
+            "doubling_time_hist": {"skip_n_gens": 0},
+            "enzyme_availability_flux": {},
+            "metabolite_unmet_need": {}
         }
     }
 }
