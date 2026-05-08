@@ -1326,7 +1326,35 @@ def stream_log(
         time.sleep(sleep_time)
 
 
+def _load_dotenv(env_file: str) -> None:
+    """Load environment variables from a .env file into os.environ.
+
+    Variables already present in the environment are not overridden, so
+    values set by the caller (e.g. via ``uv run --env-file``) take precedence.
+    Lines that are empty, start with ``#``, or do not contain ``=`` are ignored.
+    """
+    if not os.path.exists(env_file):
+        return
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            os.environ.setdefault(key, value)
+
+
 def main():
+    # Load .env from the repository root so that variables like NXF_VER are
+    # set even when the script is invoked directly with python (e.g. on HPC/
+    # cloud) rather than via ``uv run --env-file .env``.
+    _load_dotenv(
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
+        )
+    )
     parser = argparse.ArgumentParser()
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
     parser.add_argument(

@@ -161,3 +161,6 @@ and workflow configuration.
 
 If you encounter an issue not addressed by the docs, feel free to create a GitHub issue, and we will
 get back to you as soon as we can.
+
+## Contributing
+External contributions are welcome! Refer to our [Contributor Guide](https://covertlab.github.io/vEcoli/contributing.html) for more details.

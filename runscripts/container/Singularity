@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: ghcr.io/astral-sh/uv@sha256:a265bdb0593070eee9dfededde2e9d586917f64cfd297e290d78584e473d81e4
+From: ghcr.io/astral-sh/uv@sha256:de254da1c9abae7926e5cf29a6ab4a5ea65d3290682d88aa416445fa3de681bf
 
 # Refer to Dockerfile for comments about build process. Apptainer does not
 # support layer caching which results in a much less interesting build file.
