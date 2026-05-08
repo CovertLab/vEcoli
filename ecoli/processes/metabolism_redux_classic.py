@@ -296,16 +296,26 @@ class MetabolismReduxClassic(Step):
                 # TODO: Not empty list default
                 "fba_results": listener_schema(
                     {
-                        "solution_fluxes": [],
-                        "solution_dmdt": [],
+                        "solution_fluxes": ([], self.reaction_names),
+                        "solution_dmdt": ([], self.metabolite_names),
                         "solution_residuals": [],
                         "time_per_step": 0.0,
                         "estimated_fluxes": [],
-                        "estimated_homeostatic_dmdt": [],
-                        "target_homeostatic_dmdt": [],
+                        "estimated_homeostatic_dmdt": (
+                            [],
+                            self.homeostatic_metabolites,
+                        ),
+                        "homeostatic_metabolite_counts": (
+                            [],
+                            self.homeostatic_metabolites,
+                        ),
+                        "target_homeostatic_dmdt": ([], self.homeostatic_metabolites),
                         "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
-                        "target_kinetic_fluxes": [],
+                        "target_kinetic_fluxes": (
+                            [],
+                            self.kinetic_constraint_reactions,
+                        ),
                         "reaction_catalyst_counts": [],
                         "maintenance_target": 0,
                     }
@@ -515,6 +525,7 @@ class MetabolismReduxClassic(Step):
                     "estimated_fluxes": estimated_reaction_fluxes,
                     "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
                     "target_homeostatic_dmdt": target_homeostatic_dmdt,
+                    "homeostatic_metabolite_counts": homeostatic_metabolite_counts,
                     "target_kinetic_fluxes": target_kinetic_flux,
                     "estimated_exchange_dmdt": estimated_exchange_dmdt,
                     "estimated_intermediate_dmdt": estimated_intermediate_dmdt,
