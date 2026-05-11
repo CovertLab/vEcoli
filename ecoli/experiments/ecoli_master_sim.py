@@ -707,7 +707,7 @@ class EcoliSim:
                 "agents",
                 self.agent_id,
             )
-            self.emit_stores = [path + emit_path for emit_path in self.emit_paths]
+        self.emit_stores = [path + emit_path for emit_path in self.emit_paths]
 
         # get initial state
         initial_cell_state = ecoli_composer.initial_state()
