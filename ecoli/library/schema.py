@@ -256,15 +256,17 @@ class get_bulk_counts(Serializer):
 class get_unique_fields(Serializer):
     """Serializer for unique molecules."""
 
-    def serialize(unique: np.ndarray) -> list[np.ndarray]:
+    def serialize(unique: np.ndarray) -> dict[str, np.ndarray]:
         """
         Args:
             unique: Numpy structured array of attributes for one unique molecule
 
         Returns:
-            List of contiguous (required by orjson) arrays, one for each attribute
+            Mapping of attributes to contiguous (required by orjson) arrays
         """
-        return [np.ascontiguousarray(unique[field]) for field in unique.dtype.names]
+        return {
+            field: np.ascontiguousarray(unique[field]) for field in unique.dtype.names
+        }
 
 
 def numpy_schema(name: str, emit: bool = True) -> Dict[str, Any]:
@@ -288,7 +290,7 @@ def numpy_schema(name: str, emit: bool = True) -> Dict[str, Any]:
         # Since vivarium-core ensures that each store will only have a single
         # updater, it's OK to create new UniqueNumpyUpdater objects each time
         schema["_updater"] = UniqueNumpyUpdater().updater
-        # Convert to list of contiguous Numpy arrays for faster and more
+        # Convert to dictionary of contiguous Numpy arrays for faster and more
         # efficient serialization (still do not recommend emitting unique)
         schema["_serializer"] = get_unique_fields
         schema["_divider"] = UNIQUE_DIVIDERS[name]

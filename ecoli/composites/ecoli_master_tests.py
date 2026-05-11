@@ -8,6 +8,7 @@ import os
 from itertools import product
 
 import numpy as np
+import polars as pl
 import json
 import tempfile
 import pytest
@@ -27,6 +28,15 @@ from configs import (
     ECOLI_DEFAULT_TOPOLOGY,
 )
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
+from ecoli.library.parquet_emitter import dataset_sql, create_duckdb_conn
+
+
+@pytest.fixture
+def parquet_out_dir():
+    """Temporary directory for Parquet emitter output."""
+    with tempfile.TemporaryDirectory() as out_dir:
+        yield out_dir
+
 
 TRANSLATION_SUPPLY_FLAGS = [
     "mechanistic_translation_supply",
@@ -415,31 +425,37 @@ def plot_spatial_snapshots(data, sim, experiment_dir="ecoli_test"):
     )
 
 
-def test_emit_unique():
+def test_emit_unique(parquet_out_dir):
     """
-    Test that the ``emit_unique`` configuration option works. This can be broken
+    Verifies that unique molecule data is written to Parquet output when ``emit_unique``
+    is True. Make sure that every unique molecule type has at least one corresponding
+    column, including an integer unique index list. This can be broken
     if a new process is added whose ports schema connects to a unique molecule
     without setting the ``_emit`` property to ``config['emit_unique']``.
     """
     sim = EcoliSim.from_file()
+    sim.config["experiment_id"] = "test_emit_unique_parquet"
     sim.config["emit_unique"] = True
     sim.config["max_duration"] = 1
+    sim.config["emitter"] = "parquet"
+    sim.config["emitter_arg"] = {"out_dir": parquet_out_dir}
     sim.build_ecoli()
     sim.run()
+    sim.ecoli_experiment.emitter.finalize()
+
     unique_molecules = sim.ecoli_experiment.state["agents"]["0"]["unique"].inner.keys()
-    data = sim.query(
-        [
-            (
-                "agents",
-                "0",
-                "unique",
-            )
-        ]
-    )
-    for val in data.values():
-        for unique_mol in unique_molecules:
-            assert unique_mol in val["agents"]["0"]["unique"]
-            assert isinstance(val["agents"]["0"]["unique"][unique_mol], list)
+    history_sql, _, _ = dataset_sql(parquet_out_dir, [sim.experiment_id])
+    conn = create_duckdb_conn()
+    t = conn.sql(f"SELECT * FROM ({history_sql})").pl()
+
+    for unique_mol in unique_molecules:
+        assert any(
+            c == f"unique__{unique_mol}" or c.startswith(f"unique__{unique_mol}__")
+            for c in t.columns
+        ), f"Missing unique molecule '{unique_mol}' in Parquet output"
+        assert t.schema[f"unique__{unique_mol}__unique_index"] == pl.List(pl.Int64), (
+            f"Expected column 'unique__{unique_mol}__unique_index' to have dtype list[int]"
+        )
 
 
 @pytest.mark.slow
@@ -454,39 +470,35 @@ def test_translation_flag_harness(flag_overrides):
     run_two_second_simulation(flag_overrides)
 
 
-def test_emit_paths():
+def test_emit_paths(parquet_out_dir):
     """
-    Test that ``emit_paths`` correctly filters emitted data in the Parquet
-    emitter and that ``log_update`` paths work with ``log_updates = True``.
+    Verifies that only the columns derived from ``emit_paths`` (plus Hive
+    partition ID columns) are written to the Parquet dataset.
 
-    Uses ``configs/test_emit_paths.json``
+    Uses ``configs/test_emit_paths.json``.
     """
-    import tempfile
-    from ecoli.library.parquet_emitter import dataset_sql, create_duckdb_conn
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "test_emit_paths.json")
+    sim.config["emitter_arg"] = {"out_dir": parquet_out_dir}
+    sim.build_ecoli()
+    sim.run()
+    sim.ecoli_experiment.emitter.finalize()
 
-    with tempfile.TemporaryDirectory() as out_dir:
-        sim = EcoliSim.from_file(CONFIG_DIR_PATH + "test_emit_paths.json")
-        sim.config["emitter_arg"] = {"out_dir": out_dir}
-        sim.build_ecoli()
-        sim.run()
-        sim.ecoli_experiment.emitter.finalize()
+    history_sql, _, _ = dataset_sql(parquet_out_dir, [sim.experiment_id])
+    conn = create_duckdb_conn()
+    t = conn.sql(f"SELECT * FROM ({history_sql})").pl()
 
-        history_sql, _, _ = dataset_sql(out_dir, [sim.experiment_id])
-        conn = create_duckdb_conn()
-        t = conn.sql(f"SELECT * FROM ({history_sql})").pl()
-
-        id_cols = {
-            "time",
-            "agent_id",
-            "experiment_id",
-            "generation",
-            "lineage_seed",
-            "variant",
-        }
-        emit_paths = {"__".join(col) for col in sim.config["emit_paths"]} | id_cols
-        assert set(t.columns) == emit_paths, (
-            f"Expected columns {emit_paths} but got {set(t.columns)}"
-        )
+    id_cols = {
+        "time",
+        "agent_id",
+        "experiment_id",
+        "generation",
+        "lineage_seed",
+        "variant",
+    }
+    emit_paths = {"__".join(col) for col in sim.config["emit_paths"]} | id_cols
+    assert set(t.columns) == emit_paths, (
+        f"Expected columns {emit_paths} but got {set(t.columns)}"
+    )
 
 
 test_library = {
