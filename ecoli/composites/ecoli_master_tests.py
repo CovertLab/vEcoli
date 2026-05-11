@@ -454,6 +454,41 @@ def test_translation_flag_harness(flag_overrides):
     run_two_second_simulation(flag_overrides)
 
 
+def test_emit_paths():
+    """
+    Test that ``emit_paths`` correctly filters emitted data in the Parquet
+    emitter and that ``log_update`` paths work with ``log_updates = True``.
+
+    Uses ``configs/test_emit_paths.json``
+    """
+    import tempfile
+    from ecoli.library.parquet_emitter import dataset_sql, create_duckdb_conn
+
+    with tempfile.TemporaryDirectory() as out_dir:
+        sim = EcoliSim.from_file(CONFIG_DIR_PATH + "test_emit_paths.json")
+        sim.config["emitter_arg"] = {"out_dir": out_dir}
+        sim.build_ecoli()
+        sim.run()
+        sim.ecoli_experiment.emitter.finalize()
+
+        history_sql, _, _ = dataset_sql(out_dir, [sim.experiment_id])
+        conn = create_duckdb_conn()
+        t = conn.sql(f"SELECT * FROM ({history_sql})").pl()
+
+        id_cols = {
+            "time",
+            "agent_id",
+            "experiment_id",
+            "generation",
+            "lineage_seed",
+            "variant",
+        }
+        emit_paths = {"__".join(col) for col in sim.config["emit_paths"]} | id_cols
+        assert set(t.columns) == emit_paths, (
+            f"Expected columns {emit_paths} but got {set(t.columns)}"
+        )
+
+
 test_library = {
     "1": test_division,
     "2": test_division_topology,
@@ -462,6 +497,7 @@ test_library = {
     "5": test_emit_unique,
     "6": test_translation_flag_harness,
     "7": test_daughter_state_includes_non_agent_state,
+    "8": test_emit_paths,
 }
 
 # run experiments in test_library from the command line with:

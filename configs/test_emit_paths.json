@@ -1,0 +1,11 @@
+{
+    "experiment_id": "test_emit_paths",
+    "suffix_time": false,
+    "max_duration": 2,
+    "log_updates": true,
+    "emit_paths": [
+        ["listeners", "mass", "cell_mass"],
+        ["log_update", "ecoli-mass-listener", "listeners", "mass", "dry_mass"]
+    ],
+    "emitter": "parquet"
+}
