@@ -876,11 +876,11 @@ class ParquetEmitter(Emitter):
                         group (optional, default: 400),
                     'threaded': Whether to write Parquet files
                         in a background thread (optional, default: True),
+                    'emit_paths': List of tuple paths to include
+                        in emitted data (optional, omit agent path),
                     # One of the following is REQUIRED
                     'out_dir': local output directory (absolute/relative),
-                    'out_uri': Google Cloud storage bucket URI,
-                    'emit_paths': Optional list of tuple paths to include
-                        in emitted data (agent path omitted).
+                    'out_uri': Google Cloud storage bucket URI
                 }
 
         """
