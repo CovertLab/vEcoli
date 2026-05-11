@@ -1094,6 +1094,11 @@ def main():
     ecoli_sim = EcoliSim.from_cli()
     ecoli_sim.build_ecoli()
     ecoli_sim.run()
+    # When max_duration is specified, a simulation can finish without dividing
+    # or raising an Exception. In this case, we still want to finalize the
+    # Parquet emitter to ensure all buffered data is written to file.
+    if isinstance(ecoli_sim.ecoli_experiment.emitter, ParquetEmitter):
+        ecoli_sim.ecoli_experiment.emitter.finalize()
 
 
 if __name__ == "__main__":
