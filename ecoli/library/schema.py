@@ -242,6 +242,7 @@ def counts(states: np.ndarray, idx: int | np.ndarray) -> np.ndarray:
 class get_bulk_counts(Serializer):
     """Serializer for bulk molecules that saves counts without IDs or masses."""
 
+    @staticmethod
     def serialize(bulk: np.ndarray) -> np.ndarray:
         """
         Args:
@@ -256,6 +257,7 @@ class get_bulk_counts(Serializer):
 class get_unique_fields(Serializer):
     """Serializer for unique molecules."""
 
+    @staticmethod
     def serialize(unique: np.ndarray) -> dict[str, np.ndarray]:
         """
         Args:
