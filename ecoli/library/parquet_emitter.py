@@ -1103,7 +1103,22 @@ class ParquetEmitter(Emitter):
                                 :emit_idx
                             ].tolist() + [None] * (self.batch_size - emit_idx)
                 # Fall back Polars serialization
-                v = pl.Series([v])
+                try:
+                    v = pl.Series([v])
+                except ValueError as e:
+                    if isinstance(v, np.ndarray):
+                        if v.ndim > 1:
+                            raise ValueError(
+                                f"Field {k} is a NumPy array with "
+                                "more than 1 dimension, which cannot be "
+                                "serialized using the fallback Polars logic. "
+                                "If this field has a consistent shape, update "
+                                "the ports schema to define a default value "
+                                "with that expected shape. Otherwise, convert "
+                                "the value to Python lists using tolist() or "
+                                "flatten it to 1-D and emit the shape separately."
+                            )
+                    raise e
                 # Ensure type consistency
                 curr_type = self.pl_types.setdefault(k, pl.Null)
                 if v.dtype != curr_type:

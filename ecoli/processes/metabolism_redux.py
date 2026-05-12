@@ -395,7 +395,9 @@ class MetabolismRedux(Step):
                         "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
                         "target_kinetic_fluxes": [],
-                        "target_kinetic_bounds": [],
+                        "target_kinetic_bounds": np.zeros(
+                            (len(self.kinetic_constraint_reactions), 2), dtype=int
+                        ),
                         "reaction_catalyst_counts": [],
                         "maintenance_target": 0,
                     }

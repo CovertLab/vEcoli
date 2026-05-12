@@ -180,6 +180,10 @@ of integers where some entries are empty lists).
   The Parquet emitter is poorly suited for storing large listeners that have more
   than a single dimension per time step. We recommend splitting these listeners up
   if possible, especially if you plan to read specific indices along those dimensions.
+  If you choose to emit multi-dimensional listeners, they must have a default value
+  defined through a ports schema that is the same shape as the emitted values at
+  all time steps. For example, if emitted values are 2-D arrays of shape (3, 4),
+  the default value must also be a 2-D array of shape (3, 4).
 
 The Parquet emitter saves the serialized tabular data to two Hive-partitioned
 directories in the output folder (``out_dir`` or ``out_uri`` option under

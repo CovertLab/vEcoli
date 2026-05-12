@@ -1391,7 +1391,7 @@ class TestParquetEmitterEdgeCases:
         }
         with pytest.raises(
             ValueError,
-            match=re.escape("cannot parse numpy data type dtype('O')"),
+            match=re.escape("more than 1 dimension"),
         ):
             emitter.emit(sim_data7)
 
