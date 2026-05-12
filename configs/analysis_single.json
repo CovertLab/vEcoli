@@ -3,10 +3,10 @@
         "out_dir": "out/objective_weight_variant/"
     },
     "analysis_options": {
-        "experiment_id": ["may_various_hom_obj_20260505-141005"],
-        "variant_data_dir": ["out/objective_weight_variant/may_various_hom_obj_20260505-141005/variant_sim_data"],
+        "experiment_id": ["filtered_index7651_kinetic_fraction_20260507-022234"],
+        "variant_data_dir": ["out/objective_weight_variant/filtered_index7651_kinetic_fraction_20260507-022234/variant_sim_data"],
         "validation_data_path": ["out/kb/validationData.cPickle"],
-        "outdir": "out/objective_weight_variant/analysis/may_various_hom_obj_20260505-141005/",
+        "outdir": "out/objective_weight_variant/analysis/filtered_index7651_kinetic_fraction_20260507-022234/",
         "cpus": 1,
 
         "multiexperiment": {
@@ -19,7 +19,6 @@
             "cell_mass": {},
             "doubling_time_hist": {"skip_n_gens": 0},
             "centralCarbonMetabolismScatter": {},
-            "centralCarbonMetabolismBoxScatter": {},
             "weighted_objective_terms": {},
             "enzyme_availability_flux":{},
             "mean_flux_distribution": {

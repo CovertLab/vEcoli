@@ -3,8 +3,6 @@ Distribution of time-mean estimated fluxes across reactions for multivariant sim
 
 One Altair bar-chart (histogram) subplot per variant, faceted in a grid.
 Bins are shared across all variants so panels are directly comparable.
-Each bin is displayed as a nominal category of equal visual width, which
-handles unevenly-spaced (e.g. logarithmic) bin edges gracefully.
 """
 
 from __future__ import annotations
@@ -166,8 +164,7 @@ def plot(
     )
     y_enc = alt.Y(
         "Count:Q",
-        title="Reaction count (log scale)",
-        scale=alt.Scale(type="log", domainMin=1),
+        title="Reaction count",
     )
     tooltip_enc = [
         alt.Tooltip("Variant:N"),
