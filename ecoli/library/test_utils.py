@@ -80,7 +80,8 @@ def patch_func(func: str, *, cb: Callable | None = None) -> _patch:
 
 def patch_meth(
     obj: object, meth: str, *,
-    cb: Callable | None = None, modargs: Callable | None = None
+    cb: Callable[..., None] | None = None,
+    modargs: Callable[..., tuple[tuple, dict]] | None = None
 ) -> None:
     """
     Patch an object instance method, in order to trace its calls, and to

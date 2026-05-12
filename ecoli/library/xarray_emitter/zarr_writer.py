@@ -505,10 +505,8 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
     """
 
     @classmethod
-    def validate_config(cls, config: dict[str, Any], /) -> None:
-        super().validate_config(config)
-        zarr_config = config["backend_config"]
-        match zarr_config.get("format"):
+    def validate_backend_config(cls, config: dict[str, Any], /) -> None:
+        match config.get("format"):
             case None:
                 raise KeyError(emitter_arg_error(
                     cls, "Missing argument",
@@ -534,18 +532,19 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
 
         Calls: :py:func:`zarr.open_group`.
         """
-        return zarr.open_group(
-            # URI for global store holding entire workflow
-            self.config["store"],
-            # independent substore holding current simulation subensemble
-            path=str(self.partition.independent_path),
-            # enforce explicit format choice
-            zarr_format=self.config["backend_config"]["format"],
-            # load consolidated metadata from previous generations
-            use_consolidated=True,
-            # only allow appending
-            mode="a",
-        )
+        with filter_warnings(self._warnings_eval_effect):
+            return zarr.open_group(
+                # URI for global store holding entire workflow
+                self.config["store"],
+                # independent substore holding current simulation subensemble
+                path=str(self.partition.independent_path),
+                # enforce explicit format choice
+                zarr_format=self.config["backend_config"]["format"],
+                # load consolidated metadata from previous generations
+                use_consolidated=True,
+                # only allow appending
+                mode="a",
+            )
 
     def _check_group(self, group: Group) -> Group:
         """
@@ -629,19 +628,22 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
                 "direct_io": False,
             }
         })
-        return ZarrStore(
-            self._cache_consolidated_metadata(
-                self._check_group(self._open_group())),
-            # only allow appending along time axis
-            mode="a-",
-            # manage cache updates in `self.update_transport()`
-            cache_members=True,
-            # consolidate only after simulation finishes through Zarr API,
-            # rather than after every write through Xarray API
-            consolidate_on_close=False,
-            # finalise Zarr API
-            close_store_on_close=True,
-        )
+        group = self._cache_consolidated_metadata(
+            self._check_group(
+                self._open_group()))
+        with filter_warnings(self._warnings_eval_effect):
+            return ZarrStore(
+                group,
+                # only allow appending along time axis
+                mode="a-",
+                # manage cache updates in `self.update_transport()`
+                cache_members=True,
+                # consolidate only after simulation finishes through Zarr API,
+                # rather than after every write through Xarray API
+                consolidate_on_close=False,
+                # finalise Zarr API
+                close_store_on_close=True,
+            )
 
     # ~~~~~~~~~~~~~~~~~ #
 
@@ -689,38 +691,36 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
 
     # ~~~~~~~~~~~~~~~~~ #
 
+    _zarr_warnings: dict[str, WarningFilter] = {
+        "consolidated_metadata": WarningFilter(
+            module="zarr.api.asynchronous",
+            category=ZarrUserWarning,
+            message="Consolidated metadata.*Zarr format 3",
+            action="ignore"),
+        "string": WarningFilter(
+            module="zarr.core.dtype.npy.string",
+            category=UnstableSpecificationWarning,
+            message=".*data type.*Zarr V3",
+            action="ignore"),
+        "numcodecs": WarningFilter(
+            module="zarr.codecs.numcodecs",
+            category=ZarrUserWarning,
+            message=".*Numcodecs codecs.*Zarr version 3 specification",
+            action="ignore"),
+        "zarrs": WarningFilter(
+            module="zarrs.pipeline",
+            category=UserWarning,
+            message="Array is unsupported by ZarrsCodecPipeline",
+            action="ignore")
+    }
+
     @classmethod
     def warnings_make_effect(cls) -> list[WarningFilter]:
-        return [
-            WarningFilter(
-                module="zarr.api.asynchronous",
-                category=ZarrUserWarning,
-                message="Consolidated metadata.*Zarr format 3",
-                action="ignore"),
-            WarningFilter(
-                module="zarr.core.dtype.npy.string",
-                category=UnstableSpecificationWarning,
-                message=".*data type.*Zarr V3",
-                action="ignore"),
-            WarningFilter(
-                module="zarr.codecs.numcodecs",
-                category=ZarrUserWarning,
-                message=".*Numcodecs codecs.*Zarr version 3",
-                action="ignore"),
-            WarningFilter(
-                module="zarrs.pipeline",
-                category=UserWarning,
-                message="Array is unsupported by ZarrsCodecPipeline",
-                action="ignore")]
+        return list(cls._zarr_warnings.values())
 
     @classmethod
     def warnings_eval_effect(cls) -> list[WarningFilter]:
-        return [
-            WarningFilter(
-                module="zarrs.pipeline",
-                category=UserWarning,
-                message="Array is unsupported by ZarrsCodecPipeline",
-                action="ignore")]
+        return [cls._zarr_warnings[w] for w in ["numcodecs", "zarrs"]]
 
     # ~~~~~~~~~~~~~~~~~ #
 

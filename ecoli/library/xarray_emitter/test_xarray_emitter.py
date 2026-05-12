@@ -51,6 +51,16 @@ class TestEmitPath:
         with raises(AssertionError):
             EmitPath(("log_update", "baz", "log_update"))
 
+    @classmethod
+    def test_metadata_path(cls):
+        non_listener = ("foo", "bar")
+        assert EmitPath(non_listener).metadata_path == non_listener
+        listener = ("listeners", "foo", "bar", "7")
+        assert EmitPath(listener).metadata_path == listener
+        assert EmitPath(("log_update", "baz") + listener).metadata_path == listener
+        with raises(AssertionError):
+            EmitPath(("agents", "13")).metadata_path
+
 
 # ==============================================================================
 # integration tests
@@ -76,23 +86,22 @@ class XarrayEmitterConfig(PatchConfig):
     :py:class:`.PatchConfig` for the :py:class:`.XarrayEmitter`.
     """
 
-    store: Path
+    outdir: Path
     zarr_format: int
     threaded: bool
     debug: bool
     interval: int
 
     def __post_init__(self) -> None:
-        assert isinstance(self.store, Path)
-        assert self.store.is_absolute()
-        assert not self.store.exists()
+        assert isinstance(self.outdir, Path)
+        assert self.outdir.is_absolute()
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "emitter": "xarray",
             "emitter_arg": {
+                "out_dir": str(self.outdir),
                 "writer": {
-                    "store": str(self.store),
                     "threaded": self.threaded,
                     "backend": "zarr",
                     "backend_config": {
@@ -184,8 +193,8 @@ class TestEcoliSim:
         assert workdir.is_absolute()
         assert workdir.exists()
         assert not(list(workdir.iterdir()))
-        daughter_outdir = workdir / "daughter_states"
-        store = workdir / "store"
+        daughter_outdir = workdir / config_name / "daughter_states"
+        store = workdir / config_name / "store"
 
         # configure simulation workflow
         wf = MockEcoliSimWorkflow(
@@ -194,7 +203,7 @@ class TestEcoliSim:
             daughter_outdir=daughter_outdir,
             lineage_seed=randint(0, 2**10 - 1),
             emitter_config=XarrayEmitterConfig(
-                store, zarr_format, threaded, debug, interval))
+                workdir, zarr_format, threaded, debug, interval))
 
         # step through workflow
         hline = "=" * 79

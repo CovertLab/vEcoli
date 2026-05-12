@@ -1,0 +1,47 @@
+{
+  "experiment_id": "test_xarray_workflow",
+  "sim_data_path": "out/kb/simData.cPickle",
+  "suffix_time": false,
+  "fail_at_max_duration": true,
+  "generations": 6,
+  "n_init_sims": 10,
+  "skip_baseline": false,
+  "variants": {
+    "condition": {"condition": {"value": ["with_aa", "acetate"]}
+    }
+  },
+  "emitter": "xarray",
+  "emitter_arg": {
+    "out_dir": "out/experiments",
+    "transducer": {
+      "predicate": [
+        [{"subsample": {"interval": 3}}]
+      ],
+      "buffer": {"size": 200}
+    },
+    "writer": {
+      "threaded": true,
+      "buffers_per_chunk": 1,
+      "backend": "zarr",
+      "backend_config": {
+        "format": 3,
+        "async.concurrency": 3,
+        "threading.max_workers": 3
+      }
+    },
+    "view": [
+      {
+        "root": ["listeners"],
+        "variables": {
+          "fba_results": {
+            "reaction_fluxes": [{
+              "path": "metabolic_fluxes",
+              "unit": "[mmol/L.s]",
+              "dtype": "<f4"
+            }]
+          }
+        }
+      }
+    ]
+  }
+}

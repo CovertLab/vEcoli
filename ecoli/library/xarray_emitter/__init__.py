@@ -76,8 +76,12 @@ Differences in usage
 
 .. note::
   See :py:class:`.XarrayEmitter` for an explanation of the JSON configuration
-  syntax, and ``configs/test_configs/test_xarray_emitter.json`` for a complete
-  example.
+  syntax, and for complete examples, see in ``configs/test_configs/``:
+
+  - ``test_xarray_emitter.json`` (CLI invocation via
+    :py:func:`ecoli.experiments.ecoli_master_sim.main`)
+  - ``test_xarray_workflow.json`` (Nextflow invocation via
+    :py:func:`runscripts.workflow.main`).
 
 .. hint::
   As data structures, `DataTree`_\ s could support changes of variable names and

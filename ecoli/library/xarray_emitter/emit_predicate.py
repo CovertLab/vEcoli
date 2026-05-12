@@ -101,7 +101,6 @@ class DisjunctiveEmitPredicate:
                 cls, "Invalid argument", f"\"predicate\": [{config}]"))
         return cls(list(map(AtomicEmitPredicate.build, config)))
 
-    @abstractmethod
     def __call__(self, sim_tix: int, t: float, data: dict[str, Any], /) -> bool:
         """
         Evaluate the predicate for a simulation step.
@@ -145,7 +144,6 @@ class ConjunctiveEmitPredicate:
                 cls, "Invalid argument", f"\"predicate\": {config}"))
         return cls(list(map(DisjunctiveEmitPredicate.build, config)))
 
-    @abstractmethod
     def __call__(self, sim_tix: int, t: float, data: dict[str, Any], /) -> bool:
         """
         Evaluate the predicate for a simulation step.

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from os.path import abspath, join
 from pprint import pp
 from typing import Any, final
 
@@ -44,6 +45,7 @@ class XarrayEmitter(BufferedEmitter):
       {
         "emitter": "xarray",
         "emitter_arg": {
+          "out_uri": "...",
           "transducer": {...},
           "view": [...],
           "writer": {...}
@@ -52,12 +54,20 @@ class XarrayEmitter(BufferedEmitter):
 
     Here,
 
+      - ``out_{dir,uri}``, after possibly having been modified by
+        :py:mod:`runscripts.workflow`, is converted into ``writer.store =
+        "{out_uri}/{experiment_id}/store"``,
       - ``transducer`` is parsed by :py:class:`.XarrayTransducer`,
       - ``view`` is parsed by :py:class:`.ForestView`,
       - and ``writer`` is parsed by :py:class:`.AsyncBufferWriter`.
 
-    For a complete example, see
-    ``configs/test_configs/test_xarray_emitter.json``.
+    .. note::
+      For complete examples, see in ``configs/test_configs/``:
+
+      - ``test_xarray_emitter.json`` (CLI invocation via
+        :py:func:`ecoli.experiments.ecoli_master_sim.main`)
+      - ``test_xarray_workflow.json`` (Nextflow invocation via
+        :py:func:`runscripts.workflow.main`).
     """
 
     __slots__ = ("transducer", "writer", "finalized", "debug")
@@ -81,30 +91,57 @@ class XarrayEmitter(BufferedEmitter):
     """
 
     def __init__(self, config: dict[str, Any], /) -> None:
-        self.validate_config(config)
-        self.debug: bool = config.get("debug", False)
-        """ Flag for debug-level printing. Defaults to ``False``. """
-        self.transducer: XarrayTransducer = XarrayTransducer(config, debug=self.debug)
+        config = self.validate_config(config)
+        self.transducer: XarrayTransducer = XarrayTransducer(config)
         """ Presentation layer. """
         self.writer: AsyncBufferWriter = AsyncBufferWriter.dispatch(config["writer"])
         """ Session layer. """
+        self.debug: bool = config.get("debug", False)
+        """ Flag for debug-level printing. Defaults to ``False``. """
         super().__init__()
 
-    @classmethod
-    def validate_config(cls, config: dict[str, Any], /) -> None:
+    def validate_config(self, config: dict[str, Any], /) -> dict[str, Any]:
         """
-        Check assumptions about static emitter configuration.
+        Check assumptions about static emitter configuration, and convert
+        ``out_{dir,uri}`` into ``writer.store``.
         """
+        # emitter internals
         for key in ["transducer", "view", "writer"]:
             if key not in config:
                 raise KeyError(emitter_arg_error(
-                    cls, "Missing argument", f"\"{key}\": ..."))
+                    self, "Missing argument", f"\"{key}\": ..."))
         match config.get("debug", False):
             case bool():
                 pass
             case debug:
                 raise TypeError(emitter_arg_error(
-                    cls, "Invalid argument", f"\"debug\": {debug}"))
+                    self, "Invalid argument", f"\"debug\": {debug}"))
+
+        # output paths
+        match config.get("out_dir"):
+            case None:
+                match config.get("out_uri"):
+                    case None:
+                        raise KeyError(emitter_arg_error(
+                            self, "Missing store URI", "\"out_uri|out_dir\": ..."))
+                    case str(out):
+                        out_path = out
+                    case out:
+                        raise TypeError(emitter_arg_error(
+                            self, "Invalid output path", f"\"out_uri\": {out}"))
+            case (str() | Path()) as out:
+                out_path = abspath(out)
+            case out:
+                raise TypeError(emitter_arg_error(
+                    self, "Invalid output path", f"\"out_dir\": {out}"))
+        if not (experiment_id := config["experiment_id"]):
+            raise ValueError("Empty `experiment_id`")
+        if (store := config["writer"].get("store")) is not None:
+            raise KeyError(emitter_arg_error(
+                self, "Key should be written by `XarrayEmitter.validate_config()`",
+                f"\"writer\": {{\"store\": {store}}}"))
+        config["writer"]["store"] = join(out_path, experiment_id, "store")
+        return config
 
     # ~~~~~~~~~~~~~~~~~ #
 
@@ -216,7 +253,7 @@ class XarrayEmitter(BufferedEmitter):
                     partition=self.extract_partition(metadata),
                     metadata=self.extract_metadata(metadata),
                     coords=self.extract_coords(metadata))
-                self.writer.open_store(self.transducer.buffer)
+                self.writer.open_store(self.transducer)
             # sender: `Engine._emit_store_data()`
             case "history":
                 if not self.transducer.step(payload):

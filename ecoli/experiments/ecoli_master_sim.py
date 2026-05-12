@@ -778,7 +778,7 @@ class EcoliSim:
                     # Exit so that `.run()` does not raise `TimeLimitError`.
                     sys.exit()
 
-    def persist_generation(self, *, num_agents: int = 2) -> None:
+    def persist_generation(self, *, mock: bool = False) -> None:
         """
         Upon reaching cell division, save the daughter cell states to JSON files
         in the directory specified by ``config['daughter_outdir']``. Also,
@@ -790,15 +790,18 @@ class EcoliSim:
         Called by: :py:meth:`~.update_experiment`.
 
         Args:
-            num_agents: Expected number of cells. This argument exists solely
-                        for testing purposes.
+            mock: This argument exists solely for testing purposes, and has the
+                  effect of reducing costly file system operations.
         """
         state = self.ecoli_experiment.state.get_value(condition=not_a_process)
-        assert len(state["agents"]) == num_agents
+        assert len(state["agents"]) == 2
         # Daughter state should include all of the additional
         # non-agent state (e.g. environment state)
         non_agent_state = {k: v for k, v in state.items() if k != "agents"}
         for i, (agent_id, agent_state) in enumerate(state["agents"].items()):
+            if mock and i:
+                # skip export of second daughter state
+                continue
             prepare_save_state(agent_state)
             daughter_filename = f"daughter_state_{i}.json"
             daughter_path = cloud_path_join(self.daughter_outdir, daughter_filename)
@@ -813,10 +816,11 @@ class EcoliSim:
             f"Divided at t = {self.ecoli_experiment.global_time} after "
             f"{self.ecoli_experiment.global_time - self.initial_global_time} sec."
         )
-        # Nextflow workflows will source division time to determine
-        # initial global time to use for daughter cells
-        with open("division_time.sh", "w") as f:
-            f.write(f"export division_time={self.ecoli_experiment.global_time}")
+        if not mock:
+            # Nextflow workflows will source division time to determine
+            # initial global time to use for daughter cells
+            with open("division_time.sh", "w") as f:
+                f.write(f"export division_time={self.ecoli_experiment.global_time}")
 
     def save_states(self) -> None:
         """
@@ -882,21 +886,11 @@ class EcoliSim:
             if self.emitter_arg is not None:
                 for key, value in self.emitter_arg.items():
                     self.emitter_config[key] = value
-            if self.emitter == "parquet":
+            if self.emitter in ["parquet", "xarray"]:
                 if not any(map(self.emitter_config.__contains__,
                                ["out_dir", "out_uri"])):
                     raise KeyError(
-                        "Must provide out_dir or out_uri"
-                        " as emitter argument for parquet emitter.")
-            elif self.emitter == "xarray":
-                if not (
-                    not any(map(self.emitter_config.__contains__,
-                                ["out_dir", "out_uri"]))
-                    and "store" in self.emitter_config.get("writer", {})
-                ):
-                    raise KeyError(
-                        "For {\"emitter\": \"xarray\"}, please provide:\n"
-                        "  {\"emitter_arg\": {\"writer\": {\"store\": ... }}}")
+                        "Must provide `out_dir` or `out_uri` in `emitter_arg`.")
         else:
             raise TypeError(
                 "Emitter option must be a string"

@@ -283,7 +283,8 @@ class VariableSpec:
                     # use 1 storage chunk for the coordinate array
                     "chunks": coo.shape} | writer.coo_codecs(self)}
             case (True, np.ndarray() as coo):
-                assert coo.shape == (buf_size,)
+                if writer.transducer.buf_shifts:
+                    assert coo.shape == (buf_size,)
                 coo_enc = {self.coo_name: {
                     # use 1 storage chunk for `b` buffers of the time coordinate
                     "chunks": (b * buf_size,)} | writer.coo_codecs(self)}

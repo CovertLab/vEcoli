@@ -186,7 +186,7 @@ class MockEcoliSimWorkflow:
         # - loaded by: `ecoli.composites.ecoli_master.Ecoli.initial_state()`
         assert isinstance(self.daughter_outdir, Path)
         assert self.daughter_outdir.is_absolute()
-        self.daughter_outdir.mkdir(exist_ok=False)
+        self.daughter_outdir.mkdir(parents=True, exist_ok=True)
         self.initial_state_file = self.daughter_outdir / self.initial_state_name
 
         # initialise the seed stream, emulating:
@@ -243,7 +243,7 @@ class MockEcoliSimWorkflow:
             engine = _self.ecoli_experiment
 
             # method called conditionally on exception `DivisionDetected`
-            def persist_generation(_: EcoliSim, *, num_agents: int = 2) -> tuple:
+            def persist_generation(_: EcoliSim) -> tuple[tuple, dict]:
                 nonlocal self, engine
                 # emulate the environment variable `division_time`
                 self.division_time = engine.global_time
@@ -251,12 +251,10 @@ class MockEcoliSimWorkflow:
                 agents = engine.state.get_path(("agents",))
                 assert isinstance(agents, Store)
                 assert list(agents.inner.keys()) == [self.agent_id]
-                daughter_id = daughter_phylogeny_id(self.agent_id)[0]
                 daughter_state = agents.get_path((self.agent_id,))
-                agents.inner = {daughter_id: daughter_state}
-                # expect 1 agent in the wrapped method
-                assert num_agents == 2
-                return ((), {"num_agents": 1})
+                agents.inner = {i: daughter_state
+                                for i in daughter_phylogeny_id(self.agent_id)}
+                return ((), {"mock": True})
             patch_meth(_self, "persist_generation", modargs=persist_generation)
 
             # patch applied conditionally on test flag `success`
@@ -275,8 +273,8 @@ class MockEcoliSimWorkflow:
         """
         Emulate ``runscripts/nextflow/sim.nf::{simGen0,sim}()`` by starting a
         single-generation simulation, stopping at ``config["max_duration"]``,
-        and storing the resulting cell state to disk, without waiting for an
-        actual cell division.
+        and storing the resulting single cell state to disk, without waiting for
+        an actual cell division.
 
         Calls: :py:meth:`.init_sim`.
 

@@ -921,9 +921,8 @@ class ParquetEmitter(BufferedEmitter):
         """
         assert engine.emitter is self
         if emit_paths:
-            state = self.ecoli_experiment.state
-            state.set_emit_value(emit=False, path=tuple())
-            state.set_emit_values(emit=True, paths=emit_paths)
+            engine.state.set_emit_value(emit=False, path=tuple())
+            engine.state.set_emit_values(emit=True, paths=emit_paths)
 
     def _finalize(self, *, success: bool):
         """

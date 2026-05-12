@@ -36,7 +36,7 @@ class EmitPathType(Flag):
     """
     listener = auto()
     """
-    Relative path to a ``("listener", ...)``
+    Relative path to a ``("listeners", ...)``
     :py:class:`~vivarium.core.store.Store` created by
     :py:func:`~ecoli.library.schema.listener_schema`.
     """
@@ -125,12 +125,13 @@ class EmitPath:
         """
         Corresponding path within the result of
         :py:meth:`ecoli.experiments.ecoli_master_sim.EcoliSim.output_metadata`.
+        Currently, this is either identical to :py:attr:`.path`, or is the
+        suffix of :py:attr:`.path` starting with ``"listeners"``.
         """
-        if not self.type.is_update_listener:
-            # access process metadata
-            return ()
-        elif EmitPathType.listener in self.type:
+        assert not self.type.is_agent
+        if self.type.is_listener:
             # access listener metadata
-            return ("listeners",)
+            return self.path[self.path.index("listeners"):]
         else:
-            raise NotImplementedError(f"Metadata access for:\n  {self}")
+            # access process metadata
+            return self.path

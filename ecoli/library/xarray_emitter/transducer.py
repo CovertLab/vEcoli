@@ -207,6 +207,11 @@ class XarrayBuffer:
           sim_tix: :py:attr:`.XarrayTransducer.sim_tix`.
           t:       Simulation time stamp.
           data:    Input received from :py:meth:`!Engine._emit_store_data`.
+
+        .. note::
+          This method relies on the validity of :py:attr:`.partition` for the
+          current simulation, and hence assumes that it is *not* called after a
+          cell division event.
         """
         # index into buffer along time coordinate
         t_ix = {self.time_coo: buf_tix}
@@ -216,7 +221,9 @@ class XarrayBuffer:
 
         # strip agent prefix and remove schema paths with empty emit values
         agent_path = ("agents", self.partition.agent_id)
-        emit_data = dict_to_paths((), get_in(data, agent_path))
+        emit_data = dict_to_paths((), get_in(data, agent_path, default=None))
+        if emit_data == [(), None]:
+            raise KeyError(f"Missing agent ID: {agent_path}")
 
         # check for expected emit paths
         emit_queue = set(self.view.emitted_paths)
@@ -402,10 +409,11 @@ class XarrayTransducer:
 
     __slots__ = (
         "__dict__", "predicate", "buffer",
-        "buf_size", "buf_tix", "sim_tix", "debug"
+        "buf_size", "buf_tix", "sim_tix", "emitted_sim_tix", "buf_shifts",
+        "debug"
     )
 
-    def __init__(self, config: dict[str, Any], /, *, debug: bool=False) -> None:
+    def __init__(self, config: dict[str, Any], /) -> None:
         self.validate_config(_config := config["transducer"])
 
         self.predicate = ConjunctiveEmitPredicate.build(_config["predicate"])
@@ -427,7 +435,17 @@ class XarrayTransducer:
         Current absolute *simulation step*; advanced at the end of a
         :py:meth:`.step` call.
         """
-        self.debug: bool = debug
+        self.emitted_sim_tix: int = 0
+        """
+        Latest emitted absolute *simulation step*; advanced at the end of a
+        :py:meth:`.step` call.
+        """
+        self.buf_shifts: int = 0
+        r"""
+        Number of cyclic buffer :py:meth:`.shift`\ s so far.
+        """
+
+        self.debug: bool = config.get("debug", False)
         """ Flag for debug-level printing. Defaults to ``False``. """
 
     @classmethod
@@ -454,8 +472,8 @@ class XarrayTransducer:
     def display(self, buf: DataTree, /) -> str:
         return (
             f"{self.__class__.__name__}:\n"
-            f"  buf_size: {self.buf_size}\n"
-            f"  sim_tix: {self.sim_tix}, buf_tix: {self.buf_tix}\n"
+            f"  buf_size: {self.buf_size}, buf_tix: {self.buf_tix}\n"
+            f"  sim_tix: {self.sim_tix}, emitted_sim_tix: {self.emitted_sim_tix}\n"
             f"  buffer:{indent(4, buf)}")
 
     # ~~~~~~~~~~~~~~~~~ #
@@ -464,7 +482,10 @@ class XarrayTransducer:
         """
         Basic consistency check, performed before each buffer-level operation.
         """
+        # index into a cyclic buffer
         assert 0 <= self.buf_tix <= self.buf_size
+        # emission lag depends on `self.predicate`
+        assert self.emitted_sim_tix <= self.sim_tix
         self.buffer.check_layout()
 
     def alloc(
@@ -488,9 +509,9 @@ class XarrayTransducer:
 
     def step(self, data: dict[str, Any], /) -> bool:
         r"""
-        If :py:attr:`.predicate` is satisfied for the current *simulation step*,
-        then create a new *emit step* by writing the simulation data into
-        :py:attr:`.buffer`.
+        If :py:attr:`.predicate` is satisfied for the current *simulation step*
+        and a cell division event has *not* occurred yet, then create a new
+        *emit step* by writing the simulation data into :py:attr:`.buffer`.
 
         Called by: :py:meth:`.XarrayEmitter.emit`.
 
@@ -498,21 +519,24 @@ class XarrayTransducer:
         :py:meth:`.XarrayBuffer.write`.
 
         Args:
-          data: Payload from :py:meth:`.XarrayEmitter.emit`.
+          data: Input received from :py:meth:`!Engine._emit_store_data`.
 
         Returns:
-          `False` if the buffer is full and the operation cannot be performed
-          without first :py:meth:`.flush`\ ing, otherwise `True`.
+          ``False`` if the buffer is full and the operation cannot be performed
+          without first :py:meth:`.flush`\ ing, otherwise ``True``.
         """
-        if self.predicate(self.sim_tix, t := get_in(data, ("time",)), data):
-            if self.buf_tix < self.buf_size:
-                # fill current emit step
-                self.buffer.write(self.buf_tix, self.sim_tix, t, data)
-                # increment emit step
-                self.buf_tix += 1
-            else:
-                # writing now would result in an `IndexError`
-                return False
+        if len(data["agents"]) == 1:
+            if self.predicate(self.sim_tix, t := data["time"], data):
+                if self.buf_tix < self.buf_size:
+                    # fill current emit step
+                    self.buffer.write(self.buf_tix, self.sim_tix, t, data)
+                    # increment emit step
+                    self.buf_tix += 1
+                    # record latest emitted simulation step
+                    self.emitted_sim_tix = self.sim_tix
+                else:
+                    # writing now would result in an `IndexError`
+                    return False
         # increment simulation step
         self.sim_tix += 1
         return True
@@ -544,7 +568,7 @@ class XarrayTransducer:
         """
         self.check_buffer()
         if final:
-            assert not include_static
+            assert not (self.buf_shifts and include_static)
             if self.buf_tix < self.buf_size:
                 # at least one unfilled emit step inside allocated buffer
                 self.truncate()
@@ -554,7 +578,7 @@ class XarrayTransducer:
             writer, self.buf_size,
             include_static=include_static, copy=not final)
         writer.merge_attributes(buf)
-        ref = {"sim_step": self.sim_tix,
+        ref = {"sim_step": self.emitted_sim_tix,
                "sim_time": self.buffer.get_time(self.buf_tix - 1)}
         if final:
             # reference to buffer components no longer needed
@@ -575,6 +599,7 @@ class XarrayTransducer:
         self.check_buffer()
         assert self.buf_tix == self.buf_size
         self.buf_tix = 0
+        self.buf_shifts += 1
         self.buffer.shift(self.buf_size)
 
     def truncate(self) -> None:

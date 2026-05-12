@@ -9,6 +9,7 @@
   "log_updates": true,
   "emitter": "xarray",
   "emitter_arg": {
+    "out_dir": "out/tests",
     "debug": false,
     "transducer": {
       "predicate": [
@@ -22,7 +23,6 @@
       }
     },
     "writer": {
-      "store": "out/store",
       "threaded": true,
       "buffers_per_chunk": 2,
       "backend": "zarr",
@@ -71,6 +71,18 @@
             "unit": "[fg]",
             "dtype": "<f4"
           }]
+        }
+      },
+      {
+        "root": ["listeners"],
+        "variables": {
+          "fba_results": {
+            "reaction_fluxes": [{
+              "path": "metabolism/fluxes/internal/rxn_global_listener",
+              "unit": "[mmol/L.s]",
+              "dtype": "<f4"
+            }]
+          }
         }
       },
       {

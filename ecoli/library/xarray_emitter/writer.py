@@ -14,7 +14,6 @@ from collections.abc import Callable, Coroutine
 from concurrent.futures import Future, Executor, ThreadPoolExecutor
 from functools import cached_property
 from inspect import ismethod
-from pathlib import Path
 from typing import Any
 from weakref import finalize
 
@@ -124,16 +123,18 @@ class AsyncBufferWriter[StoreT](ABC):
     Example JSON configuration::
 
       {
-        "store": "out/store",
+        "store": "{out_uri}/{experiment_id}/store",
         "threaded": true,
-        "buffers_per_chunk": 10,
+        "buffers_per_chunk": 1,
         "backend": "zarr",
         "backend_config": {...}
       }
 
     Here,
 
-      - ``store`` is a URI interpreted by the backend,
+      - ``store`` is a URI interpreted by the backend, and is currently set by
+        :py:meth:`.XarrayEmitter.validate_config` based on
+        ``emitter_arg.out_{dir,uri}``,
       - ``threaded`` toggles the use of a separate writer thread,
       - ``buffers_per_chunk`` is the integer-valued size ratio, in terms of
         *emit step* counts, between one chunk of backend storage and one
@@ -143,18 +144,22 @@ class AsyncBufferWriter[StoreT](ABC):
       - and ``backend_config`` is interpreted by the backend subclass.
 
     .. note::
-      The parameter ``buffers_per_chunk`` is intended to decouple the number of
-      output files from the choice of ``transducer.buffer.size`` in
-      :py:class:`.XarrayTransducer`. As a rule of thumb, 1 chunk file per
-      variable per generation is desirable in order to minimize the file system
-      pressure, unless a downstream application can benefit from smaller file
-      sizes.
+      The parameter ``writer.buffers_per_chunk`` is intended to decouple the
+      number of output files from the choice of ``transducer.buffer.size`` in
+      :py:class:`.XarrayTransducer`. As a rule of thumb:
 
-      The latter situation appears to be unlikely under current simulation use
-      cases. However, it may be supported in the future by extending the writer
-      configuration to further distinguish between *chunks* and *shards*, which
-      is `supported`_ by backends like Zarr.
+      -  For **immutable** object storage systems (e.g., Amazon S3 Standard
+         storage class), ``buffers_per_chunk`` must be set to 1, in order to
+         avoid copying previous objects when appending to them.
+      -  For local or HPC file systems, as well as for **appendable** object
+         storage systems (e.g., `Amazon S3 Express One Zone`_ storage class), 1
+         chunk file per variable per generation is desirable in order to
+         minimize the file system pressure. In case future downstream
+         applications require smaller chunk sizes, the writer configuration may
+         be extended to further distinguish between *chunks* and *shards*, which
+         is `supported`_ by backends like Zarr.
 
+    .. _Amazon S3 Express One Zone: https://docs.aws.amazon.com/AmazonS3/latest/userguide/directory-buckets-objects-append.html
     .. _supported: https://zarr.readthedocs.io/en/latest/user-guide/performance/#sharding
     """
 
@@ -178,10 +183,11 @@ class AsyncBufferWriter[StoreT](ABC):
 
     def __init__(self, config: dict[str, Any], /) -> None:
         self.validate_config(config)
+        self.validate_backend_config(config["backend_config"])
         self.config: dict[str, Any] = config
         """ Static configuration, received via :py:meth:`!Emitter.__init__`. """
 
-        self._buffer: XarrayBuffer | None = None
+        self._transducer: XarrayTransducer | None = None
         self._store: StoreT | None = None
         self._store_finalizer: Callable[[], None] | None = None
         """ Finalizer for :py:attr:`.store`. """
@@ -198,15 +204,8 @@ class AsyncBufferWriter[StoreT](ABC):
     @classmethod
     def validate_config(cls, config: dict[str, Any], /) -> None:
         """
-        Check assumptions about static writer configuration.
+        Check assumptions about backend-agnostic writer configuration.
         """
-        match config["store"]:
-            case (str() | Path()) as store if not str(store).endswith("/"):
-                pass
-            case store:
-                raise TypeError(emitter_arg_error(
-                    cls, "Invalid store path",
-                    f"\"writer\": {{\"store\": \"{store}\"}}"))
         match config.get("buffers_per_chunk"):
             case None:
                 raise KeyError(emitter_arg_error(
@@ -230,21 +229,36 @@ class AsyncBufferWriter[StoreT](ABC):
                     cls, "Invalid argument",
                     f"\"writer\": {{\"backend_config\": {c}}}"))
 
+    @classmethod
+    @abstractmethod
+    def validate_backend_config(cls, config: dict[str, Any], /) -> None:
+        """
+        Check assumptions about backend-specific writer configuration.
+        """
+        ...
+
     # ~~~~~~~~~~~~~~~~~ #
+
+    @property
+    def transducer(self) -> XarrayTransducer:
+        """
+        Dynamic configuration, received via :py:meth:`!Engine._emit_configuration`.
+        """
+        assert self._transducer is not None
+        return self._transducer
+
+    @transducer.setter
+    def transducer(self, transducer: XarrayTransducer) -> None:
+        assert self._transducer is None
+        assert isinstance(transducer, XarrayTransducer)
+        self._transducer = transducer
 
     @property
     def buffer(self) -> XarrayBuffer:
         """
         Dynamic configuration, received via :py:meth:`!Engine._emit_configuration`.
         """
-        assert self._buffer is not None
-        return self._buffer
-
-    @buffer.setter
-    def buffer(self, buffer: XarrayBuffer) -> None:
-        assert self._buffer is None
-        assert isinstance(buffer, XarrayBuffer)
-        self._buffer = buffer
+        return self.transducer.buffer
 
     @property
     def partition(self) -> XarrayStoragePartition:
@@ -263,7 +277,7 @@ class AsyncBufferWriter[StoreT](ABC):
         """
         ...
 
-    def open_store(self, buffer: XarrayBuffer, /) -> None:
+    def open_store(self, transducer: XarrayTransducer, /) -> None:
         """
         Initialise the transport layer.
 
@@ -273,7 +287,7 @@ class AsyncBufferWriter[StoreT](ABC):
           buffer: Used for obtaining dynamic metadata that is received through
                   :py:meth:`!Engine._emit_configuration`.
         """
-        self.buffer = buffer
+        self.transducer = transducer
         self.store = self._open_store()
 
     @abstractmethod
@@ -361,7 +375,7 @@ class AsyncBufferWriter[StoreT](ABC):
 
     @cached_property
     def _warnings_eval_effect(self) -> list[WarningFilter]:
-        return self.warnings_make_effect()
+        return self.warnings_eval_effect()
 
     @classmethod
     def warnings_all(cls) -> list[WarningFilter]:

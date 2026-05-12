@@ -339,10 +339,10 @@ class ForestView:
         if not len(self.forest):
             raise ValueError(emitter_arg_error(
                 self, "Missing arguments", "\"view\": [...]"))
-        paths = list(chain.from_iterable(t.paths for t in self.forest))
-        if len(frozenset(paths)) != len(paths):
+        roots = [t.root.path for t in self.forest]
+        if len(frozenset(roots)) != len(roots):
             raise ValueError(emitter_arg_error(
-                self, "Duplicate paths", "\"view\": [...]"))
+                self, "Duplicate roots", "\"view\": [...]"))
 
     @classmethod
     def from_dict(cls, config: list[dict[str, Any]], /) -> Self:
