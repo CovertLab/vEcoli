@@ -98,6 +98,11 @@ class Metabolism(Step):
         "seed": 0,
         # TODO: For testing, remove later (perhaps after modifying sim data)
         "reduce_murein_objective": False,
+        # Maps exchange molecule IDs (e.g. "OXYGEN-MOLECULE[p]", "GLC[p]")
+        # to forced uptake rates in mmol/g DCW/hr. Both the upper and lower
+        # flux bounds are set to the given rate, overriding media constraints.
+        # Use a rate of 0 to block uptake entirely.
+        "forced_uptake_rates": {},
         "base_reaction_ids": [],
         "fba_reaction_ids_to_base_reaction_ids": [],
         "time_step": 1,
@@ -124,6 +129,7 @@ class Metabolism(Step):
             self.parameters,
             timeline=self.current_timeline,
             include_ppgpp=self.include_ppgpp,
+            forced_uptake_rates=self.parameters["forced_uptake_rates"],
         )
 
         # Save constants
@@ -728,6 +734,7 @@ class FluxBalanceAnalysisModel(object):
         parameters: dict[str, Any],
         timeline: tuple[tuple[int, str], ...],
         include_ppgpp: bool = True,
+        forced_uptake_rates: dict[str, float] = None,
     ):
         """
         Args:
@@ -735,7 +742,11 @@ class FluxBalanceAnalysisModel(object):
             timeline: timeline for nutrient changes during simulation
                 (time of change, media ID), by default [(0.0, 'minimal')]
             include_ppgpp: if True, ppGpp is included as a concentration target
+            forced_uptake_rates: maps exchange molecule IDs to forced uptake
+                rates in mmol/g DCW/hr; both flux bounds are fixed to this
+                value, overriding all media constraints
         """
+        self.forced_uptake_rates = forced_uptake_rates or {}
         nutrients = timeline[0][1]
 
         # Local sim_data references
@@ -981,6 +992,12 @@ class FluxBalanceAnalysisModel(object):
             self.fba.setExternalMoleculeLevels(
                 levels, molecules=molecules, force=force, allow_export=True
             )
+
+        # Apply user-specified forced uptake rates, overriding all other
+        # constraints.  Rate units are mmol/g DCW/hr (same as GDCW_BASIS).
+        for mol_id, rate in self.forced_uptake_rates.items():
+            level = (rate * GDCW_BASIS * coefficient).asNumber(CONC_UNITS)
+            self.fba.setExternalMoleculeLevels(level, molecules=mol_id, force=True)
 
     def set_reaction_bounds(
         self,
