@@ -53,6 +53,75 @@ We would appreciate if you added tests as part of your pull requests.
 This could be as simple as a Python function with the ``test_`` prefix that ensures
 the code added or modified in your PR works as intended using a few test cases.
 
+Updating GitHub Actions
+=======================
+
+.. note::
+  Usually, there should be no need to update GitHub Actions workflows unless a vulnerability
+  is found or a new version of an action is released that has important bug fixes or features.
+  The vEcoli repository has CodeQL set up to automatically scan for vulnerabilities in GitHub
+  Actions workflows and will alert maintainers if any are found. 
+
+For security purposes, all GitHub Actions steps are pinned to a specific version of the action
+using a commit hash. To update an action, navigate to the GitHub repository for the action (search
+by name), click on "Releases" in the right sidebar, and find the latest release. Click on the release
+and copy the commit hash for that release. Then, replace the old commit hash with the new one in the
+relevant workflow file(s) in ``.github/workflows`` and push the change to GitHub.
+
+Python Vulnerability Scanning
+=============================
+
+The ``.github/workflows/pip_audit.yml`` workflow runs the ``pip-audit`` tool to check for known
+vulnerabilities in the Python dependencies of vEcoli. This workflow is scheduled to run daily,
+and also runs on PRs and changes to ``master``. When vulnerabilities are detected that have
+available fixes, the workflow will automatically open a PR to update the relevant dependencies.
+
+The body of the PR will contain information about vulnerabilities found, including the severity
+and CVE identifiers, as well as the fixed versions of the affected dependencies. Since the PR
+is opened by a bot, the required CI checks will not run until a user manually closes and reopens
+the PR. If new vulnerabilities are detected after the PR is opened, the pip-audit workflow will
+update the PR with the new information and available fixes.
+
+Carefully review the vulnerability information in the PR body and ensure the affected dependencies
+are correctly updated to fixed versions. Once all checks are passing, the PR can be merged.
+
+Container Vulnerability Scanning
+================================
+
+The ``.github/workflows/docker_security.yml`` workflow builds a Docker image using
+``runscripts/container/Dockerfile`` and scans it for vulnerabilities using Docker Scout.
+This workflow is scheduled to run daily, and also runs on PRs and changes to ``master``.
+
+When run on PRs from branches in the main vEcoli repository, a comment will be added to the
+PR with a summary of the vulnerabilities found, including the severity and CVE identifiers as well
+as available fixes. We strongly recommend that you review this information and update the base
+container image (see below) if any vulnerabilities are found with available fixes.
+
+The daily runs on the ``master`` branch will generate a report that can be viewed by clicking on the
+"Actions" tab, "Docker Build and Security Scan" in the left sidebar, then a particular workflow run.
+Alternatively, members of the lab can view all detected vulnerabilities by clicking on the "Security
+and quality" tab, then "Code scanning" in the left sidebar.
+
+.. warning::
+  PRs from forks will not be able to run the Docker build and security scan workflow because it requires
+  access to repository secrets (DockerHub credentials) not accessible to forks. Therefore, it is especially
+  important to be wary of Docker image changes or dependency changes in PRs from forks, and to check the
+  results of the daily runs on master for any vulnerabilities with available fixes.
+
+Update Container Base Image
+============================
+
+To update the base container image, navigate to ``https://github.com/astral-sh/uv/pkgs/container/uv`` and
+click to "View all tagged versions". Find the latest image tagged with ``debian-slim``, click the three
+dots next to "Digest", and copy the digest. Then, modify the ``FROM`` line in ``runscripts/container/Dockerfile``
+and the ``From:`` line in ``runscripts/container/Singularity`` to use the new digest.
+
+Take note of the version of uv used in the new image (should be included in at least one of the other tags
+for the image). Update the version of uv used in the GitHub Actions workflows in ``.github/workflows`` (can
+find and replace the old version with the new version) to ensure consistency across the repository. Finally,
+commit and push these changes to a new branch and open a PR to merge them.
+
+
 Merge Queue
 ===========
 
