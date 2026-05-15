@@ -386,6 +386,10 @@ class MetabolismRedux(Step):
                                 self.network_flow_model.homeostatic_idx
                             ],
                         ),
+                        "homeostatic_metabolite_counts": (
+                            [],
+                            self.homeostatic_metabolites,
+                        ),
                         "target_homeostatic_dmdt": (
                             [],
                             np.array(self.network_flow_model.mets)[
@@ -395,9 +399,22 @@ class MetabolismRedux(Step):
                         "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
                         "target_kinetic_fluxes": [],
-                        "target_kinetic_bounds": [],
+                        "target_kinetic_lower_bound": [],
+                        "target_kinetic_upper_bound": [],
                         "reaction_catalyst_counts": [],
                         "maintenance_target": 0,
+                    }
+                ),
+                "enzyme_kinetics": listener_schema(
+                    {
+                        "metabolite_counts_init": 0,
+                        "metabolite_counts_final": 0,
+                        "enzyme_counts_init": 0,
+                        "counts_to_molar": 1.0,
+                        "actual_fluxes": [],
+                        "target_fluxes": [],
+                        "target_fluxes_upper": [],
+                        "target_fluxes_lower": [],
                     }
                 ),
             },
@@ -660,9 +677,11 @@ class MetabolismRedux(Step):
                     ],
                     "estimated_fluxes": estimated_reaction_fluxes,
                     "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
+                    "homeostatic_metabolite_counts": homeostatic_metabolite_counts,
                     "target_homeostatic_dmdt": target_homeostatic_dmdt,
                     "target_kinetic_fluxes": target_kinetic_flux,
-                    "target_kinetic_bounds": target_kinetic_bounds,
+                    "target_kinetic_lower_bound": target_kinetic_bounds[:, 0],
+                    "target_kinetic_upper_bound": target_kinetic_bounds[:, 1],
                     "estimated_exchange_dmdt": estimated_exchange_dmdt,
                     "estimated_intermediate_dmdt": estimated_intermediate_dmdt,
                     "maintenance_target": maintenance_flux,
