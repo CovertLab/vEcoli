@@ -1117,8 +1117,8 @@ class ParquetEmitter(Emitter):
                                 "with that expected shape. Otherwise, convert "
                                 "the value to Python lists using tolist() or "
                                 "flatten it to 1-D and emit the shape separately."
-                            )
-                    raise e
+                            ) from e
+                    raise
                 # Ensure type consistency
                 curr_type = self.pl_types.setdefault(k, pl.Null)
                 if v.dtype != curr_type:
