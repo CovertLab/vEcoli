@@ -5,7 +5,7 @@
         "cpus": 32
     },
     "fail_at_max_duration": true,
-    "sim_data_path": null,
+    "sim_data_path": "out/kb/simData.cPickle",
     "generations": 1,
     "n_init_sims": 1,
     "single_daughters": true,
