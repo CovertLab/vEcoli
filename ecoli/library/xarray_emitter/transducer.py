@@ -117,9 +117,10 @@ class XarrayBuffer:
     def modified_paths(self) -> set[NodePath]:
         """
         Relative paths inside the independent substore that are modified during
-        a *daughter* generation. This information may be used by
-        :py:class:`.AsyncBufferWriter` backends for maintaining metadata
-        consistency.
+        a *daughter* generation.
+
+        Possibly called by: :py:meth:`.AsyncBufferWriter.merge_attributes` and
+        :py:meth:`.AsyncBufferWriter.consolidate`.
         """
         return {NodePath()}
 
@@ -127,15 +128,14 @@ class XarrayBuffer:
     def added_paths(self) -> set[NodePath]:
         """
         Relative paths inside the independent substore that are added during a
-        *daughter* generation. This information may be used by
-        :py:class:`.AsyncBufferWriter` backends for maintaining metadata
-        consistency.
+        *daughter* generation.
+
+        Possibly called by: :py:meth:`.AsyncBufferWriter.consolidate`.
         """
         root_paths = set(map(NodePath, self.root._variables.keys()))
-        child_var_paths = set(
-            path / cast(str, var)
-            for (path, node) in self.child_vars.items()
-            for var in node._variables.keys())
+        child_var_paths = set(path / cast(str, var)
+                              for (path, node) in self.child_vars.items()
+                              for var in node._variables.keys())
         return child_var_paths | root_paths
 
     # ~~~~~~~~~~~~~~~~~ #
@@ -185,13 +185,39 @@ class XarrayBuffer:
           buf_size: :py:attr:`.XarrayTransducer.buf_size`.
           metadata: Result of :py:meth:`.XarrayEmitter.extract_metadata`.
         """
-        assert not(self.child_coords)
+        assert not(self.child_vars)
         self.time_spec = VariableSpec.make_time(self.partition, buf_size)
         self.root = self.time_spec.alloc_time(buf_size).assign_attrs(
             VariableSpec.alloc_metadata(self.partition, metadata)._attrs)
         for (path, var) in self.var_specs.items():
             self.child_coords[path] = var.alloc_coord()
             self.child_vars[path] = var.alloc_var(buf_size)
+
+    def encodings(
+        self, writer: AsyncBufferWriter, buf_size: int, *, include_coo: bool
+    ) -> dict[str, VariableEncoding]:
+        r"""
+        Determine encoding parameters for all variables.
+
+        Called by: :py:meth:`.XarrayTransducer.flush`.
+
+        Calls: :py:meth:`.VariableSpec.encoding`.
+
+        Args:
+          writer:       Used for choosing backend-specific
+                        :py:type:`.VariableEncoding`\ s.
+          buf_size:     :py:attr:`.XarrayTransducer.buf_size`.
+          include_coo:  Include :py:type:`.VariableEncoding`\ s for
+                        :py:attr:`.child_coords`.
+        """
+        assert self.child_vars
+        enc: dict[str, VariableEncoding] = {}
+        enc[""] = self.time_spec.encoding(writer, buf_size, include_coo=True)
+        for (path, var) in self.var_specs.items():
+            enc[str(path)] = var.encoding(writer, buf_size, include_coo=include_coo)
+        return enc
+
+    # ~~~~~~~~~~~~~~~~~ #
 
     def write(
         self, buf_tix: int, sim_tix: int, t: float, data: dict[str, Any], /
@@ -247,25 +273,17 @@ class XarrayBuffer:
         if len(emit_queue) and sim_tix > 0:
             raise KeyError(f"Missing emit paths: {list(emit_queue)}")
 
-    def render(
-        self, writer: AsyncBufferWriter | None, buf_size: int,
-        *, include_static: bool, copy: bool
-    ) -> tuple[xarray.DataTree, dict[str, VariableEncoding]]:
+    def render(self, *, include_coo: bool, copy: bool) -> xarray.DataTree:
         r"""
         Assemble the output buffer components.
 
         Called by: :py:meth:`.XarrayTransducer.flush`.
 
-        Calls: :py:meth:`.VariableSpec.encoding` and
-        :py:meth:`xarray.DataTree.from_dict`.
+        Calls: :py:meth:`xarray.DataTree.from_dict`.
 
         Args:
-          writer:         Used for choosing backend-specific
-                          :py:type:`.VariableEncoding`\ s.
-          buf_size:       :py:attr:`.XarrayTransducer.buf_size`.
-          include_static: Include :py:attr:`.child_coords`
-                          and all :py:type:`.VariableEncoding`\ s.
-          copy:           Return a deep copy of arrays.
+          include_coo:  Include :py:attr:`.child_coords`.
+          copy:         Return a deep copy of arrays.
 
         .. note::
           The deep copy performed here is a conservative choice, which allows
@@ -295,17 +313,12 @@ class XarrayBuffer:
 
         # fetch child nodes
         assert set(self.child_coords) == set(self.child_vars)
-        match (include_static, copy):
-            case (False, False):
-                children = self.child_vars
-            case (False, True):
-                children = {
-                    p: n._copy(deep=True)
-                    for (p, n) in self.child_vars.items()}
+        match (include_coo, copy):
             case (True, False):
                 children = {
-                    # `self.child_vars[p]` holds only `data_vars` by construction
-                    p: c.assign(self.child_vars[p]._variables)
+                    p: c.assign(
+                        # holds only `data_vars` by construction
+                        self.child_vars[p]._variables)
                     for (p, c) in self.child_coords.items()}
             case (True, True):
                 children = {
@@ -313,22 +326,29 @@ class XarrayBuffer:
                         k: v._copy(deep=True)
                         for (k, v) in self.child_vars[p]._variables.items()})
                     for (p, c) in self.child_coords.items()}
+            case (False, False):
+                children = {
+                    p: n.assign_attrs(
+                        # always resend attributes, in order to avoid erasure by
+                        # `xarray.backends.writers.dump_to_store()` (xarray==2026.04)
+                        **self.child_coords[p].attrs)
+                    for (p, n) in self.child_vars.items()}
+            case (False, True):
+                children = {
+                    p: n._copy(deep=True).assign_attrs(
+                        **self.child_coords[p].attrs)
+                    for (p, n) in self.child_vars.items()}
 
-        # assemble nodes
+        # assemble output tree
         buf = DataTree.from_dict(cast(dict[str, Dataset], root | children))
 
         # check consistency between composition logic and update logic
         assert set(str(NodePath("/") / p.parent)
                    for p in (self.added_paths | self.modified_paths)
                    ).issubset(buf.groups)
+        return buf
 
-        # fetch encodings
-        enc: dict[str, VariableEncoding] = {}
-        if include_static and writer is not None:
-            enc |= {"": self.time_spec.encoding(writer, buf_size)}
-            enc |= {str(path): var.encoding(writer, buf_size)
-                    for (path, var) in self.var_specs.items()}
-        return (buf, enc)
+    # ~~~~~~~~~~~~~~~~~ #
 
     def get_time(self, buf_tix: int) -> float:
         """
@@ -466,8 +486,7 @@ class XarrayTransducer:
                     f"\"buffer\": {{\"size\": {buf_size}}}"))
 
     def __str__(self) -> str:
-        return self.display(self.buffer.render(
-            None, self.buf_size, include_static=True, copy=False)[0])
+        return self.display(self.buffer.render(include_coo=True, copy=False))
 
     def display(self, buf: DataTree, /) -> str:
         return (
@@ -507,6 +526,8 @@ class XarrayTransducer:
         self.buffer.alloc(self.buf_size, metadata)
         self.check_buffer()
 
+    # ~~~~~~~~~~~~~~~~~ #
+
     def step(self, data: dict[str, Any], /) -> bool:
         r"""
         If :py:attr:`.predicate` is satisfied for the current *simulation step*
@@ -542,7 +563,7 @@ class XarrayTransducer:
         return True
 
     def flush(
-        self, writer: AsyncBufferWriter, *, include_static: bool, final: bool
+        self, writer: AsyncBufferWriter, *, final: bool
     ) -> tuple[xarray.DataTree, dict[str, VariableEncoding], dict[str, Any]]:
         r"""
         Assemble the output buffer that will be sent to persistent storage, and
@@ -550,36 +571,53 @@ class XarrayTransducer:
 
         Called by: :py:meth:`.AsyncBufferWriter.write`.
 
-        Calls: :py:meth:`.XarrayBuffer.render` and
+        Calls: :py:meth:`.AsyncBufferWriter.is_1st_buf_in_lineage`,
+        :py:meth:`.AsyncBufferWriter.is_1st_buf_in_generation`,
+        :py:meth:`.XarrayBuffer.render`, :py:meth:`.XarrayBuffer.encodings` and
         :py:meth:`.AsyncBufferWriter.merge_attributes`.
 
         Args:
-          writer:         Used for choosing backend-specific
-                          :py:type:`.VariableEncoding`\ s and for combining
-                          metadata.
-          include_static: Include :py:attr:`.XarrayBuffer.child_coords`
-                          and all :py:type:`.VariableEncoding`\ s.
-          final:          Indicate the final buffer.
+          writer: Used for deciding when to emit coordinate data, for choosing
+                  backend-specific :py:type:`.VariableEncoding`\ s, and for
+                  calling the hook :py:meth:`.AsyncBufferWriter.merge_attributes`.
+          final:  Indicates the final buffer in a generation, which does not
+                  require deep copying.
 
         Returns:
-          - A deep copy of the in-memory buffer.
-          - Backend-specific variable encodings, only if ``include_static``.
+          - A deep copy of the in-memory buffer, including
+            :py:attr:`.XarrayBuffer.child_coords` only for the first buffer in a
+            lineage.
+          - Backend-specific :py:type:`.VariableEncoding`\ s, computed only for
+            the first buffer in a generation.
           - A JSON-serializable reference to the latest emitted simulation step.
         """
+        # prelude
         self.check_buffer()
         if final:
-            assert not (self.buf_shifts and include_static)
             if self.buf_tix < self.buf_size:
                 # at least one unfilled emit step inside allocated buffer
                 self.truncate()
         else:
             assert self.buf_tix == self.buf_size
-        (buf, enc) = self.buffer.render(
-            writer, self.buf_size,
-            include_static=include_static, copy=not final)
+
+        # fetch buffer data
+        include_coo = writer.is_1st_buf_in_lineage
+        buf = self.buffer.render(include_coo=include_coo, copy=not final)
+
+        # fetch buffer encodings
+        include_enc = writer.is_1st_buf_in_generation
+        assert not (include_enc and self.buf_shifts)
+        enc = (
+            self.buffer.encodings(writer, self.buf_size, include_coo=include_coo)
+            if include_enc
+            else {})
+
+        # attach session metadata
         writer.merge_attributes(buf)
         ref = {"sim_step": self.emitted_sim_tix,
                "sim_time": self.buffer.get_time(self.buf_tix - 1)}
+
+        # postlude
         if final:
             # reference to buffer components no longer needed
             self.clear()
@@ -587,6 +625,8 @@ class XarrayTransducer:
             hline = "-" * 79
             print(hline, "\n", self.display(buf), "\n", hline)
         return (buf, enc, ref)
+
+    # ~~~~~~~~~~~~~~~~~ #
 
     def shift(self) -> None:
         """

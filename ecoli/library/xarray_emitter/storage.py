@@ -208,6 +208,14 @@ class VariableSpec:
 
     # ~~~~~~~~~~~~~~~~~ #
 
+    @property
+    def attr_name(self) -> str:
+        """
+        Attribute name used by :py:meth:`.alloc_coord`.
+        """
+        return (self.partition.time_var_name if self.is_time
+                else self.var_name)
+
     @staticmethod
     def var_coo_name(var_name: str, /) -> str:
         """
@@ -262,9 +270,9 @@ class VariableSpec:
         return np.zeros(self.dims(buf_size), dtype=self.dtype)
 
     def encoding(
-        self, writer: AsyncBufferWriter, buf_size: int, /
+        self, writer: AsyncBufferWriter, buf_size: int, *, include_coo: bool
     ) -> dict[str, VariableEncoding]:
-        """
+        r"""
         Parameters used for writing a variable array and its coordinate array to
         persistent storage, including chunk sizes and compression codecs.
 
@@ -272,26 +280,31 @@ class VariableSpec:
 
         Calls: :py:meth:`.AsyncBufferWriter.coo_codecs` and
         :py:meth:`.AsyncBufferWriter.var_codecs`.
+
+        Args:
+          writer:       Used for interpreting backend-specific codecs and for
+                        retrieving the `writer.buffers_per_chunk` configuration.
+          buf_size:     :py:attr:`.XarrayTransducer.buf_size`.
+          include_coo:  Include :py:meth:`.AsyncBufferWriter.coo_codecs`.
         """
         b = writer.config["buffers_per_chunk"]
         # coordinate encoding
-        match (self.is_time, self.coord):
-            case (False, None):
-                coo_enc = {}
-            case (False, np.ndarray() as coo):
-                coo_enc = {self.coo_name: {
-                    # use 1 storage chunk for the coordinate array
-                    "chunks": coo.shape} | writer.coo_codecs(self)}
-            case (True, np.ndarray() as coo):
+        coo_enc: dict[str, VariableEncoding] = {}
+        match (include_coo, self.is_time, self.coord):
+            case (True, False, np.ndarray() as coo):
+                coo_enc |= {self.coo_name: writer.coo_codecs(self) | {
+                    # use 1 storage chunk for non-time coordinate
+                    "chunks": coo.shape}}
+            case (True, True, np.ndarray() as coo):
                 if writer.transducer.buf_shifts:
                     assert coo.shape == (buf_size,)
-                coo_enc = {self.coo_name: {
-                    # use 1 storage chunk for `b` buffers of the time coordinate
-                    "chunks": (b * buf_size,)} | writer.coo_codecs(self)}
+                coo_enc |= {self.coo_name: writer.coo_codecs(self) | {
+                    # use 1 storage chunk for `b` buffers of time coordinate
+                    "chunks": (b * buf_size,)}}
         # variable encoding
-        var_enc = {self.datavar_name: {
+        var_enc = {self.datavar_name: writer.var_codecs(self) | {
             # use 1 storage chunk for `b` buffers of simulation data
-            "chunks": self.dims(b * buf_size)} | writer.var_codecs(self)}
+            "chunks": self.dims(b * buf_size)}}
         return coo_enc | var_enc
 
     # ~~~~~~~~~~~~~~~~~ #
@@ -357,7 +370,7 @@ class VariableSpec:
         """
         return Dataset(
             coords={} if self.coord is None else {self.coo_name: self.coord},
-            attrs={} if self.unit is None else {self.datavar_name: self.unit})
+            attrs={} if self.unit is None else {self.attr_name: self.unit})
 
     def alloc_var(self, buf_size: int, /) -> Dataset:
         """

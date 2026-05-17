@@ -199,7 +199,7 @@ class AsyncBufferWriter[StoreT](ABC):
         """ Synchronisation primitive for :py:attr:`.executor`. """
         self.future.set_result(None)
         self.num_writes: int = 0
-        """ Count of submitted buffer writes. """
+        """ Count of buffers submitted to :py:attr:`.executor`. """
 
     @classmethod
     def validate_config(cls, config: dict[str, Any], /) -> None:
@@ -322,7 +322,7 @@ class AsyncBufferWriter[StoreT](ABC):
         Terminate the :py:attr:`.executor` thread, call :py:meth:`.consolidate`,
         and close the :py:attr:`.store`.
         """
-        if self.num_writes > 0:
+        if not self.is_1st_buf_in_generation:
             self.sync(shutdown=True)
         self.executor.shutdown(wait=True)
         self.consolidate()
@@ -391,14 +391,16 @@ class AsyncBufferWriter[StoreT](ABC):
     def merge_attributes(self, payload: DataTree) -> None:
         """
         :py:meth:`.XarrayBuffer.render` is designed to only output chunk-level
-        changes to Xarray variables and attributes. While variables are always
-        either introduced or appended, some transport layer backends may
-        *overwrite* attribute containers instead of *updating* them, which would
-        invalidate attributes at :py:attr:`.XarrayBuffer.modified_paths`. This
-        method allows such conflicts to be resolved in-place, before the payload
-        is passed to :py:meth:`.make_effect`.
+        *updates* to Xarray variables and attributes. However, while coordinate
+        and data variables are always either introduced or appended, attribute
+        containers may be *overwritten* instead of *updated* by some transport
+        layer backends, which would invalidate them. This hook allows such
+        conflicts to be resolved in memory, before the corrected payload is
+        passed to :py:meth:`.make_effect`.
 
         Called by: :py:meth:`.XarrayTransducer.flush`.
+
+        Possibly calls: :py:attr:`.XarrayBuffer.modified_paths`.
         """
         ...
 
@@ -478,6 +480,35 @@ class AsyncBufferWriter[StoreT](ABC):
 
     # ~~~~~~~~~~~~~~~~~ #
 
+    @property
+    def is_1st_buf_in_lineage(self) -> bool:
+        """
+        Logical *global* time predicate for :py:class:`.AsyncBufferWriter`,
+        indicating that the currently active :py:class:`.XarrayBuffer` cycle --
+        i.e., the one that will be sent to :py:attr:`.executor` next -- is the
+        first in a *cell lineage* simulation.
+
+        Calls: :py:meth:`.is_1st_buf_in_generation`.
+
+        Called by: :py:meth:`.XarrayTransducer.flush`.
+        """
+        return self.partition.generation == 1 and self.is_1st_buf_in_generation
+
+    @property
+    def is_1st_buf_in_generation(self) -> bool:
+        """
+        Logical *local* time predicate for :py:class:`.AsyncBufferWriter`,
+        indicating that the currently active :py:class:`.XarrayBuffer` cycle --
+        i.e., the one that will be sent to :py:attr:`.executor` next -- is the
+        first in a *cell generation* simulation.
+
+        Called by: :py:meth:`.is_1st_buf_in_lineage`, :py:meth:`.write`,
+        :py:meth:`.XarrayTransducer.flush` and :py:meth:`.close`.
+        """
+        return self.num_writes == 0
+
+    # ~~~~~~~~~~~~~~~~~ #
+
     def write(self, transducer: XarrayTransducer, *, final: bool) -> None:
         """
         Concurrently write a buffer to the open store, synchronising only at the
@@ -487,18 +518,12 @@ class AsyncBufferWriter[StoreT](ABC):
         :py:meth:`._write`.
 
         Args:
-          final: Indicates the final buffer, which does not require copying.
+          final: Indicates the final buffer in a *cell generation* simulation,
+                 which does not require deep copying.
         """
         assert self.num_writes >= 0
-        msg = transducer.flush(
-            # choose backend-specific encodings
-            self,
-            # emit coordinate data and encodings only with first trajectory buffer
-            include_static=(
-                self.partition.generation == 1 and self.num_writes == 0),
-            # final trajectory buffer does not require copying
-            final=final)
-        if self.num_writes > 0:
+        msg = transducer.flush(self, final=final)
+        if not self.is_1st_buf_in_generation:
             # finish writing previous buffer and update transport cache
             self.sync()
         self.future = self.executor.submit(self._write, *msg)

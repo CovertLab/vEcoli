@@ -14,7 +14,7 @@ from collections.abc import AsyncGenerator, Coroutine
 from collections import deque
 from dataclasses import replace
 from html import escape as html_escape
-from typing import Any, Mapping, final, cast
+from typing import Any, Literal, Mapping, final, cast
 import sys
 import warnings
 
@@ -27,9 +27,12 @@ import zarr
 from zarr.abc.codec import Codec
 from zarr.abc.numcodec import Numcodec
 from zarr.core.metadata import v2, v3
+from zarr.core.dtype import parse_dtype
 from zarr.core._tree import TreeRepr
 from zarr.types import AnyAsyncArray
-from zarr.core.array import Array, AsyncArray
+from zarr.core.array import (
+    Array, AsyncArray,
+    _parse_chunk_encoding_v2, default_filters_v3, default_compressors_v3)
 from zarr.core.sync import sync
 from zarr.core.group import (
     Group, AsyncGroup, GroupMetadata, ConsolidatedMetadata, _getitem_semaphore)
@@ -54,7 +57,10 @@ ZARR_FILTERS: dict[int, list[dict[str, Any]]] = {
     2: [{"id": "delta", "dtype": None}],
     3: [{"name": "numcodecs.delta", "configuration": {"dtype": None}}]
 }
-""" Default filter codecs, as a function of the Zarr format. """
+"""
+Default filter codecs for :py:meth:`.AsyncZarrBufferWriter.var_codecs`, as a
+function of the Zarr format.
+"""
 ZARR_COMPRESSORS: dict[int, list[dict[str, Any]]] = {
     2: [{"id": "blosc", "cname": "zstd", "clevel": 6,
          "shuffle": -1, "blocksize": 0}],
@@ -62,7 +68,10 @@ ZARR_COMPRESSORS: dict[int, list[dict[str, Any]]] = {
         "cname": "zstd", "clevel": 6,
         "typesize": None, "shuffle": None, "blocksize": 0}}]
 }
-""" Default compression codecs, as a function of the Zarr format. """
+"""
+Default compression codecs for :py:meth:`.AsyncZarrBufferWriter.var_codecs`, as
+a function of the Zarr format.
+"""
 
 
 # ==============================================================================
@@ -649,23 +658,48 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
 
     def coo_codecs(self, var: VariableSpec, /) -> VariableEncoding:
         """
-        Currently, no Zarr codecs are applied to coordinate arrays.
+        Currently, only Zarr's own default codecs are applied to a coordinate
+        array.
         """
-        return {}
+        return self._coo_codecs(self.group.metadata.zarr_format, var)
 
     def var_codecs(self, var: VariableSpec, /) -> VariableEncoding:
         """
-        Parse the Zarr codecs for a simulation variable, if they are specified
-        in the JSON config, and otherwise, apply the default codecs.
+        Parse the Zarr codecs for a data array, if they are specified in the
+        JSON config, and otherwise, apply :py:const:`ZARR_FILTERS` and
+        :py:const:`ZARR_COMPRESSORS`.
         """
-        z: int = self.group.metadata.zarr_format
+        return self._var_codecs(self.group.metadata.zarr_format, var)
+
+    @classmethod
+    def _coo_codecs(
+        cls, zarr_format: Literal[2, 3], var: VariableSpec, /
+    ) -> VariableEncoding:
+        dtype = parse_dtype(var.dtype, zarr_format=zarr_format)
+        # parse default config
+        filters: tuple[Codec | Numcodec, ...] | None
+        compressors: tuple[Codec | Numcodec | None, ...]
+        if zarr_format == 2:
+            filters, compressor = _parse_chunk_encoding_v2(
+                filters="auto", compressor="auto", dtype=dtype)
+            compressors = (compressor,)
+        else:
+            filters = default_filters_v3(dtype)
+            compressors = default_compressors_v3(dtype)
+        return {"filters": filters, "compressors": compressors}
+
+    @classmethod
+    def _var_codecs(
+        cls, zarr_format: Literal[2, 3], var: VariableSpec, /
+    ) -> VariableEncoding:
+        z = zarr_format
         if var.codecs:
             # fetch variable-specific JSON config
             _filters = var.codecs.get(f"filters_v{z}", [])
             _compressors = var.codecs.get(f"compressors_v{z}", [])
             if not (_filters or _compressors):
                 raise ValueError(emitter_arg_error(
-                    self, "Missing arguments",
+                    cls, "Missing arguments",
                     f"...: {{\"codecs\": "
                     f"{{\"filters_v{z}\": ..., \"compressors_v{z}\": ...}}}}"))
         else:
@@ -680,7 +714,7 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
         # parse codec config
         filters: tuple[Codec | Numcodec, ...] | None
         compressors: tuple[Codec | Numcodec | None, ...]
-        with filter_warnings(self._warnings_make_effect):
+        with filter_warnings(cls.warnings_make_effect()):
             if z == 2:
                 filters = v2.parse_filters(_filters)
                 compressors = tuple(map(v2.parse_compressor, _compressors))
@@ -739,12 +773,13 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
         """
         Combine attributes from the existing Zarr store and the Xarray buffer
         update at :py:attr:`.XarrayBuffer.modified_paths`.
+
+        Calls: :py:attr:`.XarrayBuffer.modified_paths`.
         """
         for path in self.buffer.modified_paths:
             # empty in-memory attribute containers do not produce write operations
-            if (xr_attrs := payload._get_item(path).attrs):
-                zr_attrs = dict(self.get_zarr_path(path).attrs)
-                payload._get_item(path).attrs = zr_attrs | xr_attrs
+            if (node := payload._get_item(path)).attrs:
+                node.attrs = dict(self.get_zarr_path(path).attrs) | node.attrs
 
     def make_effect(
         self, payload: DataTree, encoding: Mapping[str, Any], /
@@ -765,7 +800,7 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
         generation-specific time axis.
         """
         assert self.group.metadata.consolidated_metadata is None
-        assert self.num_writes > 0
+        assert not self.is_1st_buf_in_generation
         if self.num_writes == 1:
             with filter_warnings(self._warnings_eval_effect):
                 # find direct children in the Zarr hierarchy
@@ -780,7 +815,9 @@ class AsyncZarrBufferWriter(AsyncBufferWriter[ZarrStore]):
         Update existing consolidated metadata in the Zarr store with the outputs
         of a newly finished simulation.
 
-        Calls: :py:func:`zarr.consolidate_metadata` or
+        Calls: Either :py:func:`zarr.consolidate_metadata`, or
+        :py:attr:`.XarrayBuffer.modified_paths`,
+        :py:attr:`.XarrayBuffer.added_paths` and
         :py:func:`.reconsolidate_metadata`.
         """
         assert self.group.metadata.consolidated_metadata is None

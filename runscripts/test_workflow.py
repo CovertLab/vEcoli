@@ -22,6 +22,7 @@ import uuid
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -153,6 +154,8 @@ class MockEcoliSimWorkflow:
     #: - Passed to :py:class:`.EcoliSim` via the CLI arguments
     #:   ``--emitter`` and ``--emitter_arg``.
     emitter_config: PatchConfig
+    #: Result of combining :py:attr:`.config_file` and :py:attr:`.emitter_config`.
+    config: dict[str, Any] = field(init=False)
 
     # ~~~~~~~~~~~~~~~~~ #
 
@@ -228,9 +231,10 @@ class MockEcoliSimWorkflow:
 
         # configure the emitter parameters
         config.update_from_dict(self.emitter_config.to_dict())
+        self.config = config.to_dict()
 
         # construct the simulation state
-        sim = EcoliSim(config.to_dict())
+        sim = EcoliSim(self.config)
         with patch_func("ecoli.composites.ecoli_master.get_state_from_file") as f:
             sim.build_ecoli()
             if self.generation == 1:
@@ -269,7 +273,7 @@ class MockEcoliSimWorkflow:
 
     # ~~~~~~~~~~~~~~~~~ #
 
-    def sim_gen(self, success: bool, /) -> StoragePartition:
+    def sim_gen(self, success: bool, /) -> tuple[StoragePartition, dict[str, Any]]:
         """
         Emulate ``runscripts/nextflow/sim.nf::{simGen0,sim}()`` by starting a
         single-generation simulation, stopping at ``config["max_duration"]``,
@@ -279,7 +283,11 @@ class MockEcoliSimWorkflow:
         Calls: :py:meth:`.init_sim`.
 
         Args:
-            success: Flag for emulating a :py:exc:`.DivisionDetected` event.
+          success: Flag for emulating a :py:exc:`.DivisionDetected` event.
+
+        Returns:
+          - :py:class:`.StoragePartition` of the resulting simulation.
+          - Full configuration of the resulting simulation.
         """
         # sanity check the mock generation state
         assert self.sim is None
@@ -308,7 +316,7 @@ class MockEcoliSimWorkflow:
         self.agent_id += "0"
         self.generation += 1
         self.sim_seed += 1
-        return partition
+        return (partition, self.config)
 
 
 # ==============================================================================
