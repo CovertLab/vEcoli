@@ -1584,9 +1584,6 @@ class TestEmitPaths:
         )
         emitter.last_batch_future.result()
 
-        assert "listeners__mass__cell_mass" in emitter.buffered_emits or os.path.exists(
-            os.path.join(temp_dir, "test_exp", "history")
-        )
         t = pl.read_parquet(
             os.path.join(temp_dir, "test_exp", "history", "**", "*.pq"),
             hive_partitioning=True,
