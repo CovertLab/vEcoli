@@ -163,7 +163,7 @@ async def consolidate_metadata(
         k: v.metadata
         async for (k, v) in
         group.members(max_depth=None, use_consolidated_for_children=False)}
-    # TODO: fix in `consolidate_metadata()` (zarr==3.1.6)
+    # TODO: fix in `consolidate_metadata()` (zarr==3.2.1)
     members_metadata |= {"": group.metadata}
 
     # combine and write consolidated metadata
@@ -232,7 +232,7 @@ async def reconsolidate_metadata(
                     v, ConsolidatedMetadata(metadata={}))
     members_metadata |= mod_members_metadata | add_members_metadata
     del old_keys, mod_members_metadata, add_members_metadata
-    # TODO: fix in `ConsolidatedMetadata._flat_to_nested()` (zarr==3.1.6)
+    # TODO: fix in `ConsolidatedMetadata._flat_to_nested()` (zarr==3.2.1)
     members_metadata = dict(sorted(members_metadata.items(),
                                    key=lambda kv: bfs_key(kv[0])))
     ConsolidatedMetadata._flat_to_nested(members_metadata)
@@ -359,7 +359,7 @@ async def group_tree_async(
     # Group members by parent key so we can render the tree level by level.
     nodes: dict[str, list[tuple[str, Any]]] = {}
     for key, node in members:
-        # TODO: fix in `group_tree_async()` (zarr==3.1.6)
+        # TODO: fix in `group_tree_async()` (zarr==3.2.1)
         if key == "":
             # avoid self-loop at root node
             continue

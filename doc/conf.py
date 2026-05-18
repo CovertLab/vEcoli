@@ -100,6 +100,7 @@ nitpick_ignore = [
     # Sphinx does not recognize type aliases
     ("py:type", "VariableEncoding"),
     ("py:class", "VariableEncoding"),
+    ("py:class", "AnyAsyncArray"),
 ]
 
 

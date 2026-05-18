@@ -36,9 +36,9 @@ dependencies = [
     "polars",
     "xarray>=2026.04",
     # concurrency control in `ecoli.library.xarray_emitter.zarr_writer`
-    # might require adjustments for `zarr>=3.2`:
-    # https://ossci.zulipchat.com/#narrow/channel/423692-Zarr/topic/3.2E2.2E0.20release
-    "zarr~=3.1.6",
+    # might require adjustments for `zarr>=3.3`:
+    # https://github.com/zarr-developers/zarr-python/pull/3547
+    "zarr==3.2.*",
     "zarrs>=0.2",
     # future consumers of `xarray_emitter`
     # "cubed>=0.26",
