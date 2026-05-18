@@ -567,9 +567,6 @@ class MetabolismReduxClassic(Step):
         objective_weights = self.parameters["objective_weights"]
         fraction_kinetic_target = self.parameters["fraction_kinetic_target"]
 
-        print(f"objective_weights: {objective_weights}")
-        # print(f"fraction_kinetic_target: {fraction_kinetic_target}")
-
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
             homeostatic_dm_targets=target_homeostatic_dmdt,
@@ -582,10 +579,6 @@ class MetabolismReduxClassic(Step):
             solver=cp.GLOP,
         )
 
-        # h1 = solution.homeostatic_term
-        # k1 = solution.kinetics_term
-        # print(f"solution.homeostatic: {solution.homeostatic_term}")
-        # print(f"solution.kinetics: {solution.kinetics_term}")
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
         self.metabolite_exchange = solution.exchanges

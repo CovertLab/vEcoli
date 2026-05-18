@@ -44,20 +44,7 @@
     "translation_supply": false,
     "aa_supply_in_charging": false,
     "adjust_timestep_for_charging": false,
-    "disable_ppgpp_elongation_inhibition": true,
-
-    "process_configs": {
-    "ecoli-metabolism-redux-classic": {
-        "objective_weights": {
-            "secretion": 2.01E-07,
-            "efficiency": 7.74E-06,
-            "kinetics": 3.22447E-05,
-            "diversity": 0.000954656,
-            "homeostatic": 0.58035203
-        },
-        "fraction_kinetic_target": 1.0
-    }
-}
+    "disable_ppgpp_elongation_inhibition": true
 
 
 }
