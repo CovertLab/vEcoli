@@ -73,7 +73,7 @@ Python Vulnerability Scanning
 
 The ``.github/workflows/pip_audit.yml`` workflow runs the ``pip-audit`` tool to check for known
 vulnerabilities in the Python dependencies of vEcoli. This workflow is scheduled to run daily,
-and also runs on PRs and changes to ``master``. When vulnerabilities are detected that have
+and also on changes to ``master``. When vulnerabilities are detected that have
 available fixes, the workflow will automatically open a PR to update the relevant dependencies.
 
 The body of the PR will contain information about vulnerabilities found, including the severity
