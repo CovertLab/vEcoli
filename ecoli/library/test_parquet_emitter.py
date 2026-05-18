@@ -1,7 +1,5 @@
 import os
 import re
-import tempfile
-import shutil
 import duckdb
 import numpy as np
 import polars as pl
@@ -254,7 +252,7 @@ class TestHelperFunctions:
             pl.UInt32,
         ) == pl.List(pl.List(pl.List(pl.UInt32)))
 
-    def test_quote_columns(self):
+    def test_quote_columns(self, tmp_path):
         """Test quote_columns handles special characters correctly."""
         # Test single string with special characters
         assert quote_columns("simple") == '"simple"'
@@ -291,116 +289,114 @@ class TestHelperFunctions:
         assert quote_columns([]) == []
 
         # Test that quoted columns actually work in DuckDB queries with weird column names
-        with tempfile.TemporaryDirectory() as tmp_path:
-            test_file = os.path.join(tmp_path, "weird_cols.parquet")
-            # Create test data with columns containing special characters
-            test_data = pl.DataFrame(
-                {
-                    "simple": [1, 2, 3],
-                    "with spaces": [4, 5, 6],
-                    "with-hyphens": [7, 8, 9],
-                    "with[brackets]": [10, 11, 12],
-                    "with/slashes": [13, 14, 15],
-                    'has"quote': [16, 17, 18],
-                    "dot.name": [19, 20, 21],
-                    "colon:name": [22, 23, 24],
-                }
-            )
-            test_data.write_parquet(test_file, statistics=False)
+        test_file = os.path.join(tmp_path, "weird_cols.parquet")
+        # Create test data with columns containing special characters
+        test_data = pl.DataFrame(
+            {
+                "simple": [1, 2, 3],
+                "with spaces": [4, 5, 6],
+                "with-hyphens": [7, 8, 9],
+                "with[brackets]": [10, 11, 12],
+                "with/slashes": [13, 14, 15],
+                'has"quote': [16, 17, 18],
+                "dot.name": [19, 20, 21],
+                "colon:name": [22, 23, 24],
+            }
+        )
+        test_data.write_parquet(test_file, statistics=False)
 
-            conn = create_duckdb_conn()
+        conn = create_duckdb_conn()
 
-            # Test selecting individual columns with special characters
-            for col in test_data.columns:
-                quoted_col = quote_columns(col)
-                result = conn.sql(f"SELECT {quoted_col} FROM '{test_file}'").pl()
-                assert result.shape == (3, 1)
-                assert result.columns[0] == col
-                expected_values = test_data[col].to_list()
-                assert result[col].to_list() == expected_values
+        # Test selecting individual columns with special characters
+        for col in test_data.columns:
+            quoted_col = quote_columns(col)
+            result = conn.sql(f"SELECT {quoted_col} FROM '{test_file}'").pl()
+            assert result.shape == (3, 1)
+            assert result.columns[0] == col
+            expected_values = test_data[col].to_list()
+            assert result[col].to_list() == expected_values
 
-            # Test selecting multiple columns at once
-            weird_cols = ["with spaces", "with-hyphens", "with[brackets]", 'has"quote']
-            quoted_cols = ", ".join(quote_columns(weird_cols))
-            result = conn.sql(f"SELECT {quoted_cols} FROM '{test_file}'").pl()
-            assert result.shape == (3, 4)
-            for col in weird_cols:
-                assert col in result.columns
-                assert result[col].to_list() == test_data[col].to_list()
+        # Test selecting multiple columns at once
+        weird_cols = ["with spaces", "with-hyphens", "with[brackets]", 'has"quote']
+        quoted_cols = ", ".join(quote_columns(weird_cols))
+        result = conn.sql(f"SELECT {quoted_cols} FROM '{test_file}'").pl()
+        assert result.shape == (3, 4)
+        for col in weird_cols:
+            assert col in result.columns
+            assert result[col].to_list() == test_data[col].to_list()
 
-            # Test that using WHERE clause works with quoted columns
-            quoted_space_col = quote_columns("with spaces")
-            result = conn.sql(
-                f"SELECT * FROM '{test_file}' WHERE {quoted_space_col} > 4"
-            ).pl()
-            assert result.shape == (2, 8)
-            assert result["with spaces"].to_list() == [5, 6]
+        # Test that using WHERE clause works with quoted columns
+        quoted_space_col = quote_columns("with spaces")
+        result = conn.sql(
+            f"SELECT * FROM '{test_file}' WHERE {quoted_space_col} > 4"
+        ).pl()
+        assert result.shape == (2, 8)
+        assert result["with spaces"].to_list() == [5, 6]
 
-            # Test aggregation with quoted columns
-            quoted_bracket_col = quote_columns("with[brackets]")
-            result = conn.sql(
-                f"SELECT AVG({quoted_bracket_col}) as avg_val FROM '{test_file}'"
-            ).pl()
-            assert result["avg_val"][0] == 11.0
+        # Test aggregation with quoted columns
+        quoted_bracket_col = quote_columns("with[brackets]")
+        result = conn.sql(
+            f"SELECT AVG({quoted_bracket_col}) as avg_val FROM '{test_file}'"
+        ).pl()
+        assert result["avg_val"][0] == 11.0
 
-            # Test ORDER BY with quoted columns
-            quoted_slash_col = quote_columns("with/slashes")
-            result = conn.sql(
-                f"SELECT {quoted_slash_col} FROM '{test_file}' ORDER BY {quoted_slash_col} DESC"
-            ).pl()
-            assert result["with/slashes"].to_list() == [15, 14, 13]
+        # Test ORDER BY with quoted columns
+        quoted_slash_col = quote_columns("with/slashes")
+        result = conn.sql(
+            f"SELECT {quoted_slash_col} FROM '{test_file}' ORDER BY {quoted_slash_col} DESC"
+        ).pl()
+        assert result["with/slashes"].to_list() == [15, 14, 13]
 
-    def test_list_columns(self):
+    def test_list_columns(self, tmp_path):
         """Test list_columns retrieves column names correctly."""
-        with tempfile.TemporaryDirectory() as tmp_path:
-            # Create test Parquet file with known columns
-            test_file = os.path.join(tmp_path, "test.parquet")
-            test_data = pl.DataFrame(
-                {
-                    "col_a": [1, 2, 3],
-                    "col_b": [4.0, 5.0, 6.0],
-                    "listeners__mass__cell_mass": [7.0, 8.0, 9.0],
-                    "listeners__mass__dry_mass": [10.0, 11.0, 12.0],
-                    "listeners__growth__instantaneous_growth_rate": [0.1, 0.2, 0.3],
-                    "bulk": [[1, 2], [3, 4], [5, 6]],
-                }
-            )
-            test_data.write_parquet(test_file, statistics=False)
+        # Create test Parquet file with known columns
+        test_file = os.path.join(tmp_path, "test.parquet")
+        test_data = pl.DataFrame(
+            {
+                "col_a": [1, 2, 3],
+                "col_b": [4.0, 5.0, 6.0],
+                "listeners__mass__cell_mass": [7.0, 8.0, 9.0],
+                "listeners__mass__dry_mass": [10.0, 11.0, 12.0],
+                "listeners__growth__instantaneous_growth_rate": [0.1, 0.2, 0.3],
+                "bulk": [[1, 2], [3, 4], [5, 6]],
+            }
+        )
+        test_data.write_parquet(test_file, statistics=False)
 
-            conn = create_duckdb_conn()
-            subquery = f"SELECT * FROM '{test_file}'"
+        conn = create_duckdb_conn()
+        subquery = f"SELECT * FROM '{test_file}'"
 
-            # Test getting all columns
-            all_cols = list_columns(conn, subquery)
-            assert len(all_cols) == 6
-            assert "col_a" in all_cols
-            assert "col_b" in all_cols
-            assert "listeners__mass__cell_mass" in all_cols
+        # Test getting all columns
+        all_cols = list_columns(conn, subquery)
+        assert len(all_cols) == 6
+        assert "col_a" in all_cols
+        assert "col_b" in all_cols
+        assert "listeners__mass__cell_mass" in all_cols
 
-            # Test pattern matching with glob patterns
-            listener_cols = list_columns(conn, subquery, "listeners__*")
-            assert len(listener_cols) == 3
-            assert all(col.startswith("listeners__") for col in listener_cols)
+        # Test pattern matching with glob patterns
+        listener_cols = list_columns(conn, subquery, "listeners__*")
+        assert len(listener_cols) == 3
+        assert all(col.startswith("listeners__") for col in listener_cols)
 
-            # Test pattern matching for specific listener
-            mass_cols = list_columns(conn, subquery, "listeners__mass__*")
-            assert len(mass_cols) == 2
-            assert "listeners__mass__cell_mass" in mass_cols
-            assert "listeners__mass__dry_mass" in mass_cols
+        # Test pattern matching for specific listener
+        mass_cols = list_columns(conn, subquery, "listeners__mass__*")
+        assert len(mass_cols) == 2
+        assert "listeners__mass__cell_mass" in mass_cols
+        assert "listeners__mass__dry_mass" in mass_cols
 
-            # Test pattern that matches nothing
-            no_match = list_columns(conn, subquery, "nonexistent__*")
-            assert len(no_match) == 0
+        # Test pattern that matches nothing
+        no_match = list_columns(conn, subquery, "nonexistent__*")
+        assert len(no_match) == 0
 
-            # Test pattern with single character wildcard
-            col_pattern = list_columns(conn, subquery, "col_?")
-            assert len(col_pattern) == 2
-            assert "col_a" in col_pattern
-            assert "col_b" in col_pattern
+        # Test pattern with single character wildcard
+        col_pattern = list_columns(conn, subquery, "col_?")
+        assert len(col_pattern) == 2
+        assert "col_a" in col_pattern
+        assert "col_b" in col_pattern
 
-            # Test exact match pattern
-            exact = list_columns(conn, subquery, "bulk")
-            assert exact == ["bulk"]
+        # Test exact match pattern
+        exact = list_columns(conn, subquery, "bulk")
+        assert exact == ["bulk"]
 
 
 def compare_nested(a: list, b: list) -> bool:
@@ -420,21 +416,16 @@ def compare_nested(a: list, b: list) -> bool:
 
 
 class TestParquetEmitter:
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory for testing."""
-        tmp = tempfile.mkdtemp()
-        yield tmp
-        shutil.rmtree(tmp)
 
-    def test_initialization(self, temp_dir):
+    def test_initialization(self, tmp_path):
         """Test ParquetEmitter initialization with different configs."""
         # Test with out_dir
-        emitter = ParquetEmitter({"out_dir": temp_dir})
+        emitter = ParquetEmitter({"out_dir": tmp_path})
         emitter.experiment_id = "test_exp"
         emitter.partitioning_path = "path/to/output"
-        assert emitter.out_uri == os.path.abspath(temp_dir)
+        assert emitter.out_uri == os.path.abspath(tmp_path)
         assert emitter.batch_size == 400
+        emitter.finalized = True
 
         # Test with out_uri and custom batch size
         emitter = ParquetEmitter({"out_uri": "gs://bucket/path", "batch_size": 100})
@@ -442,10 +433,11 @@ class TestParquetEmitter:
         emitter.partitioning_path = "path/to/output"
         assert emitter.out_uri == "gs://bucket/path"
         assert emitter.batch_size == 100
+        emitter.finalized = True
 
-    def test_emit_configuration(self, temp_dir):
+    def test_emit_configuration(self, tmp_path):
         """Test emitting configuration data."""
-        emitter = ParquetEmitter({"out_dir": temp_dir})
+        emitter = ParquetEmitter({"out_dir": tmp_path})
 
         # Setup ThreadPoolExecutor mock
         future = Future()
@@ -466,6 +458,7 @@ class TestParquetEmitter:
         }
 
         emitter.emit(config_data)
+        emitter.finalized = True
 
         # Verify partitioning path
         assert emitter.experiment_id == "test_exp"
@@ -477,9 +470,9 @@ class TestParquetEmitter:
         args, _ = emitter.executor.submit.call_args
         assert args[0] == json_to_parquet
 
-    def test_emit_simulation_data(self, temp_dir):
+    def test_emit_simulation_data(self, tmp_path):
         """Test emitting simulation data with various types."""
-        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 2})
+        emitter = ParquetEmitter({"out_dir": tmp_path, "batch_size": 2})
 
         # Configuration emit to initialize variables
         config_data = {
@@ -542,6 +535,7 @@ class TestParquetEmitter:
         emitter.emit(sim_data1)
         assert emitter.num_emits == 2
         emitter.last_batch_future.result()
+        emitter.finalized = True
 
         # Check output
         t = pl.read_parquet(
@@ -561,9 +555,9 @@ class TestParquetEmitter:
         assert all(t["nested__value"] == [100] * 2)
         assert emitter.buffered_emits == {}
 
-    def test_variable_length_arrays(self, temp_dir):
+    def test_variable_length_arrays(self, tmp_path):
         """Test handling arrays with changing dimensions."""
-        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 3})
+        emitter = ParquetEmitter({"out_dir": tmp_path, "batch_size": 3})
         # Configuration emit to initialize variables
         config_data = {
             "table": "configuration",
@@ -629,6 +623,7 @@ class TestParquetEmitter:
         # Write to Parquet and check output
         emitter.emit(sim_data2)
         emitter.last_batch_future.result()
+        emitter.finalized = True
 
         t = pl.read_parquet(
             os.path.join(
@@ -650,9 +645,9 @@ class TestParquetEmitter:
             [[1], [1, 2], [1, 2, 3]],
         ]
 
-    def test_extreme_data_types(self, temp_dir):
+    def test_extreme_data_types(self, tmp_path):
         """Test with extreme data types and edge cases."""
-        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 2})
+        emitter = ParquetEmitter({"out_dir": tmp_path, "batch_size": 2})
         # Create test data with extreme values and special cases
         sim_data = {
             "table": "configuration",
@@ -790,6 +785,7 @@ class TestParquetEmitter:
         emitter.emit(sim_data_2)
         emitter.last_batch_future.result()
         assert emitter.buffered_emits == {}
+        emitter.finalized = True
 
         out_path = os.path.join(
             emitter.out_uri,
@@ -852,9 +848,9 @@ class TestParquetEmitter:
                 f"Mismatch in field {key}"
             )
 
-    def test_finalize(self, temp_dir):
+    def test_finalize(self, tmp_path):
         """Test finalize method that handles remaining data."""
-        emitter = ParquetEmitter({"out_dir": temp_dir})
+        emitter = ParquetEmitter({"out_dir": tmp_path})
         emitter.experiment_id = "test_exp"
         emitter.partitioning_path = "path/to/output"
 
@@ -886,8 +882,8 @@ class TestParquetEmitter:
             assert args[0]["field2"][0] == 20.5
 
         # Test success flag
-        emitter.success = True
-        emitter.finalize()
+        emitter.finalized = False
+        emitter.finalize(success=True)
         assert os.path.exists(
             os.path.join(
                 emitter.out_uri,
@@ -898,8 +894,8 @@ class TestParquetEmitter:
             )
         )
 
-    def test_multiple_agents(self, temp_dir):
-        emitter = ParquetEmitter({"out_dir": temp_dir})
+    def test_multiple_agents(self, tmp_path):
+        emitter = ParquetEmitter({"out_dir": tmp_path})
         emitter.experiment_id = "test_exp"
         emitter.partitioning_path = "path/to/output"
 
@@ -916,11 +912,12 @@ class TestParquetEmitter:
         emitter.emit(sim_data)
         assert emitter.num_emits == 0
         assert emitter.buffered_emits == {}
+        emitter.finalized = True
 
-    def test_batch_processing(self, temp_dir):
+    def test_batch_processing(self, tmp_path):
         """Test multiple emits and batch processing."""
         # Small batch size for testing
-        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 3})
+        emitter = ParquetEmitter({"out_dir": tmp_path, "batch_size": 3})
 
         # Configuration emit to initialize variables
         config_data = {
@@ -947,6 +944,7 @@ class TestParquetEmitter:
             sim_data["data"]["agents"]["agent1"]["value"] = i * 10
             emitter.emit(sim_data)
             emitter.last_batch_future.result()
+        emitter.finalized = True
 
         # Verify batch was processed
         assert emitter.num_emits == 4
@@ -957,15 +955,9 @@ class TestParquetEmitter:
 
 
 class TestParquetEmitterEdgeCases:
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory for testing."""
-        tmp = tempfile.mkdtemp()
-        yield tmp
-        shutil.rmtree(tmp)
 
     @patch("ecoli.library.parquet_emitter.ThreadPoolExecutor")
-    def test_multithreaded_buffer_clearing(self, mock_executor_class, temp_dir):
+    def test_multithreaded_buffer_clearing(self, mock_executor_class, tmp_path):
         """
         Test to verify that clearing buffers after submitting to ThreadPoolExecutor
         doesn't cause race conditions with the worker thread.
@@ -1006,7 +998,7 @@ class TestParquetEmitterEdgeCases:
         mock_executor_class.return_value = mock_executor
 
         # Initialize the emitter with a small batch size
-        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 2})
+        emitter = ParquetEmitter({"out_dir": tmp_path, "batch_size": 2})
         # Configuration emit to initialize variables
         config_data = {
             "table": "configuration",
@@ -1086,16 +1078,17 @@ class TestParquetEmitterEdgeCases:
         # Changed type for field2 to list so should fail
         with pytest.raises(pl.exceptions.InvalidOperationError):
             emitter.finalize()
+        emitter.finalized = True
         # Cleanup the real executor
         real_executor.shutdown()
 
-    def test_variable_shape_detection_at_boundaries(self, temp_dir):
+    def test_variable_shape_detection_at_boundaries(self, tmp_path):
         """
         Test the fixed vs variable shape field detection logic specifically at
         the boundary points (start of sim, after disk write).
         """
         # Use a small batch size to quickly hit the boundary
-        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 3})
+        emitter = ParquetEmitter({"out_dir": tmp_path, "batch_size": 3})
 
         # Setup: Emit configuration data to intitialize variables
         config_data = {
@@ -1198,6 +1191,7 @@ class TestParquetEmitterEdgeCases:
         emitter.emit(sim_data4)
 
         emitter.last_batch_future.result()
+        emitter.finalized = True
         t = pl.read_parquet(
             os.path.join(
                 emitter.out_uri,
@@ -1224,12 +1218,12 @@ class TestParquetEmitterEdgeCases:
             [[1], [2], [3], [4], [5]],
         ]
 
-    def test_expected_failures(self, temp_dir):
+    def test_expected_failures(self, tmp_path):
         """
         Test a few cases that are expected to fail.
         """
         # Use a small batch size to quickly hit the boundary
-        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 3})
+        emitter = ParquetEmitter({"out_dir": tmp_path, "batch_size": 3})
 
         # Setup: Emit configuration data to intitialize variables
         config_data = {
@@ -1394,10 +1388,11 @@ class TestParquetEmitterEdgeCases:
             match=re.escape("cannot parse numpy data type dtype('O')"),
         ):
             emitter.emit(sim_data7)
+        emitter.finalized = True
 
-    def test_nested_nullable(self, temp_dir):
+    def test_nested_nullable(self, tmp_path):
         """Test handling nullable nested types that increase in depth."""
-        emitter = ParquetEmitter({"out_dir": temp_dir, "batch_size": 4})
+        emitter = ParquetEmitter({"out_dir": tmp_path, "batch_size": 4})
         # Configuration emit to initialize variables
         config_data = {
             "table": "configuration",
@@ -1518,6 +1513,7 @@ class TestParquetEmitterEdgeCases:
         for _ in range(3):
             emitter.emit(sim_data1)
             emitter.last_batch_future.result()
+        emitter.finalized = True
 
         # Check output
         t = pl.read_parquet(

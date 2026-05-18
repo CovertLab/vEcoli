@@ -34,6 +34,14 @@ dependencies = [
     "ortools<9.11",
     "pandas",
     "polars",
+    "xarray>=2026.04",
+    # concurrency control in `ecoli.library.xarray_emitter.zarr_writer`
+    # might require adjustments for `zarr>=3.3`:
+    # https://github.com/zarr-developers/zarr-python/pull/3547
+    "zarr==3.2.*",
+    "zarrs>=0.2",
+    # future consumers of `xarray_emitter`
+    # "cubed>=0.26",
     "pymunk",
     "scikit-image",
     "scikit-learn",

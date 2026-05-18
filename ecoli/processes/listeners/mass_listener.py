@@ -121,7 +121,7 @@ class MassListener(Step):
         if self.compartment_abbrev_to_index:
             self._bulk_molecule_by_compartment = np.stack(
                 [
-                    np.core.defchararray.chararray.endswith(self.bulk_ids, abbrev + "]")
+                    np._core.defchararray.chararray.endswith(self.bulk_ids, abbrev + "]")
                     for abbrev in self.compartment_abbrev_to_index
                 ]
             )
@@ -272,7 +272,7 @@ class MassListener(Step):
 
             massDiffs = np.array(list(attrs(molecules, self.massDiff_names))).T
             if self.match_wcecoli:
-                massDiffs = np.core.records.fromarrays(
+                massDiffs = np._core.records.fromarrays(
                     attrs(molecules, self.massDiff_names)
                 ).view((np.float64, len(self.massDiff_names)))
             unique_submasses += massDiffs.sum(axis=0)

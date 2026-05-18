@@ -86,6 +86,21 @@ nitpick_ignore = [
     # Silence warning in ecoli.processes.environment.field_timeline.FieldTimeline
     ("py:class", "vivarium.processes.timeline.TimelineProcess"),
     ("py:class", "concurrent.futures._base.Future"),
+    # Type annotations using library internals
+    ("py:class", "concurrent.futures._base.Executor"),
+    ("py:class", "unittest.mock._patch"),
+    ("py:class", "xarray.backends.common.ArrayWriter"),
+    ("py:class", "xarray.core.treenode.NodePath"),
+    ("py:class", "zarr.core.group.ConsolidatedMetadata"),
+    ("py:class", "zarr.core._tree.TreeRepr"),
+    # Sphinx does not recognize type parameters in generic classes
+    ("py:class", "ArrT"),
+    ("py:class", "NodeT"),
+    ("py:class", "StoreT"),
+    # Sphinx does not recognize type aliases
+    ("py:type", "VariableEncoding"),
+    ("py:class", "VariableEncoding"),
+    ("py:class", "AnyAsyncArray"),
 ]
 
 
@@ -115,15 +130,17 @@ nbsphinx_execute = "never"
 # -- sphinx.ext.intersphinx options --
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "vivarium": (
-        "https://vivarium-core.readthedocs.io/en/latest/",
-        None,
-    ),
+    "pytest": ("https://docs.pytest.org/en/latest", None),
+    "vivarium": ("https://vivarium-core.readthedocs.io/en/latest/", None),
     "numpy": ("https://numpy.org/doc/stable", None),
+    "xarray": ("https://docs.xarray.dev/en/latest", None),
+    "zarr": ("https://zarr.readthedocs.io/en/latest", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "pandas": ("http://pandas.pydata.org/pandas-docs/dev", None),
     "polars": ("https://docs.pola.rs/api/python/stable", None),
     "sympy": ("https://docs.sympy.org/latest", None),
+    "pint": ("https://pint.readthedocs.io/en/stable", None),
+    "unum": ("https://unum.readthedocs.io/en/stable", None),
 }
 
 
@@ -143,8 +160,24 @@ autodoc_mock_imports = [
 ]
 # Move typehints from signature into description
 autodoc_typehints = "description"
-# Concatenate class and __init__ docstrings
-autoclass_content = "both"
+# Only use the class’s docstring. __init__ docstrings are now listed separately.
+autoclass_content = "class"
+# Default options for all autodoc directives.
+autodoc_default_options = {
+    "member-order": "bysource",
+    "private-members": True,
+    "special-members": (
+        # object
+        "__init__,  __del__, __call__"
+    ),
+    "exclude-members": (
+        # abc.ABC
+        "_abc_impl, "
+        # enum.Flag
+        "_flag_mask_, _singles_mask_, _all_bits_, _boundary_, _inverted_, "
+        "_generate_next_value_"
+    )
+}
 # Remove domain objects (e.g. functions, classes, attributes) from
 # table of contents
 toc_object_entries = False
