@@ -61,6 +61,7 @@ def plot(
 
     requested_cistron_ids: list[str] = []
     requested_monomer_ids: list[str] = []
+    requested_ecocyc_ids: list[str] = []
     unknown: list[str] = []
     non_coding: list[str] = []
     for ecocyc_id in gene_ids:
@@ -74,6 +75,7 @@ def plot(
             continue
         requested_cistron_ids.append(cistron_id)
         requested_monomer_ids.append(monomer_id)
+        requested_ecocyc_ids.append(ecocyc_id)
 
     if unknown:
         print(f"gene_counts: skipping unknown EcoCyc gene IDs: {unknown}")
@@ -135,13 +137,68 @@ def plot(
     )
     data = pl.DataFrame(data).with_columns(**{"Time (min)": pl.col("time") / 60})
 
-    mrna_plot = data.plot.line(
-        x="Time (min)",
-        y=alt.Y(requested_cistron_ids).title("mRNA Cistron Counts"),
-    ).properties(title="mRNA Cistron Counts")
-    protein_plot = data.plot.line(
-        x="Time (min)",
-        y=alt.Y(requested_monomer_ids).title("Protein Monomer Counts"),
-    ).properties(title="Protein Monomer Counts")
+    # Map listener field names back to the user's EcoCyc IDs for plot labels.
+    cistron_to_ecocyc = dict(zip(requested_cistron_ids, requested_ecocyc_ids))
+    monomer_to_ecocyc = dict(zip(requested_monomer_ids, requested_ecocyc_ids))
+
+    mrna_long = (
+        data.select(
+            [
+                "Time (min)",
+                "lineage_seed",
+                "generation",
+                "agent_id",
+                *requested_cistron_ids,
+            ]
+        )
+        .unpivot(
+            index=["Time (min)", "lineage_seed", "generation", "agent_id"],
+            variable_name="cistron_id",
+            value_name="mRNA count",
+        )
+        .with_columns(
+            gene=pl.col("cistron_id").replace_strict(cistron_to_ecocyc),
+        )
+    )
+    protein_long = (
+        data.select(
+            [
+                "Time (min)",
+                "lineage_seed",
+                "generation",
+                "agent_id",
+                *requested_monomer_ids,
+            ]
+        )
+        .unpivot(
+            index=["Time (min)", "lineage_seed", "generation", "agent_id"],
+            variable_name="monomer_id",
+            value_name="protein count",
+        )
+        .with_columns(
+            gene=pl.col("monomer_id").replace_strict(monomer_to_ecocyc),
+        )
+    )
+
+    mrna_plot = (
+        alt.Chart(mrna_long)
+        .mark_line()
+        .encode(
+            x=alt.X("Time (min):Q"),
+            y=alt.Y("mRNA count:Q").title("mRNA Cistron Counts"),
+            color=alt.Color("gene:N").title("Gene (EcoCyc ID)"),
+        )
+        .properties(title="mRNA Cistron Counts", width=600, height=250)
+    )
+    protein_plot = (
+        alt.Chart(protein_long)
+        .mark_line()
+        .encode(
+            x=alt.X("Time (min):Q"),
+            y=alt.Y("protein count:Q").title("Protein Monomer Counts"),
+            color=alt.Color("gene:N").title("Gene (EcoCyc ID)"),
+        )
+        .properties(title="Protein Monomer Counts", width=600, height=250)
+    )
     combined = alt.vconcat(mrna_plot, protein_plot)
     combined.save(os.path.join(outdir, "gene_counts.html"))
