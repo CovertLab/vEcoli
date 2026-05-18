@@ -604,8 +604,10 @@ def get_mapping_arrays(x, y):
 
 
 def format_data(data, bulk_ids, rna_dtypes, rnap_dtypes, submass_dtypes):
-    # data["unique"]["RNA"] is {field: [arr_t0, arr_t1, ...], ...}
-    # Convert to [structured_arr_t0, structured_arr_t1, ...]
+    # Emits for each field is collated across timesteps by the vivarium-core
+    # function vivarium.core.emitter.Emitter.get_timeseries()
+    # As such, data["unique"]["RNA"] is {field: [arr_t0, arr_t1, ...], ...}
+    # We want to convert to [structured_arr_t0, structured_arr_t1, ...]
     def timeseries_to_structured(field_timeseries, dtype):
         n_timesteps = len(next(iter(field_timeseries.values())))
         result = []
