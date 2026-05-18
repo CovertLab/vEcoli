@@ -1,0 +1,68 @@
+{
+    "experiment_id": "strain_design_with_gfp",
+    "suffix_time": true,
+    "sim_data_path": null,
+    "parca_options": {
+        "cpus": 6,
+        "new_genes": "gfp"
+    },
+    "generations": 4,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "variants": {
+        "strain_design": {
+            "condition": {"value": ["basal"]},
+            "perturbations": {
+                "value": [
+                    {
+                        "EG10527": 0.0,
+                        "EG10823": 0.0,
+                        "EG11015": 0.3,
+                        "EG10001": 0.5,
+                        "EG10367": 2.0,
+                        "EG10661": 5.0
+                    }
+                ]
+            },
+            "new_gene_shift": {
+                "nested": {
+                    "induction_gen": {"value": [2]},
+                    "exp_trl_eff": {
+                        "nested": {
+                            "exp": {
+                                "logspace": {
+                                    "start": 6,
+                                    "stop": 6,
+                                    "num": 1
+                                }
+                            },
+                            "trl_eff": {"value": [1.0, 5.0]},
+                            "op": "prod"
+                        }
+                    },
+                    "op": "prod"
+                }
+            },
+            "op": "prod"
+        }
+    },
+    "analysis_options": {
+        "multigeneration": {
+            "new_gene_counts": {},
+            "gene_counts": {
+                "gene_ids": [
+                    "EG10527",
+                    "EG10823",
+                    "EG11015",
+                    "EG10001",
+                    "EG10367",
+                    "EG10661"
+                ]
+            }
+        }
+    }
+}

@@ -1,0 +1,47 @@
+{
+    "experiment_id": "strain_design_six_genes",
+    "suffix_time": true,
+    "sim_data_path": null,
+    "parca_options": {
+        "cpus": 6
+    },
+    "generations": 2,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "variants": {
+        "strain_design": {
+            "condition": {"value": ["basal"]},
+            "perturbations": {
+                "value": [
+                    {
+                        "EG10527": 0.0,
+                        "EG10823": 0.0,
+                        "EG11015": 0.3,
+                        "EG10001": 0.5,
+                        "EG10367": 2.0,
+                        "EG10661": 5.0
+                    }
+                ]
+            },
+            "op": "prod"
+        }
+    },
+    "analysis_options": {
+        "multigeneration": {
+            "gene_counts": {
+                "gene_ids": [
+                    "EG10527",
+                    "EG10823",
+                    "EG11015",
+                    "EG10001",
+                    "EG10367",
+                    "EG10661"
+                ]
+            }
+        }
+    }
+}
