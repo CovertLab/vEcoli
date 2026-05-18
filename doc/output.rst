@@ -183,7 +183,9 @@ of integers where some entries are empty lists).
   If you choose to emit multi-dimensional listeners, they must have a default value
   defined through a ports schema that is the same shape as the emitted values at
   all time steps. For example, if emitted values are 2-D arrays of shape (3, 4),
-  the default value must also be a 2-D array of shape (3, 4).
+  the default value must also be a 2-D array of shape (3, 4). This is because
+  the Parquet emitter pre-allocates its NumPy buffer from the default's shape
+  and any later mismatch falls to the Polars path, which doesn't handle N-D arrays.
 
 The Parquet emitter saves the serialized tabular data to two Hive-partitioned
 directories in the output folder (``out_dir`` or ``out_uri`` option under
