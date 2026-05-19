@@ -339,6 +339,16 @@ def build_query_strings(
             var_id = row[var_id_idx]
             id_to_variants[data_id].add((exp_id, var_id))
 
+        # Extract lower-level filter conditions (columns not in id_cols) so
+        # they are still applied in the per-subset SQL passed to analysis scripts.
+        lower_level_parts = []
+        if duckdb_filter:
+            for condition in duckdb_filter.split(" AND "):
+                col_name = condition.strip().split(" ")[0]
+                if col_name not in id_cols:
+                    lower_level_parts.append(condition.strip())
+        lower_level_filter = " AND ".join(lower_level_parts)
+
         for data_id, variant_set in id_to_variants.items():
             data_filters = []
             curr_outdir = os.path.abspath(outdir)
@@ -350,10 +360,15 @@ def build_query_strings(
                 data_filters.append(f"{col}={col_val}")
             os.makedirs(curr_outdir, exist_ok=True)
             data_filters = " AND ".join(data_filters)
+            full_filter = (
+                f"{data_filters} AND {lower_level_filter}"
+                if lower_level_filter
+                else data_filters
+            )
             query_strings[data_filters] = (
-                f"SELECT * FROM ({history_sql}) WHERE {data_filters}",
-                f"SELECT * FROM ({config_sql}) WHERE {data_filters}",
-                f"SELECT * FROM ({success_sql}) WHERE {data_filters}",
+                f"SELECT * FROM ({history_sql}) WHERE {full_filter}",
+                f"SELECT * FROM ({config_sql}) WHERE {full_filter}",
+                f"SELECT * FROM ({success_sql}) WHERE {full_filter}",
                 curr_outdir,
                 variant_set,
             )

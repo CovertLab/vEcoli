@@ -617,6 +617,88 @@ class TestBuildQueryStrings:
         assert isinstance(variant_set, set)
         assert ("exp1", 0) in variant_set
 
+    def test_lower_level_filter_included_in_sql(self, tmp_path):
+        """Lower-level filters (columns below id_cols) must appear in the SQL
+        strings passed to analysis scripts, not just in the discovery query."""
+        # multigeneration id_cols = ["experiment_id", "variant", "lineage_seed"]
+        # generation is one level below and must survive into the per-subset SQL.
+        conn = MockConnection([("exp1", 0, 42)])
+        analysis_type = "multigeneration"
+        duckdb_filter = "experiment_id = 'exp1' AND variant = 0 AND lineage_seed = 42 AND generation = 5"
+
+        query_strings = build_query_strings(
+            analysis_type,
+            duckdb_filter,
+            "SELECT * FROM config",
+            "SELECT * FROM history",
+            "SELECT * FROM success",
+            str(tmp_path),
+            conn,
+        )
+
+        assert len(query_strings) == 1
+        history_q, config_q, success_q, _, _ = next(iter(query_strings.values()))
+        assert "generation = 5" in history_q
+        assert "generation = 5" in config_q
+        assert "generation = 5" in success_q
+
+    def test_no_lower_level_filters_leaves_sql_unchanged(self, tmp_path):
+        """When all duckdb_filter conditions are for id_cols, the per-subset SQL
+        must not gain any extra filter clauses."""
+        conn = MockConnection([("exp1", 0, 42)])
+        analysis_type = "multigeneration"
+        # All conditions are for id_cols — nothing lower-level.
+        duckdb_filter = "experiment_id = 'exp1' AND variant = 0 AND lineage_seed = 42"
+
+        query_strings = build_query_strings(
+            analysis_type,
+            duckdb_filter,
+            "SELECT * FROM config",
+            "SELECT * FROM history",
+            "SELECT * FROM success",
+            str(tmp_path),
+            conn,
+        )
+
+        history_q, config_q, success_q, _, _ = next(iter(query_strings.values()))
+        # id_col specific values must be present
+        assert "experiment_id='exp1'" in history_q
+        assert "variant=0" in history_q
+        assert "lineage_seed=42" in history_q
+        # No unexpected lower-level columns
+        assert "generation" not in history_q
+        assert "agent_id" not in history_q
+
+    def test_multiple_lower_level_filters_all_included(self, tmp_path):
+        """All lower-level filter conditions must appear in every SQL string."""
+        # multiseed id_cols = ["experiment_id", "variant"]
+        # generation and agent_id are both lower-level for this analysis type.
+        conn = MockConnection([("exp1", 0)])
+        analysis_type = "multiseed"
+        duckdb_filter = (
+            "experiment_id = 'exp1' AND variant = 0"
+            " AND generation = 5 AND agent_id = 'agent_001'"
+        )
+
+        query_strings = build_query_strings(
+            analysis_type,
+            duckdb_filter,
+            "SELECT * FROM config",
+            "SELECT * FROM history",
+            "SELECT * FROM success",
+            str(tmp_path),
+            conn,
+        )
+
+        assert len(query_strings) == 1
+        history_q, config_q, success_q, _, _ = next(iter(query_strings.values()))
+        for sql in (history_q, config_q, success_q):
+            assert "generation = 5" in sql
+            assert "agent_id = 'agent_001'" in sql
+            # id_col values must still be pinned
+            assert "experiment_id='exp1'" in sql
+            assert "variant=0" in sql
+
 
 class TestIntegration:
     """Integration tests that test multiple functions together"""
