@@ -57,7 +57,9 @@ in homeostatic flux?
 - Docstrings: triple double-quotes, imperative mood ("Calculate X", not "Calculates X")
 - Line breaks go *before* binary operators (PEP 8)
 - Always update docstrings, comments, and variable names for consistency when editing code
-
+- I want every plot to have a title, axis labels, and a legend (if multiple lines). I want the plots to have the same
+  color theme as plotly's pastel. The plot itself doesn't need to be plotted using plotly, it can be matplotlib, plotly,
+  altair, doesn't matter, but the color theme needs to be conserved. I want the plots to be saved as svg plots
 
 ## Architecture
 
