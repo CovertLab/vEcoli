@@ -26,7 +26,8 @@ params {
             proc.waitFor()
             return proc.text.trim()
         } catch (Exception e) {
-            return ''
+            System.err.println("WARNING: Failed to read gcloud compute/region: ${e.message}")
+            return 'GCLOUD_CONFIG_ERROR'
         }
     }()
     google_project = {
@@ -35,7 +36,8 @@ params {
             proc.waitFor()
             return proc.text.trim()
         } catch (Exception e) {
-            return ''
+            System.err.println("WARNING: Failed to read gcloud project: ${e.message}")
+            return 'GCLOUD_CONFIG_ERROR'
         }
     }()
 }
@@ -47,46 +49,43 @@ trace.sep = ','
 trace.fields = 'name,native_id,status,submit,start,complete,duration,realtime,exit,%cpu,%mem,rss,peak_rss,error_action,attempt,cpu_model,workdir'
 trace.file = "trace--${params.experimentId}--" + new java.text.SimpleDateFormat("yyyy-MM-dd--HH-mm-ss").format(new Date()) + ".csv"
 
+def scaledMemory = { task, baseMem ->
+    if ( task.exitStatus == 137 ) {
+        1.GB * baseMem * task.attempt
+    } else {
+        // Do not scale further if mem was not issue last time
+        // Using task.attempts - 1 is inexact if a process experiences
+        // multiple failures. For example, a process can fail due to OOM
+        // (137), fail its first retry due to pre-emption (50001), then
+        // fail its second retry due to OOM (137). On its third attempt, it
+        // will get memory equivalent to if it had failed from OOM three
+        // times instead of twice. I feel it is better to overallocate than
+        // underallocate. Additionally, if users are seeing retries due to
+        // resource underallocation, they should just bump the base resource
+        // requests in their config files.
+        1.GB * baseMem * Math.max(1, task.attempt - 1)
+    }
+}
+
+def scaleTimeForRetry = { task, baseTime ->
+    if ( task.exitStatus == 140 ) {
+        1.h * baseTime * task.attempt
+    } else {
+        // Do not scale further if time was not issue last time
+        1.h * baseTime * Math.max(1, task.attempt - 1)
+    }
+}
+
 process {
     withLabel: parca {
         cpus = params.parca_cpus
-        memory = {
-            if ( task.exitStatus == 137 ) {
-                1.GB * params.parca_mem * task.attempt
-            } else {
-                // Do not scale further if mem was not issue last time
-                // Using task.attempts - 1 is inexact if a process experiences
-                // multiple failures. For example, a process can fail due to OOM
-                // (137), fail its first retry due to pre-emption (50001), then
-                // fail its second retry due to OOM (137). On its third attempt, it
-                // will get memory equivalent to if it had failed from OOM three
-                // times instead of twice. I feel it is better to overallocate than
-                // underallocate. Additionally, if users are seeing retries due to
-                // resource underallocation, they should just bump the base resource
-                // requests in their config files.
-                1.GB * params.parca_mem * Math.max(1, task.attempt - 1)
-            }
-        }
+        memory = { scaledMemory(task, params.parca_mem) }
     }
     withLabel: analysis {
         cpus = params.analysis_cpus
-        memory = {
-            if ( task.exitStatus == 137 ) {
-                1.GB * params.analysis_mem * task.attempt
-            } else {
-                // Do not scale further if mem was not issue last time
-                1.GB * params.analysis_mem * Math.max(1, task.attempt - 1)
-            }
-        }
+        memory = { scaledMemory(task, params.analysis_mem) }
     }
-    memory = {
-        if ( task.exitStatus == 137 ) {
-            1.GB * params.sim_mem * task.attempt
-        } else {
-            // Do not scale further if mem was not issue last time
-            1.GB * params.sim_mem * Math.max(1, task.attempt - 1)
-        }
-    }
+    memory = { scaledMemory(task, params.sim_mem) }
     maxRetries = 3
     cpus = params.sim_cpus
 }
@@ -156,54 +155,20 @@ profiles {
             // required to make time directives only apply to SLURM profiles
             withLabel: parca {
                 cpus = params.parca_cpus
-                memory = {
-                    if ( task.exitStatus == 137 ) {
-                        1.GB * params.parca_mem * task.attempt
-                    } else {
-                        1.GB * params.parca_mem * Math.max(1, task.attempt - 1)
-                    }
-                }
-                time = {
-                    if ( task.exitStatus == 140 ) {
-                        1.h * params.parca_time * task.attempt
-                    } else {
-                        // Do not scale further if time was not issue last time
-                        1.h * params.parca_time * Math.max(1, task.attempt - 1)
-                    }
-                }
+                memory = { scaledMemory(task, params.parca_mem) }
+                time = { scaleTimeForRetry(task, params.parca_time) }
             }
             withLabel: analysis {
                 cpus = params.analysis_cpus
-                memory = {
-                    if ( task.exitStatus == 137 ) {
-                        1.GB * params.analysis_mem * task.attempt
-                    } else {
-                        // Do not scale further if mem was not issue last time
-                        1.GB * params.analysis_mem * Math.max(1, task.attempt - 1)
-                    }
-                }
-                time = {
-                    if ( task.exitStatus == 140 ) {
-                        1.h * params.analysis_time * task.attempt
-                    } else {
-                        // Do not scale further if time was not issue last time
-                        1.h * params.analysis_time * Math.max(1, task.attempt - 1)
-                    }
-                }
+                memory = { scaledMemory(task, params.analysis_mem) }
+                time = { scaleTimeForRetry(task, params.analysis_time) }
             }
             container = params.container_image
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir} ${params.slurm_env}"
             queue = params.queue
             clusterOptions = params.cluster_options
             executor = 'slurm'
-            time = {
-                if ( task.exitStatus == 140 ) {
-                    1.h * params.sim_time * task.attempt
-                } else {
-                    // Do not scale further if time was not issue last time
-                    1.h * params.sim_time * Math.max(1, task.attempt - 1)
-                }
-            }
+            time = { scaleTimeForRetry(task, params.sim_time) }
             errorStrategy = {
                 // Codes: 137 (OOM), 140 (SLURM job limits), 143 (SLURM preemption)
                 // Default value for exitStatus is max integer value, this
@@ -236,24 +201,11 @@ profiles {
             withLabel: parca {
                 // Nextflow does not merge withLabel directives so must repeat
                 cpus = params.parca_cpus
-                memory = {
-                    if ( task.exitStatus == 137 ) {
-                        1.GB * params.parca_mem * task.attempt
-                    } else {
-                        1.GB * params.parca_mem * Math.max(1, task.attempt - 1)
-                    }
-                }
+                memory = { scaledMemory(task, params.parca_mem) }
                 executor = 'slurm'
                 queue = params.queue
                 clusterOptions = params.cluster_options
-                time = {
-                    if ( task.exitStatus == 140 ) {
-                        1.h * params.parca_time * task.attempt
-                    } else {
-                        // Do not scale further if time was not issue last time
-                        1.h * params.parca_time * Math.max(1, task.attempt - 1)
-                    }
-                }
+                time = { scaleTimeForRetry(task, params.parca_time) }
             }
             // Creating variants happens before the HyperQueue workers
             // are allocated and requires a separate SLURM job
@@ -266,22 +218,8 @@ profiles {
             // stalling sims and allow custom resource requests
             withLabel: analysis {
                 cpus = params.analysis_cpus
-                memory = {
-                    if ( task.exitStatus == 137 ) {
-                        1.GB * params.analysis_mem * task.attempt
-                    } else {
-                        // Do not scale further if mem was not issue last time
-                        1.GB * params.analysis_mem * Math.max(1, task.attempt - 1)
-                    }
-                }
-                time = {
-                    if ( task.exitStatus == 140 ) {
-                        1.h * params.analysis_time * task.attempt
-                    } else {
-                        // Do not scale further if time was not issue last time
-                        1.h * params.analysis_time * Math.max(1, task.attempt - 1)
-                    }
-                }
+                memory = { scaledMemory(task, params.analysis_mem) }
+                time = { scaleTimeForRetry(task, params.analysis_time) }
                 executor = 'slurm'
                 queue = params.queue
                 clusterOptions = params.cluster_options
@@ -291,14 +229,7 @@ profiles {
             containerOptions = "-B ${params.publishDir}:${params.publishDir} -B ${launchDir}:${launchDir} ${params.slurm_env}"
             // Use Nextflow's retry logic instead of HyperQueue's built-in logic
             clusterOptions = '--crash-limit=1'
-            time = {
-                if ( task.exitStatus == 140 ) {
-                    1.h * params.sim_time * task.attempt
-                } else {
-                    // Do not scale further if time was not issue last time
-                    1.h * params.sim_time * Math.max(1, task.attempt - 1)
-                }
-            }
+            time = { scaleTimeForRetry(task, params.sim_time) }
             errorStrategy = {
                 ((task.exitStatus in [137, 140, 143, Integer.MAX_VALUE])
                 && (task.attempt <= task.maxRetries)) ? 'retry' : 'ignore'
