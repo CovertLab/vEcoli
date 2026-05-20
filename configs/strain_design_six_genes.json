@@ -42,6 +42,12 @@
                     "EG10661"
                 ]
             }
+        },
+        "multivariant": {
+            "strain_dashboard": {
+                "skip_first_n_gens": 0,
+                "control_variant": 0
+            }
         }
     }
 }
