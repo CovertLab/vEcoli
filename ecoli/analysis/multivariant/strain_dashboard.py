@@ -191,6 +191,217 @@ def _idx_list_sql(indexes: list[int]) -> str:
     return "[" + ",".join(str(i) for i in indexes) + "]"
 
 
+def _pooled_variant_metrics(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    config_sql: str,
+    sim_data,
+    class_cistron_ids: dict[str, list[str]],
+    perturbed_cistron_ids_per_variant: dict[int, list[str]],
+    new_gene_monomer_ids: list[str],
+    essential_idx: list[int],
+    skip_clause: str,
+) -> pl.DataFrame:
+    """
+    Pool every row (timestep × cell) within a variant and compute mean / std
+    for each metric. Returns a long-format frame:
+        variant, metric, mean, std, n
+    """
+    rnap_idx = {
+        cls: _tu_indexes_for_class(conn, config_sql, sim_data, ids)
+        for cls, ids in class_cistron_ids.items()
+        if cls != "rrna"
+    }
+    rnap_idx["rrna"] = []
+    ribo_idx = {
+        cls: _monomer_indexes_for_class(conn, config_sql, sim_data, ids)
+        for cls, ids in class_cistron_ids.items()
+    }
+    ribo_idx["rrna"] = []
+    new_gene_monomer_indexes = (
+        [
+            i
+            for i in cast(
+                list[int | None],
+                get_indexes(conn, config_sql, "monomer", new_gene_monomer_ids),
+            )
+            if i is not None
+        ]
+        if new_gene_monomer_ids
+        else []
+    )
+    new_gene_frac_expr = (
+        f"list_sum(list_select(listeners__monomer_counts, "
+        f"{_idx_list_sql(new_gene_monomer_indexes)}))::DOUBLE "
+        f"/ NULLIF(list_sum(listeners__monomer_counts), 0)"
+        if new_gene_monomer_indexes
+        else "NULL"
+    )
+    ess_frac_expr = (
+        f"list_sum(list_select(listeners__monomer_counts, "
+        f"{_idx_list_sql(essential_idx)}))::DOUBLE "
+        f"/ NULLIF(list_sum(listeners__monomer_counts), 0)"
+        if essential_idx
+        else "NULL"
+    )
+
+    long_parts: list[pl.DataFrame] = []
+    for variant, pert_cistron_ids in perturbed_cistron_ids_per_variant.items():
+        pert_tu = _tu_indexes_for_class(conn, config_sql, sim_data, pert_cistron_ids)
+        pert_mono = _monomer_indexes_for_class(
+            conn, config_sql, sim_data, pert_cistron_ids
+        )
+        # Each metric is (label, SQL expression evaluated per row).
+        per_row_metrics: list[tuple[str, str]] = [
+            ("cell_mass_fg", "listeners__mass__cell_mass"),
+            ("protein_mass_fg", "listeners__mass__protein_mass"),
+            (
+                "doubling_time_min",
+                "CASE WHEN listeners__mass__instantaneous_growth_rate > 0 "
+                "THEN LN(2) / listeners__mass__instantaneous_growth_rate / 60.0 "
+                "ELSE NULL END",
+            ),
+            (
+                "aa_per_s_per_ribo",
+                "listeners__ribosome_data__effective_elongation_rate",
+            ),
+            (
+                "aa_elongated_per_timestep",
+                "listeners__ribosome_data__actual_elongations",
+            ),
+            (
+                "nt_elongated_per_timestep",
+                "listeners__rnap_data__actual_elongations",
+            ),
+            (
+                "n_active_ribosome",
+                "listeners__unique_molecule_counts__active_ribosome",
+            ),
+            (
+                "n_active_rnap",
+                "listeners__unique_molecule_counts__active_RNAP",
+            ),
+            ("essential_proteome_fraction", ess_frac_expr),
+            ("new_gene_proteome_fraction", new_gene_frac_expr),
+        ]
+        for cls in ["rrna", "ribosomal_protein", "rnap_subunit", "new_gene"]:
+            per_row_metrics.append(
+                (
+                    f"rnap_frac_{cls}",
+                    f"({_rnap_class_numer_expr(cls, rnap_idx[cls])})::DOUBLE "
+                    f"/ NULLIF(listeners__unique_molecule_counts__active_RNAP, 0)",
+                )
+            )
+            if cls == "rrna":
+                # rRNAs are not translated — skip the ribosome side.
+                continue
+            per_row_metrics.append(
+                (
+                    f"ribo_frac_{cls}",
+                    f"({_ribo_class_numer_expr(ribo_idx[cls])})::DOUBLE "
+                    f"/ NULLIF(listeners__unique_molecule_counts__active_ribosome, 0)",
+                )
+            )
+        per_row_metrics.append(
+            (
+                "rnap_frac_perturbed",
+                f"({_rnap_class_numer_expr('perturbed', pert_tu)})::DOUBLE "
+                f"/ NULLIF(listeners__unique_molecule_counts__active_RNAP, 0)",
+            )
+        )
+        per_row_metrics.append(
+            (
+                "ribo_frac_perturbed",
+                f"({_ribo_class_numer_expr(pert_mono)})::DOUBLE "
+                f"/ NULLIF(listeners__unique_molecule_counts__active_ribosome, 0)",
+            )
+        )
+        select_lines = []
+        for metric, expr in per_row_metrics:
+            select_lines.append(f"avg({expr}) AS {metric}__mean")
+            select_lines.append(f"stddev_samp({expr}) AS {metric}__std")
+            select_lines.append(
+                f"count({expr}) AS {metric}__n"
+                if expr != "NULL"
+                else f"NULL AS {metric}__n"
+            )
+        sql = f"""
+            SELECT {variant} AS variant,
+                {", ".join(select_lines)}
+            FROM ({history_sql})
+            WHERE variant = {variant} {skip_clause}
+        """
+        wide = conn.sql(sql).pl()
+        if wide.is_empty():
+            continue
+        rows: list[dict[str, Any]] = []
+        for metric, _expr in per_row_metrics:
+            rows.append(
+                {
+                    "variant": variant,
+                    "metric": metric,
+                    "mean": _safe_float(wide[f"{metric}__mean"][0]),
+                    "std": _safe_float(wide[f"{metric}__std"][0]),
+                    "n": _safe_int(wide[f"{metric}__n"][0]),
+                }
+            )
+        long_parts.append(pl.DataFrame(rows))
+
+    # Per-cell event metrics: aggregate cell-level values across cells per
+    # variant.
+    repl_init = _replication_initiation_per_cell(conn, history_sql, skip_clause)
+    for metric, col in [
+        ("time_to_init_min", "time_to_init_min"),
+        ("cell_mass_at_init_fg", "cell_mass_at_init_fg"),
+    ]:
+        if col not in repl_init.columns:
+            continue
+        agg = (
+            repl_init.group_by("variant", maintain_order=True)
+            .agg(
+                mean=pl.col(col).cast(pl.Float64).mean(),
+                std=pl.col(col).cast(pl.Float64).std(),
+                n=pl.col(col).drop_nulls().count().cast(pl.Int64),
+            )
+            .with_columns(metric=pl.lit(metric))
+            .select(["variant", "metric", "mean", "std", "n"])
+        )
+        long_parts.append(agg)
+
+    if not long_parts:
+        return pl.DataFrame(
+            schema={
+                "variant": pl.Int64,
+                "metric": pl.Utf8,
+                "mean": pl.Float64,
+                "std": pl.Float64,
+                "n": pl.Int64,
+            }
+        )
+    return pl.concat(long_parts, how="diagonal").sort(["variant", "metric"])
+
+
+def _safe_float(v: Any) -> float | None:
+    if v is None:
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(f):
+        return None
+    return f
+
+
+def _safe_int(v: Any) -> int | None:
+    if v is None:
+        return None
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return None
+
+
 def _per_cell_metrics(
     conn: DuckDBPyConnection,
     history_sql: str,
@@ -254,9 +465,10 @@ def _per_cell_metrics(
         ribo_class_exprs.append(
             ("ribo_frac_perturbed", _ribo_class_numer_expr(pert_mono))
         )
-        new_gene_peak_expr = (
-            f"max(list_sum(list_select(listeners__monomer_counts, "
-            f"{_idx_list_sql(new_gene_monomer_indexes)})))"
+        new_gene_sum_expr_pcm = (
+            f"avg(list_sum(list_select(listeners__monomer_counts, "
+            f"{_idx_list_sql(new_gene_monomer_indexes)}))::DOUBLE "
+            f"/ NULLIF(list_sum(listeners__monomer_counts), 0))"
             if new_gene_monomer_indexes
             else "NULL"
         )
@@ -280,23 +492,23 @@ def _per_cell_metrics(
             SELECT
                 {variant} AS variant,
                 lineage_seed, generation, agent_id,
-                max(listeners__mass__cell_mass) AS peak_cell_mass_fg,
-                max(listeners__mass__protein_mass) AS peak_protein_mass_fg,
+                avg(listeners__mass__cell_mass) AS cell_mass_fg,
+                avg(listeners__mass__protein_mass) AS protein_mass_fg,
                 avg(CASE
                     WHEN listeners__mass__instantaneous_growth_rate > 0
                     THEN LN(2) / listeners__mass__instantaneous_growth_rate / 60.0
                     ELSE NULL END) AS doubling_time_min,
                 avg(listeners__ribosome_data__effective_elongation_rate)
-                    AS mean_aa_per_s_per_ribo,
-                sum(listeners__ribosome_data__actual_elongations)
-                    AS total_aa_elongations,
-                sum(listeners__rnap_data__actual_elongations)
-                    AS total_nt_elongations,
+                    AS aa_per_s_per_ribo,
+                avg(listeners__ribosome_data__actual_elongations)
+                    AS aa_elongated_per_timestep,
+                avg(listeners__rnap_data__actual_elongations)
+                    AS nt_elongated_per_timestep,
                 avg(listeners__unique_molecule_counts__active_ribosome)
-                    AS mean_n_ribosome,
+                    AS n_active_ribosome,
                 avg(listeners__unique_molecule_counts__active_RNAP)
-                    AS mean_n_rnap,
-                {new_gene_peak_expr} AS new_gene_protein_peak,
+                    AS n_active_rnap,
+                {new_gene_sum_expr_pcm} AS new_gene_proteome_fraction,
                 {ess_frac_expr} AS essential_proteome_fraction,
                 {alloc_select_lines}
             FROM ({history_sql})
@@ -521,20 +733,21 @@ def _essential_protein_ratios(
 # ---------------------------------------------------------------------------
 
 
-# Diagnostic name → (column in per-cell frame, display title).
+# Diagnostic name → display title. Used both for per-cell CSV (rows in the
+# row-per-diagnostic shape) and pooled CSV.
 _DIAGNOSTIC_LABELS: list[tuple[str, str]] = [
     ("doubling_time_min", "Doubling time (min)"),
-    ("peak_cell_mass_fg", "Peak cell mass (fg)"),
-    ("peak_protein_mass_fg", "Peak protein mass (fg)"),
-    ("mean_aa_per_s_per_ribo", "Effective elongation rate (AA/s/ribo)"),
-    ("total_aa_elongations", "Total AA elongated (per cell)"),
-    ("total_nt_elongations", "Total nt elongated (per cell)"),
-    ("mean_n_ribosome", "Mean active ribosomes"),
-    ("mean_n_rnap", "Mean active RNAPs"),
-    ("time_to_init_min", "Time to replication initiation (min)"),
-    ("cell_mass_at_init_fg", "Cell mass at initiation (fg)"),
+    ("cell_mass_fg", "Cell mass (fg)"),
+    ("protein_mass_fg", "Protein mass (fg)"),
+    ("aa_per_s_per_ribo", "Effective elongation rate (AA/s/ribo)"),
+    ("aa_elongated_per_timestep", "AA elongated per timestep"),
+    ("nt_elongated_per_timestep", "nt elongated per timestep"),
+    ("n_active_ribosome", "Active ribosomes"),
+    ("n_active_rnap", "Active RNAPs"),
+    ("time_to_init_min", "Time to replication initiation (min, per cell)"),
+    ("cell_mass_at_init_fg", "Cell mass at initiation (fg, per cell)"),
     ("essential_proteome_fraction", "Essential proteome fraction"),
-    ("new_gene_protein_peak", "Peak new-gene protein (sum)"),
+    ("new_gene_proteome_fraction", "New-gene proteome fraction (by count)"),
     ("rnap_frac_rrna", "RNAP fraction on rRNA"),
     ("rnap_frac_ribosomal_protein", "RNAP fraction on ribosomal proteins"),
     ("rnap_frac_rnap_subunit", "RNAP fraction on RNAP subunits"),
@@ -577,20 +790,44 @@ def _per_cell_diagnostics_csv(per_cell: pl.DataFrame) -> pl.DataFrame:
     return pl.DataFrame(rows)
 
 
-def _per_variant_diagnostics_csv(per_cell: pl.DataFrame) -> pl.DataFrame:
+def _pooled_csv(pooled: pl.DataFrame) -> pl.DataFrame:
     """
-    Per-variant aggregate table: variant | n_cells | <metric>_mean |
-    <metric>_std for each metric. Handy for spreadsheet diffing.
+    Pivot the pooled long frame into a wide row-per-diagnostic CSV:
+    diagnostic | mean_variant_<N> | std_variant_<N> | n_variant_<N>.
+
+    This is the data underlying the bar + errorbar charts.
     """
-    if per_cell.is_empty():
+    if pooled.is_empty():
         return pl.DataFrame()
-    aggs: list[pl.Expr] = [pl.len().alias("n_cells")]
-    for metric_col, _label in _DIAGNOSTIC_LABELS:
-        if metric_col not in per_cell.columns:
+    variants = sorted(pooled["variant"].unique().to_list())
+
+    def _row_for(metric_col: str, label: str) -> dict[str, Any]:
+        sub = pooled.filter(pl.col("metric") == metric_col)
+        row: dict[str, Any] = {"diagnostic": label}
+        for v in variants:
+            vs = sub.filter(pl.col("variant") == v)
+            if vs.is_empty():
+                row[f"mean_variant_{v}"] = None
+                row[f"std_variant_{v}"] = None
+                row[f"n_variant_{v}"] = None
+            else:
+                r = vs.row(0, named=True)
+                row[f"mean_variant_{v}"] = r["mean"]
+                row[f"std_variant_{v}"] = r["std"]
+                row[f"n_variant_{v}"] = r["n"]
+        return row
+
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for metric_col, metric_label in _DIAGNOSTIC_LABELS:
+        if metric_col not in pooled["metric"].unique().to_list():
             continue
-        aggs.append(pl.col(metric_col).mean().alias(f"{metric_col}_mean"))
-        aggs.append(pl.col(metric_col).std().alias(f"{metric_col}_std"))
-    return per_cell.group_by("variant", maintain_order=True).agg(*aggs).sort("variant")
+        rows.append(_row_for(metric_col, metric_label))
+        seen.add(metric_col)
+    # Surface any metrics in `pooled` not declared in _DIAGNOSTIC_LABELS.
+    for metric_col in sorted(set(pooled["metric"].unique().to_list()) - seen):
+        rows.append(_row_for(metric_col, metric_col))
+    return pl.DataFrame(rows)
 
 
 def _strain_metadata_table(
@@ -767,37 +1004,55 @@ def _metadata_table_chart(metadata_df: pl.DataFrame) -> alt.Chart:
     )
 
 
-def _boxplot(
-    per_cell: pl.DataFrame, metric_col: str, title: str, y_title: str
+def _bar_with_error(
+    pooled: pl.DataFrame, metric: str, title: str, y_title: str
 ) -> alt.Chart:
-    if metric_col not in per_cell.columns:
-        return _placeholder(title, "not computed")
-    sub = per_cell.select(["variant", metric_col]).drop_nulls()
+    """
+    Bar chart of mean ± std for a metric, one bar per variant, color-coded
+    by variant. Error bars are a single vertical line (no end caps).
+    """
+    if "metric" not in pooled.columns:
+        return _placeholder(title, "no data")
+    sub = pooled.filter(pl.col("metric") == metric).drop_nulls("mean")
     if sub.is_empty():
         return _placeholder(title, "no data")
-    box = (
+    sub = sub.with_columns(
+        std=pl.col("std").fill_null(0.0),
+    ).with_columns(
+        lower=pl.col("mean") - pl.col("std"),
+        upper=pl.col("mean") + pl.col("std"),
+    )
+    color = alt.Color(
+        "variant:N",
+        scale=alt.Scale(scheme="tableau10"),
+        legend=alt.Legend(title="Variant"),
+    )
+    bars = (
         alt.Chart(sub)
-        .mark_boxplot(size=30, outliers=True)
+        .mark_bar(size=30)
         .encode(
             x=alt.X("variant:N").title("Variant"),
-            y=alt.Y(f"{metric_col}:Q").title(y_title),
-        )
-    )
-    points = (
-        alt.Chart(sub)
-        .mark_circle(size=40, opacity=0.55, color="#555")
-        .encode(
-            x=alt.X("variant:N"),
-            y=alt.Y(f"{metric_col}:Q"),
-            xOffset="jitter:Q",
+            y=alt.Y("mean:Q").title(y_title),
+            color=color,
             tooltip=[
                 alt.Tooltip("variant:N"),
-                alt.Tooltip(f"{metric_col}:Q", format=".4g"),
+                alt.Tooltip("mean:Q", format=".4g"),
+                alt.Tooltip("std:Q", format=".4g"),
+                alt.Tooltip("n:Q", title="n observations"),
             ],
         )
-        .transform_calculate(jitter="sqrt(-2*log(random()))*cos(2*PI*random())")
     )
-    return (box + points).properties(title=title, width=220, height=200)
+    # `ticks=False` removes the horizontal caps; thickness gives a clean line.
+    errors = (
+        alt.Chart(sub)
+        .mark_errorbar(ticks=False, color="#333", thickness=1.6)
+        .encode(
+            x=alt.X("variant:N"),
+            y=alt.Y("lower:Q").title(y_title),
+            y2="upper:Q",
+        )
+    )
+    return (bars + errors).properties(title=title, width=220, height=200)
 
 
 def _placeholder(title: str, message: str) -> alt.Chart:
@@ -805,56 +1060,89 @@ def _placeholder(title: str, message: str) -> alt.Chart:
         alt.Chart(pl.DataFrame({"msg": [message]}))
         .mark_text(size=14, color="#888")
         .encode(text="msg:N")
-        .properties(title=title, width=220, height=140)
+        .properties(title=title, width=220, height=200)
+    )
+
+
+def _na_placeholder(title: str, reason: str) -> alt.Chart:
+    """Render an N/A panel that matches the bar chart footprint so the row
+    stays aligned. Used for "ribosomes on rRNA" since rRNAs aren't translated."""
+    return (
+        alt.Chart(pl.DataFrame({"msg": [f"N/A — {reason}"]}))
+        .mark_text(size=13, color="#888", font="Helvetica")
+        .encode(text="msg:N")
+        .properties(title=title, width=220, height=200)
     )
 
 
 def _essential_ratio_chart(
     ratios_long: pl.DataFrame, control_variant: int
 ) -> alt.Chart | None:
+    """
+    Bar + errorbar of the mean ± std of per-protein proteome-fraction ratios
+    vs the control variant. One bar per non-control variant. Standard
+    deviation is across the essential-protein population (n=353 typically).
+    """
     if ratios_long.is_empty():
         return None
-    box = (
-        alt.Chart(ratios_long)
-        .mark_boxplot(size=40, outliers=True)
-        .encode(
-            x=alt.X("variant:N").title("Variant"),
-            y=alt.Y("ratio:Q")
-            .title(f"Proteome-fraction ratio vs variant {control_variant}")
-            .scale(zero=False),
+    sub = ratios_long.drop_nulls("ratio").with_columns(pl.col("ratio").cast(pl.Float64))
+    if sub.is_empty():
+        return None
+    agg = (
+        sub.group_by("variant", maintain_order=True)
+        .agg(
+            mean=pl.col("ratio").mean(),
+            std=pl.col("ratio").std(),
+            n=pl.col("ratio").count(),
+        )
+        .with_columns(
+            lower=pl.col("mean") - pl.col("std"),
+            upper=pl.col("mean") + pl.col("std"),
         )
     )
-    points = (
-        alt.Chart(ratios_long)
-        .mark_circle(size=22, opacity=0.4, color="#555")
+    bars = (
+        alt.Chart(agg)
+        .mark_bar(size=40)
         .encode(
-            x=alt.X("variant:N"),
-            y=alt.Y("ratio:Q"),
-            xOffset="jitter:Q",
+            x=alt.X("variant:N").title("Variant"),
+            y=alt.Y("mean:Q").title(
+                f"Proteome-fraction ratio vs variant {control_variant}"
+            ),
+            color=alt.Color(
+                "variant:N",
+                scale=alt.Scale(scheme="tableau10"),
+                legend=alt.Legend(title="Variant"),
+            ),
             tooltip=[
-                alt.Tooltip("monomer_id:N"),
                 alt.Tooltip("variant:N"),
-                alt.Tooltip("ratio:Q", format=".3f"),
+                alt.Tooltip("mean:Q", format=".3f"),
+                alt.Tooltip("std:Q", format=".3f"),
+                alt.Tooltip("n:Q", title="n essential proteins"),
             ],
         )
-        .transform_calculate(jitter="sqrt(-2*log(random()))*cos(2*PI*random())")
+    )
+    errors = (
+        alt.Chart(agg)
+        .mark_errorbar(ticks=False, color="#333", thickness=1.6)
+        .encode(x=alt.X("variant:N"), y=alt.Y("lower:Q"), y2="upper:Q")
     )
     threshold = (
         alt.Chart(pl.DataFrame({"y": [0.5]}))
         .mark_rule(color="red", strokeDash=[4, 4])
         .encode(y="y:Q")
     )
-    return (box + points + threshold).properties(
+    return (bars + errors + threshold).properties(
         title=(
-            "Essential-protein proteome fraction "
-            f"(per-protein ratio vs variant {control_variant}; red line = 0.5)"
+            "Essential-protein proteome-fraction ratio "
+            f"(mean ± std across essential proteins vs variant {control_variant};"
+            " red line = 0.5 health threshold)"
         ),
         width=420,
         height=260,
     )
 
 
-def _resource_allocation_chart_grid(per_cell: pl.DataFrame) -> alt.Chart:
+def _resource_allocation_chart_grid(pooled: pl.DataFrame) -> alt.Chart:
     classes = [
         ("rrna", "rRNA"),
         ("ribosomal_protein", "ribosomal proteins"),
@@ -863,51 +1151,60 @@ def _resource_allocation_chart_grid(per_cell: pl.DataFrame) -> alt.Chart:
         ("perturbed", "perturbed genes"),
     ]
     rnap_charts = [
-        _boxplot(
-            per_cell,
+        _bar_with_error(
+            pooled,
             f"rnap_frac_{cls}",
             f"RNAP on {label}",
-            "mean fraction of active RNAP",
+            "fraction of active RNAP",
         )
         for cls, label in classes
     ]
-    ribo_charts = [
-        _boxplot(
-            per_cell,
-            f"ribo_frac_{cls}",
-            f"Ribosomes on {label}",
-            "mean fraction of active ribosomes",
-        )
-        for cls, label in classes
-    ]
+    ribo_charts = []
+    for cls, label in classes:
+        if cls == "rrna":
+            ribo_charts.append(
+                _na_placeholder(f"Ribosomes on {label}", "rRNAs are not translated")
+            )
+        else:
+            ribo_charts.append(
+                _bar_with_error(
+                    pooled,
+                    f"ribo_frac_{cls}",
+                    f"Ribosomes on {label}",
+                    "fraction of active ribosomes",
+                )
+            )
     return alt.vconcat(
         alt.hconcat(*rnap_charts).resolve_scale(y="independent"),
         alt.hconcat(*ribo_charts).resolve_scale(y="independent"),
-    ).properties(title="Resource allocation (per cell)")
+    ).properties(title="Resource allocation (mean ± std across all timesteps × cells)")
 
 
-def _scalar_diagnostic_grid(per_cell: pl.DataFrame) -> alt.Chart:
-    """Boxplots for non-allocation diagnostics."""
+def _scalar_diagnostic_grid(pooled: pl.DataFrame) -> alt.Chart:
     items = [
         ("doubling_time_min", "Doubling time", "min"),
-        ("peak_cell_mass_fg", "Peak cell mass", "fg"),
-        ("peak_protein_mass_fg", "Peak protein mass", "fg"),
-        ("mean_aa_per_s_per_ribo", "Eff. elongation rate", "AA/s/ribo"),
-        ("total_aa_elongations", "Total AA elongated", "per cell"),
-        ("total_nt_elongations", "Total nt elongated", "per cell"),
-        ("mean_n_ribosome", "Mean active ribosomes", "count"),
-        ("mean_n_rnap", "Mean active RNAPs", "count"),
-        ("time_to_init_min", "Time to repl. initiation", "min"),
-        ("cell_mass_at_init_fg", "Cell mass at initiation", "fg"),
-        ("new_gene_protein_peak", "Peak new-gene protein", "count"),
+        ("cell_mass_fg", "Cell mass", "fg"),
+        ("protein_mass_fg", "Protein mass", "fg"),
+        ("aa_per_s_per_ribo", "Eff. elongation rate", "AA/s/ribo"),
+        ("aa_elongated_per_timestep", "AA elongated/timestep", "AA"),
+        ("nt_elongated_per_timestep", "nt elongated/timestep", "nt"),
+        ("n_active_ribosome", "Active ribosomes", "count"),
+        ("n_active_rnap", "Active RNAPs", "count"),
+        ("time_to_init_min", "Time to repl. initiation", "min (per cell)"),
+        ("cell_mass_at_init_fg", "Cell mass at initiation", "fg (per cell)"),
+        ("new_gene_proteome_fraction", "New-gene proteome fraction", "fraction"),
         ("essential_proteome_fraction", "Essential proteome fraction", "fraction"),
     ]
-    charts = [_boxplot(per_cell, col, title, ytitle) for col, title, ytitle in items]
+    charts = [
+        _bar_with_error(pooled, col, title, ytitle) for col, title, ytitle in items
+    ]
     rows = []
     cols_per_row = 4
     for i in range(0, len(charts), cols_per_row):
         rows.append(alt.hconcat(*charts[i : i + cols_per_row]))
-    return alt.vconcat(*rows).properties(title="Per-cell diagnostics")
+    return alt.vconcat(*rows).properties(
+        title="Per-variant diagnostics (mean ± std across timesteps × cells)"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -965,6 +1262,19 @@ def plot(
         skip_clause,
     )
 
+    print("strain_dashboard: computing pooled per-variant metrics…")
+    pooled = _pooled_variant_metrics(
+        conn,
+        history_sql,
+        config_sql,
+        sim_data,
+        class_cistron_ids,
+        perturbed_cistron_ids_per_variant,
+        new_gene_monomer_ids,
+        essential_idx,
+        skip_clause,
+    )
+
     print("strain_dashboard: computing per-protein essential-fraction ratios…")
     cell_keys = [
         (row["variant"], row["lineage_seed"], row["generation"], row["agent_id"])
@@ -982,11 +1292,11 @@ def plot(
 
     metadata_df = _strain_metadata_table(vm, variant_name)
     diagnostics_csv = _per_cell_diagnostics_csv(per_cell)
-    per_variant_csv = _per_variant_diagnostics_csv(per_cell)
+    pooled_csv = _pooled_csv(pooled)
 
     # Write CSVs early so failure in chart assembly still yields data.
     diagnostics_csv.write_csv(os.path.join(outdir, "per_cell_diagnostics.csv"))
-    per_variant_csv.write_csv(os.path.join(outdir, "per_variant_diagnostics.csv"))
+    pooled_csv.write_csv(os.path.join(outdir, "per_variant_pooled.csv"))
     metadata_df.write_csv(os.path.join(outdir, "strain_metadata.csv"))
     if not ratios_wide.is_empty():
         ratios_wide.write_csv(os.path.join(outdir, "essential_protein_ratios.csv"))
@@ -1022,8 +1332,8 @@ def plot(
             if chart is not None:
                 sections.append(chart)
 
-    sections.append(_scalar_diagnostic_grid(per_cell))
-    sections.append(_resource_allocation_chart_grid(per_cell))
+    sections.append(_scalar_diagnostic_grid(pooled))
+    sections.append(_resource_allocation_chart_grid(pooled))
 
     final = alt.vconcat(*sections).resolve_scale(x="independent", y="independent")
     output_path = os.path.join(outdir, "strain_dashboard.html")
@@ -1171,8 +1481,8 @@ def test_per_cell_diagnostics_csv_shape():
             "generation": [1, 2, 1, 2],
             "agent_id": ["0", "00", "0", "00"],
             "doubling_time_min": [50.0, 49.0, 45.0, 44.0],
-            "peak_cell_mass_fg": [2300.0, 2310.0, 2400.0, 2410.0],
-            "mean_n_ribosome": [19000, 19500, 20000, 20500],
+            "cell_mass_fg": [2300.0, 2310.0, 2400.0, 2410.0],
+            "n_active_ribosome": [19000, 19500, 20000, 20500],
         }
     )
     csv = _per_cell_diagnostics_csv(pc)
@@ -1180,7 +1490,33 @@ def test_per_cell_diagnostics_csv_shape():
     assert len(cell_cols) == 4
     assert "Cell: 0_0_1_0" in csv.columns
     assert "Cell: 1_0_2_00" in csv.columns
-    # Doubling time row should have mean ~47.0
     dt_row = csv.filter(pl.col("diagnostic") == "Doubling time (min)").row(0)
     mean_idx = csv.columns.index("mean")
     assert abs(dt_row[mean_idx] - 47.0) < 1e-6
+
+
+def test_pooled_csv_shape():
+    pooled = pl.DataFrame(
+        {
+            "variant": [0, 1, 0, 1],
+            "metric": [
+                "doubling_time_min",
+                "doubling_time_min",
+                "cell_mass_fg",
+                "cell_mass_fg",
+            ],
+            "mean": [49.5, 44.5, 2300.0, 2400.0],
+            "std": [1.5, 2.0, 50.0, 60.0],
+            "n": [2000, 2000, 2000, 2000],
+        }
+    )
+    csv = _pooled_csv(pooled)
+    assert "mean_variant_0" in csv.columns
+    assert "std_variant_1" in csv.columns
+    assert "n_variant_0" in csv.columns
+    dt_row = csv.filter(pl.col("diagnostic") == "Doubling time (min)").row(
+        0, named=True
+    )
+    assert abs(dt_row["mean_variant_0"] - 49.5) < 1e-9
+    assert abs(dt_row["std_variant_1"] - 2.0) < 1e-9
+    assert dt_row["n_variant_0"] == 2000
