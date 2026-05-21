@@ -28,7 +28,7 @@ jobs:
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
           enable-cache: true
-          version: "0.11.8"
+          version: "0.11.14"
 
       - name: Install pip-audit and packaging
         run: |
