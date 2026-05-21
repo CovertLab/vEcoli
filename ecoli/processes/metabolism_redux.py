@@ -142,6 +142,8 @@ class MetabolismRedux(Step):
         catalyst_ind = []
         catalyzed_rxn_ind = []
         catalyzed_rxn_idx = 0
+        # need to map catalyzed_rxn_idx to reaction index in stoich_dict for kinetic constraints
+        cat_rxn_idx_to_fba_rxn_idx = dict()
         for rxn_idx, (reaction, stoich) in enumerate(stoich_dict.items()):
             for species, coefficient in stoich.items():
                 met_ind.append(metabolites_idx[species])
@@ -151,14 +153,16 @@ class MetabolismRedux(Step):
                 catalyst_idx[catalyst]
                 for catalyst in reaction_catalysts.get(reaction, [])
             ]
-            if len(enzyme_idx) > 1:
+            if len(enzyme_idx) >= 1:
                 catalyst_ind.extend(enzyme_idx)
                 catalyzed_rxn_ind.extend([catalyzed_rxn_idx] * len(enzyme_idx))
+                cat_rxn_idx_to_fba_rxn_idx[catalyzed_rxn_idx] = rxn_idx
                 catalyzed_rxn_idx += 1
         self.stoichiometry = csr_matrix((coeffs, (met_ind, rxn_ind)), dtype=int)
         self.catalysis_matrix = csr_matrix(
             ([1] * len(catalyst_ind), (catalyzed_rxn_ind, catalyst_ind)), dtype=int
         )
+        self.cat_rxn_idx_to_fba_rxn_idx = cat_rxn_idx_to_fba_rxn_idx
 
         self.media_id = self.parameters["media_id"]
         self.cell_density = self.parameters["cell_density"]
@@ -502,7 +506,12 @@ class MetabolismRedux(Step):
         reaction_catalyst_counts = self.catalysis_matrix.dot(current_catalyst_counts)
         # Get reaction indices whose fluxes should be set to zero
         # because there are no enzymes to catalyze the rxn
-        binary_kinetic_idx = np.where(reaction_catalyst_counts == 0)[0]
+        binary_kinetic_cat_idx = np.where(reaction_catalyst_counts == 0)[
+            0
+        ]  # indexes based on catalyzed reactions
+        binary_kinetic_idx = [
+            self.cat_rxn_idx_to_fba_rxn_idx[idx] for idx in binary_kinetic_cat_idx
+        ]  # indexes based on all reactions
 
         # TODO: Figure out how to handle changing media ID
 
@@ -961,7 +970,21 @@ class NetworkFlowModel:
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
-        p.solve(solver=solver, verbose=False)
+        try:
+            p.solve(
+                solver=solver,
+                solver_opts={
+                    "primal_feasibility_tolerance": 1e-3,  # Default usually 1e-8
+                    "dual_feasibility_tolerance": 1e-3,
+                    "solution_feasibility_tolerance": 1e-3,
+                },
+                verbose=False,
+            )
+        except cp.error.SolverError:
+            print("Lets see what is going on")
+            raise ValueError(
+                "Network flow model of metabolism did not converge to a solution."
+            )
         if p.status != "optimal":
             raise ValueError(
                 "Network flow model of metabolism did not "
