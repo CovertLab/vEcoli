@@ -1,12 +1,9 @@
-import os
 from collections import namedtuple
 import numpy as np
 from scipy import constants
 
 from vivarium.library.topology import get_in, assoc_path
 from vivarium.library.units import units
-
-from wholecell.utils.filepath import ROOT_PATH
 
 
 class Parameter:
