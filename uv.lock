@@ -779,6 +779,15 @@ wheels = [
 ]
 
 [[package]]
+name = "et-xmlfile"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/38/af70d7ab1ae9d4da450eeec1fa3918940a5fafb9055e934af8d6eb0c2313/et_xmlfile-2.0.0.tar.gz", hash = "sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54", size = 17234, upload-time = "2024-10-25T17:25:40.039Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/8b/5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a/et_xmlfile-2.0.0-py3-none-any.whl", hash = "sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa", size = 18059, upload-time = "2024-10-25T17:25:39.051Z" },
+]
+
+[[package]]
 name = "etuples"
 version = "0.3.10"
 source = { registry = "https://pypi.org/simple" }
@@ -904,6 +913,18 @@ wheels = [
 ]
 
 [[package]]
+name = "ftpretty"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a2/c5/f5ed409312f67697bf7967cd52ed74794ccb860fec29d2105470c987de09/ftpretty-0.4.0.tar.gz", hash = "sha256:61233b9212f2cceec96ee2c972738fa31cae7248e92d0874c99c04ee739bb5a9", size = 9068, upload-time = "2021-06-12T17:45:20.038Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9b/d1/cbd3736da8d6253da85838b105b97bc794965584243711fa2ef0bb585df3/ftpretty-0.4.0-py2.py3-none-any.whl", hash = "sha256:1c0c45bacf69b82827838ae9b77a66e48064d2686649628e647965a85aa7367a", size = 8180, upload-time = "2021-06-12T17:45:18.349Z" },
+]
+
+[[package]]
 name = "gcsfs"
 version = "2025.5.1"
 source = { registry = "https://pypi.org/simple" }
@@ -936,6 +957,28 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/02/b0/c13e3c4f2f66412b4603234e9c2dfd6bec68926c89b40d8339479cdbcd11/gillespy2-1.8.3.tar.gz", hash = "sha256:8eed59b5ba12614225a7fdb42ebb72e461bbd3a1e23947fef359e16eeaed845f", size = 313887, upload-time = "2024-09-19T19:06:50.695Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ba/58/e2bc558d9bb5b9745cb847833cc817318fa0549bd62af566e5a13d392d87/gillespy2-1.8.3-py3-none-any.whl", hash = "sha256:7907880eaf5e542ca1efad598f5d59d306f01355262ef35f9217a49d825692f0", size = 398878, upload-time = "2024-09-19T19:06:48.441Z" },
+]
+
+[[package]]
+name = "goatools"
+version = "1.6.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "ftpretty" },
+    { name = "numpy" },
+    { name = "openpyxl" },
+    { name = "pandas" },
+    { name = "pydot" },
+    { name = "requests" },
+    { name = "rich" },
+    { name = "scipy" },
+    { name = "setuptools" },
+    { name = "statsmodels" },
+    { name = "xlsxwriter" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e6/87/07e80f31af72d8e2c35936d1e5670ac05ff6009cc4a9412eb99e18efd24a/goatools-1.6.5.tar.gz", hash = "sha256:0d799706dc3ae4480feda25f411f8e9b2741c0d8ea7ad73af0b05730198a4be1", size = 17760712, upload-time = "2026-05-12T06:08:38.592Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/53/1020a7b32651289a68ec853d43fb412c8982d6d1de2289e6cb6f55bc4b7b/goatools-1.6.5-py3-none-any.whl", hash = "sha256:2b093ded287178b494e28350bce6beb60b920ff5f923fc5aaef227dd6ffb935a", size = 15768926, upload-time = "2026-05-12T06:08:35.183Z" },
 ]
 
 [[package]]
@@ -2268,6 +2311,18 @@ wheels = [
 ]
 
 [[package]]
+name = "openpyxl"
+version = "3.1.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "et-xmlfile" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3d/f9/88d94a75de065ea32619465d2f77b29a0469500e99012523b91cc4141cd1/openpyxl-3.1.5.tar.gz", hash = "sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050", size = 186464, upload-time = "2024-06-28T14:03:44.161Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl", hash = "sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2", size = 250910, upload-time = "2024-06-28T14:03:41.161Z" },
+]
+
+[[package]]
 name = "orjson"
 version = "3.11.7"
 source = { registry = "https://pypi.org/simple" }
@@ -2731,6 +2786,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b0/6a/adf5734ffd52bf86d865093ad70b2ce543415e0e356f6cacabbc0d9ad910/pydantic_core-2.33.2-cp312-cp312-win32.whl", hash = "sha256:9cb1da0f5a471435a7bc7e439b8a728e8b61e59784b2af70d7c169f8dd8ae290", size = 1892628, upload-time = "2025-04-23T18:31:47.819Z" },
     { url = "https://files.pythonhosted.org/packages/43/e4/5479fecb3606c1368d496a825d8411e126133c41224c1e7238be58b87d7e/pydantic_core-2.33.2-cp312-cp312-win_amd64.whl", hash = "sha256:f941635f2a3d96b2973e867144fde513665c87f13fe0e193c158ac51bfaaa7b2", size = 1955866, upload-time = "2025-04-23T18:31:49.635Z" },
     { url = "https://files.pythonhosted.org/packages/0d/24/8b11e8b3e2be9dd82df4b11408a67c61bb4dc4f8e11b5b0fc888b38118b5/pydantic_core-2.33.2-cp312-cp312-win_arm64.whl", hash = "sha256:cca3868ddfaccfbc4bfb1d608e2ccaaebe0ae628e1416aeb9c4d88c001bb45ab", size = 1888894, upload-time = "2025-04-23T18:31:51.609Z" },
+]
+
+[[package]]
+name = "pydot"
+version = "4.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyparsing" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/50/35/b17cb89ff865484c6a20ef46bf9d95a5f07328292578de0b295f4a6beec2/pydot-4.0.1.tar.gz", hash = "sha256:c2148f681c4a33e08bf0e26a9e5f8e4099a82e0e2a068098f32ce86577364ad5", size = 162594, upload-time = "2025-06-17T20:09:56.454Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7e/32/a7125fb28c4261a627f999d5fb4afff25b523800faed2c30979949d6facd/pydot-4.0.1-py3-none-any.whl", hash = "sha256:869c0efadd2708c0be1f916eb669f3d664ca684bc57ffb7ecc08e70d5e93fee6", size = 37087, upload-time = "2025-06-17T20:09:55.25Z" },
 ]
 
 [[package]]
@@ -3811,6 +3878,7 @@ dependencies = [
     { name = "ecos" },
     { name = "gcsfs" },
     { name = "gillespy2" },
+    { name = "goatools" },
     { name = "imageio", extra = ["ffmpeg"] },
     { name = "ipdb" },
     { name = "ipykernel" },
@@ -3828,6 +3896,7 @@ dependencies = [
     { name = "pyarrow" },
     { name = "pymc" },
     { name = "pymunk" },
+    { name = "pyyaml" },
     { name = "s3fs" },
     { name = "scikit-image" },
     { name = "scikit-learn" },
@@ -3881,6 +3950,7 @@ requires-dist = [
     { name = "ecos" },
     { name = "gcsfs" },
     { name = "gillespy2", specifier = ">=1.8.3" },
+    { name = "goatools", specifier = ">=1.6.5" },
     { name = "google-cloud-billing", marker = "extra == 'dev'" },
     { name = "google-cloud-compute", marker = "extra == 'dev'" },
     { name = "imageio", extras = ["ffmpeg"] },
@@ -3908,6 +3978,7 @@ requires-dist = [
     { name = "pymunk" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "rdkit", marker = "extra == 'dev'", specifier = ">=2025.9.3" },
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "s3fs", specifier = ">=2025.5.1" },
@@ -4083,6 +4154,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f1/10/ef474494a7f2102ec4c02352c723fa282c6237b600565eb82ee354291211/xarray_einstats-0.9.1.tar.gz", hash = "sha256:39b373deed43592c41d3fbf8863af62e19e01c1ae553ae5ff059a8df78d995c6", size = 33327, upload-time = "2025-06-18T15:53:28.499Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/17/8b/ed2f0f49385c3d7739cd4699954add26e8f09a372a0c3f04f2bde32fcea2/xarray_einstats-0.9.1-py3-none-any.whl", hash = "sha256:777339524e85d066f2ef9ed1e3a3fb63aead4c1065fd1406f30dfa4de58ce063", size = 39043, upload-time = "2025-06-18T15:53:24.088Z" },
+]
+
+[[package]]
+name = "xlsxwriter"
+version = "3.2.9"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/2c/c06ef49dc36e7954e55b802a8b231770d286a9758b3d936bd1e04ce5ba88/xlsxwriter-3.2.9.tar.gz", hash = "sha256:254b1c37a368c444eac6e2f867405cc9e461b0ed97a3233b2ac1e574efb4140c", size = 215940, upload-time = "2025-09-16T00:16:21.63Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3a/0c/3662f4a66880196a590b202f0db82d919dd2f89e99a27fadef91c4a33d41/xlsxwriter-3.2.9-py3-none-any.whl", hash = "sha256:9a5db42bc5dff014806c58a20b9eae7322a134abb6fce3c92c181bfb275ec5b3", size = 175315, upload-time = "2025-09-16T00:16:20.108Z" },
 ]
 
 [[package]]

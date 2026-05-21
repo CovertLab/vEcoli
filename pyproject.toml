@@ -60,6 +60,8 @@ dependencies = [
     "arviz>=0.23.0",
     "s3fs>=2025.5.1",
     "ipykernel>=6.29.5",
+    "goatools>=1.6.5",
+    "pyyaml>=6.0.2",
 ]
 
 [project.optional-dependencies]
