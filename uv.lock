@@ -808,7 +808,7 @@ wheels = [
 [[package]]
 name = "ecoli-sources"
 version = "0.0.1"
-source = { git = "ssh://git@github.com/vivarium-collective/ecoli-sources.git?rev=6691922#669192246c89f7573f5f0cbca6898c89c207a4d6" }
+source = { git = "https://github.com/vivarium-collective/ecoli-sources.git?rev=6691922#669192246c89f7573f5f0cbca6898c89c207a4d6" }
 dependencies = [
     { name = "anndata" },
     { name = "jupyter" },
@@ -3991,7 +3991,7 @@ requires-dist = [
     { name = "cvxpy" },
     { name = "dill" },
     { name = "duckdb" },
-    { name = "ecoli-sources", git = "ssh://git@github.com/vivarium-collective/ecoli-sources.git?rev=6691922" },
+    { name = "ecoli-sources", git = "https://github.com/vivarium-collective/ecoli-sources.git?rev=6691922" },
     { name = "ecos" },
     { name = "gcsfs" },
     { name = "gillespy2", specifier = ">=1.8.3" },

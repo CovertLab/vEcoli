@@ -67,10 +67,12 @@ dependencies = [
 [tool.uv.sources]
 # ecoli-sources is pinned by commit SHA on the vivarium-collective fork.
 # Bump this revision when ecoli-sources merges PRs that vEcoli depends on.
+# HTTPS (not SSH) so GitHub Actions runners and other un-authenticated
+# clones can fetch it — the repo is public.
 # For local development against an in-progress ecoli-sources checkout,
 # override after ``uv sync`` with:
 #   uv pip install -e /path/to/ecoli-sources
-ecoli-sources = { git = "ssh://git@github.com/vivarium-collective/ecoli-sources.git", rev = "6691922" }
+ecoli-sources = { git = "https://github.com/vivarium-collective/ecoli-sources.git", rev = "6691922" }
 
 [project.optional-dependencies]
 dev = [
