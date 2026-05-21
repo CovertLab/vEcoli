@@ -38,6 +38,7 @@
     "single_daughters": true,
     "daughter_outdir": "out",
     "lineage_seed": 0,
+    "different_seeds_per_variant": false,
 
     "parca_options": {
         "cpus": 1,

@@ -70,7 +70,7 @@ dependencies = [
 # For local development against an in-progress ecoli-sources checkout,
 # override after ``uv sync`` with:
 #   uv pip install -e /path/to/ecoli-sources
-ecoli-sources = { git = "ssh://git@github.com/vivarium-collective/ecoli-sources.git", rev = "7755e72" }
+ecoli-sources = { git = "ssh://git@github.com/vivarium-collective/ecoli-sources.git", rev = "6691922" }
 
 [project.optional-dependencies]
 dev = [

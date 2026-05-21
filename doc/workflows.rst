@@ -595,6 +595,11 @@ top-level configuration options:
   the first generation of a lineage, where a lineage is defined
   as a group of cell simulations with the same first generation initial
   seed (called a lineage seed) and variant simulation data object
+- ``different_seeds_per_variant``: If True, each variant ``i`` is given initial
+  seeds ``[lineage_seed + i*n_init_sims, lineage_seed + (i+1)*n_init_sims)``
+  so that different variants simulate statistically independent cell lineages.
+  If False (default), all variants share the same initial seed range
+  ``[lineage_seed, lineage_seed + n_init_sims)``.
 - ``generations``: Integer number of generations to run each cell lineage
 - ``single_daughters``: If False, simulates both daughter cells (append ``0``
   to mother agent ID to get one daughter agent ID and ``1`` to get other) after
@@ -699,6 +704,14 @@ is a list workflow behaviors enabled in our model to handle unexpected errors.
   job in each chain of job dependencies (e.g. generation 7 of a cell lineage
   depends on generation 6, :py:mod:`runscripts.create_variants` depends on
   :py:mod:`runscripts.parca`, etc).
+
+.. warning::
+  The resume option is primarily meant for testing code changes, not config changes.
+  As such, most edits to the configuration JSON are silently ignored when resuming a workflow.
+  The only exceptions are changes to resource allocation options (e.g., ``SIM_MEM``),
+  allowing users to retry failed jobs with higher resource limits without triggering
+  re-execution of already completed jobs. If you want to change other options, you
+  must launch a new workflow. 
 
 .. _output:
 

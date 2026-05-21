@@ -268,6 +268,42 @@ class TestNextflowStubExecution:
     These tests require Nextflow to be installed and available on PATH.
     """
 
+    @staticmethod
+    def _build_workflow(config_path):
+        """Run workflow.py with --build-only and assert success."""
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "runscripts.workflow",
+                "--config",
+                str(config_path),
+                "--build-only",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert result.returncode == 0, f"Build failed: {result.stderr}"
+
+    @staticmethod
+    def _run_stub(build_dir):
+        """Run Nextflow in stub mode and return the CompletedProcess."""
+        return subprocess.run(
+            [
+                "nextflow",
+                "run",
+                str(build_dir / "main.nf"),
+                "-stub",
+                "-c",
+                str(build_dir / "nextflow.config"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            cwd=build_dir,
+        )
+
     def test_build_only_creates_required_files(self, temp_config_dir):
         """Test that --build-only creates main.nf, nextflow.config, and workflow_config.json."""
         exp_id = f"test_build_only_{uuid.uuid4().hex[:8]}"
@@ -288,21 +324,7 @@ class TestNextflowStubExecution:
             json.dump(config, f)
 
         # Run workflow.py with --build-only
-        result = subprocess.run(
-            [
-                "python",
-                "-m",
-                "runscripts.workflow",
-                "--config",
-                str(config_path),
-                "--build-only",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-
-        assert result.returncode == 0, f"Build failed: {result.stderr}"
+        self._build_workflow(config_path)
 
         # Check that files were created
         repo_dir = Path(__file__).parent.parent
@@ -365,36 +387,10 @@ class TestNextflowStubExecution:
 
         try:
             # Build workflow
-            result = subprocess.run(
-                [
-                    "python",
-                    "-m",
-                    "runscripts.workflow",
-                    "--config",
-                    str(config_path),
-                    "--build-only",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            assert result.returncode == 0, f"Build failed: {result.stderr}"
+            self._build_workflow(config_path)
 
             # Run stub
-            result = subprocess.run(
-                [
-                    "nextflow",
-                    "run",
-                    str(build_dir / "main.nf"),
-                    "-stub",
-                    "-c",
-                    str(build_dir / "nextflow.config"),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120,
-                cwd=build_dir,
-            )
+            self._run_stub(build_dir)
 
             # Find and check stub output files
             work_dir = build_dir / "work"
@@ -476,20 +472,7 @@ class TestNextflowStubExecution:
 
         try:
             # Build workflow
-            result = subprocess.run(
-                [
-                    "python",
-                    "-m",
-                    "runscripts.workflow",
-                    "--config",
-                    str(config_path),
-                    "--build-only",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            assert result.returncode == 0, f"Build failed: {result.stderr}"
+            self._build_workflow(config_path)
 
             # Check main.nf includes correct groupTuple size parameters
             main_nf_content = (build_dir / "main.nf").read_text()
@@ -521,20 +504,7 @@ class TestNextflowStubExecution:
 
             # Run stub (may fail on some analyses due to path handling, but
             # the important thing is that the workflow parses correctly)
-            result = subprocess.run(
-                [
-                    "nextflow",
-                    "run",
-                    str(build_dir / "main.nf"),
-                    "-stub",
-                    "-c",
-                    str(build_dir / "nextflow.config"),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120,
-                cwd=build_dir,
-            )
+            self._run_stub(build_dir)
 
             # Collect and verify stub outputs
             work_dir = build_dir / "work"
@@ -597,6 +567,213 @@ class TestNextflowStubExecution:
 
         finally:
             # Cleanup
+            if build_dir.exists():
+                shutil.rmtree(build_dir)
+            if out_dir.exists():
+                shutil.rmtree(out_dir)
+
+    @pytest.mark.parametrize("different_seeds_per_variant", [False, True])
+    def test_stub_different_seeds_per_variant(
+        self, different_seeds_per_variant, temp_config_dir
+    ):
+        """With different_seeds_per_variant set to False,
+        every variant runs with the same seed range. When set
+        to True, each variant gets a distinct, non-overlapping seed range.
+
+        The simGen0 stub creates daughter-state directories named
+        seed=<lineage_seed>, so we can read the filesystem to check which
+        (variant, seed) pairs were actually executed.
+        """
+        lineage_seed = 10
+        n_init_sims = 2
+
+        exp_id = f"test_correlated_seeds_{uuid.uuid4().hex[:8]}"
+        config = {
+            "experiment_id": exp_id,
+            "suffix_time": False,
+            "analysis_options": {},
+            "emitter_arg": {"out_dir": str(temp_config_dir / "out")},
+            "sim_data_path": None,
+            "generations": 1,
+            "n_init_sims": n_init_sims,
+            "single_daughters": True,
+            "lineage_seed": lineage_seed,
+            "different_seeds_per_variant": different_seeds_per_variant,
+        }
+        config_path = temp_config_dir / "test_correlated.json"
+        with open(config_path, "w") as f:
+            json.dump(config, f)
+
+        repo_dir = Path(__file__).parent.parent
+        build_dir = repo_dir / "nextflow_temp" / exp_id
+        out_dir = temp_config_dir / "out" / exp_id
+
+        try:
+            self._build_workflow(config_path)
+
+            result = self._run_stub(build_dir)
+            assert result.returncode == 0, (
+                f"Stub run failed:\n{result.stdout}\n{result.stderr}"
+            )
+
+            daughter_states_dir = out_dir / "daughter_states"
+            assert daughter_states_dir.exists(), "daughter_states directory not created"
+
+            if not different_seeds_per_variant:
+                # All 3 mock variants should have the same shared seed range
+                expected_seeds = {
+                    f"seed={lineage_seed + i}" for i in range(n_init_sims)
+                }
+                for variant in ["0", "1", "2"]:
+                    variant_dir = daughter_states_dir / f"variant={variant}"
+                    assert variant_dir.exists(), f"variant={variant} dir not found"
+                    actual_seeds = {p.name for p in variant_dir.iterdir() if p.is_dir()}
+                    assert actual_seeds == expected_seeds, (
+                        f"variant={variant}: expected {expected_seeds}, got {actual_seeds}"
+                    )
+            else:
+                # The mock createVariants stub emits variant names "0", "1", "2".
+                # With decorrelation, variant i gets seeds:
+                #   [lineage_seed + i*n_init_sims, ..., lineage_seed + (i+1)*n_init_sims - 1]
+                all_seed_sets = []
+                for variant_idx, variant in enumerate(["0", "1", "2"]):
+                    variant_dir = daughter_states_dir / f"variant={variant}"
+                    assert variant_dir.exists(), f"variant={variant} dir not found"
+                    actual_seeds = {p.name for p in variant_dir.iterdir() if p.is_dir()}
+
+                    expected_seeds = {
+                        f"seed={lineage_seed + variant_idx * n_init_sims + i}"
+                        for i in range(n_init_sims)
+                    }
+                    assert actual_seeds == expected_seeds, (
+                        f"variant={variant}: expected {expected_seeds}, got {actual_seeds}"
+                    )
+                    all_seed_sets.append(actual_seeds)
+
+                # Verify all seed ranges are disjoint across variants
+                for i in range(len(all_seed_sets)):
+                    for j in range(i + 1, len(all_seed_sets)):
+                        assert all_seed_sets[i].isdisjoint(all_seed_sets[j]), (
+                            f"Variants {i} and {j} share seeds: "
+                            f"{all_seed_sets[i] & all_seed_sets[j]}"
+                        )
+
+        finally:
+            if build_dir.exists():
+                shutil.rmtree(build_dir)
+            if out_dir.exists():
+                shutil.rmtree(out_dir)
+
+    def test_stub_sim_data_path_skips_parca(self, temp_config_dir):
+        """Test that supplying sim_data_path skips ParCa and sims run correctly.
+
+        Verifies with 2 generations and 2 seeds (n_init_sims=2, single_daughters=True):
+        - main.nf uses Channel.value(...) for parca_out instead of running runParca
+        - Stub succeeds (exit code 0)
+        - daughter_states has expected structure:
+            3 variants × 2 seeds × 2 generations
+        - The kb directory was copied to the output parca/kb location
+        """
+        generations = 2
+        n_init_sims = 2
+        lineage_seed = 0
+
+        # Create a dummy kb directory with a simData.cPickle file so
+        # compute_file_hash and file().copyTo() both work correctly
+        kb_dir = temp_config_dir / "kb"
+        kb_dir.mkdir()
+        sim_data_file = kb_dir / "simData.cPickle"
+        sim_data_file.write_bytes(b"Mock sim_data for testing")
+
+        exp_id = f"test_sim_data_path_{uuid.uuid4().hex[:8]}"
+        config = {
+            "experiment_id": exp_id,
+            "suffix_time": False,
+            "analysis_options": {
+                "single": True,
+            },
+            "emitter_arg": {"out_dir": str(temp_config_dir / "out")},
+            "sim_data_path": str(sim_data_file),
+            "generations": generations,
+            "n_init_sims": n_init_sims,
+            "single_daughters": True,
+            "lineage_seed": lineage_seed,
+        }
+        config_path = temp_config_dir / "test_sim_data_path.json"
+        with open(config_path, "w") as f:
+            json.dump(config, f)
+
+        repo_dir = Path(__file__).parent.parent
+        build_dir = repo_dir / "nextflow_temp" / exp_id
+        out_dir = temp_config_dir / "out" / exp_id
+
+        try:
+            self._build_workflow(config_path)
+
+            # Verify main.nf skips runParca and uses Channel.value for parca_out
+            main_nf_content = (build_dir / "main.nf").read_text()
+            assert "Channel.value(" in main_nf_content, (
+                "Expected Channel.value(...) for parca_out when sim_data_path is set"
+            )
+            assert "runParca(params.config)" not in main_nf_content, (
+                "runParca should not appear in main.nf when sim_data_path is set"
+            )
+
+            result = self._run_stub(build_dir)
+            assert result.returncode == 0, (
+                f"Stub run failed:\n{result.stdout}\n{result.stderr}"
+            )
+
+            # Verify kb was copied to parca output location
+            parca_kb_dir = out_dir / "parca" / "kb"
+            assert parca_kb_dir.exists(), (
+                "parca/kb directory should exist after file().copyTo()"
+            )
+            assert (parca_kb_dir / "simData.cPickle").exists(), (
+                "simData.cPickle should be present in the copied parca/kb directory"
+            )
+
+            # Verify daughter_states directory structure:
+            # MOCK_NUM_VARIANTS variants × n_init_sims seeds × generations generations
+            daughter_states_dir = out_dir / "daughter_states"
+            assert daughter_states_dir.exists(), "daughter_states directory not created"
+
+            expected_seeds = {f"seed={lineage_seed + i}" for i in range(n_init_sims)}
+            expected_generations = {f"generation={g + 1}" for g in range(generations)}
+
+            for variant in ["0", "1", "2"]:
+                variant_dir = daughter_states_dir / f"variant={variant}"
+                assert variant_dir.exists(), f"variant={variant} dir not found"
+
+                actual_seeds = {p.name for p in variant_dir.iterdir() if p.is_dir()}
+                assert actual_seeds == expected_seeds, (
+                    f"variant={variant}: expected seeds {expected_seeds}, "
+                    f"got {actual_seeds}"
+                )
+
+                for seed_dir in variant_dir.iterdir():
+                    actual_generations = {
+                        p.name for p in seed_dir.iterdir() if p.is_dir()
+                    }
+                    assert actual_generations == expected_generations, (
+                        f"variant={variant}/{seed_dir.name}: "
+                        f"expected generations {expected_generations}, "
+                        f"got {actual_generations}"
+                    )
+
+            # Verify analysisSingle ran once per simulation:
+            # MOCK_NUM_VARIANTS variants × n_init_sims seeds × generations = 12 runs
+            expected_single_count = MOCK_NUM_VARIANTS * n_init_sims * generations
+            analyses_dir = out_dir / "analyses"
+            assert analyses_dir.exists(), "analyses directory not created"
+            single_outputs = list(analyses_dir.rglob("test.txt"))
+            assert len(single_outputs) == expected_single_count, (
+                f"Expected {expected_single_count} analysisSingle outputs "
+                f"(MOCK_NUM_VARIANTS={MOCK_NUM_VARIANTS} × n_init_sims={n_init_sims} "
+                f"× generations={generations}), got {len(single_outputs)}"
+            )
+
+        finally:
             if build_dir.exists():
                 shutil.rmtree(build_dir)
             if out_dir.exists():

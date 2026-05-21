@@ -5,6 +5,7 @@ MetabolismRedux
 import numpy as np
 import numpy.typing as npt
 import time
+import pytest
 from unum import Unum
 import warnings
 from scipy.sparse import csr_matrix
@@ -47,7 +48,7 @@ BAD_RXNS = [
     "R15-RXN-MET/CPD-479//CPD-479/MET.25.",
     "TRANS-RXN-218",
     "TRANS-RXN0-601-PROTON//PROTON.15. (reverse)",
-    "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71."
+    "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71."  # Commented on Heena's branch?
     "DEPHOSICITDEHASE-RXN",
     "PHOSICITDEHASE-RXN",
     "GLYCOLALD-DEHYDROG-RXN",
@@ -63,6 +64,12 @@ BAD_RXNS = [
     "RXN-22461",
     "RXN-22462",
     "RXN-22463",
+    "PYRROLINECARBDEHYDROG-RXN",
+    "RXN0-7008-PRO/UBIQUINONE-8//L-DELTA1-PYRROLINE_5-CARBOXYLATE/CPD-9956/PROTON.67.",
+    "GLUCOKIN-RXN-GLC/ATP//ALPHA-GLC-6-P/ADP/PROTON.34.",  # gets confused with PTS
+    "PRPPSYN-RXN-CPD-15318/ATP//PRPP/AMP/PROTON.31.",  # duplicate
+    "TRANS-RXN0-574-GLC//GLC.9.",  # duplicate
+    "GLUCOKIN-RXN-GLC/ATP//D-glucopyranose-6-phosphate/ADP/PROTON.48.",  # duplicate
 ]
 
 # not key central carbon met
@@ -134,6 +141,12 @@ class MetabolismReduxClassic(Step):
         "cell_density": 1100 * units.g / units.L,
         "concentration_updates": None,
         "maintenance_reaction": {},
+        "objective_weights": {
+            "secretion": 0.01,
+            "efficiency": 0.000001,
+            "kinetics": 0.0000001,
+            "homeostatic": 1,
+        },
     }
 
     def __init__(self, parameters):
@@ -293,7 +306,6 @@ class MetabolismReduxClassic(Step):
                         "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
                         "target_kinetic_fluxes": [],
-                        "target_kinetic_bounds": [],
                         "reaction_catalyst_counts": [],
                         "maintenance_target": 0,
                     }
@@ -454,14 +466,11 @@ class MetabolismReduxClassic(Step):
         target_kinetic_values = enzyme_kinetic_boundaries[:, 1]
         target_kinetic_bounds = enzyme_kinetic_boundaries[:, [0, 2]]
 
-        # TODO (Cyrus) solve network flow problem to get fluxes
-        objective_weights = {
-            "secretion": 0.01,
-            "efficiency": 0.000001,
-            "kinetics": 0.0000001,
-        }
+        objective_weights = self.parameters["objective_weights"]
+
         solution: FlowResult = self.network_flow_model.solve(
-            homeostatic_targets=target_homeostatic_dmdt,
+            homeostatic_concs=homeostatic_metabolite_concentrations,
+            homeostatic_dm_targets=target_homeostatic_dmdt,
             maintenance_target=maintenance_target,
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
@@ -507,7 +516,6 @@ class MetabolismReduxClassic(Step):
                     "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
                     "target_homeostatic_dmdt": target_homeostatic_dmdt,
                     "target_kinetic_fluxes": target_kinetic_flux,
-                    "target_kinetic_bounds": target_kinetic_bounds,
                     "estimated_exchange_dmdt": estimated_exchange_dmdt,
                     "estimated_intermediate_dmdt": estimated_intermediate_dmdt,
                     "maintenance_target": target_maintenance_flux,
@@ -634,7 +642,8 @@ class NetworkFlowModel:
 
     def solve(
         self,
-        homeostatic_targets: Optional[Iterable[float]] = None,
+        homeostatic_concs: Iterable[float],
+        homeostatic_dm_targets: Iterable[float],
         maintenance_target: float = 0,
         kinetic_targets: Optional[Iterable[float]] = None,
         binary_kinetic_idx: Optional[Iterable[int]] = None,
@@ -658,29 +667,36 @@ class NetworkFlowModel:
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == maintenance_target)
         # If enzymes not present, constrain rxn flux to 0
-        if binary_kinetic_idx:
+        if binary_kinetic_idx is not None:
             constr.append(v[binary_kinetic_idx] == 0)
 
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
         loss = 0
-        loss += cp.norm1(dm[self.homeostatic_idx] - homeostatic_targets)
+        # Must normalize by metabolite concentrations to prevent negative counts.
+        homeostatic_term = cp.norm1(
+            (dm[self.homeostatic_idx] - homeostatic_dm_targets) / homeostatic_concs
+        )
+        loss += (
+            objective_weights["homeostatic"] * homeostatic_term
+            if "homeostatic" in objective_weights
+            else 0
+        )
         loss += (
             objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
             if "secretion" in objective_weights
-            else loss
+            else 0
         )
         loss += (
             objective_weights["efficiency"] * (cp.sum(v))
             if "efficiency" in objective_weights
-            else loss
+            else 0
         )
-        loss = (
-            loss
-            + objective_weights["kinetics"]
+        loss += (
+            objective_weights["kinetics"]
             * cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
             if "kinetics" in objective_weights
-            else loss
+            else 0
         )
 
         p = cp.Problem(cp.Minimize(loss), constr)
@@ -726,8 +742,9 @@ def test_network_flow_model():
     model.set_up_exchanges(exchanges=exchanges, uptakes=uptakes)
 
     solution: FlowResult = model.solve(
-        homeostatic_targets=list(homeostatic_metabolites.values()),
-        objective_weights={"secretion": 0.01, "efficiency": 0.0001},
+        homeostatic_concs=[0.1],
+        homeostatic_dm_targets=list(homeostatic_metabolites.values()),
+        objective_weights={"homeostatic": 1, "secretion": 0.01, "efficiency": 0.0001},
         upper_flux_bound=100,
         solver=cp.GLOP,
     )
@@ -737,7 +754,70 @@ def test_network_flow_model():
     )
 
 
-# TODO (Cyrus) Add test for entire process
+@pytest.fixture
+def temp_config_dir(tmp_path):
+    """Create a temporary directory for test configs."""
+    return tmp_path
+
+
+def test_redux_classic(temp_config_dir):
+    import json
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
+
+    config = {
+        "experiment_id": "metabolism_redux",
+        "fail_at_max_duration": False,
+        "max_duration": 10,
+        "progress_bar": True,
+        "emitter": "timeseries",
+        "fixed_media": "minimal",
+        "condition": "basal",
+        "swap_processes": {"ecoli-metabolism": "ecoli-metabolism-redux-classic"},
+        "exclude_processes": ["exchange_data"],
+        "flow": {
+            "ecoli-metabolism-redux-classic": [["ecoli-chromosome-structure"]],
+            "ecoli-mass-listener": [["ecoli-metabolism-redux-classic"]],
+            "RNA_counts_listener": [["ecoli-metabolism-redux-classic"]],
+            "rna_synth_prob_listener": [["ecoli-metabolism-redux-classic"]],
+            "monomer_counts_listener": [["ecoli-metabolism-redux-classic"]],
+            "dna_supercoiling_listener": [["ecoli-metabolism-redux-classic"]],
+            "replication_data_listener": [["ecoli-metabolism-redux-classic"]],
+            "rnap_data_listener": [["ecoli-metabolism-redux-classic"]],
+            "unique_molecule_counts": [["ecoli-metabolism-redux-classic"]],
+            "ribosome_data_listener": [["ecoli-metabolism-redux-classic"]],
+        },
+        "raw_output": False,
+        "operons": True,
+        "trna_charging": False,
+        "ppgpp_regulation": False,
+        "initial_state_gaussian": True,
+        "trna_attenuation": False,
+        "variable_elongation_transcription": True,
+        "variable_elongation_translation": False,
+        "mechanistic_translation_supply": False,
+        "mechanistic_aa_transport": False,
+        "translation_supply": False,
+        "aa_supply_in_charging": False,
+        "adjust_timestep_for_charging": False,
+        "disable_ppgpp_elongation_inhibition": True,
+    }
+
+    config_path = temp_config_dir / "test_metabolism_redux_classic.json"
+    with open(config_path, "w") as f:
+        json.dump(config, f)
+
+    sim = EcoliSim.from_file(config_path)
+    sim.build_ecoli()
+    sim.run()
+
+    data = sim.query()
+    assert data is not None
+
 
 if __name__ == "__main__":
+    from tempfile import TemporaryDirectory
+    from pathlib import Path
+
     test_network_flow_model()
+    with TemporaryDirectory() as tmp_path:
+        test_redux_classic(Path(tmp_path))

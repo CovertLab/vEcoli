@@ -717,6 +717,7 @@ def generate_lineage(
     generations: int,
     single_daughters: bool,
     analysis_config: dict[str, dict[str, dict]],
+    different_seeds_per_variant: bool = False,
 ):
     """
     Create strings to import and compose Nextflow processes for lineage sims:
@@ -728,6 +729,11 @@ def generate_lineage(
         n_init_sims: Number of sims to initialize with different seeds
         generations: Number of generations to run for each seed
         single_daughters: If True, only simulate one daughter cell each gen
+        different_seeds_per_variant: If True, each variant ``i`` is given seeds
+            ``[seed + i*n_init_sims, seed + (i+1)*n_init_sims)`` so that
+            different variants simulate statistically independent cells.
+            If False (default), all variants share the same seed range
+            ``[seed, seed + n_init_sims)``.
         analysis_config: Dictionary with any of the following keys::
 
             {
@@ -748,7 +754,14 @@ def generate_lineage(
         - **sim_workflow**: Fully composed workflow for entire lineage
     """
     sim_imports = []
-    sim_workflow = [f"\tchannel.of( {seed}..<{seed + n_init_sims} ).set {{ seedCh }}"]
+    if different_seeds_per_variant:
+        # Emit relative seeds 0..<n_init_sims; absolute seeds are computed
+        # per-variant in the gen-0 map below.
+        sim_workflow = [f"\tchannel.of( 0..<{n_init_sims} ).set {{ seedCh }}"]
+    else:
+        sim_workflow = [
+            f"\tchannel.of( {seed}..<{seed + n_init_sims} ).set {{ seedCh }}"
+        ]
 
     all_sim_tasks = []
     for gen in range(generations):
@@ -760,9 +773,17 @@ def generate_lineage(
             )
             # variantCh emits (config_uri, config_hash, sim_data_uri, sim_data_hash, variant_name)
             # Combine with seedCh for lineage_seed, then add generation=1
-            sim_workflow.append(
-                (f"\t{name}(variantCh.combine(seedCh).map {{ it + [1] }}, '0')")
-            )
+            if different_seeds_per_variant:
+                # Offset absolute seed by (variant index) * (# of seeds) so each variant gets
+                # a distinct, non-overlapping seed range.
+                sim_workflow.append(
+                    f"\t{name}(variantCh.combine(seedCh)"
+                    f".map {{ it[0..4] + [{seed} + it[4].toInteger() * {n_init_sims} + it[5], 1] }}, '0')"
+                )
+            else:
+                sim_workflow.append(
+                    (f"\t{name}(variantCh.combine(seedCh).map {{ it + [1] }}, '0')")
+                )
             all_sim_tasks.append(f"{name}.out.metadata")
             if not single_daughters:
                 sim_workflow.append(
@@ -901,7 +922,8 @@ def generate_code(config):
         run_parca = [
             f"\tfile('{kb_dir}').copyTo(\"${{params.publishDir}}/${{params.experimentId}}/parca/kb\")",
             # Create parca_out channel with config URI, config hash, kb URI, kb hash
-            f"\tChannel.of(tuple(params.config, '{config_hash}', '{kb_dir}', '{kb_hash}')).set {{ parca_out }}",
+            # Create value channel so it can be read unlimited times by downstream analyses
+            f"\tChannel.value(tuple(params.config, '{config_hash}', '{kb_dir}', '{kb_hash}')).set {{ parca_out }}",
         ]
     else:
         run_parca = [
@@ -923,6 +945,7 @@ def generate_code(config):
             generations,
             single_daughters,
             config.get("analysis_options", {}),
+            config.get("different_seeds_per_variant", False),
         )
     else:
         sim_imports, sim_workflow = generate_colony(seed)
@@ -1303,7 +1326,35 @@ def stream_log(
         time.sleep(sleep_time)
 
 
+def _load_dotenv(env_file: str) -> None:
+    """Load environment variables from a .env file into os.environ.
+
+    Variables already present in the environment are not overridden, so
+    values set by the caller (e.g. via ``uv run --env-file``) take precedence.
+    Lines that are empty, start with ``#``, or do not contain ``=`` are ignored.
+    """
+    if not os.path.exists(env_file):
+        return
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            os.environ.setdefault(key, value)
+
+
 def main():
+    # Load .env from the repository root so that variables like NXF_VER are
+    # set even when the script is invoked directly with python (e.g. on HPC/
+    # cloud) rather than via ``uv run --env-file .env``.
+    _load_dotenv(
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
+        )
+    )
     parser = argparse.ArgumentParser()
     config_file = os.path.join(CONFIG_DIR_PATH, "default.json")
     parser.add_argument(
@@ -1374,7 +1425,10 @@ def main():
         out_bucket = parsed_uri.netloc
     # Resolve sim_data_path if provided
     if config["sim_data_path"] is not None:
-        config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
+        # Only resolve plain local filesystem paths; leave any URI unchanged
+        parsed_sim_data_path = parse.urlparse(config["sim_data_path"])
+        if parsed_sim_data_path.scheme == "":
+            config["sim_data_path"] = os.path.abspath(config["sim_data_path"])
     filesystem, outdir = parse_uri(out_uri)
     outdir = os.path.join(outdir, experiment_id, "nextflow")
     exp_outdir = os.path.dirname(outdir)
