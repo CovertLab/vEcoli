@@ -533,6 +533,11 @@ class Transcription(object):
         self.cistron_id_to_synonyms: dict[str, list[str]] = {
             rna["id"]: list(rna["synonyms"]) for rna in all_cistrons
         }
+        # Map cistron_id -> list of monomer IDs encoded by the cistron.
+        # Same shape rationale as ``cistron_id_to_synonyms``.
+        self.cistron_id_to_monomer_ids: dict[str, list[str]] = {
+            rna["id"]: list(rna["monomer_ids"]) for rna in all_cistrons
+        }
         self._cistron_id_to_index = {
             cistron_id: i for (i, cistron_id) in enumerate(self.cistron_data["id"])
         }

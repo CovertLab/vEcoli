@@ -19,7 +19,6 @@ Required files:
 import argparse
 import pandas as pd
 import pickle
-import json
 import numpy as np
 
 
@@ -45,13 +44,21 @@ def main():
 
     # Build a synonym -> cistron-row DataFrame from sim_data: explodes the
     # cistron_id_to_synonyms mapping into one row per (cistron, synonym) pair,
-    # and joins back to the cistron's id and common_name.
+    # and joins back to the cistron's id, common_name, and monomer_ids.
     cistron_id_to_common_name = dict(
         zip(cistron_data["id"], cistron_data["common_name"])
     )
+    cistron_id_to_monomer_ids = (
+        sim_data.process.transcription.cistron_id_to_monomer_ids
+    )
     rnas = pd.DataFrame(
         [
-            {"id": cistron_id, "common_name": cistron_id_to_common_name[cistron_id], "synonyms": syn}
+            {
+                "id": cistron_id,
+                "common_name": cistron_id_to_common_name[cistron_id],
+                "synonyms": syn,
+                "monomer_ids": cistron_id_to_monomer_ids.get(cistron_id, []),
+            }
             for cistron_id, syns in sim_data.process.transcription.cistron_id_to_synonyms.items()
             for syn in syns
         ]
@@ -109,7 +116,6 @@ def main():
         return add_monomers_used, add_complex_names
 
     def get_IDs(monomer_id):
-        monomer_id = json.loads(monomer_id)
         # Noncoding RNAs
         if len(monomer_id) == 0:
             return [[], [], [], []]
