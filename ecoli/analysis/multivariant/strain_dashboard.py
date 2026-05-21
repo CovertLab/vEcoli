@@ -7,10 +7,11 @@ metrics across all variants in an experiment. Designed to validate
 strain-design variants (`ecoli.variants.strain_design` and
 `ecoli.variants.native_translation_perturbation`).
 
-Each diagnostic is a single per-cell summary number (mean / max / event
-time), drawn as a boxplot grouped by variant. The essential-protein
-panel shows the *distribution* of per-protein proteome-fraction ratios
-against the control variant (one point per essential protein per variant).
+Each diagnostic is rendered as a bar + errorbar (mean ± std, pooled
+across all timesteps × cells of a variant after the ``skip_first_n_gens``
+filter). The essential-protein panel is a bar of the mean ± std of the
+per-protein proteome-fraction ratio vs the control variant. A variant
+legend table is appended as raw HTML at the bottom of the dashboard.
 
 Config usage::
 
@@ -26,6 +27,7 @@ Config usage::
 
 from __future__ import annotations
 
+import html as html_lib
 import json
 import math
 import os
@@ -348,11 +350,11 @@ def _pooled_variant_metrics(
         long_parts.append(pl.DataFrame(rows))
 
     # Per-cell event metrics: aggregate cell-level values across cells per
-    # variant.
+    # variant. (cell_mass_at_init is intentionally omitted — the value is
+    # essentially constant because it tracks the critical-mass threshold.)
     repl_init = _replication_initiation_per_cell(conn, history_sql, skip_clause)
     for metric, col in [
         ("time_to_init_min", "time_to_init_min"),
-        ("cell_mass_at_init_fg", "cell_mass_at_init_fg"),
     ]:
         if col not in repl_init.columns:
             continue
@@ -739,13 +741,15 @@ _DIAGNOSTIC_LABELS: list[tuple[str, str]] = [
     ("doubling_time_min", "Doubling time (min)"),
     ("cell_mass_fg", "Cell mass (fg)"),
     ("protein_mass_fg", "Protein mass (fg)"),
-    ("aa_per_s_per_ribo", "Effective elongation rate (AA/s/ribo)"),
-    ("aa_elongated_per_timestep", "AA elongated per timestep"),
-    ("nt_elongated_per_timestep", "nt elongated per timestep"),
+    (
+        "aa_per_s_per_ribo",
+        "Effective elongation rate — per-ribosome productivity (AA/s/ribo)",
+    ),
+    ("aa_elongated_per_timestep", "Translational output — AA elongated per timestep"),
+    ("nt_elongated_per_timestep", "Transcriptional output — nt elongated per timestep"),
     ("n_active_ribosome", "Active ribosomes"),
     ("n_active_rnap", "Active RNAPs"),
     ("time_to_init_min", "Time to replication initiation (min, per cell)"),
-    ("cell_mass_at_init_fg", "Cell mass at initiation (fg, per cell)"),
     ("essential_proteome_fraction", "Essential proteome fraction"),
     ("new_gene_proteome_fraction", "New-gene proteome fraction (by count)"),
     ("rnap_frac_rrna", "RNAP fraction on rRNA"),
@@ -870,6 +874,73 @@ def _is_nan(v: Any) -> bool:
         return False
 
 
+def _variant_legend_html(
+    variant_metadata: dict[str, dict[Any, Any]],
+    variant_labels: dict[int, str],
+) -> str:
+    """Build an HTML legend table mapping variant id → label + perturbation."""
+    if not variant_metadata:
+        return ""
+
+    all_vids: set[int] = set()
+    for exp_variants in variant_metadata.values():
+        for vid_raw in exp_variants:
+            try:
+                all_vids.add(int(vid_raw))
+            except (TypeError, ValueError):
+                pass
+
+    rows = []
+    for vid in sorted(all_vids):
+        label = variant_labels.get(vid, variant_labels.get(str(vid), ""))
+        perturb_parts: list[str] = []
+        for exp_variants in variant_metadata.values():
+            if vid in exp_variants:
+                meta = exp_variants[vid]
+            elif str(vid) in exp_variants:
+                meta = exp_variants[str(vid)]
+            else:
+                continue
+            meta_json = json.dumps(meta, separators=(",", ":"), default=str)
+            perturb_parts.append(f"<code>{html_lib.escape(meta_json)}</code>")
+        rows.append(
+            "<tr>"
+            f'<td style="border:1px solid #999;padding:4px 8px;">{vid}</td>'
+            f'<td style="border:1px solid #999;padding:4px 8px;">'
+            f"{html_lib.escape(str(label))}</td>"
+            f'<td style="border:1px solid #999;padding:4px 8px;'
+            f'font-size:11px;">{"<br>".join(perturb_parts)}</td>'
+            "</tr>"
+        )
+
+    return (
+        '<div style="font-family:sans-serif;margin-top:20px;">'
+        "<h3>Variant legend</h3>"
+        '<table style="border-collapse:collapse;">'
+        '<thead><tr style="background:#ddd;">'
+        '<th style="border:1px solid #999;padding:4px 8px;">Variant</th>'
+        '<th style="border:1px solid #999;padding:4px 8px;">Label</th>'
+        '<th style="border:1px solid #999;padding:4px 8px;">Perturbation</th>'
+        "</tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table></div>"
+    )
+
+
+def _inject_html_at_bottom(path: str, html_section: str) -> None:
+    """Append an HTML fragment just before ``</body>`` in an altair-saved file."""
+    if not html_section:
+        return
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+    if "</body>" in content:
+        content = content.replace("</body>", html_section + "</body>", 1)
+    else:
+        content += html_section
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
 # ---------------------------------------------------------------------------
 # Chart builders
 # ---------------------------------------------------------------------------
@@ -881,127 +952,6 @@ def _shorten_perturbations(json_str: str, max_chars: int = 90) -> str:
     if len(json_str) <= max_chars:
         return json_str
     return json_str[: max_chars - 1] + "…"
-
-
-def _metadata_table_chart(metadata_df: pl.DataFrame) -> alt.Chart:
-    """A proper-looking strain metadata table with header row + per-variant rows."""
-    columns = [
-        ("Variant", "variant", 70),
-        ("Condition", "condition", 100),
-        ("Perturbations", "_perturbations_short", 500),
-        ("GFP exp", "new_gene_exp", 90),
-        ("GFP trl_eff", "new_gene_trl_eff", 90),
-        ("Induction gen", "induction_gen", 90),
-        ("Knockout gen", "knockout_gen", 90),
-    ]
-    total_w = sum(w for _, _, w in columns)
-    starts: dict[str, float] = {}
-    centers: dict[str, float] = {}
-    accumulated = 0.0
-    for label, _key, w in columns:
-        starts[label] = accumulated
-        centers[label] = accumulated + w / 2
-        accumulated += w
-    n = metadata_df.height
-    row_h = 26
-    header_h = 30
-    height = header_h + n * row_h
-
-    # Prepare cell text.
-    text_rows: list[dict[str, Any]] = []
-    rect_rows: list[dict[str, Any]] = []
-    # Header backgrounds + text.
-    for label, _key, w in columns:
-        rect_rows.append(
-            {
-                "x": starts[label],
-                "x2": starts[label] + w,
-                "y": 0,
-                "y2": header_h,
-                "fill": "#dbe5f1",
-            }
-        )
-        text_rows.append(
-            {
-                "x": centers[label],
-                "y": header_h / 2,
-                "text": label,
-                "bold": True,
-            }
-        )
-    # Data rows + alternating row backgrounds.
-    for i, row in enumerate(
-        metadata_df.with_columns(
-            _perturbations_short=pl.col("perturbations_json").map_elements(
-                _shorten_perturbations, return_dtype=pl.Utf8
-            )
-        ).iter_rows(named=True)
-    ):
-        y_top = header_h + i * row_h
-        rect_rows.append(
-            {
-                "x": 0,
-                "x2": total_w,
-                "y": y_top,
-                "y2": y_top + row_h,
-                "fill": "#ffffff" if i % 2 == 0 else "#f4f6fa",
-            }
-        )
-        for label, key, w in columns:
-            val = row.get(key)
-            if val is None or val == "":
-                text = "—"
-            elif isinstance(val, float):
-                text = f"{val:g}"
-            else:
-                text = str(val)
-            text_rows.append(
-                {
-                    "x": centers[label],
-                    "y": y_top + row_h / 2,
-                    "text": text,
-                    "bold": False,
-                }
-            )
-
-    rect_df = pl.DataFrame(rect_rows)
-    text_df = pl.DataFrame(text_rows)
-    header_df = text_df.filter(pl.col("bold"))
-    body_df = text_df.filter(~pl.col("bold"))
-
-    common_x = alt.X("x:Q", axis=None, scale=alt.Scale(domain=[0, total_w]))
-    common_y = alt.Y("y:Q", axis=None, scale=alt.Scale(domain=[height, 0]))
-
-    rects = (
-        alt.Chart(rect_df)
-        .mark_rect()
-        .encode(
-            x=common_x,
-            x2="x2:Q",
-            y=common_y,
-            y2="y2:Q",
-            color=alt.Color("fill:N", scale=None, legend=None),
-        )
-    )
-    header = (
-        alt.Chart(header_df)
-        .mark_text(
-            align="center",
-            baseline="middle",
-            fontSize=12,
-            fontWeight="bold",
-            font="Helvetica",
-        )
-        .encode(x=common_x, y=common_y, text="text:N")
-    )
-    body = (
-        alt.Chart(body_df)
-        .mark_text(align="center", baseline="middle", fontSize=11, font="Helvetica")
-        .encode(x=common_x, y=common_y, text="text:N")
-    )
-    return (rects + header + body).properties(
-        title="Strain metadata", width=total_w, height=height
-    )
 
 
 def _bar_with_error(
@@ -1027,11 +977,14 @@ def _bar_with_error(
         scale=alt.Scale(scheme="tableau10"),
         legend=alt.Legend(title="Variant"),
     )
+    x_enc = (
+        alt.X("variant:N").title("Variant").scale(paddingInner=0.05, paddingOuter=0.1)
+    )
     bars = (
         alt.Chart(sub)
-        .mark_bar(size=30)
+        .mark_bar()
         .encode(
-            x=alt.X("variant:N").title("Variant"),
+            x=x_enc,
             y=alt.Y("mean:Q").title(y_title),
             color=color,
             tooltip=[
@@ -1047,7 +1000,7 @@ def _bar_with_error(
         alt.Chart(sub)
         .mark_errorbar(ticks=False, color="#333", thickness=1.6)
         .encode(
-            x=alt.X("variant:N"),
+            x=x_enc,
             y=alt.Y("lower:Q").title(y_title),
             y2="upper:Q",
         )
@@ -1100,11 +1053,14 @@ def _essential_ratio_chart(
             upper=pl.col("mean") + pl.col("std"),
         )
     )
+    x_enc = (
+        alt.X("variant:N").title("Variant").scale(paddingInner=0.05, paddingOuter=0.1)
+    )
     bars = (
         alt.Chart(agg)
-        .mark_bar(size=40)
+        .mark_bar()
         .encode(
-            x=alt.X("variant:N").title("Variant"),
+            x=x_enc,
             y=alt.Y("mean:Q").title(
                 f"Proteome-fraction ratio vs variant {control_variant}"
             ),
@@ -1124,7 +1080,7 @@ def _essential_ratio_chart(
     errors = (
         alt.Chart(agg)
         .mark_errorbar(ticks=False, color="#333", thickness=1.6)
-        .encode(x=alt.X("variant:N"), y=alt.Y("lower:Q"), y2="upper:Q")
+        .encode(x=x_enc, y=alt.Y("lower:Q"), y2="upper:Q")
     )
     threshold = (
         alt.Chart(pl.DataFrame({"y": [0.5]}))
@@ -1185,13 +1141,24 @@ def _scalar_diagnostic_grid(pooled: pl.DataFrame) -> alt.Chart:
         ("doubling_time_min", "Doubling time", "min"),
         ("cell_mass_fg", "Cell mass", "fg"),
         ("protein_mass_fg", "Protein mass", "fg"),
-        ("aa_per_s_per_ribo", "Eff. elongation rate", "AA/s/ribo"),
-        ("aa_elongated_per_timestep", "AA elongated/timestep", "AA"),
-        ("nt_elongated_per_timestep", "nt elongated/timestep", "nt"),
+        (
+            "aa_per_s_per_ribo",
+            "Eff. elongation rate (per-ribosome productivity)",
+            "AA/s/ribo",
+        ),
+        (
+            "aa_elongated_per_timestep",
+            "Translational output (AA/timestep)",
+            "AA",
+        ),
+        (
+            "nt_elongated_per_timestep",
+            "Transcriptional output (nt/timestep)",
+            "nt",
+        ),
         ("n_active_ribosome", "Active ribosomes", "count"),
         ("n_active_rnap", "Active RNAPs", "count"),
         ("time_to_init_min", "Time to repl. initiation", "min (per cell)"),
-        ("cell_mass_at_init_fg", "Cell mass at initiation", "fg (per cell)"),
         ("new_gene_proteome_fraction", "New-gene proteome fraction", "fraction"),
         ("essential_proteome_fraction", "Essential proteome fraction", "fraction"),
     ]
@@ -1313,10 +1280,12 @@ def plot(
                 f"n<0.5={row['n_below_0_5']}"
             )
 
-    # Build chart sections.
-    sections: list[alt.Chart] = [_metadata_table_chart(metadata_df)]
+    # Chart sections — diagnostics, then allocation, then the cross-variant
+    # essential-protein bar. The variant legend is rendered as raw HTML at
+    # the very bottom of the file after altair has saved.
+    sections: list[alt.Chart] = [_scalar_diagnostic_grid(pooled)]
+    sections.append(_resource_allocation_chart_grid(pooled))
 
-    # Cross-variant essential-protein boxplot.
     if not ratios_wide.is_empty():
         ratio_cols = [c for c in ratios_wide.columns if c.startswith("ratio_variant_")]
         if ratio_cols:
@@ -1332,12 +1301,15 @@ def plot(
             if chart is not None:
                 sections.append(chart)
 
-    sections.append(_scalar_diagnostic_grid(pooled))
-    sections.append(_resource_allocation_chart_grid(pooled))
-
     final = alt.vconcat(*sections).resolve_scale(x="independent", y="independent")
     output_path = os.path.join(outdir, "strain_dashboard.html")
     final.save(output_path)
+
+    # Append the variant-legend table at the bottom of the HTML.
+    variant_labels = {vid: _variant_label(vid, params) for vid, params in vm.items()}
+    legend_html = _variant_legend_html({exp_id: vm}, variant_labels)
+    _inject_html_at_bottom(output_path, legend_html)
+
     size_mb = os.path.getsize(output_path) / 1e6
     print(f"strain_dashboard: wrote {output_path} ({size_mb:.1f} MB)")
 
@@ -1493,6 +1465,43 @@ def test_per_cell_diagnostics_csv_shape():
     dt_row = csv.filter(pl.col("diagnostic") == "Doubling time (min)").row(0)
     mean_idx = csv.columns.index("mean")
     assert abs(dt_row[mean_idx] - 47.0) < 1e-6
+
+
+def test_variant_legend_html_renders_rows():
+    vm_outer = {
+        "exp1": {
+            0: "baseline",
+            1: {
+                "condition": "basal",
+                "perturbations": {"EG10001": 0.0, "EG10002": 2.0},
+            },
+        }
+    }
+    labels = {0: "variant 0 (baseline)", 1: "variant 1 (2 perturbations)"}
+    html_str = _variant_legend_html(vm_outer, labels)
+    assert "<table" in html_str
+    assert "<th" in html_str and "Variant" in html_str
+    # Both variant ids appear in the body.
+    assert "<td" in html_str
+    assert ">0<" in html_str and ">1<" in html_str
+    # Labels survive escaping.
+    assert "variant 0 (baseline)" in html_str
+    assert "variant 1 (2 perturbations)" in html_str
+    # Perturbations JSON is embedded and HTML-escaped.
+    assert "EG10001" in html_str and "&quot;" in html_str
+
+
+def test_variant_legend_html_empty_metadata_returns_empty_string():
+    assert _variant_legend_html({}, {}) == ""
+
+
+def test_inject_html_at_bottom(tmp_path):
+    p = tmp_path / "test.html"
+    p.write_text("<html><body><div>hi</div></body></html>", encoding="utf-8")
+    _inject_html_at_bottom(str(p), "<p>injected</p>")
+    final = p.read_text(encoding="utf-8")
+    assert "<p>injected</p></body>" in final
+    assert final.count("</body>") == 1
 
 
 def test_pooled_csv_shape():
