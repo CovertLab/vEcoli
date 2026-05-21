@@ -204,10 +204,27 @@ def main():
     args = parser.parse_args()
     with open(config_file, "r") as f:
         config = json.load(f)
+    # Canonical ParCa option schema, captured before any user-config merge.
+    parca_option_keys = set(config["parca_options"].keys())
     if args.config is not None:
         config_file = args.config
         with fsspec_open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
+    # Fail-fast on the silent-no-op footgun: a ParCa option key placed at
+    # the top level of the user config (instead of nested under `parca_options`)
+    # is otherwise ignored and silently falls back to the default. Workflow
+    # JSONs that don't re-run ParCa are still allowed to carry these keys at
+    # top level — that path goes through the `sim_data_path` short-circuit
+    # below and never reaches `run_parca`.
+    if config.get("sim_data_path") is None:
+        misplaced = sorted(set(config.keys()) & parca_option_keys)
+        if misplaced:
+            raise ValueError(
+                f"ParCa option(s) {misplaced} found at the top level of the"
+                f" merged config (likely from {config_file}). These keys"
+                f" belong under the `parca_options` block. Move them inside"
+                f" `parca_options` to avoid silent fallback to defaults."
+            )
     # ParCa options are defined under `parca_options` key in config JSON
     # Merge these with CLI arguments, which take precedence
     parca_options = config.pop("parca_options")
