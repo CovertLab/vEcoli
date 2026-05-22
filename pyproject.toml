@@ -54,6 +54,8 @@ dependencies = [
     "wheel",
     "stochastic-arrow",
     "autograd",
+    "opencv-python>=4.13.0.92",
+    "narwhals==2.21.2",
 ]
 
 [project.optional-dependencies]
