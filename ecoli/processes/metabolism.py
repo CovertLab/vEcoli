@@ -302,6 +302,14 @@ class Metabolism(Step):
                             [0.0] * len(self.base_reaction_ids),
                             self.base_reaction_ids,
                         ),
+                        "estimated_homeostatic_dmdt": (
+                            [0] * len(self.homeostaticTargetMolecules),
+                            self.homeostaticTargetMolecules,
+                        ),
+                        "target_homeostatic_dmdt": (
+                            [0] * len(self.homeostaticTargetMolecules),
+                            self.homeostaticTargetMolecules,
+                        ),
                         # 'estimated_fluxes': {},
                         # 'estimated_homeostatic_dmdt': {},
                         # 'target_homeostatic_dmdt': {},
@@ -557,6 +565,32 @@ class Metabolism(Step):
             unconstrained, constrained, GDCW_BASIS
         )
 
+        # Compute homeostatic target changes and actual changes
+        homeostatic_target_molecules = fba.getHomeostaticTargetMolecules()
+
+        # Get indices for homeostatic molecules
+        homeostatic_indices = [
+            self.model.metaboliteNamesFromNutrients.index(mol)
+            for mol in homeostatic_target_molecules
+        ]
+
+        # Actual changes for homeostatic metabolites from FBA
+        estimated_homeostatic_dmdt = delta_metabolites_final[homeostatic_indices]
+
+        # Target changes: difference between objective and current state
+        current_homeostatic_conc = (
+            metabolite_counts_init[homeostatic_indices] * counts_to_molar.asNumber()
+        )
+        target_homeostatic_conc = np.array(
+            [
+                int(self.model.homeostatic_objective[key])
+                for key in homeostatic_target_molecules
+            ]
+        )
+        target_homeostatic_dmdt = (
+            target_homeostatic_conc - current_homeostatic_conc
+        ) / timestep
+
         # below is used for comparing target and estimate between GD-FBA
         # and LP-FBA, no effect on model
         # maintenance_ngam = ((self.ngam * coefficient) /
@@ -628,6 +662,8 @@ class Metabolism(Step):
                     "base_reaction_fluxes": self.reaction_mapping_matrix.dot(
                         reaction_fluxes
                     ),
+                    "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
+                    "target_homeostatic_dmdt": target_homeostatic_dmdt,
                     # Quite large, comment out to reduce emit size
                     # 'estimated_fluxes': flux_dict ,
                     # 'estimated_homeostatic_dmdt': {
