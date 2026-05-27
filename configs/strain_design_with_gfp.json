@@ -78,6 +78,18 @@
             "strain_dashboard": {
                 "skip_first_n_gens": 0,
                 "control_variant": 0
+            },
+            "gene_counts": {
+                "gene_ids": [
+                    "EG10544",
+                    "EG10669",
+                    "EG11015",
+                    "EG10001",
+                    "EG10367",
+                    "EG10661",
+                    "NG00001"
+                ],
+                "reference_variant": 0
             }
         }
     }
