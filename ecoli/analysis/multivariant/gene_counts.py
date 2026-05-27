@@ -14,10 +14,15 @@ Config usage::
         "multivariant": {
             "gene_counts": {
                 "gene_ids": ["EG10544", "EG10669", "EG11015"],
-                "reference_variant": 0
+                "reference_variant": 0,
+                "include_new_genes": true
             }
         }
     }
+
+If ``include_new_genes`` is true (default), every cistron marked
+``is_new_gene`` in ``sim_data`` is appended to ``gene_ids`` automatically so
+GFP / other newly-introduced genes don't have to be named explicitly.
 """
 
 from __future__ import annotations
@@ -156,17 +161,30 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    gene_ids = params.get("gene_ids")
-    if not gene_ids:
-        print(
-            "multivariant gene_counts requires a non-empty 'gene_ids' list in "
-            "analysis_options.multivariant.gene_counts. Skipping."
-        )
-        return
+    gene_ids = list(params.get("gene_ids") or [])
     reference_variant = int(params.get("reference_variant", 0))
+    include_new_genes = bool(params.get("include_new_genes", True))
 
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
+
+    if include_new_genes:
+        cd = sim_data.process.transcription.cistron_data.struct_array
+        new_gene_ids = cd[cd["is_new_gene"]]["gene_id"].tolist()
+        for ng in new_gene_ids:
+            if ng not in gene_ids:
+                gene_ids.append(ng)
+        if new_gene_ids:
+            print(
+                f"multivariant gene_counts: include_new_genes appended {new_gene_ids}"
+            )
+
+    if not gene_ids:
+        print(
+            "multivariant gene_counts requires a non-empty 'gene_ids' list "
+            "(or include_new_genes=true with at least one new gene). Skipping."
+        )
+        return
     cistron_ids, monomer_ids, ecocyc_ids, unknown, non_coding = _resolve_gene_ids(
         sim_data, gene_ids
     )

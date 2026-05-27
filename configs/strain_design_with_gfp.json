@@ -68,10 +68,10 @@
                     "EG11015",
                     "EG10001",
                     "EG10367",
-                    "EG10661",
-                    "NG00001"
+                    "EG10661"
                 ],
-                "per_gene": true
+                "per_gene": true,
+                "include_new_genes": true
             }
         },
         "multivariant": {
@@ -86,10 +86,10 @@
                     "EG11015",
                     "EG10001",
                     "EG10367",
-                    "EG10661",
-                    "NG00001"
+                    "EG10661"
                 ],
-                "reference_variant": 0
+                "reference_variant": 0,
+                "include_new_genes": true
             }
         }
     }

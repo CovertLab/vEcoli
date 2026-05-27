@@ -19,10 +19,14 @@ Config usage::
         "multigeneration": {
             "gene_counts": {
                 "gene_ids": ["EG10527", "EG11015", "EG10001"],
-                "per_gene": true
+                "per_gene": true,
+                "include_new_genes": true
             }
         }
     }
+
+If ``include_new_genes`` is true (default), every cistron marked
+``is_new_gene`` in ``sim_data`` is appended to ``gene_ids`` automatically.
 """
 
 import altair as alt
@@ -53,17 +57,28 @@ def plot(
     variant_metadata: dict[str, dict[int, Any]],
     variant_names: dict[str, str],
 ):
-    gene_ids = params.get("gene_ids")
+    gene_ids = list(params.get("gene_ids") or [])
     per_gene = bool(params.get("per_gene", False))
-    if not gene_ids:
-        print(
-            "gene_counts analysis requires a non-empty 'gene_ids' list in "
-            "analysis_options.multigeneration.gene_counts. Skipping."
-        )
-        return
+    include_new_genes = bool(params.get("include_new_genes", True))
 
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
+
+    if include_new_genes:
+        cd_raw = sim_data.process.transcription.cistron_data.struct_array
+        new_gene_ids = cd_raw[cd_raw["is_new_gene"]]["gene_id"].tolist()
+        for ng in new_gene_ids:
+            if ng not in gene_ids:
+                gene_ids.append(ng)
+        if new_gene_ids:
+            print(f"gene_counts: include_new_genes appended {new_gene_ids}")
+
+    if not gene_ids:
+        print(
+            "gene_counts analysis requires a non-empty 'gene_ids' list "
+            "(or include_new_genes=true with at least one new gene). Skipping."
+        )
+        return
     cistron_data = sim_data.process.transcription.cistron_data.struct_array
     monomer_data = sim_data.process.translation.monomer_data.struct_array
 
