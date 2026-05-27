@@ -4,12 +4,22 @@ user-supplied set of EcoCyc gene IDs. Useful for validating native-gene
 perturbation variants (knockouts, knockdowns, overexpressions): the resulting
 trajectories should track the multiplier applied at the translation level.
 
+Two layouts are supported:
+
+* ``per_gene: false`` (default) — one mRNA panel and one protein panel, with
+  all requested genes overlaid as colored lines on each panel. Useful when
+  comparing a small number of genes at similar expression levels.
+* ``per_gene: true`` — one mRNA panel + one protein panel **per gene**,
+  stacked vertically in a single long column. Each gene's y-axis scales
+  independently, so a weakly-expressed gene isn't crushed by a strong one.
+
 Config usage::
 
     "analysis_options": {
         "multigeneration": {
             "gene_counts": {
-                "gene_ids": ["EG10527", "EG11015", "EG10001"]
+                "gene_ids": ["EG10527", "EG11015", "EG10001"],
+                "per_gene": true
             }
         }
     }
@@ -44,6 +54,7 @@ def plot(
     variant_names: dict[str, str],
 ):
     gene_ids = params.get("gene_ids")
+    per_gene = bool(params.get("per_gene", False))
     if not gene_ids:
         print(
             "gene_counts analysis requires a non-empty 'gene_ids' list in "
@@ -180,25 +191,68 @@ def plot(
         )
     )
 
-    mrna_plot = (
-        alt.Chart(mrna_long)
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q"),
-            y=alt.Y("mRNA count:Q").title("mRNA Cistron Counts"),
-            color=alt.Color("gene:N").title("Gene (EcoCyc ID)"),
+    if per_gene:
+        # One mRNA panel + one protein panel per gene, stacked into a single
+        # long column. Independent y-scales mean weak and strong genes can be
+        # read on the same page.
+        sections: list[alt.Chart] = []
+        for ecocyc_id in requested_ecocyc_ids:
+            mrna_sub = mrna_long.filter(pl.col("gene") == ecocyc_id)
+            protein_sub = protein_long.filter(pl.col("gene") == ecocyc_id)
+            mrna_chart = (
+                alt.Chart(mrna_sub)
+                .mark_line()
+                .encode(
+                    x=alt.X("Time (min):Q"),
+                    y=alt.Y("mRNA count:Q").title("mRNA cistron count"),
+                    detail="agent_id:N",
+                )
+                .properties(
+                    title=f"{ecocyc_id} — mRNA cistron counts",
+                    width=600,
+                    height=200,
+                )
+            )
+            protein_chart = (
+                alt.Chart(protein_sub)
+                .mark_line()
+                .encode(
+                    x=alt.X("Time (min):Q"),
+                    y=alt.Y("protein count:Q").title("protein monomer count"),
+                    detail="agent_id:N",
+                )
+                .properties(
+                    title=f"{ecocyc_id} — protein monomer counts",
+                    width=600,
+                    height=200,
+                )
+            )
+            sections.append(
+                alt.vconcat(mrna_chart, protein_chart).resolve_scale(
+                    x="shared", y="independent"
+                )
+            )
+        combined = alt.vconcat(*sections).resolve_scale(y="independent")
+    else:
+        mrna_plot = (
+            alt.Chart(mrna_long)
+            .mark_line()
+            .encode(
+                x=alt.X("Time (min):Q"),
+                y=alt.Y("mRNA count:Q").title("mRNA Cistron Counts"),
+                color=alt.Color("gene:N").title("Gene (EcoCyc ID)"),
+            )
+            .properties(title="mRNA Cistron Counts", width=600, height=250)
         )
-        .properties(title="mRNA Cistron Counts", width=600, height=250)
-    )
-    protein_plot = (
-        alt.Chart(protein_long)
-        .mark_line()
-        .encode(
-            x=alt.X("Time (min):Q"),
-            y=alt.Y("protein count:Q").title("Protein Monomer Counts"),
-            color=alt.Color("gene:N").title("Gene (EcoCyc ID)"),
+        protein_plot = (
+            alt.Chart(protein_long)
+            .mark_line()
+            .encode(
+                x=alt.X("Time (min):Q"),
+                y=alt.Y("protein count:Q").title("Protein Monomer Counts"),
+                color=alt.Color("gene:N").title("Gene (EcoCyc ID)"),
+            )
+            .properties(title="Protein Monomer Counts", width=600, height=250)
         )
-        .properties(title="Protein Monomer Counts", width=600, height=250)
-    )
-    combined = alt.vconcat(mrna_plot, protein_plot)
+        combined = alt.vconcat(mrna_plot, protein_plot)
     combined.save(os.path.join(outdir, "gene_counts.html"))

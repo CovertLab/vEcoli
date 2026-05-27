@@ -61,7 +61,8 @@
                     "EG10001",
                     "EG10367",
                     "EG10661"
-                ]
+                ],
+                "per_gene": true
             }
         },
         "multivariant": {
