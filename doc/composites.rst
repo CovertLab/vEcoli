@@ -90,8 +90,11 @@ The analysis plots located in :py:mod:`~ecoli.analysis.single.blame` can be used
 to visualize these updates.
 
 .. warning::
-    This feature should only be turned for debugging purposes and
+    This feature should only be turned on for debugging purposes and
     only when using the in-memory emitter (see :ref:`ram_emitter`).
+    The Parquet emitter is unable to serialize many of the objects
+    contained in process updates (e.g., nested lists of inconsistent
+    depth like ``[[1], 2]``).
 
 -------------
 Initial State
