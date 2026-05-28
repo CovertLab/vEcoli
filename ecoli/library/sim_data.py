@@ -1798,19 +1798,24 @@ class LoadSimData:
         constants (``cell_radius``, ``critical_radius``, etc.) remain
         in ``ecoli.library.parameters.param_store`` because they are
         pure literature constants without a flat-file source.
+
+        ``time_step`` is intentionally omitted from the returned dict so
+        the cell_wall process's own default (10 s) is preserved through
+        the deep-merge in ``ecoli_master``; LoadSimData shouldn't impose
+        the sim-level time_step on a process with independent cadence.
         """
+        del time_step  # see docstring
         return {
-            "time_step": time_step,
             "strand_term_p": self.sim_data.process.antibiotics.cell_wall.strand_term_p,
         }
 
     def get_pbp_binding_config(self, time_step=1):
         """Hand bundle-derived cell-wall reference data to the
         ``ecoli-pbp-binding`` runtime process. See
-        ``get_cell_wall_config`` for the namespace rationale.
+        ``get_cell_wall_config`` for the namespace and time_step rationale.
         """
+        del time_step  # see get_cell_wall_config
         return {
-            "time_step": time_step,
             "strand_term_p": self.sim_data.process.antibiotics.cell_wall.strand_term_p,
         }
 
