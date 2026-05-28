@@ -1,0 +1,32 @@
+{
+    "experiment_id": "test_c6",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 4
+    },
+    "fail_at_max_duration": true,
+    "sim_data_path": null,
+    "generations": 1,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "experiment_id": ["test_c6"],
+        "variant_data_dir": ["out/test_c6/variant_sim_data"],
+        "multivariant": {
+            "doubling_time_hist": {"skip_n_gens": 0}
+        },
+        "single": {
+            "mass_fraction_summary": {},
+            "selected_fluxes": {
+                "show_enzyme_counts": true,
+                "plot_reactions" : [
+                    "NACGLCTRANS-RXN"
+                ]
+            }
+        }
+    }
+}
