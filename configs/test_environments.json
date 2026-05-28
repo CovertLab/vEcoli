@@ -1,0 +1,28 @@
+{
+    "experiment_id": "test_environments",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 16
+    },
+    "fail_at_max_duration": true,
+    "sim_data_path": null,
+    "generations": 16,
+    "n_init_sims": 4,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "variants": {
+        "condition": {
+            "condition": {
+                "value": ["with_aa", "acetate", "succinate", "no_oxygen"]
+            }
+        }
+    },
+    "analysis_options": {
+        "single": {"mass_fraction_summary": {}},
+        "multivariant": {"doubling_time_line": {}},
+        "multigeneration": {"ribosome_usage": {}}
+    }
+}
