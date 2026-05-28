@@ -156,6 +156,9 @@ class Metabolism(Step):
         if self.include_ppgpp:
             update_molecules += [self.model.ppgpp_id]
         self.conc_update_molecules = sorted(update_molecules)
+        self.homeostatic_metabolites = sorted(
+            list(self.model.fba.getHomeostaticTargetMolecules())
+        )
 
         self.aa_exchange_names = self.parameters["aa_exchange_names"]
         self.removed_aa_uptake = self.parameters["removed_aa_uptake"]
@@ -309,6 +312,10 @@ class Metabolism(Step):
                         "target_homeostatic_dmdt": (
                             [0] * len(self.homeostaticTargetMolecules),
                             self.homeostaticTargetMolecules,
+                        ),
+                        "homeostatic_metabolite_counts": (
+                            [0] * len(self.homeostatic_metabolites),
+                            self.homeostatic_metabolites,
                         ),
                         # 'estimated_fluxes': {},
                         # 'estimated_homeostatic_dmdt': {},
@@ -664,6 +671,9 @@ class Metabolism(Step):
                     ),
                     "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
                     "target_homeostatic_dmdt": target_homeostatic_dmdt,
+                    "homeostatic_metabolite_counts": metabolite_counts_init[
+                        homeostatic_indices
+                    ],
                     # Quite large, comment out to reduce emit size
                     # 'estimated_fluxes': flux_dict ,
                     # 'estimated_homeostatic_dmdt': {
