@@ -1,0 +1,24 @@
+{
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "experiment_id": ["new_small_test_c6o_em_newHL_TUoff_20260528-173106"],
+        "variant_data_dir": ["out/new_small_test_c6o_em_newHL_TUoff_20260528-173106/variant_sim_data"],
+        "validation_data_path": ["out/new_small_test_c6o_em_newHL_TUoff_20260528-173106/parca/kb/validationData.cPickle"],
+        "outdir": "out/analysis_out",
+        "cpus": 1,
+
+        "single": {},
+        "multidaughter": {},
+        "multigeneration": {},
+        "multiseed": {},
+
+        "multivariant": {
+            "doubling_time_hist": {"skip_n_gens": 2},
+            "enzyme_availability_flux": {},
+            "metabolite_unmet_need": {}
+        },
+        "multiexperiment": {}
+    }
+}
