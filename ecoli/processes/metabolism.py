@@ -598,7 +598,9 @@ class Metabolism(Step):
             target_homeostatic_conc - current_homeostatic_conc
         ) / timestep
 
-        target_homeostatic_dmdt = self.concentrationToCounts(target_homeostatic_dmdt)
+        target_homeostatic_dmdt = self.concentrationToCounts(
+            target_homeostatic_dmdt, counts_to_molar, timestep
+        )
 
         # below is used for comparing target and estimate between GD-FBA
         # and LP-FBA, no effect on model
@@ -713,11 +715,9 @@ class Metabolism(Step):
 
         return update
 
-    def concentrationToCounts(self, concs):
+    def concentrationToCounts(self, concs, counts_to_molar, timestep):
         return np.rint(
-            np.dot(
-                concs, (CONC_UNITS / self.counts_to_molar * self.timestep).asNumber()
-            )
+            np.dot(concs, (CONC_UNITS / counts_to_molar * timestep).asNumber())
         ).astype(int)
 
     def update_amino_acid_targets(
