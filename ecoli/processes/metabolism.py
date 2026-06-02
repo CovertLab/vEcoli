@@ -306,11 +306,11 @@ class Metabolism(Step):
                             self.base_reaction_ids,
                         ),
                         "estimated_homeostatic_dmdt": (
-                            [0] * len(self.homeostaticTargetMolecules),
+                            [0.0] * len(self.homeostaticTargetMolecules),
                             self.homeostaticTargetMolecules,
                         ),
                         "target_homeostatic_dmdt": (
-                            [0] * len(self.homeostaticTargetMolecules),
+                            [0.0] * len(self.homeostaticTargetMolecules),
                             self.homeostaticTargetMolecules,
                         ),
                         "homeostatic_metabolite_counts": (
@@ -590,7 +590,7 @@ class Metabolism(Step):
         )
         target_homeostatic_conc = np.array(
             [
-                int(self.model.homeostatic_objective[key])
+                self.model.homeostatic_objective[key]
                 for key in homeostatic_target_molecules
             ]
         )

@@ -104,6 +104,31 @@ def plot(
         )
     )
 
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    plot_cols = [
+        "estimated_dmdt",
+        "target_dmdt",
+        "homeostatic_counts",
+        "counts_to_molar",
+    ]
+    fig, axs = plt.subplots(len(plot_cols), 1)
+    for ax, _col in zip(axs, plot_cols):
+        data = np.log10(np.abs(np.stack(raw[_col]).T))
+
+        if len(data.shape) == 1:
+            ax.plot(data)
+        if len(data.shape) == 2:
+            im = ax.imshow(data, aspect="auto")
+            fig.colorbar(im)
+
+        ax.set_xlabel("Time (s)")
+        ax.set_title(f"Log10(abs({_col}))")
+    fig.set_size_inches(6, 4 * len(plot_cols))
+    fig.tight_layout()
+    fig.savefig("out/current_analysis/test_listeners.png")
+
     if raw.is_empty():
         print("metabolite_unmet_need: no rows returned; skipping.")
         return

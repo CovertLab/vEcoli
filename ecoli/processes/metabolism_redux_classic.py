@@ -534,7 +534,8 @@ class MetabolismReduxClassic(Step):
                     "solution_dmdt": solution.dm_dt,
                     "reaction_catalyst_counts": reaction_catalyst_counts,
                     "time_per_step": time.time(),
-                }
+                },
+                "enzyme_kinetics": {"counts_to_molar": self.counts_to_molar.asNumber()},
             },
             "next_update_time": states["global_time"] + states["timestep"],
         }
