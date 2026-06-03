@@ -53,6 +53,8 @@ def plot(
     per_variant_params: dict[int, Any] = (
         variant_metadata[experiment_id] if experiment_id else {}
     )
+    sim_id = str(experiment_id) if experiment_id is not None else "unknown"
+    skip_n_gens = int(params.get("skip_n_gens", 0))
 
     top_n = params.get("top_n", DEFAULT_TOP_N)
     metabolites_of_interest = params.get("metabolites_of_interest")
@@ -108,6 +110,14 @@ def plot(
         print("metabolite_unmet_need: no rows returned; skipping.")
         return
 
+    if skip_n_gens > 0:
+        raw = raw.filter(pl.col("generation") >= skip_n_gens)
+        if raw.is_empty():
+            print(
+                f"metabolite_unmet_need: no rows after skipping first {skip_n_gens} generations; skipping."
+            )
+        return
+
     for i in range(n_met):
         est = pl.col("estimated_dmdt").list.get(i)
         tgt = pl.col("target_dmdt").list.get(i)
@@ -128,8 +138,8 @@ def plot(
     )
 
     value_vars = [f"unmet_{i}" for i in range(n_met)]
-    long = raw.select(["variant", "Time_min"] + value_vars).melt(
-        id_vars=["variant", "Time_min"],
+    long = raw.select(["variant", "lineage_seed", "Time_min"] + value_vars).melt(
+        id_vars=["variant", "lineage_seed", "Time_min"],
         value_vars=value_vars,
         variable_name="met_key",
         value_name="unmet_need",
@@ -143,108 +153,160 @@ def plot(
     long = long.join(met_df, on="met_idx")
 
     agg = (
-        long.group_by("variant", "Time_min", "metabolite")
+        long.group_by("variant", "lineage_seed", "Time_min", "metabolite")
         .agg(pl.col("unmet_need").mean().alias("unmet_need"))
-        .sort("variant", "Time_min", "metabolite")
+        .sort("variant", "lineage_seed", "Time_min", "metabolite")
     )
 
-    variants = agg["variant"].unique().sort()
-
-    # Collect metabolites used across all variants for a shared color scale
-    ordered_mets: list[str] = []
-    per_variant_data = []
-    for variant_val in variants:
-        sub = agg.filter(pl.col("variant") == variant_val)
-        if sub.is_empty():
-            continue
-        met_score = (
-            sub.group_by("metabolite")
-            .agg(pl.col("unmet_need").abs().mean().alias("mean_abs_unmet"))
-            .sort("mean_abs_unmet", descending=True)
-        )
-        top_mets = met_score.head(top_n)["metabolite"].to_list()
-        line_mets = (
-            metabolites_of_interest if metabolites_of_interest is not None else top_mets
-        )
-        line_mets = [m for m in line_mets if m in homeostatic_ids]
-        if not line_mets:
-            line_mets = top_mets
-        top_bar = met_score.filter(pl.col("metabolite").is_in(top_mets))
-        agg_line = sub.filter(pl.col("metabolite").is_in(line_mets))
-        for m in list(dict.fromkeys(top_mets + line_mets)):
-            if m not in ordered_mets:
-                ordered_mets.append(m)
-        per_variant_data.append((variant_val, top_bar, agg_line))
-
-    if not per_variant_data:
-        print("metabolite_unmet_need: no per-variant data after aggregation; skipping.")
-        return
-
-    color_domain = ordered_mets
-    color_range = [PASTEL[i % len(PASTEL)] for i in range(len(color_domain))]
+    split_by_seed = params.get("split_by_seed", True)
     w = subplot_width
 
-    subplot_charts: list[alt.TopLevelMixin] = []
-    for variant_val, top_bar, agg_line in per_variant_data:
-        label = _variant_label(variant_val, per_variant_params)
-        df_bar = top_bar.to_pandas()
-        df_line = agg_line.to_pandas()
+    def _build_subplot_charts(source_agg: pl.DataFrame) -> list[alt.TopLevelMixin]:
 
-        bar_base = alt.Chart(df_bar).encode(
-            x=alt.X("metabolite:N", title="Metabolite", sort="-y"),
-            color=alt.Color(
-                "metabolite:N",
-                scale=alt.Scale(domain=color_domain, range=color_range),
-                legend=None,
-            ),
-            tooltip=["metabolite:N", "mean_abs_unmet:Q"],
-        )
+        variants = source_agg["variant"].unique().sort()
+        ordered_mets: list[str] = []
+        per_variant_data = []
 
-        bars = bar_base.mark_bar(cornerRadiusEnd=8, size=28).encode(
-            y=alt.Y(
-                "mean_abs_unmet:Q",
-                title="Unmet need (mean |L1 diff|)",
-                scale=alt.Scale(type="symlog"),
-            ),
-        )
+        for variant_val in variants:
+            sub = source_agg.filter(pl.col("variant") == variant_val)
+            if sub.is_empty():
+                continue
+            met_score = (
+                sub.group_by("metabolite")
+                .agg(pl.col("unmet_need").abs().mean().alias("mean_abs_unmet"))
+                .sort("mean_abs_unmet", descending=True)
+            )
+            top_mets = met_score.head(top_n)["metabolite"].to_list()
+            line_mets = (
+                metabolites_of_interest
+                if metabolites_of_interest is not None
+                else top_mets
+            )
+            line_mets = [m for m in line_mets if m in homeostatic_ids]
+            if not line_mets:
+                line_mets = top_mets
+            top_bar = met_score.filter(pl.col("metabolite").is_in(top_mets))
+            agg_line = sub.filter(pl.col("metabolite").is_in(line_mets))
 
-        bar_labels = bar_base.mark_text(
-            align="center",
-            baseline="bottom",
-            dy=-4,
-            fontSize=12,
-            fontWeight="bold",
-        ).encode(
-            y=alt.Y("mean_abs_unmet:Q", scale=alt.Scale(type="symlog")),
-            text=alt.Text("mean_abs_unmet:Q", format=".2e"),
-        )
+            for m in list(dict.fromkeys(top_mets + line_mets)):
+                if m not in ordered_mets:
+                    ordered_mets.append(m)
 
-        bar_chart = (bars + bar_labels).properties(height=220, width=w)
+            per_variant_data.append((variant_val, top_bar, agg_line))
 
-        line_chart = (
-            alt.Chart(df_line)
-            .mark_line(strokeWidth=2)
-            .encode(
-                x=alt.X("Time_min:Q", title="Time (min)"),
-                y=alt.Y("unmet_need:Q", title="L1 |Target - Estimate|"),
+        if not per_variant_data:
+            return []
+
+        color_domain = ordered_mets
+        color_range = [PASTEL[i % len(PASTEL)] for i in range(len(color_domain))]
+        subplot_charts: list[alt.TopLevelMixin] = []
+
+        for variant_val, top_bar, agg_line in per_variant_data:
+            label = _variant_label(variant_val, per_variant_params)
+            df_bar = top_bar.to_pandas()
+            df_line = agg_line.to_pandas()
+
+            bar_base = alt.Chart(df_bar).encode(
+                x=alt.X("metabolite:N", title="Metabolite", sort="-y"),
                 color=alt.Color(
                     "metabolite:N",
                     scale=alt.Scale(domain=color_domain, range=color_range),
-                    legend=alt.Legend(title="Metabolite"),
+                    legend=None,
                 ),
-                tooltip=["Time_min:Q", "metabolite:N", "unmet_need:Q"],
+                tooltip=["metabolite:N", "mean_abs_unmet:Q"],
             )
-            .properties(height=300, width=w)
+
+            bars = bar_base.mark_bar(cornerRadiusEnd=8, size=28).encode(
+                y=alt.Y(
+                    "mean_abs_unmet:Q",
+                    title="Unmet need (mean |L1 diff|)",
+                    scale=alt.Scale(type="symlog"),
+                ),
+            )
+
+            bar_labels = bar_base.mark_text(
+                align="center",
+                baseline="bottom",
+                dy=-4,
+                fontSize=12,
+                fontWeight="bold",
+            ).encode(
+                y=alt.Y("mean_abs_unmet:Q", scale=alt.Scale(type="symlog")),
+                text=alt.Text("mean_abs_unmet:Q", format=".2e"),
+            )
+
+            bar_chart = (bars + bar_labels).properties(height=220, width=w)
+
+            line_chart = (
+                alt.Chart(df_line)
+                .mark_line(strokeWidth=2)
+                .encode(
+                    x=alt.X("Time_min:Q", title="Time (min)"),
+                    y=alt.Y("unmet_need:Q", title="L1 |Target - Estimate|"),
+                    color=alt.Color(
+                        "metabolite:N",
+                        scale=alt.Scale(domain=color_domain, range=color_range),
+                        legend=alt.Legend(title="Metabolite"),
+                    ),
+                    tooltip=["Time_min:Q", "metabolite:N", "unmet_need:Q"],
+                )
+                .properties(height=300, width=w)
+            )
+
+            subplot_charts.append(
+                alt.vconcat(bar_chart, line_chart, spacing=50).properties(title=label)
+            )
+
+        return subplot_charts
+
+    if split_by_seed:
+        seeds = agg["lineage_seed"].unique().sort().to_list()
+        for seed in seeds:
+            seed_agg = agg.filter(pl.col("lineage_seed") == seed)
+            if seed_agg.is_empty():
+                continue
+            subplot_charts = _build_subplot_charts(seed_agg)
+            if not subplot_charts:
+                continue
+
+            seed_raw = raw.filter(pl.col("lineage_seed") == seed)
+            gen_count = (
+                int(seed_raw["generation"].n_unique()) if not seed_raw.is_empty() else 0
+            )
+            combined = alt.vconcat(*subplot_charts).properties(
+                title=alt.TitleParams(
+                    text=f"Unmet homeostatic need by variant (seed {seed})",
+                    subtitle=[
+                        f"Experiment ID: {sim_id}",
+                        f"Seed ID: {seed}; Generations in seed: {gen_count} (skipped first generations: {skip_n_gens})",
+                    ],
+                    anchor="start",
+                )
+            )
+            out_path = os.path.join(outdir, f"metabolite_unmet_need_seed_{seed}.html")
+            combined.save(out_path)
+            print(f"Saved metabolite unmet need (seed {seed}) to {out_path}")
+    else:
+        subplot_charts = _build_subplot_charts(agg)
+        if not subplot_charts:
+            print(
+                "metabolite_unmet_need: no per-variant data after aggregation; skipping."
+            )
+            return
+
+        gen_count_all = int(raw["generation"].n_unique())
+        combined = alt.vconcat(*subplot_charts).properties(
+            title=alt.TitleParams(
+                text="Unmet homeostatic need by variant",
+                subtitle=[
+                    f"Experiment ID: {sim_id}",
+                    "Seed ID: all seeds shown together",
+                    f"Generations included: {gen_count_all} (skipped first generations: {skip_n_gens})",
+                ],
+                anchor="start",
+            )
         )
 
-        subplot_charts.append(
-            alt.vconcat(bar_chart, line_chart, spacing=50).properties(title=label)
-        )
-
-    combined = alt.vconcat(*subplot_charts).properties(
-        title="Unmet homeostatic need by variant"
-    )
-
-    out_path = os.path.join(outdir, "metabolite_unmet_need.html")
-    combined.save(out_path)
-    print(f"Saved metabolite unmet need (multivariant) to {out_path}")
+        out_path = os.path.join(outdir, "metabolite_unmet_need.html")
+        combined.save(out_path)
+        print(f"Saved metabolite unmet need (multivariant) to {out_path}")

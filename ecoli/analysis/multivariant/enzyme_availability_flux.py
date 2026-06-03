@@ -48,6 +48,8 @@ def plot(
 ) -> None:
     """Plot mean enzyme counts and unmet need vs time, one subplot per variant."""
     experiment_id = next(iter(variant_metadata.keys()), None)
+    sim_id = str(experiment_id) if experiment_id is not None else "unknown"
+
     per_variant_params: dict[int, Any] = (
         variant_metadata[experiment_id] if experiment_id else {}
     )
@@ -135,7 +137,13 @@ def plot(
             color=alt.Color(
                 "trace:N",
                 scale=color_scale,
-                legend=alt.Legend(title="Trace"),
+                legend=alt.Legend(
+                    title="Trace",
+                    orient="bottom",
+                    direction="vertical",
+                    columns=1,
+                    labelLimit=500,
+                ),
             ),
             detail=alt.Detail("generation:N"),
         )
@@ -155,32 +163,99 @@ def plot(
             color=alt.Color(
                 "trace:N",
                 scale=color_scale,
-                legend=alt.Legend(title="Trace"),
+                legend=alt.Legend(
+                    title="Trace",
+                    orient="bottom",
+                    direction="vertical",
+                    columns=1,
+                    labelLimit=500,
+                ),
             ),
             detail=alt.Detail("generation:N"),
         )
     )
 
-    variants = df_plot["variant"].unique().sort()
-    plots = []
-    for variant_val in variants:
-        variant_name = _variant_label(variant_val, per_variant_params)
-        variant_data = df_plot.filter(pl.col("variant") == variant_val).to_pandas()
-
-        subplot = (
-            alt.layer(line_enz, line_need, data=variant_data)
-            .resolve_scale(y="independent")
-            .properties(width=600, height=300, title=variant_name)
-        )
-        plots.append(subplot)
-
-    final = (
-        alt.vconcat(*plots)
-        .resolve_scale(x="independent", y="independent")
-        .properties(title="Enzyme availability and unmet need by variant")
-    )
-
+    # Split plots by seed:
+    split_by_seed = params.get("split_by_seed", True)
     safe_met = met.replace("[", "_").replace("]", "_")
-    out_path = os.path.join(outdir, f"WC_{safe_met}_enzyme_availability.html")
-    final.save(out_path)
-    print(f"Saved multivariant enzyme availability vs unmet need to {out_path}")
+
+    if split_by_seed:
+        seeds = df_plot["lineage_seed"].unique().sort().to_list()
+
+        for seed in seeds:
+            seed_df = df_plot.filter(pl.col("lineage_seed") == seed)
+            variants = seed_df["variant"].unique().sort().to_list()
+            plots = []
+
+            for variant_val in variants:
+                variant_name = _variant_label(variant_val, per_variant_params)
+                variant_data = seed_df.filter(
+                    pl.col("variant") == variant_val
+                ).to_pandas()
+
+                subplot = (
+                    alt.layer(line_enz, line_need, data=variant_data)
+                    .resolve_scale(y="independent")
+                    .properties(
+                        width=600,
+                        height=260,
+                        title=f"{variant_name} | Seed ID: {seed}",
+                    )
+                )
+                plots.append(subplot)
+
+            if not plots:
+                continue
+
+            gen_count = int(seed_df["generation"].n_unique())
+            final = (
+                alt.vconcat(*plots)
+                .resolve_scale(x="independent", y="independent")
+                .properties(
+                    title=alt.TitleParams(
+                        text="Enzyme availability and unmet need by variant",
+                        subtitle=[
+                            f"Experiment ID: {sim_id}",
+                            f"Seed ID: {seed}; Generations in seed: {gen_count}",
+                        ],
+                        anchor="start",
+                    )
+                )
+            )
+
+            out_path = os.path.join(
+                outdir,
+                f"WC_{safe_met}_enzyme_availability_seed_{seed}.html",
+            )
+            final.save(out_path)
+            print(f"Saved seed-specific plot to {out_path}")
+    else:
+        variants = df_plot["variant"].unique().sort().to_list()
+        plots = []
+
+        for variant_val in variants:
+            variant_name = _variant_label(variant_val, per_variant_params)
+            variant_data = df_plot.filter(pl.col("variant") == variant_val).to_pandas()
+
+            subplot = (
+                alt.layer(line_enz, line_need, data=variant_data)
+                .resolve_scale(y="independent")
+                .properties(width=600, height=300, title=variant_name)
+            )
+            plots.append(subplot)
+
+        final = (
+            alt.vconcat(*plots)
+            .resolve_scale(x="independent", y="independent")
+            .properties(
+                title=alt.TitleParams(
+                    text="Enzyme availability and unmet need by variant",
+                    subtitle=[f"Experiment ID: {sim_id}", "Seed: all shown together"],
+                    anchor="start",
+                )
+            )
+        )
+
+        out_path = os.path.join(outdir, f"WC_{safe_met}_enzyme_availability.html")
+        final.save(out_path)
+        print(f"Saved combined plot to {out_path}")

@@ -3,9 +3,9 @@
         "out_dir": "out"
     },
     "analysis_options": {
-        "experiment_id": ["new_small_test_c6o_em_oldHL_TUoff_20260602-140330"],
-        "variant_data_dir": ["out/new_small_test_c6o_em_oldHL_TUoff_20260602-140330/variant_sim_data"],
-        "validation_data_path": ["out/new_small_test_c6o_em_oldHL_TUoff_20260602-140330/parca/kb/validationData.cPickle"],
+        "experiment_id": ["c6o_mrc_newHL_TUon_20260603-102056"],
+        "variant_data_dir": ["out/c6o_mrc_newHL_TUon_20260603-102056/variant_sim_data"],
+        "validation_data_path": ["out/c6o_mrc_newHL_TUon_20260603-102056/parca/kb/validationData.cPickle"],
         "outdir": "out/analysis_out",
         "cpus": 1,
 
@@ -16,8 +16,10 @@
 
         "multivariant": {
             "doubling_time_hist": {"skip_n_gens": 2},
-            "enzyme_availability_flux": {},
-            "metabolite_unmet_need": {}
+            "enzyme_availability_flux": {
+                "split_by_seed": true },
+            "metabolite_unmet_need": {
+                "split_by_seed": true }
         },
         "multiexperiment": {}
     }
