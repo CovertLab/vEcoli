@@ -49,6 +49,81 @@ BAD_RXNS = [
     "R15-RXN-MET/CPD-479//CPD-479/MET.25.",
 ]
 
+BAD_RXNS = [
+    "RXN-12440",
+    "TRANS-RXN-121",
+    "TRANS-RXN-300",
+    "TRANS-RXN-8",
+    "R15-RXN-MET/CPD-479//CPD-479/MET.25.",
+    "TRANS-RXN-218",
+    "TRANS-RXN0-601-PROTON//PROTON.15. (reverse)",
+    # "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71."
+    "DEPHOSICITDEHASE-RXN",
+    "PHOSICITDEHASE-RXN",
+    "GLYCOLALD-DEHYDROG-RXN",
+    "ARCBTRANS-RXN",
+    "RXN0-7332",
+    "RXN0-7336",
+    "2.7.1.121-RXN",
+    "TRANS-RXN0-574-GLC//Glucopyranose.19.",
+    "6PFRUCTPHOS-RXN__6PFK-2-CPX",
+    "RXN0-313",
+    "RXN0-7169",
+    "RXN0-1483[CCO-PERI-BAC]-FE+2/PROTON/OXYGEN-MOLECULE//FE+3/WATER.54.",
+    "RXN-22461",
+    "RXN-22462",
+    "RXN-22463",
+    "GABATRANSAM-RXN",
+    "GABATRANSAM-RXN__G6646-MONOMER",
+    "PUTTRANSAM-RXN",
+]
+
+# not key central carbon met
+BAD_RXNS.extend(
+    [
+        "RXN-6161",
+        "R15-RXN-MET/PYRUVATE//CPD-479/L-ALPHA-ALANINE.38.",
+        "R15-RXN-MET/GLYOX//CPD-479/GLY.23. (reverse)",
+    ]
+)
+
+# isomers, that might be used but not in conditions tested
+BAD_RXNS.extend(
+    [
+        "ASPAMINOTRANS-RXN__TYRB-DIMER",
+        "325-BISPHOSPHATE-NUCLEOTIDASE-RXN",
+        "ACETOLACTSYN-RXN",
+        "ASNSYNA-RXN__ASNSYNB-CPLX",
+        "ASPARTATEKIN-RXN__ASPKINIHOMOSERDEHYDROGI-CPLX",
+        "DAHPSYN-RXN__AROH-CPLX",
+        "F16ALDOLASE-RXN__FRUCBISALD-CLASSI",
+        "RXN-9535__FABB-CPLX",
+        "MALATE-DEH-RXN (reverse)",
+    ]
+)
+
+# alt electron transfer
+BAD_RXNS.extend(["1.5.1.20-RXN-CPD-1302/NADP//CPD-12996/NADPH/PROTON.38."])
+
+# weird atp cycling
+BAD_RXNS.extend(
+    [
+        "BARA-RXN",
+        "RXN0-6561",
+        "RXN0-7337",
+        "CHEBDEP-RXN",
+        "RXN0-6542",
+        "RXN0-6547",
+        "NRIIPHOS-RXN",
+        "RXN0-7372",
+        "RXN0-7380",
+        "RXN0-7378",
+        "URIDYLREM-RXN",
+        "URITRANS-RXN",
+        "RXN-16381",
+    ]
+)
+
 
 class MetabolismRedux(Step):
     name = NAME
@@ -111,7 +186,7 @@ class MetabolismRedux(Step):
 
         stoich_dict = dict(sorted(self.parameters["stoich_dict"].items()))
         for rxn in BAD_RXNS:
-            stoich_dict.pop(rxn)
+            stoich_dict[rxn] = {}
         # Add maintenance reaction
         stoich_dict["maintenance_reaction"] = self.parameters["maintenance_reaction"]
 
@@ -513,6 +588,9 @@ class MetabolismRedux(Step):
             self.cat_rxn_idx_to_fba_rxn_idx[idx] for idx in binary_kinetic_cat_idx
         ]  # indexes based on all reactions
 
+        print(f"reaction catalyst counts: {reaction_catalyst_counts}")
+        print(f"binary_kinetic_cat_idx: {binary_kinetic_cat_idx}")
+
         # TODO: Figure out how to handle changing media ID
 
         ## Determine updates to concentrations depending on the current state
@@ -609,10 +687,13 @@ class MetabolismRedux(Step):
 
         objective_weights = {
             "secretion": self.secretion_penalty_coeff,
-            "efficiency": 0.0001,
+            "efficiency": 0.00001,
             "kinetics": self.kinetic_objective_weight,
             "kinetics_in_range": self.kinetic_objective_weight_in_range,
         }
+
+        if states["global_time"] == 822:
+            print("stop to see successful setup")
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
             homeostatic_dm_targets=target_homeostatic_dmdt,
@@ -884,6 +965,7 @@ class NetworkFlowModel:
         """Solve the network flow model for fluxes and dm/dt values."""
         # Mypy fixes
         objective_weights = cast(Mapping[str, float], objective_weights)
+        # objective_weights['kinetics'] *= 10
         # Convert to array
         homeostatic_concs = np.array(homeostatic_concs)
         homeostatic_dm_targets = np.array(homeostatic_dm_targets)
@@ -892,9 +974,15 @@ class NetworkFlowModel:
             target_fluxes[self.kinetic_rxn_idx] += kinetic_targets[:, 1]
 
         # set up variables
-        v_diff_in_range = cp.Variable(self.n_orig_rxns)
-        v_diff_outside_range = cp.Variable(self.n_orig_rxns)
-        v = target_fluxes + v_diff_in_range + v_diff_outside_range
+        # v_diff_in_range = cp.Variable(self.n_orig_rxns)
+        # v_diff_outside_range = cp.Variable(self.n_orig_rxns)
+        # v = target_fluxes + v_diff_in_range + v_diff_outside_range
+
+        n_kinetic = len(self.kinetic_rxn_idx) if self.kinetic_rxn_idx is not None else 0
+        v_diff_in_range = cp.Variable(n_kinetic)
+        v_diff_outside_range = cp.Variable(n_kinetic)
+        v = cp.Variable(self.n_orig_rxns)
+
         e = cp.Variable(self.n_exch_rxns)
         dm = self.S_orig @ v + self.S_exch @ e
         exch = self.S_exch @ e
@@ -903,6 +991,10 @@ class NetworkFlowModel:
 
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
+        constr.append(
+            v[self.kinetic_rxn_idx]
+            == kinetic_targets[:, 1] + v_diff_in_range + v_diff_outside_range
+        )
 
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == total_maintenance)
@@ -947,26 +1039,38 @@ class NetworkFlowModel:
             upper_flux_diff = kinetic_targets[:, 2] - kinetic_targets[:, 1]
             constr.extend(
                 [
-                    v_diff_in_range[self.kinetic_rxn_idx] >= lower_flux_diff,
-                    v_diff_in_range[self.kinetic_rxn_idx] <= upper_flux_diff,
+                    # v_diff_in_range[self.kinetic_rxn_idx] >= lower_flux_diff,
+                    # v_diff_in_range[self.kinetic_rxn_idx] <= upper_flux_diff,
+                    v_diff_in_range >= lower_flux_diff,
+                    v_diff_in_range <= upper_flux_diff,
                 ]
             )
-            # Heavily weight fluxes outside limits
-            loss += objective_weights["kinetics"] * cp.norm1(
-                (v_diff_outside_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
-                    self.active_constraints_mask
-                ]
-            )
-            # Lightly weight fluxes in expected range
-            loss += (
-                objective_weights["kinetics"]
-                * objective_weights["kinetics_in_range"]
-                * cp.norm1(
-                    (v_diff_in_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
-                        self.active_constraints_mask
-                    ]
-                )
-            )
+            # # Heavily weight fluxes outside limits
+            # loss += objective_weights["kinetics"] * cp.norm1(
+            #     # (v_diff_outside_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
+            #     #     self.active_constraints_mask
+            #     # ]
+            #     (v_diff_outside_range / nonzero_kinetic_targets)[
+            #         self.active_constraints_mask
+            #     ]
+            # )
+            # # Lightly weight fluxes in expected range
+            # loss += (
+            #     objective_weights["kinetics"]
+            #     * objective_weights["kinetics_in_range"]
+            #     * cp.norm1(
+            #         # (v_diff_in_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
+            #         #     self.active_constraints_mask
+            #         # ]
+            #     (v_diff_in_range / nonzero_kinetic_targets)[
+            #         self.active_constraints_mask
+            #     ]
+            #     )
+            # )
+
+        if "efficiency" in objective_weights:
+            # Efficiency objective to minimize total flux (proxy for enzyme usage)
+            loss += objective_weights["efficiency"] * cp.sum(v)
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
@@ -982,6 +1086,15 @@ class NetworkFlowModel:
             )
         except cp.error.SolverError:
             print("Lets see what is going on")
+            p.solve(
+                solver=solver,
+                solver_opts={
+                    "primal_feasibility_tolerance": 1e-3,  # Default usually 1e-8
+                    "dual_feasibility_tolerance": 1e-3,
+                    "solution_feasibility_tolerance": 1e-3,
+                },
+                verbose=True,
+            )
             raise ValueError(
                 "Network flow model of metabolism did not converge to a solution."
             )
