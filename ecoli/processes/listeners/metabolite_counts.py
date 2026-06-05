@@ -25,7 +25,7 @@ in non-bulk locations:
      count dropped) but is still sequestered in the TCS complex, so it is
      recovered here separately.
 
-     4. TCS and equilibirum complexes can become bound to transcription units
+    4. TCS and equilibirum complexes can become bound to transcription units
      on DNA, so metabolites are technically in bound transcription factors (TFs)
      as well.
 
@@ -147,9 +147,9 @@ class MetaboliteCounts(Step):
         )
         self.track_tcs_ligands = len(self.tcs_ligand_complex_ids) > 0
 
-        # Metabolite ligands inside transcription factors bound to DNA (When a
-        # TF that is an equilibrium complex that binds to a
-        # a promoter, its complex leaves the bulk pool, so its metabolite ligand
+        # Metabolite ligands inside transcription factors bound to DNA (when a
+        # TF that is an equilibrium complex that binds to a promoter, its
+        # complex leaves the bulk pool, so its metabolite ligand
         # drops out of metabolitesInEquilibriumComplexes):
         self.tf_bound_col_idxs = np.array(
             self.parameters["tf_bound_col_idxs"], dtype=np.int64
