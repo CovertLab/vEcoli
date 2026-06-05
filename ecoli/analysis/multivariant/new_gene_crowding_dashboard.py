@@ -12,13 +12,18 @@ per-variant:
   actual prob for the new-gene monomer (ribosome bottleneck)
 - the mean new-gene mRNA and protein counts
 
-The goal is to visualise *diminishing returns*: as ``exp`` or ``trl_eff``
+The goal is to surface *diminishing returns*: as ``exp`` or ``trl_eff``
 is ramped, protein output should increase roughly linearly until either
 the TU saturates (RNAP overcrowded) or the monomer's translation prob
-saturates (ribosome overcrowded). The dashboard makes that knee visible
-both numerically (table) and visually (scatter of mean protein vs
-``trl_eff`` coloured by ribosome overcrowding, and vs ``exp`` coloured by
-RNAP overcrowding).
+saturates (ribosome overcrowded). The table makes that knee visible —
+when ramping a parameter no longer increases mean mRNA/protein and the
+crowding fraction crosses the alert threshold, further ramping is
+wasted.
+
+When a TU carries multiple new-gene cistrons (polycistronic cassette),
+the RNAP overcrowded fraction is a TU-level signal shared across every
+cistron in that TU; the ribosome overcrowded fraction and mean mRNA /
+protein are per-cistron.
 
 Config usage::
 
@@ -42,7 +47,6 @@ import os
 import pickle
 from typing import Any
 
-import altair as alt
 import polars as pl
 from duckdb import DuckDBPyConnection
 
@@ -275,74 +279,6 @@ def _gene_table_html(rows: list[dict[str, Any]]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Diminishing-returns scatter
-# ---------------------------------------------------------------------------
-
-
-def _scatter_chart(df: pl.DataFrame, gene_label: str) -> alt.Chart:
-    """Two side-by-side panels:
-       (left) mean_protein vs trl_eff, colour = ribosome OC frac
-       (right) mean_mrna vs exp,       colour = rnap OC frac
-    Only variants with finite metadata values render in each panel."""
-
-    def _panel(
-        x_col: str,
-        y_col: str,
-        oc_col: str,
-        x_title: str,
-        y_title: str,
-        oc_title: str,
-    ) -> alt.Chart:
-        sub = df.filter(pl.col(x_col).is_not_null() & pl.col(y_col).is_not_null())
-        if sub.is_empty():
-            return (
-                alt.Chart(pl.DataFrame({"msg": [f"no {x_col} data"]}))
-                .mark_text(size=14, color="#888")
-                .encode(text="msg:N")
-                .properties(width=320, height=260, title=f"{gene_label} — {x_title}")
-            )
-        return (
-            alt.Chart(sub)
-            .mark_point(filled=True, size=140, opacity=0.9)
-            .encode(
-                x=alt.X(f"{x_col}:Q", title=x_title),
-                y=alt.Y(f"{y_col}:Q", title=y_title),
-                color=alt.Color(
-                    f"{oc_col}:Q",
-                    scale=alt.Scale(scheme="reds", domain=[0, 1]),
-                    legend=alt.Legend(title=oc_title, format=".0%"),
-                ),
-                tooltip=[
-                    alt.Tooltip("variant:N"),
-                    alt.Tooltip(f"{x_col}:Q", format=".3g"),
-                    alt.Tooltip(f"{y_col}:Q", format=".3g"),
-                    alt.Tooltip(f"{oc_col}:Q", format=".1%"),
-                ],
-            )
-            .properties(width=320, height=260, title=f"{gene_label} — {x_title}")
-        )
-
-    return alt.hconcat(
-        _panel(
-            "trl_eff",
-            "mean_protein",
-            "ribo_oc",
-            "protein vs trl_eff",
-            "mean protein",
-            "ribosome OC",
-        ),
-        _panel(
-            "exp",
-            "mean_mrna",
-            "rnap_oc",
-            "mRNA vs exp",
-            "mean mRNA",
-            "RNAP OC",
-        ),
-    )
-
-
-# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -408,11 +344,15 @@ def plot(
         "<h2>New-gene crowding dashboard</h2>"
         f"<p style='color:#555;'>Skipping first {skip_first_n_gens} generation(s). "
         f"RNAP warn/alert at {int(rnap_warn * 100)}%/{int(rnap_alert * 100)}%, "
-        f"ribosome warn/alert at {int(ribo_warn * 100)}%/{int(ribo_alert * 100)}% of timesteps "
-        "with target&gt;actual. Diminishing returns are visible when increasing exp or trl_eff "
-        "across variants no longer increases mean mRNA / protein (right-most points stop "
-        "rising and turn red).</p>"
+        f"ribosome warn/alert at {int(ribo_warn * 100)}%/{int(ribo_alert * 100)}% of "
+        "timesteps with target&gt;actual. Diminishing returns: when ramping exp or "
+        "trl_eff across variants no longer increases mean mRNA / protein and the "
+        "matching crowding fraction crosses the alert threshold, further ramping is "
+        "wasted.</p>"
     )
+
+    rna_data = sim_data.process.transcription.rna_data
+    rna_ids = list(rna_data["id"])
 
     saved_anything = False
     for cistron_id in new_cistron_ids:
@@ -424,27 +364,39 @@ def plot(
                 "no monomer; skipping this gene."
             )
             continue
-        # New-gene TUs are monocistronic — the TU id matches the cistron id
-        # plus the compartment tag used in rna_data['id']. The listener field
-        # metadata exposes those full TU ids.
-        candidate_tu_ids = [t for t in rnap_tu_fields if t[:-3] == cistron_id]
-        if not candidate_tu_ids:
-            # Fallback: exact match (some new genes might not carry [c]).
-            candidate_tu_ids = [t for t in rnap_tu_fields if t == cistron_id]
+        # Find every TU containing this cistron via the proper API
+        # (handles polycistronic new-gene cassettes).
+        try:
+            tu_indices_in_rna_data = list(
+                sim_data.process.transcription.cistron_id_to_rna_indexes(cistron_id)
+            )
+        except KeyError:
+            tu_indices_in_rna_data = []
+        candidate_tu_ids = [rna_ids[i] for i in tu_indices_in_rna_data]
+        candidate_tu_ids = [t for t in candidate_tu_ids if t in tu_to_idx]
         if not candidate_tu_ids:
             print(
-                f"multivariant new_gene_crowding_dashboard: no TU found for cistron "
-                f"{cistron_id}; skipping."
+                f"multivariant new_gene_crowding_dashboard: no listener-indexed TU "
+                f"found for cistron {cistron_id}; skipping."
             )
             continue
+        # For a polycistronic cassette the cistron's RNAP-overcrowding signal
+        # is shared with everything else on the same TU. Pick the first TU as
+        # the canonical one (in practice new-gene cassettes are engineered
+        # onto a single TU). If the cistron is on multiple TUs, note it.
         tu_id = candidate_tu_ids[0]
-        tu_idx = tu_to_idx.get(tu_id)
+        tu_idx = tu_to_idx[tu_id]
+        if len(candidate_tu_ids) > 1:
+            print(
+                f"multivariant new_gene_crowding_dashboard: cistron {cistron_id} sits "
+                f"on {len(candidate_tu_ids)} TUs; using {tu_id} for RNAP overcrowding."
+            )
         mrna_idx = cistron_to_mrna_idx.get(cistron_id)
         monomer_idx = monomer_to_idx.get(monomer_id)
-        if tu_idx is None or mrna_idx is None or monomer_idx is None:
+        if mrna_idx is None or monomer_idx is None:
             print(
-                f"multivariant new_gene_crowding_dashboard: missing listener index "
-                f"for {gene_id}; skipping."
+                f"multivariant new_gene_crowding_dashboard: missing mRNA/monomer "
+                f"listener index for {gene_id}; skipping."
             )
             continue
 
@@ -459,7 +411,6 @@ def plot(
         stats_dict = {int(row["variant"]): row for row in stats.iter_rows(named=True)}
 
         rows: list[dict[str, Any]] = []
-        scatter_records: list[dict[str, Any]] = []
         for v in variant_order:
             params_v = meta[v]
             exp_v, trl_eff_v = _new_gene_exp_trl_eff(params_v)
@@ -489,30 +440,20 @@ def plot(
                     "verdict": verdict,
                 }
             )
-            scatter_records.append(
-                {
-                    "variant": v,
-                    "exp": exp_v,
-                    "trl_eff": trl_eff_v,
-                    "rnap_oc": rnap_oc or 0.0,
-                    "ribo_oc": ribo_oc or 0.0,
-                    "mean_mrna": mean_mrna,
-                    "mean_protein": mean_protein,
-                }
-            )
 
+        tu_note = ""
+        if len(candidate_tu_ids) > 1:
+            tu_note = (
+                f" <span style='color:#888;font-size:11px;'>"
+                f"(TU {html_lib.escape(tu_id)} shared with "
+                f"{len(candidate_tu_ids) - 1} other TU(s) containing this cistron)"
+                "</span>"
+            )
         parts.append(
-            f"<h3>{html_lib.escape(gene_id)} ({html_lib.escape(cistron_id)})</h3>"
+            f"<h3>{html_lib.escape(gene_id)} ({html_lib.escape(cistron_id)})"
+            f"{tu_note}</h3>"
         )
         parts.append(_gene_table_html(rows))
-
-        scatter_df = pl.DataFrame(scatter_records)
-        chart_path = os.path.join(outdir, f"new_gene_crowding_{gene_id}_scatter.html")
-        _scatter_chart(scatter_df, gene_id).save(chart_path)
-        parts.append(
-            f"<iframe src='{os.path.basename(chart_path)}' "
-            "style='width:760px;height:330px;border:0;'></iframe>"
-        )
         saved_anything = True
 
     parts.append("</body></html>")

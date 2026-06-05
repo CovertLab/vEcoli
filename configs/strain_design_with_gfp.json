@@ -96,6 +96,13 @@
                 "skip_first_n_gens": 1,
                 "tolerance": 0.3,
                 "include_new_genes": true
+            },
+            "new_gene_crowding_dashboard": {
+                "skip_first_n_gens": 1,
+                "rnap_warn_frac": 0.1,
+                "rnap_alert_frac": 0.5,
+                "ribo_warn_frac": 0.1,
+                "ribo_alert_frac": 0.5
             }
         }
     }
