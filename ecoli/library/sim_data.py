@@ -595,6 +595,7 @@ class LoadSimData:
             "post-division-mass-listener": self.get_mass_listener_config,
             "RNA_counts_listener": self.get_rna_counts_listener_config,
             "monomer_counts_listener": self.get_monomer_counts_listener_config,
+            "metabolite_counts_listener": self.get_metabolite_counts_listener_config,
             "rna_synth_prob_listener": self.get_rna_synth_prob_listener_config,
             "allocator": self.get_allocator_config,
             "ecoli-chromosome-structure": self.get_chromosome_structure_config,
@@ -1507,6 +1508,116 @@ class LoadSimData:
         }
 
         return monomer_counts_config
+
+    def get_metabolite_counts_listener_config(self, time_step=1):
+        sim_data = self.sim_data
+        concentration_updates = sim_data.process.metabolism.concentration_updates
+
+        # Build full metabolite ID list (continaing homeostatic metabolites
+        # across ALL media conditions (same approach as Metabolism process)
+        # plus ppGpp and equilibrium ligands):
+        metabolite_id_set = set()
+        metabolite_id_set.add(sim_data.molecule_ids.ppGpp)
+
+        for media_id in sim_data.external_state.saved_media.keys():
+            exchanges = sim_data.external_state.exchange_data_from_media(media_id)
+            conc_dict = concentration_updates.concentrations_based_on_nutrients(
+                imports=exchanges["importExchangeMolecules"]
+            )
+            metabolite_id_set.update(conc_dict.keys())
+
+        metabolite_id_set.update(sim_data.process.equilibrium.metabolite_set)
+        metabolite_ids = sorted(metabolite_id_set)
+
+        # Phosphorylated TCS molecules — each carries 1 Pi[c] covalently
+        phosphorylated_tcs_mol_ids = list(
+            sim_data.process.two_component_system.independent_to_dependent_molecules.values()
+        )
+
+        # NOTE: TCS complexes that contain equilibrium-complex subunits with
+        # metabolite ligands (e.g. PHOSPHO-HK-LIGAND contains HK-LIGAND which
+        # contains a metabolite LIGAND). When HK-LIGAND is phosphorylated to
+        # PHOSPHO-HK-LIGAND, the ligand is no longer tracked by the equilibrium
+        # complex unpacking (HK-LIGAND count drops) but IS still sequestered
+        # in PHOSPHO-HK-LIGAND. Thus, the need to be accounted for separately:
+        equilibrium = sim_data.process.equilibrium
+        tcs = sim_data.process.two_component_system
+        metabolite_to_idx = {m: i for i, m in enumerate(metabolite_ids)}
+
+        eq_complex_id_set = set(equilibrium.ids_complexes)
+        eq_mol_names = list(equilibrium.molecule_names)
+        eq_stoich = equilibrium.stoich_matrix_monomers()
+
+        # Build eq_complex -> {met_id: stoich_per_complex} mapping
+        eq_complex_to_metabolites = {}
+        for col_idx, cplx_id in enumerate(equilibrium.ids_complexes):
+            for row_idx, mol_name in enumerate(eq_mol_names):
+                if (
+                    mol_name in equilibrium.metabolite_set
+                    and eq_stoich[row_idx, col_idx] < 0
+                ):
+                    eq_complex_to_metabolites.setdefault(cplx_id, {})[
+                        mol_name
+                    ] = -eq_stoich[row_idx, col_idx]
+
+        tcs_mol_names = list(tcs.molecule_names)
+        tcs_stoich = tcs.stoich_matrix()
+
+        # tcs_complex_to_ligands: {tcs_complex_id: {met_id: stoich}}
+        tcs_complex_to_ligands = {}
+        for tcs_cplx in tcs.complex_to_monomer.keys():
+            if tcs_cplx not in tcs_mol_names:
+                continue
+            cplx_row = tcs_mol_names.index(tcs_cplx)
+            prod_rxn_cols = np.where(tcs_stoich[cplx_row, :] > 0)[0]
+            for rxn_col in prod_rxn_cols:
+                reactant_rows = np.where(tcs_stoich[:, rxn_col] < 0)[0]
+                for r_row in reactant_rows:
+                    r_mol = tcs_mol_names[r_row]
+                    if (
+                        r_mol in eq_complex_id_set
+                        and r_mol in eq_complex_to_metabolites
+                    ):
+                        stoich_eq_per_tcs = -tcs_stoich[r_row, rxn_col]
+                        for met_id, stoich_met in eq_complex_to_metabolites[
+                            r_mol
+                        ].items():
+                            if met_id not in metabolite_to_idx:
+                                continue
+                            tcs_complex_to_ligands.setdefault(tcs_cplx, {})[met_id] = (
+                                stoich_eq_per_tcs * stoich_met
+                            )
+
+        # Flatten to parallel lists:
+        tcs_ligand_complex_ids = []
+        tcs_ligand_met_ids = []
+        tcs_ligand_stoichs = []
+        for cplx_id, met_stoichs in tcs_complex_to_ligands.items():
+            for met_id, stoich in met_stoichs.items():
+                tcs_ligand_complex_ids.append(cplx_id)
+                tcs_ligand_met_ids.append(met_id)
+                tcs_ligand_stoichs.append(float(stoich))
+
+        # Extracellular metabolite IDs (from all media conditions)
+        environment_metabolite_ids = sorted(
+            sim_data.external_state.all_external_exchange_molecules
+        )
+
+        return {
+            "time_step": time_step,
+            "bulk_molecule_ids": sim_data.internal_state.bulk_molecules.bulk_data["id"],
+            "metabolite_ids": metabolite_ids,
+            "equilibrium_molecule_ids": sim_data.process.equilibrium.molecule_names,
+            "equilibrium_complex_ids": sim_data.process.equilibrium.ids_complexes,
+            "equilibrium_stoich": sim_data.process.equilibrium.stoich_matrix_monomers(),
+            "phosphorylated_tcs_mol_ids": phosphorylated_tcs_mol_ids,
+            "tcs_ligand_complex_ids": tcs_ligand_complex_ids,
+            "tcs_ligand_met_ids": tcs_ligand_met_ids,
+            "tcs_ligand_stoichs": tcs_ligand_stoichs,
+            "pi_id": "Pi[c]",
+            "environment_metabolite_ids": environment_metabolite_ids,
+            "emit_unique": self.emit_unique,
+        }
 
     def get_allocator_config(self, time_step=1, process_names=None):
         if not process_names:
