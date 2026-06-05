@@ -25,6 +25,10 @@ in non-bulk locations:
      count dropped) but is still sequestered in the TCS complex, so it is
      recovered here separately.
 
+     4. TCS and equilibirum complexes can become bound to transcription units
+     on DNA, so metabolites are technically in bound transcription factors (TFs)
+     as well.
+
 Complexation complexes currently only contain protein subunits.
 
 Four component arrays are stored so one can see exactly where deviations
@@ -33,6 +37,7 @@ from the free pool are coming from:
   - metabolitesInEquilibriumComplexes
   - metabolitesInTCSPhosphorylation
   - metabolitesInTCSComplexes
+  - metabolitesInBoundTFs
   - totalMetaboliteCounts  (sum of the four above)
 
 Extracellular metabolites are stored as concentrations (not counts) because
@@ -43,13 +48,14 @@ These use a separate molecule ID list (environment_metabolite_ids).
 import numpy as np
 from vivarium.core.process import Step
 
-from ecoli.library.schema import numpy_schema, counts, bulk_name_to_idx
+from ecoli.library.schema import numpy_schema, counts, bulk_name_to_idx, attrs
 from ecoli.processes.registries import topology_registry
 
 NAME = "metabolite_counts_listener"
 TOPOLOGY = {
     "listeners": ("listeners",),
     "bulk": ("bulk",),
+    "promoters": ("unique", "promoter"),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
 }
@@ -76,6 +82,9 @@ class MetaboliteCounts(Step):
         "tcs_ligand_complex_ids": [],
         "tcs_ligand_met_ids": [],
         "tcs_ligand_stoichs": [],
+        "tf_bound_col_idxs": [],
+        "tf_bound_met_ids": [],
+        "tf_bound_stoichs": [],
         "pi_id": "Pi[c]",
         "environment_metabolite_ids": [],
         "emit_unique": False,
@@ -138,6 +147,22 @@ class MetaboliteCounts(Step):
         )
         self.track_tcs_ligands = len(self.tcs_ligand_complex_ids) > 0
 
+        # Metabolite ligands inside transcription factors bound to DNA (When a
+        # TF that is an equilibrium complex that binds to a
+        # a promoter, its complex leaves the bulk pool, so its metabolite ligand
+        # drops out of metabolitesInEquilibriumComplexes):
+        self.tf_bound_col_idxs = np.array(
+            self.parameters["tf_bound_col_idxs"], dtype=np.int64
+        )
+        tf_bound_met_ids = list(self.parameters["tf_bound_met_ids"])
+        self.tf_bound_met_idxs = np.array(
+            [metabolite_to_idx[m] for m in tf_bound_met_ids], dtype=np.int64
+        )
+        self.tf_bound_stoichs = np.array(
+            self.parameters["tf_bound_stoichs"], dtype=np.float64
+        )
+        self.track_bound_tf_metabolites = len(self.tf_bound_col_idxs) > 0
+
         # Extracellular metabolites
         self.environment_metabolite_ids = self.parameters["environment_metabolite_ids"]
 
@@ -172,6 +197,12 @@ class MetaboliteCounts(Step):
                         "_emit": True,
                         "_properties": {"metadata": self.metabolite_ids},
                     },
+                    "metabolitesInBoundTFs": {
+                        "_default": [],
+                        "_updater": "set",
+                        "_emit": True,
+                        "_properties": {"metadata": self.metabolite_ids},
+                    },
                     "totalMetaboliteCounts": {
                         "_default": [],
                         "_updater": "set",
@@ -187,6 +218,7 @@ class MetaboliteCounts(Step):
                 }
             },
             "bulk": numpy_schema("bulk"),
+            "promoters": numpy_schema("promoters", emit=self.parameters["emit_unique"]),
             "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
         }
@@ -242,9 +274,24 @@ class MetaboliteCounts(Step):
                     tcs_cplx_counts[i] * self.tcs_ligand_stoichs[i]
                 )
 
+        # Counts of metabolite ligands inside DNA-bound transcription factors:
+        bound_tf_metabolites = np.zeros(len(self.metabolite_ids), np.int64)
+        if self.track_bound_tf_metabolites:
+            (bound_TF,) = attrs(states["promoters"], ["bound_TF"])
+            n_bound_per_tf = bound_TF.astype(np.int64).sum(axis=0)
+            for i in range(len(self.tf_bound_col_idxs)):
+                col = self.tf_bound_col_idxs[i]
+                bound_tf_metabolites[self.tf_bound_met_idxs[i]] += int(
+                    n_bound_per_tf[col] * self.tf_bound_stoichs[i]
+                )
+
         # Total counts :
         total_metabolite_counts = (
-            free_metabolite_counts + eq_bound + tcs_bound + tcs_complex_bound
+            free_metabolite_counts
+            + eq_bound
+            + tcs_bound
+            + tcs_complex_bound
+            + bound_tf_metabolites
         )
 
         # Extracellular concentrations (the environment bulk entries store
@@ -263,6 +310,7 @@ class MetaboliteCounts(Step):
                     "metabolitesInEquilibriumComplexes": eq_bound,
                     "metabolitesInTCSPhosphorylation": tcs_bound,
                     "metabolitesInTCSComplexes": tcs_complex_bound,
+                    "metabolitesInBoundTFs": bound_tf_metabolites,
                     "totalMetaboliteCounts": total_metabolite_counts,
                     "environmentMetaboliteConcentrations": env_conc,
                 }

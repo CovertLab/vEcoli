@@ -1598,6 +1598,21 @@ class LoadSimData:
                 tcs_ligand_met_ids.append(met_id)
                 tcs_ligand_stoichs.append(float(stoich))
 
+        # Metabolite ligands inside transcription factors that are equilibrium
+        # complexes:
+        tf_ids = sim_data.process.transcription_regulation.tf_ids
+        tf_bound_col_idxs = []
+        tf_bound_met_ids = []
+        tf_bound_stoichs = []
+        for col, tf_id in enumerate(tf_ids):
+            tf_mol = tf_id + f"[{sim_data.getter.get_compartment(tf_id)[0]}]"
+            if tf_mol in eq_complex_to_metabolites:
+                for met_id, stoich in eq_complex_to_metabolites[tf_mol].items():
+                    if met_id in metabolite_to_idx:
+                        tf_bound_col_idxs.append(int(col))
+                        tf_bound_met_ids.append(met_id)
+                        tf_bound_stoichs.append(float(stoich))
+
         # Extracellular metabolite IDs (from all media conditions)
         environment_metabolite_ids = sorted(
             sim_data.external_state.all_external_exchange_molecules
@@ -1614,6 +1629,9 @@ class LoadSimData:
             "tcs_ligand_complex_ids": tcs_ligand_complex_ids,
             "tcs_ligand_met_ids": tcs_ligand_met_ids,
             "tcs_ligand_stoichs": tcs_ligand_stoichs,
+            "tf_bound_col_idxs": tf_bound_col_idxs,
+            "tf_bound_met_ids": tf_bound_met_ids,
+            "tf_bound_stoichs": tf_bound_stoichs,
             "pi_id": "Pi[c]",
             "environment_metabolite_ids": environment_metabolite_ids,
             "emit_unique": self.emit_unique,
