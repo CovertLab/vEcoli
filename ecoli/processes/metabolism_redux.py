@@ -974,13 +974,6 @@ class NetworkFlowModel:
             target_fluxes[self.kinetic_rxn_idx] += kinetic_targets[:, 1]
 
         # set up variables
-        # v_diff_in_range = cp.Variable(self.n_orig_rxns)
-        # v_diff_outside_range = cp.Variable(self.n_orig_rxns)
-        # v = target_fluxes + v_diff_in_range + v_diff_outside_range
-
-        n_kinetic = len(self.kinetic_rxn_idx) if self.kinetic_rxn_idx is not None else 0
-        v_diff_in_range = cp.Variable(n_kinetic)
-        v_diff_outside_range = cp.Variable(n_kinetic)
         v = cp.Variable(self.n_orig_rxns)
 
         e = cp.Variable(self.n_exch_rxns)
@@ -991,10 +984,6 @@ class NetworkFlowModel:
 
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
-        constr.append(
-            v[self.kinetic_rxn_idx]
-            == kinetic_targets[:, 1] + v_diff_in_range + v_diff_outside_range
-        )
 
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == total_maintenance)
@@ -1031,42 +1020,34 @@ class NetworkFlowModel:
         if "kinetics" in objective_weights:
             # Mypy fixes
             kinetic_targets = cast(npt.NDArray[np.float64], kinetic_targets)
-            # Fix divide by zero
-            nonzero_kinetic_targets = kinetic_targets[:, 1].copy()
-            nonzero_kinetic_targets[nonzero_kinetic_targets == 0] = 1
-            # Calculate lower and upper limit for flux diff
-            lower_flux_diff = kinetic_targets[:, 0] - kinetic_targets[:, 1]
-            upper_flux_diff = kinetic_targets[:, 2] - kinetic_targets[:, 1]
-            constr.extend(
-                [
-                    # v_diff_in_range[self.kinetic_rxn_idx] >= lower_flux_diff,
-                    # v_diff_in_range[self.kinetic_rxn_idx] <= upper_flux_diff,
-                    v_diff_in_range >= lower_flux_diff,
-                    v_diff_in_range <= upper_flux_diff,
-                ]
+            # Normalizer for relative flux deviation. Floor the magnitude so that
+            # near-zero targets do not blow up the constraint-matrix coefficients
+            # (1 / target), which is a major source of ill-conditioning here
+            # (these produced the ~5.8e7 entries seen in the solver log).
+            kinetic_norm = np.abs(kinetic_targets[:, 1]).copy()
+            positive_norm = kinetic_norm[kinetic_norm > 0]
+            kinetic_floor = (
+                1e-3 * np.median(positive_norm) if positive_norm.size > 0 else 1.0
             )
-            # # Heavily weight fluxes outside limits
-            # loss += objective_weights["kinetics"] * cp.norm1(
-            #     # (v_diff_outside_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
-            #     #     self.active_constraints_mask
-            #     # ]
-            #     (v_diff_outside_range / nonzero_kinetic_targets)[
-            #         self.active_constraints_mask
-            #     ]
-            # )
-            # # Lightly weight fluxes in expected range
-            # loss += (
-            #     objective_weights["kinetics"]
-            #     * objective_weights["kinetics_in_range"]
-            #     * cp.norm1(
-            #         # (v_diff_in_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
-            #         #     self.active_constraints_mask
-            #         # ]
-            #     (v_diff_in_range / nonzero_kinetic_targets)[
-            #         self.active_constraints_mask
-            #     ]
-            #     )
-            # )
+            kinetic_norm[kinetic_norm < kinetic_floor] = kinetic_floor
+            # Normalized deviation of each kinetic flux from its center target and
+            # the normalized lower/upper edges of the allowed band.
+            dev = (v[self.kinetic_rxn_idx] - kinetic_targets[:, 1]) / kinetic_norm
+            lo = (kinetic_targets[:, 0] - kinetic_targets[:, 1]) / kinetic_norm
+            hi = (kinetic_targets[:, 2] - kinetic_targets[:, 1]) / kinetic_norm
+            # Single convex deadband penalty: light slope (kinetics_in_range) inside
+            # the band, full slope outside. This is equivalent to the previous
+            # in-range/out-of-range split (for the usual case lower <= center <=
+            # upper) but without the two auxiliary variables, whose non-unique split
+            # created a large flat region in the objective -> degenerate optimum,
+            # no certifiable dual, and the "cost perturbation too large" failures.
+            w_in = objective_weights["kinetics_in_range"]
+            penalty = w_in * cp.abs(dev) + (1 - w_in) * (
+                cp.pos(dev - hi) + cp.pos(lo - dev)
+            )
+            loss += objective_weights["kinetics"] * cp.sum(
+                penalty[self.active_constraints_mask]
+            )
 
         if "efficiency" in objective_weights:
             # Efficiency objective to minimize total flux (proxy for enzyme usage)
@@ -1077,22 +1058,12 @@ class NetworkFlowModel:
         try:
             p.solve(
                 solver=solver,
-                solver_opts={
-                    "primal_feasibility_tolerance": 1e-3,  # Default usually 1e-8
-                    "dual_feasibility_tolerance": 1e-3,
-                    "solution_feasibility_tolerance": 1e-3,
-                },
                 verbose=False,
             )
         except cp.error.SolverError:
             print("Lets see what is going on")
             p.solve(
                 solver=solver,
-                solver_opts={
-                    "primal_feasibility_tolerance": 1e-3,  # Default usually 1e-8
-                    "dual_feasibility_tolerance": 1e-3,
-                    "solution_feasibility_tolerance": 1e-3,
-                },
                 verbose=True,
             )
             raise ValueError(
