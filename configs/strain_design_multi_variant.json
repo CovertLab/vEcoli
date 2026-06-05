@@ -54,6 +54,12 @@
                     "EG10661"
                 ],
                 "reference_variant": 0
+            },
+            "strain_design_variant_check": {
+                "reference_variant": 0,
+                "skip_first_n_gens": 1,
+                "tolerance": 0.3,
+                "include_new_genes": true
             }
         }
     }
