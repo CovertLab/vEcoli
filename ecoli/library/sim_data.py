@@ -1604,14 +1604,27 @@ class LoadSimData:
         tf_bound_col_idxs = []
         tf_bound_met_ids = []
         tf_bound_stoichs = []
+        # Set of phosphorylated TCS molecules (each carries 1 Pi). Some active
+        # TFs are phospho-response-regulators (PHOSPHO-PHOB, PHOSPHO-NARL, ...);
+        # when bound to DNA they leave the bulk pool, so their Pi is no longer
+        # counted by metabolitesInTCSPhosphorylation. Add it back via the same
+        # bound-TF machinery (mapping the TF column to +1 Pi).
+        phospho_tcs_set = set(phosphorylated_tcs_mol_ids)
+        pi_id = "Pi[c]"
         for col, tf_id in enumerate(tf_ids):
             tf_mol = tf_id + f"[{sim_data.getter.get_compartment(tf_id)[0]}]"
+            # Case 1: TF is an equilibrium complex carrying a metabolite ligand
             if tf_mol in eq_complex_to_metabolites:
                 for met_id, stoich in eq_complex_to_metabolites[tf_mol].items():
                     if met_id in metabolite_to_idx:
                         tf_bound_col_idxs.append(int(col))
                         tf_bound_met_ids.append(met_id)
                         tf_bound_stoichs.append(float(stoich))
+            # Case 2: TF is a phosphorylated TCS response regulator (1 Pi)
+            if tf_mol in phospho_tcs_set and pi_id in metabolite_to_idx:
+                tf_bound_col_idxs.append(int(col))
+                tf_bound_met_ids.append(pi_id)
+                tf_bound_stoichs.append(1.0)
 
         # Extracellular metabolite IDs (from all media conditions)
         environment_metabolite_ids = sorted(
