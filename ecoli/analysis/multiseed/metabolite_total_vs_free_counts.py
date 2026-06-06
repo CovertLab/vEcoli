@@ -17,6 +17,7 @@ Color coding:
 """
 
 import os
+import pickle
 from typing import Any
 
 import altair as alt
@@ -25,9 +26,11 @@ from duckdb import DuckDBPyConnection
 
 from ecoli.library.parquet_emitter import (
     field_metadata,
+    open_arbitrary_sim_data,
     read_stacked_columns,
     ndlist_to_ndarray,
 )
+from ecoli.library.metabolite_sequestration import compute_avg_sequestration
 
 # Minimum average total count to include a metabolite (filters out metabolites
 # that are never present in the simulation (usually condition dependent)).
@@ -52,34 +55,28 @@ def plot(
         conn, config_sql, "listeners__metabolite_counts__totalMetaboliteCounts"
     )
 
-    # Load time-series data and compute time averages
+    # Only free + total are stored in listeners; the sequestration breakdown is
+    # recomputed from standard emits + sim_data stoich maps:
     query = [
         "listeners__metabolite_counts__totalMetaboliteCounts AS total",
         "listeners__metabolite_counts__freeMetaboliteCounts AS free",
-        "listeners__metabolite_counts__metabolitesInEquilibriumComplexes AS eq_bound",
-        "listeners__metabolite_counts__metabolitesInTCSPhosphorylation AS tcs_bound",
-        "listeners__metabolite_counts__metabolitesInTCSComplexes AS tcs_complex_bound",
-        "listeners__metabolite_counts__metabolitesInBoundTFs AS bound_tf",
     ]
     raw = pl.DataFrame(
         read_stacked_columns(history_sql, query, order_results=True, conn=conn)
     )
 
-    # Convert list columns to numpy arrays and compute time averages
-    total_arr = ndlist_to_ndarray(raw["total"].to_list())  # (T, n_mets)
-    free_arr = ndlist_to_ndarray(raw["free"].to_list())
-    eq_arr = ndlist_to_ndarray(raw["eq_bound"].to_list())
-    tcs_arr = ndlist_to_ndarray(raw["tcs_bound"].to_list())
-    tcs_complex_arr = ndlist_to_ndarray(raw["tcs_complex_bound"].to_list())
-    bound_tf_arr = ndlist_to_ndarray(raw["bound_tf"].to_list())
+    avg_total = ndlist_to_ndarray(raw["total"].to_list()).mean(axis=0)
+    avg_free = ndlist_to_ndarray(raw["free"].to_list()).mean(axis=0)
 
-    avg_total = total_arr.mean(axis=0)
-    avg_free = free_arr.mean(axis=0)
-    avg_eq = eq_arr.mean(axis=0)
+    # Recompute the time-averaged sequestration breakdown.
+    with open_arbitrary_sim_data(sim_data_dict) as f:
+        sim_data = pickle.load(f)
+    seq = compute_avg_sequestration(conn, history_sql, sim_data, metabolite_ids)
+    avg_eq = seq["avg_eq"]
     # Combine both TCS sources (Pi in phospho-proteins + ligand in TCS complexes)
-    avg_tcs = (tcs_arr + tcs_complex_arr).mean(axis=0)
+    avg_tcs = seq["avg_tcs_pi"] + seq["avg_tcs_complex"]
     # Ligand (eq complexes) and Pi (from TCS complexes) in DNA-bound TFs
-    avg_bound_tf = bound_tf_arr.mean(axis=0)
+    avg_bound_tf = seq["avg_bound_tf"]
 
     # Build per-metabolite DataFrame
     df = (

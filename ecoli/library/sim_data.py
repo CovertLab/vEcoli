@@ -1529,102 +1529,14 @@ class LoadSimData:
         metabolite_id_set.update(sim_data.process.equilibrium.metabolite_set)
         metabolite_ids = sorted(metabolite_id_set)
 
-        # Phosphorylated TCS molecules — each carries 1 Pi[c] covalently
-        phosphorylated_tcs_mol_ids = list(
-            sim_data.process.two_component_system.independent_to_dependent_molecules.values()
-        )
+        # All sequestration stoich mappings (eq complexes, TCS phospho, TCS
+        # ligand complexes, DNA-bound TFs) come from a single shared helper so
+        # the analysis scripts can rebuild the exact same maps and recompute the
+        # per-category breakdown -- which is why the sim no longer stores those
+        # four component arrays (only free + total + env are emitted).
+        from ecoli.library.metabolite_sequestration import build_sequestration_maps
 
-        # NOTE: TCS complexes that contain equilibrium-complex subunits with
-        # metabolite ligands (e.g. PHOSPHO-HK-LIGAND contains HK-LIGAND which
-        # contains a metabolite LIGAND). When HK-LIGAND is phosphorylated to
-        # PHOSPHO-HK-LIGAND, the ligand is no longer tracked by the equilibrium
-        # complex unpacking (HK-LIGAND count drops) but IS still sequestered
-        # in PHOSPHO-HK-LIGAND. Thus, the need to be accounted for separately:
-        equilibrium = sim_data.process.equilibrium
-        tcs = sim_data.process.two_component_system
-        metabolite_to_idx = {m: i for i, m in enumerate(metabolite_ids)}
-
-        eq_complex_id_set = set(equilibrium.ids_complexes)
-        eq_mol_names = list(equilibrium.molecule_names)
-        eq_stoich = equilibrium.stoich_matrix_monomers()
-
-        # Build eq_complex -> {met_id: stoich_per_complex} mapping
-        eq_complex_to_metabolites = {}
-        for col_idx, cplx_id in enumerate(equilibrium.ids_complexes):
-            for row_idx, mol_name in enumerate(eq_mol_names):
-                if (
-                    mol_name in equilibrium.metabolite_set
-                    and eq_stoich[row_idx, col_idx] < 0
-                ):
-                    eq_complex_to_metabolites.setdefault(cplx_id, {})[
-                        mol_name
-                    ] = -eq_stoich[row_idx, col_idx]
-
-        tcs_mol_names = list(tcs.molecule_names)
-        tcs_stoich = tcs.stoich_matrix()
-
-        # tcs_complex_to_ligands: {tcs_complex_id: {met_id: stoich}}
-        tcs_complex_to_ligands = {}
-        for tcs_cplx in tcs.complex_to_monomer.keys():
-            if tcs_cplx not in tcs_mol_names:
-                continue
-            cplx_row = tcs_mol_names.index(tcs_cplx)
-            prod_rxn_cols = np.where(tcs_stoich[cplx_row, :] > 0)[0]
-            for rxn_col in prod_rxn_cols:
-                reactant_rows = np.where(tcs_stoich[:, rxn_col] < 0)[0]
-                for r_row in reactant_rows:
-                    r_mol = tcs_mol_names[r_row]
-                    if (
-                        r_mol in eq_complex_id_set
-                        and r_mol in eq_complex_to_metabolites
-                    ):
-                        stoich_eq_per_tcs = -tcs_stoich[r_row, rxn_col]
-                        for met_id, stoich_met in eq_complex_to_metabolites[
-                            r_mol
-                        ].items():
-                            if met_id not in metabolite_to_idx:
-                                continue
-                            tcs_complex_to_ligands.setdefault(tcs_cplx, {})[met_id] = (
-                                stoich_eq_per_tcs * stoich_met
-                            )
-
-        # Flatten to parallel lists:
-        tcs_ligand_complex_ids = []
-        tcs_ligand_met_ids = []
-        tcs_ligand_stoichs = []
-        for cplx_id, met_stoichs in tcs_complex_to_ligands.items():
-            for met_id, stoich in met_stoichs.items():
-                tcs_ligand_complex_ids.append(cplx_id)
-                tcs_ligand_met_ids.append(met_id)
-                tcs_ligand_stoichs.append(float(stoich))
-
-        # Metabolite ligands inside transcription factors that are equilibrium
-        # complexes:
-        tf_ids = sim_data.process.transcription_regulation.tf_ids
-        tf_bound_col_idxs = []
-        tf_bound_met_ids = []
-        tf_bound_stoichs = []
-        # Set of phosphorylated TCS molecules (each carries 1 Pi). Some active
-        # TFs are phospho-response-regulators (PHOSPHO-PHOB, PHOSPHO-NARL, ...);
-        # when bound to DNA they leave the bulk pool, so their Pi is no longer
-        # counted by metabolitesInTCSPhosphorylation. Add it back via the same
-        # bound-TF machinery (mapping the TF column to +1 Pi).
-        phospho_tcs_set = set(phosphorylated_tcs_mol_ids)
-        pi_id = "Pi[c]"
-        for col, tf_id in enumerate(tf_ids):
-            tf_mol = tf_id + f"[{sim_data.getter.get_compartment(tf_id)[0]}]"
-            # Case 1: TF is an equilibrium complex carrying a metabolite ligand
-            if tf_mol in eq_complex_to_metabolites:
-                for met_id, stoich in eq_complex_to_metabolites[tf_mol].items():
-                    if met_id in metabolite_to_idx:
-                        tf_bound_col_idxs.append(int(col))
-                        tf_bound_met_ids.append(met_id)
-                        tf_bound_stoichs.append(float(stoich))
-            # Case 2: TF is a phosphorylated TCS response regulator (1 Pi)
-            if tf_mol in phospho_tcs_set and pi_id in metabolite_to_idx:
-                tf_bound_col_idxs.append(int(col))
-                tf_bound_met_ids.append(pi_id)
-                tf_bound_stoichs.append(1.0)
+        seq_maps = build_sequestration_maps(sim_data, metabolite_ids)
 
         # Extracellular metabolite IDs (from all media conditions)
         environment_metabolite_ids = sorted(
@@ -1635,19 +1547,9 @@ class LoadSimData:
             "time_step": time_step,
             "bulk_molecule_ids": sim_data.internal_state.bulk_molecules.bulk_data["id"],
             "metabolite_ids": metabolite_ids,
-            "equilibrium_molecule_ids": sim_data.process.equilibrium.molecule_names,
-            "equilibrium_complex_ids": sim_data.process.equilibrium.ids_complexes,
-            "equilibrium_stoich": sim_data.process.equilibrium.stoich_matrix_monomers(),
-            "phosphorylated_tcs_mol_ids": phosphorylated_tcs_mol_ids,
-            "tcs_ligand_complex_ids": tcs_ligand_complex_ids,
-            "tcs_ligand_met_ids": tcs_ligand_met_ids,
-            "tcs_ligand_stoichs": tcs_ligand_stoichs,
-            "tf_bound_col_idxs": tf_bound_col_idxs,
-            "tf_bound_met_ids": tf_bound_met_ids,
-            "tf_bound_stoichs": tf_bound_stoichs,
-            "pi_id": "Pi[c]",
             "environment_metabolite_ids": environment_metabolite_ids,
             "emit_unique": self.emit_unique,
+            **seq_maps,
         }
 
     def get_allocator_config(self, time_step=1, process_names=None):

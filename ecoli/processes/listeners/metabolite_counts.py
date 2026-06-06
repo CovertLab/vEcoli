@@ -6,6 +6,15 @@ Metabolite Counts Listener
 Tracks free and total counts of all intracellular metabolites at each
 timestep, plus extracellular metabolite concentrations in the media.
 
+Only THREE arrays are emitted: freeMetaboliteCounts, totalMetaboliteCounts, and
+environmentMetaboliteConcentrations. The per-category sequestration breakdown
+(eq complexes / TCS phospho / TCS complexes / bound TFs) is NOT stored -- it is
+redundant, since each component is just (free complex/phospho/bound-TF count) x
+stoich. Analysis scripts can recompute these from the bulk complex counts,
+the unique-promoter bound_TF counts, and the shared stoich maps in
+ecoli.library.metabolite_sequestration. The components are still computed here
+internally because totalMetaboliteCounts needs them.
+
 Total counts are computed by adding back metabolites currently sequestered
 in non-bulk locations:
 
@@ -25,7 +34,7 @@ in non-bulk locations:
      count dropped) but is still sequestered in the TCS complex, so it is
      recovered here separately.
 
-    4. TCS and equilibirum complexes can become bound to transcription units
+    4. TCS and equilibrium complexes can become bound to transcription units
      on DNA, so metabolites are technically in bound transcription factors (TFs)
      as well.
 
@@ -179,30 +188,6 @@ class MetaboliteCounts(Step):
                         "_emit": True,
                         "_properties": {"metadata": self.metabolite_ids},
                     },
-                    "metabolitesInEquilibriumComplexes": {
-                        "_default": [],
-                        "_updater": "set",
-                        "_emit": True,
-                        "_properties": {"metadata": self.metabolite_ids},
-                    },
-                    "metabolitesInTCSPhosphorylation": {
-                        "_default": [],
-                        "_updater": "set",
-                        "_emit": True,
-                        "_properties": {"metadata": self.metabolite_ids},
-                    },
-                    "metabolitesInTCSComplexes": {
-                        "_default": [],
-                        "_updater": "set",
-                        "_emit": True,
-                        "_properties": {"metadata": self.metabolite_ids},
-                    },
-                    "metabolitesInBoundTFs": {
-                        "_default": [],
-                        "_updater": "set",
-                        "_emit": True,
-                        "_properties": {"metadata": self.metabolite_ids},
-                    },
                     "totalMetaboliteCounts": {
                         "_default": [],
                         "_updater": "set",
@@ -307,10 +292,6 @@ class MetaboliteCounts(Step):
             "listeners": {
                 "metabolite_counts": {
                     "freeMetaboliteCounts": free_metabolite_counts,
-                    "metabolitesInEquilibriumComplexes": eq_bound,
-                    "metabolitesInTCSPhosphorylation": tcs_bound,
-                    "metabolitesInTCSComplexes": tcs_complex_bound,
-                    "metabolitesInBoundTFs": bound_tf_metabolites,
                     "totalMetaboliteCounts": total_metabolite_counts,
                     "environmentMetaboliteConcentrations": env_conc,
                 }
