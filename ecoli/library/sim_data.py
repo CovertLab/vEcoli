@@ -15,6 +15,7 @@ from wholecell.utils.filepath import ROOT_PATH
 
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
 from ecoli.library.parameters import param_store
+from ecoli.library.metabolite_sequestration import build_sequestration_maps
 from ecoli.library.initial_conditions import (
     calculate_cell_mass,
     initialize_bulk_counts,
@@ -1529,13 +1530,10 @@ class LoadSimData:
         metabolite_id_set.update(sim_data.process.equilibrium.metabolite_set)
         metabolite_ids = sorted(metabolite_id_set)
 
-        # All sequestration stoich mappings (eq complexes, TCS phospho, TCS
-        # ligand complexes, DNA-bound TFs) come from a single shared helper so
-        # the analysis scripts can rebuild the exact same maps and recompute the
-        # per-category breakdown -- which is why the sim no longer stores those
-        # four component arrays (only free + total + env are emitted).
-        from ecoli.library.metabolite_sequestration import build_sequestration_maps
-
+        # All sequestration stoich mappings come from a single shared helper so
+        # the analysis scripts can build mappings to determine the number of
+        # metabolites in different molecules (eq complexes, TCS phospho, TCS
+        # ligand complexes, DNA-bound TFs):
         seq_maps = build_sequestration_maps(sim_data, metabolite_ids)
 
         # Extracellular metabolite IDs (from all media conditions)
