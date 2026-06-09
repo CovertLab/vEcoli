@@ -24,7 +24,6 @@ import polars as pl
 from ecoli.library.parquet_emitter import (
     named_idx,
     read_stacked_columns,
-    ndlist_to_ndarray,
 )
 
 
@@ -138,108 +137,14 @@ def build_sequestration_maps(sim_data, metabolite_ids):
     }
 
 
-def compute_avg_sequestration_old(conn, history_sql, sim_data, metabolite_ids):
+def compute_avg_sequestration(conn, history_sql, sim_data, metabolite_ids):
     """Recompute the time-averaged per-metabolite sequestration breakdown.
 
     Compute the counts of metabolites in different molecule types (equilibrium
     complexes, TCS complexes, bound TFs) from data that is emitted by the sim:
       - bulk counts of eq complexes / phospho-TCS mols / TCS ligand complexes
-      - per-TF bound counts (rna_synth_prob.n_bound_TF_per_TU, summed over TUs)
-    plus the stoich maps from ``build_sequestration_maps``.
-
-    Averaging is linear and the maps are linear, so this function averages the
-    complex / bound-TF counts over time first, then apply the maps once.
-
-    NOTE: this function does time averaging, not generation averaging (but
-    an equivalent generation-averaged version could be implemented easily by
-    creating a similar function to this).
-
-    Returns:
-        dict of length-n_metabolites numpy arrays:
-          avg_eq, avg_tcs_pi, avg_tcs_complex, avg_bound_tf
-    """
-
-    maps = build_sequestration_maps(sim_data, metabolite_ids)
-    n_met = len(metabolite_ids)
-    met_to_idx = {m: i for i, m in enumerate(metabolite_ids)}
-
-    bulk_ids = list(sim_data.internal_state.bulk_molecules.bulk_data["id"])
-    bname_to_idx = {n: i for i, n in enumerate(bulk_ids)}
-
-    eq_complex_ids = list(maps["equilibrium_complex_ids"])
-    phospho_ids = list(maps["phosphorylated_tcs_mol_ids"])
-    tcs_lig_ids = list(maps["tcs_ligand_complex_ids"])
-
-    # Unique list of every bulk molecule whose average count needed:
-    needed = list(dict.fromkeys(eq_complex_ids + phospho_ids + tcs_lig_ids))
-    needed_idx = [bname_to_idx[n] for n in needed]
-
-    columns = ["listeners__rna_synth_prob__n_bound_TF_per_TU AS nbt"]
-    if needed:
-        columns.append(named_idx("bulk", needed, [needed_idx]))
-
-    raw = pl.DataFrame(
-        read_stacked_columns(history_sql, columns, order_results=True, conn=conn)
-    )
-
-    avg_bulk = {name: float(raw[name].mean()) for name in needed}
-
-    # Average per-TF bound count: (T, n_TU, n_TF) -> sum TUs -> mean time.
-    nbt = ndlist_to_ndarray(raw["nbt"].to_list())
-    avg_bound_per_tf = nbt.sum(axis=1).mean(axis=0)
-
-    # 1. Equilibrium complexes
-    avg_eq = np.zeros(n_met, np.float64)
-    eq_mol_names = list(maps["equilibrium_molecule_ids"])
-    eq_stoich = maps["equilibrium_stoich"]
-    rows, our = [], []
-    for r, mol in enumerate(eq_mol_names):
-        if mol in met_to_idx:
-            rows.append(r)
-            our.append(met_to_idx[mol])
-    if rows:
-        sub = eq_stoich[np.array(rows), :]  # (k, n_eq_complex)
-        avg_eq_complex = np.array([avg_bulk[c] for c in eq_complex_ids])
-        np.add.at(avg_eq, np.array(our), sub.dot(-avg_eq_complex))
-
-    # 2. Pi in phosphorylated TCS molecules
-    avg_tcs_pi = np.zeros(n_met, np.float64)
-    if maps["pi_id"] in met_to_idx and phospho_ids:
-        avg_tcs_pi[met_to_idx[maps["pi_id"]]] = sum(avg_bulk[p] for p in phospho_ids)
-
-    # 3. Ligands in TCS complexes (eq-complex subunits)
-    avg_tcs_complex = np.zeros(n_met, np.float64)
-    for cplx, met, st in zip(
-        maps["tcs_ligand_complex_ids"],
-        maps["tcs_ligand_met_ids"],
-        maps["tcs_ligand_stoichs"],
-    ):
-        avg_tcs_complex[met_to_idx[met]] += avg_bulk[cplx] * st
-
-    # 4. Metabolites in DNA-bound TFs
-    avg_bound_tf = np.zeros(n_met, np.float64)
-    for col, met, st in zip(
-        maps["tf_bound_col_idxs"],
-        maps["tf_bound_met_ids"],
-        maps["tf_bound_stoichs"],
-    ):
-        avg_bound_tf[met_to_idx[met]] += avg_bound_per_tf[col] * st
-
-    return {
-        "avg_eq": avg_eq,
-        "avg_tcs_pi": avg_tcs_pi,
-        "avg_tcs_complex": avg_tcs_complex,
-        "avg_bound_tf": avg_bound_tf,
-    }
-
-
-def compute_avg_sequestration(conn, history_sql, sim_data, metabolite_ids):
-    """Recompute the time-averaged per-metabolite sequestration breakdown.
-
-    Compute the counts of metabolites in differnt molecule types (equilibirum
-    complexes, TCS complexes, bound TFs) from data that is emitted by the sim:
-      - bulk counts of eq complexes / phospho-TCS mols / TCS ligand complexes
-      - per-TF bound counts (rna_synth_prob.n_bound_TF_per_TU, summed over TUs)
+      - per-TF bound counts (rna_synth_prob.bound_TF_indexes, the sparse list of
+        bound TF indices -- the same per-promoter quantity the listener uses)
     plus the stoich maps from ``build_sequestration_maps``.
 
     Averaging is linear and the maps are linear, so this function averages the
@@ -276,47 +181,26 @@ def compute_avg_sequestration(conn, history_sql, sim_data, metabolite_ids):
     # Only read n_bound_TF_per_TU if needed for the metabolite IDs passed through:
     need_bound_tf = len(maps["tf_bound_col_idxs"]) > 0
 
-    # Compute TF averages using a single SQL query
+    # Per-TF time-averaged bound count from rna_synth_prob.bound_TF_indexes
+    # (the sparse per-timestep list of bound TF indices):
+    avg_bound_per_tf = {}
     if need_bound_tf:
-        # Get dimensions from first row
-        test_query = f"""
-            SELECT listeners__rna_synth_prob__n_bound_TF_per_TU
-            FROM ({history_sql})
-            LIMIT 1
-        """
-        test_result = conn.execute(test_query).fetchone()
-
-        if test_result and test_result[0]:
-            n_tu = len(test_result[0])
-            n_tf = len(test_result[0][0]) if n_tu > 0 else 0
-
-            # Build a single query that computes all TF averages at once
-            # For each TF: sum across all TUs, then average across time
-            tf_selects = [
-                f"""AVG(
-                    list_sum(
-                        list_transform(
-                            listeners__rna_synth_prob__n_bound_TF_per_TU,
-                            tu -> tu[{tf_idx + 1}]
-                        )
-                    )
-                ) as tf_{tf_idx}"""
-                for tf_idx in range(n_tf)
-            ]
-
-            all_tf_query = f"""
-                SELECT {", ".join(tf_selects)}
-                FROM ({history_sql})
-            """
-
-            tf_results = conn.execute(all_tf_query).fetchone()
-            avg_bound_per_tf = np.array(
-                [float(x) if x is not None else 0.0 for x in tf_results]
-            )
-        else:
-            avg_bound_per_tf = np.zeros(0)
-    else:
-        avg_bound_per_tf = np.zeros(0)
+        bound_tf_subquery = read_stacked_columns(
+            history_sql,
+            ["listeners__rna_synth_prob__bound_TF_indexes AS bti"],
+            order_results=False,
+        )
+        n_timesteps = conn.execute(
+            f"SELECT count(*) FROM ({bound_tf_subquery})"
+        ).fetchone()[0]
+        if n_timesteps:
+            tf_counts = conn.execute(
+                f"""
+                WITH idx AS (SELECT unnest(bti) AS tf FROM ({bound_tf_subquery}))
+                SELECT tf, count(*) AS c FROM idx GROUP BY tf
+                """
+            ).fetchall()
+            avg_bound_per_tf = {int(tf): c / n_timesteps for tf, c in tf_counts}
 
     # Handle case where no bulk data is needed (e.g. if no eq complexes or TCS
     # complexes with tracked ligands)
@@ -366,7 +250,7 @@ def compute_avg_sequestration(conn, history_sql, sim_data, metabolite_ids):
         maps["tf_bound_met_ids"],
         maps["tf_bound_stoichs"],
     ):
-        avg_bound_tf[met_to_idx[met]] += avg_bound_per_tf[col] * st
+        avg_bound_tf[met_to_idx[met]] += avg_bound_per_tf.get(int(col), 0.0) * st
 
     return {
         "avg_eq": avg_eq,
