@@ -1,18 +1,27 @@
 """
-Metabolite Total vs Free Counts (y=x scatter) with highlighting capabilities!
+Metabolite Total vs Free Counts with highlighting capabilities!
 
 Same as metabolite_total_vs_free_counts.py, but instead of coloring points
 by sequestration type, ALL points are plotted in one color and a
 user-specified list of metabolites is highlighted in red so they are easy
 to locate on the plot.
 
-Set HIGHLIGHT_METABOLITES at the top of this file to the metabolite IDs you
-want to highlight (with or without compartment tags, e.g. 'ATP' or
-'ATP[c]'). Matching is done on the bare ID so either form works.
+Set HIGHLIGHT_METABOLITES at the top of this file to the metabolite IDs
+to highlight (with or without compartment tags, e.g. 'ATP' or 'ATP[c]').
 
-Points on the y=x line have all their counts in the free pool. Points below
-the line have metabolites sequestered in equilibrium, TCS complexes, or bound
-transcription factors (which can be either TCS complexes or eq complexes).
+Compartment-tag messaging
+-------------------------
+HIGHLIGHT_METABOLITES entries may be bare ('ATP') or compartment tagged
+('ATP[c]'):
+  * bare entry, >1 compartment present  -> highlight ALL variants and note that
+    the user can specify a single tag.
+  * tagged entry, other variants present -> highlight just that species and note
+    the other valid tags.
+  * single compartment present -> highlight it silently.
+These NOTE messages are printed out as the plot progresses for the user to see.
+
+Free counts are read straight from the standard ``bulk`` table; total comes
+from the listener; the sequestration breakdown is recomputed from sim_data.
 """
 
 import os
@@ -27,22 +36,87 @@ from duckdb import DuckDBPyConnection
 from ecoli.library.parquet_emitter import (
     field_metadata,
     open_arbitrary_sim_data,
-    read_stacked_columns,
-    ndlist_to_ndarray,
 )
 from ecoli.library.metabolite_sequestration import compute_avg_sequestration
+from ecoli.analysis.multiseed.metabolite_total_vs_free_counts import (
+    count_cells,
+    read_avg_free_from_bulk,
+    read_avg_listener_list,
+)
 
 # Metabolites to highlight in red (with or without compartment tags)
-HIGHLIGHT_METABOLITES = ["ATP[c]", "Pi[c]", "AMP[c]"]
+HIGHLIGHT_METABOLITES = ["ATP", "LEU[c]", "Pi", "CPD-12261", "TRP"]
 
-# Minimum average total count to include a metabolite (filters out
-# metabolites that are never present (condition dependent).
-MIN_AVG_TOTAL_COUNT = 1.0
+_TAG_RE = re.compile(r"\[[a-z]\]$")
 
 
-def _bare(mol_id: str) -> str:
-    """Strip a compartment tag like [c] from a molecule ID."""
-    return re.split(r"\[.\]", mol_id)[0]
+def _bare(species_id: str) -> str:
+    """Strip a trailing [x] compartment tag, if present."""
+    return _TAG_RE.sub("", species_id)
+
+
+def _tag(species_id: str) -> str:
+    """Return the trailing [x] tag (including brackets), or '' if none."""
+    m = _TAG_RE.search(species_id)
+    return m.group(0) if m else ""
+
+
+def resolve_highlights(highlight_entries, metabolite_ids):
+    """Resolve HIGHLIGHT_METABOLITES against the tracked species.
+
+    Returns (highlight_set, messages):
+        highlight_set: set of fully-tagged species ids to highlight
+        messages: list of strings to print
+    """
+    bare_to_tags = {}
+    for sid in metabolite_ids:
+        bare_to_tags.setdefault(_bare(sid), []).append(_tag(sid))
+    for k in bare_to_tags:
+        bare_to_tags[k] = sorted(set(bare_to_tags[k]))
+
+    highlight_set = set()
+    messages = []
+
+    for entry in highlight_entries:
+        base = _bare(entry)
+        entry_tag = _tag(entry)
+        tags = bare_to_tags.get(base)
+
+        if not tags:
+            messages.append(f"'{entry}' is not tracked by the listener; skipping.")
+            continue
+
+        if entry_tag:
+            if entry_tag not in tags:
+                messages.append(
+                    f"'{entry}' has tag {entry_tag} which is not present; "
+                    f"valid tags for {base} are "
+                    f"({', '.join(tags)}); skipping."
+                )
+                continue
+            highlight_set.add(base + entry_tag)
+            others = [t for t in tags if t != entry_tag]
+            if others:
+                messages.append(
+                    f"NOTE: {base} also has {len(others)} other valid "
+                    f"compartment tag(s) "
+                    f"({', '.join(base + t for t in others)}); change input "
+                    f"to '{base}' to see all options for highlighting."
+                )
+        else:
+            if len(tags) > 1:
+                for t in tags:
+                    highlight_set.add(base + t)
+                messages.append(
+                    f"{base} has multiple compartment tags "
+                    f"({', '.join(base + t for t in tags)}); highlighting "
+                    f"all by default. Specify {base + tags[0]} (etc.) to only"
+                    f"highlight a specific one."
+                )
+            else:
+                highlight_set.add(base + tags[0])
+
+    return highlight_set, messages
 
 
 def plot(
@@ -62,32 +136,43 @@ def plot(
         conn, config_sql, "listeners__metabolite_counts__totalMetaboliteCounts"
     )
 
-    # Only free + total are stored in listeners; the sequestration breakdown is
-    # recomputed from standard emits + sim_data stoich maps:
-    query = [
-        "listeners__metabolite_counts__totalMetaboliteCounts AS total",
-        "listeners__metabolite_counts__freeMetaboliteCounts AS free",
-    ]
-    raw = pl.DataFrame(
-        read_stacked_columns(history_sql, query, order_results=True, conn=conn)
+    # Total from the listener; free straight from the standard bulk table:
+    avg_total = read_avg_listener_list(
+        conn, history_sql, "listeners__metabolite_counts__totalMetaboliteCounts"
     )
 
-    avg_total = ndlist_to_ndarray(raw["total"].to_list()).mean(axis=0)
-    avg_free = ndlist_to_ndarray(raw["free"].to_list()).mean(axis=0)
-
-    # Recompute the time-averaged sequestration breakdown.
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
+
+    avg_free = read_avg_free_from_bulk(conn, history_sql, sim_data, metabolite_ids)
+
+    # Recompute the time-averaged sequestration breakdown:
     seq = compute_avg_sequestration(conn, history_sql, sim_data, metabolite_ids)
     avg_eq = seq["avg_eq"]
     # Combine both TCS sources (Pi in phospho-proteins + ligand in TCS complexes)
     avg_tcs = seq["avg_tcs_pi"] + seq["avg_tcs_complex"]
-    # Ligand (eq complexes) and Pi (from TCS complexes) in DNA-bound TFs
     avg_bound_tf = seq["avg_bound_tf"]
 
-    # Determine which metabolites to highlight (match on bare ID)
-    highlight_bare = {_bare(m) for m in HIGHLIGHT_METABOLITES}
-    is_highlighted = [_bare(m) in highlight_bare for m in metabolite_ids]
+    # Resolve the highlight list and emit compartment-tag messaging:
+    highlight_set, messages = resolve_highlights(
+        HIGHLIGHT_METABOLITES, list(metabolite_ids)
+    )
+    print("--- Highlight compartment-tag messaging ---")
+    for msg in messages:
+        print(msg)
+    if not messages:
+        print("(no messages)")
+
+    is_highlighted = [sid in highlight_set for sid in metabolite_ids]
+
+    # Plot every metabolite ever present (skipping those with entirely zero
+    # counts that cannot go on a log axis):
+    n_zero = int((avg_total <= 0).sum())
+    n_cells = count_cells(conn, history_sql)
+    print(
+        f"{n_zero} of {len(metabolite_ids)} metabolites had zero counts the "
+        f"entire simulation (not plotted)."
+    )
 
     # Build per-metabolite DataFrame
     df = (
@@ -110,7 +195,7 @@ def plot(
                 ),
             ]
         )
-        .filter(pl.col("avg_total") >= MIN_AVG_TOTAL_COUNT)
+        .filter(pl.col("avg_total") > 0)
     )
 
     # Group label with per-group count in parentheses for the legend:
@@ -149,8 +234,7 @@ def plot(
         )
     )
 
-    # All points one neutral color; highlighted ones red and larger.
-    # Plot non-highlighted first, then highlighted on top.
+    # All points one neutral color; highlighted inputs red and w/ larger size:
     color_scale = alt.Scale(
         domain=[f"Other ({n_other})", f"Highlighted ({n_highlighted})"],
         range=["lightslategray", "red"],
@@ -160,12 +244,8 @@ def plot(
         alt.Chart(df)
         .mark_circle()
         .encode(
-            x=alt.X(
-                "avg_total:Q", scale=log_scale, title="Average Total Count (log scale)"
-            ),
-            y=alt.Y(
-                "avg_free:Q", scale=log_scale, title="Average Free Count (log scale)"
-            ),
+            x=alt.X("avg_total:Q", scale=log_scale, title="Log Average Total Count"),
+            y=alt.Y("avg_free:Q", scale=log_scale, title="Log Average Free Count"),
             color=alt.Color("highlight_group:N", scale=color_scale, title="Group"),
             size=alt.condition(alt.datum.highlighted, alt.value(110), alt.value(35)),
             opacity=alt.condition(
@@ -176,16 +256,10 @@ def plot(
         )
     )
 
-    n_highlighted = int(df["highlighted"].sum())
     chart = (
         (ref_line + base)
         .properties(
-            title=(
-                f"Average Total vs Free Metabolite Counts  "
-                f"(n={len(df)} metabolites)  |  "
-                f"{n_highlighted} highlighted in red  |  "
-                "Points below y=x are sequestered"
-            ),
+            title=f"Total vs Free Metabolite Counts (n={len(df)}, time-averaged over {n_cells} cells)",
             width=600,
             height=600,
         )
