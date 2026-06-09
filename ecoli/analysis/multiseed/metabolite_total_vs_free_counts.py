@@ -288,7 +288,7 @@ def plot(
         .properties(
             title=(
                 f"Average Total vs Free Metabolite Counts  "
-                f"(averaged over {n_cells} cells)  |  "
+                f"(averaged over {n_cells} cells) | "
                 f"n={len(df)} metabolites plotted ({n_zero} had zero counts "
                 f"over the entire simulation) "
             ),
