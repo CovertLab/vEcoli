@@ -1514,9 +1514,11 @@ class LoadSimData:
         sim_data = self.sim_data
         concentration_updates = sim_data.process.metabolism.concentration_updates
 
-        # Build full metabolite ID list (continaing homeostatic metabolites
-        # across ALL media conditions (same approach as Metabolism process)
-        # plus ppGpp and equilibrium ligands):
+        # Build the metabolite ID list: includes metabolites that participate in
+        # a metabolic reaction AND exists as a bulk molecule, across ALL
+        # compartments (and ppGpp).
+        bulk_id_set = set(sim_data.internal_state.bulk_molecules.bulk_data["id"])
+
         metabolite_id_set = set()
         metabolite_id_set.add(sim_data.molecule_ids.ppGpp)
 
@@ -1528,6 +1530,26 @@ class LoadSimData:
             metabolite_id_set.update(conc_dict.keys())
 
         metabolite_id_set.update(sim_data.process.equilibrium.metabolite_set)
+
+        # Every metabolite appearing in any metabolic reaction, all compartments:
+        for stoich in sim_data.process.metabolism.reaction_stoich.values():
+            metabolite_id_set.update(stoich.keys())
+
+        # Keep only actual bulk molecules (that have with storable counts):
+        metabolite_id_set &= bulk_id_set
+
+        # Exclude macromolecules (some proteins/complexes appear as participants
+        # in metabolic / equilibrium / TCS reactions and would otherwise leak in
+        # as "metabolites"):
+        macromolecule_ids = (
+            set(sim_data.process.translation.monomer_data["id"])
+            | set(sim_data.process.transcription.rna_data["id"])
+            | set(sim_data.process.equilibrium.ids_complexes)
+            | set(sim_data.process.two_component_system.complex_to_monomer.keys())
+            | set(sim_data.process.complexation.ids_complexes)
+        )
+        metabolite_id_set -= macromolecule_ids
+
         metabolite_ids = sorted(metabolite_id_set)
 
         # All sequestration stoich mappings come from a single shared helper so
