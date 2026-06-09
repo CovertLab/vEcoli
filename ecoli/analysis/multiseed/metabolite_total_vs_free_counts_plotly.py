@@ -1,19 +1,20 @@
 """
 Metabolite Total vs Free Counts (y=x scatter) plotly!
 
-For each tracked metabolite, plots the time-averaged total count (x-axis)
-against the time-averaged free count (y-axis). Points on the y=x line have
-all their counts in the free pool. Points below the line have metabolites
-sequestered in equilibrium complexes or TCS phosphorylated molecules (both of
-which can also be found in bound TFs for those that are actively modeled).
+For each tracked metabolite, this plots the time-averaged total count (x-axis)
+against the time-averaged free count (y-axis). Points below the y=x line have
+metabolites sequestered in equilibrium complexes, TCS phosphorylated molecules,
+or DNA-bound transcription factors.
 
-Color coding:
-  - Blue: no sequestration in complexes (sits on y=x)
-  - Orange: bound in equilibrium complexes only
-  - Green: bound in TCS phosphorylation only (Pi[c])
-  - Purple: bound in both complex types
-  - Pink: bound in actively modeled bound transcription factors
+Free counts are read straight from the standard ``bulk`` table; total comes
+from the MetaboliteCounts listener's totalMetaboliteCounts; the sequestration
+breakdown is then recomputed from stoich maps.
 
+This file produces two plots:
+  1. metabolite_total_vs_free_counts.html -- metabolites highlighted by
+   sequestration type.
+  2. metabolite_total_vs_free_counts_highlighted.html -- all points one neutral
+     color with user-specified metabolites highlighted in red.
 """
 
 import os
@@ -27,14 +28,36 @@ from duckdb import DuckDBPyConnection
 from ecoli.library.parquet_emitter import (
     field_metadata,
     open_arbitrary_sim_data,
-    read_stacked_columns,
-    ndlist_to_ndarray,
 )
 from ecoli.library.metabolite_sequestration import compute_avg_sequestration
+from ecoli.analysis.multiseed.metabolite_total_vs_free_counts import (
+    CATEGORY_COLORS,
+    categorize_expr,
+    count_cells,
+    read_avg_free_from_bulk,
+    read_avg_listener_list,
+)
+from ecoli.analysis.multiseed.metabolite_total_vs_free_counts_highlighted import (
+    resolve_highlights,
+)
 
-# Minimum average total count to include a metabolite (filters out metabolites
-# that are never present in the simulation (usually condition dependent)).
-MIN_AVG_TOTAL_COUNT = 1.0
+# Default highlight list if "highlight_metabolites" is not given in params:
+DEFAULT_HIGHLIGHT_METABOLITES = ["ATP", "Pi"]
+
+
+def _hover_text(rows):
+    """Build the per-point hover strings (shared by both figures)."""
+    return [
+        f"<b>{row['metabolite']}</b><br>"
+        + f"Avg. total: {row['avg_total']:.1f}<br>"
+        + f"Avg. free: {row['avg_free']:.1f}<br>"
+        + f"Avg. bound (total): {row['avg_bound_total']:.1f}<br>"
+        + f"  in equilibrium complexes: {row['avg_eq_bound']:.1f}<br>"
+        + f"  in two component system complexes: {row['avg_tcs_bound']:.1f}<br>"
+        + f"  in DNA-bound TFs: {row['avg_bound_tf']:.1f}<br>"
+        + f"Fraction free: {row['fraction_free']:.3f}"
+        for row in rows
+    ]
 
 
 def plot(
@@ -55,28 +78,38 @@ def plot(
         conn, config_sql, "listeners__metabolite_counts__totalMetaboliteCounts"
     )
 
-    # Only free + total are stored in listeners; the sequestration breakdown is
-    # recomputed from standard emits + sim_data stoich maps:
-    query = [
-        "listeners__metabolite_counts__totalMetaboliteCounts AS total",
-        "listeners__metabolite_counts__freeMetaboliteCounts AS free",
-    ]
-    raw = pl.DataFrame(
-        read_stacked_columns(history_sql, query, order_results=True, conn=conn)
+    # Optionally skip the first N generations from ALL averages (config option
+    # "skip_n_gens", default 0). Filtering generation here means every
+    # downstream read (total, free, sequestration, cell count) inherits it.
+    skip_n_gens = params.get("skip_n_gens", 0)
+    if skip_n_gens:
+        history_sql = f"SELECT * FROM ({history_sql}) WHERE generation >= {skip_n_gens}"
+
+    # Read in total counts from the listener and free counts straight from
+    # the standard bulk table:
+    avg_total = read_avg_listener_list(
+        conn, history_sql, "listeners__metabolite_counts__totalMetaboliteCounts"
     )
 
-    avg_total = ndlist_to_ndarray(raw["total"].to_list()).mean(axis=0)
-    avg_free = ndlist_to_ndarray(raw["free"].to_list()).mean(axis=0)
-
-    # Recompute the time-averaged sequestration breakdown:
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
+
+    avg_free = read_avg_free_from_bulk(conn, history_sql, sim_data, metabolite_ids)
+
+    # Recompute the time-averaged sequestration breakdown:
     seq = compute_avg_sequestration(conn, history_sql, sim_data, metabolite_ids)
     avg_eq = seq["avg_eq"]
     # Combine both TCS sources (Pi in phospho-proteins + ligand in TCS complexes)
     avg_tcs = seq["avg_tcs_pi"] + seq["avg_tcs_complex"]
-    # Ligand (eq complexes) and Pi (from TCS complexes) in DNA-bound TFs
     avg_bound_tf = seq["avg_bound_tf"]
+
+    # Plot every metabolite ever present in nonzero counts during the sim:
+    n_zero = int((avg_total <= 0).sum())
+    n_cells = count_cells(conn, history_sql)
+    print(
+        f"{n_zero} of {len(metabolite_ids)} metabolites had zero counts the "
+        f"entire simulation (not plotted)."
+    )
 
     # Build per-metabolite DataFrame
     df = (
@@ -98,47 +131,17 @@ def plot(
                 ),
             ]
         )
-        .filter(pl.col("avg_total") >= MIN_AVG_TOTAL_COUNT)
+        .filter(pl.col("avg_total") > 0)
     )
 
-    # Classify sequestration type (priority order; DNA-bound TF pulled out
-    # first since those metabolites are also technically in an eq complex).
-    df = df.with_columns(
-        pl.when(pl.col("avg_bound_tf") > 0)
-        .then(pl.lit("In DNA-bound TF"))
-        .when((pl.col("avg_eq_bound") > 0) & (pl.col("avg_tcs_bound") > 0))
-        .then(pl.lit("In eq + TCS complex"))
-        .when(pl.col("avg_eq_bound") > 0)
-        .then(pl.lit("In eq complex"))
-        .when(pl.col("avg_tcs_bound") > 0)
-        .then(pl.lit("In TCS"))
-        .otherwise(pl.lit("No sequestration"))
-        .alias("sequestration_type")
-    )
+    df = df.with_columns(categorize_expr())
 
-    # Append the per-category count to each label, e.g. "In eq complex (8)",
-    # so the legend shows how many metabolites fall in each category.
     cat_counts = dict(df.group_by("sequestration_type").len().iter_rows())
-    df = df.with_columns(
-        pl.col("sequestration_type")
-        .map_elements(lambda c: f"{c} ({cat_counts.get(c, 0)})", return_dtype=pl.Utf8)
-        .alias("sequestration_label")
-    )
 
-    # Build Plotly figure (log-log so values spanning many orders of
-    # magnitude are not crammed into a corner)
+    # Build Plotly figure:
     min_val = float(df["avg_total"].min())
     max_val = float(df["avg_total"].max())
     axis_range = [min_val * 0.8, max_val * 1.25]
-
-    # Fixed base-category -> color mapping
-    base_colors = {
-        "No sequestration": "lightsteelblue",
-        "In eq complex": "darkorange",
-        "In TCS": "mediumseagreen",
-        "In eq + TCS complex": "mediumpurple",
-        "In DNA-bound TF": "crimson",
-    }
 
     fig = go.Figure()
 
@@ -155,29 +158,21 @@ def plot(
         )
     )
 
-    # Add scatter points for each sequestration type
-    for seq_type in [
-        "No sequestration",
-        "In eq complex",
-        "In TCS",
-        "In eq + TCS complex",
-        "In DNA-bound TF",
-    ]:
+    # Add scatter points for each sequestration type:
+    for seq_type, color in CATEGORY_COLORS:
         if seq_type not in cat_counts:
             continue
 
         df_subset = df.filter(pl.col("sequestration_type") == seq_type)
         label = f"{seq_type} ({cat_counts[seq_type]})"
 
-        # Determine marker size (matching Altair's 40 vs 80)
         marker_size = 8 if seq_type == "No sequestration" else 12
 
-        # Build hover text
         hover_text = [
             f"<b>{row['metabolite']}</b><br>"
-            + f"Avg total: {row['avg_total']:.1f}<br>"
-            + f"Avg free: {row['avg_free']:.1f}<br>"
-            + f"Avg bound (total): {row['avg_bound_total']:.1f}<br>"
+            + f"Avg. total: {row['avg_total']:.1f}<br>"
+            + f"Avg. free: {row['avg_free']:.1f}<br>"
+            + f"Avg. bound (total): {row['avg_bound_total']:.1f}<br>"
             + f"  in eq complexes: {row['avg_eq_bound']:.1f}<br>"
             + f"  in TCS: {row['avg_tcs_bound']:.1f}<br>"
             + f"  in DNA-bound TFs: {row['avg_bound_tf']:.1f}<br>"
@@ -192,7 +187,7 @@ def plot(
                 mode="markers",
                 name=label,
                 marker=dict(
-                    color=base_colors[seq_type],
+                    color=color,
                     size=marker_size,
                     opacity=0.7,
                     line=dict(width=0.5, color="white"),
@@ -206,21 +201,23 @@ def plot(
     fig.update_layout(
         title=dict(
             text=(
-                f"Average Total vs Free Metabolite Counts  "
-                f"(n={len(df)} metabolites, avg total ≥ {MIN_AVG_TOTAL_COUNT})  |  "
-                "Points below y=x are sequestered"
+                f"Average Total vs Free Metabolite Counts<br>"
+                f"averaged over {n_cells} cells"
+                + (f" (first {skip_n_gens} gens skipped)" if skip_n_gens else "")
+                + f"<br>n={len(df)} metabolites plotted ({n_zero} had zero counts "
+                f"over the entire sim)"
             ),
             font=dict(size=14),
         ),
         xaxis=dict(
-            title="Average Total Count (log scale)",
+            title="Log10(Average Total Count)",
             type="log",
             range=[np.log10(axis_range[0]), np.log10(axis_range[1])],
             showgrid=True,
             gridcolor="lightgray",
         ),
         yaxis=dict(
-            title="Average Free Count (log scale)",
+            title="Log10(Average Free Count)",
             type="log",
             range=[np.log10(axis_range[0]), np.log10(axis_range[1])],
             showgrid=True,
@@ -241,3 +238,95 @@ def plot(
 
     # Save the figure
     fig.write_html(os.path.join(outdir, "metabolite_total_vs_free_counts.html"))
+
+    # Plot 2: Highlight a user-specified list of metabolites in the plot:
+    highlight_list = params.get("highlight_metabolites", DEFAULT_HIGHLIGHT_METABOLITES)
+    highlight_set, messages = resolve_highlights(highlight_list, list(metabolite_ids))
+    print("--- NOTES ABOUT COMPARTMENT TAGS FOR SPECIFIED METABOLITES ---")
+    for msg in messages:
+        print(msg)
+    if not messages:
+        print(
+            "(nothing to note with this list of metabolites specified for highlighting)"
+        )
+
+    df_h = df.with_columns(
+        pl.col("metabolite").is_in(list(highlight_set)).alias("highlighted")
+    )
+    df_hi = df_h.filter(pl.col("highlighted"))
+    df_other = df_h.filter(~pl.col("highlighted"))
+    n_hi = len(df_hi)
+
+    fig_h = go.Figure()
+    fig_h.add_trace(
+        go.Scatter(
+            x=axis_range,
+            y=axis_range,
+            mode="lines",
+            line=dict(color="black", width=1, dash="dash"),
+            opacity=0.5,
+            showlegend=False,
+            hoverinfo="skip",
+        )
+    )
+    # Neutral background points first, highlighted (red, larger) on top.
+    fig_h.add_trace(
+        go.Scatter(
+            x=df_other["avg_total"].to_list(),
+            y=df_other["avg_free"].to_list(),
+            mode="markers",
+            name=f"Other ({len(df_other)})",
+            marker=dict(
+                color="lightslategray",
+                size=6,
+                opacity=0.45,
+                line=dict(width=0.3, color="white"),
+            ),
+            hovertext=_hover_text(df_other.to_dicts()),
+            hoverinfo="text",
+        )
+    )
+    fig_h.add_trace(
+        go.Scatter(
+            x=df_hi["avg_total"].to_list(),
+            y=df_hi["avg_free"].to_list(),
+            mode="markers",
+            name=f"Highlighted ({n_hi})",
+            marker=dict(
+                color="red", size=12, opacity=0.95, line=dict(width=0.6, color="black")
+            ),
+            hovertext=_hover_text(df_hi.to_dicts()),
+            hoverinfo="text",
+        )
+    )
+    fig_h.update_layout(
+        title=dict(
+            text=(
+                f"Total vs Free Metabolite Counts (n={len(df)},"
+                f" time-averaged over {n_cells} cells)"
+            ),
+            font=dict(size=14),
+        ),
+        xaxis=dict(
+            title="Log10(Average Total Count)",
+            type="log",
+            range=[np.log10(axis_range[0]), np.log10(axis_range[1])],
+            showgrid=True,
+            gridcolor="lightgray",
+        ),
+        yaxis=dict(
+            title="Log10(Average Free Count)",
+            type="log",
+            range=[np.log10(axis_range[0]), np.log10(axis_range[1])],
+            showgrid=True,
+            gridcolor="lightgray",
+        ),
+        plot_bgcolor="white",
+        width=700,
+        height=700,
+        hovermode="closest",
+        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+    )
+    fig_h.write_html(
+        os.path.join(outdir, "metabolite_total_vs_free_counts_highlighted.html")
+    )
