@@ -1127,7 +1127,7 @@ class NetworkFlowModel:
             exchanges=exchanges,
             maintenance_flux=maintenance_flux,
             objective=objective,
-            kinetics_term=kinetics_term.value if "kinetics_term" else None,
+            kinetics_term=kinetics_term.value if kinetics_term is not None else None,
         )
 
 
