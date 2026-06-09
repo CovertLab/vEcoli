@@ -6,14 +6,14 @@ Metabolite Counts Listener
 Tracks free and total counts of all intracellular metabolites at each
 timestep, plus extracellular metabolite concentrations in the media.
 
-Only THREE arrays are emitted: freeMetaboliteCounts, totalMetaboliteCounts, and
-environmentMetaboliteConcentrations. The per-category sequestration breakdown
-(eq complexes / TCS phospho / TCS complexes / bound TFs) is NOT stored -- it is
-redundant, since each component is just (free complex/phospho/bound-TF count) x
-stoich. Analysis scripts can recompute these from the bulk complex counts,
-the unique-promoter bound_TF counts, and the shared stoich maps in
-ecoli.library.metabolite_sequestration. The components are still computed here
-internally because totalMetaboliteCounts needs them.
+Arrays emitted: totalMetaboliteCounts and
+environmentMetaboliteConcentration (note: the FREE count of any metabolite is
+already emitted by the standard `bulk` table).
+
+The per-category sequestration breakdown
+(eq complexes / TCS phospho / TCS complexes / bound TFs) can be recomputed in
+analysis scripts using ecoli.library.metabolite_sequestration since each
+component is just (free complex/phospho/bound-TF count) x stoich.
 
 Total counts are computed by adding back metabolites currently sequestered
 in non-bulk locations:
@@ -39,15 +39,6 @@ in non-bulk locations:
      as well.
 
 Complexation complexes currently only contain protein subunits.
-
-Four component arrays are stored so one can see exactly where deviations
-from the free pool are coming from:
-  - freeMetaboliteCounts
-  - metabolitesInEquilibriumComplexes
-  - metabolitesInTCSPhosphorylation
-  - metabolitesInTCSComplexes
-  - metabolitesInBoundTFs
-  - totalMetaboliteCounts  (sum of the four above)
 
 Extracellular metabolites are stored as concentrations (not counts) because
 there is no single cell volume to convert with at the environment level.
@@ -182,12 +173,6 @@ class MetaboliteCounts(Step):
         return {
             "listeners": {
                 "metabolite_counts": {
-                    "freeMetaboliteCounts": {
-                        "_default": [],
-                        "_updater": "set",
-                        "_emit": True,
-                        "_properties": {"metadata": self.metabolite_ids},
-                    },
                     "totalMetaboliteCounts": {
                         "_default": [],
                         "_updater": "set",
@@ -291,7 +276,6 @@ class MetaboliteCounts(Step):
         return {
             "listeners": {
                 "metabolite_counts": {
-                    "freeMetaboliteCounts": free_metabolite_counts,
                     "totalMetaboliteCounts": total_metabolite_counts,
                     "environmentMetaboliteConcentrations": env_conc,
                 }
