@@ -101,7 +101,7 @@ def resolve_highlights(highlight_entries, metabolite_ids):
                     f"NOTE: {base} also has {len(others)} other valid "
                     f"compartment tag(s) "
                     f"({', '.join(base + t for t in others)}); change input "
-                    f"to '{base}' to see all options for highlighting."
+                    f"to '{base}' to plot all options for highlighting."
                 )
         else:
             if len(tags) > 1:
@@ -110,8 +110,8 @@ def resolve_highlights(highlight_entries, metabolite_ids):
                 messages.append(
                     f"{base} has multiple compartment tags "
                     f"({', '.join(base + t for t in tags)}); highlighting "
-                    f"all by default. Specify {base + tags[0]} (etc.) to only"
-                    f"highlight a specific one."
+                    f"all by default. Specify {base + tags[0]} (etc.) to only "
+                    f"highlight a specific compartment."
                 )
             else:
                 highlight_set.add(base + tags[0])
