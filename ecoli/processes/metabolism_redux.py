@@ -23,6 +23,7 @@ from typing import Iterable, Mapping
 from dataclasses import dataclass
 
 from reconstruction.ecoli.dataclasses.process.metabolism import REVERSE_TAG
+from ortools.glop import parameters_pb2
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
@@ -31,7 +32,8 @@ TIME_UNITS = units.s
 CONC_UNITS = COUNTS_UNITS / VOLUME_UNITS
 CONVERSION_UNITS = MASS_UNITS * TIME_UNITS / VOLUME_UNITS
 GDCW_BASIS = units.mmol / units.g / units.h
-
+GLOP_PARAM = parameters_pb2.GlopParameters()
+# GLOP_PARAM.solution_feasibility_tolerance = 1e-5
 
 NAME = "ecoli-metabolism-redux"
 TOPOLOGY = topology_registry.access("ecoli-metabolism")
@@ -473,12 +475,21 @@ class MetabolismRedux(Step):
                         ),
                         "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
-                        "target_kinetic_fluxes": [],
+                        "target_kinetic_fluxes": (
+                            [],
+                            self.kinetic_constraint_reactions,
+                        ),
                         "target_kinetic_bounds": np.zeros(
                             (len(self.kinetic_constraint_reactions), 2), dtype=int
                         ),
                         "reaction_catalyst_counts": [],
-                        "maintenance_target": 0,
+                        "maintenance_target": 0.0,
+                        "kinetics_term": 0.0,
+                    }
+                ),
+                "enzyme_kinetics": listener_schema(
+                    {
+                        "counts_to_molar": 1.0,
                     }
                 ),
             },
@@ -588,9 +599,6 @@ class MetabolismRedux(Step):
             self.cat_rxn_idx_to_fba_rxn_idx[idx] for idx in binary_kinetic_cat_idx
         ]  # indexes based on all reactions
 
-        print(f"reaction catalyst counts: {reaction_catalyst_counts}")
-        print(f"binary_kinetic_cat_idx: {binary_kinetic_cat_idx}")
-
         # TODO: Figure out how to handle changing media ID
 
         ## Determine updates to concentrations depending on the current state
@@ -691,9 +699,6 @@ class MetabolismRedux(Step):
             "kinetics": self.kinetic_objective_weight,
             "kinetics_in_range": self.kinetic_objective_weight_in_range,
         }
-
-        if states["global_time"] == 822:
-            print("stop to see successful setup")
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
             homeostatic_dm_targets=target_homeostatic_dmdt,
@@ -760,12 +765,14 @@ class MetabolismRedux(Step):
                     "maintenance_target": maintenance_flux,
                     "solution_fluxes": solution.velocities,
                     "solution_dmdt": solution.dm_dt,
+                    "kinetics_term": solution.kinetics_term,
                     "reaction_catalyst_counts": reaction_catalyst_counts,
                     "time_per_step": time.time(),
                     "base_reaction_fluxes": self.reaction_mapping_matrix.dot(
                         estimated_reaction_fluxes
                     ),
-                }
+                },
+                "enzyme_kinetics": {"counts_to_molar": self.counts_to_molar.asNumber()},
             },
             "next_update_time": states["global_time"] + states["timestep"],
         }
@@ -864,6 +871,7 @@ class FlowResult:
     exchanges: Iterable[float]
     maintenance_flux: float
     objective: float
+    kinetics_term: float
 
 
 class NetworkFlowModel:
@@ -965,7 +973,6 @@ class NetworkFlowModel:
         """Solve the network flow model for fluxes and dm/dt values."""
         # Mypy fixes
         objective_weights = cast(Mapping[str, float], objective_weights)
-        # objective_weights['kinetics'] *= 10
         # Convert to array
         homeostatic_concs = np.array(homeostatic_concs)
         homeostatic_dm_targets = np.array(homeostatic_dm_targets)
@@ -974,6 +981,13 @@ class NetworkFlowModel:
             target_fluxes[self.kinetic_rxn_idx] += kinetic_targets[:, 1]
 
         # set up variables
+        # v_diff_in_range = cp.Variable(self.n_orig_rxns)
+        # v_diff_outside_range = cp.Variable(self.n_orig_rxns)
+        # v = target_fluxes + v_diff_in_range + v_diff_outside_range
+
+        n_kinetic = len(self.kinetic_rxn_idx) if self.kinetic_rxn_idx is not None else 0
+        v_diff_in_range = cp.Variable(n_kinetic)
+        v_diff_outside_range = cp.Variable(n_kinetic)
         v = cp.Variable(self.n_orig_rxns)
 
         e = cp.Variable(self.n_exch_rxns)
@@ -984,6 +998,10 @@ class NetworkFlowModel:
 
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
+        constr.append(
+            v[self.kinetic_rxn_idx]
+            == kinetic_targets[:, 1] + v_diff_in_range + v_diff_outside_range
+        )
 
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == total_maintenance)
@@ -1009,6 +1027,7 @@ class NetworkFlowModel:
         homeostatic_target_concs[homeostatic_target_concs == 0] = 1
 
         loss = 0
+        # Heena's change: try normalizing by homeostatic concentration instead of target conc
         loss += cp.norm1(
             (dm[self.homeostatic_idx] - homeostatic_dm_targets)
             / homeostatic_target_concs
@@ -1020,34 +1039,58 @@ class NetworkFlowModel:
         if "kinetics" in objective_weights:
             # Mypy fixes
             kinetic_targets = cast(npt.NDArray[np.float64], kinetic_targets)
-            # Normalizer for relative flux deviation. Floor the magnitude so that
-            # near-zero targets do not blow up the constraint-matrix coefficients
-            # (1 / target), which is a major source of ill-conditioning here
-            # (these produced the ~5.8e7 entries seen in the solver log).
-            kinetic_norm = np.abs(kinetic_targets[:, 1]).copy()
-            positive_norm = kinetic_norm[kinetic_norm > 0]
-            kinetic_floor = (
-                1e-3 * np.median(positive_norm) if positive_norm.size > 0 else 1.0
+            # Fix divide by zero
+            nonzero_kinetic_targets = kinetic_targets[:, 1].copy()
+            nonzero_kinetic_targets[nonzero_kinetic_targets == 0] = 1
+            # Calculate lower and upper limit for flux diff
+            lower_flux_diff = kinetic_targets[:, 0] - kinetic_targets[:, 1]
+            upper_flux_diff = kinetic_targets[:, 2] - kinetic_targets[:, 1]
+            constr.extend(
+                [
+                    # v_diff_in_range[self.kinetic_rxn_idx] >= lower_flux_diff,
+                    # v_diff_in_range[self.kinetic_rxn_idx] <= upper_flux_diff,
+                    v_diff_in_range >= lower_flux_diff,
+                    v_diff_in_range <= upper_flux_diff,
+                ]
             )
-            kinetic_norm[kinetic_norm < kinetic_floor] = kinetic_floor
-            # Normalized deviation of each kinetic flux from its center target and
-            # the normalized lower/upper edges of the allowed band.
-            dev = (v[self.kinetic_rxn_idx] - kinetic_targets[:, 1]) / kinetic_norm
-            lo = (kinetic_targets[:, 0] - kinetic_targets[:, 1]) / kinetic_norm
-            hi = (kinetic_targets[:, 2] - kinetic_targets[:, 1]) / kinetic_norm
-            # Single convex deadband penalty: light slope (kinetics_in_range) inside
-            # the band, full slope outside. This is equivalent to the previous
-            # in-range/out-of-range split (for the usual case lower <= center <=
-            # upper) but without the two auxiliary variables, whose non-unique split
-            # created a large flat region in the objective -> degenerate optimum,
-            # no certifiable dual, and the "cost perturbation too large" failures.
-            w_in = objective_weights["kinetics_in_range"]
-            penalty = w_in * cp.abs(dev) + (1 - w_in) * (
-                cp.pos(dev - hi) + cp.pos(lo - dev)
+            # Heavily weight fluxes outside limits
+            kinetic_out = objective_weights["kinetics"] * cp.norm1(
+                v_diff_outside_range[self.active_constraints_mask]
             )
-            loss += objective_weights["kinetics"] * cp.sum(
-                penalty[self.active_constraints_mask]
+
+            kinetic_in = (
+                objective_weights["kinetics_in_range"]
+                * objective_weights["kinetics"]
+                * cp.norm1(v_diff_in_range[self.active_constraints_mask])
             )
+
+            kinetics_term = kinetic_out + kinetic_in
+            loss += kinetics_term
+            # loss += (
+            #         objective_weights["kinetics"] *
+            #          cp.norm1(
+            #     # (v_diff_outside_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
+            #     #     self.active_constraints_mask
+            #     # ]
+            #     v_diff_outside_range
+            #     # (v_diff_outside_range / nonzero_kinetic_targets)[
+            #     #     self.active_constraints_mask
+            #     # ]
+            # ))
+            # # Lightly weight fluxes in expected range
+            # loss += (
+            #     objective_weights["kinetics_in_range"] *
+            #     objective_weights["kinetics"] *
+            #     cp.norm1(
+            #     v_diff_in_range
+            #         # # (v_diff_in_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
+            #         # #     self.active_constraints_mask
+            #         # # ]
+            #         # (v_diff_in_range / nonzero_kinetic_targets)[
+            #         #     self.active_constraints_mask
+            #         # ]
+            #     )
+            # )
 
         if "efficiency" in objective_weights:
             # Efficiency objective to minimize total flux (proxy for enzyme usage)
@@ -1056,10 +1099,7 @@ class NetworkFlowModel:
         p = cp.Problem(cp.Minimize(loss), constr)
 
         try:
-            p.solve(
-                solver=solver,
-                verbose=False,
-            )
+            p.solve(solver=solver, verbose=False, parameters_proto=GLOP_PARAM)
         except cp.error.SolverError:
             print("Lets see what is going on")
             p.solve(
@@ -1087,6 +1127,7 @@ class NetworkFlowModel:
             exchanges=exchanges,
             maintenance_flux=maintenance_flux,
             objective=objective,
+            kinetics_term=kinetics_term.value if "kinetics_term" else None,
         )
 
 

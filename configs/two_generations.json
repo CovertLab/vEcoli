@@ -1,35 +1,39 @@
 {
-    "experiment_id": "two_generations",
+    "experiment_id": "6_gen_4_seed",
     "suffix_time": false,
     "parca_options": {
-        "cpus": 3,
+        "cpus": 16,
         "memory_gb": 6
     },
     "sim_data_path": null,
     "fail_at_max_duration": true,
-    "generations": 2,
-    "n_init_sims": 2,
+    "generations": 6,
+    "n_init_sims": 4,
     "single_daughters": true,
     "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "out",
+        "out_dir": "out/test_PR",
         "threaded": false
     },
+    "swap_processes" : {
+        "ecoli-metabolism" : "ecoli-metabolism-redux"
+    },
+    "exclude_processes": ["exchange_data"],
+    "flow": {
+        "ecoli-metabolism-redux": [["ecoli-chromosome-structure"]],
+        "ecoli-mass-listener": [["ecoli-metabolism-redux"]],
+        "RNA_counts_listener": [["ecoli-metabolism-redux"]],
+        "rna_synth_prob_listener": [["ecoli-metabolism-redux"]],
+        "monomer_counts_listener": [["ecoli-metabolism-redux"]],
+        "dna_supercoiling_listener": [["ecoli-metabolism-redux"]],
+        "replication_data_listener": [["ecoli-metabolism-redux"]],
+        "rnap_data_listener": [["ecoli-metabolism-redux"]],
+        "unique_molecule_counts": [["ecoli-metabolism-redux"]],
+        "ribosome_data_listener": [["ecoli-metabolism-redux"]]
+    },
     "analysis_options": {
-        "single": {
-            "mass_fraction_summary": {}
-        },
-        "multiseed": {
-            "ecocyc_table": {
-                "ignore_first_n_gens": 0
-            },
-            "protein_counts_validation": {},
-            "subgenerational_expression_table": {
-                "ignore_first_n_gens": 0
-            }
-        },
         "multivariant": {
-            "dummy": {}
+            "kinetic_flux": {}
         }
     }
 }
