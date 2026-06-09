@@ -23,7 +23,6 @@ from typing import Iterable, Mapping
 from dataclasses import dataclass
 
 from reconstruction.ecoli.dataclasses.process.metabolism import REVERSE_TAG
-from ortools.glop import parameters_pb2
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
@@ -32,8 +31,6 @@ TIME_UNITS = units.s
 CONC_UNITS = COUNTS_UNITS / VOLUME_UNITS
 CONVERSION_UNITS = MASS_UNITS * TIME_UNITS / VOLUME_UNITS
 GDCW_BASIS = units.mmol / units.g / units.h
-GLOP_PARAM = parameters_pb2.GlopParameters()
-# GLOP_PARAM.solution_feasibility_tolerance = 1e-5
 
 NAME = "ecoli-metabolism-redux"
 TOPOLOGY = topology_registry.access("ecoli-metabolism")
@@ -976,15 +973,8 @@ class NetworkFlowModel:
         # Convert to array
         homeostatic_concs = np.array(homeostatic_concs)
         homeostatic_dm_targets = np.array(homeostatic_dm_targets)
-        target_fluxes = np.zeros(self.n_orig_rxns)
-        if kinetic_targets is not None:
-            target_fluxes[self.kinetic_rxn_idx] += kinetic_targets[:, 1]
 
         # set up variables
-        # v_diff_in_range = cp.Variable(self.n_orig_rxns)
-        # v_diff_outside_range = cp.Variable(self.n_orig_rxns)
-        # v = target_fluxes + v_diff_in_range + v_diff_outside_range
-
         n_kinetic = len(self.kinetic_rxn_idx) if self.kinetic_rxn_idx is not None else 0
         v_diff_in_range = cp.Variable(n_kinetic)
         v_diff_outside_range = cp.Variable(n_kinetic)
@@ -998,10 +988,11 @@ class NetworkFlowModel:
 
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
-        constr.append(
-            v[self.kinetic_rxn_idx]
-            == kinetic_targets[:, 1] + v_diff_in_range + v_diff_outside_range
-        )
+        if kinetic_targets is not None:
+            constr.append(
+                v[self.kinetic_rxn_idx]
+                == kinetic_targets[:, 1] + v_diff_in_range + v_diff_outside_range
+            )
 
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == total_maintenance)
@@ -1066,31 +1057,6 @@ class NetworkFlowModel:
 
             kinetics_term = kinetic_out + kinetic_in
             loss += kinetics_term
-            # loss += (
-            #         objective_weights["kinetics"] *
-            #          cp.norm1(
-            #     # (v_diff_outside_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
-            #     #     self.active_constraints_mask
-            #     # ]
-            #     v_diff_outside_range
-            #     # (v_diff_outside_range / nonzero_kinetic_targets)[
-            #     #     self.active_constraints_mask
-            #     # ]
-            # ))
-            # # Lightly weight fluxes in expected range
-            # loss += (
-            #     objective_weights["kinetics_in_range"] *
-            #     objective_weights["kinetics"] *
-            #     cp.norm1(
-            #     v_diff_in_range
-            #         # # (v_diff_in_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
-            #         # #     self.active_constraints_mask
-            #         # # ]
-            #         # (v_diff_in_range / nonzero_kinetic_targets)[
-            #         #     self.active_constraints_mask
-            #         # ]
-            #     )
-            # )
 
         if "efficiency" in objective_weights:
             # Efficiency objective to minimize total flux (proxy for enzyme usage)
@@ -1099,9 +1065,8 @@ class NetworkFlowModel:
         p = cp.Problem(cp.Minimize(loss), constr)
 
         try:
-            p.solve(solver=solver, verbose=False, parameters_proto=GLOP_PARAM)
+            p.solve(solver=solver, verbose=False)
         except cp.error.SolverError:
-            print("Lets see what is going on")
             p.solve(
                 solver=solver,
                 verbose=True,
@@ -1127,7 +1092,9 @@ class NetworkFlowModel:
             exchanges=exchanges,
             maintenance_flux=maintenance_flux,
             objective=objective,
-            kinetics_term=kinetics_term.value if "kinetics_term" else None,
+            kinetics_term=kinetics_term.value
+            if "kinetics" in objective_weights
+            else np.inf,
         )
 
 
