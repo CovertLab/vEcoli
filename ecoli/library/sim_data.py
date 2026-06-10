@@ -1549,6 +1549,7 @@ class LoadSimData:
         )
         sm_id_set -= macromolecule_ids
 
+        # Sort IDs to make a consistent ordering for the listener:
         sm_ids = sorted(sm_id_set)
 
         # Obtain sequestration stoich mappings so the analysis scripts can

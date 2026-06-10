@@ -135,14 +135,14 @@ class SmallMoleculeCounts(Step):
         # tracked small molecules, and their mapping to the sm_ids index):
         sm_to_idx = {m: i for i, m in enumerate(self.sm_ids)}
         eq_sm_rows = []
-        eq_sm_to_our_idx = []
+        eq_sm_to_tracked_idx = []
         for row_idx, mol_name in enumerate(self.equilibrium_molecule_ids):
             if mol_name in sm_to_idx:
                 eq_sm_rows.append(row_idx)
-                eq_sm_to_our_idx.append(sm_to_idx[mol_name])
+                eq_sm_to_tracked_idx.append(sm_to_idx[mol_name])
 
         self.eq_sm_rows = np.array(eq_sm_rows)
-        self.eq_sm_to_our_idx = np.array(eq_sm_to_our_idx)
+        self.eq_sm_to_tracked_idx = np.array(eq_sm_to_tracked_idx)
 
         if len(self.eq_sm_rows) > 0:
             self.eq_sm_stoich = self.equilibrium_stoich[self.eq_sm_rows, :]
@@ -250,7 +250,7 @@ class SmallMoleculeCounts(Step):
         if len(self.eq_sm_rows) > 0:
             eq_complex_counts = counts(states["bulk"], self.equilibrium_complex_idx)
             bound = np.dot(self.eq_sm_stoich, np.negative(eq_complex_counts))
-            eq_bound[self.eq_sm_to_our_idx] += bound.astype(np.int64)
+            eq_bound[self.eq_sm_to_tracked_idx] += bound.astype(np.int64)
 
         # Counts of Pi[c] in TCS complexes:
         tcs_bound = np.zeros(len(self.sm_ids), np.int64)
