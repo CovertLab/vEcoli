@@ -975,11 +975,7 @@ class NetworkFlowModel:
         homeostatic_dm_targets = np.array(homeostatic_dm_targets)
 
         # set up variables
-        n_kinetic = len(self.kinetic_rxn_idx) if self.kinetic_rxn_idx is not None else 0
-        v_diff_in_range = cp.Variable(n_kinetic)
-        v_diff_outside_range = cp.Variable(n_kinetic)
         v = cp.Variable(self.n_orig_rxns)
-
         e = cp.Variable(self.n_exch_rxns)
         dm = self.S_orig @ v + self.S_exch @ e
         exch = self.S_exch @ e
@@ -988,7 +984,10 @@ class NetworkFlowModel:
 
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
-        if kinetic_targets is not None:
+        if (kinetic_targets is not None) and (self.kinetic_rxn_idx is not None):
+            n_kinetic = len(self.kinetic_rxn_idx)
+            v_diff_in_range = cp.Variable(n_kinetic)
+            v_diff_outside_range = cp.Variable(n_kinetic)
             constr.append(
                 v[self.kinetic_rxn_idx]
                 == kinetic_targets[:, 1] + v_diff_in_range + v_diff_outside_range
@@ -1038,8 +1037,6 @@ class NetworkFlowModel:
             upper_flux_diff = kinetic_targets[:, 2] - kinetic_targets[:, 1]
             constr.extend(
                 [
-                    # v_diff_in_range[self.kinetic_rxn_idx] >= lower_flux_diff,
-                    # v_diff_in_range[self.kinetic_rxn_idx] <= upper_flux_diff,
                     v_diff_in_range >= lower_flux_diff,
                     v_diff_in_range <= upper_flux_diff,
                 ]
@@ -1121,7 +1118,6 @@ def test_network_flow_model():
     )
 
     model.set_up_exchanges(exchanges=exchanges, uptakes=uptakes)
-
     solution: FlowResult = model.solve(
         homeostatic_concs=list(homeostatic_metabolites.values()),
         homeostatic_dm_targets=list(homeostatic_metabolites.values()),
