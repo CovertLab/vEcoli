@@ -12,7 +12,7 @@ filtered by biochemical class, so it spans the cell's small molecules broadly
 reconstruction/ecoli/flat/metabolites.tsv has ~7,600 metabolite compounds,
 but most never appear as a countable species in a running simulation. This
 listener tracks every small molecule that BOTH (a) exists as a bulk molecule
-(has a countable id) AND (b) participates an encoded reaction within the model.
+(has a countable id) AND (b) participates in an encoded reaction within the model.
 The tracked set is built in the get_small_molecule_counts_listener_config()
 function within sim_data.py as:
 
@@ -30,8 +30,10 @@ tracked (~2,200 distinct compounds). Stepwise for one example run:
 Note: each compound is tracked separately per compartment, so ATP[c], ATP[e],
 and ATP[p] are tracked within the 4,950 as three distinct species, for example.
 
-The exact tracked list for a given run is emitted as the totalSmallMoleculeCounts
-field metadata (``smallMoleculeIds``).
+The exact tracked list for a given run is attached as metadata on the
+totalSmallMoleculeCounts field, so the ID list can be read back by passing the
+field's name to field_metadata: ``field_metadata(conn, config_sql,
+"listeners__small_molecule_counts__totalSmallMoleculeCounts")``.
 
 In the default model media conditions, only ~170 of the tracked small molecules
 are present in nonzero amounts over the course of the simulation (as of June 2026);
@@ -42,8 +44,8 @@ Arrays emitted: totalSmallMoleculeCounts and environmentSmallMoleculeConcentrati
 Total counts are computed by adding back small molecules currently sequestered
 in non-bulk locations:
 
-  1. Equilibrium complexes (e.g., TF-ligand (1CS), 2CS-ligand bound complexes):
-     Small molecule ligands are bound inside these complexes and are released
+  1. Equilibrium complexes (e.g., one-component and two-component systems bound
+     to ligands): ligands are bound inside these complexes and are released
      upon dissociation. Unpacked via equilibrium.stoich_matrix_monomers().
 
   2. Two component system (TCS) complexes (PHOSPHO-HK, PHOSPHO-RR, etc.):
@@ -90,9 +92,8 @@ topology_registry.register(NAME, TOPOLOGY)
 class SmallMoleculeCounts(Step):
     """
     Listener for total counts of intracellular small molecules,
-    including small molecules within in complexes and
-    bound transcription factors (which can be both equilibrium complexes and
-    TCS complexes).
+    including small molecules within complexes and bound transcription factors
+    (which can be both equilibrium complexes and TCS complexes).
     """
 
     name = NAME
