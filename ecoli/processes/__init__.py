@@ -24,7 +24,7 @@ from ecoli.processes.listeners.mass_listener import (
 )
 from ecoli.processes.listeners.RNA_counts import RNACounts
 from ecoli.processes.listeners.monomer_counts import MonomerCounts
-from ecoli.processes.listeners.metabolite_counts import MetaboliteCounts
+from ecoli.processes.listeners.small_molecule_counts import SmallMoleculeCounts
 from ecoli.processes.listeners.rna_synth_prob import RnaSynthProb
 from ecoli.processes.listeners.dna_supercoiling import DnaSupercoiling
 from ecoli.processes.listeners.replication_data import ReplicationData
@@ -89,7 +89,7 @@ process_registry.register(RibosomeData.name, RibosomeData)
 process_registry.register(Exchange.name, Exchange)
 process_registry.register(RNACounts.name, RNACounts)
 process_registry.register(MonomerCounts.name, MonomerCounts)
-process_registry.register(MetaboliteCounts.name, MetaboliteCounts)
+process_registry.register(SmallMoleculeCounts.name, SmallMoleculeCounts)
 process_registry.register(RnaSynthProb.name, RnaSynthProb)
 process_registry.register(ChromosomeStructure.name, ChromosomeStructure)
 process_registry.register(Allocator.name, Allocator)

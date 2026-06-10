@@ -15,7 +15,7 @@ from wholecell.utils.filepath import ROOT_PATH
 
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
 from ecoli.library.parameters import param_store
-from ecoli.library.metabolite_sequestration import build_sequestration_maps
+from ecoli.library.small_molecule_sequestration import build_sequestration_maps
 from ecoli.library.initial_conditions import (
     calculate_cell_mass,
     initialize_bulk_counts,
@@ -596,7 +596,7 @@ class LoadSimData:
             "post-division-mass-listener": self.get_mass_listener_config,
             "RNA_counts_listener": self.get_rna_counts_listener_config,
             "monomer_counts_listener": self.get_monomer_counts_listener_config,
-            "metabolite_counts_listener": self.get_metabolite_counts_listener_config,
+            "small_molecule_counts_listener": self.get_small_molecule_counts_listener_config,
             "rna_synth_prob_listener": self.get_rna_synth_prob_listener_config,
             "allocator": self.get_allocator_config,
             "ecoli-chromosome-structure": self.get_chromosome_structure_config,
@@ -1510,37 +1510,36 @@ class LoadSimData:
 
         return monomer_counts_config
 
-    def get_metabolite_counts_listener_config(self, time_step=1):
+    def get_small_molecule_counts_listener_config(self, time_step=1):
         sim_data = self.sim_data
         concentration_updates = sim_data.process.metabolism.concentration_updates
 
-        # Build the metabolite ID list: includes metabolites that participate in
-        # a metabolic reaction AND exists as a bulk molecule, across ALL
-        # compartments (and ppGpp).
+        # Build the small molecule ID list (includes all small molecules that
+        # participate in a metabolic reaction and exist as a tracked bulk
+        # molecule, across all compartments):
         bulk_id_set = set(sim_data.internal_state.bulk_molecules.bulk_data["id"])
 
-        metabolite_id_set = set()
-        metabolite_id_set.add(sim_data.molecule_ids.ppGpp)
+        sm_id_set = set()
 
         for media_id in sim_data.external_state.saved_media.keys():
             exchanges = sim_data.external_state.exchange_data_from_media(media_id)
             conc_dict = concentration_updates.concentrations_based_on_nutrients(
                 imports=exchanges["importExchangeMolecules"]
             )
-            metabolite_id_set.update(conc_dict.keys())
+            sm_id_set.update(conc_dict.keys())
 
-        metabolite_id_set.update(sim_data.process.equilibrium.metabolite_set)
+        sm_id_set.update(sim_data.process.equilibrium.metabolite_set)
 
-        # Every metabolite appearing in any metabolic reaction, all compartments:
+        # Obtain small molecules appearing in any metabolic reaction:
         for stoich in sim_data.process.metabolism.reaction_stoich.values():
-            metabolite_id_set.update(stoich.keys())
+            sm_id_set.update(stoich.keys())
 
-        # Keep only actual bulk molecules (that have with storable counts):
-        metabolite_id_set &= bulk_id_set
+        # Filter to only keep molecules that are tracked in bulk molecules
+        # that have with storable counts:
+        sm_id_set &= bulk_id_set
 
-        # Exclude macromolecules (some proteins/complexes appear as participants
-        # in metabolic / equilibrium / TCS reactions and would otherwise leak in
-        # as "metabolites"):
+        # Exclude macromolecules from sm ID set (some proteins/complexes appear
+        # as participants in metabolic / equilibrium / TCS reactions):
         macromolecule_ids = (
             set(sim_data.process.translation.monomer_data["id"])
             | set(sim_data.process.transcription.rna_data["id"])
@@ -1548,26 +1547,25 @@ class LoadSimData:
             | set(sim_data.process.two_component_system.complex_to_monomer.keys())
             | set(sim_data.process.complexation.ids_complexes)
         )
-        metabolite_id_set -= macromolecule_ids
+        sm_id_set -= macromolecule_ids
 
-        metabolite_ids = sorted(metabolite_id_set)
+        sm_ids = sorted(sm_id_set)
 
-        # All sequestration stoich mappings come from a single shared helper so
-        # the analysis scripts can build mappings to determine the number of
-        # metabolites in different molecules (eq complexes, TCS phospho, TCS
-        # ligand complexes, DNA-bound TFs):
-        seq_maps = build_sequestration_maps(sim_data, metabolite_ids)
+        # Obtain sequestration stoich mappings so the analysis scripts can
+        # build mappings to determine the number of small molecules in
+        # different complexes:
+        seq_maps = build_sequestration_maps(sim_data, sm_ids)
 
-        # Extracellular metabolite IDs (from all media conditions)
-        environment_metabolite_ids = sorted(
+        # Obtain extracellular small molecule IDs (from all media conditions):
+        environment_sm_ids = sorted(
             sim_data.external_state.all_external_exchange_molecules
         )
 
         return {
             "time_step": time_step,
             "bulk_molecule_ids": sim_data.internal_state.bulk_molecules.bulk_data["id"],
-            "metabolite_ids": metabolite_ids,
-            "environment_metabolite_ids": environment_metabolite_ids,
+            "sm_ids": sm_ids,
+            "environment_sm_ids": environment_sm_ids,
             "emit_unique": self.emit_unique,
             **seq_maps,
         }
