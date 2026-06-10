@@ -1681,7 +1681,6 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "async-lru" },
     { name = "httpx" },
-    { name = "ipykernel" },
     { name = "jinja2" },
     { name = "jupyter-core" },
     { name = "jupyter-lsp" },
@@ -3881,7 +3880,6 @@ requires-dist = [
     { name = "google-cloud-compute", marker = "extra == 'dev'" },
     { name = "imageio", extras = ["ffmpeg"] },
     { name = "ipdb" },
-    { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "ipython" },
     { name = "iteround" },
     { name = "jupyter", marker = "extra == 'dev'" },
