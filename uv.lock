@@ -1681,6 +1681,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "async-lru" },
     { name = "httpx" },
+    { name = "ipykernel" },
     { name = "jinja2" },
     { name = "jupyter-core" },
     { name = "jupyter-lsp" },
@@ -3808,7 +3809,6 @@ dependencies = [
     { name = "gillespy2" },
     { name = "imageio", extra = ["ffmpeg"] },
     { name = "ipdb" },
-    { name = "ipykernel" },
     { name = "ipython" },
     { name = "iteround" },
     { name = "line-profiler" },
