@@ -227,6 +227,56 @@ def _per_variant_stats(
     return conn.sql(query).pl()
 
 
+def _per_variant_cell_stats(
+    conn: DuckDBPyConnection,
+    history_sql: str,
+    skip_first_n_gens: int,
+) -> dict[int, dict[str, float]]:
+    """Whole-cell per-variant averages, shared across all genes in a variant.
+
+    Returns ``{variant: {"avg_doubling_min", "avg_active_rnap",
+    "avg_active_ribosome"}}``. Active RNAP / ribosome are per-timestep means;
+    doubling time is the per-cell lifetime ``(max(time) - min(time))`` averaged
+    over cells (matches ``doubling_time_hist``), in minutes.
+    """
+    skip = int(skip_first_n_gens)
+    # Per-timestep machine counts.
+    machine = conn.sql(f"""
+        SELECT
+            variant,
+            avg(listeners__unique_molecule_counts__active_RNAP) AS avg_active_rnap,
+            avg(listeners__unique_molecule_counts__active_ribosome)
+                AS avg_active_ribosome
+        FROM ({history_sql})
+        WHERE generation >= {skip}
+        GROUP BY variant
+    """).pl()
+    # Doubling time: lifetime per cell, then averaged per variant.
+    doubling = conn.sql(f"""
+        WITH per_cell AS (
+            SELECT variant, (max(time) - min(time)) / 60.0 AS dt_min
+            FROM ({history_sql})
+            WHERE generation >= {skip}
+            GROUP BY variant, experiment_id, lineage_seed, generation, agent_id
+        )
+        SELECT variant, avg(dt_min) AS avg_doubling_min
+        FROM per_cell
+        GROUP BY variant
+    """).pl()
+
+    out: dict[int, dict[str, float]] = {}
+    for row in machine.iter_rows(named=True):
+        out[int(row["variant"])] = {
+            "avg_active_rnap": row["avg_active_rnap"],
+            "avg_active_ribosome": row["avg_active_ribosome"],
+        }
+    for row in doubling.iter_rows(named=True):
+        out.setdefault(int(row["variant"]), {})["avg_doubling_min"] = row[
+            "avg_doubling_min"
+        ]
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Verdict / colour helpers
 # ---------------------------------------------------------------------------
@@ -378,6 +428,8 @@ def _transcription_table_html(
         "mean max_p",
         "target/max_p",
         f"RNAP spacing (nt){fp}",
+        "avg active RNAP",
+        "avg doubling (min)",
         "verdict",
     ]
     body: list[str] = []
@@ -397,6 +449,8 @@ def _transcription_table_html(
             f"<td {_TD}>{_fmt_prob(r['rnap_max_p'])}</td>"
             f"<td {_TD}>{_fmt_mult(target_over_maxp)}</td>"
             f"{_spacing_cell(r['rnap_spacing'], rnap_footprint_nt)}"
+            f"<td {_TD}>{_fmt_int(r['avg_active_rnap'])}</td>"
+            f"<td {_TD}>{_fmt_float(r['avg_doubling_min'])}</td>"
             f"{_verdict_cell(r['rnap_verdict'])}"
             "</tr>"
         )
@@ -421,6 +475,8 @@ def _translation_table_html(
         "mean max_p",
         "target/max_p",
         f"ribosome spacing (nt){fp}",
+        "avg active ribosome",
+        "avg doubling (min)",
         "verdict",
     ]
     body: list[str] = []
@@ -440,6 +496,8 @@ def _translation_table_html(
             f"<td {_TD}>{_fmt_prob(r['ribo_max_p'])}</td>"
             f"<td {_TD}>{_fmt_mult(target_over_maxp)}</td>"
             f"{_spacing_cell(r['ribo_spacing'], ribo_footprint_nt)}"
+            f"<td {_TD}>{_fmt_int(r['avg_active_ribosome'])}</td>"
+            f"<td {_TD}>{_fmt_float(r['avg_doubling_min'])}</td>"
             f"{_verdict_cell(r['ribo_verdict'])}"
             "</tr>"
         )
@@ -524,6 +582,22 @@ def _legend_html() -> str:
             "it — the machines are packed tighter than physically fits, the hard "
             "crowding limit. (Initiation rate is per-timestep, i.e. assumes ~1&nbsp;s "
             "timesteps, matching <code>ribosome_spacing.py</code>.)",
+        ),
+        (
+            "avg active RNAP / avg active ribosome",
+            "Whole-cell mean of <code>unique_molecule_counts.active_RNAP</code> "
+            "(transcription table) / <code>active_ribosome</code> (translation "
+            "table) over post-skip timesteps — the count of machines actually "
+            "engaged. Same for every gene in a variant; a sharp drop signals the "
+            "machine supply itself is collapsing (vs. a per-promoter packing limit).",
+        ),
+        (
+            "avg doubling (min)",
+            "Whole-cell mean doubling time: per-cell lifetime "
+            "<code>(max(time) − min(time))</code> averaged over cells, in minutes "
+            "(matches <code>doubling_time_hist</code>). The fitness readout — rising "
+            "doubling time as a knob is ramped is the cost side of the expression "
+            "trade-off.",
         ),
         (
             "verdict",
@@ -662,6 +736,17 @@ def plot(
             exp_v, trl_eff_v = _new_gene_exp_trl_eff(meta[v])
         variant_exp_trl[v] = (exp_v, trl_eff_v)
 
+    # Whole-cell per-variant averages (doubling time, active RNAP/ribosome).
+    # Gene-independent, so computed once and reused across every gene's tables.
+    try:
+        cell_stats = _per_variant_cell_stats(conn, history_sql, skip_first_n_gens)
+    except Exception as e:  # noqa: BLE001 - keep the dashboard alive if columns are absent
+        print(
+            "multivariant new_gene_crowding_dashboard: could not compute cell stats "
+            f"({e!r}); doubling-time / active-count columns will be blank."
+        )
+        cell_stats = {}
+
     parts: list[str] = []
     parts.append(
         "<html><head><meta charset='utf-8'>"
@@ -754,6 +839,7 @@ def plot(
             ribo_spacing = _safe_ratio(
                 ribo_elong_rate, srow["avg_ribo_inits_per_mrna"] if srow else None
             )
+            cstats = cell_stats.get(v, {})
             rows.append(
                 {
                     "variant": v,
@@ -772,6 +858,9 @@ def plot(
                     "ribo_max_p": srow["mean_ribo_max_p"] if srow else None,
                     "rnap_spacing": rnap_spacing,
                     "ribo_spacing": ribo_spacing,
+                    "avg_doubling_min": cstats.get("avg_doubling_min"),
+                    "avg_active_rnap": cstats.get("avg_active_rnap"),
+                    "avg_active_ribosome": cstats.get("avg_active_ribosome"),
                     "rnap_verdict": _axis_verdict(
                         rnap_oc, rnap_warn, rnap_alert, "RNAP"
                     ),
