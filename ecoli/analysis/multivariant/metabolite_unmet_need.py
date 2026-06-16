@@ -4,6 +4,10 @@ Plot unmet homeostatic need for metabolites for multivariant simulation.
 For each variant, shows a bar chart of the top-N metabolites by mean |unmet need|
 and a timeseries of unmet need, aggregated across all cells in that variant.
 One bar+line subplot per variant, stacked vertically.
+
+DISCLAIMER: This analysis is only meant for metabolism-redux and
+metabolism-redux-classic. metabolism.py lacks necessary listeners due to differences
+in problem formulation
 """
 
 from __future__ import annotations
@@ -60,11 +64,11 @@ def plot(
 
     try:
         homeostatic_ids = field_metadata(
-            conn, config_sql, "listeners__fba_results__estimated_homeostatic_dmdt"
+            conn, config_sql, "listeners__fba_results__homeostatic_metabolite_counts"
         )
     except Exception:
         print(
-            "metabolite_unmet_need: listeners__fba_results__estimated_homeostatic_dmdt "
+            "metabolite_unmet_need: listeners__fba_results__homeostatic_metabolite_counts "
             "not in config (e.g. non-metabolism_redux); skipping."
         )
         return

@@ -382,16 +382,9 @@ class MetabolismRedux(Step):
                         "estimated_fluxes": ([], self.network_flow_model.rxns),
                         "estimated_homeostatic_dmdt": (
                             [],
-                            np.array(self.network_flow_model.mets)[
-                                self.network_flow_model.homeostatic_idx
-                            ],
+                            self.homeostatic_metabolites,
                         ),
-                        "target_homeostatic_dmdt": (
-                            [],
-                            np.array(self.network_flow_model.mets)[
-                                self.network_flow_model.homeostatic_idx
-                            ],
-                        ),
+                        "target_homeostatic_dmdt": ([], self.homeostatic_metabolites),
                         "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
                         "target_kinetic_fluxes": [],
@@ -399,7 +392,16 @@ class MetabolismRedux(Step):
                             (len(self.kinetic_constraint_reactions), 2), dtype=int
                         ),
                         "reaction_catalyst_counts": [],
+                        "homeostatic_metabolite_counts": (
+                            [],
+                            self.homeostatic_metabolites,
+                        ),
                         "maintenance_target": 0,
+                    }
+                ),
+                "enzyme_kinetics": listener_schema(
+                    {
+                        "counts_to_molar": 1.0,
                     }
                 ),
             },
@@ -671,11 +673,13 @@ class MetabolismRedux(Step):
                     "solution_fluxes": solution.velocities,
                     "solution_dmdt": solution.dm_dt,
                     "reaction_catalyst_counts": reaction_catalyst_counts,
+                    "homeostatic_metabolite_counts": homeostatic_metabolite_counts,
                     "time_per_step": time.time(),
                     "base_reaction_fluxes": self.reaction_mapping_matrix.dot(
                         estimated_reaction_fluxes
                     ),
-                }
+                },
+                "enzyme_kinetics": {"counts_to_molar": self.counts_to_molar.asNumber()},
             },
             "next_update_time": states["global_time"] + states["timestep"],
         }

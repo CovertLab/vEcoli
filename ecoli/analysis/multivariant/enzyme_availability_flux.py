@@ -7,6 +7,10 @@ variant, lines represent the mean over all cells on a continuous time axis
 (relative to the first timestep of each lineage seed); generation is used as
 the detail encoding to draw separate line segments at each cell division
 without resetting the time axis.
+
+DISCLAIMER: This analysis is only meant for metabolism-redux and
+metabolism-redux-classic. metabolism.py lacks necessary listeners due to differences
+in problem formulation
 """
 
 from __future__ import annotations

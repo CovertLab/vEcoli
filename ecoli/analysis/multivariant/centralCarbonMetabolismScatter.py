@@ -53,7 +53,7 @@ def plot(
         variant_metadata[experiment_id] if experiment_id else {}
     )
 
-    REDUXCLASSIC = params.get("is_reduxclassic", True)
+    REDUXCLASSIC = params.get("is_redux", True)
 
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
