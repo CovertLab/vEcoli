@@ -11,8 +11,7 @@ import os
 import pickle
 import numpy as np
 
-from ecoli.analysis.multivariant import _variant_label
-
+from ecoli.analysis.multivariant.utils import create_variant_label
 from wholecell.utils import units, toya
 from fsspec import open as fsspec_open
 from ecoli.library.parquet_emitter import (
@@ -21,6 +20,7 @@ from ecoli.library.parquet_emitter import (
     open_arbitrary_sim_data,
     read_stacked_columns,
 )
+
 import altair as alt
 import polars as pl
 
@@ -97,7 +97,7 @@ def plot(
     all_dfs = []
     summary_rows = []
     for variant_val in unique_variants:
-        variant_label_list = _variant_label(variant_val, per_variant_params)
+        variant_label_list = create_variant_label(variant_val, per_variant_params)
         variant_label = " ".join(variant_label_list)
         mask = variant_col == variant_val
 

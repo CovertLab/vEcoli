@@ -22,7 +22,7 @@ import numpy as np
 import plotly.express as px
 import polars as pl
 
-from ecoli.analysis.multivariant import _variant_label
+from ecoli.analysis.multivariant.utils import create_variant_label
 from ecoli.library.parquet_emitter import (
     field_metadata,
     ndlist_to_ndarray,
@@ -107,7 +107,7 @@ def plot(
     unique_variants: list[int] = sorted(raw["variant"].unique().to_list())
 
     def _make_label(v: int) -> str:
-        raw_label = _variant_label(v, per_variant_params)
+        raw_label = create_variant_label(v, per_variant_params)
         return " ".join(raw_label) if isinstance(raw_label, list) else raw_label
 
     variant_label_map = {v: _make_label(v) for v in unique_variants}

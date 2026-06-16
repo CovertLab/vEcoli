@@ -18,7 +18,7 @@ from typing import Any, TYPE_CHECKING
 import altair as alt
 import polars as pl
 
-from ecoli.analysis.multivariant import _variant_label
+from ecoli.analysis.multivariant.utils import create_variant_label
 from ecoli.library.parquet_emitter import field_metadata, read_stacked_columns
 
 if TYPE_CHECKING:
@@ -190,7 +190,7 @@ def plot(
 
     subplot_charts: list[alt.TopLevelMixin] = []
     for variant_val, top_bar, agg_line in per_variant_data:
-        label = _variant_label(variant_val, per_variant_params)
+        label = create_variant_label(variant_val, per_variant_params)
         df_bar = top_bar.to_pandas()
         df_line = agg_line.to_pandas()
 
