@@ -13,7 +13,7 @@ in problem formulation
 from __future__ import annotations
 
 import os
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, cast
 
 import altair as alt
 import polars as pl
@@ -188,7 +188,7 @@ def plot(
     color_range = [PASTEL[i % len(PASTEL)] for i in range(len(color_domain))]
     w = subplot_width
 
-    subplot_charts: list[alt.TopLevelMixin] = []
+    subplot_charts: list[alt.VConcatChart] = []
     for variant_val, top_bar, agg_line in per_variant_data:
         label = create_variant_label(variant_val, per_variant_params)
         df_bar = top_bar.to_pandas()
@@ -242,7 +242,7 @@ def plot(
         )
 
         subplot_charts.append(
-            alt.vconcat(bar_chart, line_chart, spacing=50).properties(title=label)
+            cast(alt.vconcat(bar_chart, line_chart, spacing=50).properties(title=label))
         )
 
     combined = alt.vconcat(*subplot_charts).properties(
