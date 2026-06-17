@@ -242,7 +242,10 @@ def plot(
         )
 
         subplot_charts.append(
-            cast(alt.vconcat(bar_chart, line_chart, spacing=50).properties(title=label))
+            cast(
+                alt.VConcatChart,
+                alt.vconcat(bar_chart, line_chart, spacing=50).properties(title=label),
+            )
         )
 
     combined = alt.vconcat(*subplot_charts).properties(
