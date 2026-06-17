@@ -176,7 +176,7 @@ def plot(
     scatter_df = pl.DataFrame(scatter_rows).to_pandas()
 
     log_axis_title_x = f"log₁₀(Mean Kinetic Target + ε)  [{FLUX_UNIT_STR}]"
-    log_axis_title_y = f"log₁₀(Mean Estimated Kinetic Flux + ε)  [{FLUX_UNIT_STR}]"
+    log_axis_title_y = f"log₁₀(Mean Kinetic Flux + ε)  [{FLUX_UNIT_STR}]"
 
     # ── Scatter layer definitions ──────────────────────────────────────────────
     ref_line = (

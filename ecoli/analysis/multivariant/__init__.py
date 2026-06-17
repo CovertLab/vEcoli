@@ -12,7 +12,7 @@ from typing import Any
 def _variant_label(
     variant_id: int,
     per_variant_params: dict[int, Any],
-) -> str // list[str]:
+) -> str | list[str]:
     """Return a human-readable label for a variant.
 
     Uses the first key/value pair from the variant's parameter dict when
