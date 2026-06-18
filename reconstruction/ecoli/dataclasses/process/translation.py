@@ -135,16 +135,10 @@ class Translation(object):
             for p in raw_data.protein_half_lives_pulsed_silac
         }
 
-        # Get the HL for murD (UDP-NACMURALA-GLU-LIG-MONOMER) specifically:
-        murD_half_life = 1914.725051971764 * units.min
-        murD_deg_rate = (np.log(2) / murD_half_life).asNumber(deg_rate_units)
-
         deg_rate = np.zeros(len(all_proteins))
         for i, protein in enumerate(all_proteins):
             # Use measured degradation rates if available
-            if protein["id"] == "UDP-NACMURALA-GLU-LIG-MONOMER":
-                deg_rate[i] = murD_deg_rate
-            elif protein["id"] in measured_deg_rates:
+            if protein["id"] in measured_deg_rates:
                 deg_rate[i] = measured_deg_rates[protein["id"]]
             elif protein["id"] in pulsed_silac_deg_rates:
                 deg_rate[i] = pulsed_silac_deg_rates[protein["id"]]
