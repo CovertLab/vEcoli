@@ -32,7 +32,6 @@ CONC_UNITS = COUNTS_UNITS / VOLUME_UNITS
 CONVERSION_UNITS = MASS_UNITS * TIME_UNITS / VOLUME_UNITS
 GDCW_BASIS = units.mmol / units.g / units.h
 
-
 NAME = "ecoli-metabolism-redux"
 TOPOLOGY = topology_registry.access("ecoli-metabolism")
 # TODO (Cyrus) - Re-add when kinetics are added.
@@ -48,6 +47,81 @@ BAD_RXNS = [
     "TRANS-RXN-8",
     "R15-RXN-MET/CPD-479//CPD-479/MET.25.",
 ]
+
+BAD_RXNS = [
+    "RXN-12440",
+    "TRANS-RXN-121",
+    "TRANS-RXN-300",
+    "TRANS-RXN-8",
+    "R15-RXN-MET/CPD-479//CPD-479/MET.25.",
+    "TRANS-RXN-218",
+    "TRANS-RXN0-601-PROTON//PROTON.15. (reverse)",
+    # "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71."
+    "DEPHOSICITDEHASE-RXN",
+    "PHOSICITDEHASE-RXN",
+    "GLYCOLALD-DEHYDROG-RXN",
+    "ARCBTRANS-RXN",
+    "RXN0-7332",
+    "RXN0-7336",
+    "2.7.1.121-RXN",
+    "TRANS-RXN0-574-GLC//Glucopyranose.19.",
+    "6PFRUCTPHOS-RXN__6PFK-2-CPX",
+    "RXN0-313",
+    "RXN0-7169",
+    "RXN0-1483[CCO-PERI-BAC]-FE+2/PROTON/OXYGEN-MOLECULE//FE+3/WATER.54.",
+    "RXN-22461",
+    "RXN-22462",
+    "RXN-22463",
+    "GABATRANSAM-RXN",
+    "GABATRANSAM-RXN__G6646-MONOMER",
+    "PUTTRANSAM-RXN",
+]
+
+# not key central carbon met
+BAD_RXNS.extend(
+    [
+        "RXN-6161",
+        "R15-RXN-MET/PYRUVATE//CPD-479/L-ALPHA-ALANINE.38.",
+        "R15-RXN-MET/GLYOX//CPD-479/GLY.23. (reverse)",
+    ]
+)
+
+# isomers, that might be used but not in conditions tested
+BAD_RXNS.extend(
+    [
+        "ASPAMINOTRANS-RXN__TYRB-DIMER",
+        "325-BISPHOSPHATE-NUCLEOTIDASE-RXN",
+        "ACETOLACTSYN-RXN",
+        "ASNSYNA-RXN__ASNSYNB-CPLX",
+        "ASPARTATEKIN-RXN__ASPKINIHOMOSERDEHYDROGI-CPLX",
+        "DAHPSYN-RXN__AROH-CPLX",
+        "F16ALDOLASE-RXN__FRUCBISALD-CLASSI",
+        "RXN-9535__FABB-CPLX",
+        "MALATE-DEH-RXN (reverse)",
+    ]
+)
+
+# alt electron transfer
+BAD_RXNS.extend(["1.5.1.20-RXN-CPD-1302/NADP//CPD-12996/NADPH/PROTON.38."])
+
+# weird atp cycling
+BAD_RXNS.extend(
+    [
+        "BARA-RXN",
+        "RXN0-6561",
+        "RXN0-7337",
+        "CHEBDEP-RXN",
+        "RXN0-6542",
+        "RXN0-6547",
+        "NRIIPHOS-RXN",
+        "RXN0-7372",
+        "RXN0-7380",
+        "RXN0-7378",
+        "URIDYLREM-RXN",
+        "URITRANS-RXN",
+        "RXN-16381",
+    ]
+)
 
 
 class MetabolismRedux(Step):
@@ -111,7 +185,7 @@ class MetabolismRedux(Step):
 
         stoich_dict = dict(sorted(self.parameters["stoich_dict"].items()))
         for rxn in BAD_RXNS:
-            stoich_dict.pop(rxn)
+            stoich_dict[rxn] = {}
         # Add maintenance reaction
         stoich_dict["maintenance_reaction"] = self.parameters["maintenance_reaction"]
 
@@ -386,39 +460,29 @@ class MetabolismRedux(Step):
                         "estimated_fluxes": ([], self.network_flow_model.rxns),
                         "estimated_homeostatic_dmdt": (
                             [],
-                            np.array(self.network_flow_model.mets)[
-                                self.network_flow_model.homeostatic_idx
-                            ],
+                            self.homeostatic_metabolites,
                         ),
+                        "target_homeostatic_dmdt": ([], self.homeostatic_metabolites),
+                        "estimated_exchange_dmdt": {},
+                        "estimated_intermediate_dmdt": [],
+                        "target_kinetic_fluxes": (
+                            [],
+                            self.kinetic_constraint_reactions,
+                        ),
+                        "target_kinetic_bounds": np.zeros(
+                            (len(self.kinetic_constraint_reactions), 2), dtype=int
+                        ),
+                        "reaction_catalyst_counts": [],
                         "homeostatic_metabolite_counts": (
                             [],
                             self.homeostatic_metabolites,
                         ),
-                        "target_homeostatic_dmdt": (
-                            [],
-                            np.array(self.network_flow_model.mets)[
-                                self.network_flow_model.homeostatic_idx
-                            ],
-                        ),
-                        "estimated_exchange_dmdt": {},
-                        "estimated_intermediate_dmdt": [],
-                        "target_kinetic_fluxes": [],
-                        "target_kinetic_lower_bound": [],
-                        "target_kinetic_upper_bound": [],
-                        "reaction_catalyst_counts": [],
                         "maintenance_target": 0,
                     }
                 ),
                 "enzyme_kinetics": listener_schema(
                     {
-                        "metabolite_counts_init": 0,
-                        "metabolite_counts_final": 0,
-                        "enzyme_counts_init": 0,
                         "counts_to_molar": 1.0,
-                        "actual_fluxes": [],
-                        "target_fluxes": [],
-                        "target_fluxes_upper": [],
-                        "target_fluxes_lower": [],
                     }
                 ),
             },
@@ -624,7 +688,7 @@ class MetabolismRedux(Step):
 
         objective_weights = {
             "secretion": self.secretion_penalty_coeff,
-            "efficiency": 0.0001,
+            "efficiency": 0.00001,
             "kinetics": self.kinetic_objective_weight,
             "kinetics_in_range": self.kinetic_objective_weight_in_range,
         }
@@ -686,22 +750,23 @@ class MetabolismRedux(Step):
                     ],
                     "estimated_fluxes": estimated_reaction_fluxes,
                     "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
-                    "homeostatic_metabolite_counts": homeostatic_metabolite_counts,
                     "target_homeostatic_dmdt": target_homeostatic_dmdt,
                     "target_kinetic_fluxes": target_kinetic_flux,
-                    "target_kinetic_lower_bound": target_kinetic_bounds[:, 0],
-                    "target_kinetic_upper_bound": target_kinetic_bounds[:, 1],
+                    "target_kinetic_bounds": target_kinetic_bounds,
                     "estimated_exchange_dmdt": estimated_exchange_dmdt,
                     "estimated_intermediate_dmdt": estimated_intermediate_dmdt,
                     "maintenance_target": maintenance_flux,
                     "solution_fluxes": solution.velocities,
                     "solution_dmdt": solution.dm_dt,
+                    "kinetics_term": solution.kinetics_term,
                     "reaction_catalyst_counts": reaction_catalyst_counts,
+                    "homeostatic_metabolite_counts": homeostatic_metabolite_counts,
                     "time_per_step": time.time(),
                     "base_reaction_fluxes": self.reaction_mapping_matrix.dot(
                         estimated_reaction_fluxes
                     ),
-                }
+                },
+                "enzyme_kinetics": {"counts_to_molar": self.counts_to_molar.asNumber()},
             },
             "next_update_time": states["global_time"] + states["timestep"],
         }
@@ -800,6 +865,7 @@ class FlowResult:
     exchanges: Iterable[float]
     maintenance_flux: float
     objective: float
+    kinetics_term: float
 
 
 class NetworkFlowModel:
@@ -904,14 +970,9 @@ class NetworkFlowModel:
         # Convert to array
         homeostatic_concs = np.array(homeostatic_concs)
         homeostatic_dm_targets = np.array(homeostatic_dm_targets)
-        target_fluxes = np.zeros(self.n_orig_rxns)
-        if kinetic_targets is not None:
-            target_fluxes[self.kinetic_rxn_idx] += kinetic_targets[:, 1]
 
         # set up variables
-        v_diff_in_range = cp.Variable(self.n_orig_rxns)
-        v_diff_outside_range = cp.Variable(self.n_orig_rxns)
-        v = target_fluxes + v_diff_in_range + v_diff_outside_range
+        v = cp.Variable(self.n_orig_rxns)
         e = cp.Variable(self.n_exch_rxns)
         dm = self.S_orig @ v + self.S_exch @ e
         exch = self.S_exch @ e
@@ -920,6 +981,14 @@ class NetworkFlowModel:
 
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
+        if (kinetic_targets is not None) and (self.kinetic_rxn_idx is not None):
+            n_kinetic = len(self.kinetic_rxn_idx)
+            v_diff_in_range = cp.Variable(n_kinetic)
+            v_diff_outside_range = cp.Variable(n_kinetic)
+            constr.append(
+                v[self.kinetic_rxn_idx]
+                == kinetic_targets[:, 1] + v_diff_in_range + v_diff_outside_range
+            )
 
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == total_maintenance)
@@ -945,6 +1014,7 @@ class NetworkFlowModel:
         homeostatic_target_concs[homeostatic_target_concs == 0] = 1
 
         loss = 0
+        # Heena's change: try normalizing by homeostatic concentration instead of target conc
         loss += cp.norm1(
             (dm[self.homeostatic_idx] - homeostatic_dm_targets)
             / homeostatic_target_concs
@@ -964,30 +1034,40 @@ class NetworkFlowModel:
             upper_flux_diff = kinetic_targets[:, 2] - kinetic_targets[:, 1]
             constr.extend(
                 [
-                    v_diff_in_range[self.kinetic_rxn_idx] >= lower_flux_diff,
-                    v_diff_in_range[self.kinetic_rxn_idx] <= upper_flux_diff,
+                    v_diff_in_range >= lower_flux_diff,
+                    v_diff_in_range <= upper_flux_diff,
                 ]
             )
             # Heavily weight fluxes outside limits
-            loss += objective_weights["kinetics"] * cp.norm1(
-                (v_diff_outside_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
-                    self.active_constraints_mask
-                ]
+            kinetic_out = objective_weights["kinetics"] * cp.norm1(
+                v_diff_outside_range[self.active_constraints_mask]
             )
-            # Lightly weight fluxes in expected range
-            loss += (
-                objective_weights["kinetics"]
-                * objective_weights["kinetics_in_range"]
-                * cp.norm1(
-                    (v_diff_in_range[self.kinetic_rxn_idx] / nonzero_kinetic_targets)[
-                        self.active_constraints_mask
-                    ]
-                )
+
+            kinetic_in = (
+                objective_weights["kinetics_in_range"]
+                * objective_weights["kinetics"]
+                * cp.norm1(v_diff_in_range[self.active_constraints_mask])
             )
+
+            kinetics_term = kinetic_out + kinetic_in
+            loss += kinetics_term
+
+        if "efficiency" in objective_weights:
+            # Efficiency objective to minimize total flux (proxy for enzyme usage)
+            loss += objective_weights["efficiency"] * cp.sum(v)
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
-        p.solve(solver=solver, verbose=False)
+        try:
+            p.solve(solver=solver, verbose=False)
+        except cp.error.SolverError:
+            p.solve(
+                solver=solver,
+                verbose=True,
+            )
+            raise ValueError(
+                "Network flow model of metabolism did not converge to a solution."
+            )
         if p.status != "optimal":
             raise ValueError(
                 "Network flow model of metabolism did not "
@@ -1006,6 +1086,9 @@ class NetworkFlowModel:
             exchanges=exchanges,
             maintenance_flux=maintenance_flux,
             objective=objective,
+            kinetics_term=kinetics_term.value
+            if "kinetics" in objective_weights
+            else np.inf,
         )
 
 
@@ -1032,7 +1115,6 @@ def test_network_flow_model():
     )
 
     model.set_up_exchanges(exchanges=exchanges, uptakes=uptakes)
-
     solution: FlowResult = model.solve(
         homeostatic_concs=list(homeostatic_metabolites.values()),
         homeostatic_dm_targets=list(homeostatic_metabolites.values()),
