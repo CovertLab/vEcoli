@@ -306,11 +306,11 @@ class Metabolism(Step):
                             self.base_reaction_ids,
                         ),
                         "estimated_homeostatic_dmdt": (
-                            [0.0] * len(self.homeostaticTargetMolecules),
+                            [0] * len(self.homeostaticTargetMolecules),
                             self.homeostaticTargetMolecules,
                         ),
                         "target_homeostatic_dmdt": (
-                            [0.0] * len(self.homeostaticTargetMolecules),
+                            [0] * len(self.homeostaticTargetMolecules),
                             self.homeostaticTargetMolecules,
                         ),
                         "homeostatic_metabolite_counts": (
