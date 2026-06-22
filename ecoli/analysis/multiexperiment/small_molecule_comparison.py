@@ -371,7 +371,6 @@ def make_figure(
     output_filename = os.path.join(outdir, f"{file_prefix}_{safe_species}.png")
     plt.savefig(output_filename, dpi=200, bbox_inches="tight")
     plt.close(fig)
-    print(f"Saved plot to {output_filename}")
 
 
 # Generate plots:
