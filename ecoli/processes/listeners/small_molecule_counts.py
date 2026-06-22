@@ -1,18 +1,17 @@
 """
 Small Molecule Counts Listener
 
-Tracks the total counts of all trackable intracellular small molecules at each
+Records the total counts of all trackable intracellular small molecules at each
 timestep, plus extracellular small molecule concentrations in the media (NOTE:
 the free counts for all small molecules is accessible via the bulk container).
 
-The tracked set is built from the model's reaction network (see below), not
-filtered by biochemical class, so it spans the cell's small molecules broadly
-(i.e. beyond metabolites, it also includes things like amino acids, nucleotides
-(NTPs/dNTPs), cofactors, and inorganic ions).
+The tracked set is built from the model's reaction network (see below), so it
+spans the cell's small molecules broadly (i.e. metabolites, amino acids,
+nucleotides (NTPs/dNTPs), cofactors, and inorganic ions).
 
 reconstruction/ecoli/flat/metabolites.tsv has ~7,600 metabolite compounds,
 but most never appear as a countable species in a running simulation. This
-listener tracks every small molecule that BOTH (a) exists as a bulk molecule
+listener tracks every small molecule that both (a) exists as a bulk molecule
 (has a countable id) AND (b) participates in an encoded reaction within the model.
 The tracked set is built in the get_small_molecule_counts_listener_config()
 function within sim_data.py as:
