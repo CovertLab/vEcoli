@@ -1,8 +1,9 @@
 """
 Small Molecule Counts Listener
 
-Tracks the TOTAL counts of all trackable intracellular small molecules at each
-timestep, plus extracellular small molecule concentrations in the media.
+Tracks the total counts of all trackable intracellular small molecules at each
+timestep, plus extracellular small molecule concentrations in the media (NOTE:
+the free counts for all small molecules is accessible via the bulk container).
 
 The tracked set is built from the model's reaction network (see below), not
 filtered by biochemical class, so it spans the cell's small molecules broadly
