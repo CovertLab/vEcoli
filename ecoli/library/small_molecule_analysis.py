@@ -142,15 +142,24 @@ def _tag(species_id: str) -> str:
     return m.group(0) if m else ""
 
 
-def resolve_highlights(highlight_entries, metabolite_ids):
-    """Resolve the highlight list against the tracked species.
+def resolve_highlights(highlight_entries, small_molecule_ids):
+    """Resolve the highlight list passed in against the available small molecule ids list.
+
+    NOTE: Since this function takes in a user specified small_molecules_ids
+    list, there is a chance that a molecule passed in through highlight_entries
+    is still present in the simulation, but not the small_molecule_ids list.
+    This function will not catch that case, and will return a message saying
+    the molecule is not present in the small_molecule_ids list specifically
+    passed in through this function. It is encoded this way to catch certain
+    instances where a small molecule may not be present in a specific
+    list/group, rather than the entire simulation.
 
     Returns (highlight_set, messages):
         highlight_set: set of fully-tagged species ids to highlight
         messages: list of strings to print
     """
     bare_to_tags = {}
-    for sid in metabolite_ids:
+    for sid in small_molecule_ids:
         bare_to_tags.setdefault(_bare(sid), []).append(_tag(sid))
     for k in bare_to_tags:
         bare_to_tags[k] = sorted(set(bare_to_tags[k]))
@@ -163,10 +172,14 @@ def resolve_highlights(highlight_entries, metabolite_ids):
         entry_tag = _tag(entry)
         tags = bare_to_tags.get(base)
 
-        # If the base name isn't tracked at all, print a message saying so and
-        # skip it:
+        # If the base name isn't included in the small_molecule_ids list passed
+        # through, print a message saying so and skip it:
         if not tags:
-            messages.append(f"'{entry}' is not tracked by the listener; skipping.")
+            messages.append(
+                f"'{entry}' is not present in the "
+                f"'small_molecule_ids' list passed through "
+                f"resolve_highlights(); skipping."
+            )
             continue
 
         # If the user specifies a tag that does not exist for a base molecule,
@@ -174,9 +187,9 @@ def resolve_highlights(highlight_entries, metabolite_ids):
         if entry_tag:
             if entry_tag not in tags:
                 messages.append(
-                    f"'{entry}' has tag {entry_tag} which is not present; "
-                    f"valid tags for {base} are "
-                    f"({', '.join(tags)}); skipping."
+                    f"'{entry}' has tag {entry_tag} which is not present in the "
+                    f"'small_molecule_ids' list; valid tags for {base} present "
+                    f"in the list passed through are ({', '.join(tags)})."
                 )
                 continue
             highlight_set.add(base + entry_tag)
