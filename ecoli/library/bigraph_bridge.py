@@ -32,6 +32,39 @@ from process_bigraph import (
 )
 
 
+def normalize_vivarium_update(update):
+    """Translate vivarium updater-dicts into plain bigraph updates.
+
+    Vivarium lets a process return ``{'_value': v, '_updater': name}`` (and
+    related schema keys like ``_reduce``) at a leaf to override the store's
+    default updater. The process-bigraph engine has no notion of this
+    convention, so such a dict would be applied LITERALLY — leaking the
+    schema keys into the state (e.g. ``environment.media_id`` becomes the
+    dict ``{'_value': 'minimal', '_updater': 'set'}`` instead of the string
+    ``'minimal'``, which then breaks any consumer that treats it as a
+    scalar). We recursively replace each such leaf-dict with its ``_value``.
+
+    bigraph leaf ``apply`` REPLACES strings/booleans and ACCUMULATES numbers,
+    which matches vivarium ``set`` (string ports) and ``accumulate`` (numeric
+    ports) semantics. Numeric ``set`` is approximated as accumulate; this is
+    acceptable for the run-clean milestone (numerical fidelity is a later
+    concern). The walk only rebuilds dicts that actually contain an updater-
+    dict, so updates with no such wrappers pass through untouched.
+    """
+    if not isinstance(update, dict):
+        return update
+    if '_value' in update:
+        return normalize_vivarium_update(update['_value'])
+    rebuilt = None
+    for key, value in update.items():
+        new_value = normalize_vivarium_update(value)
+        if new_value is not value:
+            if rebuilt is None:
+                rebuilt = dict(update)
+            rebuilt[key] = new_value
+    return rebuilt if rebuilt is not None else update
+
+
 class BigraphStep(VivariumStep, ProcessBigraphStep):
     """Base class for vEcoli steps.
 
@@ -141,7 +174,8 @@ class BigraphStep(VivariumStep, ProcessBigraphStep):
         for klass in cls.__mro__:
             if 'next_update' in klass.__dict__:
                 if klass not in _delegation_bases:
-                    return klass.next_update(self, interval or 0, state)
+                    return normalize_vivarium_update(
+                        klass.next_update(self, interval or 0, state))
                 break
         return {}
 
@@ -180,7 +214,8 @@ class BigraphProcess(VivariumProcess, ProcessBigraphProcess):
         for klass in cls.__mro__:
             if 'next_update' in klass.__dict__:
                 if klass not in _delegation_bases:
-                    return klass.next_update(self, interval or 0, state)
+                    return normalize_vivarium_update(
+                        klass.next_update(self, interval or 0, state))
                 break
         return {}
 
