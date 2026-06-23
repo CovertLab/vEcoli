@@ -380,10 +380,10 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
 
         # For the document, replace process instances in config with
         # string IDs (SharedProcessRef resolves them at realize time).
-        from ecoli.processes.partition import PartitionedProcess
+        from ecoli.processes.partition import is_partitioned_process
 
         doc_config = dict(config) if config else {}
-        if isinstance(doc_config.get("process"), PartitionedProcess):
+        if is_partitioned_process(doc_config.get("process")):
             doc_config["process"] = doc_config["process"].name
 
         decl = {
@@ -870,7 +870,11 @@ def _resolve_process_configs(load_sim_data, config):
     - classes: {step_name: class}
     - partitioned_names: [process_name, ...] for PartitionedProcesses
     """
-    from ecoli.processes.partition import PartitionedProcess, Requester, Evolver
+    from ecoli.processes.partition import (
+        is_partitioned_process,
+        Requester,
+        Evolver,
+    )
 
     time_step = config["time_step"]
     process_configs = {}
@@ -900,7 +904,7 @@ def _resolve_process_configs(load_sim_data, config):
     partitioned_configs = {}  # original configs for SharedProcess declarations
 
     for process_name, process_class in config["processes"].items():
-        if issubclass(process_class, PartitionedProcess):
+        if is_partitioned_process(process_class):
             parallel = process_configs[process_name].pop("_parallel", False)
             # Save the config for the SharedProcess declaration — share the
             # reference so bound method instances match the sim_data

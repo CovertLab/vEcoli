@@ -97,9 +97,21 @@ class Allocator(Step):
         # full-column parity check confirms v1 emits real values,
         # restore the listener declaration here and drop this
         # comment. Until then, parity wins.
+        # NB: the OUTER ``overwrite`` was removed from ``allocate`` (and
+        # ``request``). With multiple per-layer allocators (allocator_1..N)
+        # all wiring their output to the SAME ``('allocate',)`` /
+        # ``('request',)`` store, an outer ``overwrite`` made each allocator
+        # REPLACE the whole process→counts map. A re-triggered allocator
+        # whose request view held only a subset of processes then wiped out
+        # every other process's ``allocate`` entry, so the next evolver in
+        # the cascade read a missing ``allocate`` key (KeyError: 'allocate').
+        # Dropping the outer overwrite lets the top-level process map MERGE
+        # per-process entries across allocator invocations while the INNER
+        # ``overwrite[array]`` still sets (not accumulates) each process's
+        # count vector — the intended partition semantics.
         return {
-            'allocate': 'overwrite[divide_share[map[map[overwrite[array[integer[64]]]]]]]',
-            'request': 'overwrite[divide_share[map[map[list[integer]]]]]',
+            'allocate': 'divide_share[map[map[overwrite[array[integer[64]]]]]]',
+            'request': 'divide_share[map[map[list[integer]]]]',
         }
 
     # Constructor

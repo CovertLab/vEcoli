@@ -26,6 +26,24 @@ from vivarium.library.dict_utils import deep_merge
 from ecoli.processes.registries import topology_registry
 
 
+def is_partitioned_process(obj):
+    """Return True if ``obj`` (a class or instance) is a PartitionedProcess.
+
+    Robust to module-identity mismatches. When an external harness purges and
+    re-imports the ``ecoli`` package (e.g. to switch between checkouts), two
+    distinct ``PartitionedProcess`` class objects can coexist: one held by a
+    stale process registry and one freshly imported. ``isinstance`` /
+    ``issubclass`` against the freshly-imported base then returns False even
+    though the class genuinely IS a PartitionedProcess — which would silently
+    skip the Requester/Evolver/Allocator split and let processes run unified
+    (over-consuming shared bulk counts → negative counts → downstream NaNs).
+    Comparing by MRO class name instead keeps the split intact regardless of
+    which module object a given class was built against.
+    """
+    cls = obj if isinstance(obj, type) else type(obj)
+    return any(base.__name__ == "PartitionedProcess" for base in cls.__mro__)
+
+
 class Requester(Step):
     """Requester Step
 
@@ -91,7 +109,7 @@ class Requester(Step):
         return result
 
     def __init__(self, parameters=None, core=None):
-        assert isinstance(parameters["process"], PartitionedProcess)
+        assert is_partitioned_process(parameters["process"])
         if parameters["process"].parallel:
             raise RuntimeError("PartitionedProcess objects cannot be parallelized.")
         parameters["name"] = f"{parameters['process'].name}_requester"
@@ -226,7 +244,7 @@ class Evolver(Step):
         return ports
 
     def __init__(self, parameters=None, core=None):
-        assert isinstance(parameters["process"], PartitionedProcess)
+        assert is_partitioned_process(parameters["process"])
         parameters["name"] = f"{parameters['process'].name}_evolver"
         super().__init__(parameters, core=core)
 
