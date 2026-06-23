@@ -156,9 +156,6 @@ class Metabolism(Step):
         if self.include_ppgpp:
             update_molecules += [self.model.ppgpp_id]
         self.conc_update_molecules = sorted(update_molecules)
-        self.homeostatic_metabolites = sorted(
-            list(self.model.fba.getHomeostaticTargetMolecules())
-        )
 
         self.aa_exchange_names = self.parameters["aa_exchange_names"]
         self.removed_aa_uptake = self.parameters["removed_aa_uptake"]
@@ -314,8 +311,8 @@ class Metabolism(Step):
                             self.homeostaticTargetMolecules,
                         ),
                         "homeostatic_metabolite_counts": (
-                            [0] * len(self.homeostatic_metabolites),
-                            self.homeostatic_metabolites,
+                            [0] * len(self.homeostaticTargetMolecules),
+                            self.homeostaticTargetMolecules,
                         ),
                         # 'estimated_fluxes': {},
                         # 'estimated_homeostatic_dmdt': {},
@@ -572,13 +569,10 @@ class Metabolism(Step):
             unconstrained, constrained, GDCW_BASIS
         )
 
-        # Compute homeostatic target changes and actual changes
-        homeostatic_target_molecules = fba.getHomeostaticTargetMolecules()
-
         # Get indices for homeostatic molecules
         homeostatic_indices = [
             self.model.metaboliteNamesFromNutrients.index(mol)
-            for mol in homeostatic_target_molecules
+            for mol in self.homeostaticTargetMolecules
         ]
 
         # Actual changes for homeostatic metabolites from FBA
@@ -591,7 +585,7 @@ class Metabolism(Step):
         target_homeostatic_conc = np.array(
             [
                 self.model.homeostatic_objective[key]
-                for key in homeostatic_target_molecules
+                for key in self.homeostaticTargetMolecules
             ]
         )
         target_homeostatic_dmdt = (
@@ -664,10 +658,7 @@ class Metabolism(Step):
                         self.model.metaboliteNamesFromNutrients
                     ),
                     "reduced_costs": fba.getReducedCosts(fba.getReactionIDs()),
-                    "target_concentrations": [
-                        self.model.homeostatic_objective[mol]
-                        for mol in fba.getHomeostaticTargetMolecules()
-                    ],
+                    "target_concentrations": target_homeostatic_conc,
                     "homeostatic_objective_values": fba.getHomeostaticObjectiveValues(),
                     "kinetic_objective_values": fba.getKineticObjectiveValues(),
                     "base_reaction_fluxes": self.reaction_mapping_matrix.dot(
