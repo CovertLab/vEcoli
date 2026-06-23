@@ -22,7 +22,8 @@ from copy import deepcopy
 import numpy as np
 
 from bigraph_schema import (
-    deep_merge, class_address as _class_address,
+    deep_merge,
+    class_address as _class_address,
     make_arrays_writeable as _make_arrays_writeable,
     tuples_to_lists as _tuple_to_list,
 )
@@ -45,11 +46,11 @@ def _fill_schema_defaults(target, schema):
     ``update()`` call.
     """
     for key, spec in schema.items():
-        if key.startswith('_'):
+        if key.startswith("_"):
             continue
         if isinstance(spec, dict):
-            if '_default' in spec:
-                target.setdefault(key, spec['_default'])
+            if "_default" in spec:
+                target.setdefault(key, spec["_default"])
             else:
                 sub = target.setdefault(key, {})
                 if isinstance(sub, dict):
@@ -59,6 +60,7 @@ def _fill_schema_defaults(target, schema):
 # ---------------------------------------------------------------------------
 # Document builder
 # ---------------------------------------------------------------------------
+
 
 def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
     """Build a complete composite document from sim_config.
@@ -102,20 +104,27 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
 
     if load_sim_data is None:
         load_sim_data = LoadSimData(**sim_config)
-    agent_id = sim_config.get('agent_id', '0')
-    time_step = sim_config.get('time_step', 1.0)
+    agent_id = sim_config.get("agent_id", "0")
+    time_step = sim_config.get("time_step", 1.0)
 
     # 1. Resolve process configs from sim_data
     configs, classes, partitioned, partitioned_configs = _resolve_process_configs(
-        load_sim_data, sim_config)
+        load_sim_data, sim_config
+    )
 
     # 2. Build topology (port → wire path mapping)
     topology = _build_topology(sim_config, partitioned, configs, flat=flat)
 
     # 3. Build flow graph (step execution order)
     flow, configs, classes = _build_flow(
-        sim_config, load_sim_data, configs, classes, partitioned,
-        partitioned_configs, time_step)
+        sim_config,
+        load_sim_data,
+        configs,
+        classes,
+        partitioned,
+        partitioned_configs,
+        time_step,
+    )
 
     # 3a. Optional per-cell CellParquetEmitter step. Added here (alongside
     # all other steps) so its schema merges cleanly with the cell tree
@@ -124,30 +133,34 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
     # Activated by setting ``sim_config['parquet_emitter']`` with the
     # required output / metadata config. The TOPOLOGY for this step is
     # registered in ecoli/processes/cell_parquet_emitter.py.
-    parquet_cfg = sim_config.get('parquet_emitter')
+    parquet_cfg = sim_config.get("parquet_emitter")
     if parquet_cfg:
         from ecoli.processes.cell_parquet_emitter import (
-            CellParquetEmitter, TOPOLOGY as _PARQUET_TOPOLOGY)
+            CellParquetEmitter,
+            TOPOLOGY as _PARQUET_TOPOLOGY,
+        )
+
         # Stamp the cell's canonical agent_id into the parquet config
         # so daughters write to their OWN hive partition. Without this,
         # the upstream parquet_cfg keeps the mother's agent_id and every
         # daughter overwrites the mother's parquet batches at the same
         # generation=N/agent_id=<mother>/ path.
         parquet_cfg = deepcopy(parquet_cfg)
-        parquet_cfg['agent_id'] = str(sim_config.get(
-            'agent_id', parquet_cfg.get('agent_id', '0')))
-        classes['parquet_emitter'] = CellParquetEmitter
-        configs['parquet_emitter'] = parquet_cfg
-        topology['parquet_emitter'] = deepcopy(_PARQUET_TOPOLOGY)
+        parquet_cfg["agent_id"] = str(
+            sim_config.get("agent_id", parquet_cfg.get("agent_id", "0"))
+        )
+        classes["parquet_emitter"] = CellParquetEmitter
+        configs["parquet_emitter"] = parquet_cfg
+        topology["parquet_emitter"] = deepcopy(_PARQUET_TOPOLOGY)
         # Flow: run after all other steps. Put it after division so
         # divided daughters' first tick also emits a row.
-        if 'division' in flow:
-            flow['parquet_emitter'] = [('division',)]
+        if "division" in flow:
+            flow["parquet_emitter"] = [("division",)]
         else:
             # No division in this run; depend on last unique_update.
-            uu_names = sorted([k for k in flow if k.startswith('unique_update_')])
+            uu_names = sorted([k for k in flow if k.startswith("unique_update_")])
             if uu_names:
-                flow['parquet_emitter'] = [(uu_names[-1],)]
+                flow["parquet_emitter"] = [(uu_names[-1],)]
 
     # 3b. Extract each edge's interface (inputs/outputs) via a temporary
     # instance BEFORE configs are rewritten into serializable refs.
@@ -155,8 +168,11 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
     # Also keep the temp instance for the edge-type classification below.
     interfaces = {}
     temp_instances = {}
+    from ecoli.library.bigraph_types import translate_ports
+
     for name, cls in classes.items():
         cfg = configs[name]
+        inst = None
         try:
             # Try with no core first (vivarium / BigraphStep path).
             # Plain process-bigraph Steps require a core; retry with
@@ -164,31 +180,66 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
             try:
                 inst = cls(cfg)
             except Exception as _err:
-                if 'must provide a core' in str(_err):
+                if "must provide a core" in str(_err):
                     inst = cls(cfg, core=core)
                 else:
                     raise
             interfaces[name] = inst.interface()
             temp_instances[name] = inst
         except Exception as _err:
-            import traceback as _tb
-            print(f"[build_ecoli] interface() failed for {name}: {type(_err).__name__}: {_err}", flush=True)
-            _tb.print_exc()
-            interfaces[name] = {'inputs': {}, 'outputs': {}}
-            temp_instances[name] = None
+            # Un-migrated process (no typed interface()): synthesize inputs/
+            # outputs from its vivarium ports_schema() via the v1->v2 converter
+            # (translate_ports). vivarium ports are bidirectional, so over-
+            # declare every port as both input and output (safe). Without this,
+            # the process is wired to nothing and dies on the first tick with a
+            # KeyError on its un-allocated state path.
+            ports = None
+            if inst is not None and hasattr(inst, "ports_schema"):
+                try:
+                    ports = inst.ports_schema()
+                except Exception:
+                    ports = None
+            if ports is not None:
+                typed = translate_ports(core, ports)
+                interfaces[name] = {"inputs": typed, "outputs": typed}
+                temp_instances[name] = inst
+            else:
+                import traceback as _tb
+
+                print(
+                    f"[build_ecoli] interface() AND ports_schema() unavailable "
+                    f"for {name}: {type(_err).__name__}: {_err}",
+                    flush=True,
+                )
+                _tb.print_exc()
+                interfaces[name] = {"inputs": {}, "outputs": {}}
+                temp_instances[name] = None
 
     # 4. Get initial cell state from sim_data
     cell_state = _get_initial_state(load_sim_data, sim_config)
-    if os.environ.get('VECOLI_DEBUG_DIVIDE'):
+    if os.environ.get("VECOLI_DEBUG_DIVIDE"):
         import sys as _sys
+
         try:
-            bulk = cell_state.get('bulk') if isinstance(cell_state, dict) else None
-            if bulk is not None and hasattr(bulk, 'dtype') and bulk.dtype.names and 'count' in bulk.dtype.names:
-                print(f'[divide-debug] build_ecoli_document agent_id={sim_config.get("agent_id")} '
-                      f'cell_state[bulk].count.sum={int(bulk["count"].sum())} (after _get_initial_state)',
-                      file=_sys.stderr, flush=True)
+            bulk = cell_state.get("bulk") if isinstance(cell_state, dict) else None
+            if (
+                bulk is not None
+                and hasattr(bulk, "dtype")
+                and bulk.dtype.names
+                and "count" in bulk.dtype.names
+            ):
+                print(
+                    f"[divide-debug] build_ecoli_document agent_id={sim_config.get('agent_id')} "
+                    f"cell_state[bulk].count.sum={int(bulk['count'].sum())} (after _get_initial_state)",
+                    file=_sys.stderr,
+                    flush=True,
+                )
         except Exception as e:
-            print(f'[divide-debug] build_ecoli_document err: {e}', file=_sys.stderr, flush=True)
+            print(
+                f"[divide-debug] build_ecoli_document err: {e}",
+                file=_sys.stderr,
+                flush=True,
+            )
     _make_arrays_writeable(cell_state)
 
     # 5. Add infrastructure topologies (allocator, unique_update)
@@ -212,33 +263,33 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
     # Map from instance id to store key for deduplication
     _instance_to_key = {}
     _sim_data_paths = {
-        'external_state': sd.external_state,
-        'mass': sd.mass,
-        'growth_rate_parameters': sd.growth_rate_parameters,
-        'getter': sd.getter,
-        'transcription': sd.process.transcription,
-        'transcription_regulation': sd.process.transcription_regulation,
-        'replication': sd.process.replication,
-        'translation': sd.process.translation,
-        'metabolism_data': sd.process.metabolism,
-        'equilibrium_data': sd.process.equilibrium,
-        'two_component_system': sd.process.two_component_system,
+        "external_state": sd.external_state,
+        "mass": sd.mass,
+        "growth_rate_parameters": sd.growth_rate_parameters,
+        "getter": sd.getter,
+        "transcription": sd.process.transcription,
+        "transcription_regulation": sd.process.transcription_regulation,
+        "replication": sd.process.replication,
+        "translation": sd.process.translation,
+        "metabolism_data": sd.process.metabolism,
+        "equilibrium_data": sd.process.equilibrium,
+        "two_component_system": sd.process.two_component_system,
         # Nested objects that are also referenced directly in configs
-        'concentration_updates': sd.process.metabolism.concentration_updates,
+        "concentration_updates": sd.process.metabolism.concentration_updates,
     }
     for key, instance in _sim_data_paths.items():
         if instance is not None:
             sim_data_objects[key] = instance
             _instance_to_key[id(instance)] = key
-    sim_data_objects['_type'] = 'sim_data_object_store'
+    sim_data_objects["_type"] = "sim_data_object_store"
     # When the receiving actor will pre-load sim_data via type-provider
     # (Ray cell-as-Composite path), don't ship sim_data_objects through
     # cell_state — keeps the per-cell shipping payload small and avoids
     # the cost of pickling bound-method references. The actor still
     # needs ``_instance_to_key`` populated for the config rewrite below
     # so the SimDataObjectRef strings get the right store_key.
-    if not sim_config.get('skip_sim_data_objects_in_state'):
-        cell_state['sim_data_objects'] = sim_data_objects
+    if not sim_config.get("skip_sim_data_objects_in_state"):
+        cell_state["sim_data_objects"] = sim_data_objects
 
     # Now rewrite configs: replace bound methods and sim_data object
     # instances with references to the sim_data_objects store.
@@ -246,18 +297,21 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
         if not isinstance(config, dict):
             return
         for key, val in list(config.items()):
-            if callable(val) and hasattr(val, '__self__') and hasattr(val, '__func__'):
+            if callable(val) and hasattr(val, "__self__") and hasattr(val, "__func__"):
                 inst_id = id(val.__self__)
                 if inst_id in _instance_to_key:
                     config[key] = {
-                        '_type': 'method',
-                        'instance_path': ['sim_data_objects', _instance_to_key[inst_id]],
-                        'attribute': val.__func__.__name__,
+                        "_type": "method",
+                        "instance_path": [
+                            "sim_data_objects",
+                            _instance_to_key[inst_id],
+                        ],
+                        "attribute": val.__func__.__name__,
                     }
             elif id(val) in _instance_to_key:
                 config[key] = {
-                    '_type': 'sim_data_object_ref',
-                    'store_key': _instance_to_key[id(val)],
+                    "_type": "sim_data_object_ref",
+                    "store_key": _instance_to_key[id(val)],
                 }
 
     for name, config in configs.items():
@@ -270,10 +324,11 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
     for proc_name in partitioned:
         proc_class = sim_config["processes"][proc_name]
         proc_config = partitioned_configs.get(proc_name, {})
-        cell_state.setdefault('process', {})[proc_name] = {
-            '_type': 'shared_process',
-            'address': _class_address(proc_class),
-            'config': proc_config,
+        cell_state.setdefault("process", {})[proc_name] = {
+            "_type": "shared_process",
+            "address": _class_address(proc_class),
+            "config": proc_config,
+            "interval": 1.0,
         }
 
     # 6. Build process declarations and add to cell state
@@ -284,10 +339,10 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
 
         # Use the interface we extracted before _rewrite_refs mutated
         # configs into serializable method refs.
-        interface = interfaces.get(name, {'inputs': {}, 'outputs': {}})
+        interface = interfaces.get(name, {"inputs": {}, "outputs": {}})
 
-        input_ports = set(interface.get('inputs', {}).keys())
-        output_ports = set(interface.get('outputs', {}).keys())
+        input_ports = set(interface.get("inputs", {}).keys())
+        output_ports = set(interface.get("outputs", {}).keys())
         for port_name in input_ports | output_ports:
             if port_name not in wires:
                 wires[port_name] = [port_name]
@@ -300,32 +355,50 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
         # process is registered without the bridge.
         from ecoli.library.bigraph_bridge import BigraphProcess
         from process_bigraph import Process as ProcessBigraphProcess
+
+        # vivarium.Process covers un-migrated processes wired via the
+        # translate_ports fallback (they are plain vivarium classes, not
+        # BigraphProcess subclasses). vivarium.Step subclasses Process but
+        # carries a 'triggers' attr, so the step-exclusion below still routes
+        # derivers/listeners to 'step'. Without including vivarium.Process,
+        # every un-migrated time-driven process (elongation, replication,
+        # global_clock, …) is mislabeled a step → no 'interval' → the engine
+        # KeyErrors running it as a process.
+        from vivarium.core.process import Process as VivariumProcess
+
         instance = temp_instances.get(name)
-        if instance is not None and isinstance(instance, (BigraphProcess, ProcessBigraphProcess)) and not hasattr(instance, 'triggers'):
-            edge_type = 'process'
+        if (
+            instance is not None
+            and isinstance(
+                instance, (BigraphProcess, ProcessBigraphProcess, VivariumProcess)
+            )
+            and not hasattr(instance, "triggers")
+        ):
+            edge_type = "process"
         else:
-            edge_type = 'step'
+            edge_type = "step"
 
         # For the document, replace process instances in config with
         # string IDs (SharedProcessRef resolves them at realize time).
         from ecoli.processes.partition import PartitionedProcess
+
         doc_config = dict(config) if config else {}
-        if isinstance(doc_config.get('process'), PartitionedProcess):
-            doc_config['process'] = doc_config['process'].name
+        if isinstance(doc_config.get("process"), PartitionedProcess):
+            doc_config["process"] = doc_config["process"].name
 
         decl = {
-            '_type': edge_type,
-            'address': _class_address(cls),
-            'config': doc_config,
-            '_inputs': interface.get('inputs', {}),
-            '_outputs': interface.get('outputs', {}),
-            'inputs': copy.deepcopy(wires),
-            'outputs': copy.deepcopy(output_wires),
+            "_type": edge_type,
+            "address": _class_address(cls),
+            "config": doc_config,
+            "_inputs": interface.get("inputs", {}),
+            "_outputs": interface.get("outputs", {}),
+            "inputs": copy.deepcopy(wires),
+            "outputs": copy.deepcopy(output_wires),
         }
-        if edge_type == 'process':
-            decl['interval'] = 1.0
+        if edge_type == "process":
+            decl["interval"] = 1.0
         else:
-            decl['priority'] = 1.0
+            decl["priority"] = 1.0
 
         cell_state[name] = decl
 
@@ -334,9 +407,9 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
     # the listener-seeding loop below builds views directly from
     # cell_state and bypasses the framework, so we still need the
     # cell_state seed here.
-    cell_state.setdefault('global_time', 0.0)
+    cell_state.setdefault("global_time", 0.0)
     # timestep is config-derived (no producer process); keep setdefault.
-    cell_state.setdefault('timestep', int(time_step))
+    cell_state.setdefault("timestep", int(time_step))
     # listeners.mass.* defaults are declared in
     # ecoli/processes/listeners/mass_listener.py outputs() so the
     # framework auto-creates them on first read.
@@ -351,20 +424,22 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
     # `allocate.<proc>.bulk` is a full-size int64 array at runtime; declare
     # that explicitly so bundle() externalizes it to Parquet.
     import numpy as _np
-    bulk_store = cell_state.get('bulk')
+
+    bulk_store = cell_state.get("bulk")
     if isinstance(bulk_store, _np.ndarray):
         n_bulk = len(bulk_store)
     elif isinstance(bulk_store, dict):
-        n_bulk = len(bulk_store.get('id', []))
+        n_bulk = len(bulk_store.get("id", []))
     else:
         n_bulk = 0
     for proc_name in partitioned:
-        cell_state.setdefault('next_update_time', {}).setdefault(
-            proc_name, float(time_step))
-        cell_state.setdefault('request', {}).setdefault(
-            proc_name, {'bulk': []})
-        cell_state.setdefault('allocate', {}).setdefault(
-            proc_name, {'bulk': _np.zeros(n_bulk, dtype=_np.int64)})
+        cell_state.setdefault("next_update_time", {}).setdefault(
+            proc_name, float(time_step)
+        )
+        cell_state.setdefault("request", {}).setdefault(proc_name, {"bulk": []})
+        cell_state.setdefault("allocate", {}).setdefault(
+            proc_name, {"bulk": _np.zeros(n_bulk, dtype=_np.int64)}
+        )
 
     # Seed allocator_rng deterministically from the Allocator config.
     # Without this, ``realize(NPRandom, None)`` falls back to
@@ -376,18 +451,22 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
     # apply when constructing the Allocator process — keeping the
     # cell-level store in sync with the process's internal RandomState.
     from bigraph_schema.methods.derive import get_derivation_context
+
     allocator_seed = next(
-        (cfg.get('seed') for nm, cfg in configs.items()
-         if nm.startswith('allocator_') and isinstance(cfg, dict)),
-        None)
+        (
+            cfg.get("seed")
+            for nm, cfg in configs.items()
+            if nm.startswith("allocator_") and isinstance(cfg, dict)
+        ),
+        None,
+    )
     if allocator_seed is not None:
         derivation_context = get_derivation_context()
         if derivation_context is not None:
             allocator_seed = (
                 int(allocator_seed) + int(derivation_context.lineage_seed)
             ) % RAND_MAX
-        cell_state['allocator_rng'] = _np.random.RandomState(
-            seed=int(allocator_seed))
+        cell_state["allocator_rng"] = _np.random.RandomState(seed=int(allocator_seed))
 
     # 9b. For non-partitioned Steps whose topology references a
     # next_update_time store (e.g. Metabolism), initialize that store so
@@ -396,11 +475,10 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
     for proc_name, ports in topology.items():
         if proc_name in partitioned:
             continue
-        nut_wire = ports.get('next_update_time') if isinstance(ports, dict) else None
+        nut_wire = ports.get("next_update_time") if isinstance(ports, dict) else None
         if isinstance(nut_wire, (list, tuple)) and len(nut_wire) >= 2:
             parent, key = nut_wire[0], nut_wire[1]
             cell_state.setdefault(parent, {}).setdefault(key, float(time_step))
-
 
     # 9. Wire step layers (flow tokens + triggers)
     if flow:
@@ -412,7 +490,7 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
         # outer level. Return cell_state directly.
         result = cell_state
     else:
-        result = {'agents': {agent_id: cell_state}}
+        result = {"agents": {agent_id: cell_state}}
 
     # Cell-as-Composite mode: add the dedicated ``divide_emit`` slot
     # where CompositeDivision routes its _add/_remove sentinels.
@@ -421,8 +499,8 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
     # output wires here, so only divide events (not every inner
     # sub-process update) cross to the outer — see _build_topology
     # for the matching division_agents_wire routing.
-    if sim_config.get('cell_as_composite_mode'):
-        result['divide_emit'] = {'_type': 'map[node]', '_value': {}}
+    if sim_config.get("cell_as_composite_mode"):
+        result["divide_emit"] = {"_type": "map[node]", "_value": {}}
 
     return result
 
@@ -467,13 +545,13 @@ def collect_output_metadata_from_composite(composite):
         results = []
         if not isinstance(node, dict):
             return results
-        instance = node.get('instance')
-        if instance is not None and hasattr(instance, 'ports_schema'):
+        instance = node.get("instance")
+        if instance is not None and hasattr(instance, "ports_schema"):
             try:
                 ports = instance.ports_schema()
             except Exception:
                 return results
-            wires = node.get('inputs', {}) or {}
+            wires = node.get("inputs", {}) or {}
             proc_name = path[-1] if path else None
             results.append((proc_name, ports, wires))
             # Don't descend into process internals — opaque boundary
@@ -503,13 +581,14 @@ def collect_output_metadata_from_composite(composite):
                 pass
         try:
             output_metadata = deep_merge_check(
-                output_metadata, extracted, check_equality=True)
+                output_metadata, extracted, check_equality=True
+            )
         except Exception:
             output_metadata = {**extracted, **output_metadata}
     return output_metadata
 
 
-def reseed_loaded_bundle(document, sim_data_path, cli_seed, agent_id='0'):
+def reseed_loaded_bundle(document, sim_data_path, cli_seed, agent_id="0"):
     """Recompute per-process seeds from sim_data with the current
     generation's ``cli_seed`` and overwrite them in a freshly-loaded
     bundle ``document``. Also resets the cell-level ``allocator_rng``
@@ -525,11 +604,12 @@ def reseed_loaded_bundle(document, sim_data_path, cli_seed, agent_id='0'):
     Composite so realize sees the up-to-date config.
     """
     from ecoli.library.sim_data import LoadSimData
+
     sd = LoadSimData(sim_data_path=sim_data_path, seed=int(cli_seed))
 
-    cell = document['state']['agents'].get(agent_id)
+    cell = document["state"]["agents"].get(agent_id)
     if cell is None:
-        cell = document['state']['agents'][next(iter(document['state']['agents']))]
+        cell = document["state"]["agents"][next(iter(document["state"]["agents"]))]
     if not isinstance(cell, dict):
         return
 
@@ -537,38 +617,38 @@ def reseed_loaded_bundle(document, sim_data_path, cli_seed, agent_id='0'):
         # Partition wraps ``ecoli-X`` as ``ecoli-X_requester`` and
         # ``ecoli-X_evolver``. Strip both. Map allocator_N to
         # the singular ``allocator`` sim_data key.
-        if n.endswith('_requester'):
-            return n[:-len('_requester')]
-        if n.endswith('_evolver'):
-            return n[:-len('_evolver')]
-        if n.startswith('allocator_'):
-            return 'allocator'
+        if n.endswith("_requester"):
+            return n[: -len("_requester")]
+        if n.endswith("_evolver"):
+            return n[: -len("_evolver")]
+        if n.startswith("allocator_"):
+            return "allocator"
         return n
 
     def _refresh(scope):
         for name, decl in scope.items():
             if not isinstance(decl, dict):
                 continue
-            cfg = decl.get('config')
-            if not isinstance(cfg, dict) or 'seed' not in cfg:
+            cfg = decl.get("config")
+            if not isinstance(cfg, dict) or "seed" not in cfg:
                 continue
             try:
                 fresh_cfg = sd.get_config_by_name(_strip_partition_suffix(name))
             except (KeyError, Exception):
                 continue
-            if isinstance(fresh_cfg, dict) and 'seed' in fresh_cfg:
-                cfg['seed'] = int(fresh_cfg['seed'])
+            if isinstance(fresh_cfg, dict) and "seed" in fresh_cfg:
+                cfg["seed"] = int(fresh_cfg["seed"])
             # Drop saved RandomState — daughter starts fresh from the
             # newly-derived seed (matches v1's daughter construction).
-            decl.pop('rng_state', None)
+            decl.pop("rng_state", None)
 
     _refresh(cell)
-    proc_block = cell.get('process')
+    proc_block = cell.get("process")
     if isinstance(proc_block, dict):
         _refresh(proc_block)
 
 
-def _reseed_allocator_rng(state, sim_data_path, cli_seed, agent_id='0'):
+def _reseed_allocator_rng(state, sim_data_path, cli_seed, agent_id="0"):
     """Reset ``allocator_rng`` to a freshly-seeded RandomState matching
     the cli_seed-derived seed for this generation.
 
@@ -582,17 +662,18 @@ def _reseed_allocator_rng(state, sim_data_path, cli_seed, agent_id='0'):
     """
     import numpy as _np
     from ecoli.library.sim_data import LoadSimData
-    if isinstance(state, dict) and 'agents' in state:
-        cell = state['agents'].get(agent_id)
+
+    if isinstance(state, dict) and "agents" in state:
+        cell = state["agents"].get(agent_id)
         if cell is None:
-            cell = state['agents'][next(iter(state['agents']))]
+            cell = state["agents"][next(iter(state["agents"]))]
     else:
         cell = state
     if not isinstance(cell, dict):
         return
     sd = LoadSimData(sim_data_path=sim_data_path, seed=int(cli_seed))
-    seed = sd.get_allocator_config()['seed']
-    cell['allocator_rng'] = _np.random.RandomState(seed=int(seed))
+    seed = sd.get_allocator_config()["seed"]
+    cell["allocator_rng"] = _np.random.RandomState(seed=int(seed))
 
 
 # ---------------------------------------------------------------------------
@@ -615,6 +696,7 @@ def _reseed_allocator_rng(state, sim_data_path, cli_seed, agent_id='0'):
 # daughters inherit mother's listeners / boundary / process_state /
 # allocate / request etc. — same as v1, same bit-parity story.
 
+
 def _strip_v2_edges(d):
     """Remove top-level edge declarations and sim_data_objects refs.
 
@@ -624,16 +706,19 @@ def _strip_v2_edges(d):
     matching v1's ``state.get_value(condition=not_a_process)`` output.
     """
     edge_keys = [
-        k for k, v in d.items()
+        k
+        for k, v in d.items()
         if isinstance(v, dict)
-        and ('address' in v or 'instance' in v
-             or v.get('_type') in (
-                 'process', 'step', 'shared_process', 'shared_step'))
+        and (
+            "address" in v
+            or "instance" in v
+            or v.get("_type") in ("process", "step", "shared_process", "shared_step")
+        )
     ]
     for k in edge_keys:
         del d[k]
-    d.pop('sim_data_objects', None)
-    d.pop('step_flow', None)
+    d.pop("sim_data_objects", None)
+    d.pop("step_flow", None)
 
 
 def _v2_daughter_payload(agent_state):
@@ -656,15 +741,15 @@ def _v2_daughter_payload(agent_state):
     v1 ships".
     """
     _strip_v2_edges(agent_state)
-    agent_state.pop('process', None)
-    agent_state.pop('allocator_rng', None)
-    if 'bulk' in agent_state and hasattr(agent_state['bulk'], 'dtype'):
-        agent_state['bulk_dtypes'] = str(agent_state['bulk'].dtype)
-    if 'unique' in agent_state and isinstance(agent_state['unique'], dict):
-        agent_state['unique_dtypes'] = {}
-        for name, mols in list(agent_state['unique'].items()):
-            agent_state['unique'][name] = np.asarray(mols)
-            agent_state['unique_dtypes'][name] = str(mols.dtype)
+    agent_state.pop("process", None)
+    agent_state.pop("allocator_rng", None)
+    if "bulk" in agent_state and hasattr(agent_state["bulk"], "dtype"):
+        agent_state["bulk_dtypes"] = str(agent_state["bulk"].dtype)
+    if "unique" in agent_state and isinstance(agent_state["unique"], dict):
+        agent_state["unique_dtypes"] = {}
+        for name, mols in list(agent_state["unique"].items()):
+            agent_state["unique"][name] = np.asarray(mols)
+            agent_state["unique_dtypes"][name] = str(mols.dtype)
 
 
 def save_v2_daughters(state, daughter_outdir):
@@ -684,15 +769,17 @@ def save_v2_daughters(state, daughter_outdir):
     from ecoli.library.logging_tools import write_json
     from wholecell.utils.filepath import cloud_path_join
 
-    agents = state.get('agents', {})
+    agents = state.get("agents", {})
     if len(agents) != 2:
-        print(f"  WARNING: expected 2 daughters post-divide, got {len(agents)}",
-              flush=True)
+        print(
+            f"  WARNING: expected 2 daughters post-divide, got {len(agents)}",
+            flush=True,
+        )
 
     # Top-level non-agent state — strip v2 edges, keep everything else
     # (matches v1's `non_agent_state = {k:v for k,v in state.items()
     # if k != 'agents'}` after vivarium's not_a_process filter).
-    non_agent_state = {k: deepcopy(v) for k, v in state.items() if k != 'agents'}
+    non_agent_state = {k: deepcopy(v) for k, v in state.items() if k != "agents"}
     _strip_v2_edges(non_agent_state)
 
     for i, (agent_id, agent_state) in enumerate(sorted(agents.items())):
@@ -703,23 +790,21 @@ def save_v2_daughters(state, daughter_outdir):
         _v2_daughter_payload(agent_copy)
 
         daughter_path = cloud_path_join(
-            daughter_outdir.rstrip('/'),
-            f"daughter_state_{i}.json")
-        write_json(
-            daughter_path,
-            {**non_agent_state, 'agents': {agent_id: agent_copy}})
-        with open(f"daughter_state_{i}_uri.txt", 'w') as f:
+            daughter_outdir.rstrip("/"), f"daughter_state_{i}.json"
+        )
+        write_json(daughter_path, {**non_agent_state, "agents": {agent_id: agent_copy}})
+        with open(f"daughter_state_{i}_uri.txt", "w") as f:
             f.write(daughter_path)
 
-    division_time = float(state.get('global_time', 0.0))
-    with open('division_time.sh', 'w') as f:
+    division_time = float(state.get("global_time", 0.0))
+    with open("division_time.sh", "w") as f:
         f.write(f"export division_time={division_time}")
-    print(f"  wrote {len(agents)} daughter JSON(s) to {daughter_outdir}",
-          flush=True)
+    print(f"  wrote {len(agents)} daughter JSON(s) to {daughter_outdir}", flush=True)
 
 
-def run_to_division(composite, max_duration, daughter_outdir=None,
-                    on_tick=None, poll_s=1.0):
+def run_to_division(
+    composite, max_duration, daughter_outdir=None, on_tick=None, poll_s=1.0
+):
     """Tick the composite until first division or ``max_duration``.
 
     This is the v2 equivalent of v1's ``update_experiment`` loop:
@@ -747,13 +832,13 @@ def run_to_division(composite, max_duration, daughter_outdir=None,
     # DivisionDetected halt).
     composite._halt_after_structural = True
 
-    pre_agent_count = len(composite.state.get('agents', {}))
-    current_t = float(composite.state.get('global_time', 0.0))
+    pre_agent_count = len(composite.state.get("agents", {}))
+    current_t = float(composite.state.get("global_time", 0.0))
     end_t = current_t + float(max_duration)
     divided = False
 
-    while float(composite.state.get('global_time', 0.0)) < end_t:
-        remaining = end_t - float(composite.state.get('global_time', 0.0))
+    while float(composite.state.get("global_time", 0.0)) < end_t:
+        remaining = end_t - float(composite.state.get("global_time", 0.0))
         step = min(poll_s, remaining)
         try:
             composite.run(step)
@@ -762,19 +847,20 @@ def run_to_division(composite, max_duration, daughter_outdir=None,
             break
         if on_tick is not None:
             on_tick(composite)
-        if len(composite.state.get('agents', {})) > pre_agent_count:
+        if len(composite.state.get("agents", {})) > pre_agent_count:
             divided = True
             break
 
     if divided and daughter_outdir:
         save_v2_daughters(composite.state, daughter_outdir)
 
-    return divided, float(composite.state.get('global_time', 0.0))
+    return divided, float(composite.state.get("global_time", 0.0))
 
 
 # ---------------------------------------------------------------------------
 # Config resolution
 # ---------------------------------------------------------------------------
+
 
 def _resolve_process_configs(load_sim_data, config):
     """Resolve process configs from sim_data without instantiation.
@@ -784,16 +870,13 @@ def _resolve_process_configs(load_sim_data, config):
     - classes: {step_name: class}
     - partitioned_names: [process_name, ...] for PartitionedProcesses
     """
-    from ecoli.processes.partition import (
-        PartitionedProcess, Requester, Evolver)
-    from ecoli.library.sim_data import RAND_MAX
+    from ecoli.processes.partition import PartitionedProcess, Requester, Evolver
 
     time_step = config["time_step"]
     process_configs = {}
     for name, cfg in config["process_configs"].items():
         if cfg == "sim_data":
-            process_configs[name] = load_sim_data.get_config_by_name(
-                name, time_step)
+            process_configs[name] = load_sim_data.get_config_by_name(name, time_step)
         elif cfg == "default":
             process_configs[name] = None
         elif isinstance(cfg, dict):
@@ -802,8 +885,7 @@ def _resolve_process_configs(load_sim_data, config):
             except KeyError:
                 default = config["processes"][name].defaults
             process_configs[name] = deepcopy(default)
-            process_configs[name] = deep_merge(
-                process_configs[name], cfg)
+            process_configs[name] = deep_merge(process_configs[name], cfg)
             # Per-generation seed derivation
             # ((default + config["seed"]) % RAND_MAX) is now handled at
             # realize time by the framework's LineageSeed type — the
@@ -852,6 +934,7 @@ def _resolve_process_configs(load_sim_data, config):
 # Topology
 # ---------------------------------------------------------------------------
 
+
 def _build_topology(config, partitioned, configs, flat=False):
     """Build port→wire topology from config."""
     topology = {}
@@ -859,18 +942,18 @@ def _build_topology(config, partitioned, configs, flat=False):
         if process_id in partitioned:
             topology[f"{process_id}_requester"] = deepcopy(ports)
             topology[f"{process_id}_evolver"] = deepcopy(ports)
-            topology[f"{process_id}_requester"]["request"] = (
-                "request", process_id)
-            topology[f"{process_id}_evolver"]["allocate"] = (
-                "allocate", process_id)
+            topology[f"{process_id}_requester"]["request"] = ("request", process_id)
+            topology[f"{process_id}_evolver"]["allocate"] = ("allocate", process_id)
             topology[f"{process_id}_requester"]["next_update_time"] = (
-                "next_update_time", process_id)
+                "next_update_time",
+                process_id,
+            )
             topology[f"{process_id}_evolver"]["next_update_time"] = (
-                "next_update_time", process_id)
-            topology[f"{process_id}_requester"]["process"] = (
-                "process", process_id)
-            topology[f"{process_id}_evolver"]["process"] = (
-                "process", process_id)
+                "next_update_time",
+                process_id,
+            )
+            topology[f"{process_id}_requester"]["process"] = ("process", process_id)
+            topology[f"{process_id}_evolver"]["process"] = ("process", process_id)
             topology[f"{process_id}_requester"]["global_time"] = ("global_time",)
             topology[f"{process_id}_evolver"]["global_time"] = ("global_time",)
         else:
@@ -907,16 +990,12 @@ def _build_topology(config, partitioned, configs, flat=False):
         # wire to ``['agents']`` would propagate ALL of them, drowning
         # the outer's apply_updates in O(N_subprocesses) reconciles
         # per tick (measured: 14.7s/30s wall in profile).
-        if config.get('cell_as_composite_mode'):
+        if config.get("cell_as_composite_mode"):
             division_agents_wire = (
-                ("divide_emit",) if flat
-                else ("..", "..", "divide_emit")
+                ("divide_emit",) if flat else ("..", "..", "divide_emit")
             )
         else:
-            division_agents_wire = (
-                ("agents",) if flat
-                else ("..", "..", "agents")
-            )
+            division_agents_wire = ("agents",) if flat else ("..", "..", "agents")
         topology["division"] = {
             "division_variable": tuple(config["division_variable"]),
             "full_chromosome": tuple(config["chromosome_path"]),
@@ -940,12 +1019,14 @@ def _build_topology(config, partitioned, configs, flat=False):
 # Flow graph
 # ---------------------------------------------------------------------------
 
-def _build_flow(config, load_sim_data, configs, classes, partitioned,
-                partitioned_configs, time_step):
+
+def _build_flow(
+    config, load_sim_data, configs, classes, partitioned, partitioned_configs, time_step
+):
     """Build step execution flow and add infrastructure steps."""
     from ecoli.processes.allocator import Allocator
     from ecoli.processes.unique_update import UniqueUpdate
-    from ecoli.processes.cell_division import Division, MarkDPeriod
+    from ecoli.processes.cell_division import MarkDPeriod
 
     step_graph = _StepGraph()
     step_classes = dict(classes)  # will be extended with infra steps
@@ -956,13 +1037,13 @@ def _build_flow(config, load_sim_data, configs, classes, partitioned,
         for dep_path in deps:
             if dep_path[-1] in partitioned:
                 tuplified_deps.append(
-                    tuple(dep_path[:-1]) + (f"{dep_path[-1]}_evolver",))
+                    tuple(dep_path[:-1]) + (f"{dep_path[-1]}_evolver",)
+                )
             else:
                 tuplified_deps.append(tuple(dep_path))
         if process in partitioned:
             step_graph.add((f"{process}_requester",), tuplified_deps)
-            step_graph.add((f"{process}_evolver",),
-                           [(f"{process}_requester",)])
+            step_graph.add((f"{process}_evolver",), [(f"{process}_requester",)])
         elif process in classes:
             step_graph.add((process,), tuplified_deps)
 
@@ -977,8 +1058,7 @@ def _build_flow(config, load_sim_data, configs, classes, partitioned,
             if "evolver" in step_path[-1]:
                 flow[step_path[-1]] = [(f"allocator_{allocator_counter - 1}",)]
             elif unique_update_counter > 1:
-                flow[step_path[-1]] = [
-                    (f"unique_update_{unique_update_counter - 1}",)]
+                flow[step_path[-1]] = [(f"unique_update_{unique_update_counter - 1}",)]
                 if "requester" in step_path[-1]:
                     requesters = True
             else:
@@ -992,7 +1072,8 @@ def _build_flow(config, load_sim_data, configs, classes, partitioned,
 
     # Allocator configs and classes
     allocator_config = load_sim_data.get_allocator_config(
-        time_step, process_names=partitioned)
+        time_step, process_names=partitioned
+    )
     allocator_topology = {
         "request": ("request",),
         "allocate": ("allocate",),
@@ -1026,7 +1107,9 @@ def _build_flow(config, load_sim_data, configs, classes, partitioned,
     # Division steps
     if config.get("divide"):
         from ecoli.processes.cell_division import (
-            CompositeDivision, daughter_phylogeny_id)
+            CompositeDivision,
+            daughter_phylogeny_id,
+        )
 
         # Discover per-process seed paths so CompositeDivision can
         # emit per-daughter seed overrides at divide time. Two homes
@@ -1040,17 +1123,17 @@ def _build_flow(config, load_sim_data, configs, classes, partitioned,
         seed_paths = []
         for proc_name in partitioned:
             shared_cfg = partitioned_configs.get(proc_name, {})
-            if isinstance(shared_cfg, dict) and 'seed' in shared_cfg:
-                seed_paths.append(['process', proc_name, 'config', 'seed'])
+            if isinstance(shared_cfg, dict) and "seed" in shared_cfg:
+                seed_paths.append(["process", proc_name, "config", "seed"])
         for step_name, step_cfg in configs.items():
-            if step_name == 'division':
+            if step_name == "division":
                 continue  # division reseeds itself via its own override
             if step_name in partitioned:
                 continue  # handled above as SharedProcess
             if not isinstance(step_cfg, dict):
                 continue
-            if 'seed' in step_cfg:
-                seed_paths.append([step_name, 'config', 'seed'])
+            if "seed" in step_cfg:
+                seed_paths.append([step_name, "config", "seed"])
 
         # v2 uses CompositeDivision (skips the v1 Composer roundtrip —
         # the framework handles daughter state reconstruction via
@@ -1058,8 +1141,7 @@ def _build_flow(config, load_sim_data, configs, classes, partitioned,
         division_config = {
             "division_threshold": config["division_threshold"],
             "agent_id": config["agent_id"],
-            "dry_mass_inc_dict":
-                load_sim_data.sim_data.expectedDryMassIncreaseDict,
+            "dry_mass_inc_dict": load_sim_data.sim_data.expectedDryMassIncreaseDict,
             # Base seed is 0; the framework's LineageSeed type adds the
             # active DerivationContext.lineage_seed at realize time so the
             # constructor sees the per-generation value (matches v1's
@@ -1088,7 +1170,7 @@ def _build_flow(config, load_sim_data, configs, classes, partitioned,
         # legacy _divide sentinel. The matching topology change is in
         # _build_topology (adds a ``mother_state`` wire when this is
         # configured).
-        if config.get('cell_as_composite_mode'):
+        if config.get("cell_as_composite_mode"):
             # cell_as_composite_mode is just a boolean flag — the actual
             # daughter wrap template and cell schema come from the
             # cell_division module-level cache (set via
@@ -1096,19 +1178,19 @@ def _build_flow(config, load_sim_data, configs, classes, partitioned,
             # because storing them in config would trigger the type
             # system to walk them as state (schema → nonsense inferred
             # types; wrap_template → recursive realize-as-process).
-            division_config['cell_as_composite_mode'] = True
+            division_config["cell_as_composite_mode"] = True
             # daughter_address inherited by every daughter and flows
             # transparently across generations.
-            division_config['daughter_address'] = config.get(
-                'daughter_address', 'local:Composite')
+            division_config["daughter_address"] = config.get(
+                "daughter_address", "local:Composite"
+            )
         configs["division"] = division_config
         classes["division"] = CompositeDivision
 
         if config.get("d_period"):
             configs["mark_d_period"] = {}
             classes["mark_d_period"] = MarkDPeriod
-            flow["mark_d_period"] = [
-                (f"unique_update_{unique_update_counter - 1}",)]
+            flow["mark_d_period"] = [(f"unique_update_{unique_update_counter - 1}",)]
             # Extra UniqueUpdate after MarkDPeriod
             uu_name = f"unique_update_{unique_update_counter}"
             configs[uu_name] = unique_params
@@ -1116,8 +1198,7 @@ def _build_flow(config, load_sim_data, configs, classes, partitioned,
             flow[uu_name] = [("mark_d_period",)]
             flow["division"] = [(uu_name,)]
         else:
-            flow["division"] = [
-                (f"unique_update_{unique_update_counter - 1}",)]
+            flow["division"] = [(f"unique_update_{unique_update_counter - 1}",)]
 
     return flow, configs, classes
 
@@ -1125,6 +1206,7 @@ def _build_flow(config, load_sim_data, configs, classes, partitioned,
 # ---------------------------------------------------------------------------
 # Initial state
 # ---------------------------------------------------------------------------
+
 
 def _get_initial_state(load_sim_data, config):
     """Get initial cell state from sim_data or a daughter handoff JSON.
@@ -1161,11 +1243,11 @@ def _get_initial_state(load_sim_data, config):
 def _apply_overrides(cell_state, config):
     """Apply ``initial_state_overrides`` files to a cell_state in place."""
     from ecoli.library.json_state import get_state_from_file
+
     overrides = config.get("initial_state_overrides", [])
     if overrides:
         bulk_map = {
-            bulk_id: row_id
-            for row_id, bulk_id in enumerate(cell_state["bulk"]["id"])
+            bulk_id: row_id for row_id, bulk_id in enumerate(cell_state["bulk"]["id"])
         }
     for override_file in overrides:
         override = get_state_from_file(path=f"data/{override_file}.json")
@@ -1200,7 +1282,7 @@ def _apply_overrides(cell_state, config):
 # multiple EcoliProcess objects with distinct ``agent_id`` values.
 
 
-_DEFAULT_CONFIG_PATH = 'configs/default.json'
+_DEFAULT_CONFIG_PATH = "configs/default.json"
 
 
 def _load_default_sim_config():
@@ -1210,11 +1292,13 @@ def _load_default_sim_config():
     """
     import json
     import os
-    if not hasattr(_load_default_sim_config, '_cache'):
+
+    if not hasattr(_load_default_sim_config, "_cache"):
         repo_root = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
         path = os.path.join(repo_root, _DEFAULT_CONFIG_PATH)
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             _load_default_sim_config._cache = json.load(f)
     return copy.deepcopy(_load_default_sim_config._cache)
 
@@ -1243,28 +1327,30 @@ def _resolve_sim_data(sim_data_path, parca_options):
         raise ValueError(
             "EcoliProcess: either 'sim_data_path' must point at an "
             "existing simData.cPickle, or 'parca_options' must be set "
-            "so parca can be run.")
+            "so parca can be run."
+        )
 
     # Run parca via the runscript helper. It writes simData.cPickle under
     # ``<outdir>/kb/`` and returns a content hash. We don't use the hash
     # here — first cut trusts the user's outdir as the cache key.
     from runscripts.parca import run_parca
 
-    outdir = parca_options.get('outdir', 'out')
+    outdir = parca_options.get("outdir", "out")
     if not is_cloud_uri(outdir):
         outdir = os.path.abspath(outdir)
         os.makedirs(outdir, exist_ok=True)
     parca_options = dict(parca_options)
-    parca_options['outdir'] = outdir
+    parca_options["outdir"] = outdir
     parca_options.setdefault(
-        'cache_dir',
-        os.path.join(outdir, 'cache')
-        if not is_cloud_uri(outdir) else os.path.join(os.getcwd(), 'parca_cache'))
-    if not is_cloud_uri(parca_options['cache_dir']):
-        os.makedirs(parca_options['cache_dir'], exist_ok=True)
+        "cache_dir",
+        os.path.join(outdir, "cache")
+        if not is_cloud_uri(outdir)
+        else os.path.join(os.getcwd(), "parca_cache"),
+    )
+    if not is_cloud_uri(parca_options["cache_dir"]):
+        os.makedirs(parca_options["cache_dir"], exist_ok=True)
 
-    resolved_path = os.path.join(
-        outdir, 'kb', constants.SERIALIZED_SIM_DATA_FILENAME)
+    resolved_path = os.path.join(outdir, "kb", constants.SERIALIZED_SIM_DATA_FILENAME)
     if os.path.exists(resolved_path):
         # Outdir already has a parca output — reuse it.
         return resolved_path
@@ -1289,24 +1375,31 @@ def _build_inner_sim_config(user_config, sim_data_path):
     for key, value in user_config.items():
         if value is None:
             continue
-        if key in sim_config and isinstance(sim_config[key], dict) and isinstance(value, dict):
+        if (
+            key in sim_config
+            and isinstance(sim_config[key], dict)
+            and isinstance(value, dict)
+        ):
             deep_merge(sim_config[key], value)
         else:
             sim_config[key] = value
 
-    sim_config['sim_data_path'] = sim_data_path
+    sim_config["sim_data_path"] = sim_data_path
 
     # Resolve process names → classes, topology overrides, process configs.
     # Reuse EcoliSim's helpers so registry lookup logic stays in one place.
     from ecoli.experiments.ecoli_master_sim import EcoliSim
+
     sim = EcoliSim(sim_config)
     sim.processes = sim._retrieve_processes(
-        sim.processes, sim.add_processes, sim.exclude_processes,
-        sim.swap_processes)
+        sim.processes, sim.add_processes, sim.exclude_processes, sim.swap_processes
+    )
     sim.topology = sim._retrieve_topology(
-        sim.topology, sim.processes, sim.swap_processes, sim.log_updates)
+        sim.topology, sim.processes, sim.swap_processes, sim.log_updates
+    )
     sim.process_configs = sim._retrieve_process_configs(
-        sim.process_configs, sim.processes)
+        sim.process_configs, sim.processes
+    )
     return sim.config
 
 
@@ -1316,16 +1409,16 @@ def _ecoli_bridge(agent_id):
     The cell state lives under ``agents.<agent_id>`` inside this Composite.
     """
     return {
-        'inputs': {
-            'external': ['agents', agent_id, 'boundary', 'external'],
-            'media_id': ['agents', agent_id, 'environment', 'media_id'],
-            'global_time': ['global_time'],
+        "inputs": {
+            "external": ["agents", agent_id, "boundary", "external"],
+            "media_id": ["agents", agent_id, "environment", "media_id"],
+            "global_time": ["global_time"],
         },
-        'outputs': {
-            'exchange': ['agents', agent_id, 'environment', 'exchange'],
-            'cell_mass': ['agents', agent_id, 'listeners', 'mass', 'cell_mass'],
-            'dry_mass': ['agents', agent_id, 'listeners', 'mass', 'dry_mass'],
-            'volume': ['agents', agent_id, 'listeners', 'mass', 'volume'],
+        "outputs": {
+            "exchange": ["agents", agent_id, "environment", "exchange"],
+            "cell_mass": ["agents", agent_id, "listeners", "mass", "cell_mass"],
+            "dry_mass": ["agents", agent_id, "listeners", "mass", "dry_mass"],
+            "volume": ["agents", agent_id, "listeners", "mass", "volume"],
         },
     }
 
@@ -1338,16 +1431,16 @@ def _ecoli_interface():
     schemas in ecoli/processes/{environment/exchange_data,metabolism}.py).
     """
     return {
-        'inputs': {
-            'external': 'map[quantity[millimolar]]',
-            'media_id': 'string',
-            'global_time': 'float',
+        "inputs": {
+            "external": "map[quantity[millimolar]]",
+            "media_id": "string",
+            "global_time": "float",
         },
-        'outputs': {
-            'exchange': 'map[integer]',
-            'cell_mass': 'float[fg]',
-            'dry_mass': 'float[fg]',
-            'volume': 'float[L]',
+        "outputs": {
+            "exchange": "map[integer]",
+            "cell_mass": "float[fg]",
+            "dry_mass": "float[fg]",
+            "volume": "float[L]",
         },
     }
 
@@ -1388,47 +1481,40 @@ class EcoliProcess(_Composite):
 
     config_schema = {
         # --- sim_data sourcing (one of these is required at initialize) ---
-        'sim_data_path': 'maybe[string]',
-        'parca_options': 'maybe[tree[node]]',
-
+        "sim_data_path": "maybe[string]",
+        "parca_options": "maybe[tree[node]]",
         # --- cell identity ---
-        'agent_id': 'string',
-        'seed': 'integer',
-        'time_step': 'float',
-        'initial_global_time': 'float',
-
+        "agent_id": "string",
+        "seed": "integer",
+        "time_step": "float",
+        "initial_global_time": "float",
         # --- media / condition ---
-        'media_id': 'string',
-        'fixed_media': 'string',
-        'condition': 'string',
-        'mar_regulon': 'boolean',
-        'amp_lysis': 'boolean',
-
+        "media_id": "string",
+        "fixed_media": "string",
+        "condition": "string",
+        "mar_regulon": "boolean",
+        "amp_lysis": "boolean",
         # --- bulk overrides on the loaded sim config ---
         # Anything in here is deep-merged onto configs/default.json before
         # build_ecoli_document is called. Use this to add antibiotics
         # processes, custom topology, etc. (mirrors the JSON-config path).
-        'sim_config': 'tree[node]',
-
+        "sim_config": "tree[node]",
         # --- initial state options ---
-        'initial_state': 'tree[node]',
-        'initial_state_file': 'maybe[string]',
-        'initial_state_overrides': 'list[string]',
-
+        "initial_state": "tree[node]",
+        "initial_state_file": "maybe[string]",
+        "initial_state_overrides": "list[string]",
         # --- division (handled internally if true) ---
-        'divide': 'boolean',
-
+        "divide": "boolean",
         # --- pass-throughs to Composite ---
-        'parallel_steps': 'boolean',
-        'parallel_workers': 'maybe[integer]',
-        'global_time_precision': 'maybe[float]',
-
+        "parallel_steps": "boolean",
+        "parallel_workers": "maybe[integer]",
+        "global_time_precision": "maybe[float]",
         # --- filled by ``initialize`` before delegating to Composite ---
-        'state': 'tree[node]',
-        'schema': 'schema',
-        'interface': {'inputs': 'schema', 'outputs': 'schema'},
-        'bridge': {'inputs': 'wires', 'outputs': 'wires'},
-        'run_steps_on_init': 'boolean',
+        "state": "tree[node]",
+        "schema": "schema",
+        "interface": {"inputs": "schema", "outputs": "schema"},
+        "bridge": {"inputs": "wires", "outputs": "wires"},
+        "run_steps_on_init": "boolean",
     }
 
     def initialize(self, config=None):
@@ -1440,6 +1526,7 @@ class EcoliProcess(_Composite):
         # ``sim_data_object_store`` that aren't in BASE_TYPES.
         # Idempotent for cores that already have the types.
         from ecoli.library.bigraph_types import ECOLI_TYPES
+
         try:
             self.core.register_types(ECOLI_TYPES)
         except Exception:
@@ -1458,16 +1545,25 @@ class EcoliProcess(_Composite):
         # unhelpful "process X is not known" because sim_data.condition_to_
         # doubling_time[''] raises KeyError, caught and re-raised by
         # get_config_by_name).
-        user_config = dict(cfg.get('sim_config') or {})
+        user_config = dict(cfg.get("sim_config") or {})
         for key in (
-                'agent_id', 'seed', 'time_step', 'initial_global_time',
-                'fixed_media', 'condition', 'mar_regulon', 'amp_lysis',
-                'initial_state', 'initial_state_file',
-                'initial_state_overrides', 'divide'):
+            "agent_id",
+            "seed",
+            "time_step",
+            "initial_global_time",
+            "fixed_media",
+            "condition",
+            "mar_regulon",
+            "amp_lysis",
+            "initial_state",
+            "initial_state_file",
+            "initial_state_overrides",
+            "divide",
+        ):
             value = cfg.get(key)
             if value is None:
                 continue
-            if isinstance(value, str) and value == '':
+            if isinstance(value, str) and value == "":
                 continue
             if isinstance(value, dict) and not value:
                 continue
@@ -1476,35 +1572,35 @@ class EcoliProcess(_Composite):
             user_config[key] = value
 
         sim_data_path = _resolve_sim_data(
-            cfg.get('sim_data_path'), cfg.get('parca_options'))
+            cfg.get("sim_data_path"), cfg.get("parca_options")
+        )
 
-        agent_id = str(cfg.get('agent_id') or '0')
+        agent_id = str(cfg.get("agent_id") or "0")
 
         # Build (or load) the inner state and stuff it into self._config so
         # Composite.initialize picks it up.
-        initial_state_file = cfg.get('initial_state_file')
+        initial_state_file = cfg.get("initial_state_file")
         if initial_state_file and os.path.isdir(initial_state_file):
             # Bundle reload path. Composite.load_bundle handles document
             # parsing; we replicate a minimal subset here so realize() runs
             # against the bundle's saved state.
             from process_bigraph.bundle import load_bundle
+
             document = load_bundle(initial_state_file, as_numpy=True)
-            loaded_state = document.get('state', {})
+            loaded_state = document.get("state", {})
             # Match v1: re-seed allocator_rng at each generation start.
             _reseed_allocator_rng(loaded_state, agent_id)
-            cfg['state'] = loaded_state
-            cfg.setdefault('schema', document.get('schema', {}))
+            cfg["state"] = loaded_state
+            cfg.setdefault("schema", document.get("schema", {}))
         else:
-            inner_sim_config = _build_inner_sim_config(
-                user_config, sim_data_path)
-            cfg['state'] = build_ecoli_document(self.core, inner_sim_config)
+            inner_sim_config = _build_inner_sim_config(user_config, sim_data_path)
+            cfg["state"] = build_ecoli_document(self.core, inner_sim_config)
 
-        cfg['bridge'] = _ecoli_bridge(agent_id)
-        cfg['interface'] = _ecoli_interface()
+        cfg["bridge"] = _ecoli_bridge(agent_id)
+        cfg["interface"] = _ecoli_interface()
 
         super().initialize(config)
 
 
 # Late import: ``os`` is used by the bundle-reload branch above.
 import os
-
