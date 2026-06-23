@@ -43,8 +43,8 @@ from ecoli.library.parquet_emitter import field_metadata, read_stacked_columns
 
 # DEFAULTS:
 
-# Default small molecules to plot (can be overridden by params["metabolites"]):
-PLOT_METABOLITES = ["ATP", "Pi"]
+# Default small molecules to plot (can be overridden by params["molecules"]):
+PLOT_MOLECULES = ["ATP", "Pi"]
 
 # Seed colors (shared by the left panels and the histograms):
 SEED_PALETTE = [
@@ -401,7 +401,7 @@ def plot(
             }
     """
     skip_gens = params.get("skip_n_gens", 2)
-    plot_metabolites = params.get("metabolites", PLOT_METABOLITES)
+    plot_molecules = params.get("molecules", PLOT_MOLECULES)
     listener_col = "listeners__small_molecule_counts__totalSmallMoleculeCounts"
 
     sm_ids = field_metadata(conn, config_sql, listener_col)
@@ -423,7 +423,7 @@ def plot(
 
     # Check that all listed metabolites are present in the metadata and can be plotted:
     species_to_plot: list[str] = []
-    for sm_id in plot_metabolites:
+    for sm_id in plot_molecules:
         species_list = resolve_species(sm_id, sm_ids)
         if not species_list:
             print(

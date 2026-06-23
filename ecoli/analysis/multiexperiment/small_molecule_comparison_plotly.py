@@ -63,8 +63,8 @@ from ecoli.library.small_molecule_analysis import (
 )
 
 # PLOT DEFAULTS:
-# Default highlight list if "highlight_metabolites" is not given in params:
-DEFAULT_HIGHLIGHT_METABOLITES = ["ATP", "Pi"]
+# Default highlight list if "highlight_molecules" is not given in params:
+DEFAULT_HIGHLIGHT_MOLECULES = ["ATP", "Pi"]
 
 # 8-way categorization (key, color, label, marker_size, opacity), keyed off the
 # Sim 1 sequestration state (mirrors the multiseed scatter's CATEGORY_COLORS):
@@ -389,7 +389,7 @@ def plot(
     variant_names: dict[str, str],
 ):
     skip_n_gens = params.get("skip_n_gens", 0)
-    highlight_list = params.get("highlight_metabolites", DEFAULT_HIGHLIGHT_METABOLITES)
+    highlight_list = params.get("highlight_molecules", DEFAULT_HIGHLIGHT_MOLECULES)
 
     # Determine the two experiments to compare:
     present = set(
@@ -422,7 +422,7 @@ def plot(
         print(f"No cells found in {label2}, skipping plot.")
         return
 
-    # Align on the species tracked by BOTH experiments.
+    # Align on the species tracked by both experiments:
     ids1 = list(data1["sm_ids"])
     ids2 = list(data2["sm_ids"])
     common_ids = sorted(set(ids1) & set(ids2))
@@ -511,12 +511,46 @@ def plot(
         print(f"\nSaved categorized plot: {name}")
 
     # Plot 2: highlighted small molecules of interest
+    # Print messages about the compartment tag options:
     highlight_set, messages = resolve_highlights(highlight_list, list(ids_plot))
     print("\nCOMPARTMENT TAG MESSAGES:")
     for msg in messages:
         print(msg)
     if not messages:
-        print("(no messages)")
+        print("No messages.")
+
+    # Print messages about the changes between the highlight_list and highlight_set:
+    untagged_highlight_list = [h[:-3] if "]" in h else h for h in highlight_list]
+    untagged_highlight_set = [h[:-3] if "]" in h else h for h in highlight_set]
+
+    if untagged_highlight_set != set(untagged_highlight_list):
+        all_ids_untagged = set([h[:-3] if "]" in h else h for h in ids])
+        print("\nHIGHLIGHT LIST UPDATES:")
+        print(f"  Original highlight list: {highlight_list}")
+        print(f"  Resolved highlight set: {sorted(highlight_set)}")
+        for sm_id in untagged_highlight_list:
+            if sm_id not in untagged_highlight_set:
+                if sm_id in all_ids_untagged:
+                    print(
+                        f"  - '{sm_id}' was removed from the highlight set "
+                        f"because it either had zero counts across both "
+                        f"simulations or the compartment tag passed through "
+                        f"was not valid (see messages above for valid compartment tags)."
+                    )
+                else:
+                    print(
+                        f"  - '{sm_id}' was removed from the highlight set "
+                        f"because it is likely not tracked tracked in either "
+                        f"simulation."
+                    )
+            else:
+                continue
+
+    else:
+        print(
+            "No updates had to be made to the user specified the small molecule highlight list, all molecules passed through have nonzero counts in"
+            " at least one simulation and have valid compartment tags."
+        )
 
     highlight_mask = np.array([sid in highlight_set for sid in ids_plot])
 

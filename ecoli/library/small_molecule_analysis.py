@@ -188,7 +188,7 @@ def resolve_highlights(highlight_entries, small_molecule_ids):
             if entry_tag not in tags:
                 messages.append(
                     f"'{entry}' has tag {entry_tag} which is not present in the "
-                    f"'small_molecule_ids' list; valid tags for {base} present "
+                    f"'small_molecule_ids' list passed through resolve_highlights(); valid tags for {base} present "
                     f"in the list passed through are ({', '.join(tags)})."
                 )
                 continue
@@ -203,7 +203,7 @@ def resolve_highlights(highlight_entries, small_molecule_ids):
                 messages.append(
                     f"NOTE: {base} also has {len(others)} other valid "
                     f"compartment tag(s) "
-                    f"({', '.join(base + t for t in others)}); change input "
+                    f"({', '.join(base + t for t in others)}) within the 'small_molecule_ids' list passed through; change input "
                     f"to '{base}' to plot all options for highlighting."
                 )
         else:
