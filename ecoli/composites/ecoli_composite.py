@@ -482,7 +482,37 @@ def build_ecoli_document(core, sim_config, load_sim_data=None, flat=False):
 
     # 9. Wire step layers (flow tokens + triggers)
     if flow:
-        wire_step_layers(cell_state, flow)
+        step_layers = wire_step_layers(cell_state, flow)
+
+        # 9a. Assign execution-order priorities so the engine's
+        # ``determine_steps`` cycle-fallback yields TOPOLOGICAL order.
+        #
+        # The flow-token dependency graph is acyclic on the tokens alone,
+        # but at runtime the full step network is CYCLIC: processes and
+        # steps share the ``bulk`` / ``unique`` / ``listeners`` stores, so
+        # build_step_network adds data-path back-edges among them. With a
+        # cyclic graph, ``determine_steps`` can never find a step whose
+        # inputs are all fulfilled and falls back to running the single
+        # highest-``priority`` remaining step (composite.py:819-826).
+        #
+        # We were leaving every step at a flat ``priority = 1.0``, so that
+        # fallback picked an essentially ARBITRARY step each cycle —
+        # scrambling the requester→allocator→evolver ordering. The
+        # polypeptide_initiation evolver then read its ``allocate`` store
+        # BEFORE allocator_2 processed the fresh request, was allocated 0
+        # ribosomal subunits every tick, made no new ribosomes, and
+        # translation collapsed to zero active ribosomes by ~tick 89.
+        #
+        # Mirror v2ecoli's ``inject_flow_dependencies``: give each edge a
+        # priority that strictly DECREASES with its execution-layer index,
+        # so the cycle-fallback always picks the earliest-scheduled step
+        # and the partition cascade runs in order every tick.
+        ordered = [name for lvl in sorted(step_layers) for name in step_layers[lvl]]
+        total = len(ordered)
+        for idx, name in enumerate(ordered):
+            edge = cell_state.get(name)
+            if isinstance(edge, dict) and ("priority" in edge or "interval" in edge):
+                edge["priority"] = float(total - idx)
 
     if flat:
         # Flat mode: caller is wrapping the cell as a Composite-as-
