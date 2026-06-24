@@ -15,6 +15,7 @@ from vivarium.core.process import Step
 from vivarium.library.units import units as vivunits
 
 from ecoli.library.schema import numpy_schema, bulk_name_to_idx, listener_schema, counts
+from reconstruction.ecoli.dataclasses.process.metabolism import REVERSE_TAG
 
 from wholecell.utils import units
 
@@ -48,7 +49,7 @@ BAD_RXNS = [
     "R15-RXN-MET/CPD-479//CPD-479/MET.25.",
     "TRANS-RXN-218",
     "TRANS-RXN0-601-PROTON//PROTON.15. (reverse)",
-    "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71."  # Commented on Heena's branch?
+    # "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71."  # Commented on Heena's branch?
     "DEPHOSICITDEHASE-RXN",
     "PHOSICITDEHASE-RXN",
     "GLYCOLALD-DEHYDROG-RXN",
@@ -262,6 +263,44 @@ class MetabolismReduxClassic(Step):
         # Cache uptake parameters from previous timestep
         self.allowed_exchange_uptake = None
 
+        # Get conversion matrix to compile individual fluxes in the FBA
+        # solution to the fluxes of base reactions
+        self.base_reaction_ids = self.parameters["base_reaction_ids"]
+        self.base_reaction_ids.append("maintenance_reaction")
+        fba_reaction_ids_to_base_reaction_ids = self.parameters[
+            "fba_reaction_ids_to_base_reaction_ids"
+        ]
+        fba_reaction_ids_to_base_reaction_ids["maintenance_reaction"] = (
+            "maintenance_reaction"
+        )
+        fba_reaction_id_to_index = {
+            rxn_id: i for (i, rxn_id) in enumerate(self.reaction_names)
+        }
+        base_reaction_id_to_index = {
+            rxn_id: i for (i, rxn_id) in enumerate(self.base_reaction_ids)
+        }
+        base_rxn_indexes = []
+        fba_rxn_indexes = []
+        v = []
+
+        for fba_rxn_id in self.reaction_names:
+            base_rxn_id = fba_reaction_ids_to_base_reaction_ids[fba_rxn_id]
+            base_rxn_indexes.append(base_reaction_id_to_index[base_rxn_id])
+            fba_rxn_indexes.append(fba_reaction_id_to_index[fba_rxn_id])
+            if fba_rxn_id.endswith(REVERSE_TAG):
+                v.append(-1)
+            else:
+                v.append(1)
+
+        base_rxn_indexes = np.array(base_rxn_indexes)
+        fba_rxn_indexes = np.array(fba_rxn_indexes)
+        v = np.array(v)
+        shape = (len(self.base_reaction_ids), len(self.reaction_names))
+
+        self.reaction_mapping_matrix = csr_matrix(
+            (v, (base_rxn_indexes, fba_rxn_indexes)), shape=shape
+        )
+
     def ports_schema(self):
         return {
             "bulk": numpy_schema("bulk"),
@@ -296,18 +335,32 @@ class MetabolismReduxClassic(Step):
                 # TODO: Not empty list default
                 "fba_results": listener_schema(
                     {
-                        "solution_fluxes": [],
-                        "solution_dmdt": [],
+                        "solution_fluxes": ([], self.reaction_names),
+                        "solution_dmdt": ([], self.metabolite_names),
                         "solution_residuals": [],
                         "time_per_step": 0.0,
                         "estimated_fluxes": [],
-                        "estimated_homeostatic_dmdt": [],
+                        "estimated_homeostatic_dmdt": (
+                            [],
+                            self.homeostatic_metabolites,
+                        ),
                         "target_homeostatic_dmdt": [],
+                        "homeostatic_metabolite_counts": (
+                            [],
+                            self.homeostatic_metabolites,
+                        ),
                         "estimated_exchange_dmdt": {},
                         "estimated_intermediate_dmdt": [],
-                        "target_kinetic_fluxes": [],
+                        "target_kinetic_fluxes": (
+                            [],
+                            self.kinetic_constraint_reactions,
+                        ),
                         "reaction_catalyst_counts": [],
                         "maintenance_target": 0,
+                        "base_reaction_fluxes": (
+                            [],
+                            self.parameters["base_reaction_ids"],
+                        ),
                     }
                 ),
                 "enzyme_kinetics": listener_schema(
@@ -522,8 +575,13 @@ class MetabolismReduxClassic(Step):
                     "solution_fluxes": solution.velocities,
                     "solution_dmdt": solution.dm_dt,
                     "reaction_catalyst_counts": reaction_catalyst_counts,
+                    "homeostatic_metabolite_counts": homeostatic_metabolite_counts,
+                    "base_reaction_fluxes": self.reaction_mapping_matrix.dot(
+                        estimated_reaction_fluxes
+                    ),
                     "time_per_step": time.time(),
-                }
+                },
+                "enzyme_kinetics": {"counts_to_molar": self.counts_to_molar.asNumber()},
             },
             "next_update_time": states["global_time"] + states["timestep"],
         }
