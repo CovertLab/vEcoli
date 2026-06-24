@@ -334,7 +334,7 @@ class ChromosomeReplication(PartitionedProcess):
             # Get indexes of the domains that would be getting child domains
             # (domains that contain an origin)
             new_parent_domains = np.where(
-                np.in1d(domain_index_existing_domain, domain_index_existing_oric)
+                np.isin(domain_index_existing_domain, domain_index_existing_oric)
             )[0]
 
             # Calculate counts of new replisomes and domains to add
