@@ -190,14 +190,15 @@ class TestBuildDuckdbFilter:
         """Test building filter with single string value"""
         config = {"experiment_id": ["test_exp"]}
         result = build_duckdb_filter(config)
-        expected = "experiment_id = 'test_exp'"
-        assert result == expected
+        assert result == [("experiment_id", "experiment_id = 'test_exp'")]
 
     def test_multiple_string_filters(self):
         """Test building filter with multiple string values"""
         config = {"experiment_id": ["exp1", "exp2", "exp3"]}
         result = build_duckdb_filter(config)
-        assert "experiment_id IN ('exp1', 'exp2', 'exp3')" == result
+        assert result == [
+            ("experiment_id", "experiment_id IN ('exp1', 'exp2', 'exp3')")
+        ]
 
     def test_single_int_filter(self):
         """Test building filter with single int value"""
@@ -205,7 +206,7 @@ class TestBuildDuckdbFilter:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             result = build_duckdb_filter(config)
-            assert result == "variant = 5"
+            assert result == [("variant", "variant = 5")]
             assert len(w) == 1
             assert "applicable data for the skipped" in str(w[0].message).lower()
 
@@ -215,7 +216,7 @@ class TestBuildDuckdbFilter:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             result = build_duckdb_filter(config)
-            assert "variant IN (0, 1, 2)" == result
+            assert result == [("variant", "variant IN (0, 1, 2)")]
             assert len(w) == 1
             assert "applicable data for the skipped" in str(w[0].message).lower()
 
@@ -227,10 +228,10 @@ class TestBuildDuckdbFilter:
             "lineage_seed": [42],
         }
         result = build_duckdb_filter(config)
-        assert "experiment_id = 'test_exp'" in result
-        assert "variant IN (0, 1)" in result
-        assert "lineage_seed = 42" in result
-        assert " AND " in result
+        assert ("experiment_id", "experiment_id = 'test_exp'") in result
+        assert ("variant", "variant IN (0, 1)") in result
+        assert ("lineage_seed", "lineage_seed = 42") in result
+        assert len(result) == 3
 
     def test_range_filter(self):
         """Test that range filters are converted to lists"""
@@ -238,7 +239,7 @@ class TestBuildDuckdbFilter:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             result = build_duckdb_filter(config)
-            assert "variant IN (0, 1, 2, 3, 4)" == result
+            assert result == [("variant", "variant IN (0, 1, 2, 3, 4)")]
             # Check that variant list was created in config
             assert config["variant"] == [0, 1, 2, 3, 4]
             assert len(w) == 1
@@ -258,7 +259,7 @@ class TestBuildDuckdbFilter:
                 "Range takes precedence" in str(warning.message) for warning in w
             )
 
-        assert "variant IN (0, 1, 2)" == result
+        assert result == [("variant", "variant IN (0, 1, 2)")]
         assert config["variant"] == [0, 1, 2]
 
     def test_skipped_filter_warning(self):
@@ -277,7 +278,7 @@ class TestBuildDuckdbFilter:
         """Test with no filters specified"""
         config = {}
         result = build_duckdb_filter(config)
-        assert result == ""
+        assert result == []
 
     def test_agent_id_string_filter(self):
         """Test agent_id string filtering"""
@@ -287,7 +288,7 @@ class TestBuildDuckdbFilter:
             result = build_duckdb_filter(config)
             assert len(w) == 1
             assert "applicable data for the skipped" in str(w[0].message).lower()
-            assert "agent_id IN ('agent_001', 'agent_002')" == result
+            assert result == [("agent_id", "agent_id IN ('agent_001', 'agent_002')")]
 
 
 class TestLoadVariantMetadata:
@@ -538,7 +539,7 @@ class TestBuildQueryStrings:
         # Create a mock connection that returns test data
         conn = MockConnection([("exp1", 0), ("exp1", 1)])
         analysis_type = "multiseed"  # Has id_cols = ["experiment_id", "variant"]
-        duckdb_filter = "experiment_id = 'exp1'"
+        duckdb_filter = [("experiment_id", "experiment_id = 'exp1'")]
         config_sql = "SELECT * FROM config"
         history_sql = "SELECT * FROM history"
         success_sql = "SELECT * FROM success"
@@ -562,7 +563,7 @@ class TestBuildQueryStrings:
 
         conn = MockConnection([("exp1", 0), ("exp1", 1)])
         analysis_type = "multiexperiment"  # Has id_cols = []
-        duckdb_filter = "experiment_id = 'exp1'"
+        duckdb_filter = [("experiment_id", "experiment_id = 'exp1'")]
         config_sql = "SELECT * FROM config"
         history_sql = "SELECT * FROM history"
         success_sql = "SELECT * FROM success"
@@ -578,16 +579,16 @@ class TestBuildQueryStrings:
             conn,
         )
 
-        # Should have single entry with the base filter
+        # Should have single entry with the joined filter string as key
         assert len(query_strings) == 1
-        assert duckdb_filter in query_strings
+        assert "experiment_id = 'exp1'" in query_strings
 
     def test_query_string_structure(self):
         """Test that query strings have correct structure"""
 
         conn = MockConnection([("exp1", 0)])
         analysis_type = "multiseed"
-        duckdb_filter = "experiment_id = 'exp1'"
+        duckdb_filter = [("experiment_id", "experiment_id = 'exp1'")]
         config_sql = "SELECT * FROM config"
         history_sql = "SELECT * FROM history"
         success_sql = "SELECT * FROM success"
@@ -624,7 +625,12 @@ class TestBuildQueryStrings:
         # generation is one level below and must survive into the per-subset SQL.
         conn = MockConnection([("exp1", 0, 42)])
         analysis_type = "multigeneration"
-        duckdb_filter = "experiment_id = 'exp1' AND variant = 0 AND lineage_seed = 42 AND generation = 5"
+        duckdb_filter = [
+            ("experiment_id", "experiment_id = 'exp1'"),
+            ("variant", "variant = 0"),
+            ("lineage_seed", "lineage_seed = 42"),
+            ("generation", "generation = 5"),
+        ]
 
         query_strings = build_query_strings(
             analysis_type,
@@ -648,7 +654,11 @@ class TestBuildQueryStrings:
         conn = MockConnection([("exp1", 0, 42)])
         analysis_type = "multigeneration"
         # All conditions are for id_cols — nothing lower-level.
-        duckdb_filter = "experiment_id = 'exp1' AND variant = 0 AND lineage_seed = 42"
+        duckdb_filter = [
+            ("experiment_id", "experiment_id = 'exp1'"),
+            ("variant", "variant = 0"),
+            ("lineage_seed", "lineage_seed = 42"),
+        ]
 
         query_strings = build_query_strings(
             analysis_type,
@@ -675,10 +685,12 @@ class TestBuildQueryStrings:
         # generation and agent_id are both lower-level for this analysis type.
         conn = MockConnection([("exp1", 0)])
         analysis_type = "multiseed"
-        duckdb_filter = (
-            "experiment_id = 'exp1' AND variant = 0"
-            " AND generation = 5 AND agent_id = 'agent_001'"
-        )
+        duckdb_filter = [
+            ("experiment_id", "experiment_id = 'exp1'"),
+            ("variant", "variant = 0"),
+            ("generation", "generation = 5"),
+            ("agent_id", "agent_id = 'agent_001'"),
+        ]
 
         query_strings = build_query_strings(
             analysis_type,
@@ -698,6 +710,39 @@ class TestBuildQueryStrings:
             # id_col values must still be pinned
             assert "experiment_id='exp1'" in sql
             assert "variant=0" in sql
+
+    def test_and_in_string_value_does_not_corrupt_lower_level_filter(self, tmp_path):
+        """A string filter value containing ' AND ' must not be mistaken for a
+        condition separator, which would corrupt lower-level filter extraction."""
+        # multiseed id_cols = ["experiment_id", "variant"]
+        # generation is lower-level; the experiment_id value itself contains ' AND '
+        conn = MockConnection([("treat AND control", 0)])
+        analysis_type = "multiseed"
+        duckdb_filter = [
+            ("experiment_id", "experiment_id = 'treat AND control'"),
+            ("variant", "variant = 0"),
+            ("generation", "generation = 5"),
+        ]
+
+        query_strings = build_query_strings(
+            analysis_type,
+            duckdb_filter,
+            "SELECT * FROM config",
+            "SELECT * FROM history",
+            "SELECT * FROM success",
+            str(tmp_path),
+            conn,
+        )
+
+        assert len(query_strings) == 1
+        history_q, config_q, success_q, _, _ = next(iter(query_strings.values()))
+        for sql in (history_q, config_q, success_q):
+            # The lower-level filter must be exactly the generation condition
+            assert "generation = 5" in sql
+            # The experiment_id value must be preserved intact
+            assert "experiment_id='treat AND control'" in sql
+            # The 'AND control' fragment must NOT appear as a spurious bare condition
+            assert sql.count("control") == 1
 
 
 class TestIntegration:
@@ -731,7 +776,10 @@ class TestIntegration:
 
         # Build filter
         duckdb_filter = build_duckdb_filter(config)
-        assert "experiment_id = 'test_exp' AND variant IN (0, 1)" == duckdb_filter
+        assert duckdb_filter == [
+            ("experiment_id", "experiment_id = 'test_exp'"),
+            ("variant", "variant IN (0, 1)"),
+        ]
 
         # Load metadata
         v_metadata, sim_data_dict, v_names = load_variant_metadata(config)
@@ -795,7 +843,7 @@ class TestRunAnalysisLoop:
             "SELECT * FROM history",
             "SELECT * FROM config",
             "SELECT * FROM success",
-            "experiment_id = 'test_exp'",
+            [("experiment_id", "experiment_id = 'test_exp'")],
             variant_metadata,
             sim_data_dict,
             variant_names,
@@ -828,7 +876,7 @@ class TestRunAnalysisLoop:
             "SELECT * FROM history",
             "SELECT * FROM config",
             "SELECT * FROM success",
-            "",
+            [],
             {},
             {},
             {},
@@ -857,7 +905,7 @@ class TestRunAnalysisLoop:
                 "SELECT * FROM history",
                 "SELECT * FROM config",
                 "SELECT * FROM success",
-                "",
+                [],
                 {},
                 {},
                 {},
@@ -887,7 +935,7 @@ class TestRunAnalysisLoop:
             "SELECT * FROM history",
             "SELECT * FROM config",
             "SELECT * FROM success",
-            "",
+            [],
             {},
             {},
             {},
@@ -929,7 +977,7 @@ class TestRunAnalysisLoop:
             "SELECT * FROM history",
             "SELECT * FROM config",
             "SELECT * FROM success",
-            "",
+            [],
             {},
             {},
             {},
@@ -1007,7 +1055,7 @@ class TestRunAnalysisLoop:
             "SELECT * FROM history",
             "SELECT * FROM config",
             "SELECT * FROM success",
-            "",
+            [],
             variant_metadata,
             sim_data_dict,
             variant_names,
@@ -1051,7 +1099,7 @@ def test_exit_code_propagation(monkeypatch, tmp_path):
         "SELECT * FROM history",
         "SELECT * FROM config",
         "SELECT * FROM success",
-        "experiment_id = 'test_exp'",
+        [("experiment_id", "experiment_id = 'test_exp'")],
         {},
         {},
         {},

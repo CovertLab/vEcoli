@@ -120,7 +120,7 @@ def make_sim_data_dict(exp_id: str, variants: list[int], sim_data_path: list[str
     return {exp_id: dict(zip(variants, sim_data_path))}
 
 
-def build_duckdb_filter(config: dict) -> str:
+def build_duckdb_filter(config: dict) -> list[tuple[str, str]]:
     """
     Build a DuckDB WHERE clause from config filters.
 
@@ -128,9 +128,11 @@ def build_duckdb_filter(config: dict) -> str:
         config: Configuration dictionary with filter values
 
     Returns:
-        DuckDB WHERE clause string
+        List of (column_name, condition_string) tuples representing each
+        filter condition. Join the condition strings with " AND " to form
+        a complete WHERE clause.
     """
-    duckdb_filter = []
+    duckdb_filter: list[tuple[str, str]] = []
     last_analysis_level = -1
     filter_types = list(FILTERS.keys())
 
@@ -166,20 +168,28 @@ def build_duckdb_filter(config: dict) -> str:
             if len(config[data_filter]) > 1:
                 if data_type is str:
                     filter_values = "', '".join(str(i) for i in config[data_filter])
-                    duckdb_filter.append(f"{data_filter} IN ('{filter_values}')")
+                    duckdb_filter.append(
+                        (data_filter, f"{data_filter} IN ('{filter_values}')")
+                    )
                 else:
                     filter_values = ", ".join(str(i) for i in config[data_filter])
-                    duckdb_filter.append(f"{data_filter} IN ({filter_values})")
+                    duckdb_filter.append(
+                        (data_filter, f"{data_filter} IN ({filter_values})")
+                    )
             else:
                 if data_type is str:
                     quoted_val = str(config[data_filter][0])
-                    duckdb_filter.append(f"{data_filter} = '{quoted_val}'")
+                    duckdb_filter.append(
+                        (data_filter, f"{data_filter} = '{quoted_val}'")
+                    )
                 else:
-                    duckdb_filter.append(f"{data_filter} = {config[data_filter][0]}")
+                    duckdb_filter.append(
+                        (data_filter, f"{data_filter} = {config[data_filter][0]}")
+                    )
 
             last_analysis_level = current_analysis_level
 
-    return " AND ".join(duckdb_filter)
+    return duckdb_filter
 
 
 def load_variant_metadata(
@@ -290,7 +300,7 @@ def filter_variant_dicts(
 
 def build_query_strings(
     analysis_type: str,
-    duckdb_filter: str,
+    duckdb_filter: list[tuple[str, str]],
     config_sql: str,
     history_sql: str,
     success_sql: str,
@@ -302,7 +312,8 @@ def build_query_strings(
 
     Args:
         analysis_type: Type of analysis (e.g., "multivariant", "single")
-        duckdb_filter: DuckDB WHERE clause
+        duckdb_filter: List of (column_name, condition_string) tuples from
+            build_duckdb_filter
         config_sql: SQL query for config data
         history_sql: SQL query for history data
         success_sql: SQL query for success data
@@ -314,6 +325,7 @@ def build_query_strings(
         (history_query, config_query, success_query, output_dir, variant_set)
     """
     id_cols = ANALYSIS_TYPES[analysis_type]
+    duckdb_filter_str = " AND ".join(cond for _, cond in duckdb_filter)
     query_strings = {}
 
     if len(id_cols) > 0:
@@ -326,7 +338,7 @@ def build_query_strings(
         select_cols = ", ".join(cols_to_select)
 
         data_ids_with_variants = conn.sql(
-            f"SELECT DISTINCT {select_cols} FROM ({config_sql}) WHERE {duckdb_filter}"
+            f"SELECT DISTINCT {select_cols} FROM ({config_sql}) WHERE {duckdb_filter_str}"
         ).fetchall()
 
         # Group by the id_cols to collect variants for each subset
@@ -341,13 +353,9 @@ def build_query_strings(
 
         # Extract lower-level filter conditions (columns not in id_cols) so
         # they are still applied in the per-subset SQL passed to analysis scripts.
-        lower_level_parts = []
-        if duckdb_filter:
-            for condition in duckdb_filter.split(" AND "):
-                col_name = condition.strip().split(" ")[0]
-                if col_name not in id_cols:
-                    lower_level_parts.append(condition.strip())
-        lower_level_filter = " AND ".join(lower_level_parts)
+        lower_level_filter = " AND ".join(
+            cond for col, cond in duckdb_filter if col not in id_cols
+        )
 
         for data_id, variant_set in id_to_variants.items():
             data_filters = []
@@ -378,13 +386,13 @@ def build_query_strings(
         # For analysis types with no id_cols, query all variants matching the filter
         all_variants = conn.sql(
             f"SELECT DISTINCT experiment_id, variant"
-            f" FROM ({config_sql}) WHERE {duckdb_filter}"
+            f" FROM ({config_sql}) WHERE {duckdb_filter_str}"
         ).fetchall()
         variant_set = set(all_variants)
-        query_strings[duckdb_filter] = (
-            f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter}",
-            f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter}",
-            f"SELECT * FROM ({success_sql}) WHERE {duckdb_filter}",
+        query_strings[duckdb_filter_str] = (
+            f"SELECT * FROM ({history_sql}) WHERE {duckdb_filter_str}",
+            f"SELECT * FROM ({config_sql}) WHERE {duckdb_filter_str}",
+            f"SELECT * FROM ({success_sql}) WHERE {duckdb_filter_str}",
             os.path.abspath(outdir),
             variant_set,
         )
@@ -398,7 +406,7 @@ def run_analysis_loop(
     history_sql: str,
     config_sql: str,
     success_sql: str,
-    duckdb_filter: str,
+    duckdb_filter: list[tuple[str, str]],
     variant_metadata: dict,
     sim_data_dict: dict,
     variant_names: dict,
@@ -412,7 +420,8 @@ def run_analysis_loop(
         history_sql: SQL query for history data
         config_sql: SQL query for config data
         success_sql: SQL query for success data
-        duckdb_filter: DuckDB WHERE clause for filtering data
+        duckdb_filter: List of (column_name, condition_string) tuples from
+            build_duckdb_filter
         variant_metadata: Variant metadata dictionary
         sim_data_dict: Sim data dictionary
         variant_names: Variant names dictionary
