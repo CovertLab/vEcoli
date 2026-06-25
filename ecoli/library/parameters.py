@@ -1,14 +1,9 @@
-import os
-import pandas as pd
 from collections import namedtuple
 import numpy as np
 from scipy import constants
 
 from vivarium.library.topology import get_in, assoc_path
 from vivarium.library.units import units
-
-from wholecell.utils.filepath import ROOT_PATH
-from ecoli.library.cell_wall.column_sampler import fit_strand_term_p
 
 
 class Parameter:
@@ -262,13 +257,13 @@ PARAMETER_DICT = {
         ),
     },
     "cell_wall": {
-        "strand_length_data": Parameter(
-            os.path.join(
-                ROOT_PATH,
-                "reconstruction/ecoli/flat/cell_wall/murein_strand_length_distribution.csv",
-            ),
-            "Obermann, W., & Höltje, J. (1994).",
-        ),
+        # ``strand_term_p`` (fitted from the Obermann & Höltje 1994 murein
+        # strand-length distribution) used to live here as a derivation
+        # rule reading reconstruction/ecoli/flat/cell_wall/...csv. With the
+        # bundle migration it now flows through sim_data: ParCa runs the
+        # fit at ``sim_data.process.antibiotics.cell_wall.strand_term_p``,
+        # and the ecoli-cell-wall / ecoli-pbp-binding runtime processes
+        # receive the value via ``LoadSimData.get_<process>_config``.
         "upper_mean": Parameter(
             45, "Vollmer, W., Blanot, D., & De Pedro, M. A. (2008)."
         ),
@@ -491,14 +486,9 @@ DERIVATION_RULES = {
             )
         ),
     ),
-    ("cell_wall", "strand_term_p"): lambda params: Parameter(
-        fit_strand_term_p(
-            pd.read_csv(
-                params.get(("cell_wall", "strand_length_data")),
-            ),
-            params.get(("cell_wall", "upper_mean")),
-        )
-    ),
+    # ``("cell_wall", "strand_term_p")`` is now sourced from sim_data via
+    # ``LoadSimData.get_cell_wall_config`` / ``get_pbp_binding_config``;
+    # see the ``cell_wall`` block above for the full migration note.
 }
 
 param_store = ParameterStore(PARAMETER_DICT, DERIVATION_RULES)

@@ -80,10 +80,9 @@ def fitSimData_1(raw_data, **kwargs):
                     expression is not fit to protein synthesis demands
             cache_dir (str) - path to the directory to save cached data for
                     affinities of RNAs binding to endoRNases
-            rnaseq_manifest_path (str or None) - path to RNA-seq manifest TSV;
-                    if None, use legacy raw_data.rna_seq_data tables
-            rnaseq_basal_dataset_id (str or None) - dataset_id from manifest to
-                    use as basal transcriptome; required if rnaseq_manifest_path is set
+            bundle_manifest_path (str or None) - path to ecoli-sources bundle
+                    manifest TSV. If None, defaults to ecoli_sources.BUNDLE_PATH
+                    (the reference bundle shipped with the installed package).
             basal_expression_condition (str) - modeled condition name for
                     the baseline growth state (default: "M9 Glucose minus AAs",
                     defined in configs/default.json)
@@ -199,8 +198,7 @@ def initialize(sim_data, cell_specs, raw_data=None, **kwargs):
     sim_data.initialize(
         raw_data=raw_data,
         basal_expression_condition=kwargs.get("basal_expression_condition"),
-        rnaseq_manifest_path=kwargs.get("rnaseq_manifest_path"),
-        rnaseq_basal_dataset_id=kwargs.get("rnaseq_basal_dataset_id"),
+        bundle_manifest_path=kwargs.get("bundle_manifest_path"),
         rnaseq_fill_missing_genes_from_ref=kwargs.get(
             "rnaseq_fill_missing_genes_from_ref", True
         ),

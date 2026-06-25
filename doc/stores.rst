@@ -82,8 +82,8 @@ with the following named fields:
 
     1. ``id`` (:py:class:`str`): Names of bulk molecules pulled from `EcoCyc <https://ecocyc.org/>`_
         Each end with a bracketed "location tag" (e.g. ``[c]``) containing
-        one of the abbreviations defined in the
-        ``reconstruction/ecoli/flat/compartments.tsv`` file (see
+        one of the abbreviations defined in the bundle's ``compartments`` canonical
+        key (sourced from ``ecoli-sources``; see :doc:`data_ingestion`) and the
         `Cell Component Ontology <http://brg.ai.sri.com/CCO/downloads/cco.html>`_)
     2. ``count`` (:py:attr:`numpy.int64`): Counts of bulk molecules
         Note that the :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state`

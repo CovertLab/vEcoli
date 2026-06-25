@@ -44,6 +44,7 @@ def run_parca(config):
         remove_rrff=config["remove_rrff"],
         stable_rrna=config["stable_rrna"],
         new_genes_option=config["new_genes"],
+        bundle_manifest_path=config["bundle_manifest_path"],
     )
     print(f"{time.ctime()}: Saving raw_data")
     with fsspec_open(raw_data_file, "wb") as f:
@@ -62,8 +63,7 @@ def run_parca(config):
         disable_ribosome_capacity_fitting=(not config["ribosome_fitting"]),
         disable_rnapoly_capacity_fitting=(not config["rnapoly_fitting"]),
         cache_dir=config["cache_dir"],
-        rnaseq_manifest_path=config["rnaseq_manifest_path"],
-        rnaseq_basal_dataset_id=config["rnaseq_basal_dataset_id"],
+        bundle_manifest_path=config["bundle_manifest_path"],
         basal_expression_condition=config["basal_expression_condition"],
         rnaseq_fill_missing_genes_from_ref=config["rnaseq_fill_missing_genes_from_ref"],
     )
@@ -186,16 +186,12 @@ def main():
         " Usually set this consistently between runParca and runSim.",
     )
     parser.add_argument(
-        "--rnaseq-manifest-path",
+        "--bundle-manifest-path",
         type=str,
-        help="Path to RNA-seq manifest TSV. If set, ParCa uses the new"
-        " ingestion layer instead of legacy raw_data tables.",
-    )
-    parser.add_argument(
-        "--rnaseq-basal-dataset-id",
-        type=str,
-        help="dataset_id from manifest to use as basal transcriptome."
-        " Required if --rnaseq-manifest-path is set.",
+        help="Path to an ecoli-sources data bundle manifest TSV"
+        " (canonical_key -> source_path). Defaults to the reference"
+        " bundle shipped in the installed ecoli-sources package"
+        " (ecoli_sources.BUNDLE_PATH).",
     )
     parser.add_argument(
         "--basal-expression-condition",
@@ -208,10 +204,27 @@ def main():
     args = parser.parse_args()
     with open(config_file, "r") as f:
         config = json.load(f)
+    # Canonical ParCa option schema, captured before any user-config merge.
+    parca_option_keys = set(config["parca_options"].keys())
     if args.config is not None:
         config_file = args.config
         with fsspec_open(os.path.join(args.config), "r") as f:
             SimConfig.merge_config_dicts(config, json.load(f))
+    # Fail-fast on the silent-no-op footgun: a ParCa option key placed at
+    # the top level of the user config (instead of nested under `parca_options`)
+    # is otherwise ignored and silently falls back to the default. Workflow
+    # JSONs that don't re-run ParCa are still allowed to carry these keys at
+    # top level — that path goes through the `sim_data_path` short-circuit
+    # below and never reaches `run_parca`.
+    if config.get("sim_data_path") is None:
+        misplaced = sorted(set(config.keys()) & parca_option_keys)
+        if misplaced:
+            raise ValueError(
+                f"ParCa option(s) {misplaced} found at the top level of the"
+                f" merged config (likely from {config_file}). These keys"
+                f" belong under the `parca_options` block. Move them inside"
+                f" `parca_options` to avoid silent fallback to defaults."
+            )
     # ParCa options are defined under `parca_options` key in config JSON
     # Merge these with CLI arguments, which take precedence
     parca_options = config.pop("parca_options")

@@ -22,8 +22,6 @@ RESPONSE_GENES_PATH = (
     "ecoli/analysis/antibiotics_colony/subgen_gene_plots/"
     + "antibiotic_response_genes.txt"
 )
-# rnas.tsv file is from the release version of wcEcoli
-RNAS_TSV_PATH = "reconstruction/ecoli/flat/rnas.tsv"
 SIM_DATA_PATH = "out/kb/simData.cPickle"
 
 
@@ -53,12 +51,18 @@ def count_antibiotic_subgen(data):
     sim_data = pickle.load(open(SIM_DATA_PATH, "rb"))
     # Get indices of antibiotic response genes in mRNA count array
     all_TU_ids = sim_data.process.transcription.rna_data["id"]
-    rnas = pd.read_csv(RNAS_TSV_PATH, sep="\t", comment="#")
+    cistron_data = sim_data.process.transcription.cistron_data
+    common_name_to_cistron_id = dict(
+        zip(cistron_data["common_name"], cistron_data["id"])
+    )
     response_genes = pd.read_csv(RESPONSE_GENES_PATH, header=None)
     response_genes.rename(columns={0: "common_name"}, inplace=True)
-    response_rnas = rnas.merge(response_genes, how="inner", on="common_name")
-    response_rnas["id"] = response_rnas["id"].apply(lambda x: f"{x}[c]")
-    response_TU_ids = np.where(np.isin(all_TU_ids, response_rnas["id"]))[0]
+    response_cistron_ids = [
+        f"{common_name_to_cistron_id[name]}[c]"
+        for name in response_genes["common_name"]
+        if name in common_name_to_cistron_id
+    ]
+    response_TU_ids = np.where(np.isin(all_TU_ids, response_cistron_ids))[0]
 
     data_columns = ~np.isin(data.columns, ["Agent ID", "Time"])
     n_agents = len(data.loc[:, "Agent ID"].unique())

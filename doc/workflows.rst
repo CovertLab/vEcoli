@@ -52,17 +52,20 @@ ParCa
 -----
 
 The parameter calculator (or ParCa) is a Python script that performs certain computations
-on raw, curated experimental data (located in the ``reconstruction/ecoli/flat`` folder)
-to generate the parameters expected by processes in our model. It packages these parameters
-in a pickled :py:class:`~reconstruction.ecoli.simulation_data.SimulationDataEcoli` object
-whose path must be given via the ``sim_data_path`` configuration option to all runscripts
-in ``runscripts/`` and to experiment modules in ``ecoli/experiments`` (default used by
+on raw, curated experimental data (sourced from the ``ecoli-sources`` reference bundle —
+see :doc:`data_ingestion`) to generate the parameters expected by processes in our model.
+It packages these parameters in a pickled
+:py:class:`~reconstruction.ecoli.simulation_data.SimulationDataEcoli` object whose path
+must be given via the ``sim_data_path`` configuration option to all runscripts in
+``runscripts/`` and to experiment modules in ``ecoli/experiments`` (default used by
 :py:mod:`runscripts.workflow` is :py:mod:`~ecoli.experiments.ecoli_master_sim`).
 
-The code responsible for loading data from the raw flat files is contained in
-:py:class:`~reconstruction.ecoli.knowledge_base_raw.KnowledgeBaseEcoli`. The actual logic
-of the ParCa is mostly contained within a single file: :py:mod:`~reconstruction.ecoli.fit_sim_data_1`.
-The main interface for running the ParCa is :py:mod:`runscripts.parca`.
+The code responsible for loading data from the bundle is contained in
+:py:class:`~reconstruction.ecoli.knowledge_base_raw.KnowledgeBaseEcoli`, which resolves
+each canonical key through :py:class:`~wholecell.io.sources.SourceBundle`. The actual
+logic of the ParCa is mostly contained within a single file:
+:py:mod:`~reconstruction.ecoli.fit_sim_data_1`. The main interface for running the
+ParCa is :py:mod:`runscripts.parca`.
 
 Configuration
 =============
@@ -80,9 +83,10 @@ Configuration options for the ParCa are all located in a dictionary under the
 - ``stable_rrna``: If True, set degradation rates of mature rRNAs
   to the values calculated from the half-life in sim_data.constants. If False,
   set degradation rates of mature rRNAs to the average reported degradation rates of mRNAs.
-- ``new_genes``: String folder name in ``reconstruction/ecoli/flat/new_gene_data``
-  containing necessary flat files to add new gene(s) to the model (see templates in
-  ``reconstruction/ecoli/flat/new_gene_data/template``). By default, ``off`` does
+- ``new_genes``: String folder name under ``new_gene_data/`` in the bundle's data tree
+  (i.e. ``ecoli_sources/data/flat/new_gene_data/<name>/`` in the installed
+  ``ecoli-sources`` package) containing necessary flat files to add new gene(s) to
+  the model (see templates in the ``template`` subdir). By default, ``off`` does
   nothing (no new genes).
 - ``debug_parca``: If True, fit only one arbitrarily-chosen transcription
   factor in order to speed up a debug cycle.
@@ -107,18 +111,19 @@ Configuration options for the ParCa are all located in a dictionary under the
   for transcription.
 - ``variable_elongation_translation``: If True, enable variable elongation
   for translation.
-- ``rnaseq_manifest_path``: Path to an RNA-seq manifest TSV file listing available
-  datasets. If null (default), ParCa uses the legacy ``raw_data.rna_seq_data`` tables.
-  See ``experimental_data/rnaseq/manifest.tsv`` for the expected format.
-- ``rnaseq_basal_dataset_id``: The ``dataset_id`` from the manifest to use as the
-  basal transcriptome. Required if ``rnaseq_manifest_path`` is set.
-- ``basal_expression_condition``: When using the legacy code path
-  (``rnaseq_manifest_path`` is null), this must match a column name in the reference
-  RNA-seq tables under ``reconstruction/ecoli/flat/rna_seq_data/`` (e.g.
-  ``"M9 Glucose minus AAs"``, ``"M9 Glucose plus AAs"``). When using the
-  manifest-based path, it is only used to fill missing genes from the reference table
-  (when ``rnaseq_fill_missing_genes_from_ref`` is true). Default is
-  ``"M9 Glucose minus AAs"``.
+- ``bundle_manifest_path``: Path to an ``ecoli-sources`` data bundle
+  manifest TSV (``canonical_key`` → ``source_path``). If null (default),
+  ParCa resolves the bundle to ``ecoli_sources.BUNDLE_PATH`` — the
+  reference bundle shipped with the installed ``ecoli-sources`` package.
+  Set this to point ParCa at a custom or variant bundle. See
+  :doc:`data_ingestion` for the consumer-side data ingestion model.
+- ``basal_expression_condition``: Modeled condition name for the
+  baseline growth state (default: ``"M9 Glucose minus AAs"``). Used to
+  fill missing genes from the basal RNA-seq table when
+  ``rnaseq_fill_missing_genes_from_ref`` is true.
+- ``rnaseq_fill_missing_genes_from_ref``: If true, genes present in the
+  basal RNA-seq table but missing from the experimental table are
+  cross-filled from the basal. Default: true.
 
 .. warning::
   **Omit from workflow configs:** ``parca_options --> outdir``

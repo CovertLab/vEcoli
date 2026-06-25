@@ -609,6 +609,8 @@ class LoadSimData:
             "exchange_data": self.get_exchange_data_config,
             "media_update": self.get_media_update_config,
             "bulk-timeline": self.get_bulk_timeline_config,
+            "ecoli-cell-wall": self.get_cell_wall_config,
+            "ecoli-pbp-binding": self.get_pbp_binding_config,
         }
 
         try:
@@ -1785,6 +1787,36 @@ class LoadSimData:
             "timeline": {
                 time: {("media_id",): media_id} for time, media_id in current_timeline
             },
+        }
+
+    def get_cell_wall_config(self, time_step=1):
+        """Hand bundle-derived cell-wall reference data to the
+        ``ecoli-cell-wall`` runtime process.
+
+        Currently surfaces ``strand_term_p`` (fitted at ParCa time from
+        the murein strand-length distribution). Other cell-wall physical
+        constants (``cell_radius``, ``critical_radius``, etc.) remain
+        in ``ecoli.library.parameters.param_store`` because they are
+        pure literature constants without a flat-file source.
+
+        ``time_step`` is intentionally omitted from the returned dict so
+        the cell_wall process's own default (10 s) is preserved through
+        the deep-merge in ``ecoli_master``; LoadSimData shouldn't impose
+        the sim-level time_step on a process with independent cadence.
+        """
+        del time_step  # see docstring
+        return {
+            "strand_term_p": self.sim_data.process.antibiotics.cell_wall.strand_term_p,
+        }
+
+    def get_pbp_binding_config(self, time_step=1):
+        """Hand bundle-derived cell-wall reference data to the
+        ``ecoli-pbp-binding`` runtime process. See
+        ``get_cell_wall_config`` for the namespace and time_step rationale.
+        """
+        del time_step  # see get_cell_wall_config
+        return {
+            "strand_term_p": self.sim_data.process.antibiotics.cell_wall.strand_term_p,
         }
 
     def generate_initial_state(self):

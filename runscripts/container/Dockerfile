@@ -21,7 +21,8 @@ RUN echo "alias ls='ls --color=auto'" >> ~/.bashrc \
 # g++ greatly improves performance of GillesPy2
 # ca-certificates and unzip necessary for AWS CLI installation
 # AWS CLI installation necessary for Nextflow's AWS Batch executor
-RUN apt-get update && apt-get install -y gcc procps nano curl g++ ca-certificates unzip \
+# git is required by uv to fetch git-pinned dependencies (ecoli-sources)
+RUN apt-get update && apt-get install -y gcc procps nano curl g++ ca-certificates unzip git \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install AWS CLI v2 for S3 access in AWS Batch (supports both x86_64 and ARM64)

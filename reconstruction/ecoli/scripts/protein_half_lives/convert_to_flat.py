@@ -2,6 +2,14 @@
 Extracts protein half-lives from Supplementary Table S2 of Nagar et. al.,
 "Harnessing Machine Learning to Unravel Protein Degradation in Escherichia coli"
 (2021).
+
+Migration note (2026-05-06): non-functional after the data bundle migration
+(vEcoli #6, ecoli-sources #1). The legacy ``reconstruction/ecoli/flat/`` and
+``experimental_data/rnaseq/`` directories this script read from / wrote to
+have been deleted; curated data now lives in
+``vivarium-collective/ecoli-sources``. Migrating this script alongside the
+rest of ``reconstruction/ecoli/scripts/`` is tracked at
+https://github.com/vivarium-collective/ecoli-sources/issues/2.
 """
 
 import io

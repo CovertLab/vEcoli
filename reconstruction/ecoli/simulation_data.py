@@ -47,20 +47,17 @@ class SimulationDataEcoli(object):
         self,
         raw_data,
         basal_expression_condition,
-        rnaseq_manifest_path=None,
-        rnaseq_basal_dataset_id=None,
+        bundle_manifest_path=None,
         rnaseq_fill_missing_genes_from_ref=True,
     ):
-        # Validate RNA-seq config (early, clear errors)
-        if rnaseq_manifest_path is not None:
-            if rnaseq_basal_dataset_id is None:
-                raise ValueError(
-                    "rnaseq_basal_dataset_id is required when rnaseq_manifest_path is set."
-                )
-            if not os.path.isfile(rnaseq_manifest_path):
-                raise FileNotFoundError(
-                    f"rnaseq_manifest_path not found: {rnaseq_manifest_path}"
-                )
+        # Validate bundle manifest path early if explicitly set; None means
+        # default to ecoli_sources.BUNDLE_PATH at consumer site.
+        if bundle_manifest_path is not None and not os.path.isfile(
+            bundle_manifest_path
+        ):
+            raise FileNotFoundError(
+                f"bundle_manifest_path not found: {bundle_manifest_path}"
+            )
 
         self.operons_on = raw_data.operons_on
         self.stable_rrna = raw_data.stable_rrna
@@ -72,9 +69,10 @@ class SimulationDataEcoli(object):
         # TODO: Check that media condition is valid
         self.basal_expression_condition = basal_expression_condition
 
-        # RNA-seq ingestion config (None = use legacy raw_data tables)
-        self.rnaseq_manifest_path = rnaseq_manifest_path
-        self.rnaseq_basal_dataset_id = rnaseq_basal_dataset_id
+        # ecoli-sources data bundle (None = default to ecoli_sources.BUNDLE_PATH
+        # at consumer site). Carries through to consumers as a path; they each
+        # construct a SourceBundle from it.
+        self.bundle_manifest_path = bundle_manifest_path
         self.rnaseq_fill_missing_genes_from_ref = rnaseq_fill_missing_genes_from_ref
 
         self._add_molecular_weight_keys(raw_data)

@@ -102,11 +102,22 @@ def get_length_distributions(lattice):
     return gap_lengths, strand_lengths
 
 
-def plot_strand_length_distribution(lengths):
+def plot_strand_length_distribution(lengths, strand_length_distribution):
+    """Plot the strand-length distribution.
+
+    Parameters
+    ----------
+    lengths
+        Simulated strand lengths (or empty to skip the simulation overlay).
+    strand_length_distribution
+        Experimental reference distribution as a list of dicts with
+        ``Strain``, ``Length``, ``Percent`` keys (sourced from
+        ``sim_data.process.antibiotics.cell_wall.strand_length_distribution``).
+    """
     # Plot experimental data first
-    df = pd.read_csv(
-        "reconstruction/ecoli/flat/cell_wall/murein_strand_length_distribution.csv"
-    )
+    df = pd.DataFrame(strand_length_distribution)
+    # CSV-loaded values are strings; coerce numeric columns for the math below.
+    df["Percent"] = df["Percent"].astype(float)
 
     fig, ax = plt.subplots()
     X = np.arange(1, 32, 1)
@@ -191,13 +202,25 @@ def porosity(lattice):
 
 
 def test_strand_length_plots():
+    import pickle
+
     rng = np.random.default_rng(0)
     lattice = sample_lattice(450000 * 4, 3050, 700, geom_sampler(rng, 0.058), rng)
 
     os.makedirs("out/processes/cell_wall/", exist_ok=True)
 
+    # Load the experimental reference distribution from sim_data.
+    # Smoke test assumes a default ParCa run has produced simData.cPickle.
+    with open("out/kb/simData.cPickle", "rb") as f:
+        sim_data = pickle.load(f)
+    strand_length_distribution = (
+        sim_data.process.antibiotics.cell_wall.strand_length_distribution
+    )
+
     strand_lengths, _ = get_length_distributions(lattice)
-    fig, _ = plot_strand_length_distribution(strand_lengths)
+    fig, _ = plot_strand_length_distribution(
+        strand_lengths, strand_length_distribution
+    )
     fig.tight_layout()
     fig.savefig("out/processes/cell_wall/test_strand_length_plot.png")
 

@@ -18,10 +18,11 @@ Its main benefits over the original model are:
 4. **Google Cloud support:** workflows too large to run on a local machine
     can be easily run on Google Cloud
 
-As in wcEcoli, [raw experimental data](reconstruction/ecoli/flat) is first processed
-by the parameter calculator or [ParCa](reconstruction/ecoli/fit_sim_data_1.py) to calculate 
-model parameters (e.g. transcription probabilities). These parameters are used to configure
-[processes](ecoli/processes) that are linked together into a
+Raw experimental data lives in [`vivarium-collective/ecoli-sources`](https://github.com/vivarium-collective/ecoli-sources)
+as a curated reference bundle (see [doc/data_ingestion.rst](doc/data_ingestion.rst)). The
+parameter calculator or [ParCa](reconstruction/ecoli/fit_sim_data_1.py) reads from that
+bundle to calculate model parameters (e.g. transcription probabilities). These parameters
+are used to configure [processes](ecoli/processes) that are linked together into a
 [complete simulation](ecoli/experiments/ecoli_master_sim.py).
 
 ## Setup

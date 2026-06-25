@@ -1,8 +1,9 @@
 """
 Simulation data manual adjustments necessary for proper metabolism.
 
-Raw tsv files in 'reconstruction/ecoli/flat/adjustments'
-
+Raw tsv files are sourced from the ``ecoli-sources`` reference bundle under
+canonical keys ``adjustments__*``; ParCa loads them onto
+``raw_data.adjustments.<file>`` via the bundle resolver.
 """
 
 

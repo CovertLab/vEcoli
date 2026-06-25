@@ -16,7 +16,8 @@ import sympy as sp
 from reconstruction.ecoli.dataclasses.getter_functions import EXCLUDED_RNA_TYPES
 from .replication import MAX_TIMESTEP
 from ecoli.library.schema import bulk_name_to_idx, counts
-from wholecell.io.ingestion import ingest_transcriptome
+from wholecell.io.ingestion import ingest_rnaseq_tpm_table
+from wholecell.io.sources import SourceBundle
 from wholecell.utils import data, fitting, units
 import warnings
 from wholecell.utils.fast_nonnegative_least_squares import fast_nnls
@@ -26,7 +27,6 @@ from wholecell.utils.polymerize import polymerize
 from wholecell.utils.random import make_elongation_rates
 
 
-RNA_SEQ_ANALYSIS = "rsem_tpm"
 PPGPP_CONC_UNITS = units.umol / units.L
 PRINT_VALUES = False  # print values for supplemental table if True
 
@@ -453,12 +453,18 @@ class Transcription(object):
 
         max_cistron_id_length = max(len(rna["id"]) for rna in all_cistrons)
         max_gene_id_length = max(len(id_) for id_ in gene_id)
+        # ``common_name`` is null in rnas.tsv for a small number of cistrons
+        # (e.g. unnamed mRNAs that survive the EXCLUDED_RNA_TYPES filter).
+        # Coerce None -> "" so it round-trips through the unicode column.
+        common_names = [(rna["common_name"] or "") for rna in all_cistrons]
+        max_common_name_length = max(len(name) for name in common_names) or 1
 
         cistron_data = np.zeros(
             n_cistrons,
             dtype=[
                 ("id", "U{}".format(max_cistron_id_length)),
                 ("gene_id", "U{}".format(max_gene_id_length)),
+                ("common_name", "U{}".format(max_common_name_length)),
                 ("length", "i8"),
                 ("replication_coordinate", "i8"),
                 ("is_forward", "bool"),
@@ -480,6 +486,7 @@ class Transcription(object):
 
         cistron_data["id"] = [rna["id"] for rna in all_cistrons]
         cistron_data["gene_id"] = gene_id
+        cistron_data["common_name"] = common_names
         cistron_data["length"] = cistron_lengths
         cistron_data["replication_coordinate"] = replication_coordinate
         cistron_data["is_forward"] = is_forward
@@ -500,6 +507,7 @@ class Transcription(object):
         cistron_field_units = {
             "id": None,
             "gene_id": None,
+            "common_name": None,
             "length": units.nt,
             "replication_coordinate": None,
             "is_forward": None,
@@ -519,6 +527,17 @@ class Transcription(object):
         }
 
         self.cistron_data = UnitStructArray(cistron_data, cistron_field_units)
+        # Map cistron_id -> list of synonyms (gene names, locus tags, etc.).
+        # Variable-length per row, so kept as a dict alongside the structured
+        # array rather than as a fixed-width column.
+        self.cistron_id_to_synonyms: dict[str, list[str]] = {
+            rna["id"]: list(rna["synonyms"]) for rna in all_cistrons
+        }
+        # Map cistron_id -> list of monomer IDs encoded by the cistron.
+        # Same shape rationale as ``cistron_id_to_synonyms``.
+        self.cistron_id_to_monomer_ids: dict[str, list[str]] = {
+            rna["id"]: list(rna["monomer_ids"]) for rna in all_cistrons
+        }
         self._cistron_id_to_index = {
             cistron_id: i for (i, cistron_id) in enumerate(self.cistron_data["id"])
         }
@@ -529,52 +548,38 @@ class Transcription(object):
             gene["rna_ids"][0]: gene["id"] for gene in raw_data.genes
         }
 
-        # Build gene_id -> TPM mapping from either new ingestion layer or legacy tables
-        if sim_data.rnaseq_manifest_path is not None:
-            # Use new ingestion layer
-            tpm_table, _metadata = ingest_transcriptome(
-                sim_data.rnaseq_manifest_path,
-                sim_data.rnaseq_basal_dataset_id,
-            )
-            seq_data = dict(zip(tpm_table["gene_id"], tpm_table["tpm_mean"]))
+        # Resolve RNA-seq data through the ecoli-sources bundle. Two
+        # canonical keys (RFC-010 Tier 1/Tier 2 framework):
+        #   rnaseq_experimental_tpms — primary TPM source for this run
+        #   rnaseq_basal_tpms        — basal reference; cross-fill source
+        # Default bundle (sim_data.bundle_manifest_path is None) resolves to
+        # ecoli_sources.BUNDLE_PATH; both default-bundle keys point at the
+        # same converted basal reference, so cross-fill is a no-op when no
+        # alternative bundle is pinned.
+        bundle = SourceBundle(manifest_path=sim_data.bundle_manifest_path)
 
-            if sim_data.rnaseq_fill_missing_genes_from_ref:
-                # Reference mapping from legacy table and basal_expression_condition
-                ref_data = {
-                    x["Gene"]: x[sim_data.basal_expression_condition]
-                    for x in getattr(
-                        raw_data.rna_seq_data, f"rnaseq_{RNA_SEQ_ANALYSIS}_mean"
-                    )
-                }
+        exp_table = ingest_rnaseq_tpm_table(bundle.get("rnaseq_experimental_tpms"))
+        seq_data = dict(zip(exp_table["gene_id"], exp_table["tpm_mean"]))
 
-                # Genes present in the model but missing from experimental dataset
-                model_gene_ids = set(cistron_id_to_gene_id.values())
-                missing_gene_ids = model_gene_ids.difference(seq_data.keys())
+        if sim_data.rnaseq_fill_missing_genes_from_ref:
+            ref_table = ingest_rnaseq_tpm_table(bundle.get("rnaseq_basal_tpms"))
+            ref_data = dict(zip(ref_table["gene_id"], ref_table["tpm_mean"]))
 
-                if missing_gene_ids:
-                    filled = 0
-                    for gene_id in missing_gene_ids:
-                        if gene_id in ref_data:
-                            seq_data[gene_id] = ref_data[gene_id]
-                            filled += 1
+            model_gene_ids = set(cistron_id_to_gene_id.values())
+            missing_gene_ids = model_gene_ids.difference(seq_data.keys())
 
-                    if filled > 0:
-                        # Warn once about how many genes were filled from reference
-                        warnings.warn(
-                            f"{filled} genes were missing from experimental RNA-seq "
-                            f"dataset {sim_data.rnaseq_basal_dataset_id!r} and were "
-                            f"filled from reference RNA-seq for basal expression "
-                            f"condition {sim_data.basal_expression_condition!r}.",
-                            UserWarning,
-                        )
-        else:
-            # No RNAseq data provided path: use raw_data tables with basal_expression_condition as column
-            seq_data = {
-                x["Gene"]: x[sim_data.basal_expression_condition]
-                for x in getattr(
-                    raw_data.rna_seq_data, f"rnaseq_{RNA_SEQ_ANALYSIS}_mean"
+            filled = 0
+            for gene_id in missing_gene_ids:
+                if gene_id in ref_data:
+                    seq_data[gene_id] = ref_data[gene_id]
+                    filled += 1
+
+            if filled > 0:
+                warnings.warn(
+                    f"{filled} genes were missing from rnaseq_experimental_tpms "
+                    f"and were filled from rnaseq_basal_tpms.",
+                    UserWarning,
                 )
-            }
 
         cistron_rnaseq_coverage = []
         for cistron_id in self.cistron_data["id"]:
@@ -1159,10 +1164,14 @@ class Transcription(object):
         # Reset cistron_expression to new values
         self.cistron_expression["basal"] = cistron_expression / cistron_expression.sum()
 
-        # Keep record of cistrons whose expression was corrected
-        self.cistron_data["uses_corrected_seq_counts"][np.array(corrected_indexes)] = (
-            True
-        )
+        # Keep record of cistrons whose expression was corrected.
+        # ``dtype=int`` is needed because ``np.array([])`` would otherwise
+        # default to float64 (an invalid index dtype) when no cistrons
+        # required correction.
+        if corrected_indexes:
+            self.cistron_data["uses_corrected_seq_counts"][
+                np.array(corrected_indexes, dtype=int)
+            ] = True
 
     def _build_mature_rna_data(self, raw_data, sim_data):
         """
