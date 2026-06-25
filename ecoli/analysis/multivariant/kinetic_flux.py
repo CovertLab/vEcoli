@@ -10,11 +10,17 @@ Two rows of faceted subplots, one column per variant:
 
 Variant panels are labeled with the fraction_kinetic_target value when
 available from variant_metadata.
+
+Optionally, a ``plot_catalysts`` parameter can be used to highlight the
+scatter points for the kinetic reaction(s) associated with one or more
+catalysts (enzymes), labeling each point with its reaction ID and coloring
+it by catalyst.
 """
 
 from __future__ import annotations
 
 import os
+import pickle
 from typing import Any, TYPE_CHECKING
 
 import altair as alt
@@ -26,6 +32,7 @@ from ecoli.analysis.multivariant import _variant_label
 from ecoli.library.parquet_emitter import (
     field_metadata,
     ndlist_to_ndarray,
+    open_arbitrary_sim_data,
     read_stacked_columns,
 )
 
@@ -35,6 +42,7 @@ if TYPE_CHECKING:
 alt.data_transformers.enable("vegafusion")
 
 PASTEL = px.colors.qualitative.Pastel
+CATALYST_PALETTE = px.colors.qualitative.D3
 
 # Tolerance added before log10 to handle zero fluxes
 LOG_EPS = 1e-8
@@ -58,6 +66,25 @@ def plot(
     """
     Faceted scatter (log avg kinetic target vs log avg kinetic flux) and
     kinetic term over time, one column per variant.
+
+    Args:
+        params: Dictionary of parameters given under analysis
+            name in configuration JSON. Supports:
+
+            .. code-block:: json
+
+                {
+                    // plot_catalysts: catalyst (enzyme) IDs whose associated
+                    // kinetic reaction(s) should be highlighted/labeled on
+                    // the scatter plot. Can be a list of string IDs...
+                    "plot_catalysts": ["UDP-NACMURALA-GLU-LIG-MONOMER[c]"],
+
+                    // ...or a dict of string IDs paired with human-readable
+                    // labels for the legend.
+                    "plot_catalysts": {
+                        "UDP-NACMURALA-GLU-LIG-MONOMER[c]": "MurD"
+                    }
+                }
     """
     # ── Resolve per-variant parameter dicts ───────────────────────────────────
     experiment_id = next(iter(variant_metadata.keys()), None)
@@ -75,6 +102,45 @@ def plot(
     kinetic_indices = np.array(
         [all_rxn_names.index(name) for name in kinetic_rxn_names], dtype=int
     )
+
+    # ── Resolve requested catalysts to their kinetic reaction(s) ──────────────
+    # Maps each kinetic reaction name to the human-readable label of the
+    # catalyst that should highlight it (only populated for catalysts that
+    # were requested and have at least one associated kinetic reaction).
+    rxn_to_catalyst_label: dict[str, str] = {}
+    plot_catalysts_param = params.get("plot_catalysts", [])
+    if plot_catalysts_param:
+        if isinstance(plot_catalysts_param, dict):
+            catalyst_labels = dict(plot_catalysts_param)
+        else:
+            catalyst_labels = dict(zip(plot_catalysts_param, plot_catalysts_param))
+
+        with open_arbitrary_sim_data(sim_data_dict) as f:
+            sim_data = pickle.load(f)
+        reaction_catalysts = sim_data.process.metabolism.reaction_catalysts
+
+        # Every kinetic reaction is associated with exactly one catalyst:
+        # reactions with kinetic constraints that originally had more than
+        # one possible catalyst are split into one reaction per catalyst
+        # upstream in sim_data (see `_replace_enzyme_reactions`).
+        kinetic_catalyst_to_rxns: dict[str, list[str]] = {}
+        for rxn in kinetic_rxn_names:
+            catalysts_for_rxn = reaction_catalysts.get(rxn, [])
+            if catalysts_for_rxn:
+                kinetic_catalyst_to_rxns.setdefault(catalysts_for_rxn[0], []).append(
+                    rxn
+                )
+
+        for catalyst, label in catalyst_labels.items():
+            matched_rxns = kinetic_catalyst_to_rxns.get(catalyst, [])
+            if not matched_rxns:
+                print(
+                    f"kinetic_flux_analysis: catalyst '{catalyst}' has no "
+                    "associated kinetic reaction(s); skipping."
+                )
+                continue
+            for rxn in matched_rxns:
+                rxn_to_catalyst_label[rxn] = label
 
     # ── Load raw listener data ─────────────────────────────────────────────────
     raw = pl.DataFrame(
@@ -145,6 +211,7 @@ def plot(
         pearson_r2 = float(np.corrcoef(log_flux, log_target)[0, 1]) ** 2
 
         for i, rxn in enumerate(kinetic_rxn_names):
+            catalyst_label = rxn_to_catalyst_label.get(rxn)
             scatter_rows.append(
                 {
                     "Reaction": rxn,
@@ -154,6 +221,8 @@ def plot(
                     "r2_to_yx": r2_to_yx,
                     "pearson_r2": pearson_r2,
                     "is_ref": False,
+                    "Catalyst": catalyst_label,
+                    "is_highlight": catalyst_label is not None,
                 }
             )
 
@@ -170,10 +239,12 @@ def plot(
                     "r2_to_yx": r2_to_yx,
                     "pearson_r2": pearson_r2,
                     "is_ref": True,
+                    "Catalyst": None,
+                    "is_highlight": False,
                 }
             )
 
-    scatter_df = pl.DataFrame(scatter_rows).to_pandas()
+    scatter_df = pl.DataFrame(scatter_rows, infer_schema_length=None).to_pandas()
 
     log_axis_title_x = f"log₁₀(Mean Kinetic Target + ε)  [{FLUX_UNIT_STR}]"
     log_axis_title_y = f"log₁₀(Mean Kinetic Flux + ε)  [{FLUX_UNIT_STR}]"
@@ -237,9 +308,63 @@ def plot(
 
     num_cols = min(len(unique_variants), 4)
 
+    scatter_layers = [ref_line, scatter_pts, annotation]
+    if rxn_to_catalyst_label:
+        # Catalyst color scale is independent of the Variant scale used by
+        # ref_line/scatter_pts/annotation, so it gets its own legend.
+        catalyst_domain = list(dict.fromkeys(rxn_to_catalyst_label.values()))
+        catalyst_color_scale = alt.Scale(
+            domain=catalyst_domain,
+            range=[
+                CATALYST_PALETTE[i % len(CATALYST_PALETTE)]
+                for i in range(len(catalyst_domain))
+            ],
+        )
+
+        highlight_pts = (
+            alt.Chart()
+            .mark_point(
+                size=160, filled=True, shape="diamond", strokeWidth=1.5, stroke="black"
+            )
+            .transform_filter("datum.is_highlight")
+            .encode(
+                x=alt.X("log_target:Q"),
+                y=alt.Y("log_flux:Q"),
+                color=alt.Color(
+                    "Catalyst:N",
+                    scale=catalyst_color_scale,
+                    legend=alt.Legend(title="Catalyst"),
+                ),
+                tooltip=[
+                    alt.Tooltip("Reaction:N"),
+                    alt.Tooltip("Catalyst:N"),
+                    alt.Tooltip("Variant:N"),
+                    alt.Tooltip("log_target:Q", title="log₁₀(target)", format=".3f"),
+                    alt.Tooltip("log_flux:Q", title="log₁₀(flux)", format=".3f"),
+                ],
+            )
+        )
+
+        highlight_labels = (
+            alt.Chart()
+            .mark_text(align="left", baseline="middle", dx=9, dy=-9, fontSize=9)
+            .transform_filter("datum.is_highlight")
+            .encode(
+                x=alt.X("log_target:Q"),
+                y=alt.Y("log_flux:Q"),
+                text="Reaction:N",
+                color=alt.Color("Catalyst:N", scale=catalyst_color_scale, legend=None),
+            )
+        )
+
+        scatter_layers.extend([highlight_pts, highlight_labels])
+
+    scatter_layered = alt.layer(*scatter_layers, data=scatter_df)
+    if rxn_to_catalyst_label:
+        scatter_layered = scatter_layered.resolve_scale(color="independent")
+
     scatter_faceted = (
-        alt.layer(ref_line, scatter_pts, annotation, data=scatter_df)
-        .properties(width=280, height=280)
+        scatter_layered.properties(width=280, height=280)
         .facet(
             facet=alt.Facet("Variant:N", title="Variant"),
             columns=num_cols,

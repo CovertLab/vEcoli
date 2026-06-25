@@ -8,6 +8,7 @@
 "tyrR"	"MONOMER0-162"	"minimal_plus_amino_acids"	{}	"minimal"	{}	"1CS"
 "putA"	"PUTA-CPLX"	"minimal"	{}	"minimal_plus_amino_acids"	{}	"1CS"
 "araC"	"CPLX-172"	"minimal_plus_arabinose"	{}	"minimal"	{}	"1CS"
+"araC"	"CPLX-172"	"no_glucose_plus_arabinose"	{}	"minimal"	{}	"1CS"
 "bglJ"	"CPLX0-7916"	"minimal"	{}	"minimal"	{"G7948_RNA": 0}	"0CS"
 "dnaA"	"MONOMER0-160"	"minimal"	{}	"minimal"	{"EG10235_RNA": 0}	"1CS"
 "fis"	"CPLX0-7705"	"minimal"	{}	"minimal"	{"EG10317_RNA": 0}	"0CS"

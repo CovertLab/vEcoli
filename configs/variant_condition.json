@@ -1,0 +1,90 @@
+{
+  "experiment_id" : "arabinose_5",
+  "sim_data_path": null,
+  "parca_options": {
+    "cpus": 6
+  },
+  "fail_at_max_duration": false,
+  "progress_bar": true,
+  "log_updates": false,
+  "generations": 6,
+  "emitter": "parquet",
+  "emitter_arg": {"out_dir": "out/phenotypic/"},
+
+  "swap_processes" : {
+    "ecoli-metabolism" : "ecoli-metabolism-redux-classic"
+  },
+  "exclude_processes": ["exchange_data"],
+  "flow": {
+    "ecoli-metabolism-redux-classic": [["ecoli-chromosome-structure"]],
+    "ecoli-mass-listener": [["ecoli-metabolism-redux-classic"]],
+    "RNA_counts_listener": [["ecoli-metabolism-redux-classic"]],
+    "rna_synth_prob_listener": [["ecoli-metabolism-redux-classic"]],
+    "monomer_counts_listener": [["ecoli-metabolism-redux-classic"]],
+    "dna_supercoiling_listener": [["ecoli-metabolism-redux-classic"]],
+    "replication_data_listener": [["ecoli-metabolism-redux-classic"]],
+    "rnap_data_listener": [["ecoli-metabolism-redux-classic"]],
+    "unique_molecule_counts": [["ecoli-metabolism-redux-classic"]],
+    "ribosome_data_listener": [["ecoli-metabolism-redux-classic"]]
+  },
+  "raw_output": false,
+  "operons": true,
+  "trna_charging": false,
+  "ppgpp_regulation": false,
+  "initial_state_gaussian": true,
+  "trna_attenuation": false,
+  "variable_elongation_transcription": true,
+  "variable_elongation_translation": false,
+  "mechanistic_translation_supply": false,
+  "mechanistic_aa_transport": false,
+  "translation_supply": false,
+  "aa_supply_in_charging": false,
+  "adjust_timestep_for_charging": false,
+  "disable_ppgpp_elongation_inhibition": true,
+
+  "variants": {
+    "condition": {
+      "condition": {
+        "value": ["sole_arabinose"]
+      }
+    }
+  },
+  "skip_baseline": false,
+  "analysis_options": {
+        "outdir": "out/phenotypic/analysis/",
+        "cpus": 1,
+
+        "multivariant": {
+            "cell_mass": {},
+            "doubling_time_hist": {"skip_n_gens": 0},
+            "centralCarbonMetabolismScatter": {},
+            "weighted_objective_terms": {},
+            "enzyme_availability_flux":{
+                "enzyme_name": "ARABISOM-CPLX[c]",
+                "met": "FRUCTOSE-16-DIPHOSPHATE[c]"
+            },
+            "mean_flux_distribution": {
+                "in_molar": false,
+                "bin_edges": [0, 1E-6, 1e-3, 1, 2, 10, 1e3, 1E6, 1E9, 1E12],
+                "facet_columns": 4,
+                "n_bins": 25
+            },
+            "kinetic_flux": {
+                "plot_catalysts": ["ARABISOM-CPLX[c]", "RIBULOKIN-CPLX[c]", "RIBULPEPIM-CPLX[c]"]
+            },
+            "metabolite_unmet_need": {},
+            "selected_catalyst_fluxes": {
+                "plot_catalysts": ["ARABISOM-CPLX[c]", "RIBULOKIN-CPLX[c]", "RIBULPEPIM-CPLX[c]"]
+            },
+            "pathway_flux_distribution": {},
+            "growth_rate_validation": {},
+            "sankey_metabolite_flux": {
+                "metabolites_of_interest": ["L-RIBULOSE[c]", "ARABINOSE[c]", "ARABINOSE[p]"]
+            },
+            "escher_pathway_map": {}
+        }
+    }
+
+
+
+}

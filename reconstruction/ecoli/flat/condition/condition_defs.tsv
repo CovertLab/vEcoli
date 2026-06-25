@@ -8,3 +8,4 @@
 "acetate"	"minimal_acetate"	{}	136.0	["CPLX0-226"]	[]
 "succinate"	"minimal_succinate"	{}	82.0	["CPLX0-226", "PHOSPHO-DCUR"]	[]
 "no_oxygen"	"minimal_minus_oxygen"	{}	100.0	["FNR-4FE-4S-CPLX", "PHOSPHO-ARCA", "CPLX0-226"]	[]
+"sole_arabinose"	"no_glucose_plus_arabinose"	{}	44.0	["CPLX-172"]	[]

@@ -1,35 +1,42 @@
 {
     "emitter_arg": {
-        "out_dir": "out/objective_weight_variant/"
+        "out_dir": "out/phenotypic/"
     },
     "analysis_options": {
-        "experiment_id": ["filtered_index7651_kinetic_fraction_20260507-022234"],
-        "variant_data_dir": ["out/objective_weight_variant/filtered_index7651_kinetic_fraction_20260507-022234/variant_sim_data"],
+        "experiment_id": ["arabinose_original_20260624-164433"],
+        "variant_data_dir": ["out/phenotypic/arabinose_original_20260624-164433/variant_sim_data"],
         "validation_data_path": ["out/kb/validationData.cPickle"],
-        "outdir": "out/objective_weight_variant/analysis/filtered_index7651_kinetic_fraction_20260507-022234/",
+        "outdir": "out/phenotypic/analysis/arabinose_original_20260624-164433/",
         "cpus": 1,
 
-        "multiexperiment": {
-            "weighted_objective_terms": {},
-            "mass_fraction_summary": {},
-            "enzyme_availability_flux": {},
-            "metabolite_unmet_need" : {}
-        },
         "multivariant": {
             "cell_mass": {},
             "doubling_time_hist": {"skip_n_gens": 0},
             "centralCarbonMetabolismScatter": {},
             "weighted_objective_terms": {},
-            "enzyme_availability_flux":{},
+            "enzyme_availability_flux":{
+                "enzyme_name": "ARABISOM-CPLX[c]",
+                "met": "FRUCTOSE-16-DIPHOSPHATE[c]"
+            },
             "mean_flux_distribution": {
                 "in_molar": false,
                 "bin_edges": [0, 1E-6, 1e-3, 1, 2, 10, 1e3, 1E6, 1E9, 1E12],
                 "facet_columns": 4,
                 "n_bins": 25
             },
-            "kinetic_flux": {},
-            "metabolite_unmet_need": {}
+            "kinetic_flux": {
+                "plot_catalysts": ["ARABISOM-CPLX[c]", "RIBULOKIN-CPLX[c]", "RIBULPEPIM-CPLX[c]"]
+            },
+            "metabolite_unmet_need": {},
+            "selected_catalyst_fluxes": {
+                "plot_catalysts": ["ARABISOM-CPLX[c]", "RIBULOKIN-CPLX[c]", "RIBULPEPIM-CPLX[c]"]
+            },
+            "pathway_flux_distribution": {},
+            "growth_rate_validation": {},
+            "sankey_metabolite_flux": {
+                "metabolites_of_interest": ["L-RIBULOSE[c]", "ARABINOSE[c]", "ARABINOSE[p]"]
+            },
+            "escher_pathway_map": {}
         }
     }
 }
-

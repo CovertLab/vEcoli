@@ -27,6 +27,7 @@ dependencies = [
     "ipython",
     "line-profiler",
     "altair",
+    "vegafusion[embed]",
     "numba",
     "orjson",
     # Constraint can be removed once cvxpy supports newer ortools
@@ -84,6 +85,17 @@ docs = [
     "sphinx-rtd-theme",
     "nbsphinx",
     "pre-commit"
+]
+escher = [
+    "escher>=1.8.1",
+]
+
+[tool.uv]
+conflicts = [
+    [
+        { extra = "dev" },
+        { extra = "escher" },
+    ],
 ]
 
 [tool.setuptools]

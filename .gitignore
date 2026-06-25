@@ -21,6 +21,7 @@ user/*
 !user/user.txt
 *.cprof
 .ipynb_checkpoints
+CLAUDE.local.md
 
 # Compiled source #
 ###################

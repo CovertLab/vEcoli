@@ -1,9 +1,12 @@
 """
 Plot unmet homeostatic need for metabolites for multivariant simulation.
 
-For each variant, shows a bar chart of the top-N metabolites by mean |unmet need|
-and a timeseries of unmet need, aggregated across all cells in that variant.
-One bar+line subplot per variant, stacked vertically.
+For each variant, shows a bar chart of the top-N metabolites by mean |unmet
+need| (averaged per seed-generation trajectory, then across trajectories)
+and a timeseries of unmet need across the full simulation (continuous time
+per lineage seed, generation used as a detail encoding so lines break at
+division without resetting the x-axis). One bar+line subplot per variant,
+stacked vertically.
 """
 
 from __future__ import annotations
@@ -118,18 +121,22 @@ def plot(
             pl.when(ratio.is_infinite()).then(None).otherwise(ratio).alias(f"unmet_{i}")
         )
 
-    # Relative time per (variant, generation, lineage_seed, agent_id)
-    t_min = raw.group_by(["variant", "generation", "lineage_seed", "agent_id"]).agg(
+    # Continuous relative time per (variant, lineage_seed): generations
+    # within the same lineage seed share one time-zero (the seed's first
+    # timestep) so the x-axis runs unbroken across the whole simulation
+    # instead of restarting at each generation/division.
+    t_min = raw.group_by(["variant", "lineage_seed"]).agg(
         pl.col("time").min().alias("t_min")
     )
-    raw = raw.join(t_min, on=["variant", "generation", "lineage_seed", "agent_id"])
+    raw = raw.join(t_min, on=["variant", "lineage_seed"])
     raw = raw.with_columns(
         ((pl.col("time") - pl.col("t_min")) / 60.0).alias("Time_min")
     )
 
+    id_vars = ["variant", "lineage_seed", "generation", "agent_id", "Time_min"]
     value_vars = [f"unmet_{i}" for i in range(n_met)]
-    long = raw.select(["variant", "Time_min"] + value_vars).melt(
-        id_vars=["variant", "Time_min"],
+    long = raw.select(id_vars + value_vars).melt(
+        id_vars=id_vars,
         value_vars=value_vars,
         variable_name="met_key",
         value_name="unmet_need",
@@ -141,27 +148,30 @@ def plot(
         {"met_idx": list(range(n_met)), "metabolite": homeostatic_ids}
     )
     long = long.join(met_df, on="met_idx")
+    long = long.with_columns(pl.col("unmet_need").abs().alias("abs_unmet_need"))
 
-    agg = (
-        long.group_by("variant", "Time_min", "metabolite")
-        .agg(pl.col("unmet_need").mean().alias("unmet_need"))
-        .sort("variant", "Time_min", "metabolite")
-    )
-
-    variants = agg["variant"].unique().sort()
+    variants = long["variant"].unique().sort()
 
     # Collect metabolites used across all variants for a shared color scale
     ordered_mets: list[str] = []
     per_variant_data = []
     for variant_val in variants:
-        sub = agg.filter(pl.col("variant") == variant_val)
+        sub = long.filter(pl.col("variant") == variant_val)
         if sub.is_empty():
             continue
+
+        # Mean |unmet need| within each individual seed-generation
+        # trajectory (one replicate per lineage_seed/generation/agent_id),
+        # then averaged across all those trajectories.
+        traj_mean = sub.group_by(
+            ["lineage_seed", "generation", "agent_id", "metabolite"]
+        ).agg(pl.col("abs_unmet_need").mean().alias("traj_mean_abs_unmet"))
         met_score = (
-            sub.group_by("metabolite")
-            .agg(pl.col("unmet_need").abs().mean().alias("mean_abs_unmet"))
+            traj_mean.group_by("metabolite")
+            .agg(pl.col("traj_mean_abs_unmet").mean().alias("mean_abs_unmet"))
             .sort("mean_abs_unmet", descending=True)
         )
+
         top_mets = met_score.head(top_n)["metabolite"].to_list()
         line_mets = (
             metabolites_of_interest if metabolites_of_interest is not None else top_mets
@@ -170,11 +180,11 @@ def plot(
         if not line_mets:
             line_mets = top_mets
         top_bar = met_score.filter(pl.col("metabolite").is_in(top_mets))
-        agg_line = sub.filter(pl.col("metabolite").is_in(line_mets))
+        line_sub = sub.filter(pl.col("metabolite").is_in(line_mets))
         for m in list(dict.fromkeys(top_mets + line_mets)):
             if m not in ordered_mets:
                 ordered_mets.append(m)
-        per_variant_data.append((variant_val, top_bar, agg_line))
+        per_variant_data.append((variant_val, top_bar, line_sub))
 
     if not per_variant_data:
         print("metabolite_unmet_need: no per-variant data after aggregation; skipping.")
@@ -185,10 +195,10 @@ def plot(
     w = subplot_width
 
     subplot_charts: list[alt.TopLevelMixin] = []
-    for variant_val, top_bar, agg_line in per_variant_data:
+    for variant_val, top_bar, line_sub in per_variant_data:
         label = _variant_label(variant_val, per_variant_params)
         df_bar = top_bar.to_pandas()
-        df_line = agg_line.to_pandas()
+        df_line = line_sub.to_pandas()
 
         bar_base = alt.Chart(df_bar).encode(
             x=alt.X("metabolite:N", title="Metabolite", sort="-y"),
@@ -203,7 +213,7 @@ def plot(
         bars = bar_base.mark_bar(cornerRadiusEnd=8, size=28).encode(
             y=alt.Y(
                 "mean_abs_unmet:Q",
-                title="Unmet need (mean |L1 diff|)",
+                title="Average |Homeostatic Diff|/seed/generation",
                 scale=alt.Scale(type="symlog"),
             ),
         )
@@ -226,13 +236,14 @@ def plot(
             .mark_line(strokeWidth=2)
             .encode(
                 x=alt.X("Time_min:Q", title="Time (min)"),
-                y=alt.Y("unmet_need:Q", title="L1 |Target - Estimate|"),
+                y=alt.Y("mean(unmet_need):Q", title="L1 |Target - Estimate|"),
                 color=alt.Color(
                     "metabolite:N",
                     scale=alt.Scale(domain=color_domain, range=color_range),
                     legend=alt.Legend(title="Metabolite"),
                 ),
-                tooltip=["Time_min:Q", "metabolite:N", "unmet_need:Q"],
+                detail=alt.Detail("generation:N"),
+                tooltip=["Time_min:Q", "metabolite:N", "mean(unmet_need):Q"],
             )
             .properties(height=300, width=w)
         )

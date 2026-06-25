@@ -358,6 +358,7 @@ class MetabolismReduxClassic(Step):
                             [],
                             self.parameters["reaction_catalysts"],
                         ),
+                        "catalyst_counts": ([], self.catalyst_ids),
                         "homeostatic_term": (
                             0.0,
                             [self.parameters["objective_weights"]["homeostatic"]],
@@ -633,6 +634,7 @@ class MetabolismReduxClassic(Step):
                     "solution_fluxes": solution.velocities,
                     "solution_dmdt": solution.dm_dt,
                     "reaction_catalyst_counts": reaction_catalyst_counts,
+                    "catalyst_counts": current_catalyst_counts,
                     "homeostatic_term": solution.homeostatic_term
                     * objective_weights["homeostatic"],
                     "secretion_term": solution.secretion_term

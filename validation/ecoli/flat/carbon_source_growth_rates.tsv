@@ -1,0 +1,26 @@
+# Literature-compiled specific growth rates of E. coli K-12 MG1655 under defined sole carbon source conditions.
+# Aidelberg et al. 2014 (BMC Syst Biol 8:133) values: M9 minimal medium, 0.2% (w/v) sole sugar, 37C, 96-well plate robotic batch assay, growth rate = dln(OD)/dt at mid-exponential phase. Lactose and ribose are quoted directly from the main text (mean +/- 0.01 h^-1). Arabinose, maltose, xylose, sorbitol, and rhamnose were not given as numbers in the main text; they were digitized from the "only-X" data points in Additional File 1: Figure S1 (own pixel measurement, axis-calibrated), so treat them as approximate (+/- 0.01-0.02 h^-1 expected digitization error).
+# Fong & Palsson 2003 (J Bacteriol 185:6400-6408) value: wild-type (pre-evolution) growth rate on lactate, Bioscreen C batch culture. This is the only one of the 10 carbon sources tested in that study (acetate, alpha-ketoglutarate, citrate, glucose, glycerol, lactate, malate, pyruvate, ribose, succinate) for which an absolute wild-type growth rate could be confirmed from the accessible text; the other 9 are reported there only as ratios normalized to wild type (Fig. 3), not as absolute values.
+# Taymaz-Nikerel et al. 2010 (Biotechnol Bioeng 107:369-381) values: aerobic CHEMOSTAT (continuous culture, not batch), MG1655. Growth rate equals the imposed steady-state dilution rate D, so these confirm the strain sustains that rate on that sole carbon source rather than reporting an independently measured maximal growth rate.
+"carbon source"	"growth rate (1/units.h)"	"measurement type"	"source"
+"basal"	0.945	"experimental  (M9 minimal, batch)"	""
+"lactose (0.2% M9 minimal, batch)"	0.53	"experimental"	"Aidelberg et al. 2014, BMC Syst Biol 8:133; main text, mean +/- 0.01 h^-1"
+"sole_arabinose"	0.48	"experimental  (0.2% M9 minimal, batch)"	"Aidelberg et al. 2014, BMC Syst Biol 8:133; digitized from Additional File 1: Fig. S1, approximate"
+"maltose (0.2% M9 minimal, batch)"	0.45	"experimental"	"Aidelberg et al. 2014, BMC Syst Biol 8:133; digitized from Additional File 1: Fig. S1, approximate"
+"xylose (0.2% M9 minimal, batch)"	0.44	"experimental"	"Aidelberg et al. 2014, BMC Syst Biol 8:133; digitized from Additional File 1: Fig. S1, approximate"
+"sorbitol (0.2% M9 minimal, batch)"	0.43	"experimental"	"Aidelberg et al. 2014, BMC Syst Biol 8:133; digitized from Additional File 1: Fig. S1, approximate"
+"rhamnose (0.2% M9 minimal, batch)"	0.31	"experimental"	"Aidelberg et al. 2014, BMC Syst Biol 8:133; digitized from Additional File 1: Fig. S1, approximate"
+"ribose (0.2% M9 minimal, batch)"	0.29	"experimental"	"Aidelberg et al. 2014, BMC Syst Biol 8:133; main text, mean +/- 0.01 h^-1"
+"lactate (wild-type ancestor, batch)"	0.40	"experimental"	"Fong & Palsson 2003, J Bacteriol 185:6400-6408; pre-adaptive-evolution wild-type growth rate"
+"glucose (chemostat, D=0.025 h^-1)"	0.025	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
+"glucose (chemostat, D=0.05 h^-1)"	0.05	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
+"glucose (chemostat, D=0.1 h^-1)"	0.1	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
+"glucose (chemostat, D=0.3 h^-1)"	0.3	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
+"glycerol (chemostat, D=0.025 h^-1)"	0.025	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
+"glycerol (chemostat, D=0.05 h^-1)"	0.05	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
+"glycerol (chemostat, D=0.1 h^-1)"	0.1	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
+"glycerol (chemostat, D=0.3 h^-1)"	0.3	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
+"acetate (chemostat, D=0.025 h^-1)"	0.025	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
+"acetate (chemostat, D=0.05 h^-1)"	0.05	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
+"acetate (chemostat, D=0.1 h^-1)"	0.1	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
+"acetate (chemostat, D=0.3 h^-1)"	0.3	"experimental"	"Taymaz-Nikerel et al. 2010, Biotechnol Bioeng 107:369-381; imposed steady-state dilution rate"
