@@ -15,7 +15,6 @@ from vivarium.core.process import Step
 from vivarium.library.units import units as vivunits
 
 from ecoli.library.schema import numpy_schema, bulk_name_to_idx, listener_schema, counts
-from reconstruction.ecoli.dataclasses.process.metabolism import REVERSE_TAG
 
 from wholecell.utils import units
 
@@ -142,8 +141,12 @@ class MetabolismReduxClassic(Step):
         "cell_density": 1100 * units.g / units.L,
         "concentration_updates": None,
         "maintenance_reaction": {},
-        # Fallback only: overridden by sim_data.process.metabolism in normal sims
-        "fraction_kinetic_target": 1.0,
+        "objective_weights": {
+            "secretion": 0.01,
+            "efficiency": 0.000001,
+            "kinetics": 0.0000001,
+            "homeostatic": 1,
+        },
     }
 
     def __init__(self, parameters):
@@ -259,44 +262,6 @@ class MetabolismReduxClassic(Step):
         # Cache uptake parameters from previous timestep
         self.allowed_exchange_uptake = None
 
-        # Get conversion matrix to compile individual fluxes in the FBA
-        # solution to the fluxes of base reactions
-        self.base_reaction_ids = self.parameters["base_reaction_ids"]
-        self.base_reaction_ids.append("maintenance_reaction")
-        fba_reaction_ids_to_base_reaction_ids = self.parameters[
-            "fba_reaction_ids_to_base_reaction_ids"
-        ]
-        fba_reaction_ids_to_base_reaction_ids["maintenance_reaction"] = (
-            "maintenance_reaction"
-        )
-        fba_reaction_id_to_index = {
-            rxn_id: i for (i, rxn_id) in enumerate(self.reaction_names)
-        }
-        base_reaction_id_to_index = {
-            rxn_id: i for (i, rxn_id) in enumerate(self.base_reaction_ids)
-        }
-        base_rxn_indexes = []
-        fba_rxn_indexes = []
-        v = []
-
-        for fba_rxn_id in self.reaction_names:
-            base_rxn_id = fba_reaction_ids_to_base_reaction_ids[fba_rxn_id]
-            base_rxn_indexes.append(base_reaction_id_to_index[base_rxn_id])
-            fba_rxn_indexes.append(fba_reaction_id_to_index[fba_rxn_id])
-            if fba_rxn_id.endswith(REVERSE_TAG):
-                v.append(-1)
-            else:
-                v.append(1)
-
-        base_rxn_indexes = np.array(base_rxn_indexes)
-        fba_rxn_indexes = np.array(fba_rxn_indexes)
-        v = np.array(v)
-        shape = (len(self.base_reaction_ids), len(self.reaction_names))
-
-        self.reaction_mapping_matrix = csr_matrix(
-            (v, (base_rxn_indexes, fba_rxn_indexes)), shape=shape
-        )
-
     def ports_schema(self):
         return {
             "bulk": numpy_schema("bulk"),
@@ -320,12 +285,10 @@ class MetabolismReduxClassic(Step):
                     "_emit": True,
                     "_divider": "empty_dict",
                 },
-                "gtp_to_hydrolyze": {"_default": 0, "_emit": True, "_divider": "zero"},
-                "aa_exchange_rates": {
-                    "_default": np.zeros(len(self.parameters["aa_exchange_names"])),
+                "gtp_to_hydrolyze": {
+                    "_default": 0.0,
                     "_emit": True,
-                    "_updater": "set",
-                    "_divider": "set",
+                    "_divider": "zero",
                 },
             },
             "listeners": {
@@ -333,8 +296,8 @@ class MetabolismReduxClassic(Step):
                 # TODO: Not empty list default
                 "fba_results": listener_schema(
                     {
-                        "solution_fluxes": ([], self.reaction_names),
-                        "solution_dmdt": ([], self.metabolite_names),
+                        "solution_fluxes": [],
+                        "solution_dmdt": [],
                         "solution_residuals": [],
                         "time_per_step": 0.0,
                         "estimated_fluxes": [],
@@ -389,9 +352,9 @@ class MetabolismReduxClassic(Step):
                 ),
                 "enzyme_kinetics": listener_schema(
                     {
-                        "metabolite_counts_init": [],
-                        "metabolite_counts_final": [],
-                        "enzyme_counts_init": [],
+                        "metabolite_counts_init": 0,
+                        "metabolite_counts_final": 0,
+                        "enzyme_counts_init": 0,
                         "counts_to_molar": 1.0,
                         "actual_fluxes": [],
                         "target_fluxes": [],
@@ -518,33 +481,11 @@ class MetabolismReduxClassic(Step):
         # because there are no enzymes to catalyze the rxn
         binary_kinetic_idx = np.where(~reaction_catalyst_counts.astype(np.bool_))
 
-        # Get reaction indices whose reaction is new (added in 2022)
-        # append reaction indices to binary_kinetic_idx
-        include_new = 1
-        if not include_new:  # set binary idx if we don't want to include new rxns
-            fba_new_reaction_ids = self.parameters["fba_new_reaction_ids"]
-            # fba_reaction_ids_to_base_reaction_ids = self.parameters[
-            #     "fba_reaction_ids_to_base_reaction_ids"
-            # ]
-
-            binary_reaction_idx = []
-            for reaction_id in fba_new_reaction_ids:
-                reaction_idx = np.where(np.array(self.reaction_names) == reaction_id)
-                binary_reaction_idx.append(reaction_idx)
-            binary_reaction_idx = np.hstack(binary_reaction_idx).astype(int)
-
-            # combined binary kinetic idx with binary reaction idx and remove overlaps
-            binary_kinetic_idx = (
-                np.unique(np.append(binary_kinetic_idx[0], binary_reaction_idx[0])),
-            )[0]
-
-        self.binary_kinetic_idx = binary_kinetic_idx
-
         # TODO: Figure out how to handle changing media ID
 
         homeostatic_metabolite_concentrations = (
             homeostatic_metabolite_counts * self.counts_to_molar.asNumber()
-        )  # Heena's comment: this is the actual concentration of homeostatic metabolites in the sim
+        )
         target_homeostatic_dmdt = (
             self.homeostatic_concs - homeostatic_metabolite_concentrations
         ) / self.timestep
@@ -566,10 +507,6 @@ class MetabolismReduxClassic(Step):
         target_kinetic_bounds = enzyme_kinetic_boundaries[:, [0, 2]]
 
         objective_weights = self.parameters["objective_weights"]
-        fraction_kinetic_target = self.parameters["fraction_kinetic_target"]
-
-        print(f"objective_weights: {objective_weights}")
-        # print(f"fraction_kinetic_target: {fraction_kinetic_target}")
 
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
@@ -578,15 +515,9 @@ class MetabolismReduxClassic(Step):
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
-            target_minimal_flux=self.counts_to_molar.asNumber(),
-            fraction_kinetic_target=fraction_kinetic_target,
             solver=cp.GLOP,
         )
 
-        # h1 = solution.homeostatic_term
-        # k1 = solution.kinetics_term
-        # print(f"solution.homeostatic: {solution.homeostatic_term}")
-        # print(f"solution.kinetics: {solution.kinetics_term}")
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
         self.metabolite_exchange = solution.exchanges
@@ -624,11 +555,8 @@ class MetabolismReduxClassic(Step):
                     "estimated_fluxes": estimated_reaction_fluxes,
                     "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
                     "target_homeostatic_dmdt": target_homeostatic_dmdt,
-                    "homeostatic_metabolite_counts": homeostatic_metabolite_counts,
-                    "target_kinetic_fluxes": target_kinetic_flux
-                    * self.parameters["fraction_kinetic_target"],
-                    # "target_kinetic_bounds": target_kinetic_bounds,
-                    # "estimated_exchange_dmdt": estimated_exchange_dmdt,
+                    "target_kinetic_fluxes": target_kinetic_flux,
+                    "estimated_exchange_dmdt": estimated_exchange_dmdt,
                     "estimated_intermediate_dmdt": estimated_intermediate_dmdt,
                     "maintenance_target": target_maintenance_flux,
                     "solution_fluxes": solution.velocities,
@@ -649,9 +577,9 @@ class MetabolismReduxClassic(Step):
                     "base_reaction_fluxes": self.reaction_mapping_matrix.dot(
                         estimated_reaction_fluxes
                     ),
+                    "homeostatic_metabolite_counts": homeostatic_metabolite_counts,
                     "time_per_step": time.time(),
-                },
-                "enzyme_kinetics": {"counts_to_molar": self.counts_to_molar.asNumber()},
+                }
             },
             "next_update_time": states["global_time"] + states["timestep"],
         }
@@ -695,11 +623,6 @@ class FlowResult:
     dm_dt: Iterable[float]
     exchanges: Iterable[float]
     objective: float
-    homeostatic_term: float
-    kinetics_term: float
-    secretion_term: float
-    efficiency_term: float
-    diversity_term: float
 
 
 class NetworkFlowModel:
@@ -780,11 +703,8 @@ class NetworkFlowModel:
         maintenance_target: float = 0,
         kinetic_targets: Optional[Iterable[float]] = None,
         binary_kinetic_idx: Optional[Iterable[int]] = None,
-        force_flow_idx: Optional[Iterable[float]] = None,
         objective_weights: Optional[Mapping[str, float]] = None,
         upper_flux_bound: float = 100,
-        target_minimal_flux: float = 0,
-        fraction_kinetic_target: float = 1.0,
         solver=cp.GLOP,
     ) -> FlowResult:
         """Solve the network flow model for fluxes and dm/dt values."""
@@ -805,9 +725,6 @@ class NetworkFlowModel:
         # If enzymes not present, constrain rxn flux to 0
         if binary_kinetic_idx is not None:
             constr.append(v[binary_kinetic_idx] == 0)
-        # If want to force flow through reactions, constrain rxn flux to 1 by idx
-        if force_flow_idx is not None:
-            constr.append(v[force_flow_idx] >= 100)
 
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
@@ -821,54 +738,30 @@ class NetworkFlowModel:
             if "homeostatic" in objective_weights
             else 0
         )
-        secretion_term = cp.sum(e[self.secretion_idx])
         loss += (
-            objective_weights["secretion"] * secretion_term
+            objective_weights["secretion"] * (cp.sum(e[self.secretion_idx]))
             if "secretion" in objective_weights
             else 0
         )
-
-        efficiency_term = cp.sum(v)
         loss += (
-            objective_weights["efficiency"] * efficiency_term
+            objective_weights["efficiency"] * (cp.sum(v))
             if "efficiency" in objective_weights
             else 0
         )
-
-        kinetic_targets = kinetic_targets * fraction_kinetic_target
-        kinetics_term = cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
         loss += (
-            objective_weights["kinetics"] * kinetics_term
+            objective_weights["kinetics"]
+            * cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
             if "kinetics" in objective_weights
             else 0
         )
 
-        # Heena's addition: minimize number of reactions with no flow
-        diversity_term = cp.sum(cp.pos(target_minimal_flux - v))
-        loss += (
-            objective_weights["diversity"] * diversity_term
-            if "diversity" in objective_weights
-            else loss
-        )
-
         p = cp.Problem(cp.Minimize(loss), constr)
 
-        p.solve(
-            solver=solver,
-            verbose=False,
-            # mosek_params={
-            #     "MSK_IPAR_INTPNT_MAX_ITERATIONS": 100,  # default 200 exhausted on harder timesteps
-            #     "MSK_DPAR_INTPNT_CO_TOL_PFEAS": 5e-7,  # relaxed from 1e-8 for conic program
-            #     "MSK_DPAR_INTPNT_CO_TOL_DFEAS": 5e-7,
-            #     "MSK_DPAR_INTPNT_CO_TOL_MU_RED": 5e-7,
-            #     "MSK_DPAR_INTPNT_CO_TOL_REL_GAP": 1e-6,
-            # },
-        )
-
+        p.solve(solver=solver, verbose=False)
         if p.status != "optimal":
             raise ValueError(
                 "Network flow model of metabolism did not "
-                "converge to an optimal solution. " + p.status
+                "converge to an optimal solution."
             )
 
         velocities = np.array(v.value)
@@ -877,15 +770,7 @@ class NetworkFlowModel:
         objective = p.value
 
         return FlowResult(
-            velocities=velocities,
-            dm_dt=dm_dt,
-            exchanges=exchanges,
-            objective=objective,
-            homeostatic_term=homeostatic_term.value,
-            kinetics_term=kinetics_term.value,
-            secretion_term=secretion_term.value,
-            efficiency_term=efficiency_term.value,
-            diversity_term=diversity_term.value,
+            velocities=velocities, dm_dt=dm_dt, exchanges=exchanges, objective=objective
         )
 
 
