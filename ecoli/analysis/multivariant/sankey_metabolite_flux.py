@@ -23,7 +23,7 @@ import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
 
-from ecoli.analysis.multivariant import _variant_label
+from ecoli.analysis.multivariant.utils import create_variant_label
 from ecoli.library.parquet_emitter import (
     field_metadata,
     named_idx,
@@ -153,7 +153,7 @@ def plot(
 
     subplot_titles = []
     for variant_val in unique_variants:
-        label_l = _variant_label(variant_val, per_variant_params)
+        label_l = create_variant_label(variant_val, per_variant_params)
         variant_label = " ".join(label_l) if isinstance(label_l, list) else label_l
         for met in mets_plotted:
             subplot_titles.append(f"{variant_label}: {met}")

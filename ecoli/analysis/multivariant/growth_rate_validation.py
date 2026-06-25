@@ -36,7 +36,7 @@ import numpy as np
 import plotly.express as px
 import polars as pl
 
-from ecoli.analysis.multivariant import _variant_label
+from ecoli.analysis.multivariant.utils import create_variant_label
 from ecoli.library.parquet_emitter import open_arbitrary_sim_data, read_stacked_columns
 from wholecell.utils import units
 
@@ -234,7 +234,7 @@ def plot(
     )
     variant_labels: dict[int, str] = {}
     for variant_val in sorted(growth_rates["variant"].unique().to_list()):
-        label_l = _variant_label(variant_val, per_variant_params)
+        label_l = create_variant_label(variant_val, per_variant_params)
         variant_labels[variant_val] = (
             " ".join(label_l) if isinstance(label_l, list) else label_l
         )

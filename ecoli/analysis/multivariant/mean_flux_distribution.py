@@ -14,7 +14,7 @@ import altair as alt
 import numpy as np
 import polars as pl
 
-from ecoli.analysis.multivariant import _variant_label
+from ecoli.analysis.multivariant.utils import create_variant_label
 from ecoli.library.parquet_emitter import (
     ndlist_to_ndarray,
     read_stacked_columns,
@@ -142,7 +142,7 @@ def plot(
         mask = variant_col == variant_val
         sim_flux_mean = flux_matrix[mask, :].mean(axis=0)
         counts, _ = np.histogram(sim_flux_mean, bins=bin_edges)
-        label_l = _variant_label(variant_val, per_variant_params)
+        label_l = create_variant_label(variant_val, per_variant_params)
         label = " ".join(label_l) if isinstance(label_l, list) else label_l
         for i, count in enumerate(counts):
             rows.append(

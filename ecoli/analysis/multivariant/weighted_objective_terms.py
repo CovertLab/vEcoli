@@ -9,7 +9,7 @@ with lines broken at cell division (detail by generation).
 from typing import Any, TYPE_CHECKING
 import os
 
-from ecoli.analysis.multivariant import _variant_label
+from ecoli.analysis.multivariant.utils import create_variant_label
 from ecoli.library.parquet_emitter import read_stacked_columns
 import altair as alt
 import polars as pl
@@ -101,7 +101,7 @@ def plot(
     variants = melted["variant"].unique().sort()
     plots = []
     for variant_val in variants:
-        variant_name = _variant_label(variant_val, per_variant_params)
+        variant_name = create_variant_label(variant_val, per_variant_params)
         variant_melted = melted.filter(pl.col("variant") == variant_val).to_pandas()
 
         subplot = alt.layer(spread, line, data=variant_melted).properties(

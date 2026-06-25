@@ -35,7 +35,7 @@ from typing import Any, TYPE_CHECKING
 import escher
 import polars as pl
 
-from ecoli.analysis.multivariant import _variant_label
+from ecoli.analysis.multivariant.utils import create_variant_label
 from ecoli.library.parquet_emitter import (
     field_metadata,
     named_idx,
@@ -329,7 +329,7 @@ def plot(
 
     unique_variants = sorted(raw["variant"].unique().to_list())
     for variant_val in unique_variants:
-        label_l = _variant_label(variant_val, per_variant_params)
+        label_l = create_variant_label(variant_val, per_variant_params)
         variant_label = " ".join(label_l) if isinstance(label_l, list) else label_l
         variant_pdf = raw.filter(pl.col("variant") == variant_val)
         reaction_data = {
