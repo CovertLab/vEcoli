@@ -41,6 +41,12 @@ class ExternalState(object):
         self.secretion_exchange_molecules = self._get_secretion_exchange_molecules(
             raw_data
         )
+        # Custom uptake rate constraints set by variants. Maps exchange molecule
+        # IDs (with location tag, e.g. "GLC[p]") to max uptake rates with
+        # mmol/gDW/hr units. Molecules present here will be moved from
+        # unconstrained to constrained (or have their existing constraint
+        # overridden) in exchange_data_from_concentrations.
+        self.custom_uptake_constraints: dict = {}
 
     def _get_all_external_exchange_molecules(self, raw_data):
         """

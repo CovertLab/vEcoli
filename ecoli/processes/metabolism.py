@@ -101,6 +101,10 @@ class Metabolism(Step):
         "base_reaction_ids": [],
         "fba_reaction_ids_to_base_reaction_ids": [],
         "time_step": 1,
+        # Variant-supplied forced uptake rates: maps exchange molecule ID
+        # (with location tag, e.g. "GLC[p]") to rate with mmol/gDW/hr units.
+        # Applied with force=True so the exact flux is imposed each timestep.
+        "forced_uptake_constraints": {},
     }
 
     def __init__(self, parameters=None):
@@ -166,6 +170,9 @@ class Metabolism(Step):
 
         # TODO: For testing, remove later (perhaps after modifying sim data)
         self.reduce_murein_objective = self.parameters["reduce_murein_objective"]
+
+        # Variant-supplied forced uptake constraints (exchange ID → rate with units)
+        self.forced_uptake_constraints = self.parameters["forced_uptake_constraints"]
 
         # Helper indices for Numpy indexing
         self.metabolite_idx = None
@@ -514,6 +521,23 @@ class Metabolism(Step):
             conc_updates,
             aa_uptake_package,
         )
+
+        # Apply variant-supplied forced uptake constraints. These override any
+        # upper-bound set above by forcing the exchange reaction flux to exactly
+        # the specified rate (both lower and upper FBA bounds are set equal).
+        if self.forced_uptake_constraints:
+            forced_ids = list(self.forced_uptake_constraints.keys())
+            forced_levels = np.array(
+                [
+                    (self.forced_uptake_constraints[mid] * coefficient).asNumber(
+                        CONC_UNITS
+                    )
+                    for mid in forced_ids
+                ]
+            )
+            self.model.fba.setExternalMoleculeLevels(
+                forced_levels, molecules=forced_ids, force=True
+            )
 
         # Set reaction limits for maintenance and catalysts present
         self.model.set_reaction_bounds(

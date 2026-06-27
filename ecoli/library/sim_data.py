@@ -1233,6 +1233,9 @@ class LoadSimData:
             # in the FBA solution to the fluxes of base reactions
             "base_reaction_ids": metabolism.base_reaction_ids,
             "fba_reaction_ids_to_base_reaction_ids": metabolism.reaction_id_to_base_reaction_id,
+            # Variant-supplied forced uptake rates (mmol/gDW/hr, applied with
+            # force=True so exact flux is imposed rather than an upper bound)
+            "forced_uptake_constraints": self.sim_data.external_state.custom_uptake_constraints,
         }
 
         # TODO Create new config-get with only necessary parts.
@@ -1333,6 +1336,9 @@ class LoadSimData:
             # in the FBA solution to the fluxes of base reactions
             "base_reaction_ids": self.sim_data.process.metabolism.base_reaction_ids,
             "fba_reaction_ids_to_base_reaction_ids": self.sim_data.process.metabolism.reaction_id_to_base_reaction_id,
+            # Variant-supplied forced uptake rates (mmol/gDW/hr, applied with
+            # force=True so exact flux is imposed rather than an upper bound)
+            "forced_uptake_constraints": self.sim_data.external_state.custom_uptake_constraints,
         }
 
         return metabolism_config

@@ -6,18 +6,25 @@
     },
     "fail_at_max_duration": true,
     "sim_data_path": null,
-    "generations": 16,
-    "n_init_sims": 4,
+    "generations": 8,
+    "n_init_sims": 8,
     "single_daughters": true,
     "emitter": "parquet",
     "emitter_arg": {
         "out_dir": "out"
     },
     "variants": {
-        "condition": {
+        "uptake_constraints": {
             "condition": {
-                "value": ["with_aa", "acetate", "succinate", "no_oxygen"]
-            }
+                "value": ["basal", "acetate", "succinate"]
+            },
+            "carbon_source_rate": {
+                "linspace": {"start": 0, "stop": 20, "num": 4}
+            },
+            "o2_rate": {
+                "linspace": {"start": 0, "stop": 20, "num": 4}
+            },
+            "op": "prod"
         }
     },
     "analysis_options": {
