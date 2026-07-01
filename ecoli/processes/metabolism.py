@@ -302,6 +302,18 @@ class Metabolism(Step):
                             [0.0] * len(self.base_reaction_ids),
                             self.base_reaction_ids,
                         ),
+                        "estimated_homeostatic_dmdt": (
+                            [0] * len(self.homeostaticTargetMolecules),
+                            self.homeostaticTargetMolecules,
+                        ),
+                        "target_homeostatic_dmdt": (
+                            [0] * len(self.homeostaticTargetMolecules),
+                            self.homeostaticTargetMolecules,
+                        ),
+                        "homeostatic_metabolite_counts": (
+                            [0] * len(self.homeostaticTargetMolecules),
+                            self.homeostaticTargetMolecules,
+                        ),
                         # 'estimated_fluxes': {},
                         # 'estimated_homeostatic_dmdt': {},
                         # 'target_homeostatic_dmdt': {},
@@ -557,6 +569,33 @@ class Metabolism(Step):
             unconstrained, constrained, GDCW_BASIS
         )
 
+        # Get indices for homeostatic molecules
+        homeostatic_indices = [
+            self.model.metaboliteNamesFromNutrients.index(mol)
+            for mol in self.homeostaticTargetMolecules
+        ]
+
+        # Actual changes for homeostatic metabolites from FBA
+        estimated_homeostatic_dmdt = delta_metabolites_final[homeostatic_indices]
+
+        # Target changes: difference between objective and current state
+        current_homeostatic_conc = (
+            metabolite_counts_init[homeostatic_indices] * counts_to_molar.asNumber()
+        )
+        target_homeostatic_conc = np.array(
+            [
+                self.model.homeostatic_objective[key]
+                for key in self.homeostaticTargetMolecules
+            ]
+        )
+        target_homeostatic_dmdt = (
+            target_homeostatic_conc - current_homeostatic_conc
+        ) / timestep
+
+        target_homeostatic_dmdt = self.concentrationToCounts(
+            target_homeostatic_dmdt, counts_to_molar, timestep
+        )
+
         # below is used for comparing target and estimate between GD-FBA
         # and LP-FBA, no effect on model
         # maintenance_ngam = ((self.ngam * coefficient) /
@@ -619,15 +658,17 @@ class Metabolism(Step):
                         self.model.metaboliteNamesFromNutrients
                     ),
                     "reduced_costs": fba.getReducedCosts(fba.getReactionIDs()),
-                    "target_concentrations": [
-                        self.model.homeostatic_objective[mol]
-                        for mol in fba.getHomeostaticTargetMolecules()
-                    ],
+                    "target_concentrations": target_homeostatic_conc,
                     "homeostatic_objective_values": fba.getHomeostaticObjectiveValues(),
                     "kinetic_objective_values": fba.getKineticObjectiveValues(),
                     "base_reaction_fluxes": self.reaction_mapping_matrix.dot(
                         reaction_fluxes
                     ),
+                    "estimated_homeostatic_dmdt": estimated_homeostatic_dmdt,
+                    "target_homeostatic_dmdt": target_homeostatic_dmdt,
+                    "homeostatic_metabolite_counts": metabolite_counts_init[
+                        homeostatic_indices
+                    ],
                     # Quite large, comment out to reduce emit size
                     # 'estimated_fluxes': flux_dict ,
                     # 'estimated_homeostatic_dmdt': {
@@ -664,6 +705,11 @@ class Metabolism(Step):
         }
 
         return update
+
+    def concentrationToCounts(self, concs, counts_to_molar, timestep):
+        return np.rint(
+            np.dot(concs, (CONC_UNITS / counts_to_molar * timestep).asNumber())
+        ).astype(int)
 
     def update_amino_acid_targets(
         self,

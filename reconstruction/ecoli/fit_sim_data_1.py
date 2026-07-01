@@ -1365,14 +1365,31 @@ def setProteinDegRates(sim_data):
     Modifies
     --------
     - This function modifies the protein degradation rates for the chosen proteins in sim_data.
-    It takes their current degradation rate and multiplies them by the factor specified in adjustments.
+    If the adjustment specifies time units, its value is treated as an absolute half life
+    and the degradation rate is set to ln(2) / half_life. Otherwise, the value is a
+    multiplicative factor applied to the protein's current degradation rate.
     """
 
-    for protein in sim_data.adjustments.protein_deg_rates_adjustments:
+    deg_rate_units = 1 / units.s
+    for (
+        protein,
+        adjustment,
+    ) in sim_data.adjustments.protein_deg_rates_adjustments.items():
         idx = np.where(sim_data.process.translation.monomer_data["id"] == protein)[0]
-        sim_data.process.translation.monomer_data.struct_array["deg_rate"][idx] *= (
-            sim_data.adjustments.protein_deg_rates_adjustments[protein]
-        )
+        value = adjustment["value"]
+        unit_str = adjustment["units"]
+        if unit_str:
+            # An explicit half life (with time units specified) sets the absolute degradation rate:
+            half_life = value * getattr(units, unit_str)
+            deg_rate = (np.log(2) / half_life).asNumber(deg_rate_units)
+            sim_data.process.translation.monomer_data.struct_array["deg_rate"][idx] = (
+                deg_rate
+            )
+        else:
+            # No units: value is a multiplicative factor on the current rate:
+            sim_data.process.translation.monomer_data.struct_array["deg_rate"][idx] *= (
+                value
+            )
 
 
 def rescaleMassForSolubleMetabolites(sim_data, bulkMolCntr, concDict, doubling_time):
