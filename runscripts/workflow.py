@@ -1084,11 +1084,13 @@ def run_ecr_script(image: str, build: bool, region: str = "us-gov-west-1") -> st
     # or just <repo>:<tag> (script will create full URI)
     is_full_ecr_uri = False
     if "/" in image:
-        # Extract hostname from URI (part before first /)
-        hostname = image.split("/")[0]
-        # Verify hostname actually ends with .amazonaws.com to prevent
-        # bypass via URLs like evil.com/.amazonaws.com/path
-        is_full_ecr_uri = hostname.endswith(".amazonaws.com")
+        # Extract hostname from URI
+        parsed = parse.urlparse(image if "://" in image else f"//{image}")
+        hostname = (parsed.hostname or "").lower()
+        # Accept only amazonaws.com or its real subdomains
+        is_full_ecr_uri = hostname == "amazonaws.com" or hostname.endswith(
+            ".amazonaws.com"
+        )
 
     if is_full_ecr_uri:
         # Full URI provided, extract repo:tag
@@ -1319,8 +1321,6 @@ def stream_log(
                     print(new_content, end="", flush=True)
                 # Remember where we are now
                 last_position = f.tell()
-        else:
-            break
         if stop_event is not None and stop_event.is_set():
             break
         time.sleep(sleep_time)

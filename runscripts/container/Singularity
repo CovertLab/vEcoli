@@ -32,7 +32,9 @@ From: ghcr.io/astral-sh/uv@sha256:2702577da32d9c3d55c8073e07d4476cd7402c085efbf7
         tar -xf /repo.tar -C /vEcoli
         rm /repo.tar
     fi
-    apt-get update && apt-get install -y gcc procps nano curl g++
+    # No need for ca-certificates and unzip since not installing AWS CLI
+    apt-get update && apt-get install -y gcc procps nano curl g++ \
+        && apt-get clean && rm -rf /var/lib/apt/lists/*
     cd /vEcoli
     # Source shared uv environment variables
     . /vEcoli/singularity-env.sh
