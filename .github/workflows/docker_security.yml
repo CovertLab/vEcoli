@@ -59,6 +59,8 @@ jobs:
           image: vecoli:latest
           sarif-file: sarif.output.json
           summary: true
+          only-severities: critical,high,medium
+          only-fixed: true
 
       - name: Upload SARIF result
         id: upload-sarif

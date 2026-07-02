@@ -62,27 +62,28 @@ class TranscriptElongation(PartitionedProcess):
 
     defaults:
         - rnaPolymeraseElongationRateDict (dict): Array with elongation rate
-            set points for different media environments.
+          set points for different media environments.
         - rnaIds (array[str]) : array of names for each TU
         - rnaLengths (array[int]) : array of lengths for each TU
-            (in nucleotides?)
+          (in nucleotides?)
         - rnaSequences (2D array[int]) : Array with the nucleotide sequences
-            of each TU. This is in the form of a 2D array where each row is a
-            TU, and each column is a position in the TU's sequence. Nucleotides
-            are stored as an index {0, 1, 2, 3}, and the row is padded with
-            -1's on the right to indicate where the sequence ends.
+          of each TU. This is in the form of a 2D array where each row is a
+          TU, and each column is a position in the TU's sequence. Nucleotides
+          are stored as an index {0, 1, 2, 3}, and the row is padded with
+          -1's on the right to indicate where the sequence ends.
         - ntWeights (array[float]): Array of nucleotide weights
-        - endWeight (array[float]): ???,
+        - endWeight (array[float]): Additional mass added when an RNA
+          transcript is completed (termination/end-group mass adjustment),
         - replichore_lengths (array[int]): lengths of replichores
-            (in nucleotides?),
+          (in nucleotides?),
         - is_mRNA (array[bool]): Mask for mRNAs
         - ppi (str): ID of PPI
         - inactive_RNAP (str): ID of inactive RNAP
         - ntp_ids list[str]: IDs of ntp's (A, C, G, U)
         - variable_elongation (bool): Whether to use variable elongation.
-                                      False by default.
+          False by default.
         - make_elongation_rates: Function to make elongation rates, of the
-            form: lambda random, rates, timestep, variable: rates
+          form: lambda random, rates, timestep, variable: rates
     """
 
     name = NAME
@@ -151,7 +152,6 @@ class TranscriptElongation(PartitionedProcess):
         self.make_elongation_rates = self.parameters["make_elongation_rates"]
 
         self.polymerized_ntps = self.parameters["polymerized_ntps"]
-        self.charged_trna_names = self.parameters["charged_trnas"]
 
         # Attenuation
         self.trna_attenuation = self.parameters["trna_attenuation"]

@@ -218,6 +218,26 @@ Always use ``uv`` commands to modify dependencies rather than editing
 ``uv.lock`` is updated, uv commands like ``uv run`` will automatically
 sync the environment to match the locked versions.
 
+Base versus Dev Dependencies
+---------------
+We manage two different sets of dependencies: **base** (runtime) and **dev**
+(development-only). Base dependencies are installed in production container
+images and are required to run simulations and workflows. Dev dependencies
+include more testing, interactive tools like Jupyter; they are installed
+only for local development.
+
+.. note::
+    **base** and **dev** are intentionally kept separate in considerations
+    of container image sizes and build time.
+
+It is common that local ``uv.lock`` and ``pyproject.toml`` get modified. Do
+not include unrelated lockfile changes in PRs unless you have considered the
+following. Before adding a dependency, decide which group it belongs in. Add to
+**base** only if the package is needed to run the model or shared production tooling.
+Add to **dev** if it is only needed for tests, linting, interactive notebooks,
+or other local development. Packages used solely in personal analysis notebooks
+generally should not be added to the project dependencies.
+
 Running Scripts
 ---------------
 
