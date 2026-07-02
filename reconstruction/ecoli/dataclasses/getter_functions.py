@@ -487,8 +487,15 @@ class GetterFunctions(object):
                         f" transcription units with tRNA genes."
                     )
 
-            if len(tu_rna_types) == 1:
+            unique_rna_types = set(tu_rna_types)
+            if len(unique_rna_types) == 1:
                 rna_id_to_type[tu["id"]] = tu_rna_types[0]
+            elif unique_rna_types == {"mRNA", "miscRNA"}:
+                # The miscRNA in these TUs (e.g. FtsO) is fully contained
+                # within the ORF of the mRNA (e.g. FtsI) and is never
+                # produced as a separate transcript, so it is safe to tally
+                # the whole TU's mass as mRNA.
+                rna_id_to_type[tu["id"]] = "mRNA"
             else:
                 # Hybrid RNAs are set to have nonspecific mass
                 rna_id_to_type[tu["id"]] = "nonspecific_RNA"
