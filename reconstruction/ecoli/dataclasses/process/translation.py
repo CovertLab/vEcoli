@@ -116,23 +116,29 @@ class Translation(object):
         # Get molecular weights
         mws = sim_data.getter.get_masses(protein_ids).asNumber(units.g / units.mol)
 
-        # Calculate degradation rates based on N-rule
+        # Calculate degradation rates based on the N-rule (Tobias et al. 1991)
         deg_rate_units = 1 / units.s
         n_end_rule_deg_rates = {
             row["aa_code"]: (np.log(2) / (row["half life"])).asNumber(deg_rate_units)
             for row in raw_data.protein_half_lives_n_end_rule
         }
 
-        # Get degradation rates from measured protein half lives
+        # Get degradation rates from measured data (Macklin et al. 2020)
         measured_deg_rates = {
             p["id"]: (np.log(2) / p["half life"]).asNumber(deg_rate_units)
             for p in raw_data.protein_half_lives_measured
         }
 
-        # Get degradation rates from Nagar (2022) pulsed-SILAC half lives
+        # Get degradation rates from pulsed-SILAC data (Nagar et al. 2021)
         pulsed_silac_deg_rates = {
             p["id"]: (np.log(2) / p["half_life"]).asNumber(deg_rate_units)
             for p in raw_data.protein_half_lives_pulsed_silac
+        }
+
+        # Get degradation rate for MurD from carbon-limited data (Gupta et al. 2024)
+        modified_deg_rates = {
+            p["id"]: (np.log(2) / p["half life"]).asNumber(deg_rate_units)
+            for p in raw_data.protein_half_lives_modified
         }
 
         deg_rate = np.zeros(len(all_proteins))
@@ -140,6 +146,12 @@ class Translation(object):
             # Use measured degradation rates if available
             if protein["id"] in measured_deg_rates:
                 deg_rate[i] = measured_deg_rates[protein["id"]]
+            # Note: modified_deg_rates is used to override the
+            # pulsed_silac_deg_rate for MurD. Do not change order of
+            # degradation rate selection without intention, as this may result
+            # in MurD being reassigned to an unstable half-life value.
+            elif protein["id"] in modified_deg_rates:
+                deg_rate[i] = modified_deg_rates[protein["id"]]
             elif protein["id"] in pulsed_silac_deg_rates:
                 deg_rate[i] = pulsed_silac_deg_rates[protein["id"]]
             # If measured rates are unavailable, use N-end rule
