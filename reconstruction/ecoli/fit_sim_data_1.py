@@ -1365,7 +1365,7 @@ def setProteinDegRates(sim_data):
     Modifies
     --------
     - This function modifies the protein degradation rates for the chosen proteins in sim_data.
-    - It takes their current degradation rate and multiplies them by the factor specified in adjustments.
+    -It takes their current degradation rate and multiplies them by the factor specified in adjustments.
     """
 
     for protein in sim_data.adjustments.protein_deg_rates_adjustments:
