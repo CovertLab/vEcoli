@@ -28,14 +28,11 @@ class Adjustments(object):
             for adj in raw_data.adjustments.rna_deg_rates_adjustments
         }
         self.protein_deg_rates_adjustments = {
-            adj["name"]: {
-                "value": (
-                    adj["value"]
-                    if not isinstance(adj["value"], str)
-                    else eval(adj["value"])
-                ),
-                "units": adj["units"],
-            }
+            adj["name"]: (
+                adj["value"]
+                if not isinstance(adj["value"], str)
+                else eval(adj["value"])
+            )  # eval fractions
             for adj in raw_data.adjustments.protein_deg_rates_adjustments
         }
         self.relative_metabolite_concentrations_changes = {
