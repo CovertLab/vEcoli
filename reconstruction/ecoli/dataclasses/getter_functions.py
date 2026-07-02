@@ -4,7 +4,6 @@ SimulationData getter functions
 
 import itertools
 import re
-import warnings
 from Bio.Seq import Seq
 import numpy as np
 import numpy.typing as npt
@@ -13,6 +12,16 @@ from reconstruction.ecoli.dataclasses.molecule_groups import POLYMERIZED_FRAGMEN
 from wholecell.utils import units
 
 EXCLUDED_RNA_TYPES = {"pseudo", "phantom"}
+
+# Transcription units that are hard-coded exceptions to the rule that a TU's
+# genes must all encode the same RNA type. These are ftsO containing operon
+# TUs, whose only non-mRNA gene is the miscRNA ftsO. ftsO is fully
+# contained within the ftsI mRNA's ORF and is never produced as a separate
+# transcript (the model has no mechanism to process the TU down to ftsO), so
+# it is safe to tally these TUs' mass as mRNA rather than nonspecific_RNA.
+# Any other TU mixing mRNA and miscRNA genes is NOT covered by this
+# exception and should raise for explicit review before being added here.
+MRNA_MISCRNA_HYBRID_TU_IDS = {"TU0-14439", "TU0-14443", "TU0-14445", "TU0-941"}
 
 # Mapping of compartment IDs to abbreviations for compartments undefined in
 # flat/compartments.tsv
@@ -472,29 +481,27 @@ class GetterFunctions(object):
             if len(set(tu_rna_types)) > 1:
                 if set(tu_rna_types) == {"rRNA", "tRNA"}:
                     pass
-                elif set(tu_rna_types) == {"mRNA", "miscRNA"}:
-                    warnings.warn(
-                        f"Transcription unit {tu['id']} contains both mRNA(s)"
-                        " and miscRNA(s). This type of operon is only partially"
-                        " supported in this version of the model."
-                    )
+                elif tu["id"] in MRNA_MISCRNA_HYBRID_TU_IDS:
+                    pass
                 else:
                     raise ValueError(
                         f"Transcription unit {tu['id']} includes genes"
                         f" that encode for two or more different types of RNAs."
                         f" Such transcription units are not supported by this"
                         f" version of the model with the exception of rRNA"
-                        f" transcription units with tRNA genes."
+                        f" transcription units with tRNA genes and the"
+                        f" hard-coded ftsO operon TUs in"
+                        f" MRNA_MISCRNA_HYBRID_TU_IDS."
                     )
 
             unique_rna_types = set(tu_rna_types)
             if len(unique_rna_types) == 1:
                 rna_id_to_type[tu["id"]] = tu_rna_types[0]
-            elif unique_rna_types == {"mRNA", "miscRNA"}:
-                # The miscRNA in these TUs (e.g. FtsO) is fully contained
-                # within the ORF of the mRNA (e.g. FtsI) and is never
-                # produced as a separate transcript, so it is safe to tally
-                # the whole TU's mass as mRNA.
+            elif tu["id"] in MRNA_MISCRNA_HYBRID_TU_IDS:
+                # The miscRNA in these TUs (FtsO) is fully contained within
+                # the ORF of the mRNA (FtsI) and is never produced as a
+                # separate transcript, so it is safe to tally the whole TU's
+                # mass as mRNA here:
                 rna_id_to_type[tu["id"]] = "mRNA"
             else:
                 # Hybrid RNAs are set to have nonspecific mass
