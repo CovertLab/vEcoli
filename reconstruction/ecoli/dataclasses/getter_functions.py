@@ -13,14 +13,16 @@ from wholecell.utils import units
 
 EXCLUDED_RNA_TYPES = {"pseudo", "phantom"}
 
-# Transcription units that are hard-coded exceptions to the rule that a TU's
-# genes must all encode the same RNA type. These are ftsO containing operon
-# TUs, whose only non-mRNA gene is the miscRNA ftsO. ftsO is fully
-# contained within the ftsI mRNA's ORF and is never produced as a separate
-# transcript (the model has no mechanism to process the TU down to ftsO), so
-# it is safe to tally these TUs' mass as mRNA rather than nonspecific_RNA.
-# Any other TU mixing mRNA and miscRNA genes is NOT covered by this
-# exception and should raise for explicit review before being added here.
+# MRNA_MISCRNA_HYBRID_TU_IDS holds transcription units that are hard-coded
+# exceptions to the rule that a TU's genes must all encode the same RNA type.
+# These are ftsO containing operon TUs, whose only non-mRNA gene is the
+# miscRNA ftsO. ftsO is fully contained within the ftsI mRNA's ORF and is never
+# produced as a separate transcript (the model has no mechanism to process the
+# TU down to ftsO), so it is safe to tally these TUs' mass as mRNA rather than
+# nonspecific_RNA. ftsO is essentially a passenger on these operons and, thus,
+# is intentionally left untracked in the model. Any other TU mixing mRNA and
+# miscRNA genes are NOT covered by this exception and should be explicitly
+# reviewed before being added here:
 MRNA_MISCRNA_HYBRID_TU_IDS = {"TU0-14439", "TU0-14443", "TU0-14445", "TU0-941"}
 
 # Mapping of compartment IDs to abbreviations for compartments undefined in
