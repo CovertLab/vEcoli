@@ -151,6 +151,15 @@ def _(mo):
 
 @app.cell
 def _(mo):
+    # User-facing label for the primary dataset (shown in chart legends and
+    # in the Download tab's source picker). Kept simple ("dataset 1"); the
+    # compare slots default to "dataset 2".."dataset 5".
+    primary_label = mo.ui.text(value="dataset 1", placeholder="dataset 1")
+    return (primary_label,)
+
+
+@app.cell
+def _(mo):
     analysis_select = mo.ui.dropdown(
         options=["single", "multidaughter", "multigeneration", "multiseed"],
         value="single",
@@ -277,7 +286,7 @@ def _(mo, NUM_COMPARE_SLOTS):
 # top-level `compare_enabled` + `compare_count` widgets.
 @app.cell
 def _(get_exp, mo, outdir_tree):
-    slot_0_label = mo.ui.text(value="slot 1", placeholder="slot 1")
+    slot_0_label = mo.ui.text(value="dataset 2", placeholder="dataset 2")
     slot_0_exp = mo.ui.dropdown(
         options=get_exp(outdir_tree), value=None, searchable=True
     )
@@ -338,7 +347,7 @@ def _(
 # Slot 1
 @app.cell
 def _(get_exp, mo, outdir_tree):
-    slot_1_label = mo.ui.text(value="slot 2", placeholder="slot 2")
+    slot_1_label = mo.ui.text(value="dataset 3", placeholder="dataset 3")
     slot_1_exp = mo.ui.dropdown(
         options=get_exp(outdir_tree), value=None, searchable=True
     )
@@ -399,7 +408,7 @@ def _(
 # Slot 2
 @app.cell
 def _(get_exp, mo, outdir_tree):
-    slot_2_label = mo.ui.text(value="slot 3", placeholder="slot 3")
+    slot_2_label = mo.ui.text(value="dataset 4", placeholder="dataset 4")
     slot_2_exp = mo.ui.dropdown(
         options=get_exp(outdir_tree), value=None, searchable=True
     )
@@ -460,7 +469,7 @@ def _(
 # Slot 3
 @app.cell
 def _(get_exp, mo, outdir_tree):
-    slot_3_label = mo.ui.text(value="slot 4", placeholder="slot 4")
+    slot_3_label = mo.ui.text(value="dataset 5", placeholder="dataset 5")
     slot_3_exp = mo.ui.dropdown(
         options=get_exp(outdir_tree), value=None, searchable=True
     )
@@ -622,6 +631,7 @@ def _(
     history_sql_base,
     os,
     partition_groups,
+    primary_label,
     wd_root,
 ):
     # Compile primary + the first `compare_count` compare slots into
@@ -644,7 +654,7 @@ def _(
 
     active_datasets = [
         {
-            "label": "primary",
+            "label": primary_label.value.strip() or "dataset 1",
             "history_sql": history_sql_base,
             "config_sql": config_sql_base,
             "db_filter": db_filter,
@@ -668,7 +678,7 @@ def _(
                 _slot["generation"].value,
                 _slot["agent_id"].value,
             )
-            _slot_label = _slot["label"].value.strip() or f"slot {_i + 1}"
+            _slot_label = _slot["label"].value.strip() or f"dataset {_i + 2}"
             active_datasets.append(
                 {
                     "label": _slot_label,
@@ -2420,6 +2430,149 @@ def _(
     return (chart_regulation,)
 
 
+# ===== Complexation tab (per-reaction complex-assembly counts) =====
+
+
+@app.cell
+def _(sim_data):
+    # `listeners__complexation_listener__complexation_events` is a per-
+    # complexation-reaction vector (length ~1,100) matching
+    # `sim_data.process.complexation.ids_reactions`. Each entry counts how
+    # many of that complex were assembled in the current timestep.
+    complexation_reaction_ids = list(sim_data.process.complexation.ids_reactions)
+    return (complexation_reaction_ids,)
+
+
+@app.cell
+def _(complexation_reaction_ids, mo):
+    complexation_select_plot = mo.ui.multiselect(
+        options=complexation_reaction_ids,
+        value=None,
+        max_selections=500,
+    )
+    y_scale_complexation = mo.ui.dropdown(
+        options=["linear", "log", "symlog"], value="symlog"
+    )
+    return complexation_select_plot, y_scale_complexation
+
+
+@app.cell
+def _(mo):
+    about_complexation_md = mo.md(
+        "Time course of complex-assembly events per timestep, indexed by "
+        "complexation reaction (`sim_data.process.complexation.ids_reactions`, "
+        "~1,100 reactions). Each entry counts how many of that complex "
+        "assembled during the current timestep — useful for tracking "
+        "protein-complex dynamics. Pair with the **Proteins** tab to see "
+        "monomer counts feeding into assembly events."
+    )
+    return (about_complexation_md,)
+
+
+@app.cell
+def _(
+    active_datasets,
+    complexation_reaction_ids,
+    complexation_select_plot,
+    conn,
+    datapoints_cap,
+    get_plot_df_multi,
+):
+    plot_df_complexation = None
+    if complexation_select_plot.value:
+        plot_df_complexation = get_plot_df_multi(
+            active_datasets,
+            complexation_reaction_ids,
+            complexation_select_plot,
+            "listeners__complexation_listener__complexation_events",
+            "complexation_events",
+            "Reaction",
+            "value",
+            datapoints_cap,
+            conn,
+            dtype="BIGINT",
+        )
+    return (plot_df_complexation,)
+
+
+@app.cell
+def _(
+    active_datasets,
+    alt,
+    chart_layout_mode,
+    complexation_select_plot,
+    mo,
+    pl,
+    plot_df_complexation,
+    y_scale_complexation,
+):
+    chart_complexation = None
+    if complexation_select_plot.value and plot_df_complexation is not None:
+        _n = len(active_datasets)
+        _y_title = "Complexation events per timestep"
+        _base = (
+            alt.Chart(plot_df_complexation)
+            .mark_line()
+            .encode(
+                x=alt.X(
+                    "time:Q",
+                    scale=alt.Scale(type="linear"),
+                    axis=alt.Axis(tickCount=4),
+                    title="Time (s)",
+                ),
+                y=alt.Y(
+                    "value:Q",
+                    scale=alt.Scale(type=y_scale_complexation.value),
+                    title=_y_title,
+                ),
+                color=alt.Color(
+                    "Reaction:N", legend=alt.Legend(title="Complexation reaction")
+                ),
+            )
+        )
+        if _n > 1 and chart_layout_mode.value == "overlay":
+            _base = _base.encode(
+                strokeDash=alt.StrokeDash(
+                    "dataset_label:N", legend=alt.Legend(title="Dataset")
+                )
+            )
+            chart_complexation = _base
+        elif _n > 1 and chart_layout_mode.value == "facet":
+            _per_ds = []
+            for _ds in active_datasets:
+                _ds_df = plot_df_complexation.filter(
+                    pl.col("dataset_label") == _ds["label"]
+                )
+                if len(_ds_df) == 0:
+                    continue
+                _per_ds.append(
+                    alt.Chart(_ds_df, title=_ds["label"])
+                    .mark_line()
+                    .encode(
+                        x=alt.X(
+                            "time:Q",
+                            scale=alt.Scale(type="linear"),
+                            axis=alt.Axis(tickCount=4),
+                            title="Time (s)",
+                        ),
+                        y=alt.Y(
+                            "value:Q",
+                            scale=alt.Scale(type=y_scale_complexation.value),
+                            title=_y_title,
+                        ),
+                        color=alt.Color(
+                            "Reaction:N",
+                            legend=alt.Legend(title="Complexation reaction"),
+                        ),
+                    )
+                    .properties(width="container", height=220)
+                )
+            chart_complexation = mo.vstack(_per_ds) if _per_ds else None
+        else:
+            chart_complexation = _base
+    return (chart_complexation,)
+
+
 @app.cell
 def _(create_duckdb_conn, os, wd_root):
     # cpus omitted → DuckDB uses all detected cores. Big win when a compare
@@ -3738,6 +3891,7 @@ def _(
     mo,
     partition_groups,
     partition_picker_items,
+    primary_label,
     select_pathway,
 ):
     # Toolbar lives in its OWN cell so it always renders, even if a downstream
@@ -3745,7 +3899,9 @@ def _(
     # pathway from here to recover.
 
     # ---- primary partition row ----
-    _partition_row = []
+    # Leads with the user-editable primary dataset label so it visually mirrors
+    # the compare-slot rows below (dataset label first, then partitions).
+    _partition_row = [mo.md("**dataset label:**"), primary_label]
     for _label, _widget in partition_picker_items:
         _partition_row.append(mo.md(f"**{_label}:**"))
         _partition_row.append(_widget)
@@ -3787,15 +3943,27 @@ def _(
         _n = int(compare_count.value or 0)
         for _i in range(min(_n, len(compare_slots))):
             _slot = compare_slots[_i]
-            _row = [mo.md(f"**slot {_i + 1}:**"), _slot["label"]]
+            _row = [mo.md("**dataset label:**"), _slot["label"]]
             for _k in _required:
                 _row.append(mo.md(f"**{_key_display[_k]}:**"))
                 _row.append(_slot[_slot_field_for_key[_k]])
             _slot_rows.append(mo.hstack(_row, justify="start", align="center", gap=0.4))
 
+    # Wrap the header + slot rows in a bordered box. mo.Html preserves any
+    # embedded UI elements' interactivity (they're referenced by the
+    # containing vstack's rendered HTML).
+    _compare_section_inner = mo.vstack(
+        [_compare_header] + _slot_rows if _slot_rows else [_compare_header]
+    )
+    _compare_section = mo.Html(
+        '<div style="border: 1px solid #d0d0d0; border-radius: 6px; '
+        'padding: 10px 12px; margin: 4px 0;">' + _compare_section_inner.text + "</div>"
+    )
+
     mo.vstack(
         [
             mo.md("# vEcoli Output Explorer"),
+            mo.accordion({"About this notebook": about_intro_md}),
             mo.hstack([mo.md("**analysis:**"), analysis_select], justify="start"),
             mo.hstack(_partition_row, justify="start"),
             mo.hstack(
@@ -3807,9 +3975,7 @@ def _(
                 ],
                 justify="start",
             ),
-            _compare_header,
-            mo.vstack(_slot_rows) if _slot_rows else mo.md(""),
-            mo.accordion({"About this notebook": about_intro_md}),
+            _compare_section,
         ]
     )
     return
@@ -3817,6 +3983,7 @@ def _(
 
 @app.cell
 def _(
+    about_complexation_md,
     about_compounds_md,
     about_download_md,
     about_metabolism_md,
@@ -3828,6 +3995,7 @@ def _(
     about_translation_md,
     about_validation_md,
     bulk_sp_plot,
+    chart_complexation,
     chart_compounds,
     chart_mrna,
     chart_monomers,
@@ -3837,6 +4005,7 @@ def _(
     chart_transcription,
     chart_translation,
     chart_val,
+    complexation_select_plot,
     dl_delivery_radio,
     dl_disk_dir_input,
     dl_filename_input,
@@ -3875,6 +4044,7 @@ def _(
     val_id_select,
     val_label_type,
     y_scale,
+    y_scale_complexation,
     y_scale_mrna,
     y_scale_monomers,
     y_scale_physiology,
@@ -4126,6 +4296,24 @@ def _(
         ]
     )
 
+    _complexation_tab = mo.vstack(
+        [
+            mo.accordion({"About this view": about_complexation_md}),
+            mo.hstack(
+                [
+                    mo.md("**complexation reactions:**"),
+                    complexation_select_plot,
+                    mo.md("**scale:**"),
+                    y_scale_complexation,
+                ],
+                justify="start",
+            ),
+            _chart_or_placeholder(
+                chart_complexation, "Select reactions to see the chart."
+            ),
+        ]
+    )
+
     mo.ui.tabs(
         {
             "Physiology": _physiology_tab,
@@ -4135,6 +4323,7 @@ def _(
             "Regulation": _regulation_tab,
             "Proteins": _proteins_tab,
             "Translation": _translation_tab,
+            "Complexation": _complexation_tab,
             "Metabolism": _metabolism_tab,
             "Validation": _validation_tab,
             "Download": _download_tab,
