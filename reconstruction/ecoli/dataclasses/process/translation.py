@@ -143,18 +143,19 @@ class Translation(object):
 
         deg_rate = np.zeros(len(all_proteins))
         for i, protein in enumerate(all_proteins):
-            # Use measured degradation rates if available
-            if protein["id"] in measured_deg_rates:
-                deg_rate[i] = measured_deg_rates[protein["id"]]
             # Note: modified_deg_rates is used to override the
             # pulsed_silac_deg_rate for MurD. Do not change order of
             # degradation rate selection without intention, as this may result
             # in MurD being reassigned to an unstable half-life value.
-            elif protein["id"] in modified_deg_rates:
+            if protein["id"] in modified_deg_rates:
                 deg_rate[i] = modified_deg_rates[protein["id"]]
+            # Use measured degradation rates if available:
+            elif protein["id"] in measured_deg_rates:
+                deg_rate[i] = measured_deg_rates[protein["id"]]
+            # Use pulsed-SILAC degradation rates if available:
             elif protein["id"] in pulsed_silac_deg_rates:
                 deg_rate[i] = pulsed_silac_deg_rates[protein["id"]]
-            # If measured rates are unavailable, use N-end rule
+            # If measured rates are unavailable, use N-end rule:
             else:
                 seq = protein["seq"]
                 assert (
