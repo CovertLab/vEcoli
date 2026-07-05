@@ -52,6 +52,7 @@ data/vivecoli_t2.json
 data/marA_binding/gene_fc.csv
 configs/test_configs/test_export.json
 /notebooks/test_files/
+/notebooks/cofactors/data/
 cache/
 
 # Nextflow files #
