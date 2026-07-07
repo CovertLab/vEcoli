@@ -258,17 +258,30 @@ class get_unique_fields(Serializer):
     """Serializer for unique molecules."""
 
     @staticmethod
-    def serialize(unique: np.ndarray) -> dict[str, np.ndarray]:
+    def serialize(unique: np.ndarray) -> dict[str, Any]:
         """
         Args:
             unique: Numpy structured array of attributes for one unique molecule
 
         Returns:
-            Mapping of attributes to contiguous (required by orjson) arrays
+            Mapping of attributes to contiguous (required by orjson) arrays.
+            Multi-dimensional attributes are returned as nested Python lists
+            because the Parquet emitter cannot serialize raw N-D arrays.
         """
-        return {
-            field: np.ascontiguousarray(unique[field]) for field in unique.dtype.names
-        }
+        serialized: dict[str, Any] = {}
+        for field in unique.dtype.names:
+            value = unique[field]
+            if value.ndim > 1:
+                # e.g. promoter ``bound_TF`` has shape (n_molecules, n_TFs).
+                # The Parquet emitter only serializes <=1-D arrays via its
+                # Polars fallback, so emit multi-dimensional attributes as
+                # nested lists (List(List(...))). The JSON emitter handles
+                # nested lists identically, and ``ndlist_to_ndarray`` restores
+                # the N-D array on read:
+                serialized[field] = value.tolist()
+            else:
+                serialized[field] = np.ascontiguousarray(value)
+        return serialized
 
 
 def numpy_schema(name: str, emit: bool = True) -> Dict[str, Any]:
