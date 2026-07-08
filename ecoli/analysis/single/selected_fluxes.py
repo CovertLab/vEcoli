@@ -174,8 +174,17 @@ def plot(
         for reaction_id, label in reaction_set.items():
             ax.plot(flux_data["time"], flux_data[reaction_id], label=label)
 
+        # Axis aesthetics
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Flux")
+        ax.legend()
+
         # Plot enzyme counts, if requested
         if params["show_enzyme_counts"]:
+            # Axis aesthetics
+            ax2.set_ylabel("Enzyme count")
+            lax.axis("off")
+
             # Get a tree mapping from catalysts in this subplot (root)
             # to base reactions (level 2) to fba reactions (level 3)
             catalysts_to_reactions_mapping: defaultdict[
@@ -193,6 +202,9 @@ def plot(
                             catalysts_to_reactions_mapping[catalyst][baseid].append(
                                 rxnid
                             )
+
+            if len(catalysts_to_reactions_mapping) == 0:
+                continue
 
             # Get catalyst indices and read counts
             catalyst_set_ids = list(catalysts_to_reactions_mapping.keys())
@@ -265,15 +277,8 @@ def plot(
                     )
                 )
 
-            # Axis aesthetics
-            ax2.set_ylabel("Enzyme count")
+            # Legend
             lax.legend(handles=legend_handles)
-            lax.axis("off")
-
-        # Axis aesthetics
-        ax.set_xlabel("Time")
-        ax.set_ylabel("Flux")
-        ax.legend()
 
     if params["figsize"] is None:
         fig.set_size_inches(params["col_width"] * n_cols, params["row_height"] * n_rows)

@@ -1,0 +1,34 @@
+{
+    "experiment_id": "test_c6_objective__baseline",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 32
+    },
+    "fail_at_max_duration": true,
+    "sim_data_path": null,
+    "generations": 1,
+    "n_init_sims": 1,
+    "single_daughters": true,
+    "emitter": "parquet",
+    "emitter_arg": {
+        "out_dir": "out"
+    },
+    "analysis_options": {
+        "experiment_id": ["test_c6_objective__baseline"],
+        "variant_data_dir": ["out/test_c6_objective__baseline/variant_sim_data"],
+        "multivariant":{
+            "doubling_time_hist": {"skip_n_gens": 0},
+            "metabolite_unmet_need": {}
+        },
+        "multigeneration": {
+            "selected_fluxes": {
+                "show_enzyme_counts": true,
+                "plot_reactions" : [
+                    "TRANS-RXN0-286",
+                    "RXN0-5405",
+                    "RXN-11302"
+                ]
+            }
+        }
+    }
+}

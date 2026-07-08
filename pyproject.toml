@@ -92,3 +92,8 @@ packages = [
     "validation",
     "wholecell"
 ]
+
+[dependency-groups]
+dev = [
+    "vegafusion>=2.0.3",
+]
