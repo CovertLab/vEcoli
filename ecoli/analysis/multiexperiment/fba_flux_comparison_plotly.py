@@ -16,6 +16,10 @@ protein_count_comparison_plotly.py):
 # TODO: decide if the reaction list cap should be expanded based on how many this affects
 # TODO: determine what is causing the odd warning to emit
 # TODO: resolve all other TODOs in the script
+# TODO: figure out how to plot negative fluxes in a way that makes sense (maybe
+ triangles for normally negative, circles for positive, square for negative in one and positive in another)
+ # TODO: decide if the reactant and product avg counts should be the total (from listener) or free
+ # todo: decide if the catalyst avg counts should be the total (from listener for monomers) or free
 """
 
 import os
