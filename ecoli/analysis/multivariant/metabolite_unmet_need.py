@@ -122,11 +122,12 @@ def plot(
             pl.when(ratio.is_infinite()).then(None).otherwise(ratio).alias(f"unmet_{i}")
         )
 
-    # Relative time per (variant, generation, lineage_seed, agent_id)
-    t_min = raw.group_by(["variant", "generation", "lineage_seed", "agent_id"]).agg(
+    # Continuous relative time per (variant, lineage_seed): subtract the
+    # global minimum so time spans all generations (e.g. 0-240 min for 6 gen)
+    t_min = raw.group_by(["variant", "lineage_seed"]).agg(
         pl.col("time").min().alias("t_min")
     )
-    raw = raw.join(t_min, on=["variant", "generation", "lineage_seed", "agent_id"])
+    raw = raw.join(t_min, on=["variant", "lineage_seed"])
     raw = raw.with_columns(
         ((pl.col("time") - pl.col("t_min")) / 60.0).alias("Time_min")
     )

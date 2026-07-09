@@ -1026,7 +1026,7 @@ class FluxBalanceAnalysisModel(object):
         reaction_bounds[no_rxn_mask] = 0
         self.fba.setReactionFluxBounds(
             self.reactions_with_catalyst,
-            upperBounds=reaction_bounds,
+            upperBounds=1,
             raiseForReversible=False,
         )
 

@@ -1,0 +1,33 @@
+level1,level2,gene_count
+cell processes,adaptations,26
+cell processes,protection,24
+cell processes,cell division,5
+cell processes,"motility, chemotaxis, energytaxis (aerotaxis, redoxtaxis etc)",2
+cell structure,membrane,81
+cell structure,murein,9
+cell structure,"surface antigens (ECA, O antigen of LPS)",7
+cell structure,capsule (M and K antigens),3
+cell structure,ribosomes,1
+extrachromosomal,prophage genes and phage related functions,4
+extrachromosomal,colicin related,2
+extrachromosomal,transposon related,1
+information transfer,protein related,11
+information transfer,RNA related,4
+information transfer,DNA related,2
+metabolism,carbon utilization,68
+metabolism,biosynthesis of macromolecules (cellular constituents),44
+metabolism,central intermediary metabolism,33
+metabolism,biosynthesis of building blocks,32
+metabolism,metabolism of other compounds,27
+metabolism,energy production/transport,26
+metabolism,"energy metabolism, carbon",24
+metabolism,degradation of macromolecules,2
+regulation,type of regulation,2
+regulation,genetic unit regulated,1
+transport,Electrochemical potential driven transporters,40
+transport,Primary Active Transporters,39
+transport,Group Translocators,17
+transport,Channel-type Transporters,7
+transport,Accessory Factors Involved in Transport,2
+transport,Transporters of Unknown Classification,2
+transport,Putative uncharacterized transport protein,1

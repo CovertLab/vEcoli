@@ -1,0 +1,308 @@
+Gene ID (EcoCyc),Gene locus ID,Gene name,Enzyme encoded,Description by Cyrus,primary_level1,primary_level2,all_level1_categories
+EG10022,b4015,aceA,ISOCIT-LYASE,acetate transport + metabolism,metabolism,central intermediary metabolism,metabolism
+EG10023,b4014,aceB,MALATE-SYNTHASE,acetate transport + metabolism,metabolism,central intermediary metabolism,metabolism
+EG11942,b4067,actP,CPLX0-7955,acetate transport + metabolism,transport,Electrochemical potential driven transporters,cell structure | transport
+EG11724,b3714,adeP,EG11724-MONOMER,adenine transport,transport,Electrochemical potential driven transporters,transport
+EG12462,b4115,adiC,CPLX0-7535,"transport, acid resistance",transport,Electrochemical potential driven transporters,cell structure | transport
+EG11101,b0476,aes,CPLX0-8033,general fatty acid degradation,metabolism,carbon utilization,metabolism
+G7634,b3136,agaS,G7634-MONOMER,"enzyme, only in some strains",metabolism,carbon utilization,metabolism
+EG10033,b1002,agp,GLUCOSE-1-PHOSPHAT-CPLX,periplasmic phosphatase to import g6p,metabolism,central intermediary metabolism,metabolism
+EG11384,b0605,ahpC,CPLX0-245,general peroxidase,cell processes,protection,cell processes
+G6275,b0505,allA,G6275-MONOMER,allantoin purine utilization nitrogen source,metabolism,central intermediary metabolism,metabolism
+G6286,b0517,allD,CPLX0-7993,allantoin purine utilization nitrogen source,metabolism,central intermediary metabolism,metabolism
+EG10041,b0110,ampD,EG10041-MONOMER,cell wall recycling,metabolism,central intermediary metabolism,cell structure | metabolism
+G6880,b1640,anmK,G6880-MONOMER,cell wall recycling,metabolism,central intermediary metabolism,metabolism
+EG11159,b2923,argO,YGGA-MONOMER,arg transport,transport,Electrochemical potential driven transporters,transport
+EG10086,b2715,ascF,CPLX-153,pts rare carbon,metabolism,carbon utilization,cell structure | metabolism | transport
+EG11671,b2223,atoE,EG11671-MONOMER,acetoacetate trans,transport,Putative uncharacterized transport protein,transport
+EG11665,b3057,bacA,EG11665-MONOMER,cell wall synthesis,cell processes,protection,cell processes | cell structure
+EG10108,b2480,bcp,EG10108-MONOMER,"thio redox, oxidative stress",cell processes,protection,cell processes
+G495,b2901,bglA,G495-MONOMER,"glucosidase, more evidence needed",metabolism,carbon utilization,metabolism
+EG10114,b3721,bglB,EG10114-MONOMER,"glucosidase, more evidence needed",metabolism,carbon utilization,metabolism
+EG12013,b2132,bglX,EG12013-MONOMER,"glucosidase, more evidence needed",metabolism,carbon utilization,metabolism
+EG10126,b3966,btuB,CPLX0-1924,vit b uptake,transport,Channel-type Transporters,extrachromosomal | transport
+EG10127,b1711,btuC,ABC-5-CPLX,vit b uptake,metabolism,biosynthesis of building blocks,cell structure | metabolism | transport
+EG10128,b1709,btuD,ABC-5-CPLX,vit b uptake,metabolism,biosynthesis of building blocks,metabolism | transport
+EG10130,b1270,btuR,COBALADENOSYLTRANS-MONOMER,vit b uptake,metabolism,biosynthesis of building blocks,metabolism
+EG11560,b0039,caiA,CROBETREDUCT-MONOMER,carnitine metabolism,metabolism,energy production/transport,metabolism
+EG11559,b0038,caiB,CARNDEHYDRA-CPLX,carnitine metabolism,metabolism,central intermediary metabolism,metabolism
+EG11558,b0037,caiC,CAIC-MONOMER,carnitine metabolism,metabolism,carbon utilization,metabolism
+EG11557,b0036,caiD,CARNRACE-MONOMER,carnitine metabolism,metabolism,central intermediary metabolism,metabolism
+EG11561,b0040,caiT,CPLX0-7906,carnitine metabolism,metabolism,carbon utilization,cell structure | metabolism | transport
+EG12059,b2201,ccmA,CPLX-9493,t1 cyt c gen,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+EG12058,b2200,ccmB,CPLX-9493,t1 cyt c gen,metabolism,biosynthesis of macromolecules (cellular constituents),cell structure | metabolism
+EG12057,b2199,ccmC,ABC-35-CPLX,t1 cyt c gen,metabolism,biosynthesis of macromolecules (cellular constituents),cell structure | metabolism
+EG12169,b2198,ccmD,ABC-35-CPLX,t1 cyt c gen,metabolism,biosynthesis of macromolecules (cellular constituents),cell structure | information transfer | metabolism
+EG12055,b2197,ccmE,ABC-35-CPLX,t1 cyt c gen,metabolism,biosynthesis of macromolecules (cellular constituents),information transfer | metabolism
+EG12054,b2196,ccmF,EG12054-MONOMER,t1 cyt c gen,metabolism,biosynthesis of macromolecules (cellular constituents),cell structure | metabolism
+EG12053,b2195,ccmG,EG12053-MONOMER,t1 cyt c gen,metabolism,biosynthesis of macromolecules (cellular constituents),cell structure | information transfer | metabolism
+EG12052,b2194,ccmH,EG12052-MONOMER,t1 cyt c gen,metabolism,biosynthesis of macromolecules (cellular constituents),cell structure | information transfer | metabolism
+EG11531,b1661,cfa,CFA-CPLX,unsat fatty acid methyl,metabolism,biosynthesis of building blocks,metabolism
+EG10142,b1736,chbA,CPLX-155,cellobiose transport,metabolism,carbon utilization,metabolism | transport
+EG10140,b1738,chbB,CPLX-155,cellobiose transport,metabolism,carbon utilization,metabolism | transport
+EG10141,b1737,chbC,CPLX-155,cellobiose transport,metabolism,carbon utilization,cell structure | metabolism | transport
+EG10144,b1734,chbF,CPLX0-7979,cellobiose metabolism,metabolism,carbon utilization,metabolism
+G6339,b0613,citG,G6339-MONOMER,citrate lyase prosthetic group syn,information transfer,protein related,information transfer
+G6338,b0612,citT,B0612-MONOMER,"citrate transport, anaerobic",metabolism,carbon utilization,cell structure | metabolism | transport
+G6340,b0614,citX,G6340-MONOMER,citrate lyase prosthetic group syn,information transfer,protein related,information transfer
+G6850,b1592,clcB,YNFJ-MONOMER,"chloride transport, acid resistance",transport,unclassified,transport
+G6349,b0638,cobC,RIBAZOLEPHOSPHAT-MONOMER,"vit b12 biosynthesis, putative",metabolism,biosynthesis of building blocks,metabolism
+EG11327,b0336,codB,CODB-MONOMER,cytosine transport,metabolism,central intermediary metabolism,cell structure | metabolism | transport
+EG10160,b4213,cpdB,CPDB-MONOMER,"cyclic phosphadiesterase, broad",metabolism,central intermediary metabolism,metabolism
+G6760,b1449,curA,CPLX0-7927,"curcumin met, unknown further path",unclassified,unclassified,unclassified
+G6322,b0574,cusB,CPLX0-1721,copper/silver efflux,transport,Accessory Factors Involved in Transport,cell processes | transport
+G6320,b0572,cusC,CPLX0-1721,copper/silver efflux,cell structure,membrane,cell structure | extrachromosomal
+G6321,b0573,cusF,CPLX0-1721,copper/silver efflux,transport,unclassified,cell processes | transport
+EG10172,b1418,cybB,CYTOCHROME-B561-MONOMER,aux respiratory chain ,metabolism,energy production/transport,metabolism
+EG10175,b0340,cynS,CYANLY-CPLX,cyanate/cyanide utilization,metabolism,central intermediary metabolism,cell processes | metabolism
+EG10177,b0341,cynX,CYNX-MONOMER,cyanate transport,metabolism,central intermediary metabolism,cell processes | cell structure | metabolism | transport
+EG10201,b0632,dacA,CPLX0-8252,antibiotic resistance,metabolism,biosynthesis of macromolecules (cellular constituents),cell processes | metabolism
+EG10202,b3182,dacB,CPLX0-8545,antibiotic resistance,metabolism,biosynthesis of macromolecules (cellular constituents),cell processes | cell structure | metabolism
+EG10203,b0839,dacC,CPLX0-8254,antibiotic resistance,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+EG11893,b2010,dacD,RPOA-MONOMER,antibiotic resistance,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+G6347,b0621,dcuC,DCUC-MONOMER,succinate/fumarate transport,metabolism,carbon utilization,cell structure | metabolism | transport
+G6980,b1794,dgcP,G6980-MONOMER,"prod of reg for biofilm formation, lifestyle",unclassified,unclassified,unclassified
+GB4478,b3692,dgoD,GALACTONATE-DEHYDRATASE-MONOMER,galactonate metabolism (carbon source),metabolism,carbon utilization,metabolism
+EG20051,b3693,dgoK,DEHYDDEOXGALACTKIN-MONOMER,galactonate metabolism (carbon source),metabolism,carbon utilization,metabolism
+EG20053,b3691,dgoT,YIDT-MONOMER,galactonate metabolism (carbon source),transport,Electrochemical potential driven transporters,cell structure | transport
+G6784,b1490,dosC,CPLX0-8218,"cdGMP, stress response (oxygen)",regulation,unclassified,cell processes | regulation
+G6783,b1489,dosP,CPLX0-8199,"cdGMP, stress response (oxygen)",cell processes,adaptations,cell processes
+EG10250,b2365,dsdX,DSDX-MONOMER,Serine transport,transport,Electrochemical potential driven transporters,cell structure | transport
+EG11105,b0597,entH,CPLX0-7766,enterobactin gen,metabolism,biosynthesis of building blocks,cell processes | metabolism
+EG11104,b0591,entS,YBDA-MONOMER,enterobactin gen,transport,Electrochemical potential driven transporters,cell structure | transport
+G7285,b2455,eutE,G7285-MONOMER,transport,metabolism,carbon utilization,metabolism
+EG10271,b3006,exbB,"['CPLX0-1924', 'CPLX0-1941', 'CPLX0-1942', 'CPLX0-1943', 'CPLX0-7952', 'CPLX0-8541', 'CPLX0-9372']",metal transport,transport,Electrochemical potential driven transporters,cell processes | cell structure | transport
+EG10272,b3005,exbD,"['CPLX0-1924', 'CPLX0-1941', 'CPLX0-1942', 'CPLX0-1943', 'CPLX0-7952', 'CPLX0-8541', 'CPLX0-9372']",metal transport,transport,Electrochemical potential driven transporters,cell processes | cell structure | transport
+G36,b3081,fadH,DIENOYLCOAREDUCT-MONOMER,fatty acid chain modification,metabolism,carbon utilization,metabolism
+EG11788,b2052,fcl,CPLX0-3881,cell wall component biosynthesis,metabolism,biosynthesis of macromolecules (cellular constituents),cell processes | cell structure | metabolism
+EG10286,b4291,fecA,CPLX0-1943,metal transport,transport,Channel-type Transporters,cell processes | transport
+EG10287,b4290,fecB,ABC-9-CPLX,metal transport,transport,Primary Active Transporters,cell processes | transport
+EG10288,b4289,fecC,ABC-9-CPLX,metal transport,transport,Primary Active Transporters,cell processes | cell structure | transport
+EG10289,b4288,fecD,ABC-9-CPLX,metal transport,transport,Primary Active Transporters,cell structure | transport
+EG10290,b4287,fecE,ABC-9-CPLX,metal transport,transport,Primary Active Transporters,cell processes | transport
+EG10293,b0584,fepA,CPLX0-1941,metal transport,transport,Channel-type Transporters,cell processes | extrachromosomal | transport
+EG10294,b0592,fepB,ABC-10-CPLX,metal transport,transport,Primary Active Transporters,cell processes | transport
+EG10295,b0588,fepC,ABC-10-CPLX,metal transport,transport,Primary Active Transporters,cell processes | transport
+EG10296,b0590,fepD,ABC-10-CPLX,metal transport,transport,Primary Active Transporters,cell processes | cell structure | transport
+EG10298,b0589,fepG,ABC-10-CPLX,metal transport,transport,Primary Active Transporters,cell processes | cell structure | transport
+EG10302,b0150,fhuA,CPLX0-1942,metal transport,transport,Channel-type Transporters,extrachromosomal | transport
+EG10303,b0153,fhuB,ABC-11-CPLX,metal transport,transport,Primary Active Transporters,cell processes | cell structure | transport
+EG10304,b0151,fhuC,ABC-11-CPLX,metal transport,transport,Primary Active Transporters,cell processes | transport
+EG10305,b0152,fhuD,ABC-11-CPLX,metal transport,transport,Primary Active Transporters,cell processes | transport
+EG10306,b1102,fhuE,CPLX0-7952,metal transport,metabolism,central intermediary metabolism,cell processes | metabolism | transport
+G6414,b0805,fiu,CPLX0-8541,metal transport,transport,Channel-type Transporters,cell processes | transport
+G7309,b2492,focB,FOCB-MONOMER,formate transport,transport,Electrochemical potential driven transporters,cell structure | transport
+EG12908,b3370,frlA,YHFM-MONOMER,psicoselysine transport? carbon source,transport,Electrochemical potential driven transporters,cell structure | transport
+EG10336,b2167,fruA,CPLX-158,fructose transport (pts),metabolism,carbon utilization,cell structure | metabolism | transport
+G7990,b2169,fruB,CPLX-158,fructose transport (pts),metabolism,carbon utilization,metabolism | transport
+EG10337,b2168,fruK,1-PFK,fructose met,metabolism,"energy metabolism, carbon",metabolism
+G6428,b0825,fsaA,CPLX0-201,galactarate metabolism,metabolism,unclassified,metabolism
+EG11905,b3946,fsaB,CPLX0-8584,galactarate metabolism,metabolism,unclassified,metabolism
+EG10341,b0084,ftsI,EG10341-MONOMER,"peptidoglycan syn, antibiotic target",metabolism,biosynthesis of macromolecules (cellular constituents),cell processes | cell structure | metabolism
+EG11319,b1236,galU,CPLX0-8205,"galactose deg, cell envelope biosyn",metabolism,carbon utilization,cell processes | cell structure | metabolism
+EG12522,b3128,garD,CPLX0-8537,"glycol met, glyoxylate shuttle",metabolism,carbon utilization,metabolism
+EG12760,b3127,garP,YHAU-MONOMER,"phosphate utilization, glycerol-phosphate uptake",metabolism,carbon utilization,cell structure | metabolism | transport
+EG10369,b0124,gcd,GLUCDEHYDROG-MONOMER,unknown glucose-related function,metabolism,carbon utilization,cell structure | metabolism
+EG20080,b2976,glcB,MALSYNG-MONOMER,glutamate transport,metabolism,carbon utilization,metabolism
+EG10401,b2240,glpT,GLPT-MONOMER,gluconate transport,metabolism,"energy metabolism, carbon",cell structure | metabolism | transport
+EG10406,b3653,gltS,GLTS-MONOMER,gluconate transport,metabolism,biosynthesis of building blocks,cell structure | metabolism | transport
+EG11787,b2053,gmd,GDPMANDEHYDRA-CPLX,cell wall biosyn,metabolism,biosynthesis of building blocks,cell processes | cell structure | metabolism
+EG11789,b2051,gmm,CPLX0-7712,cell wall biosyn,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+EG12380,b3415,gntT,GNTT-MONOMER,putative sugar transport,transport,Electrochemical potential driven transporters,cell structure | transport
+EG12631,b3435,gntU,GNTU-MONOMER,putative sugar transport,transport,Electrochemical potential driven transporters,cell structure | transport
+EG11871,b3385,gph,GPH-MONOMER,dsb repair byproduct recovery,information transfer,DNA related,information transfer
+EG10417,b0849,grxA,RED-GLUTAREDOXIN,disulfide reduction,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+EG12294,b3610,grxC,GRXC-MONOMER,mysterious disulfide reduction,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+G7445,b2787,gudD,GLUCARDEHYDRA-MONOMER,3-phenylpropanoate metabolism,metabolism,carbon utilization,metabolism
+G7447,b2789,gudP,B2789-MONOMER,3-phenylpropanoate metabolism,metabolism,carbon utilization,cell structure | metabolism | transport
+G7335,b2541,hcaB,PHENPRODIOLDEHYDROG-MONOMER,3-phenylpropanoate metabolism,metabolism,carbon utilization,metabolism
+G7334,b2540,hcaC,HCAMULTI-CPLX,3-phenylpropanoate metabolism,metabolism,carbon utilization,metabolism
+G7336,b2542,hcaD,HCAMULTI-CPLX,3-phenylpropanoate metabolism,metabolism,carbon utilization,metabolism
+M009,b2538,hcaE,HCAMULTI-CPLX,3-phenylpropanoate metabolism,metabolism,carbon utilization,metabolism
+M015,b2539,hcaF,HCAMULTI-CPLX,"Hydrogen cycling/oxidation for energy, important for low-O2 conditions",metabolism,carbon utilization,metabolism
+G7330,b2536,hcaT,HCAT-MONOMER,"Hydrogen cycling/oxidation for energy, important for low-O2 conditions",transport,Electrochemical potential driven transporters,cell structure | transport
+G6457,b0873,hcp,G6457-MONOMER,nitric oxide toxicity (pathogen resistance?),metabolism,metabolism of other compounds,metabolism
+G6456,b0872,hcr,G6456-MONOMER,nitric oxide toxicity (pathogen resistance?),metabolism,unclassified,metabolism
+EG10431,b0475,hemH,PROTOHEME-FERROCHELAT-MONOMER,heme biosynthesis,metabolism,biosynthesis of building blocks,metabolism
+EG10456,b2552,hmp,EG10456-MONOMER,nitric oxide toxicity (pathogen resistance?),metabolism,central intermediary metabolism,metabolism
+G6932,b1727,hxpB,G6932-MONOMER,"sugar related phosphatase, unknown function",cell processes,protection,cell processes
+EG10468,b0972,hyaA,CPLX0-8167,"Hydrogen cycling/oxidation for energy, important for low-O2 conditions",metabolism,"energy metabolism, carbon",metabolism
+EG10469,b0973,hyaB,CPLX0-8167,"Hydrogen cycling/oxidation for energy, important for low-O2 conditions",metabolism,"energy metabolism, carbon",metabolism
+EG10470,b0974,hyaC,CPLX0-8167,"Hydrogen cycling/oxidation for energy, important for low-O2 conditions",metabolism,"energy metabolism, carbon",cell structure | metabolism
+EG11799,b2996,hybA,CPLX0-8762,"Hydrogen cycling/oxidation for energy, important for low-O2 conditions",metabolism,energy production/transport,metabolism
+EG11800,b2995,hybB,CPLX0-8762,"Hydrogen cycling/oxidation for energy, important for low-O2 conditions",metabolism,"energy metabolism, carbon",cell structure | metabolism
+EG11801,b2994,hybC,CPLX0-8762,Idonate/gluconate transport,metabolism,"energy metabolism, carbon",metabolism
+G7554,b2997,hybO,CPLX0-8762,KDG transport,metabolism,"energy metabolism, carbon",metabolism
+EG12539,b4265,idnT,YJGT-MONOMER,alpha-kg transport,transport,Electrochemical potential driven transporters,cell structure | transport
+G7324,b2529,iscU,G7324-MONOMER,Iron-sulfur cluster assembly,metabolism,biosynthesis of building blocks,information transfer | metabolism
+EG11869,b3909,kdgT,KDGT-MONOMER,Galactonate metabolism,metabolism,carbon utilization,cell structure | metabolism | transport
+EG10522,b2587,kgtP,KGTP-MONOMER,Galactonate metabolism,metabolism,carbon utilization,cell structure | metabolism | transport
+EG10528,b4036,lamB,CPLX0-7655,outer membrane generic sugar/ion transport. lambda receptor,transport,Channel-type Transporters,extrachromosomal | transport
+G6621,b1192,ldcA,CPLX0-8616,Murein (wall) recycling,metabolism,degradation of macromolecules,cell structure | metabolism
+G7073,b1990,ldtA,G7073-MONOMER,Cell wall construction,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+G6904,b1678,ldtE,G6904-MONOMER,Cell wall maturation,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+G7945,b4358,lgoD,G7945-MONOMER,maltose transport,metabolism,carbon utilization,metabolism
+EG12587,b4356,lgoT,YJIZ-MONOMER,maltose transport,transport,Electrochemical potential driven transporters,cell structure | transport
+EG12455,b2835,lplT,EG12455-MONOMER,transport for recycling of membrane components,transport,unclassified,cell processes | transport
+EG10554,b4034,malE,ABC-16-CPLX,maltose transport,transport,Primary Active Transporters,cell processes | transport
+EG10555,b4033,malF,ABC-16-CPLX,maltose transport,metabolism,carbon utilization,cell structure | metabolism | transport
+EG10556,b4032,malG,ABC-16-CPLX,facilitated diffusion sugars,metabolism,carbon utilization,cell structure | metabolism | transport
+EG10558,b4035,malK,ABC-16-CPLX,melibiose metabolism,metabolism,carbon utilization,metabolism | transport
+EG10563,b1621,malX,MALX-MONOMER,melibiose transport,metabolism,carbon utilization,metabolism | transport
+EG10577,b4119,melA,ALPHAGALACTOSID-CPLX,galactose active transport,metabolism,carbon utilization,metabolism
+EG10578,b4120,melB,MELB-MONOMER,galactose active transport,metabolism,carbon utilization,cell structure | metabolism | transport
+EG10580,b2328,mepA,CPLX0-3201,cell wall crosslink degradation,metabolism,biosynthesis of macromolecules (cellular constituents),cell processes | cell structure | metabolism
+EG10592,b2149,mglA,ABC-18-CPLX,galactose active transport,metabolism,carbon utilization,metabolism | transport
+EG10593,b2150,mglB,ABC-18-CPLX,3-phenylpropanoate metabolism,metabolism,carbon utilization,information transfer | metabolism | transport
+EG10594,b2148,mglC,ABC-18-CPLX,3-phenylpropanoate metabolism,metabolism,carbon utilization,cell structure | metabolism | transport
+M010,b0347,mhpA,MHPHYDROXY-MONOMER,3-phenylpropanoate metabolism,metabolism,carbon utilization,metabolism
+M011,b0348,mhpB,DHPDIOXYGEN-CPLX,3-phenylpropanoate transport,metabolism,carbon utilization,metabolism
+M012,b0349,mhpC,CPLX0-7950,S-methylmethionine transport,metabolism,carbon utilization,metabolism
+G6206,b0353,mhpT,MHPT-MONOMER,mannitol PTS transport,metabolism,carbon utilization,cell structure | metabolism | transport
+G6135,b0260,mmuP,B0260-MONOMER,nitrate reduction (low oxygen w nitrate),metabolism,biosynthesis of building blocks,cell structure | extrachromosomal | metabolism | transport
+EG11595,b0781,moaA,EG11595-MONOMER,Molybdenum cofactor synthesis,metabolism,biosynthesis of building blocks,metabolism
+EG11666,b0783,moaC,CPLX-8331,Molybdenum cofactor synthesis,metabolism,biosynthesis of building blocks,metabolism
+EG11597,b0784,moaD,CPLX0-2502,Molybdenum cofactor synthesis,metabolism,biosynthesis of building blocks,metabolism
+EG11598,b0785,moaE,CPLX0-2502,Molybdenum cofactor synthesis,metabolism,biosynthesis of building blocks,metabolism
+EG11829,b3857,mobA,EG11829-MONOMER,Molybdenum cofactor synthesis,metabolism,biosynthesis of building blocks,metabolism
+G7496,b2877,mocA,G7496-MONOMER,Molybdenum cofactor synthesis,metabolism,biosynthesis of building blocks,metabolism
+EG10002,b0764,modB,ABC-19-CPLX,Molybdenum cofactor synthesis,transport,Primary Active Transporters,cell structure | transport
+EG10152,b0765,modC,ABC-19-CPLX,Molybdenum cofactor synthesis,metabolism,biosynthesis of building blocks,metabolism | transport
+EG10153,b0827,moeA,CPLX0-8045,Molybdenum cofactor synthesis,metabolism,biosynthesis of building blocks,metabolism
+EG10154,b0826,moeB,CPLX0-8164,Molybdenum cofactor synthesis,metabolism,biosynthesis of building blocks,metabolism
+EG11511,b0009,mog,CPLX0-8163,Molybdenum cofactor synthesis,metabolism,biosynthesis of building blocks,metabolism
+EG10748,b3396,mrcA,CPLX0-7717,peptidoglycan synthesis (penicillin target),metabolism,biosynthesis of macromolecules (cellular constituents),cell processes | cell structure | metabolism
+EG10605,b0149,mrcB,CPLX0-3951,peptidoglycan synthesis (penicillin target),metabolism,biosynthesis of macromolecules (cellular constituents),cell processes | cell structure | metabolism
+EG10606,b0635,mrdA,EG10606-MONOMER,peptidoglycan synthesis (penicillin target),metabolism,biosynthesis of macromolecules (cellular constituents),cell processes | cell structure | metabolism
+EG10615,b3599,mtlA,CPLX-166,nitrate reduction (low oxygen w nitrate),metabolism,carbon utilization,cell structure | metabolism | transport
+G7264,b2429,murP,"['CPLX0-7', 'MONOMER0-5']",peptidoglycan recycling transport,metabolism,carbon utilization,metabolism | transport
+EG10626,b0099,mutT,EG10626-MONOMER,"single nucleotide mutation repair before incorporation, produced by ROS",metabolism,central intermediary metabolism,metabolism
+EG10633,b0678,nagB,GLUCOSAMINE-6-P-DEAMIN-CPLX,N-acetylglucosamine degradation I,metabolism,central intermediary metabolism,metabolism
+EG10635,b0679,nagE,CPLX-167,N-acetylglucosamine degradation I,metabolism,carbon utilization,cell structure | metabolism | transport
+G6567,b1107,nagZ,G6567-MONOMER,cell wall component metabolism/recycling,metabolism,central intermediary metabolism,metabolism
+EG12060,b2202,napC,NAPC-MONOMER,"unclear function, probably low nitrate redox balance",metabolism,"energy metabolism, carbon",metabolism
+EG12064,b2205,napG,CPLX0-3241,"unclear function, probably low nitrate redox balance",metabolism,"energy metabolism, carbon",metabolism
+EG12062,b2204,napH,CPLX0-3241,"unclear function, probably low nitrate redox balance",metabolism,"energy metabolism, carbon",metabolism
+EG10638,b1224,narG,NITRATREDUCTA-CPLX,nitrate reduction (low oxygen w nitrate),metabolism,"energy metabolism, carbon",metabolism
+EG10639,b1225,narH,NITRATREDUCTA-CPLX,nitrate reduction (low oxygen w nitrate),metabolism,"energy metabolism, carbon",metabolism
+EG10640,b1227,narI,NITRATREDUCTA-CPLX,nitrate reduction (low oxygen w nitrate),metabolism,"energy metabolism, carbon",cell structure | metabolism
+EG10644,b1465,narV,NITRATREDUCTZ-CPLX,nitrate reduction (low oxygen w nitrate),metabolism,"energy metabolism, carbon",cell structure | metabolism
+EG10647,b1467,narY,NITRATREDUCTZ-CPLX,putative nitrite reduction,metabolism,"energy metabolism, carbon",metabolism
+EG10648,b1468,narZ,NITRATREDUCTZ-CPLX,putative nitrite reduction,metabolism,"energy metabolism, carbon",metabolism
+EG11261,b0851,nfsA,CPLX0-244,general nitroreductase,unclassified,unclassified,unclassified
+G7413,b2710,norV,CPLX0-1,nitric oxide protection (macrophage),metabolism,energy production/transport,metabolism
+EG12450,b2711,norW,EG12450-MONOMER,nitric oxide protection (macrophage),metabolism,energy production/transport,cell processes | metabolism
+EG11946,b4072,nrfC,CPLX0-8238,"phenylacetate metabolism, side product deg, add side reaction",metabolism,"energy metabolism, carbon",cell structure | metabolism
+EG11947,b4073,nrfD,CPLX0-8238,"pantothenate (vit b5, CoA moeity) transport",metabolism,"energy metabolism, carbon",cell structure | metabolism
+G7740,b3397,nudE,CPLX0-1221,nucleotide diphosphate phosphatase,metabolism,unclassified,metabolism
+G6954,b1759,nudG,G6954-MONOMER,"single nucleotide mutation repair before incorporation, produced by ROS",information transfer,DNA related,information transfer
+EG12012,b2131,osmF,ABC-40-CPLX,osmoprotectant transport,transport,Primary Active Transporters,transport
+G6721,b1400,paaY,CPLX0-8127,phosphonate (P source) metabolism,metabolism,carbon utilization,metabolism
+EG10685,b3258,panF,PANF-MONOMER,phosphonate (P source) metabolism,metabolism,biosynthesis of building blocks,cell structure | metabolism | transport
+G6157,b0286,paoA,CPLX0-7805,aromatic aldehyde oxidation,cell processes,protection,cell processes
+G6156,b0285,paoB,CPLX0-7805,aromatic aldehyde oxidation,cell processes,protection,cell processes
+EG12015,b2134,pbpG,EG12015-MONOMER,cell wall geometry/expansion,metabolism,biosynthesis of macromolecules (cellular constituents),cell processes | cell structure | metabolism
+G7314,b2503,pdeF,CPLX0-8200,biofilm/stress signalling compound,cell processes,adaptations,cell processes
+EG10028,b0902,pflA,PFLACTENZ-MONOMER,activates central anaerobic metabolism enzyme,metabolism,"energy metabolism, carbon",information transfer | metabolism | regulation
+EG10716,b4101,phnG,,phosphonate (P source) metabolism,metabolism,metabolism of other compounds,metabolism
+EG10717,b4100,phnH,,phosphonate (P source) metabolism,metabolism,metabolism of other compounds,metabolism
+EG10718,b4099,phnI,EG10718-MONOMER,phosphonate (P source) metabolism,metabolism,metabolism of other compounds,metabolism
+EG10719,b4098,phnJ,EG10719-MONOMER,phosphonate (P source) metabolism,metabolism,metabolism of other compounds,metabolism
+EG10721,b4096,phnL,,phosphonate (P source) metabolism,metabolism,metabolism of other compounds,metabolism
+EG10722,b4095,phnM,EG10722-MONOMER,nicotinamide riboside transport,metabolism,metabolism of other compounds,cell structure | metabolism
+EG10725,b4092,phnP,CPLX0-7936,pseudouridine metabolism (urine growth),metabolism,metabolism of other compounds,metabolism
+EG10738,b3821,pldA,CPLX0-7944,outer membrane stabilization,metabolism,metabolism of other compounds,metabolism
+EG11437,b1090,plsX,EG11437-MONOMER,"putative function, acp acyltransferase",metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+EG11700,b0751,pnuC,PNUC-MONOMER,General PTS protein required for carbon source transport,metabolism,central intermediary metabolism,cell structure | metabolism | transport
+EG11761,b1461,pptA,CPLX0-902,converts non-useful tautomer to useful one faster,metabolism,unclassified,metabolism
+EG10780,b1308,pspE,EG10780-MONOMER,Catalyzes cyanide reaction but unknown function,unclassified,unclassified,unclassified
+EG11646,b2166,psuK,EG11646-MONOMER,ribose ABC transport,metabolism,biosynthesis of building blocks,metabolism
+EG10789,b2416,ptsI,CPLX0-7938,ribose ABC transport,metabolism,carbon utilization,metabolism | transport
+G6245,b0444,queC,G6245-MONOMER,"queuosine biosynthesis (trna precision), mutant decreases fitness",information transfer,RNA related,information transfer
+G7431,b2765,queD,CPLX0-8123,"queuosine biosynthesis (trna precision), mutant decreases fitness",information transfer,RNA related,information transfer
+G7452,b2794,queF,CPLX0-3501,"queuosine biosynthesis (trna precision), mutant decreases fitness",information transfer,RNA related,information transfer
+EG10814,b3749,rbsA,ABC-28-CPLX,ribose ABC transport,metabolism,carbon utilization,metabolism | transport
+EG10815,b3751,rbsB,ABC-28-CPLX,ribose metabolism,metabolism,carbon utilization,metabolism | transport
+EG10816,b3750,rbsC,ABC-28-CPLX,alternative pyridimine to nitrogen source metabolism,metabolism,carbon utilization,cell structure | metabolism | transport
+EG10818,b3752,rbsK,CPLX0-7647,alternative pyridimine to nitrogen source metabolism,metabolism,carbon utilization,metabolism
+EG10840,b3784,rfe,CPLX0-8011,Outer membrane permeability factor biosynthesis,metabolism,biosynthesis of macromolecules (cellular constituents),cell structure | metabolism
+EG11455,b3790,rffC,CPLX0-8614,Outer membrane permeability factor biosynthesis,cell structure,"surface antigens (ECA, O antigen of LPS)",cell structure
+EG11458,b3794,rffM,UDPMANACATRANS-MONOMER,Outer membrane permeability factor biosynthesis,metabolism,biosynthesis of macromolecules (cellular constituents),cell structure | metabolism
+EG11469,b3824,rhtB,RHTB-MONOMER,Export of cell signalling metabolites? transporter,transport,Electrochemical potential driven transporters,cell structure | transport
+G7841,b4161,rsgA,G7841-MONOMER,ribosome maturation but also generic gtpase,cell structure,ribosomes,cell structure
+G6523,b1012,rutA,G6523-MONOMER,alternative pyridimine to nitrogen source metabolism,metabolism,metabolism of other compounds,metabolism
+G6522,b1011,rutB,G6522-MONOMER,alternative pyridimine to nitrogen source metabolism,metabolism,metabolism of other compounds,metabolism
+G6521,b1010,rutC,CPLX0-8589,alternative pyridimine to nitrogen source metabolism,metabolism,metabolism of other compounds,metabolism
+G6520,b1009,rutD,CPLX0-8303,alternative pyridimine to nitrogen source metabolism,metabolism,metabolism of other compounds,metabolism
+G6519,b1008,rutE,G6519-MONOMER,shikimate transport,metabolism,metabolism of other compounds,metabolism
+G6518,b1007,rutF,G6518-MONOMER,sorbitol transport,metabolism,metabolism of other compounds,metabolism
+EG10941,b3591,selA,CPLX0-1141,selenocysteine cofactor synthesis,information transfer,protein related,information transfer
+EG10943,b1764,selD,CPLX0-7957,selenocysteine cofactor synthesis,information transfer,RNA related,information transfer
+G7067,b1981,shiA,SHIA-MONOMER,sorbitol transport,metabolism,biosynthesis of building blocks,cell structure | metabolism | transport
+EG10953,b3908,sodA,SUPEROX-DISMUTMN-CPLX,superoxide radical degradation,cell processes,protection,cell processes
+EG10954,b1656,sodB,SUPEROX-DISMUTFE-CPLX,superoxide radical degradation,cell processes,protection,cell processes
+EG10959,b2938,speA,ARGDECARBOXBIO-CPLX,putrescine (ubiquitious regulator) biosynthesis,metabolism,central intermediary metabolism,metabolism
+G8210,b2702,srlA,CPLX-169,sorbitol transport,metabolism,carbon utilization,metabolism | transport
+EG10970,b2704,srlB,CPLX-169,taurine ABC transport,metabolism,carbon utilization,metabolism | transport
+EG10969,b2703,srlE,CPLX-169,taurine ABC transport,metabolism,carbon utilization,metabolism | transport
+EG11600,b2521,sseA,EG11600-MONOMER,"cysteine degradation, cyanide resistance",metabolism,metabolism of other compounds,cell processes | metabolism
+EG10983,b2533,suhB,EG10983-MONOMER,rRNA maturation,regulation,type of regulation,regulation
+G6806,b1519,tam,G6806-MONOMER,eliminates inhibitory byproduct,metabolism,central intermediary metabolism,cell processes | metabolism
+G6217,b0365,tauA,ABC-64-CPLX,taurine ABC transport,metabolism,carbon utilization,metabolism | transport
+G6218,b0366,tauB,ABC-64-CPLX,thiamine ABC transport,metabolism,carbon utilization,metabolism | transport
+G6219,b0367,tauC,ABC-64-CPLX,thiamine salvaging,metabolism,carbon utilization,cell structure | metabolism | transport
+EG10995,b0452,tesB,THIOESTERII-CPLX,thioesterase,metabolism,unclassified,metabolism
+EG11574,b0068,thiB,ABC-32-CPLX,thiamine salvaging,metabolism,biosynthesis of building blocks,metabolism | transport
+G6566,b1106,thiK,THIKIN-MONOMER,thiamine ABC transport,metabolism,biosynthesis of building blocks,metabolism
+M007,b2104,thiM,CPLX0-8211,thiamine ABC transport,metabolism,biosynthesis of building blocks,metabolism
+EG11573,b0067,thiP,ABC-32-CPLX,trehalose metabolism,metabolism,biosynthesis of building blocks,cell structure | metabolism | transport
+EG11572,b0066,thiQ,ABC-32-CPLX,trehalose transport,metabolism,biosynthesis of building blocks,metabolism | transport
+EG11012,b1252,tonB,"['CPLX0-1924', 'CPLX0-1941', 'CPLX0-1942', 'CPLX0-1943', 'CPLX0-7952', 'CPLX0-8541', 'CPLX0-9372']",Ton metal transport complex,metabolism,energy production/transport,cell processes | cell structure | metabolism | transport
+EG11814,b0997,torA,"['TMAOREDUCTI-CPLX', 'TORA-MONOMER']",anaerobic growth using TMAO as acceptor,metabolism,"energy metabolism, carbon",metabolism
+EG11815,b0996,torC,TMAOREDUCTI-CPLX,anaerobic growth using TMAO as acceptor,metabolism,"energy metabolism, carbon",cell structure | metabolism | regulation
+G7022,b1872,torZ,G7022-MONOMER,anaerobic growth using TMAO as acceptor,metabolism,"energy metabolism, carbon",metabolism
+G6660,b1324,tpx,CPLX0-7747,anaerobic antioxidant,cell processes,protection,cell processes
+EG11017,b1197,treA,TREHALAPERI-MONOMER,tartrate anaerobic transport,metabolism,central intermediary metabolism,cell processes | metabolism
+EG12127,b4240,treB,CPLX-168,ascorbate/vit C PTS transport,metabolism,central intermediary metabolism,cell structure | metabolism | transport
+EG11031,b3781,trxA,RED-THIOREDOXIN-MONOMER,thiosulfide reduction,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+EG12393,b3063,ttdT,YGJE-MONOMER,ascorbate/vit C PTS transport,transport,Electrochemical potential driven transporters,cell structure | transport
+EG11044,b2311,ubiX,UBIX-MONOMER,cofactor biosynthesis required for ubiquinol biosynthesis,metabolism,"energy metabolism, carbon",metabolism
+EG11054,b3666,uhpT,UHPT-MONOMER,ascorbate/vit C PTS transport,metabolism,carbon utilization,cell structure | metabolism | transport
+EG11055,b1617,uidA,CPLX0-7662,ascorbate catabolism,metabolism,carbon utilization,metabolism
+EG11658,b1616,uidB,UIDB-MONOMER,glycine betaine transport,metabolism,carbon utilization,cell structure | metabolism | transport
+G7856,b4193,ulaA,EIISGA,glycine betaine transport,transport,Group Translocators,transport
+EG12494,b4194,ulaB,EIISGA,glycine betaine transport,transport,Group Translocators,transport
+EG12495,b4195,ulaC,EIISGA,galactofuranose transport,transport,Group Translocators,transport
+G7855,b4192,ulaG,CPLX0-7848,galactofuranose transport,metabolism,carbon utilization,metabolism
+EG11424,b3622,waaL,EG11424-MONOMER,"cell wall structure, ligase",cell structure,membrane,cell structure
+G7104,b2059,wcaA,G7104-MONOMER,colanic acid (cell wall component) biosynthesis,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+G7103,b2058,wcaB,G7103-MONOMER,colanic acid (cell wall component) biosynthesis,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+G7102,b2057,wcaC,G7102-MONOMER,colanic acid (cell wall component) biosynthesis,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+G7100,b2055,wcaE,G7100-MONOMER,colanic acid (cell wall component) biosynthesis,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+G7099,b2054,wcaF,G7099-MONOMER,colanic acid (cell wall component) biosynthesis,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+G7096,b2045,wcaK,G7096-MONOMER,colanic acid (cell wall component) biosynthesis,metabolism,biosynthesis of macromolecules (cellular constituents),metabolism
+EG11452,b3787,wecC,CPLX0-8013,Outer membrane permeability factor biosynthesis,metabolism,biosynthesis of macromolecules (cellular constituents),cell structure | metabolism
+G7097,b2046,wzxC,G7097-MONOMER,colanic acid (cell wall component) biosynthesis,transport,Transporters of Unknown Classification,cell structure | transport
+EG11486,b3792,wzxE,EG11486-MONOMER,Outer membrane permeability factor biosynthesis,metabolism,biosynthesis of macromolecules (cellular constituents),cell structure | metabolism | transport
+G6326,b0581,ybdK,CPLX0-7827,glutathione (stress protection)biosynthesis,metabolism,unclassified,metabolism
+G6502,b0968,yccX,G6502-MONOMER,putative generic acylphosphatase,unclassified,unclassified,unclassified
+EG11121,b1253,yciA,EG11121-MONOMER,putative generic thioesterase,unclassified,unclassified,unclassified
+G6960,b1773,ydjI,CPLX0-8547,unknown specific function ,metabolism,carbon utilization,metabolism
+EG12009,b2128,yehW,ABC-40-CPLX,galactofuranose transport,transport,Primary Active Transporters,cell structure | transport
+EG12010,b2129,yehX,ABC-40-CPLX,"fructose, unknown role",transport,Primary Active Transporters,transport
+EG12011,b2130,yehY,ABC-40-CPLX,"fructose, unknown role",transport,Primary Active Transporters,cell structure | transport
+G7490,b2871,ygeX,CPLX0-1401,"catabolism of non-ribosomal peptide precursor, carbon source",metabolism,unclassified,metabolism
+EG12281,b3577,yiaM,TRANS-CPLX-203,generic hexose-phosphate antiporter,transport,Electrochemical potential driven transporters,cell structure | transport
+EG12282,b3578,yiaN,TRANS-CPLX-203,gluconoride and gluconorate catabolism,transport,Electrochemical potential driven transporters,cell structure | transport
+EG12283,b3579,yiaO,TRANS-CPLX-203,gluconoride transport,transport,Electrochemical potential driven transporters,transport
+EG11685,b3656,yicI,CPLX0-3901,putative symport of na+ and ascorbate catabolism intermediate,metabolism,central intermediary metabolism,metabolism
+EG12439,b4231,yjfF,ABC-46-CPLX,putative symport of na+ and ascorbate catabolism intermediate,transport,Primary Active Transporters,cell structure | transport
+G6845,b1587,ynfE,CPLX0-1601,"selenate reduction, missing gap reactions",metabolism,metabolism of other compounds,metabolism
+G6846,b1588,ynfF,CPLX0-1601,"selenate reduction, missing gap reactions",metabolism,metabolism of other compounds,metabolism
+G6847,b1589,ynfG,CPLX0-1601,"selenate reduction, missing gap reactions",metabolism,metabolism of other compounds,metabolism
+G6848,b1590,ynfH,CPLX0-1601,"selenate reduction, missing gap reactions",metabolism,metabolism of other compounds,metabolism
+G7248,b2385,ypdF,CPLX0-8290,generic aminopeptidase,metabolism,degradation of macromolecules,metabolism
+G7408,b2690,yqaB,G7408-MONOMER,fructose-1-phosphate phosphatase,metabolism,unclassified,metabolism
+EG12517,b4227,ytfQ,ABC-46-CPLX,putative symport of na+ and ascorbate catabolism intermediate,transport,Primary Active Transporters,transport
+EG12518,b4228,ytfR,ABC-46-CPLX,,transport,Primary Active Transporters,transport
+EG12520,b4230,ytfT,ABC-46-CPLX,plant cell wall component catabolism,transport,Primary Active Transporters,cell structure | transport

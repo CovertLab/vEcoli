@@ -1,13 +1,12 @@
 {
-  "experiment_id" : "arabinose_5",
-  "sim_data_path": null,
+  "experiment_id" : "arabinose_4_extracellular_with_kinetic_2E-3_homeostatic_addition",
   "parca_options": {
-    "cpus": 6
+    "cpus": 12
   },
   "fail_at_max_duration": false,
   "progress_bar": true,
   "log_updates": false,
-  "generations": 6,
+  "generations": 4,
   "emitter": "parquet",
   "emitter_arg": {"out_dir": "out/phenotypic/"},
 
@@ -42,6 +41,17 @@
   "adjust_timestep_for_charging": false,
   "disable_ppgpp_elongation_inhibition": true,
 
+  "process_configs": {
+    "ecoli-metabolism-redux-classic": {
+      "objective_weights":{
+        "secretion": 1E-6,
+        "efficiency": 1E-6,
+        "kinetics": 1E-7,
+        "diversity": 1E-7,
+        "homeostatic": 1
+      }
+    }
+  },
   "variants": {
     "condition": {
       "condition": {
@@ -49,42 +59,5 @@
       }
     }
   },
-  "skip_baseline": false,
-  "analysis_options": {
-        "outdir": "out/phenotypic/analysis/",
-        "cpus": 1,
-
-        "multivariant": {
-            "cell_mass": {},
-            "doubling_time_hist": {"skip_n_gens": 0},
-            "centralCarbonMetabolismScatter": {},
-            "weighted_objective_terms": {},
-            "enzyme_availability_flux":{
-                "enzyme_name": "ARABISOM-CPLX[c]",
-                "met": "FRUCTOSE-16-DIPHOSPHATE[c]"
-            },
-            "mean_flux_distribution": {
-                "in_molar": false,
-                "bin_edges": [0, 1E-6, 1e-3, 1, 2, 10, 1e3, 1E6, 1E9, 1E12],
-                "facet_columns": 4,
-                "n_bins": 25
-            },
-            "kinetic_flux": {
-                "plot_catalysts": ["ARABISOM-CPLX[c]", "RIBULOKIN-CPLX[c]", "RIBULPEPIM-CPLX[c]"]
-            },
-            "metabolite_unmet_need": {},
-            "selected_catalyst_fluxes": {
-                "plot_catalysts": ["ARABISOM-CPLX[c]", "RIBULOKIN-CPLX[c]", "RIBULPEPIM-CPLX[c]"]
-            },
-            "pathway_flux_distribution": {},
-            "growth_rate_validation": {},
-            "sankey_metabolite_flux": {
-                "metabolites_of_interest": ["L-RIBULOSE[c]", "ARABINOSE[c]", "ARABINOSE[p]"]
-            },
-            "escher_pathway_map": {}
-        }
-    }
-
-
-
+  "skip_baseline": true
 }

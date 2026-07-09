@@ -1,0 +1,28 @@
+{
+  "N": 1430,
+  "k": 5,
+  "total_samples": 10010,
+  "seed": 42,
+  "weight_ranges": {
+    "homeostatic": [
+      0.001,
+      1.0
+    ],
+    "secretion": [
+      1e-07,
+      0.0001
+    ],
+    "efficiency": [
+      1e-07,
+      0.0001
+    ],
+    "kinetics": [
+      1e-05,
+      0.001
+    ],
+    "diversity": [
+      1e-05,
+      0.01
+    ]
+  }
+}

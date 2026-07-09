@@ -62,7 +62,7 @@ def run_ecoli_with_metabolism_redux_classic(
     progress_bar=True,
     log_updates=False,
     emitter="timeseries",  # 'timeseries','parquet'
-    name="bob_index5328",
+    name="basal_original_weights",
     raw_output=False,
     save=False,
     save_times=[1],
@@ -86,7 +86,7 @@ def run_ecoli_with_metabolism_redux_classic(
 
     sim.emitter = emitter
     if emitter == "parquet":
-        sim.emitter_arg = {"out_dir": "out/objective_weight/basal/"}
+        sim.emitter_arg = {"out_dir": "out/phenotypic/basal/"}
 
     sim.condition = condition
     sim.fixed_media = fixed_media
@@ -114,7 +114,7 @@ def run_ecoli_with_metabolism_redux_classic(
 
     query = []
 
-    folder = f"out/objective_weight/{condition}/{name}_{max_duration}_{datetime.date.today()}/"
+    folder = f"out/phenotypic/{name}_{max_duration}_{datetime.date.today()}/"
 
     if emitter == "timeseries":
         save_sim_output(folder, query, sim, save_model=True)
