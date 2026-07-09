@@ -4,6 +4,10 @@ Central Carbon Metabolism Flux comparison against Toya 2010 for multivariant sim
 Scatter + boxplot overlay: X-axis = Toya 2010 flux; Y-axis = simulated flux.
 Fluxes are aggregated across all seeds and generations within each variant.
 One subplot per variant, faceted in a grid.
+
+The user should verify what metabolism file was used in the simulations.
+metabolism_redux and metabolism_redux_classic outputs in counts and requires conversion to molar
+whereas original metabolism outputs in molar. The default is to assume redux simulations.
 """
 
 from typing import Any, TYPE_CHECKING
@@ -11,7 +15,7 @@ import os
 import pickle
 import numpy as np
 
-from ecoli.analysis.multivariant import _variant_label
+from ecoli.analysis.multivariant.utils import create_variant_label
 
 from wholecell.utils import units, toya
 from fsspec import open as fsspec_open
@@ -53,7 +57,7 @@ def plot(
         variant_metadata[experiment_id] if experiment_id else {}
     )
 
-    REDUXCLASSIC = params.get("is_reduxclassic", True)
+    REDUXCLASSIC = params.get("is_redux", True)
 
     with open_arbitrary_sim_data(sim_data_dict) as f:
         sim_data = pickle.load(f)
@@ -96,7 +100,7 @@ def plot(
 
     all_dfs = []
     for variant_val in unique_variants:
-        variant_label_list = _variant_label(variant_val, per_variant_params)
+        variant_label_list = create_variant_label(variant_val, per_variant_params)
         variant_label = " ".join(variant_label_list)
         mask = variant_col == variant_val
 

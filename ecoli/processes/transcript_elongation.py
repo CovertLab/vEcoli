@@ -62,27 +62,28 @@ class TranscriptElongation(PartitionedProcess):
 
     defaults:
         - rnaPolymeraseElongationRateDict (dict): Array with elongation rate
-            set points for different media environments.
+          set points for different media environments.
         - rnaIds (array[str]) : array of names for each TU
         - rnaLengths (array[int]) : array of lengths for each TU
-            (in nucleotides?)
+          (in nucleotides?)
         - rnaSequences (2D array[int]) : Array with the nucleotide sequences
-            of each TU. This is in the form of a 2D array where each row is a
-            TU, and each column is a position in the TU's sequence. Nucleotides
-            are stored as an index {0, 1, 2, 3}, and the row is padded with
-            -1's on the right to indicate where the sequence ends.
+          of each TU. This is in the form of a 2D array where each row is a
+          TU, and each column is a position in the TU's sequence. Nucleotides
+          are stored as an index {0, 1, 2, 3}, and the row is padded with
+          -1's on the right to indicate where the sequence ends.
         - ntWeights (array[float]): Array of nucleotide weights
-        - endWeight (array[float]): ???,
+        - endWeight (array[float]): Additional mass added when an RNA
+          transcript is completed (termination/end-group mass adjustment),
         - replichore_lengths (array[int]): lengths of replichores
-            (in nucleotides?),
+          (in nucleotides?),
         - is_mRNA (array[bool]): Mask for mRNAs
         - ppi (str): ID of PPI
         - inactive_RNAP (str): ID of inactive RNAP
         - ntp_ids list[str]: IDs of ntp's (A, C, G, U)
         - variable_elongation (bool): Whether to use variable elongation.
-                                      False by default.
+          False by default.
         - make_elongation_rates: Function to make elongation rates, of the
-            form: lambda random, rates, timestep, variable: rates
+          form: lambda random, rates, timestep, variable: rates
     """
 
     name = NAME
@@ -151,7 +152,6 @@ class TranscriptElongation(PartitionedProcess):
         self.make_elongation_rates = self.parameters["make_elongation_rates"]
 
         self.polymerized_ntps = self.parameters["polymerized_ntps"]
-        self.charged_trna_names = self.parameters["charged_trnas"]
 
         # Attenuation
         self.trna_attenuation = self.parameters["trna_attenuation"]
@@ -604,15 +604,27 @@ def get_mapping_arrays(x, y):
 
 
 def format_data(data, bulk_ids, rna_dtypes, rnap_dtypes, submass_dtypes):
-    # Format unique and bulk data for assertions
-    data["unique"]["RNA"] = [
-        np.array(list(map(tuple, zip(*val))), dtype=rna_dtypes + submass_dtypes)
-        for val in data["unique"]["RNA"]
-    ]
-    data["unique"]["active_RNAP"] = [
-        np.array(list(map(tuple, zip(*val))), dtype=rnap_dtypes + submass_dtypes)
-        for val in data["unique"]["active_RNAP"]
-    ]
+    # Emits for each field is collated across timesteps by the vivarium-core
+    # function vivarium.core.emitter.Emitter.get_timeseries()
+    # As such, data["unique"]["RNA"] is {field: [arr_t0, arr_t1, ...], ...}
+    # We want to convert to [structured_arr_t0, structured_arr_t1, ...]
+    def timeseries_to_structured(field_timeseries, dtype):
+        n_timesteps = len(next(iter(field_timeseries.values())))
+        result = []
+        for t in range(n_timesteps):
+            vals = {field: arrays[t] for field, arrays in field_timeseries.items()}
+            arr = np.empty(len(next(iter(vals.values()))), dtype=dtype)
+            for name in arr.dtype.names:
+                arr[name] = vals[name]
+            result.append(arr)
+        return result
+
+    data["unique"]["RNA"] = timeseries_to_structured(
+        data["unique"]["RNA"], np.dtype(rna_dtypes + submass_dtypes)
+    )
+    data["unique"]["active_RNAP"] = timeseries_to_structured(
+        data["unique"]["active_RNAP"], np.dtype(rnap_dtypes + submass_dtypes)
+    )
     bulk_timeseries = np.array(data["bulk"])
     data["bulk"] = {
         bulk_id: bulk_timeseries[:, i] for i, bulk_id in enumerate(bulk_ids)

@@ -700,6 +700,14 @@ is a list workflow behaviors enabled in our model to handle unexpected errors.
   depends on generation 6, :py:mod:`runscripts.create_variants` depends on
   :py:mod:`runscripts.parca`, etc).
 
+.. warning::
+  The resume option is primarily meant for testing code changes, not config changes.
+  As such, most edits to the configuration JSON are silently ignored when resuming a workflow.
+  The only exceptions are changes to resource allocation options (e.g., ``SIM_MEM``),
+  allowing users to retry failed jobs with higher resource limits without triggering
+  re-execution of already completed jobs. If you want to change other options, you
+  must launch a new workflow. 
+
 .. _output:
 
 ------

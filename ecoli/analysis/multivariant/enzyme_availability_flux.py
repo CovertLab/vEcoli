@@ -7,6 +7,10 @@ variant, lines represent the mean over all cells on a continuous time axis
 (relative to the first timestep of each lineage seed); generation is used as
 the detail encoding to draw separate line segments at each cell division
 without resetting the time axis.
+
+DISCLAIMER: This analysis is only meant for metabolism-redux and
+metabolism-redux-classic. metabolism.py lacks necessary listeners due to differences
+in problem formulation
 """
 
 from __future__ import annotations
@@ -18,7 +22,7 @@ import altair as alt
 import plotly.express as px
 import polars as pl
 
-from ecoli.analysis.multivariant import _variant_label
+from ecoli.analysis.multivariant.utils import create_variant_label
 from ecoli.library.parquet_emitter import (
     field_metadata,
     read_stacked_columns,
@@ -164,7 +168,7 @@ def plot(
     variants = df_plot["variant"].unique().sort()
     plots = []
     for variant_val in variants:
-        variant_name = _variant_label(variant_val, per_variant_params)
+        variant_name = create_variant_label(variant_val, per_variant_params)
         variant_data = df_plot.filter(pl.col("variant") == variant_val).to_pandas()
 
         subplot = (

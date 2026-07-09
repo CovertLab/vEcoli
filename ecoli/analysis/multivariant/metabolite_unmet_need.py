@@ -4,17 +4,21 @@ Plot unmet homeostatic need for metabolites for multivariant simulation.
 For each variant, shows a bar chart of the top-N metabolites by mean |unmet need|
 and a timeseries of unmet need, aggregated across all cells in that variant.
 One bar+line subplot per variant, stacked vertically.
+
+DISCLAIMER: This analysis is only meant for metabolism-redux and
+metabolism-redux-classic. metabolism.py lacks necessary listeners due to differences
+in problem formulation
 """
 
 from __future__ import annotations
 
 import os
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, cast
 
 import altair as alt
 import polars as pl
 
-from ecoli.analysis.multivariant import _variant_label
+from ecoli.analysis.multivariant.utils import create_variant_label
 from ecoli.library.parquet_emitter import field_metadata, read_stacked_columns
 
 if TYPE_CHECKING:
@@ -60,11 +64,11 @@ def plot(
 
     try:
         homeostatic_ids = field_metadata(
-            conn, config_sql, "listeners__fba_results__estimated_homeostatic_dmdt"
+            conn, config_sql, "listeners__fba_results__homeostatic_metabolite_counts"
         )
     except Exception:
         print(
-            "metabolite_unmet_need: listeners__fba_results__estimated_homeostatic_dmdt "
+            "metabolite_unmet_need: listeners__fba_results__homeostatic_metabolite_counts "
             "not in config (e.g. non-metabolism_redux); skipping."
         )
         return
@@ -184,9 +188,9 @@ def plot(
     color_range = [PASTEL[i % len(PASTEL)] for i in range(len(color_domain))]
     w = subplot_width
 
-    subplot_charts: list[alt.TopLevelMixin] = []
+    subplot_charts: list[alt.VConcatChart] = []
     for variant_val, top_bar, agg_line in per_variant_data:
-        label = _variant_label(variant_val, per_variant_params)
+        label = create_variant_label(variant_val, per_variant_params)
         df_bar = top_bar.to_pandas()
         df_line = agg_line.to_pandas()
 
@@ -238,7 +242,10 @@ def plot(
         )
 
         subplot_charts.append(
-            alt.vconcat(bar_chart, line_chart, spacing=50).properties(title=label)
+            cast(
+                alt.VConcatChart,
+                alt.vconcat(bar_chart, line_chart, spacing=50).properties(title=label),
+            )
         )
 
     combined = alt.vconcat(*subplot_charts).properties(
