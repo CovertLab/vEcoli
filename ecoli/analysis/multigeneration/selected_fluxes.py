@@ -429,6 +429,16 @@ def plot(
                                 suffix, width=40, subsequent_indent="      "
                             )
 
+                # Plot zero line
+                ax2.hlines(
+                    0,
+                    xmin=catalyst_counts["time"].min(),
+                    xmax=catalyst_counts["time"].max(),
+                    color="0.8",
+                    linewidth=1.0,
+                    zorder=0,
+                )
+
                 # Plot catalyst counts vs time
                 # (Store color so markers plotted separately share color)
                 lines = ax2.plot(

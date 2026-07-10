@@ -12,11 +12,20 @@
             "doubling_time_hist": {"skip_n_gens": 2},
             "metabolite_unmet_need": {"skip_n_gens": 2}
             },
+        "multiseed": {
+            "metabolite_unmet_need": {"skip_n_gens": 2}
+        },
         "multigeneration": {
             "selected_fluxes": {
                 "show_enzyme_counts": true,
                 "show_flux_averages": true,
                 "plot_reactions" : [
+                    "UDP-NACMUR-ALA-LIG-RXN",
+                    "UDP-NACMURALA-GLU-LIG-RXN",
+                    "UDP-NACMURALGLDAPLIG-RXN",
+                    "UDP-NACMURALGLDAPAALIG-RXN",
+                    "PHOSNACMURPENTATRANS-RXN",
+                    "NACGLCTRANS-RXN",
                     "TRANS-RXN0-286",
                     "RXN0-5405",
                     "RXN-11302"
