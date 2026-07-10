@@ -73,6 +73,13 @@ class BuildCausalityNetwork:
             default=DYNAMICS_OUTPUT,
             help="Directory to write the Causality seriesOut.zip into.",
         )
+        parser.add_argument(
+            "--max_timepoints",
+            type=int,
+            default=150,
+            help="Downsample simulation output to at most this many evenly-spaced"
+            " timepoints (0 = keep all). Bounds memory on long simulations.",
+        )
 
     def parse_args(self):
         # type: () -> argparse.Namespace
@@ -115,6 +122,7 @@ class BuildCausalityNetwork:
             edge_list,
             args.id,
             args.out_dir,
+            args.max_timepoints,
         )
 
         elapsed_real_sec = monotonic_seconds() - start_real_sec

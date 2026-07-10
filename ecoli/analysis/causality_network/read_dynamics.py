@@ -62,12 +62,26 @@ def get_safe_name(s):
     return fname
 
 
-def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id, out_dir):
+def convert_dynamics(
+    seriesOutDir,
+    sim_data,
+    node_list,
+    edge_list,
+    experiment_id,
+    out_dir,
+    max_timepoints=150,
+):
     """Convert the sim's dynamics data to a Causality seriesOut.zip file.
 
     Reads simulation output from the Parquet ``history`` dataset with DuckDB
     (see :mod:`ecoli.library.parquet_emitter`) rather than the legacy in-database
     emitter.
+
+    ``max_timepoints`` downsamples to at most that many evenly-spaced timesteps
+    (0 = keep all). Long simulations emit thousands of sub-second timesteps and
+    some listeners are 2-D per step (e.g. TF binding is cistrons x TFs), so the
+    full-resolution arrays can be many GB; the viewer only needs a smooth
+    cell-cycle trace.
 
     Args:
         seriesOutDir: directory to write ``seriesOut.zip`` into.
@@ -102,12 +116,22 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
         ("listeners", "growth_limits", "net_charged"),
     ]
 
-    # Read all needed columns from the Parquet history in one time-ordered pass.
+    # Read all needed columns from the Parquet history in one time-ordered pass,
+    # downsampling to at most ``max_timepoints`` evenly-spaced rows to bound memory.
     conn = duckdb.connect()
     history_sql, config_sql, _ = dataset_sql(out_dir, [experiment_id])
     col_names = ["__".join(path) for path in query]
     select = ", ".join([f'"{c}"' for c in col_names] + ["time"])
-    df = conn.sql(f"SELECT {select} FROM ({history_sql}) ORDER BY time").pl()
+
+    n_rows = conn.sql(f"SELECT count(*) FROM ({history_sql})").fetchone()[0]
+    stride = max(1, -(-n_rows // max_timepoints)) if max_timepoints else 1
+    numbered = (
+        f"SELECT {select}, row_number() OVER (ORDER BY time) AS __rn "
+        f"FROM ({history_sql})"
+    )
+    df = conn.sql(
+        f"SELECT {select} FROM ({numbered}) WHERE (__rn - 1) % {stride} = 0 ORDER BY time"
+    ).pl()
 
     # Build the nested {store: {sub: array}} timeseries the readers expect.
     timeseries = {}
