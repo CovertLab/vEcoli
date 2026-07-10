@@ -52,7 +52,26 @@ class BuildCausalityNetwork:
             "--id",
             type=str,
             default="",
-            help="If set, a causality network is built using a custom listener dataset.",
+            help="Experiment id used to scope the Parquet dataset (history/configuration).",
+        )
+        parser.add_argument(
+            "--sim_data_path",
+            type=str,
+            default=SIM_DATA_PATH,
+            help="Path to the (variant) simData.cPickle used to build the network.",
+        )
+        parser.add_argument(
+            "--out_dir",
+            type=str,
+            default="out",
+            help="Root output directory containing the Hive-partitioned history/"
+            " and configuration/ Parquet folders.",
+        )
+        parser.add_argument(
+            "--seriesout",
+            type=str,
+            default=DYNAMICS_OUTPUT,
+            help="Directory to write the Causality seriesOut.zip into.",
         )
 
     def parse_args(self):
@@ -77,11 +96,11 @@ class BuildCausalityNetwork:
 
         print("{}: Building the Causality network".format(time.ctime()))
         causality_network = BuildNetwork(
-            SIM_DATA_PATH, DYNAMICS_OUTPUT, args.check_sanity
+            args.sim_data_path, args.seriesout, args.check_sanity
         )
         node_list, edge_list = causality_network.build_nodes_and_edges()
 
-        fp.makedirs(DYNAMICS_OUTPUT)
+        fp.makedirs(args.seriesout)
 
         print(
             "{}: Converting simulation results to a Causality series".format(
@@ -90,7 +109,12 @@ class BuildCausalityNetwork:
         )
 
         read_dynamics.convert_dynamics(
-            DYNAMICS_OUTPUT, causality_network.sim_data, node_list, edge_list, args.id
+            args.seriesout,
+            causality_network.sim_data,
+            node_list,
+            edge_list,
+            args.id,
+            args.out_dir,
         )
 
         elapsed_real_sec = monotonic_seconds() - start_real_sec
@@ -109,7 +133,7 @@ class BuildCausalityNetwork:
         if args.show and os.path.isfile(server_path):
             # See #890 if running command fails due to differences in pyenv
             # versions - might need to cd to repo and activate pyenv
-            cmd = ["python", server_path, DYNAMICS_OUTPUT]
+            cmd = ["python", server_path, args.seriesout]
             print(
                 f"\nServing the Causality site via the command:\n  {cmd}\n"
                 f"Ctrl+C to exit.\n"
