@@ -5,7 +5,7 @@ Monomer Counts Listener
 """
 
 import numpy as np
-from ecoli.library.schema import numpy_schema, counts, bulk_name_to_idx
+from ecoli.library.schema import numpy_schema, counts, bulk_name_to_idx, attrs
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
@@ -16,6 +16,7 @@ TOPOLOGY = {
     "listeners": ("listeners",),
     "bulk": ("bulk",),
     "unique": ("unique",),
+    "promoters": ("unique", "promoter"),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
 }
@@ -45,6 +46,7 @@ class MonomerCounts(Step):
         "rnap_subunits": [],
         "replisome_trimer_subunits": [],
         "replisome_monomer_subunits": [],
+        "tf_ids": [],
         "complexation_stoich": [],
         "equilibrium_stoich": [],
         "two_component_system_stoich": [],
@@ -65,8 +67,7 @@ class MonomerCounts(Step):
         self.equilibrium_complex_ids = self.parameters["equilibrium_complex_ids"]
         self.monomer_ids = self.parameters["monomer_ids"]
 
-        # Get IDs of complexed molecules monomers involved in two
-        # component system
+        # Get IDs of molecules involved in two component system complexes:
         self.two_component_system_molecule_ids = self.parameters[
             "two_component_system_molecule_ids"
         ]
@@ -92,6 +93,9 @@ class MonomerCounts(Step):
         self.replisome_subunit_ids = (
             replisome_trimer_subunits + replisome_monomer_subunits
         )
+
+        # Get the IDs of transcription factor subunits for unpacking active TFs
+        self.tf_subunit_ids = self.parameters["tf_ids"]
 
         # Get stoichiometric matrices for complexation, equilibrium, two
         # component system and the assembly of unique molecules
@@ -139,6 +143,7 @@ class MonomerCounts(Step):
                     "active_replisomes", emit=self.parameters["emit_unique"]
                 ),
             },
+            "promoters": numpy_schema("promoters", emit=self.parameters["emit_unique"]),
             "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
         }
@@ -176,47 +181,63 @@ class MonomerCounts(Step):
             self.replisome_subunit_idx = bulk_name_to_idx(
                 self.replisome_subunit_ids, bulk_ids
             )
+            self.tf_subunit_idx = bulk_name_to_idx(self.tf_subunit_ids, bulk_ids)
 
         # Get current counts of bulk and unique molecules
         bulkMoleculeCounts = counts(states["bulk"], self.bulk_molecule_idx)
         n_active_ribosome = states["unique"]["active_ribosome"]["_entryState"].sum()
         n_active_rnap = states["unique"]["active_RNAP"]["_entryState"].sum()
         n_active_replisome = states["unique"]["active_replisome"]["_entryState"].sum()
+        (n_bound_TFs,) = attrs(states["promoters"], ["bound_TF"])
 
-        # Account for monomers in bulk molecule complexes
-        complex_monomer_counts = np.dot(
-            self.complexation_stoich,
-            np.negative(bulkMoleculeCounts[self.complexation_complex_idx]),
-        )
-        equilibrium_monomer_counts = np.dot(
-            self.equilibrium_stoich,
-            np.negative(bulkMoleculeCounts[self.equilibrium_complex_idx]),
-        )
-        two_component_monomer_counts = np.dot(
-            self.two_component_system_stoich,
-            np.negative(bulkMoleculeCounts[self.two_component_system_complex_idx]),
-        )
-
-        bulkMoleculeCounts[self.complexation_molecule_idx] += (
-            complex_monomer_counts.astype(np.int32)
-        )
-        bulkMoleculeCounts[self.equilibrium_molecule_idx] += (
-            equilibrium_monomer_counts.astype(np.int32)
-        )
-        bulkMoleculeCounts[self.two_component_system_molecule_idx] += (
-            two_component_monomer_counts.astype(np.int32)
-        )
-
-        # Account for monomers in unique molecule complexes
+        # Calculate the counts of subunits in active unique molecule complexes:
         n_ribosome_subunit = n_active_ribosome * self.ribosome_stoich
         n_rnap_subunit = n_active_rnap * self.rnap_stoich
         n_replisome_subunit = n_active_replisome * self.replisome_stoich
+        n_bound_TF_subunit = n_bound_TFs.astype(np.int32).sum(axis=0)
+
+        # Add the counts of all active unique molecule complex subunits to the
+        # free counts of each "inactive" subunit in the bulk (note this must
+        # happen before the bulk molecule complexes are unpacked, as some of
+        # these subunits are bulk molecule complexes):
         bulkMoleculeCounts[self.ribosome_subunit_idx] += n_ribosome_subunit.astype(
             np.int32
         )
         bulkMoleculeCounts[self.rnap_subunit_idx] += n_rnap_subunit.astype(np.int32)
         bulkMoleculeCounts[self.replisome_subunit_idx] += n_replisome_subunit.astype(
             np.int32
+        )
+        bulkMoleculeCounts[self.tf_subunit_idx] += n_bound_TF_subunit.astype(np.int32)
+
+        # Account for subunits that make up TCS complexes
+        # (note: TCS complex subunits can be equilibrium or complexation
+        # complexes as well, so these must be unpacked before both of those):
+        two_component_monomer_counts = np.dot(
+            self.two_component_system_stoich,
+            np.negative(bulkMoleculeCounts[self.two_component_system_complex_idx]),
+        )
+        bulkMoleculeCounts[self.two_component_system_molecule_idx] += (
+            two_component_monomer_counts.astype(np.int32)
+        )
+
+        # Account for subunits that make up equilibrium complexes
+        # (note: eq complex subunits can be complexation complexes, so these
+        # must be unpacked before those):
+        equilibrium_monomer_counts = np.dot(
+            self.equilibrium_stoich,
+            np.negative(bulkMoleculeCounts[self.equilibrium_complex_idx]),
+        )
+        bulkMoleculeCounts[self.equilibrium_molecule_idx] += (
+            equilibrium_monomer_counts.astype(np.int32)
+        )
+
+        # Account for monomers in bulk molecule complexation complexes:
+        complex_monomer_counts = np.dot(
+            self.complexation_stoich,
+            np.negative(bulkMoleculeCounts[self.complexation_complex_idx]),
+        )
+        bulkMoleculeCounts[self.complexation_molecule_idx] += (
+            complex_monomer_counts.astype(np.int32)
         )
 
         # Update monomerCounts
