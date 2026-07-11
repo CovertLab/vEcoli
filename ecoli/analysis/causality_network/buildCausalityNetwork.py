@@ -80,6 +80,20 @@ class BuildCausalityNetwork:
             help="Downsample simulation output to at most this many evenly-spaced"
             " timepoints (0 = keep all). Bounds memory on long simulations.",
         )
+        parser.add_argument(
+            "--variant", type=int, default=0,
+            help="Variant index of the cell to build (a Causality network is per-cell).",
+        )
+        parser.add_argument(
+            "--lineage_seed", type=int, default=0, help="Lineage seed of the cell to build.",
+        )
+        parser.add_argument(
+            "--generation", type=int, default=1, help="Generation of the cell to build.",
+        )
+        parser.add_argument(
+            "--agent_id", type=str, default="0",
+            help="Agent id of the cell to build (e.g. 0, or 00/01 for gen-2 daughters).",
+        )
 
     def parse_args(self):
         # type: () -> argparse.Namespace
@@ -123,6 +137,10 @@ class BuildCausalityNetwork:
             args.id,
             args.out_dir,
             args.max_timepoints,
+            args.variant,
+            args.lineage_seed,
+            args.generation,
+            args.agent_id,
         )
 
         elapsed_real_sec = monotonic_seconds() - start_real_sec

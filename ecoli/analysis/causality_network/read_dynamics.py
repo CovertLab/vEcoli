@@ -70,6 +70,10 @@ def convert_dynamics(
     experiment_id,
     out_dir,
     max_timepoints=150,
+    variant=0,
+    lineage_seed=0,
+    generation=1,
+    agent_id="0",
 ):
     """Convert the sim's dynamics data to a Causality seriesOut.zip file.
 
@@ -90,6 +94,9 @@ def convert_dynamics(
         experiment_id: experiment id used to scope the Parquet dataset.
         out_dir: root output directory containing the ``history``/``configuration``
             Hive-partitioned Parquet folders.
+        variant, lineage_seed, generation, agent_id: select a single cell's history
+            (a Causality network is per-cell); defaults to the founder cell. Pass
+            ``None`` for any of these to leave that partition key unfiltered.
     """
 
     if not experiment_id:
@@ -120,6 +127,23 @@ def convert_dynamics(
     # downsampling to at most ``max_timepoints`` evenly-spaced rows to bound memory.
     conn = duckdb.connect()
     history_sql, config_sql, _ = dataset_sql(out_dir, [experiment_id])
+
+    # A Causality network is built for a single cell, so scope the dataset to one
+    # (variant, lineage_seed, generation, agent_id) partition (default: founder).
+    cell = []
+    if variant is not None:
+        cell.append(f"variant = {int(variant)}")
+    if lineage_seed is not None:
+        cell.append(f"lineage_seed = {int(lineage_seed)}")
+    if generation is not None:
+        cell.append(f"generation = {int(generation)}")
+    if agent_id is not None and agent_id != "":
+        cell.append(f"agent_id = '{agent_id}'")
+    if cell:
+        where = " AND ".join(cell)
+        history_sql = f"SELECT * FROM ({history_sql}) WHERE {where}"
+        config_sql = f"SELECT * FROM ({config_sql}) WHERE {where}"
+
     col_names = ["__".join(path) for path in query]
     select = ", ".join([f'"{c}"' for c in col_names] + ["time"])
 
