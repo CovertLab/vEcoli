@@ -1,12 +1,12 @@
 {
-    "experiment_id": "test_c6_objective__baseline",
+    "experiment_id": "test_c6_objective__baseline_new_TU_HL",
     "suffix_time": false,
     "parca_options": {
-        "cpus": 32
+        "cpus": 3
     },
     "fail_at_max_duration": true,
     "sim_data_path": null,
-    "generations": 1,
+    "generations": 9,
     "n_init_sims": 1,
     "single_daughters": true,
     "emitter": "parquet",
