@@ -531,7 +531,7 @@ class MetabolismReduxClassic(Step):
 
         # Get reaction indices whose reaction is new (added in 2022)
         # append reaction indices to binary_kinetic_idx
-        include_new = 1
+        include_new = 0
         if not include_new:  # set binary idx if we don't want to include new rxns
             fba_new_reaction_ids = self.parameters["fba_new_reaction_ids"]
             # fba_reaction_ids_to_base_reaction_ids = self.parameters[

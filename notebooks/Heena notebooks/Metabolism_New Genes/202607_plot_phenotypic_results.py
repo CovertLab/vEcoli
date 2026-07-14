@@ -116,7 +116,7 @@ CONFUSION_CORRECT_COLOR = "#ddeee2"
 CONFUSION_INCORRECT_COLOR = "#f8ddd8"
 CONFUSION_BGCOLOR = "#e8e8e8"
 
-GROWS_CALLS = {"Growth", "Low Growth"}
+GROWS_CALLS = {"Growth", "Low Growth", "Slow Growth"}
 NO_GROWTH_CALLS = {"No Growth"}
 
 
@@ -516,6 +516,87 @@ def build_comparison_frame(results_df, ground_truth, growth_threshold):
     df["predicted_grows"] = df["predicted_grows"].astype(bool)
     df["experimental_grows"] = df["experimental_grows"].astype(bool)
     return df
+
+
+def build_dual_comparison_frame(
+    results_old, results_new, ground_truth, threshold_old, threshold_new
+):
+    """Join per-well OLD-model and NEW-model prediction-vs-ground-truth
+    comparisons (each via build_comparison_frame, with its own
+    growth_threshold since neg-control values differ between the two
+    checkpoints) into one frame with a 4-category alignment_category:
+
+      "A" -- neither model's prediction matches experimental ground truth
+      "B" -- only the OLD model matches
+      "C" -- only the NEW model matches
+      "D" -- both models match
+      "Missing" -- one/both model predictions unavailable for this well
+                   (infeasible in that model's sweep, or the well wasn't
+                   part of that model's results at all) -- an outer merge
+                   is required (rather than build_comparison_frame's own
+                   inner-join-like NaN dropping) so a well missing from only
+                   one side still survives with "Missing" instead of
+                   silently disappearing."""
+    old = build_comparison_frame(results_old, ground_truth, threshold_old)[
+        ["plate", "well", "compound_name", "predicted_grows", "experimental_grows"]
+    ].rename(
+        columns={
+            "compound_name": "compound_name_old",
+            "predicted_grows": "predicted_grows_old",
+            "experimental_grows": "experimental_grows_old",
+        }
+    )
+    new = build_comparison_frame(results_new, ground_truth, threshold_new)[
+        ["plate", "well", "compound_name", "predicted_grows", "experimental_grows"]
+    ].rename(
+        columns={
+            "compound_name": "compound_name_new",
+            "predicted_grows": "predicted_grows_new",
+            "experimental_grows": "experimental_grows_new",
+        }
+    )
+    merged = old.merge(new, on=["plate", "well"], how="outer")
+    merged["experimental_grows"] = merged["experimental_grows_old"].combine_first(
+        merged["experimental_grows_new"]
+    )
+    # compound_name is identical for the same well in both models (same
+    # compound_mapping.csv) -- combine_first just picks whichever side has
+    # this well.
+    merged["compound_name"] = merged["compound_name_old"].combine_first(
+        merged["compound_name_new"]
+    )
+
+    old_has_pred = merged["predicted_grows_old"].notna()
+    new_has_pred = merged["predicted_grows_new"].notna()
+    has_gt = merged["experimental_grows"].notna()
+    is_missing = ~(old_has_pred & new_has_pred & has_gt)
+
+    # Nullable "boolean" dtype (not plain bool/float) so pd.NA can be
+    # assigned for missing wells without the dtype-incompatible-assignment
+    # warning plain bool/np.nan mixing triggers.
+    correct_old = (
+        merged["predicted_grows_old"] == merged["experimental_grows"]
+    ).astype("boolean")
+    correct_new = (
+        merged["predicted_grows_new"] == merged["experimental_grows"]
+    ).astype("boolean")
+    correct_old[is_missing] = pd.NA
+    correct_new[is_missing] = pd.NA
+    merged["correct_old"] = correct_old
+    merged["correct_new"] = correct_new
+
+    old_bool = correct_old.fillna(False).astype(bool)
+    new_bool = correct_new.fillna(False).astype(bool)
+    conditions = [
+        is_missing,
+        (~old_bool) & (~new_bool),
+        old_bool & (~new_bool),
+        (~old_bool) & new_bool,
+        old_bool & new_bool,
+    ]
+    choices = ["Missing", "A", "B", "C", "D"]
+    merged["alignment_category"] = np.select(conditions, choices, default="Missing")
+    return merged
 
 
 def confusion_counts(df):

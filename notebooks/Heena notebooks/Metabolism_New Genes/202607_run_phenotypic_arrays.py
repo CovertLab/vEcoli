@@ -224,10 +224,10 @@ def test_NetworkFlowModel(
         homeostatic_dm_targets=homeostatic_dm_targets_conc,
         maintenance_target=maintenance_conc,
         kinetic_targets=kinetic_targets_conc,
-        binary_kinetic_idx=metabolism.binary_kinetic_idx,
+        binary_kinetic_idx=None,
         force_flow_idx=force_reaction_idx,
         objective_weights=objective_weights,
-        upper_flux_bound=100,  # 100 if concentration units, 1e9 if raw counts
+        upper_flux_bound=100,  # matches the live WC sim's scale now everything is in concentration units.
         solver=solver_choice,
     )
     # `solution` and `model` are appended (beyond the notebook's original 6-tuple)
@@ -357,7 +357,9 @@ def load_growth_calls(wells_json_path):
     return lookup
 
 
-def run_condition(cond, metabolism, fba, objective_weights, growth_calls):
+def run_condition(
+    cond, metabolism, fba, objective_weights, growth_calls, capture_fluxes=False
+):
     # Some wells' Add species (see match_compounds.py's "confirmed_absent" /
     # add_metabolite rows in compound_mapping.csv) don't exist as a row in
     # this model's stoichiometric matrix at all -- metabolism.metabolite_names
@@ -371,6 +373,7 @@ def run_condition(cond, metabolism, fba, objective_weights, growth_calls):
     novel_metabolites = [m for m in cond["Add"] if m not in metabolism.metabolite_names]
     add_metabolite = novel_metabolites or None
 
+    flux_record = None
     try:
         result = test_NetworkFlowModel(
             objective_weights,
@@ -389,7 +392,7 @@ def run_condition(cond, metabolism, fba, objective_weights, growth_calls):
             new_exchange_molecules=cond["Add"],
             add_metabolite=add_metabolite,
         )
-        oofv, _, _, _, _, _, solution, model = result
+        oofv, velocities, reaction_names, _, _, _, solution, model = result
 
         # homeostatic_objective: the unweighted FlowResult.homeostatic_term, i.e.
         # cp.norm1((dm[homeostatic_idx] - homeostatic_dm_targets) / homeostatic_concs)
@@ -405,6 +408,33 @@ def run_condition(cond, metabolism, fba, objective_weights, growth_calls):
         homeostatic_dmdt = np.sum(np.asarray(solution.dm_dt)[model.homeostatic_idx])
 
         status = "feasible"
+
+        if capture_fluxes:
+            # reaction_mapping_matrix/base_reaction_ids collapse the
+            # fba-level reaction_names (forward/reverse and enzyme-split
+            # variants) down to one signed flux per "base" reaction id --
+            # the same aggregation the live sim uses to produce the
+            # "base_reaction_fluxes" listener (metabolism_redux_classic.py
+            # next_update, ~line 653-655). run_condition never passes
+            # add_reaction/remove_reaction to test_NetworkFlowModel (only
+            # add_metabolite, which only appends S-matrix rows), so
+            # reaction_names/velocities stay column-aligned with
+            # metabolism.reaction_names/reaction_mapping_matrix across every
+            # well -- assert this holds so a future add_reaction/
+            # remove_reaction usage fails loudly instead of silently
+            # mismapping fluxes.
+            assert list(metabolism.reaction_names) == list(reaction_names), (
+                "reaction_names diverged from metabolism.reaction_names -- "
+                "base-reaction flux capture assumes a fixed column order"
+            )
+            base_fluxes = np.asarray(
+                metabolism.reaction_mapping_matrix.dot(np.asarray(velocities))
+            ).ravel()
+            flux_record = {
+                "plate": cond["plate"],
+                "well": cond["well"],
+                **dict(zip(metabolism.base_reaction_ids, base_fluxes)),
+            }
     except ValueError:
         oofv = None
         homeostatic_objective = None
@@ -415,7 +445,7 @@ def run_condition(cond, metabolism, fba, objective_weights, growth_calls):
         (cond["plate_key"], cond["well_row"], cond["well_col"]), {}
     )
 
-    return {
+    result_row = {
         "plate": cond["plate"],
         "well": cond["well"],
         "compound_name": cond["compound_name"],
@@ -428,6 +458,7 @@ def run_condition(cond, metabolism, fba, objective_weights, growth_calls):
         "aerobic_growth_call": growth.get("aerobic_growth_call"),
         "anaerobic_growth_call": growth.get("anaerobic_growth_call"),
     }
+    return result_row, flux_record
 
 
 def parse_args():
@@ -447,10 +478,27 @@ def parse_args():
         default="notebooks/Heena notebooks/Metabolism_New Genes/out/phenotypic_arrays/",
     )
     parser.add_argument("--n-jobs", type=int, default=1)
-    parser.add_argument("--out-name", default="results")
     parser.add_argument(
         "--wells-json",
         default="notebooks/Heena notebooks/Metabolism_New Genes/phenotypic_array_wells.json",
+    )
+    parser.add_argument(
+        "--out-name",
+        default="results",
+        help="Stem for the output filename(s), e.g. 'results' writes "
+        "results.csv (and, with --capture-fluxes, results_fluxes.parquet "
+        "+ side-car JSONs).",
+    )
+    parser.add_argument(
+        "--capture-fluxes",
+        action="store_true",
+        help="Also capture each well's per-base-reaction flux vector "
+        "(metabolism.reaction_mapping_matrix.dot(solution.velocities), "
+        "indexed by metabolism.base_reaction_ids) and write it as a wide "
+        "parquet (rows=wells incl. BASAL, columns=base reaction ids), plus "
+        "one-time side-car JSON dumps of reaction_catalysts (tag-stripped) "
+        "and fba_reaction_ids_to_base_reaction_ids for downstream "
+        "gene-to-flux mapping.",
     )
     return parser.parse_args()
 
@@ -475,9 +523,14 @@ def main():
     # joblib's default loky/process backend; the CVXPY/GLOP solve itself
     # releases the GIL for its C++ core, so threading still parallelizes the
     # actual solver work.
-    results = Parallel(n_jobs=args.n_jobs, prefer="threads")(
+    records = Parallel(n_jobs=args.n_jobs, prefer="threads")(
         delayed(run_condition)(
-            cond, metabolism, fba, DEFAULT_OBJECTIVE_WEIGHTS, growth_calls
+            cond,
+            metabolism,
+            fba,
+            DEFAULT_OBJECTIVE_WEIGHTS,
+            growth_calls,
+            capture_fluxes=args.capture_fluxes,
         )
         for cond in conditions.values()
     )
@@ -500,17 +553,57 @@ def main():
         "Add": set(),
         "Remove": set(),
     }
-    results.append(
+    records.append(
         run_condition(
-            basal_cond, metabolism, fba, DEFAULT_OBJECTIVE_WEIGHTS, growth_calls
+            basal_cond,
+            metabolism,
+            fba,
+            DEFAULT_OBJECTIVE_WEIGHTS,
+            growth_calls,
+            capture_fluxes=args.capture_fluxes,
         )
     )
+
+    results = [result_row for result_row, _ in records]
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{args.out_name}.csv"
     pd.DataFrame(results).to_csv(out_path, index=False)
     print(f"Wrote {len(results)} rows to {out_path}")
+
+    if args.capture_fluxes:
+        flux_rows = [flux_record for _, flux_record in records if flux_record]
+        flux_df = pd.DataFrame(flux_rows).set_index(["plate", "well"])
+        flux_path = out_dir / f"{args.out_name}_fluxes.parquet"
+        flux_df.to_parquet(flux_path)
+        print(
+            f"Wrote {len(flux_df)}/{len(results)} wells' base-reaction flux "
+            f"vectors ({flux_df.shape[1]} reactions) to {flux_path}"
+        )
+
+        # One-time side-cars (fixed per checkpoint, not per well) so
+        # downstream gene-flux mapping doesn't need to reload the
+        # 300-600MB checkpoint itself. Catalyst ids carry a compartment
+        # tag (e.g. "EG11833-MONOMER[i]") that must be stripped to match
+        # the bare ids used in the gene-annotation CSVs' "Enzyme encoded"
+        # column.
+        reaction_catalysts = {
+            rxn: [catalyst.split("[")[0] for catalyst in catalysts]
+            for rxn, catalysts in metabolism.parameters["reaction_catalysts"].items()
+        }
+        catalysts_path = out_dir / f"{args.out_name}_reaction_catalysts.json"
+        with open(catalysts_path, "w") as handle:
+            json.dump(reaction_catalysts, handle)
+        print(f"Wrote {catalysts_path}")
+
+        fba_to_base_path = out_dir / f"{args.out_name}_fba_to_base_reactions.json"
+        with open(fba_to_base_path, "w") as handle:
+            json.dump(
+                dict(metabolism.parameters["fba_reaction_ids_to_base_reaction_ids"]),
+                handle,
+            )
+        print(f"Wrote {fba_to_base_path}")
 
 
 if __name__ == "__main__":
