@@ -224,10 +224,10 @@ def test_NetworkFlowModel(
         homeostatic_dm_targets=homeostatic_dm_targets_conc,
         maintenance_target=maintenance_conc,
         kinetic_targets=kinetic_targets_conc,
-        binary_kinetic_idx=None,
+        binary_kinetic_idx=metabolism.binary_kinetic_idx,
         force_flow_idx=force_reaction_idx,
         objective_weights=objective_weights,
-        upper_flux_bound=100,  # matches the live WC sim's scale now everything is in concentration units.
+        upper_flux_bound=100,  # 100 if concentration units, 1e9 if raw counts
         solver=solver_choice,
     )
     # `solution` and `model` are appended (beyond the notebook's original 6-tuple)
@@ -447,6 +447,7 @@ def parse_args():
         default="notebooks/Heena notebooks/Metabolism_New Genes/out/phenotypic_arrays/",
     )
     parser.add_argument("--n-jobs", type=int, default=1)
+    parser.add_argument("--out-name", default="results")
     parser.add_argument(
         "--wells-json",
         default="notebooks/Heena notebooks/Metabolism_New Genes/phenotypic_array_wells.json",
@@ -507,7 +508,7 @@ def main():
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / "results.csv"
+    out_path = out_dir / f"{args.out_name}.csv"
     pd.DataFrame(results).to_csv(out_path, index=False)
     print(f"Wrote {len(results)} rows to {out_path}")
 
