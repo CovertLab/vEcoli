@@ -19,13 +19,15 @@
         "multivariant": {
             "pH": {}
         },
-        "multigeneration": {
+        "single": {
             "selected_fluxes":{
+                "row_height": 6,
+                "col_width": 8,
                 "show_enzyme_counts": true,
                 "plot_reactions" : [
                     {
-                        "GLUTDECARBOX-RXN": "gadAB ($GLT + H^+ \\to CO_2 + GABA$)",
-                        "TRANS-RXN-261": "gadC ($GABA[c] + GLT[p] \\leftrightarrow GLT[c] + GABA[p]$)"
+                        "GLUTDECARBOX-RXN": "$\\bf{gadAB}$\n($GLT + H^+ \\to CO_2 + GABA$)",
+                        "TRANS-RXN-261": "$\\bf{gadC}$\n($GABA[c] + GLT[p] \\leftrightarrow GLT[c] + GABA[p]$)"
                     }
                 ]
             }
