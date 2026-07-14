@@ -18,6 +18,17 @@
         "variant_data_dir": ["out/test_installation/variant_sim_data"],
         "multivariant": {
             "pH": {}
+        },
+        "multigeneration": {
+            "selected_fluxes":{
+                "show_enzyme_counts": true,
+                "plot_reactions" : [
+                    {
+                        "GLUTDECARBOX-RXN": "gadAB ($GLT + H^+ \\to CO_2 + GABA$)",
+                        "TRANS-RXN-261": "gadC ($GABA[c] + GLT[p] \\leftrightarrow GLT[c] + GABA[p]$)"
+                    }
+                ]
+            }
         }
     }
 }

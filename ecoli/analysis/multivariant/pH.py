@@ -72,6 +72,7 @@ def plot(
     # Get pH
     pH = -np.log10((total_protons / cellVolume).to("M").magnitude)
 
+    # Plotting ================================
     fig, ax = plt.subplots()
 
     ax.plot(df["time"], pH)
