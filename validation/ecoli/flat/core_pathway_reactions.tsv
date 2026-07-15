@@ -1,0 +1,9 @@
+# Reaction-to-pathway mapping for metabolic pathways of interest
+# Manually curated; reaction IDs cross-referenced against
+# validation/ecoli/flat/toya_2010_central_carbon_fluxes.tsv and verified
+# present in reconstruction/ecoli/flat/metabolic_reactions.tsv.
+# Got the pathway_id and reactions from EcoCyC
+"pathway"	"pathway_id"	"reaction_id"	"reaction_label"	"order"	"branch_point"
+"L-glutamate degradation IX (via 4-aminobutanoate)"	"PWY0-1305"	"TRANS-RXN-261"	"GLT[e] + GABA -> GLT + GABA[e]"	1	""
+"L-glutamate degradation IX (via 4-aminobutanoate)"	"PWY0-1305"	"GLUTDECARBOX-RXN"	"GLT + H+ -> CO2 + GABA"	2	"GABA"
+"Competing Reactions"	"COMP-RXN"	"RXN-24786"	"CO2 + GABA -> 2H+ + carboxyamino-butanoate"	3	"GABA"

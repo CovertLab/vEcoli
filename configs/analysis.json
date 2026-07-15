@@ -1,0 +1,32 @@
+{
+    "emitter_arg": {
+        "out_dir": "out/pH/"
+    },
+    "analysis_options": {
+        "experiment_id": ["metabolism"],
+        "variant_data_dir": ["out/pH/metabolism/variant_sim_data"],
+        "validation_data_path": ["out/kb/validationData.cPickle"],
+        "outdir": "out/pH/analysis/metabolism/",
+        "cpus": 1,
+
+        "multivariant": {
+            "centralCarbonMetabolismScatter": {"is_redux": false},
+            "enzyme_availability_flux":{},
+            "kinetic_flux": {
+                "is_redux": false,
+                "plot_catalysts": ["GLUTDECARBOXA-CPLX[c]", "GLUTDECARBOXB-CPLX[c]", "XASA-MONOMER[i]"]
+            },
+            "selected_catalyst_fluxes": {
+                "is_redux": false,
+                "plot_catalysts": ["GLUTDECARBOXA-CPLX[c]", "GLUTDECARBOXB-CPLX[c]", "XASA-MONOMER[i]"]
+            },
+            "pathway_flux_distribution": {
+                "is_redux": false
+            },
+            "sankey_metabolite_flux": {
+                "is_redux": false,
+                "metabolites_of_interest": ["4-AMINO-BUTYRATE[c]", "PROTON[c]", "PROTON[p]"]
+            }
+        }
+    }
+}

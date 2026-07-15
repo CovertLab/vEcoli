@@ -915,6 +915,10 @@ class FluxBalanceAnalysisModel(object):
             "maintenanceCostGAM": gam.asNumber(COUNTS_UNITS / MASS_UNITS),
             "maintenanceReaction": metabolism.maintenance_reaction,
         }
+        print(f"secretion penalty: {fba_options['secretionPenaltyCoeff']}")
+        print(f"exchange molecules: {fba_options['externalExchangedMolecules']}")
+        print(f"maintenance reaction: {fba_options['maintenanceReaction']}")
+
         self.fba = FluxBalanceAnalysis(**fba_options)
 
         self.metabolite_names = {
