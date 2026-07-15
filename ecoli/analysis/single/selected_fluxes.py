@@ -1,6 +1,7 @@
 import os
 import pickle
 import textwrap
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import polars as pl
@@ -145,7 +146,7 @@ def plot(
         # Complain if any reaction ids don't exist in the data
         for rxnid in reaction_set.keys():
             if rxnid not in reaction_ids:
-                raise KeyError(
+                warnings.warn(
                     f"Reaction with ID {rxnid} was not found in the set of metabolic reactions!"
                 )
 

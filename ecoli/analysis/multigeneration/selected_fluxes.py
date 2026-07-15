@@ -12,6 +12,7 @@ cell omitted, see the _drop_second_time_step() function for more info on this).
 import os
 import pickle
 import textwrap
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import polars as pl
@@ -280,12 +281,20 @@ def plot(
         elif isinstance(reaction_set, list):
             reaction_set = dict(zip(reaction_set, reaction_set))
 
-        # Complain if any reaction ids don't exist in the data
-        for rxnid in reaction_set.keys():
-            if rxnid not in reaction_ids:
-                raise KeyError(
+        # Complain if any reaction ids don't exist in the data, and drop them
+        filtered_set = {}
+        for rxnid, label in reaction_set.items():
+            if rxnid in reaction_ids:
+                filtered_set[rxnid] = label
+            else:
+                warnings.warn(
                     f"Reaction with ID {rxnid} was not found in the set of metabolic reactions!"
                 )
+        reaction_set = filtered_set
+
+        # Skip if all reactions removed
+        if len(reaction_set) == 0:
+            continue
 
         # Get reactions indices and read flux values (because this is a
         # multigeneration analysis, history_sql spans all generations of the
