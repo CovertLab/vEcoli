@@ -123,8 +123,8 @@ def _extract_average_fluxes(
         if reaction_id not in flux_data.columns:
             raise KeyError(f"Reaction ID {reaction_id} not found in flux data.")
         col = flux_data[reaction_id]
-        mean = float(col.cast(float).mean()) if col.len() > 0 else float("nan")
-        std = float(col.cast(float).std()) if col.len() > 1 else 0.0
+        mean = float(cast(float, col.mean())) if col.len() > 0 else float("nan")
+        std = float(cast(float, col.std())) if col.len() > 1 else 0.0
         average_fluxes[reaction_id] = (mean, std)
     return average_fluxes
 
