@@ -3,10 +3,10 @@
         "out_dir": "out/pH/"
     },
     "analysis_options": {
-        "experiment_id": ["metabolism"],
-        "variant_data_dir": ["out/pH/metabolism/variant_sim_data"],
+        "experiment_id": ["metabolism_GABA_secretion_protonated_rich"],
+        "variant_data_dir": ["out/pH/metabolism_GABA_secretion_protonated_rich/variant_sim_data"],
         "validation_data_path": ["out/kb/validationData.cPickle"],
-        "outdir": "out/pH/analysis/metabolism/",
+        "outdir": "out/pH/analysis/metabolism_GABA_secretion_protonated_rich/",
         "cpus": 1,
 
         "multivariant": {
@@ -26,7 +26,10 @@
             "sankey_metabolite_flux": {
                 "is_redux": false,
                 "metabolites_of_interest": ["4-AMINO-BUTYRATE[c]", "PROTON[c]", "PROTON[p]"]
-            }
+            },
+            "pH": {},
+            "exchange_flux": {},
+            "cell_mass": {}
         }
     }
 }

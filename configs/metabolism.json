@@ -1,16 +1,25 @@
 {
-    "experiment_id": "metabolism",
+    "experiment_id": "metabolism_GABA_secretion_protonated_rich",
     "suffix_time": false,
     "parca_options": {
         "cpus": 10
     },
     "fail_at_max_duration": true,
     "sim_data_path": null,
-    "generations": 1,
+    "generations": 2,
     "n_init_sims": 1,
     "single_daughters": true,
     "emitter": "parquet",
     "emitter_arg": {
         "out_dir": "out/pH/"
+    },
+    "fixed_media": "minimal_plus_amino_acids",
+    "condition": "with_aa",
+    "process_configs": {
+        "ecoli-metabolism": {
+            "set_reaction_bounds": {
+                "HS-PROTON-TRANS-RXN": [25, 25]
+            }
+        }
     }
 }
