@@ -192,7 +192,7 @@ def porosity(lattice):
 
 def test_strand_length_plots():
     rng = np.random.default_rng(0)
-    lattice = sample_lattice(450000 * 4, 3050, 700, geom_sampler(rng, 0.058), rng)
+    lattice = sample_lattice(450000, 3050, 700, geom_sampler(rng, 0.058), rng)
 
     os.makedirs("out/processes/cell_wall/", exist_ok=True)
 

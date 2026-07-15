@@ -35,7 +35,7 @@ def validate_division(data, bulk_ids):
     #   and unincorporated murein are reset to their defaults. Shadow murein
     #   is divided binomially.
     # - on the next timestep, these are updated to be reasonable values.
-    #   Murein state should sum to bulk murein * 4.
+    #   Murein state should sum to bulk murein.
 
     time = sorted(data.keys())
 
@@ -62,14 +62,12 @@ def validate_division(data, bulk_ids):
     )
 
     next_timestep = time[divide_index + 1]
-    murein_idx = np.where(bulk_ids == "CPD-12261[p]")[0][0]
+    murein_idx = np.where(bulk_ids == "C6[p]")[0][0]
     for _, cell_data in data[next_timestep]["agents"].items():
         assert cell_data["wall_state"]["lattice_rows"] > 0
         assert cell_data["wall_state"]["lattice_cols"] > 0
         assert not cell_data["wall_state"]["cracked"]
-        assert (
-            sum(cell_data["murein_state"].values()) == 4 * cell_data["bulk"][murein_idx]
-        )
+        assert sum(cell_data["murein_state"].values()) == cell_data["bulk"][murein_idx]
 
 
 def test_cell_wall_division():

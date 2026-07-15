@@ -33,7 +33,7 @@ def create_composite(timeline_data, antibiotics=True):
     timeline = create_bulk_timeline_from_df(
         timeline_data,
         {
-            "CPD-12261[p]": ("bulk", "CPD-12261[p]"),
+            "C6[p]": ("bulk", "C6[p]"),
             "CPLX0-7717[p]": ("bulk", "CPLX0-7717[p]"),
             "CPLX0-3951[i]": ("bulk", "CPLX0-3951[i]"),
             "Volume": ("cell_global", "volume"),
@@ -50,7 +50,7 @@ def create_composite(timeline_data, antibiotics=True):
             ("concentrations", "ampicillin"): (
                 10 * units.micromolar if antibiotics and t > 0 else 0 * units.micromolar
             ),
-            ("bulk", "CPD-12261[p]"): int(value[("bulk", "CPD-12261[p]")]),
+            ("bulk", "C6[p]"): int(value[("bulk", "C6[p]")]),
         },
     )
 
@@ -100,7 +100,7 @@ def create_composite(timeline_data, antibiotics=True):
     }
 
     # Create initial state
-    initial_murein = int(timeline_data.iloc[0]["CPD-12261[p]"])
+    initial_murein = int(timeline_data.iloc[0]["C6[p]"])
     initial_PBP1A = int(timeline_data.iloc[0]["CPLX0-7717[p]"])
     initial_PBP1B = int(timeline_data.iloc[0]["CPLX0-3951[i]"])
     initial_volume = parse_unit_string(timeline_data.iloc[0]["Volume"])
@@ -108,7 +108,7 @@ def create_composite(timeline_data, antibiotics=True):
     initial_state = {
         "bulk": np.array(
             [
-                ("CPD-12261[p]", initial_murein),
+                ("C6[p]", initial_murein),
                 ("CPLX0-7717[p]", initial_PBP1A),
                 ("CPLX0-3951[i]", initial_PBP1B),
                 ("CPLX0-8300[c]", 0),
@@ -117,7 +117,7 @@ def create_composite(timeline_data, antibiotics=True):
         ),
         "murein_state": {
             "incorporated_murein": 0,
-            "unincorporated_murein": initial_murein * 4,
+            "unincorporated_murein": initial_murein,
             "shadow_murein": 0,
         },
         "wall_state": {},
@@ -133,7 +133,7 @@ def output_data(data, filepath):
     variables = [
         ("concentrations", "ampicillin"),
         ("wall_state", "cracked"),
-        ("bulk", "CPD-12261[p]"),
+        ("bulk", "C6[p]"),
         ("bulk", "CPLX0-7717[p]"),
         ("bulk", "CPLX0-3951[i]"),
         ("murein_state", "incorporated_murein"),

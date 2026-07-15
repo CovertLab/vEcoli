@@ -74,7 +74,7 @@ def test_initial_state_overrides():
     sim.build_ecoli()
 
     murein_row_idx = np.where(
-        sim.generated_initial_state["agents"]["0"]["bulk"]["id"] == "CPD-12261[p]"
+        sim.generated_initial_state["agents"]["0"]["bulk"]["id"] == "C6[p]"
     )[0]
     assert (
         sim.generated_initial_state["agents"]["0"]["bulk"]["count"][murein_row_idx]

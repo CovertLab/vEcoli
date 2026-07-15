@@ -109,14 +109,14 @@ def test_add_timeline():
     timeline = create_timeline_from_csv(
         TEST_FILE,
         {
-            "CPD-12261[p]": ("bulk", "CPD-12261[p]"),
+            "C6[p]": ("bulk", "C6[p]"),
             "CPLX0-7717[p]": ("bulk", "CPLX0-7717[p]"),
             "CPLX0-3951[i]": ("bulk", "CPLX0-3951[i]"),
         },
     )
 
     timeline = add_computed_value(
-        timeline, lambda t, val: {"murein*4": val[("bulk", "CPD-12261[p]")] * 4}
+        timeline, lambda t, val: {"murein": val[("bulk", "C6[p]")]}
     )
 
     print(timeline)
