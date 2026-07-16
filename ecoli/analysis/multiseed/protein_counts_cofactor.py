@@ -10,6 +10,33 @@ from ecoli.library.parquet_emitter import (
     skip_n_gens,
 )
 
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_COFACTOR_DIR = os.path.join(_REPO_ROOT, "notebooks", "cofactors")
+COMPLEX_IDS_PATH = os.path.join(_COFACTOR_DIR, "complex_ids.txt")
+PROTEIN_IDS_PATH = os.path.join(_COFACTOR_DIR, "protein_ids.txt")
+
+
+def _read_id_list(path: str) -> list[str]:
+    """Read a headerless, one-ID-per-line truth file into a list of IDs."""
+    return (
+        pl.read_csv(path, has_header=False, new_columns=["id"])
+        .get_column("id")
+        .to_list()
+    )
+
+
+def _filter_to_truth_ids(wide_df: pl.DataFrame, truth_ids: list[str]) -> pl.DataFrame:
+    """Keep only seed/generation + truth ID columns, padding any ID missing
+    from ``wide_df`` with a column of zeros. Column order follows ``truth_ids``.
+    """
+    present = [i for i in truth_ids if i in wide_df.columns]
+    missing = [i for i in truth_ids if i not in wide_df.columns]
+    filtered = wide_df.select(["seed", "generation", *present])
+    if missing:
+        filtered = filtered.with_columns([pl.lit(0).alias(i) for i in missing])
+    # Reorder
+    return filtered.select(["seed", "generation", *truth_ids])
+
 
 def plot(
     params: dict[str, Any],
@@ -35,60 +62,6 @@ def plot(
     if params.get("skip_n_gens"):
         history_sql = skip_n_gens(history_sql, params["skip_n_gens"])
 
-    # --- Monomer counts ---
-    all_monomer_ids_raw = field_metadata(
-        conn, config_sql, "listeners__monomer_counts"
-    )
-    all_monomer_ids = [m[:-3] for m in all_monomer_ids_raw]
-    n_monomers = len(all_monomer_ids)
-
-    if n_monomers:
-        monomer_subquery = read_stacked_columns(
-            history_sql,
-            ["listeners__monomer_counts AS monomer_counts"],
-            order_results=False,
-        )
-        # Average counts across all timesteps within each (seed, generation) cell
-        long_df = conn.sql(f"""
-            WITH unnested AS (
-                SELECT
-                    lineage_seed,
-                    generation,
-                    unnest(monomer_counts) AS count,
-                    generate_subscripts(monomer_counts, 1) AS idx
-                FROM ({monomer_subquery})
-            )
-            SELECT lineage_seed, generation, idx, avg(count) AS avg_count
-            FROM unnested
-            GROUP BY lineage_seed, generation, idx
-            ORDER BY lineage_seed, generation, idx
-        """).pl()
-
-        # Map 1-based idx to monomer ID, then pivot to wide format
-        monomer_map = pl.DataFrame(
-            {"idx": list(range(1, n_monomers + 1)), "monomer_id": all_monomer_ids}
-        )
-        wide_df = (
-            long_df.join(monomer_map, on="idx")
-            .pivot(
-                on="monomer_id",
-                index=["lineage_seed", "generation"],
-                values="avg_count",
-                aggregate_function="first",
-            )
-            .rename({"lineage_seed": "seed"})
-            .sort(["seed", "generation"])
-        )
-
-        out_path = os.path.join(outdir, "protein_counts.tsv")
-        wide_df.write_csv(out_path, separator="\t")
-        n_rows = len(wide_df)
-        print(f"Wrote {n_rows} rows x {n_monomers} monomers to {out_path}")
-    else:
-        print("No monomer IDs found; protein_counts.tsv not written.")
-
-    # --- Complex counts from bulk ---
-    # bulk contains all molecules; strip compartment tags and write all counts.
     try:
         bulk_ids_raw = field_metadata(conn, config_sql, "bulk")
     except Exception as e:
@@ -136,9 +109,21 @@ def plot(
             .sort(["seed", "generation"])
         )
 
-        out_path = os.path.join(outdir, "complex_counts.tsv")
-        bulk_wide_df.write_csv(out_path, separator="\t")
-        n_rows = len(bulk_wide_df)
-        print(f"Wrote {n_rows} rows x {n_bulk} bulk molecules to {out_path}")
+        for truth_path, out_name, label in (
+            (PROTEIN_IDS_PATH, "proteins_filtered.tsv", "proteins"),
+            (COMPLEX_IDS_PATH, "complexes_filtered.tsv", "complexes"),
+        ):
+            truth_ids = _read_id_list(truth_path)
+            filtered = _filter_to_truth_ids(bulk_wide_df, truth_ids)
+            out_path = os.path.join(outdir, out_name)
+            filtered.write_csv(out_path, separator="\t")
+            n_missing = sum(1 for i in truth_ids if i not in bulk_wide_df.columns)
+            print(
+                f"Wrote {len(filtered)} rows x {len(truth_ids)} cofactor "
+                f"{label} ({n_missing} padded with 0) to {out_path}"
+            )
     else:
-        print("No bulk molecule IDs found; complex_counts.tsv not written.")
+        print(
+            "No bulk molecule IDs found; "
+            "proteins_filtered.tsv/complexes_filtered.tsv not written."
+        )
