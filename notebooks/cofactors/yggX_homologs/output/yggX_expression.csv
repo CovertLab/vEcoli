@@ -1,0 +1,33 @@
+code,name,locus,gene_name,product,found,strategy,ctrl_tpm,As_tpm,As_fc,Bs_tpm,Bs_fc,Li_tpm,Li_fc,Mig_tpm,Mig_fc,Nd_tpm,Nd_fc,Ns_tpm,Ns_fc,Oss_tpm,Oss_fc,Oxs_tpm,Oxs_fc,Sp_tpm,Sp_fc,Tm_tpm,Tm_fc,Vic_tpm,Vic_fc,match_wp,match_accession,match_region,pct_identity,aln_len,ref_protein,ref_wp,query_date
+ACHX,Achromobacter xylosoxidans SOLR10,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+ACIB,Acinetobacter baumannii AB5075-UW,ABUW_RS17615,,oxidative damage protection protein,True,Family(Pfam),175.73,253.14,1.441,114.57,0.652,167.91,0.955,122.73,0.698,32.5,0.185,163.84,0.932,169.47,0.964,133.69,0.761,8.41,0.048,208.34,1.186,87.54,0.498,WP_000089996.1,NZ_CP008706,3676627..3676896,41.3,92,NP_417437.1,WP_000091700.1,2026-07-15
+AGGA,Aggregatibacter actinomycetemcomitans D7S-1,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+BBURG,Borrelia burgdorferi B31,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+BURK,Burkholderia pseudomallei K96243,BPSL2326,,oxidative damage protection protein,True,Family(Pfam),396.12,245.94,0.621,34.72,0.088,284.05,0.717,406.26,1.026,479.31,1.21,414.93,1.047,392.21,0.99,267.04,0.674,158.14,0.399,213.84,0.54,327.32,0.826,WP_004193961.1,NC_006350,2811918..2812193,44.0,91,NP_417437.1,WP_000091700.1,2026-07-15
+Campy,Campylobacter jejuni 81-176,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+ENTFA,Enterococcus faecalis OG1RF,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+EPEC,Escherichia coli O127:H6 E2348/69,E2348C_RS17235,yggX,oxidative damage protection protein,True,IPG,418.07,449.3,1.075,367.24,0.878,406.47,0.972,75.48,0.181,662.55,1.585,352.24,0.843,277.41,0.664,2567.94,6.142,145.18,0.347,742.21,1.775,443.39,1.061,,NC_011601,3332342..3332617,100.0,,NP_417437.1,WP_000091700.1,2026-07-15
+ETEC,Escherichia coli H10407,ETEC_RS17115,yggX,oxidative damage protection protein,True,IPG,343.19,407.61,1.188,313.92,0.915,405.63,1.182,79.61,0.232,416.45,1.213,356.57,1.039,299.58,0.873,417.84,1.218,262.46,0.765,440.86,1.285,230.43,0.671,,NC_017633,3406887..3407162,100.0,,NP_417437.1,WP_000091700.1,2026-07-15
+FRAT,Francisella tularensis FSC200,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+HINF,Haemophilus influenzae 86-028NP,NTHI_RS04445,,oxidative damage protection protein,True,Family(Pfam),385.09,531.44,1.38,,,350.0,0.909,285.79,0.742,344.85,0.896,363.21,0.943,443.68,1.152,426.05,1.106,405.9,1.054,395.1,1.026,484.55,1.258,WP_005648477.1,NC_007146,889104..889376,74.7,91,NP_417437.1,WP_000091700.1,2026-07-15
+HPG27,Helicobacter pylori G27,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+HPJ99,Helicobacter pylori J99,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+KLEBS,Klebsiella pneumoniae MGH 78578,KPN_RS18195,,oxidative damage protection protein,True,Family(Pfam),218.26,179.7,0.823,176.79,0.81,147.32,0.675,28.32,0.13,117.35,0.538,192.71,0.883,105.05,0.481,422.33,1.935,23.57,0.108,80.64,0.369,97.23,0.445,WP_004105744.1,NC_009648,3714742..3715017,91.2,91,NP_417437.1,WP_000091700.1,2026-07-15
+LEGIP,Legionella pneumophila Philadelphia 1,lpg1927,,oxidative damage protection protein,True,Family(Pfam),66.54,79.76,1.199,,,60.5,0.909,41.41,0.622,68.03,1.022,35.07,0.527,77.19,1.16,56.14,0.844,61.61,0.926,66.92,1.006,,,WP_010947644.1,NC_002942,2153208..2153477,50.0,92,NP_417437.1,WP_000091700.1,2026-07-15
+Listeria,Listeria monocytogenes EGD-e,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+MRSA,Staphylococcus aureus MRSA252,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+MSSA,Staphylococcus aureus MSSA476,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+MTB,Mycobacterium tuberculosis H37Ra,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+NGON,Neisseria gonorrhoeae FA 1090,NGO2083,,oxidative damage protection protein,True,Family(Pfam),581.52,549.88,0.946,1164.5,2.003,783.1,1.347,253.78,0.436,410.51,0.706,644.16,1.108,549.69,0.945,433.69,0.746,482.1,0.829,521.24,0.896,540.38,0.929,WP_002214948.1,NC_002946,2061190..2061456,42.9,91,NP_417437.1,WP_000091700.1,2026-07-15
+NMEN,Neisseria meningitidis FAM18,NMC_RS10590,,oxidative damage protection protein,True,Family(Pfam),507.17,545.85,1.076,612.23,1.207,712.97,1.406,348.11,0.686,427.54,0.843,439.81,0.867,393.28,0.775,327.62,0.646,806.08,1.589,455.81,0.899,288.22,0.568,WP_002214948.1,NC_008767,complement(2050210..2050476),42.9,91,NP_417437.1,WP_000091700.1,2026-07-15
+PSEUDO,Pseudomonas aeruginosa PAO1,PA5148,,hypothetical protein,True,Family(Pfam),142.44,264.38,1.856,164.83,1.157,183.2,1.286,102.31,0.718,203.43,1.428,287.68,2.02,179.08,1.257,152.76,1.072,89.87,0.631,169.65,1.191,141.82,0.996,WP_003096100.1,NC_002516,5797065..5797337,49.5,91,NP_417437.1,WP_000091700.1,2026-07-15
+SALMT,Salmonella enterica SL1344,SL1344_RS16090,,oxidative damage protection protein,True,IPG,337.7,378.37,1.12,302.44,0.896,396.85,1.175,55.48,0.164,197.14,0.584,387.88,1.149,428.66,1.269,304.87,0.903,133.66,0.396,339.69,1.006,179.43,0.531,,NC_016810,3290468..3290743,100.0,,NP_417437.1,WP_000091700.1,2026-07-15
+SEPI,Staphylococcus epidermidis 1457,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+SHIF,Shigella flexneri 5a M90T,SF5M90T_2947,,hypothetical protein,True,IPG,105.31,160.87,1.528,127.81,1.214,62.79,0.596,6.62,0.063,97.77,0.928,115.54,1.097,52.54,0.499,322.66,3.064,72.34,0.687,244.73,2.324,123.75,1.175,,CM001474,3089172..3089447,100.0,,NP_417437.1,WP_000091700.1,2026-07-15
+SPYO,Streptococcus pyogenes 5448,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+SSUIS,Streptococcus suis P1/7,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+STAGA,Streptococcus agalactiae NEM316,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+STRPN,Streptococcus pneumoniae D39,,,,False,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+UPEC,Escherichia coli 536,ECP_RS15105,yggX,oxidative damage protection protein,True,IPG,767.91,699.03,0.91,631.24,0.822,698.77,0.91,39.8,0.052,695.96,0.906,598.6,0.78,776.91,1.012,1861.16,2.424,126.06,0.164,689.11,0.897,337.25,0.439,,NC_008253,3121811..3122086,100.0,,NP_417437.1,WP_000091700.1,2026-07-15
+Vibrio,Vibrio cholerae O1,VC0451,,oxidative damage protection protein,True,Family(Pfam),173.56,319.79,1.843,232.85,1.342,355.59,2.049,168.87,0.973,303.9,1.751,108.27,0.624,257.83,1.486,144.41,0.832,190.87,1.1,257.87,1.486,173.35,0.999,WP_000124738.1,NC_002505,complement(482912..483184),82.4,91,NP_417437.1,WP_000091700.1,2026-07-15
+YPSTB,Yersinia pseudotuberculosis YPIII,YPK_0819,,oxidative damage protection protein,True,Override,222.2,213.25,0.96,243.62,1.096,413.17,1.859,212.64,0.957,657.59,2.959,202.5,0.911,201.08,0.905,346.35,1.559,409.12,1.841,346.46,1.559,249.8,1.124,,NC_010465_mix_r_dep,complement(936165..936437),,,NP_417437.1,WP_000091700.1,2026-07-15

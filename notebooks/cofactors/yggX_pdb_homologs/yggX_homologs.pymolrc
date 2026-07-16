@@ -1,0 +1,98 @@
+load /path_to_your_pdbCIF_files/yggX_pdb_homologs/AF-Q1QEM5-F1-model_v6.pdb
+
+load /path_to_your_pdbCIF_files/yggX_pdb_homologs/AF-Q4FVJ7-F1-model_v6.pdb
+
+load /path_to_your_pdbCIF_files/yggX_pdb_homologs/AF-A0A1R4GVR5-F1-model_v6.pdb
+
+load /path_to_your_pdbCIF_files/yggX_pdb_homologs/1XS8.cif
+
+load /path_to_your_pdbCIF_files/yggX_pdb_homologs/1YHD.cif
+
+cmd.color_deep("gray50", 'All', 0)
+
+super AF-Q1QEM5-F1-model_v6, 1YHD
+
+super AF-Q4FVJ7-F1-model_v6, 1YHD
+
+super AF-A0A1R4GVR5-F1-model_v6, 1YHD
+
+super 1XS8, 1YHD
+
+
+#load matplotlib set2 and pastel color palette 
+
+set_color powderblue,           [0.701961, 0.886275, 0.803922]
+set_color navajowhite,          [0.992157, 0.803922, 0.674510]
+set_color gainsboro,            [0.796078, 0.835294, 0.909804]
+set_color mistyrose,            [0.956863, 0.792157, 0.894118]
+set_color lightgoldenrodyellow, [0.901961, 0.960784, 0.788235]
+set_color moccasin,             [1.000000, 0.949020, 0.682353]
+set_color bisque,               [0.945098, 0.886275, 0.800000]
+set_color lightgray,            [0.800000, 0.800000, 0.800000]
+
+set_color mediumaquamarine,     [0.400000, 0.760784, 0.647059]
+set_color salmon,               [0.988235, 0.552941, 0.384314]
+set_color darkgray_blue,        [0.552941, 0.627451, 0.796078]
+set_color orchid,               [0.905882, 0.541176, 0.764706]
+set_color yellowgreen,          [0.650980, 0.847059, 0.329412]
+set_color gold,                 [1.000000, 0.850980, 0.184314]
+set_color burlywood,            [0.898039, 0.768627, 0.580392]
+set_color darkgray_gray,        [0.701961, 0.701961, 0.701961]
+
+#color helices and sheets accordingly 
+
+select helices, ss h and 1YHD
+color mediumaquamarine, helices
+select sheets, ss s and 1YHD
+color powderblue, sheets
+
+select helices, ss h and 1XS8
+color orchid, helices
+select sheets, ss s and 1XS8
+color mistyrose, sheets
+
+select helices, ss h and AF-Q4FVJ7-F1-model_v6
+color salmon, helices
+select sheets, ss s and AF-Q4FVJ7-F1-model_v6
+color navajowhite, sheets
+
+select helices, ss h and AF-Q1QEM5-F1-model_v6
+color darkgray_blue, helices
+select sheets, ss s and AF-Q1QEM5-F1-model_v6
+color gainsboro, sheets
+
+select helices, ss h and AF-A0A1R4GVR5-F1-model_v6
+color yellowgreen, helices
+select sheets, ss s and AF-A0A1R4GVR5-F1-model_v6
+color lightgoldenrodyellow, sheets
+
+# add labels (positions can be adjusted later)
+
+pseudoatom pa1, pos=[10, 10, 10], label="label yggX"
+label pa1, "cyan - yggX"
+
+pseudoatom pa2, pos=[10, 15, 10], label="label 1XS8"
+label pa2, "orchid - 1XS8"
+
+pseudoatom pa3, pos=[10, 20, 10], label="label Q4FVJ7"
+label pa3, "salmon - Q4FVJ7"
+
+pseudoatom pa4, pos=[10, 25, 10], label="label Q1QEM5"
+label pa4, "darkblue - Q1QEM5"
+
+pseudoatom pa5, pos=[10, 30, 10], label="label A0A1RGVR5"
+label pa5, "yellow - A0A1RGVR5"
+
+# make pretty
+set antialias, 2
+set cartoon_sampling, 20
+set cartoon_oval_quality, 15
+set cartoon_fancy_helices, 0
+set cartoon_flat_sheets, 1
+set ray_trace_mode, 1
+set ray_trace_color, black
+set ray_trace_gain, 0.99
+set ray_shadows, 0
+bg_color white
+ray 2400, 2400
+png yggX_homologs.png, dpi=600
