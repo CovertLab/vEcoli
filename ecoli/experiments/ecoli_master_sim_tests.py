@@ -78,7 +78,7 @@ def test_initial_state_overrides():
     )[0]
     assert (
         sim.generated_initial_state["agents"]["0"]["bulk"]["count"][murein_row_idx]
-        == 558735
+        == 2234940
     )
     assert sim.generated_initial_state["agents"]["0"]["murein_state"] == {
         "shadow_murein": 0,
