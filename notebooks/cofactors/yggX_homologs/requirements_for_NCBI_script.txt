@@ -1,0 +1,15 @@
+# Runtime dependencies for the yggX expression analysis.
+# Install into a fresh environment with:  pip install -r requirements.txt
+#
+# biopython   — NCBI Entrez / GenBank parsing in search_gene_across_pathogens.py
+# pandas      — reading GEO .txt.gz tables and building the expression CSV
+# numpy       — mean TPM / fold-change math and plot color scaling
+# requests    — downloading the GEO source files (download_geo_gse152295.py)
+# matplotlib  — lollipop figures (../supp_yggX.ipynb)
+# seaborn     — figure theming / colormaps (../supp_yggX.ipynb)
+biopython
+pandas
+numpy
+requests
+matplotlib
+seaborn
