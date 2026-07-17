@@ -10,10 +10,9 @@ from ecoli.library.parquet_emitter import (
     skip_n_gens,
 )
 
-_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-_COFACTOR_DIR = os.path.join(_REPO_ROOT, "notebooks", "cofactors")
-COMPLEX_IDS_PATH = os.path.join(_COFACTOR_DIR, "complex_ids.txt")
-PROTEIN_IDS_PATH = os.path.join(_COFACTOR_DIR, "protein_ids.txt")
+_IDS_DIR = os.path.join(os.path.dirname(__file__), "cofactor_ids")
+COMPLEX_IDS_PATH = os.path.join(_IDS_DIR, "complex_ids.txt")
+PROTEIN_IDS_PATH = os.path.join(_IDS_DIR, "protein_ids.txt")
 
 
 def _read_id_list(path: str) -> list[str]:
