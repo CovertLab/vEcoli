@@ -20,7 +20,7 @@ from ecoli.processes.antibiotics.murein_division import MureinDivision
 from ecoli.processes.bulk_timeline import BulkTimelineProcess
 
 
-DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
+DATA = "data/cell_wall/cell_wall_test_rig_17_07_2026.csv"
 
 
 def parse_unit_string(unit_str):

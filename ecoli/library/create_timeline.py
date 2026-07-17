@@ -104,7 +104,7 @@ def add_computed_value_bulk(timeline, func):
 
 
 def test_add_timeline():
-    TEST_FILE = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
+    TEST_FILE = "data/cell_wall/cell_wall_test_rig_17_07_2026.csv"
 
     timeline = create_timeline_from_csv(
         TEST_FILE,

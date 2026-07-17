@@ -5,7 +5,7 @@ from vivarium.core.serialize import deserialize_value
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, EcoliSim
 
 
-DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
+DATA = "data/cell_wall/cell_wall_test_rig_17_07_2026.csv"
 
 
 def run_experiment():
