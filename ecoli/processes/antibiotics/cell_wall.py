@@ -87,7 +87,7 @@ class CellWall(Process):
     topology = TOPOLOGY
     defaults = {
         # Molecules
-        "murein": "CPD-12261[p]",  # four crosslinked peptidoglycan units
+        "murein": "C6[p]",  # monomeric peptidoglycan units
         "PBP": {  # penicillin-binding proteins
             "PBP1A": "CPLX0-7717[p]",  # transglycosylase-transpeptidase
             # PBP1B has three isoforms: α (currently not produced by model),

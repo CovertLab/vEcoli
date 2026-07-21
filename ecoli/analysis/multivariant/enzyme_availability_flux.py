@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 alt.data_transformers.enable("vegafusion")
 
 DEFAULT_ENZYME_NAME = "UDP-NACMURALA-GLU-LIG-MONOMER[c]"
-DEFAULT_MET = "CPD-12261[p]"
+DEFAULT_MET = "C6[p]"
 PASTEL_COLOR = px.colors.qualitative.Pastel
 
 

@@ -5,9 +5,8 @@ For each variant, shows a bar chart of the top-N metabolites by mean |unmet need
 and a timeseries of unmet need, aggregated across all cells in that variant.
 One bar+line subplot per variant, stacked vertically.
 
-DISCLAIMER: This analysis is only meant for metabolism-redux and
-metabolism-redux-classic. metabolism.py lacks necessary listeners due to differences
-in problem formulation
+Configure the number of initial generations to exclude from the averages using
+the "skip_n_gens" key in the analysis params (defaults to 0).
 """
 
 from __future__ import annotations
@@ -19,7 +18,11 @@ import altair as alt
 import polars as pl
 
 from ecoli.analysis.multivariant.utils import create_variant_label
-from ecoli.library.parquet_emitter import field_metadata, read_stacked_columns
+from ecoli.library.parquet_emitter import (
+    field_metadata,
+    read_stacked_columns,
+    skip_n_gens,
+)
 
 if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
@@ -38,6 +41,27 @@ PASTEL = [
     "#b3de69",
     "#fccde5",
 ]
+
+
+def _format_int_list(values: list[int]) -> str:
+    """
+    Format a sorted list of ints compactly, collapsing contiguous runs for
+    making the seed and generation labels in the title.
+
+    e.g. ``[0, 1, 2, 3]`` -> ``"0-3"``, ``[3, 5, 6, 7]`` -> ``"3, 5-7"``.
+    """
+    if not values:
+        return "none"
+    runs: list[tuple[int, int]] = []
+    start = prev = values[0]
+    for v in values[1:]:
+        if v == prev + 1:
+            prev = v
+            continue
+        runs.append((start, prev))
+        start = prev = v
+    runs.append((start, prev))
+    return ", ".join(str(a) if a == b else f"{a}–{b}" for a, b in runs)
 
 
 def plot(
@@ -61,6 +85,12 @@ def plot(
     top_n = params.get("top_n", DEFAULT_TOP_N)
     metabolites_of_interest = params.get("metabolites_of_interest")
     subplot_width = int(params.get("subplot_width", DEFAULT_SUBPLOT_WIDTH))
+
+    # Number of initial generations to exclude before computing averages
+    # (defaults to 0 if not provided in the config):
+    skip_n_gens_val = int(params.get("skip_n_gens", 0))
+    if skip_n_gens_val > 0:
+        history_sql = skip_n_gens(history_sql, skip_n_gens_val)
 
     try:
         homeostatic_ids = field_metadata(
@@ -154,6 +184,14 @@ def plot(
 
     variants = agg["variant"].unique().sort()
 
+    # Obtain which seeds and generations actually feed each variant's averages:
+    variant_coverage: dict[int, tuple[list[int], list[int]]] = {}
+    for variant_val in variants:
+        cov = raw.filter(pl.col("variant") == variant_val)
+        seeds = sorted(int(s) for s in cov["lineage_seed"].unique().to_list())
+        gens = sorted(int(g) for g in cov["generation"].unique().to_list())
+        variant_coverage[int(variant_val)] = (seeds, gens)
+
     # Collect metabolites used across all variants for a shared color scale
     ordered_mets: list[str] = []
     per_variant_data = []
@@ -191,6 +229,13 @@ def plot(
     subplot_charts: list[alt.VConcatChart] = []
     for variant_val, top_bar, agg_line in per_variant_data:
         label = create_variant_label(variant_val, per_variant_params)
+        seeds, gens = variant_coverage[int(variant_val)]
+        subtitle = (
+            f"seeds: {_format_int_list(seeds)}  |  "
+            f"generations: {_format_int_list(gens)} | unmet needs averaged over "
+            f"{len(seeds) * len(gens)} cells"
+        )
+        title = alt.TitleParams(text=label, subtitle=subtitle)
         df_bar = top_bar.to_pandas()
         df_line = agg_line.to_pandas()
 
@@ -244,7 +289,7 @@ def plot(
         subplot_charts.append(
             cast(
                 alt.VConcatChart,
-                alt.vconcat(bar_chart, line_chart, spacing=50).properties(title=label),
+                alt.vconcat(bar_chart, line_chart, spacing=50).properties(title=title),
             )
         )
 
