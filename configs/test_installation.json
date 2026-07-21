@@ -2,12 +2,10 @@
     "experiment_id": "test_installation",
     "suffix_time": false,
     "parca_options": {
-        "cpus": 32
+        "cpus": 4
     },
-    "save": true,
-    "save_times": [2528],
     "fail_at_max_duration": true,
-    "sim_data_path": "out/test_installation/parca/kb/simData.cPickle",
+    "sim_data_path": null,
     "generations": 1,
     "n_init_sims": 1,
     "single_daughters": true,
