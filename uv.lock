@@ -3890,17 +3890,13 @@ dev = [
     { name = "pytest-cov" },
     { name = "rdkit" },
     { name = "ruff" },
+    { name = "vegafusion" },
 ]
 docs = [
     { name = "nbsphinx" },
     { name = "pre-commit" },
     { name = "sphinx" },
     { name = "sphinx-rtd-theme" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "vegafusion" },
 ]
 
 [package.metadata]
@@ -3959,14 +3955,12 @@ requires-dist = [
     { name = "sympy" },
     { name = "tqdm" },
     { name = "unum" },
+    { name = "vegafusion", marker = "extra == 'dev'", specifier = ">=2.0.3" },
     { name = "vivarium-core" },
     { name = "vl-convert-python" },
     { name = "xmltodict" },
 ]
 provides-extras = ["dev", "docs"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "vegafusion", specifier = ">=2.0.3" }]
 
 [[package]]
 name = "vegafusion"
