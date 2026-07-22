@@ -210,6 +210,9 @@ def test_NetworkFlowModel(
     kinetic_targets_conc = np.array(list(dict(kinetic).values())) * counts_to_molar
     maintenance_conc = maintenance * counts_to_molar
 
+    # get binary_kinetic_idx for the kinetic reactions that are binary
+    binary_kinetic_idx = fba["binary_kinetic_idx"][-1]
+    print(binary_kinetic_idx)
     # --- Solve NetworkFlowModel ---
     model = NetworkFlowModel(
         stoich_arr=S_new,
@@ -227,9 +230,14 @@ def test_NetworkFlowModel(
         binary_kinetic_idx=None,
         force_flow_idx=force_reaction_idx,
         objective_weights=objective_weights,
+        target_minimal_flux=0,
+        include_new=metabolism.include_new,
+        new_reaction_idx=metabolism.new_reaction_idx,
         upper_flux_bound=100,  # matches the live WC sim's scale now everything is in concentration units.
         solver=solver_choice,
     )
+    print(metabolism.include_new)
+
     # `solution` and `model` are appended (beyond the notebook's original 6-tuple)
     # so callers can read FlowResult fields (e.g. homeostatic_term, dm_dt) and
     # NetworkFlowModel.homeostatic_idx without re-solving.

@@ -1,0 +1,3449 @@
+[
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 1,
+    "compound_name": "carbon negative control",
+    "mix0_id": "MIX0-80",
+    "aerobic_growth_call": "No Growth",
+    "anaerobic_growth_call": "No Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 2,
+    "compound_name": "L-Arabinose",
+    "mix0_id": "MIX0-420",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Low Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 3,
+    "compound_name": "N-Acetyl-D-Glucosamine",
+    "mix0_id": "MIX0-421",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 4,
+    "compound_name": "D-Saccharic acid",
+    "mix0_id": "MIX0-422",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 5,
+    "compound_name": "Succinic acid",
+    "mix0_id": "MIX0-423",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 6,
+    "compound_name": "D-Galactose",
+    "mix0_id": "MIX0-424",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 7,
+    "compound_name": "L-Aspartic acid",
+    "mix0_id": "MIX0-425",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 8,
+    "compound_name": "L-Proline",
+    "mix0_id": "MIX0-426",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 9,
+    "compound_name": "D-Alanine",
+    "mix0_id": "MIX0-427",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 10,
+    "compound_name": "D-Trehalose",
+    "mix0_id": "MIX0-428",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 11,
+    "compound_name": "D-Mannose",
+    "mix0_id": "MIX0-429",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "A",
+    "well_col": 12,
+    "compound_name": "Dulcitol",
+    "mix0_id": "MIX0-430",
+    "aerobic_growth_call": "Indeterminate",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 1,
+    "compound_name": "D-Serine",
+    "mix0_id": "MIX0-431",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 2,
+    "compound_name": "D-Sorbitol",
+    "mix0_id": "MIX0-432",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 3,
+    "compound_name": "Glycerol",
+    "mix0_id": "MIX0-433",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 4,
+    "compound_name": "L-Fucose",
+    "mix0_id": "MIX0-434",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 5,
+    "compound_name": "D-Glucuronic acid",
+    "mix0_id": "MIX0-435",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 6,
+    "compound_name": "D-Gluconic acid",
+    "mix0_id": "MIX0-436",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 7,
+    "compound_name": "DL-alpha-Glycerol Phosphate",
+    "mix0_id": "MIX0-437",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 8,
+    "compound_name": "D-Xylose",
+    "mix0_id": "MIX0-438",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 9,
+    "compound_name": "L-Lactic acid",
+    "mix0_id": "MIX0-439",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 10,
+    "compound_name": "Formic acid",
+    "mix0_id": "MIX0-440",
+    "aerobic_growth_call": "No Growth",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 11,
+    "compound_name": "D-Mannitol",
+    "mix0_id": "MIX0-441",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "B",
+    "well_col": 12,
+    "compound_name": "L-Glutamic acid",
+    "mix0_id": "MIX0-442",
+    "aerobic_growth_call": "Indeterminate",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 1,
+    "compound_name": "D-Glucose-6-Phosphate",
+    "mix0_id": "MIX0-443",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 2,
+    "compound_name": "D-Galactonic acid-gamma-Lactone",
+    "mix0_id": "MIX0-444",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 3,
+    "compound_name": "DL-Malic acid",
+    "mix0_id": "MIX0-445",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 4,
+    "compound_name": "D-Ribose",
+    "mix0_id": "MIX0-446",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 5,
+    "compound_name": "Tween 20",
+    "mix0_id": "MIX0-797",
+    "aerobic_growth_call": "Indeterminate",
+    "anaerobic_growth_call": "No Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 6,
+    "compound_name": "L-Rhamnose",
+    "mix0_id": "MIX0-447",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 7,
+    "compound_name": "D-Fructose",
+    "mix0_id": "MIX0-448",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 8,
+    "compound_name": "Acetic acid",
+    "mix0_id": "MIX0-449",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Indeterminate"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 9,
+    "compound_name": "alpha-D-Glucose",
+    "mix0_id": "MIX0-450",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 10,
+    "compound_name": "Maltose",
+    "mix0_id": "MIX0-451",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 11,
+    "compound_name": "D-Melibiose",
+    "mix0_id": "MIX0-452",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": "Growth"
+  },
+  {
+    "plate": "PM1",
+    "well_row": "C",
+    "well_col": 12,
+    "compound_name": "Thymidine",
+    "mix0_id": "MIX0-453",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 1,
+    "compound_name": "L-Asparagine",
+    "mix0_id": "MIX0-454",
+    "aerobic_growth_call": "Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 2,
+    "compound_name": "D-Aspartic acid",
+    "mix0_id": "MIX0-455",
+    "aerobic_growth_call": "No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 3,
+    "compound_name": "D-Glucosaminic acid",
+    "mix0_id": "MIX0-456",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 4,
+    "compound_name": "1,2-Propanediol",
+    "mix0_id": "MIX0-457",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 5,
+    "compound_name": "Tween 40",
+    "mix0_id": "MIX0-798",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 6,
+    "compound_name": "alpha-Ketoglutaric acid",
+    "mix0_id": "MIX0-458",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 7,
+    "compound_name": "alpha-Ketobutyric acid",
+    "mix0_id": "MIX0-459",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 8,
+    "compound_name": "alpha-Methyl-D-Galactoside",
+    "mix0_id": "MIX0-786",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 9,
+    "compound_name": "alpha-D-Lactose",
+    "mix0_id": "MIX0-460",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 10,
+    "compound_name": "Lactulose",
+    "mix0_id": "MIX0-461",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 11,
+    "compound_name": "Sucrose",
+    "mix0_id": "MIX0-462",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "D",
+    "well_col": 12,
+    "compound_name": "Uridine",
+    "mix0_id": "MIX0-463",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 1,
+    "compound_name": "L-Glutamine",
+    "mix0_id": "MIX0-464",
+    "aerobic_growth_call":"Slow Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 2,
+    "compound_name": "M-Tartaric acid",
+    "mix0_id": "MIX0-465",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 3,
+    "compound_name": "D-Glucose-1-Phosphate",
+    "mix0_id": "MIX0-466",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 4,
+    "compound_name": "D-Fructose-6-Phosphate",
+    "mix0_id": "MIX0-467",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 5,
+    "compound_name": "Tween 80",
+    "mix0_id": "MIX0-799",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 6,
+    "compound_name": "alpha-Hydroxyglutaric acid-gamma-Lactone",
+    "mix0_id": "MIX0-793",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 7,
+    "compound_name": "alpha-Hydroxybutyric acid",
+    "mix0_id": "MIX0-790",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 8,
+    "compound_name": "beta-Methyl-D-Glucoside",
+    "mix0_id": "MIX0-784",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 9,
+    "compound_name": "Adonitol",
+    "mix0_id": "MIX0-468",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 10,
+    "compound_name": "Maltotriose",
+    "mix0_id": "MIX0-469",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 11,
+    "compound_name": "2-Deoxyadenosine",
+    "mix0_id": "MIX0-470",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "E",
+    "well_col": 12,
+    "compound_name": "Adenosine",
+    "mix0_id": "MIX0-471",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 1,
+    "compound_name": "Gly-Asp",
+    "mix0_id": "MIX0-778",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 2,
+    "compound_name": "Citric acid",
+    "mix0_id": "MIX0-472",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 3,
+    "compound_name": "M-Inositol",
+    "mix0_id": "MIX0-473",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 4,
+    "compound_name": "D-Threonine",
+    "mix0_id": "MIX0-474",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 5,
+    "compound_name": "Fumaric acid",
+    "mix0_id": "MIX0-475",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 6,
+    "compound_name": "Bromosuccinic acid",
+    "mix0_id": "MIX0-779",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 7,
+    "compound_name": "Propionic acid",
+    "mix0_id": "MIX0-476",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 8,
+    "compound_name": "Mucic acid",
+    "mix0_id": "MIX0-477",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 9,
+    "compound_name": "Glycolic acid",
+    "mix0_id": "MIX0-478",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 10,
+    "compound_name": "Glyoxylic acid",
+    "mix0_id": "MIX0-479",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 11,
+    "compound_name": "D-Cellobiose",
+    "mix0_id": "MIX0-480",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "F",
+    "well_col": 12,
+    "compound_name": "Inosine",
+    "mix0_id": "MIX0-481",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 1,
+    "compound_name": "Gly-Glu",
+    "mix0_id": "MIX0-482",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 2,
+    "compound_name": "Tricarballylic acid",
+    "mix0_id": "MIX0-483",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 3,
+    "compound_name": "L-Serine",
+    "mix0_id": "MIX0-484",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 4,
+    "compound_name": "L-Threonine",
+    "mix0_id": "MIX0-485",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 5,
+    "compound_name": "L-Alanine",
+    "mix0_id": "MIX0-486",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 6,
+    "compound_name": "Ala-Gly",
+    "mix0_id": "MIX0-772",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 7,
+    "compound_name": "Acetoacetic acid",
+    "mix0_id": "MIX0-487",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 8,
+    "compound_name": "N-Acetyl-D-Mannosamine",
+    "mix0_id": "MIX0-488",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 9,
+    "compound_name": "Mono-Methylsuccinate",
+    "mix0_id": "MIX0-489",
+    "aerobic_growth_call":"Slow Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 10,
+    "compound_name": "Methylpyruvate",
+    "mix0_id": "MIX0-490",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 11,
+    "compound_name": "D-Malic acid",
+    "mix0_id": "MIX0-491",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "G",
+    "well_col": 12,
+    "compound_name": "L-Malic acid",
+    "mix0_id": "MIX0-492",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 1,
+    "compound_name": "Gly-Pro",
+    "mix0_id": "MIX0-493",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 2,
+    "compound_name": "p-Hydroxyphenyl Acetic acid",
+    "mix0_id": "MIX0-494",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 3,
+    "compound_name": "m-Hydroxyphenyl Acetic acid",
+    "mix0_id": "MIX0-495",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 4,
+    "compound_name": "Tyramine",
+    "mix0_id": "MIX0-496",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 5,
+    "compound_name": "D-Psicose",
+    "mix0_id": "MIX0-497",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 6,
+    "compound_name": "L-Lyxose",
+    "mix0_id": "MIX0-498",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 7,
+    "compound_name": "Glucuronamide",
+    "mix0_id": "MIX0-499",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 8,
+    "compound_name": "Pyruvic acid",
+    "mix0_id": "MIX0-500",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 9,
+    "compound_name": "L-Galactonic acid-gamma-Lactone",
+    "mix0_id": "MIX0-794",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 10,
+    "compound_name": "D-Galacturonic acid",
+    "mix0_id": "MIX0-501",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 11,
+    "compound_name": "Phenylethylamine",
+    "mix0_id": "MIX0-502",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM1",
+    "well_row": "H",
+    "well_col": 12,
+    "compound_name": "2-Aminoethanol",
+    "mix0_id": "MIX0-503",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "A",
+    "well_col": 2,
+    "compound_name": "Chondroitin Sulfate C",
+    "mix0_id": "MIX0-504",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "A",
+    "well_col": 3,
+    "compound_name": "alpha-Cyclodextrin",
+    "mix0_id": "MIX0-505",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "A",
+    "well_col": 4,
+    "compound_name": "beta-Cyclodextrin",
+    "mix0_id": "MIX0-506",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "A",
+    "well_col": 5,
+    "compound_name": "gamma-Cyclodextrin",
+    "mix0_id": "MIX0-507",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "A",
+    "well_col": 6,
+    "compound_name": "Dextrin",
+    "mix0_id": "MIX0-508",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "A",
+    "well_col": 7,
+    "compound_name": "Gelatin",
+    "mix0_id": "MIX0-795",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "A",
+    "well_col": 8,
+    "compound_name": "Glycogen",
+    "mix0_id": "MIX0-509",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "A",
+    "well_col": 9,
+    "compound_name": "Inulin",
+    "mix0_id": "MIX0-510",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "A",
+    "well_col": 10,
+    "compound_name": "Laminarin",
+    "mix0_id": "MIX0-511",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "A",
+    "well_col": 11,
+    "compound_name": "Mannan",
+    "mix0_id": "MIX0-512",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "A",
+    "well_col": 12,
+    "compound_name": "Pectin",
+    "mix0_id": "MIX0-513",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 1,
+    "compound_name": "N-Acetyl-D-Galactosamine",
+    "mix0_id": "MIX0-514",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 2,
+    "compound_name": "N-Acetyl-Neuraminic acid",
+    "mix0_id": "MIX0-515",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 3,
+    "compound_name": "beta-D-Allose",
+    "mix0_id": "MIX0-516",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 4,
+    "compound_name": "Amygdalin",
+    "mix0_id": "MIX0-517",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 5,
+    "compound_name": "D-Arabinose",
+    "mix0_id": "MIX0-518",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 6,
+    "compound_name": "D-Arabitol",
+    "mix0_id": "MIX0-519",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 7,
+    "compound_name": "L-Arabitol",
+    "mix0_id": "MIX0-520",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 8,
+    "compound_name": "Arbutin",
+    "mix0_id": "MIX0-521",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 9,
+    "compound_name": "2-Deoxy-D-Ribose",
+    "mix0_id": "MIX0-522",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 10,
+    "compound_name": "i-Erythritol",
+    "mix0_id": "MIX0-523",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 11,
+    "compound_name": "D-Fucose",
+    "mix0_id": "MIX0-524",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "B",
+    "well_col": 12,
+    "compound_name": "3-O-beta-D-Galactopyranosyl-D-Arabinose",
+    "mix0_id": "MIX0-525",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 1,
+    "compound_name": "Gentiobiose",
+    "mix0_id": "MIX0-526",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 2,
+    "compound_name": "L-Glucose",
+    "mix0_id": "MIX0-527",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 3,
+    "compound_name": "D-Lactitol",
+    "mix0_id": "MIX0-768",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 4,
+    "compound_name": "D-Melezitose",
+    "mix0_id": "MIX0-789",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 5,
+    "compound_name": "Maltitol",
+    "mix0_id": "MIX0-529",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 6,
+    "compound_name": "alpha-Methyl-D-Glucoside",
+    "mix0_id": "MIX0-530",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 7,
+    "compound_name": "beta-Methyl-D-Galactoside",
+    "mix0_id": "MIX0-531",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 8,
+    "compound_name": "3-Methylglucose",
+    "mix0_id": "MIX0-532",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 9,
+    "compound_name": "beta-Methyl-D-Glucuronic acid",
+    "mix0_id": "MIX0-533",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 10,
+    "compound_name": "alpha-Methyl-D-Mannoside",
+    "mix0_id": "MIX0-534",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 11,
+    "compound_name": "beta-Methyl-D-Xyloside",
+    "mix0_id": "MIX0-535",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "C",
+    "well_col": 12,
+    "compound_name": "Palatinose",
+    "mix0_id": "MIX0-536",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 1,
+    "compound_name": "D-Raffinose",
+    "mix0_id": "MIX0-537",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 2,
+    "compound_name": "Salicin",
+    "mix0_id": "MIX0-538",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 3,
+    "compound_name": "Sedoheptulosan",
+    "mix0_id": "MIX0-539",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 4,
+    "compound_name": "L-Sorbose",
+    "mix0_id": "MIX0-540",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 5,
+    "compound_name": "Stachyose",
+    "mix0_id": "MIX0-541",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 6,
+    "compound_name": "D-Tagatose",
+    "mix0_id": "MIX0-542",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 7,
+    "compound_name": "Turanose",
+    "mix0_id": "MIX0-773",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 8,
+    "compound_name": "Xylitol",
+    "mix0_id": "MIX0-543",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 9,
+    "compound_name": "N-Acetyl-D-Glucosaminitol",
+    "mix0_id": "MIX0-544",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 10,
+    "compound_name": "gamma-Amino-N-Butyric acid",
+    "mix0_id": "MIX0-545",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 11,
+    "compound_name": "delta-Amino Valeric acid",
+    "mix0_id": "MIX0-546",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "D",
+    "well_col": 12,
+    "compound_name": "Butyric acid",
+    "mix0_id": "MIX0-547",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 1,
+    "compound_name": "Capric acid",
+    "mix0_id": "MIX0-548",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 2,
+    "compound_name": "Caproic acid",
+    "mix0_id": "MIX0-549",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 3,
+    "compound_name": "Citraconic acid",
+    "mix0_id": "MIX0-550",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 4,
+    "compound_name": "Citramalic acid",
+    "mix0_id": "MIX0-791",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 5,
+    "compound_name": "D-Glucosamine",
+    "mix0_id": "MIX0-551",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 6,
+    "compound_name": "2-Hydroxybenzoic acid",
+    "mix0_id": "MIX0-787",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 7,
+    "compound_name": "4-Hydroxybenzoic acid",
+    "mix0_id": "MIX0-552",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 8,
+    "compound_name": "beta-Hydroxybutyric acid",
+    "mix0_id": "MIX0-553",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 9,
+    "compound_name": "gamma-Hydroxybutyric acid",
+    "mix0_id": "MIX0-554",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 10,
+    "compound_name": "alpha-Keto-Valeric acid",
+    "mix0_id": "MIX0-555",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 11,
+    "compound_name": "Itaconic acid",
+    "mix0_id": "MIX0-556",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "E",
+    "well_col": 12,
+    "compound_name": "5-Keto-D-Gluconic acid",
+    "mix0_id": "MIX0-557",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 1,
+    "compound_name": "D-Lactic acid Methyl Ester",
+    "mix0_id": "MIX0-780",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 2,
+    "compound_name": "Malonic acid",
+    "mix0_id": "MIX0-558",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 3,
+    "compound_name": "Melibionic acid",
+    "mix0_id": "MIX0-559",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 4,
+    "compound_name": "Oxalic acid",
+    "mix0_id": "MIX0-560",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 5,
+    "compound_name": "Oxalomalic acid",
+    "mix0_id": "MIX0-561",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 6,
+    "compound_name": "Quinic acid",
+    "mix0_id": "MIX0-562",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 7,
+    "compound_name": "D-Ribono-1,4-Lactone",
+    "mix0_id": "MIX0-788",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 8,
+    "compound_name": "Sebacic acid",
+    "mix0_id": "MIX0-563",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 9,
+    "compound_name": "Sorbic acid",
+    "mix0_id": "MIX0-564",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 10,
+    "compound_name": "Succinamic acid",
+    "mix0_id": "MIX0-565",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 11,
+    "compound_name": "D-Tartaric acid",
+    "mix0_id": "MIX0-566",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "F",
+    "well_col": 12,
+    "compound_name": "L-Tartaric acid",
+    "mix0_id": "MIX0-567",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 1,
+    "compound_name": "Acetamide",
+    "mix0_id": "MIX0-568",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 2,
+    "compound_name": "L-Alaninamide",
+    "mix0_id": "MIX0-569",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 3,
+    "compound_name": "N-Acetyl-L-Glutamic acid",
+    "mix0_id": "MIX0-570",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 4,
+    "compound_name": "L-Arginine",
+    "mix0_id": "MIX0-571",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 5,
+    "compound_name": "Glycine",
+    "mix0_id": "MIX0-572",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 6,
+    "compound_name": "L-Histidine",
+    "mix0_id": "MIX0-573",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 7,
+    "compound_name": "L-Homoserine",
+    "mix0_id": "MIX0-574",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 8,
+    "compound_name": "Hydroxy-L-Proline",
+    "mix0_id": "MIX0-796",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 9,
+    "compound_name": "L-Isoleucine",
+    "mix0_id": "MIX0-575",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 10,
+    "compound_name": "L-Leucine",
+    "mix0_id": "MIX0-576",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 11,
+    "compound_name": "L-Lysine",
+    "mix0_id": "MIX0-577",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "G",
+    "well_col": 12,
+    "compound_name": "L-Methionine",
+    "mix0_id": "MIX0-578",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 1,
+    "compound_name": "L-Ornithine",
+    "mix0_id": "MIX0-579",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 2,
+    "compound_name": "L-Phenylalanine",
+    "mix0_id": "MIX0-580",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 3,
+    "compound_name": "L-Pyroglutamic acid",
+    "mix0_id": "MIX0-581",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 4,
+    "compound_name": "L-Valine",
+    "mix0_id": "MIX0-582",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 5,
+    "compound_name": "D,L-Carnitine",
+    "mix0_id": "MIX0-583",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 6,
+    "compound_name": "sec-Butylamine",
+    "mix0_id": "MIX0-584",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 7,
+    "compound_name": "D,L-Octopamine",
+    "mix0_id": "MIX0-585",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 8,
+    "compound_name": "Putrescine",
+    "mix0_id": "MIX0-586",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 9,
+    "compound_name": "Dihydroxyacetone",
+    "mix0_id": "MIX0-587",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 10,
+    "compound_name": "2,3-Butanediol",
+    "mix0_id": "MIX0-588",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 11,
+    "compound_name": "2,3-Butanedione",
+    "mix0_id": "MIX0-769",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM2",
+    "well_row": "H",
+    "well_col": 12,
+    "compound_name": "3-Hydroxy-2-butanone",
+    "mix0_id": "MIX0-589",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 1,
+    "compound_name": "nitrogen negative control",
+    "mix0_id": "MIX0-81",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 2,
+    "compound_name": "Ammonia",
+    "mix0_id": "MIX0-590",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 3,
+    "compound_name": "Nitrite",
+    "mix0_id": "MIX0-591",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 4,
+    "compound_name": "Nitrate",
+    "mix0_id": "MIX0-592",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 5,
+    "compound_name": "Urea",
+    "mix0_id": "MIX0-593",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 6,
+    "compound_name": "Biuret",
+    "mix0_id": "MIX0-594",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 7,
+    "compound_name": "L-Alanine",
+    "mix0_id": "MIX0-595",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 8,
+    "compound_name": "L-Arginine",
+    "mix0_id": "MIX0-596",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 9,
+    "compound_name": "L-Asparagine",
+    "mix0_id": "MIX0-597",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 10,
+    "compound_name": "L-Aspartic acid",
+    "mix0_id": "MIX0-598",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 11,
+    "compound_name": "L-Cysteine",
+    "mix0_id": "MIX0-599",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "A",
+    "well_col": 12,
+    "compound_name": "L-Glutamic acid",
+    "mix0_id": "MIX0-600",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 1,
+    "compound_name": "L-Glutamine",
+    "mix0_id": "MIX0-601",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 2,
+    "compound_name": "Glycine",
+    "mix0_id": "MIX0-602",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 3,
+    "compound_name": "L-Histidine",
+    "mix0_id": "MIX0-603",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 4,
+    "compound_name": "L-Isoleucine",
+    "mix0_id": "MIX0-604",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 5,
+    "compound_name": "L-Leucine",
+    "mix0_id": "MIX0-605",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 6,
+    "compound_name": "L-Lysine",
+    "mix0_id": "MIX0-606",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 7,
+    "compound_name": "L-Methionine",
+    "mix0_id": "MIX0-607",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 8,
+    "compound_name": "L-Phenylalanine",
+    "mix0_id": "MIX0-608",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 9,
+    "compound_name": "L-Proline",
+    "mix0_id": "MIX0-609",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 10,
+    "compound_name": "L-Serine",
+    "mix0_id": "MIX0-610",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 11,
+    "compound_name": "L-Threonine",
+    "mix0_id": "MIX0-611",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "B",
+    "well_col": 12,
+    "compound_name": "L-Tryptophan",
+    "mix0_id": "MIX0-612",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 1,
+    "compound_name": "L-Tyrosine",
+    "mix0_id": "MIX0-613",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 2,
+    "compound_name": "L-Valine",
+    "mix0_id": "MIX0-614",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 3,
+    "compound_name": "D-Alanine",
+    "mix0_id": "MIX0-615",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 4,
+    "compound_name": "D-Asparagine",
+    "mix0_id": "MIX0-616",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 5,
+    "compound_name": "D-Aspartic acid",
+    "mix0_id": "MIX0-617",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 6,
+    "compound_name": "D-Glutamic acid",
+    "mix0_id": "MIX0-618",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 7,
+    "compound_name": "D-Lysine",
+    "mix0_id": "MIX0-619",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 8,
+    "compound_name": "D-Serine",
+    "mix0_id": "MIX0-620",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 9,
+    "compound_name": "D-Valine",
+    "mix0_id": "MIX0-621",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 10,
+    "compound_name": "L-Citrulline",
+    "mix0_id": "MIX0-622",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 11,
+    "compound_name": "L-Homoserine",
+    "mix0_id": "MIX0-623",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "C",
+    "well_col": 12,
+    "compound_name": "L-Ornithine",
+    "mix0_id": "MIX0-624",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 1,
+    "compound_name": "N-Acetyl-L-Glutamic acid",
+    "mix0_id": "MIX0-792",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 2,
+    "compound_name": "N-Phthaloyl-L-Glutamic acid",
+    "mix0_id": "MIX0-625",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 3,
+    "compound_name": "L-Pyroglutamic acid",
+    "mix0_id": "MIX0-626",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 4,
+    "compound_name": "Hydroxylamine",
+    "mix0_id": "MIX0-627",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 5,
+    "compound_name": "Methylamine",
+    "mix0_id": "MIX0-628",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 6,
+    "compound_name": "N-Amylamine",
+    "mix0_id": "MIX0-629",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 7,
+    "compound_name": "N-Butylamine",
+    "mix0_id": "MIX0-630",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 8,
+    "compound_name": "Ethylamine",
+    "mix0_id": "MIX0-631",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 9,
+    "compound_name": "Ethanolamine",
+    "mix0_id": "MIX0-632",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 10,
+    "compound_name": "Ethylenediamine",
+    "mix0_id": "MIX0-633",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 11,
+    "compound_name": "Putrescine",
+    "mix0_id": "MIX0-634",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "D",
+    "well_col": 12,
+    "compound_name": "Agmatine",
+    "mix0_id": "MIX0-635",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 1,
+    "compound_name": "Histamine",
+    "mix0_id": "MIX0-636",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 2,
+    "compound_name": "b-Phenylethylamine",
+    "mix0_id": "MIX0-637",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 3,
+    "compound_name": "Tyramine",
+    "mix0_id": "MIX0-638",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 4,
+    "compound_name": "Acetamide",
+    "mix0_id": "MIX0-639",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 5,
+    "compound_name": "Formamide",
+    "mix0_id": "MIX0-640",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 6,
+    "compound_name": "Glucuronamide",
+    "mix0_id": "MIX0-641",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 7,
+    "compound_name": "DL-Lactamide",
+    "mix0_id": "MIX0-781",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 8,
+    "compound_name": "D-Glucosamine",
+    "mix0_id": "MIX0-642",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 9,
+    "compound_name": "D-Galactosamine",
+    "mix0_id": "MIX0-643",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 10,
+    "compound_name": "D-Mannosamine",
+    "mix0_id": "MIX0-785",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 11,
+    "compound_name": "N-Acetyl-D-Glucosamine",
+    "mix0_id": "MIX0-644",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "E",
+    "well_col": 12,
+    "compound_name": "N-Acetyl-D-Galactosamine",
+    "mix0_id": "MIX0-645",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 1,
+    "compound_name": "N-Acetyl-D-Mannosamine",
+    "mix0_id": "MIX0-646",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 2,
+    "compound_name": "Adenine",
+    "mix0_id": "MIX0-647",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 3,
+    "compound_name": "Adenosine",
+    "mix0_id": "MIX0-648",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 4,
+    "compound_name": "Cytidine",
+    "mix0_id": "MIX0-649",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 5,
+    "compound_name": "Cytosine",
+    "mix0_id": "MIX0-650",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 6,
+    "compound_name": "Guanine",
+    "mix0_id": "MIX0-651",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 7,
+    "compound_name": "Guanosine",
+    "mix0_id": "MIX0-652",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 8,
+    "compound_name": "Thymine",
+    "mix0_id": "MIX0-653",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 9,
+    "compound_name": "Thymidine",
+    "mix0_id": "MIX0-654",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 10,
+    "compound_name": "Uracil",
+    "mix0_id": "MIX0-655",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 11,
+    "compound_name": "Uridine",
+    "mix0_id": "MIX0-656",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "F",
+    "well_col": 12,
+    "compound_name": "Inosine",
+    "mix0_id": "MIX0-657",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 1,
+    "compound_name": "Xanthine",
+    "mix0_id": "MIX0-658",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 2,
+    "compound_name": "Xanthosine",
+    "mix0_id": "MIX0-659",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 3,
+    "compound_name": "Uric acid",
+    "mix0_id": "MIX0-660",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 4,
+    "compound_name": "Alloxan",
+    "mix0_id": "MIX0-661",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 5,
+    "compound_name": "Allantoin",
+    "mix0_id": "MIX0-662",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 6,
+    "compound_name": "Parabanic acid",
+    "mix0_id": "MIX0-663",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 7,
+    "compound_name": "DL-alpha-Amino-N-Butyric acid",
+    "mix0_id": "MIX0-664",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 8,
+    "compound_name": "gamma-Amino-N-Butyric acid",
+    "mix0_id": "MIX0-665",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 9,
+    "compound_name": "epsilon-Amino-N-Caproic acid",
+    "mix0_id": "MIX0-666",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 10,
+    "compound_name": "DL-alpha-Amino-Caprylic acid",
+    "mix0_id": "MIX0-667",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 11,
+    "compound_name": "delta-Amino-N-Valeric acid",
+    "mix0_id": "MIX0-668",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "G",
+    "well_col": 12,
+    "compound_name": "alpha-Amino-N-Valeric acid",
+    "mix0_id": "MIX0-669",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 1,
+    "compound_name": "Ala-Asp",
+    "mix0_id": "MIX0-782",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 2,
+    "compound_name": "Ala-Gln",
+    "mix0_id": "MIX0-783",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 3,
+    "compound_name": "Ala-Glu",
+    "mix0_id": "MIX0-776",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 4,
+    "compound_name": "Ala-Gly",
+    "mix0_id": "MIX0-670",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 5,
+    "compound_name": "Ala-His",
+    "mix0_id": "MIX0-777",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 6,
+    "compound_name": "Ala-Leu",
+    "mix0_id": "MIX0-774",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 7,
+    "compound_name": "Ala-Thr",
+    "mix0_id": "MIX0-775",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 8,
+    "compound_name": "Gly-Asn",
+    "mix0_id": "MIX0-770",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 9,
+    "compound_name": "Gly-Gln",
+    "mix0_id": "MIX0-771",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 10,
+    "compound_name": "Gly-Glu",
+    "mix0_id": "MIX0-671",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 11,
+    "compound_name": "Gly-Met",
+    "mix0_id": "MIX0-766",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM3",
+    "well_row": "H",
+    "well_col": 12,
+    "compound_name": "Met-Ala",
+    "mix0_id": "MIX0-767",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 1,
+    "compound_name": "phosphorus negative control",
+    "mix0_id": "MIX0-83",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 2,
+    "compound_name": "Phosphate",
+    "mix0_id": "MIX0-672",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 3,
+    "compound_name": "Pyrophosphate",
+    "mix0_id": "MIX0-673",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 4,
+    "compound_name": "Trimetaphosphate",
+    "mix0_id": "MIX0-674",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 5,
+    "compound_name": "Tripolyphosphate",
+    "mix0_id": "MIX0-675",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 6,
+    "compound_name": "Triethyl Phosphate",
+    "mix0_id": "MIX0-676",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 7,
+    "compound_name": "Hypophosphite",
+    "mix0_id": "MIX0-758",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 8,
+    "compound_name": "Adenosine 2'-Monophosphate",
+    "mix0_id": "MIX0-677",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 9,
+    "compound_name": "Adenosine 3'-Monophosphate",
+    "mix0_id": "MIX0-759",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 10,
+    "compound_name": "Adenosine 5'-Monophosphate",
+    "mix0_id": "MIX0-678",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 11,
+    "compound_name": "Adenosine 2',3'-Cyclic Monophosphate",
+    "mix0_id": "MIX0-679",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "A",
+    "well_col": 12,
+    "compound_name": "Adenosine 3',5'-Cyclic Monophosphate",
+    "mix0_id": "MIX0-760",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 1,
+    "compound_name": "Thiophosphate",
+    "mix0_id": "MIX0-680",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 2,
+    "compound_name": "Dithiophosphate",
+    "mix0_id": "MIX0-681",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 3,
+    "compound_name": "DL-alpha-Glycerol Phosphate",
+    "mix0_id": "MIX0-682",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 4,
+    "compound_name": "beta-Glycerol Phosphate",
+    "mix0_id": "MIX0-683",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 5,
+    "compound_name": "Carbamyl Phosphate",
+    "mix0_id": "MIX0-684",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 6,
+    "compound_name": "D-2-Phospho-Glyceric acid",
+    "mix0_id": "MIX0-761",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 7,
+    "compound_name": "D-3-Phospho-Glyceric acid",
+    "mix0_id": "MIX0-762",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 8,
+    "compound_name": "Guanosine 2'-Monophosphate",
+    "mix0_id": "MIX0-685",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 9,
+    "compound_name": "Guanosine 3'-Monophosphate",
+    "mix0_id": "MIX0-686",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 10,
+    "compound_name": "Guanosine 5'-Monophosphate",
+    "mix0_id": "MIX0-687",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 11,
+    "compound_name": "Guanosine 2',3'-Cyclic Monophosphate",
+    "mix0_id": "MIX0-688",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "B",
+    "well_col": 12,
+    "compound_name": "Guanosine 3',5'-Cyclic Monophosphate",
+    "mix0_id": "MIX0-689",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 1,
+    "compound_name": "Phosphoenol Pyruvate",
+    "mix0_id": "MIX0-690",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 2,
+    "compound_name": "Phospho-Glycolic acid",
+    "mix0_id": "MIX0-691",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 3,
+    "compound_name": "D-Glucose-1-Phosphate",
+    "mix0_id": "MIX0-692",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 4,
+    "compound_name": "D-Glucose-6-Phosphate",
+    "mix0_id": "MIX0-693",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 5,
+    "compound_name": "2-Deoxy-D-Glucose 6-Phosphate",
+    "mix0_id": "MIX0-694",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 6,
+    "compound_name": "D-Glucosamine-6-Phosphate",
+    "mix0_id": "MIX0-695",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 7,
+    "compound_name": "6-Phospho-Gluconic acid",
+    "mix0_id": "MIX0-696",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 8,
+    "compound_name": "Cytidine 2'-Monophosphate",
+    "mix0_id": "MIX0-697",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 9,
+    "compound_name": "Cytidine 3'-Monophosphate",
+    "mix0_id": "MIX0-698",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 10,
+    "compound_name": "Cytidine 5'-Monophosphate",
+    "mix0_id": "MIX0-699",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 11,
+    "compound_name": "Cytidine 2',3'-Cyclic Monophosphate",
+    "mix0_id": "MIX0-700",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "C",
+    "well_col": 12,
+    "compound_name": "Cytidine 3',5'-Cyclic Monophosphate",
+    "mix0_id": "MIX0-701",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 1,
+    "compound_name": "D-Mannose-1-Phosphate",
+    "mix0_id": "MIX0-702",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 2,
+    "compound_name": "D-Mannose-6-Phosphate",
+    "mix0_id": "MIX0-703",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 3,
+    "compound_name": "Cysteamine-S-Phosphate",
+    "mix0_id": "MIX0-704",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 4,
+    "compound_name": "Phospho-L-Arginine",
+    "mix0_id": "MIX0-705",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 5,
+    "compound_name": "O-Phospho-D-Serine",
+    "mix0_id": "MIX0-706",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 6,
+    "compound_name": "O-Phospho-L-Serine",
+    "mix0_id": "MIX0-707",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 7,
+    "compound_name": "O-Phospho-L-Threonine",
+    "mix0_id": "MIX0-708",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 8,
+    "compound_name": "Uridine 2'-Monophosphate",
+    "mix0_id": "MIX0-709",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 9,
+    "compound_name": "Uridine 3'-Monophosphate",
+    "mix0_id": "MIX0-710",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 10,
+    "compound_name": "Uridine 5'-Monophosphate",
+    "mix0_id": "MIX0-711",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 11,
+    "compound_name": "Uridine 2',3'-Cyclic Monophosphate",
+    "mix0_id": "MIX0-712",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "D",
+    "well_col": 12,
+    "compound_name": "Uridine 3',5'-Cyclic Monophosphate",
+    "mix0_id": "MIX0-713",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 1,
+    "compound_name": "O-Phospho-D-Tyrosine",
+    "mix0_id": "MIX0-714",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 2,
+    "compound_name": "O-Phospho-L-Tyrosine",
+    "mix0_id": "MIX0-715",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 3,
+    "compound_name": "Phosphocreatine",
+    "mix0_id": "MIX0-716",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 4,
+    "compound_name": "Phosphoryl Choline",
+    "mix0_id": "MIX0-717",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 5,
+    "compound_name": "O-Phosphoryl-Ethanolamine",
+    "mix0_id": "MIX0-718",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 6,
+    "compound_name": "Phosphono Acetic acid",
+    "mix0_id": "MIX0-719",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 7,
+    "compound_name": "2-Aminoethyl Phosphonic acid",
+    "mix0_id": "MIX0-720",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 8,
+    "compound_name": "Methylene Diphosphonic acid",
+    "mix0_id": "MIX0-721",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 9,
+    "compound_name": "Thymidine 3'-Monophosphate",
+    "mix0_id": "MIX0-722",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 10,
+    "compound_name": "Thymidine 5'-Monophosphate",
+    "mix0_id": "MIX0-723",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 11,
+    "compound_name": "Inositol Hexaphosphate",
+    "mix0_id": "MIX0-763",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "E",
+    "well_col": 12,
+    "compound_name": "Thymidine 3',5'-Cyclic Monophosphate",
+    "mix0_id": "MIX0-724",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 1,
+    "compound_name": "sulfur negative control",
+    "mix0_id": "MIX0-82",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 2,
+    "compound_name": "Sulfate",
+    "mix0_id": "MIX0-725",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 3,
+    "compound_name": "Thiosulfate",
+    "mix0_id": "MIX0-726",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 4,
+    "compound_name": "Tetrathionate",
+    "mix0_id": "MIX0-727",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 5,
+    "compound_name": "Thiophosphate",
+    "mix0_id": "MIX0-728",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 6,
+    "compound_name": "Dithiophosphate",
+    "mix0_id": "MIX0-729",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 7,
+    "compound_name": "L-Cysteine",
+    "mix0_id": "MIX0-730",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 8,
+    "compound_name": "D-Cysteine",
+    "mix0_id": "MIX0-731",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 9,
+    "compound_name": "Cys-Gly",
+    "mix0_id": "MIX0-764",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 10,
+    "compound_name": "L-Cysteic acid",
+    "mix0_id": "MIX0-732",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 11,
+    "compound_name": "Cysteamine",
+    "mix0_id": "MIX0-733",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "F",
+    "well_col": 12,
+    "compound_name": "L-Cysteine Sulfinic acid",
+    "mix0_id": "MIX0-734",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 1,
+    "compound_name": "N-Acetyl-L-Cysteine",
+    "mix0_id": "MIX0-735",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 2,
+    "compound_name": "S-Methyl-L-Cysteine",
+    "mix0_id": "MIX0-736",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 3,
+    "compound_name": "Cystathionine",
+    "mix0_id": "MIX0-737",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 4,
+    "compound_name": "Lanthionine",
+    "mix0_id": "MIX0-738",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 5,
+    "compound_name": "Glutathione",
+    "mix0_id": "MIX0-739",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 6,
+    "compound_name": "DL-Ethionine",
+    "mix0_id": "MIX0-756",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 7,
+    "compound_name": "L-Methionine",
+    "mix0_id": "MIX0-740",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 8,
+    "compound_name": "D-Methionine",
+    "mix0_id": "MIX0-741",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 9,
+    "compound_name": "Gly-Met",
+    "mix0_id": "MIX0-765",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 10,
+    "compound_name": "N-Acetyl-D,L-Methionine",
+    "mix0_id": "MIX0-742",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 11,
+    "compound_name": "L-Methionine Sulfoxide",
+    "mix0_id": "MIX0-743",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "G",
+    "well_col": 12,
+    "compound_name": "L-Methionine Sulfone",
+    "mix0_id": "MIX0-744",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 1,
+    "compound_name": "L-Djenkolic acid",
+    "mix0_id": "MIX0-745",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 2,
+    "compound_name": "Thiourea",
+    "mix0_id": "MIX0-746",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 3,
+    "compound_name": "1-Thio-beta-D-Glucose",
+    "mix0_id": "MIX0-747",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 4,
+    "compound_name": "DL-Lipoamide",
+    "mix0_id": "MIX0-748",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 5,
+    "compound_name": "Taurocholic acid",
+    "mix0_id": "MIX0-749",
+    "aerobic_growth_call":"Indeterminate",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 6,
+    "compound_name": "Taurine",
+    "mix0_id": "MIX0-750",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 7,
+    "compound_name": "Hypotaurine",
+    "mix0_id": "MIX0-751",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 8,
+    "compound_name": "p-Aminobenzene Sulfonic acid",
+    "mix0_id": "MIX0-757",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 9,
+    "compound_name": "Butane Sulfonic acid",
+    "mix0_id": "MIX0-752",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 10,
+    "compound_name": "2-Hydroxyethane Sulfonic acid",
+    "mix0_id": "MIX0-753",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 11,
+    "compound_name": "Methane Sulfonic acid",
+    "mix0_id": "MIX0-754",
+    "aerobic_growth_call":"Growth",
+    "anaerobic_growth_call": null
+  },
+  {
+    "plate": "PM4",
+    "well_row": "H",
+    "well_col": 12,
+    "compound_name": "Tetramethylene Sulfone",
+    "mix0_id": "MIX0-755",
+    "aerobic_growth_call":"No Growth",
+    "anaerobic_growth_call": null
+  }
+]

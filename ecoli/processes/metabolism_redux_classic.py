@@ -144,6 +144,7 @@ class MetabolismReduxClassic(Step):
         "maintenance_reaction": {},
         # Fallback only: overridden by sim_data.process.metabolism in normal sims
         "fraction_kinetic_target": 1.0,
+        "include_new": False,
     }
 
     def __init__(self, parameters):
@@ -271,6 +272,7 @@ class MetabolismReduxClassic(Step):
 
         # Get conversion matrix to compile individual fluxes in the FBA
         # solution to the fluxes of base reactions
+        self.include_new = self.parameters["include_new"]
         self.base_reaction_ids = self.parameters["base_reaction_ids"]
         self.base_reaction_ids.append("maintenance_reaction")
         fba_reaction_ids_to_base_reaction_ids = self.parameters[
@@ -531,25 +533,9 @@ class MetabolismReduxClassic(Step):
 
         # Get reaction indices whose reaction is new (added in 2022)
         # append reaction indices to binary_kinetic_idx
-        include_new = 0
-        if not include_new:  # set binary idx if we don't want to include new rxns
-            fba_new_reaction_ids = self.parameters["fba_new_reaction_ids"]
-            # fba_reaction_ids_to_base_reaction_ids = self.parameters[
-            #     "fba_reaction_ids_to_base_reaction_ids"
-            # ]
-
-            binary_reaction_idx = []
-            for reaction_id in fba_new_reaction_ids:
-                reaction_idx = np.where(np.array(self.reaction_names) == reaction_id)
-                binary_reaction_idx.append(reaction_idx)
-            binary_reaction_idx = np.hstack(binary_reaction_idx).astype(int)
-
-            # combined binary kinetic idx with binary reaction idx and remove overlaps
-            binary_kinetic_idx = (
-                np.unique(np.append(binary_kinetic_idx[0], binary_reaction_idx[0])),
-            )[0]
-
-        self.binary_kinetic_idx = binary_kinetic_idx
+        fba_new_reaction_ids = self.parameters["fba_new_reaction_ids"]
+        new_reaction_idx = np.where(np.isin(self.reaction_names, fba_new_reaction_ids))
+        self.new_reaction_idx = new_reaction_idx
 
         # TODO: Figure out how to handle changing media ID
 
@@ -578,7 +564,8 @@ class MetabolismReduxClassic(Step):
 
         objective_weights = self.parameters["objective_weights"]
         fraction_kinetic_target = self.parameters["fraction_kinetic_target"]
-
+        self.include_new = self.parameters["include_new"]
+        print(self.include_new)
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
             homeostatic_dm_targets=target_homeostatic_dmdt,
@@ -588,6 +575,8 @@ class MetabolismReduxClassic(Step):
             objective_weights=objective_weights,
             target_minimal_flux=self.counts_to_molar.asNumber(),
             fraction_kinetic_target=fraction_kinetic_target,
+            include_new=self.include_new,
+            new_reaction_idx=new_reaction_idx,
             solver=cp.GLOP,
         )
 
@@ -649,7 +638,7 @@ class MetabolismReduxClassic(Step):
                     * objective_weights["kinetics"],
                     "diversity_term": solution.diversity_term
                     * objective_weights["diversity"],
-                    "binary_kinetic_idx": self.binary_kinetic_idx[0],
+                    "binary_kinetic_idx": binary_kinetic_idx[0],
                     "base_reaction_fluxes": self.reaction_mapping_matrix.dot(
                         estimated_reaction_fluxes
                     ),
@@ -789,6 +778,8 @@ class NetworkFlowModel:
         upper_flux_bound: float = 100,
         target_minimal_flux: float = 0,
         fraction_kinetic_target: float = 1.0,
+        include_new: bool = True,
+        new_reaction_idx: Optional[Iterable[int]] = None,
         solver=cp.GLOP,
     ) -> FlowResult:
         """Solve the network flow model for fluxes and dm/dt values."""
@@ -812,7 +803,10 @@ class NetworkFlowModel:
         # If want to force flow through reactions, constrain rxn flux to 1 by idx
         if force_flow_idx is not None:
             constr.append(v[force_flow_idx] >= 100)
-
+        # If want to exclude new reactions, constrain rxn flux to 0 by idx
+        if not include_new:
+            print("Was here")
+            constr.append(v[new_reaction_idx] == 0)
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
         loss = 0

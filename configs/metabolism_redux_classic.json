@@ -8,9 +8,9 @@
     "progress_bar": true,
     "log_updates": false,
     "generations": 1,
-    "emitter": "timeseries",
+    "emitter": "parquet",
     "emitter_arg": {
-        "out_dir": "out/objective_weight/"
+        "out_dir": "out/phenotypic/"
     },
     "save": false,
     "save_times": [
@@ -98,7 +98,8 @@
                 "kinetics": 0.00001,
                 "homeostatic": 1
             },
-            "fraction_kinetic_target": 1.0
+            "fraction_kinetic_target": 1.0,
+            "include_new": true
         }
     }
 }
