@@ -80,6 +80,7 @@ dev = [
     "google-cloud-compute",
     "boto3>=1.41.5",
     "botocore[crt]>=1.41.5",
+    "vegafusion>=2.0.3",
 ]
 docs = [
     "Sphinx",

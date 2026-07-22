@@ -582,7 +582,7 @@ def test_blame_timeseries():
         data,
         topo,
         bulk_ids,
-        ["CPD-12261[p]"],  # + molecules,
+        ["C6[p]"],  # + molecules,
         "out/ecoli_master/murein_blame.png",
         yscale="linear",
     )

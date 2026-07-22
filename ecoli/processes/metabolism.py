@@ -512,7 +512,7 @@ class Metabolism(Step):
             )
 
         if self.parameters["reduce_murein_objective"]:
-            conc_updates["CPD-12261[p]"] /= 2.27
+            conc_updates["C6[p]"] /= 2.27
 
         # Update FBA problem based on current state
         # Set molecule availability (internal and external)
@@ -841,7 +841,7 @@ class FluxBalanceAnalysisModel(object):
 
         # TODO: For testing, remove later (perhaps after modifying sim data)
         if parameters["reduce_murein_objective"]:
-            self.homeostatic_objective["CPD-12261[p]"] /= 2.27
+            self.homeostatic_objective["C6[p]"] /= 2.27
 
         # Include all concentrations that will be present in a sim for constant
         # length listeners
