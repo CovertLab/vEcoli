@@ -95,6 +95,7 @@ class Metabolism(Step):
         "linked_metabolites": None,
         "aa_exchange_names": [],
         "removed_aa_uptake": [],
+        "set_reaction_bounds": {},  # In form: {RXN_ID:[lb,ub]}
         "seed": 0,
         # TODO: For testing, remove later (perhaps after modifying sim data)
         "reduce_murein_objective": False,
@@ -531,6 +532,16 @@ class Metabolism(Step):
         self.model.set_reaction_bounds(
             catalyst_counts, counts_to_molar, coefficient, translation_gtp
         )
+
+        # Set reaction limits from config options
+        self.set_reaction_bounds = self.parameters["set_reaction_bounds"]
+        for rxn, bounds in self.set_reaction_bounds.items():
+            if rxn not in self.fba_reaction_ids:
+                print(f"Reaction {rxn} not found in fba reaction ids")
+                continue
+            self.model.fba.setReactionFluxBounds(
+                rxn, lowerBounds=bounds[0], upperBounds=bounds[1]
+            )
 
         # Constrain reactions based on targets
         targets, upper_targets, lower_targets = self.model.set_reaction_targets(
