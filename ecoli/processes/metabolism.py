@@ -95,7 +95,7 @@ class Metabolism(Step):
         "linked_metabolites": None,
         "aa_exchange_names": [],
         "removed_aa_uptake": [],
-        "set_reaction_bounds": {},  # In form: {RXN_ID:[lb,ub]}
+        "set_reaction_bounds": {},  # In form: {FBA_RXN_ID:[lb,ub]} (reaction must match FBA basis)
         "seed": 0,
         # TODO: For testing, remove later (perhaps after modifying sim data)
         "reduce_murein_objective": False,
@@ -1169,6 +1169,32 @@ def test_metabolism_listener():
     reaction_fluxes = data["agents"]["0"]["listeners"]["fba_results"]["reaction_fluxes"]
     assert isinstance(reaction_fluxes[0], list)
     assert isinstance(reaction_fluxes[1], list)
+
+
+def test_set_reaction_bounds_config():
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
+    import pytest
+
+    sim = EcoliSim.from_file()
+    sim.max_duration = 2
+    sim.build_ecoli()
+
+    metabolism = sim.ecoli.processes["agents"]["0"]["ecoli-metabolism"]
+
+    # test invalid configuration: reaction not in FBA reaction IDs
+    metabolism.parameters["set_reaction_bounds"] = {"NOT-A-REAL-RXN": [0, 1]}
+    with pytest.raises(ValueError, match="not found in FBA reaction IDs"):
+        sim.run()
+
+    # test valid configuration
+    rxn_id = metabolism.fba_reaction_ids[0]
+    metabolism.parameters["set_reaction_bounds"] = {rxn_id: [0.0, 0.0]}
+    sim.run()
+    data = sim.query()
+    reaction_fluxes = data["agents"]["0"]["listeners"]["fba_results"]["reaction_fluxes"]
+    rxn_idx = metabolism.fba_reaction_ids.index(rxn_id)
+    for fluxes_at_t in reaction_fluxes:
+        assert fluxes_at_t[rxn_idx] == pytest.approx(0.0, abs=1e-6)
 
 
 if __name__ == "__main__":
