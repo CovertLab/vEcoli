@@ -534,13 +534,24 @@ class Metabolism(Step):
         )
 
         # Set reaction limits from config options
-        self.set_reaction_bounds = self.parameters["set_reaction_bounds"]
-        for rxn, bounds in self.set_reaction_bounds.items():
+        config_reaction_bounds = self.parameters.get("set_reaction_bounds", {})
+        for rxn, bounds in config_reaction_bounds.items():
             if rxn not in self.fba_reaction_ids:
-                print(f"Reaction {rxn} not found in fba reaction ids")
-                continue
+                raise ValueError(
+                    f"set_reaction_bounds: reaction '{rxn}' not found in FBA reaction IDs"
+                )
+            try:
+                lower_bound, upper_bound = bounds
+            except (TypeError, ValueError) as e:
+                raise ValueError(
+                    f"set_reaction_bounds for '{rxn}' must be a 2-item sequence [lower, upper], got: {bounds!r}"
+                ) from e
+            if lower_bound > upper_bound:
+                raise ValueError(
+                    f"set_reaction_bounds for '{rxn}' has lower_bound > upper_bound ({lower_bound} > {upper_bound})"
+                )
             self.model.fba.setReactionFluxBounds(
-                rxn, lowerBounds=bounds[0], upperBounds=bounds[1]
+                rxn, lowerBounds=lower_bound, upperBounds=upper_bound
             )
 
         # Constrain reactions based on targets
