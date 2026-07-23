@@ -230,6 +230,8 @@ def plot(
         axs = np.array([axs])
     if n_rows == 1:
         axs = np.array([axs])
+    if axs.ndim != 2:
+        axs = axs[:, np.newaxis]
 
     # Group axes by what type of data we'll plot into them
     flux_axes = axs[:, 0]
