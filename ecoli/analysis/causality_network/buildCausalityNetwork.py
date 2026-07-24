@@ -1,7 +1,8 @@
 """
-Builds causality network for a given variant of a given sim.
+Builds a causality network for a given experiment/variant of a Parquet-based
+vEcoli simulation run.
 
-Run with '-h' for command line help.
+Run with '-h' for command-line help.
 """
 
 import argparse
@@ -10,130 +11,156 @@ import os
 import pprint as pp
 import subprocess
 import time
+from time import monotonic as monotonic_seconds
+from time import process_time as process_time_seconds
+from urllib import parse
 
 from ecoli.analysis.causality_network import read_dynamics
 from ecoli.analysis.causality_network.build_network import BuildNetwork
+from ecoli.library.parquet_emitter import create_duckdb_conn, dataset_sql
 from wholecell.utils import filepath as fp
-from time import monotonic as monotonic_seconds
-from time import process_time as process_time_seconds
 
 
 CAUSALITY_ENV_VAR = "CAUSALITY_SERVER"
-SIM_DATA_PATH = "out/kb/simData.cPickle"
-DYNAMICS_OUTPUT = "out/seriesOut"
+
+# (arg_name, dtype) — narrower filters override wider ones.
+CELL_FILTERS = [
+    ("variant", int),
+    ("lineage_seed", int),
+    ("generation", int),
+    ("agent_id", str),
+]
+
+
+def build_where_clause(experiment_id: str, args: argparse.Namespace) -> str:
+    """Compose a DuckDB WHERE clause pinning to one experiment and any
+    optional variant/seed/generation/agent_id the user supplied."""
+    quoted_exp = parse.quote_plus(experiment_id)
+    clauses = [f"experiment_id = '{quoted_exp}'"]
+    for name, dtype in CELL_FILTERS:
+        val = getattr(args, name)
+        if val is None:
+            continue
+        if dtype is str:
+            clauses.append(f"{name} = '{parse.quote_plus(str(val))}'")
+        else:
+            clauses.append(f"{name} = {val}")
+    return " AND ".join(clauses)
 
 
 class BuildCausalityNetwork:
-    """Builds and runs a causality network for a given sim."""
+    """Builds and (optionally) serves a causality network for one sim."""
 
-    def description(self):
-        # type: () -> str
-        """Describe the command line program. This defaults to the class name."""
-        return type(self).__name__
-
-    def help(self):
-        # type: () -> str
-        """Return help text for the Command Line Interface. This defaults to a
-        string constructed around `self.description()`.
-        """
-        return "Run {}.".format(self.description())
-
-    def define_parameters(self, parser):
+    def define_parameters(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
-            "--check_sanity", action="store_true", help="Check network sanity."
+            "--out_dir",
+            required=True,
+            help="Parent of the <experiment_id>/{history,configuration,...} "
+            "tree (i.e. the emitter's out_dir/out_uri, NOT the per-experiment "
+            "subdirectory).",
+        )
+        parser.add_argument(
+            "--experiment_id",
+            required=True,
+            help="Experiment ID to build the network for.",
+        )
+        parser.add_argument(
+            "--sim_data_path",
+            required=True,
+            help="Path to the variant sim_data pickle "
+            "(e.g. out/<exp>/variant_sim_data/0.cPickle).",
+        )
+        parser.add_argument(
+            "--series_out",
+            default=None,
+            help="Directory to write seriesOut.zip into. "
+            "Defaults to <out_dir>/<experiment_id>/seriesOut.",
+        )
+        for name, dtype in CELL_FILTERS:
+            parser.add_argument(f"--{name}", type=dtype, default=None)
+        parser.add_argument(
+            "--cpus",
+            type=int,
+            default=None,
+            help="DuckDB thread count.",
+        )
+        parser.add_argument(
+            "--check_sanity",
+            action="store_true",
+            help="Check network for duplicate node IDs.",
         )
         parser.add_argument(
             "--show",
             action="store_true",
-            help="If set, attempts to show the causality visualization after"
-            " processing data.",
-        )
-        parser.add_argument(
-            "--id",
-            type=str,
-            default="",
-            help="If set, a causality network is built using a custom listener dataset.",
+            help="Launch the Causality viewer against the output when done.",
         )
 
-    def parse_args(self):
-        # type: () -> argparse.Namespace
-        """Parse the command line args: Construct an ArgumentParser, call
-        `define_parameters()` to define parameters including subclass-specific
-        parameters, use it to parse the command line into an
-        `argparse.Namespace`, and return that.
-
-        (A `Namespace` is an object with attributes and some methods like
-        `__repr__()` and `__eq__()`. Call `vars(args)` to turn it into a dict.)
-        """
-        parser = argparse.ArgumentParser(description=self.help())
-
+    def parse_args(self) -> argparse.Namespace:
+        parser = argparse.ArgumentParser(description=type(self).__name__)
         self.define_parameters(parser)
-
         return parser.parse_args()
 
-    def run(self, args):
+    def run(self, args: argparse.Namespace) -> None:
         start_real_sec = monotonic_seconds()
-        print("\n{}: --- Starting {} ---".format(time.ctime(), type(self).__name__))
+        print(f"\n{time.ctime()}: --- Starting {type(self).__name__} ---")
 
-        print("{}: Building the Causality network".format(time.ctime()))
-        causality_network = BuildNetwork(
-            SIM_DATA_PATH, DYNAMICS_OUTPUT, args.check_sanity
+        series_out = args.series_out or os.path.join(
+            args.out_dir, args.experiment_id, "seriesOut"
         )
-        node_list, edge_list = causality_network.build_nodes_and_edges()
+        fp.makedirs(series_out)
 
-        fp.makedirs(DYNAMICS_OUTPUT)
+        print(f"{time.ctime()}: Building the Causality network")
+        network = BuildNetwork(args.sim_data_path, series_out, args.check_sanity)
+        node_list, edge_list = network.build_nodes_and_edges()
 
-        print(
-            "{}: Converting simulation results to a Causality series".format(
-                time.ctime()
-            )
-        )
+        print(f"{time.ctime()}: Reading simulation dynamics from Parquet")
+        gcs_bucket = parse.urlparse(args.out_dir).scheme in ("gcs", "gs")
+        conn = create_duckdb_conn(args.out_dir, gcs_bucket, args.cpus)
+        history_sql, config_sql, _ = dataset_sql(args.out_dir, [args.experiment_id])
+        where = build_where_clause(args.experiment_id, args)
+        history_sql = f"SELECT * FROM ({history_sql}) WHERE {where}"
+        config_sql = f"SELECT * FROM ({config_sql}) WHERE {where}"
 
+        print(f"{time.ctime()}: Converting simulation results to a Causality series")
         read_dynamics.convert_dynamics(
-            DYNAMICS_OUTPUT, causality_network.sim_data, node_list, edge_list, args.id
+            series_out,
+            network.sim_data,
+            node_list,
+            edge_list,
+            args.experiment_id,
+            conn,
+            history_sql,
+            config_sql,
         )
 
-        elapsed_real_sec = monotonic_seconds() - start_real_sec
+        duration = datetime.timedelta(seconds=monotonic_seconds() - start_real_sec)
+        print(f"{time.ctime()}: Completed building the Causality network in {duration}")
 
-        duration = datetime.timedelta(seconds=elapsed_real_sec)
-        print(
-            "{}: Completed building the Causality network in {}".format(
-                time.ctime(), duration
-            )
-        )
-
-        # Optionally show the causality visualization.
         server_dir = os.environ.get(CAUSALITY_ENV_VAR, os.path.join("..", "causality"))
-        server_app = os.path.join("site", "server.py")
-        server_path = os.path.join(server_dir, server_app)
+        server_path = os.path.join(server_dir, "site", "server.py")
         if args.show and os.path.isfile(server_path):
-            # See #890 if running command fails due to differences in pyenv
-            # versions - might need to cd to repo and activate pyenv
-            cmd = ["python", server_path, DYNAMICS_OUTPUT]
-            print(
-                f"\nServing the Causality site via the command:\n  {cmd}\n"
-                f"Ctrl+C to exit.\n"
-            )
+            cmd = ["python", server_path, series_out]
+            print(f"\nServing the Causality site via:\n  {cmd}\nCtrl+C to exit.\n")
             subprocess.run(cmd)
+        elif args.show:
+            print(
+                f"\nCannot find Causality server at {server_path}. "
+                f"Set {CAUSALITY_ENV_VAR}=/path/to/causality or clone the "
+                "Causality repo alongside this one.\n"
+            )
         else:
             print(
-                "\nNOTE: Use the --show flag to automatically open the"
-                " Casuality viewer on this data. You'll first need to"
-                " `export {0}=~/path/to/causality` project unless the default"
-                " (../causality) is good.\n".format(CAUSALITY_ENV_VAR)
+                "\nNOTE: Use --show to auto-launch the Causality viewer on this "
+                f"output. Set {CAUSALITY_ENV_VAR} if it lives outside ../causality.\n"
             )
 
 
-def main():
+def main() -> None:
     network = BuildCausalityNetwork()
     args = network.parse_args()
 
-    location = getattr(args, "sim_path", "")
-    if location:
-        location = " at " + location
-
     start_real_sec = monotonic_seconds()
-    print("{}: {}{}".format(time.ctime(), network.description(), location))
+    print(f"{time.ctime()}: BuildCausalityNetwork")
     pp.pprint({"Arguments": vars(args)})
 
     start_process_sec = process_time_seconds()
@@ -142,12 +169,9 @@ def main():
     elapsed_process = process_time_seconds() - start_process_sec
     elapsed_real_sec = monotonic_seconds() - start_real_sec
     print(
-        "{}: Elapsed time {:1.2f} sec ({}); CPU {:1.2f} sec".format(
-            time.ctime(),
-            elapsed_real_sec,
-            datetime.timedelta(seconds=elapsed_real_sec),
-            elapsed_process,
-        )
+        f"{time.ctime()}: Elapsed time {elapsed_real_sec:1.2f} sec "
+        f"({datetime.timedelta(seconds=elapsed_real_sec)}); "
+        f"CPU {elapsed_process:1.2f} sec"
     )
 
 
