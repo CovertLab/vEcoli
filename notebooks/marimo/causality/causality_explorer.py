@@ -405,18 +405,24 @@ def _(bundle, get_nav, mo, pss, type_filter):
 def _(get_nav, label_to_id, node_picker, pss_value, set_nav):
     # Detect user-driven picker changes and push them into history. When the
     # picker was rebuilt programmatically (e.g., after a map click), its value
-    # already matches the state's current so nothing happens here.
-    _picker_label = pss_value(node_picker)
-    _picker_id = label_to_id.get(_picker_label) if _picker_label else None
-    _s = get_nav()
-    _history = _s["history"]
-    _cursor = _s["cursor"]
-    _current_id = (
-        _history[_cursor] if 0 <= _cursor < len(_history) else None
-    )
-    if _picker_id and _picker_id != _current_id:
-        _new_hist = _history[: _cursor + 1] + [_picker_id]
-        set_nav({"history": _new_hist, "cursor": len(_new_hist) - 1})
+    # already matches the state's current so nothing happens here. Any
+    # transient exception during the reactive re-run cascade is swallowed
+    # silently — otherwise marimo surfaces it as a red traceback flash before
+    # the next successful run cleans it up.
+    try:
+        _picker_label = pss_value(node_picker)
+        _picker_id = label_to_id.get(_picker_label) if _picker_label else None
+        _s = get_nav()
+        _history = _s["history"]
+        _cursor = _s["cursor"]
+        _current_id = (
+            _history[_cursor] if 0 <= _cursor < len(_history) else None
+        )
+        if _picker_id and _picker_id != _current_id:
+            _new_hist = _history[: _cursor + 1] + [_picker_id]
+            set_nav({"history": _new_hist, "cursor": len(_new_hist) - 1})
+    except Exception:
+        pass
     return
 
 
@@ -438,9 +444,15 @@ def _(bundle, get_nav, label_to_id, mo, node_picker, pss_value, set_nav):
         _current_id = (
             label_to_id.get(_picker_label) if _picker_label else None
         )
-    mo.stop(_current_id is None, mo.md("_No node selected._"))
-    node = bundle.get_node(_current_id)
-    mo.stop(node is None, mo.md(f"⚠ Node `{_current_id}` not found."))
+    # Silent fallback if the resolved ID isn't in the current bundle (can
+    # briefly happen mid-transition when state changes before label_to_id
+    # rebuilds, or if a stale ID lingers from a previous bundle). Avoids a
+    # red-flashing `mo.stop` on the way to a valid state.
+    node = bundle.get_node(_current_id) if _current_id else None
+    if node is None:
+        _current_id = bundle.nodes[0]["ID"] if bundle.nodes else None
+        node = bundle.get_node(_current_id) if _current_id else None
+    mo.stop(node is None, mo.md("_No nodes in bundle._"))
 
     url_line = f"[EcoCyc]({node['url']})" if node.get("url") else "_(no URL)_"
     synonyms = node.get("synonyms") or []
@@ -1097,17 +1109,24 @@ def _(get_nav, node, pathway_chart, set_nav):
     # navigate on clicks only, ignoring hover state entirely. (`.value` is the
     # intersection of *all* selections, so a hover on a different node than
     # the clicked one would zero it out.)
-    _ = pathway_chart.value
-    _sels = getattr(pathway_chart, "selections", None) or {}
-    _click_state = _sels.get("click_sel") or {}
-    _ids = _click_state.get("id") if isinstance(_click_state, dict) else None
-    _sel_id = _ids[0] if isinstance(_ids, (list, tuple)) and _ids else None
-    if _sel_id and _sel_id != node["ID"]:
-        # Push to history: truncate anything past the current cursor (like a
-        # browser: a new navigation drops the "forward" trail) and append.
-        _s = get_nav()
-        _new_hist = _s["history"][: _s["cursor"] + 1] + [_sel_id]
-        set_nav({"history": _new_hist, "cursor": len(_new_hist) - 1})
+    # Wrapped in try/except so any transient error during the reactive
+    # cascade (stale widget references, node dict not yet populated) is
+    # swallowed instead of surfacing as a red flash.
+    try:
+        _ = pathway_chart.value
+        _sels = getattr(pathway_chart, "selections", None) or {}
+        _click_state = _sels.get("click_sel") or {}
+        _ids = _click_state.get("id") if isinstance(_click_state, dict) else None
+        _sel_id = _ids[0] if isinstance(_ids, (list, tuple)) and _ids else None
+        _cur_id = node.get("ID") if isinstance(node, dict) else None
+        if _sel_id and _cur_id and _sel_id != _cur_id:
+            # Push to history: truncate anything past the current cursor (like
+            # a browser: a new navigation drops the "forward" trail) and append.
+            _s = get_nav()
+            _new_hist = _s["history"][: _s["cursor"] + 1] + [_sel_id]
+            set_nav({"history": _new_hist, "cursor": len(_new_hist) - 1})
+    except Exception:
+        pass
     return
 
 
@@ -1128,15 +1147,21 @@ def _(bundle, mo, node):
     up_rows = [_row(nid) for nid in up_ids]
     dn_rows = [_row(nid) for nid in dn_ids]
 
-    left = mo.vstack([
-        mo.md(f"**Upstream ({len(up_rows)})**"),
-        mo.ui.table(up_rows, pagination=True, page_size=10) if up_rows else mo.md("_(none)_"),
-    ])
-    right = mo.vstack([
-        mo.md(f"**Downstream ({len(dn_rows)})**"),
-        mo.ui.table(dn_rows, pagination=True, page_size=10) if dn_rows else mo.md("_(none)_"),
-    ])
-    mo.hstack([left, right], widths=[1, 1])
+    _up_body = (
+        mo.ui.table(up_rows, pagination=True, page_size=10)
+        if up_rows else mo.md("_(none)_")
+    )
+    _dn_body = (
+        mo.ui.table(dn_rows, pagination=True, page_size=10)
+        if dn_rows else mo.md("_(none)_")
+    )
+    mo.accordion(
+        {
+            f"Upstream ({len(up_rows)})": _up_body,
+            f"Downstream ({len(dn_rows)})": _dn_body,
+        },
+        multiple=True,
+    )
     return
 
 
