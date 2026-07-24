@@ -12,6 +12,9 @@ protein_count_comparison_plotly.py):
 # TODOs:
 # TODO 1: write a long and descriptive docstring
 # TODO 2: edit the hover data and finalize
+# TODO: make config options
+# TODO: if a user specifies a reaction to be plotted in a config that has zero
+ counts in both sims, make sure its still plotted
 # TODO: remove default variables
 # TODO: decide if the reaction list cap should be expanded based on how many this affects
 # TODO: determine what is causing the odd warning to emit
@@ -20,6 +23,7 @@ protein_count_comparison_plotly.py):
  triangles for normally negative, circles for positive, square for negative in one and positive in another)
  # TODO: decide if the reactant and product avg counts should be the total (from listener) or free
  # todo: decide if the catalyst avg counts should be the total (from listener for monomers) or free
+ # TODO: edit the highlighted sections to highlight a different color for each input (if multiple) and make the legend reflect each separately
 """
 
 import os
@@ -41,13 +45,12 @@ from ecoli.library.parquet_emitter import (
     read_stacked_columns,
 )
 
-# USER-DEFINED REACTIONS OF INTEREST (to be highlighted in red).
-# Default = murein polymerization (RXN0-5405) and cross-linking (RXN-11302):
-PLOT_REACTIONS_OF_INTEREST = ["RXN0-5405", "RXN-11302"]
+# USER-DEFINED REACTIONS OF INTEREST (to be highlighted in red):
+PLOT_REACTIONS_OF_INTEREST = ["RXN0-5405"]
 
 # Default metabolites of interest for the by-metabolite scheme (overridable via
-# params["metabolites_of_interest"]; Bare or tagged ids both work):
-DEFAULT_METABOLITES_OF_INTEREST = ["ATP", "Pi"]
+# params["metabolites_of_interest"]):
+DEFAULT_METABOLITES_OF_INTEREST = ["THF", "METHYLENE-THF", "10-FORMYL-THF"]
 
 FLUX_COLUMN = "listeners__fba_results__reaction_fluxes"
 
@@ -60,6 +63,13 @@ METABOLITE_CATEGORY_SPECS = [
     ("Involves metabolite of interest", "crimson", 8, 0.85),
     ("Other reactions", "lightseagreen", 6, 0.5),
 ]
+
+# Floor for the log offset (this ensures the value added to the raw fluxes is
+# not below 10**(-MAX_LOG_ORDERS) times the largest |avg flux| (i.e. a
+# millionth of it when MAX_LOG_ORDERS = 6)). This ensures that a single near-zero
+# flux will not drag the added value down so much that a huge empty low region
+# appears on the graph.
+MAX_LOG_ORDERS = 6.0
 
 
 def flux_units(flux_column: str) -> str:
@@ -316,13 +326,77 @@ def make_hover_texts(
     return texts
 
 
+def _flux_log_transform(sim1_avg, sim2_avg, flux_unit):
+    """Calcualtes ε and computes log10(|avg flux| + ε) for both sims.
+
+    If a reaction has zero flux in both simulations passed through, the
+    reaction is excluded from the plot. If a reaction has a nonzero in one
+    simulation and zero flux in the other, to see that reaction plotted, a tiny
+    epsilon (eps) value must be added to the average flux to avoid computing
+    log10(0) (which is undefined). Thus, an eps offset is added to |flux|
+    before the log so reactions that have zero-flux are still plottable.
+
+    Eps is computed as the smallest nonzero |avg flux| across both sims, so
+    zeros sit just below the smallest real point. The eps value sometimes is
+    floored in the case where the smallest nonzero flux is more than
+    10**MAX_LOG_ORDERS times smaller than the largest. In this case, eps is
+    raised to 10**(-MAX_LOG_ORDERS) x the largest |flux| so one near-zero
+    outlier can't stretch the axis too heavily.
+
+    Returns (sim1_log, sim2_log, eps, eps_desc).
+    - note: eps_desc is a short human label of how the eps value was chosen.
+    """
+    # Merge the datasets
+    both = np.abs(np.concatenate([sim1_avg, sim2_avg]))
+    # Find nonzero values of both
+    nz = both[both > 0]
+    # Compute the floor value based on the max flux value:
+    floor = float(both.max()) * 10.0 ** (-MAX_LOG_ORDERS)
+
+    # If there are no reactions with zero flux, eps=0, as no flux should cause
+    # an undefined log10() value (note: having no reactions with zero flux would be very rate,
+    # typically only ~1900 of ~9500 have nonzero flux in a given sim).
+    if not nz.size:
+        eps, eps_desc = (
+            0.0,
+            (
+                "a fallback value due to no nonzero flux. "
+                "NOTE: this is rare, double check flux values"
+                " manually. "
+            ),
+        )
+    # Designate an eps value if there are reactions with nonzero flux values:
+    else:
+        eps = float(nz.min())
+        # check if eps is less than the floor value:
+        if eps < floor:
+            eps = floor
+            eps_desc = (
+                f"flooring to {10.0 ** (-MAX_LOG_ORDERS):.0e} x the largest |flux| "
+                "(smallest nonzero flux was significantly smaller than the "
+                "largest flux, and could mess up the plot if used)."
+            )
+        else:
+            eps_desc = "the smallest nonzero |avg flux|."
+
+    print(
+        f"Flux log-transform is computed as: log10(|avg flux| + eps), where "
+        f"the shared eps = {eps:.3e} ({flux_unit}). Epsilon value assigned "
+        f"via: {eps_desc}"
+    )
+    sim1_log = np.log10(np.abs(sim1_avg) + eps)
+    sim2_log = np.log10(np.abs(sim2_avg) + eps)
+    return sim1_log, sim2_log, eps, eps_desc
+
+
 def _add_parity_line(fig: go.Figure, sim1_log: np.ndarray, sim2_log: np.ndarray):
-    """Add a dashed y = x reference line spanning the data range."""
+    """Adds a dashed y=x reference line spanning the data range."""
+    min_val = min(float(sim1_log.min()), float(sim2_log.min()))
     max_val = max(float(sim1_log.max()), float(sim2_log.max()))
     fig.add_trace(
         go.Scatter(
-            x=[0, max_val],
-            y=[0, max_val],
+            x=[min_val, max_val],
+            y=[min_val, max_val],
             mode="lines",
             line=dict(color="black", dash="dash", width=0.5),
             name="y=x",
@@ -441,7 +515,7 @@ def build_highlighted_figure(
                     opacity=0.95,
                     line=dict(width=1, color="black"),
                 ),
-                name=f"Highlighted ({int(highlight_mask.sum())})",
+                name=f"Highlighted reactions ({int(highlight_mask.sum())})",
                 text=[hover_texts[i] for i in np.where(highlight_mask)[0]],
                 hovertemplate="%{text}<extra></extra>",
                 showlegend=True,
@@ -451,6 +525,12 @@ def build_highlighted_figure(
     _add_active_count_legend(fig, active_legend)
     _add_stats_annotation(fig, *stats)
     _apply_square_layout(fig, title, xlabel, ylabel)
+
+    # Move legend to the right side of the plot
+    fig.update_layout(
+        legend=dict(orientation="v", yanchor="top", y=1, xanchor="left", x=1.02)
+    )
+
     return fig
 
 
@@ -494,6 +574,12 @@ def build_categorized_figure(
     _add_active_count_legend(fig, active_legend)
     _add_stats_annotation(fig, *stats)
     _apply_square_layout(fig, title, xlabel, ylabel)
+
+    # Move legend to the right side of the plot
+    fig.update_layout(
+        legend=dict(orientation="v", yanchor="top", y=1, xanchor="left", x=1.02)
+    )
+
     return fig
 
 
@@ -656,13 +742,15 @@ def plot(
     sim2_avg = sim2_avg[active]
     active_legend = f"{n_active} of {n_shared} reactions active in ≥1 sim"
 
-    # Log-transform the magnitude of the signed average flux (+1 pseudocount), so
-    # reactions off in one sim still appear; the hover keeps the signed values.
+    # Log-transform the magnitude of the average flux (note that a small offset
+    # is added to each value to avoid log10(0) calculations, but the hover text
+    # retains the true value:
     # TODO: determine if there is a better way to handle the negative magnitude
     #  fluxes so we dont net them, look into how these are analyzed usually in
     #  wcEcoli scripts
-    sim1_log = np.log10(np.abs(sim1_avg) + 1)
-    sim2_log = np.log10(np.abs(sim2_avg) + 1)
+    sim1_log, sim2_log, flux_eps, flux_eps_desc = _flux_log_transform(
+        sim1_avg, sim2_avg, flux_unit
+    )
 
     # Stats (computed over all plotted reactions):
     r_value = pearsonr(sim1_log, sim2_log)[0]
@@ -788,15 +876,15 @@ def plot(
     os.makedirs(comparison_outdir, exist_ok=True)
 
     subtitle = (
-        f"<sub>|avg flux| log-log; flux units = {flux_unit}; "
-        f"{skip_gens} generations skipped. "
-        f"Sim 1 (x): {exp_id_1} (avg over {len(sim1_fluxes)} cells) vs. "
-        f"<br>Sim 2 (y): {exp_id_2} (avg over {len(sim2_fluxes)} cells)</sub>"
+        f"<sub>Sim 1 (x): {exp_id_1} (averaged over {len(sim1_fluxes)} cells) vs. "
+        f"<br>Sim 2 (y): {exp_id_2} (averaged over {len(sim2_fluxes)} cells)"
+        f"<br>First {skip_gens} generations of each seed are excluded in averages"
+        f"<br>ε={flux_eps:.1e} added to each average to avoid log10(0)</sub>"
     )
-    xlabel = f"log10(|Sim 1 avg flux| + 1) ({flux_unit})"
-    ylabel = f"log10(|Sim 2 avg flux| + 1) ({flux_unit})"
+    xlabel = f"log10(|Sim 1 avg flux| + {flux_eps:.1e}) ({flux_unit})"
+    ylabel = f"log10(|Sim 2 avg flux| + {flux_eps:.1e}) ({flux_unit})"
 
-    # Plot 1: highlighted reactions of interest.
+    # Plot 1: highlighted reactions of interest:
     highlight_set = set(reactions_of_interest)
     active_id_set = set(rxn_ids)  # active (plotted) shared ids
     print("\nHIGHLIGHT REACTIONS:")
@@ -805,7 +893,7 @@ def plot(
             print(f"  WARNING: '{r}' not found in '{flux_column}' for these sims.")
         elif r not in active_id_set:
             print(
-                f"  NOTE: '{r}' has zero avg flux in BOTH sims (inactive); "
+                f"  NOTE: '{r}' has zero avg flux in both sims so "
                 f"it is filtered out and will not appear on the plot."
             )
         else:
@@ -817,7 +905,7 @@ def plot(
         sim2_log,
         hover_texts,
         stats,
-        f"FBA Reaction Flux Comparison (highlighted)<br>{subtitle}",
+        f"FBA Reaction Flux Comparison<br>{subtitle}",
         xlabel,
         ylabel,
         active_legend,
@@ -846,7 +934,7 @@ def plot(
         stats,
         (
             f"FBA Flux Comparison by Metabolite of Interest "
-            f"({', '.join(sorted(metabolite_bases))})<br>{subtitle}"
+            f"<br>({', '.join(sorted(metabolite_bases))})<br>{subtitle}"
         ),
         xlabel,
         ylabel,
