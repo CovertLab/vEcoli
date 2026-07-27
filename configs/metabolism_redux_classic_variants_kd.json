@@ -1,5 +1,5 @@
 {
-    "experiment_id": "check_hom_obj_threshold",
+    "experiment_id": "bobv2_397_generic_kd",
     "parca_options": {
         "cpus": 10
     },
@@ -94,16 +94,49 @@
     "process_configs": {
         "ecoli-metabolism-redux-classic": {
             "objective_weights": {
-                "secretion": 0,
-                "efficiency": 0,
-                "kinetics": 0,
-                "diversity": 0,
-                "homeostatic": 1
+                "secretion": 5.02061E-05,
+                "efficiency": 2.33E-07,
+                "kinetics": 3.1497E-05,
+                "diversity": 0.008770645,
+                "homeostatic": 0.023748941
             },
-            "fraction_kinetic_target": 1.0,
             "include_new": true
         }
-    }
+    },
+    "variants": {
+        "metabolism_redux_classic_fraction_kinetic_target": {
+            "fraction_kinetic_target": {
+                "value": [
+                0.8,
+                0.6,
+                0.5,
+                0.4,
+                0.1
+                ]
+            }
+        }
+  },
+    "analysis_options": {
+        "outdir": "out/objective_weight_jul/analysis/",
+            "multivariant": {
+                "cell_mass": {},
+                "doubling_time_hist": {"skip_n_gens": 0},
+                "centralCarbonMetabolismScatter": {},
+                "centralCarbonMetabolismBoxScatter": {},
+                "weighted_objective_terms": {},
+                "mean_flux_distribution": {
+                    "in_molar": false,
+                    "bin_edges": [0, 1E-6, 1e-3, 1, 2, 10, 1e3, 1E6, 1E9, 1E12],
+                    "facet_columns": 4,
+                    "n_bins": 25
+                },
+                "kinetic_flux": {"plot_catalysts": ["UDP-NACMURALA-GLU-LIG-MONOMER[c]"]},
+                "metabolite_unmet_need": {},
+                "selected_catalyst_fluxes": {
+                    "plot_catalysts": ["UDP-NACMURALA-GLU-LIG-MONOMER[c]"]},
+                "sankey_metabolite_flux": {
+                    "metabolites_of_interest": ["C6[p]"]
+                }
+            }
+     }
 }
-
-

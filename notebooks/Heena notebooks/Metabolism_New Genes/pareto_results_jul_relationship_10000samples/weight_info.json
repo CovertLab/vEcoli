@@ -1,0 +1,1 @@
+{"homeostatic": [0.001, 1.0], "diversity": [1e-05, 0.01], "kin_hom_ratio": [0.0005, 0.01], "eff_log_range": [-7.0, -4.0], "eff_kin_log_slope": 1.1, "eff_kin_log_intercept": -0.5, "secretion_range_placeholder": [1e-07, 0.0001]}

@@ -144,7 +144,7 @@ class MetabolismReduxClassic(Step):
         "maintenance_reaction": {},
         # Fallback only: overridden by sim_data.process.metabolism in normal sims
         "fraction_kinetic_target": 1.0,
-        "include_new": False,
+        "include_new": True,
     }
 
     def __init__(self, parameters):

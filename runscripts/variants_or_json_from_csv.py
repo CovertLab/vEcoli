@@ -8,28 +8,28 @@ passes it to ``workflow.py``, so no manual JSON editing is required.
 
 Usage (CLI):
     # Generate and immediately run the workflow with all CSV rows as variants:
-    python runscripts/create_variants_from_csv.py \\
+    python runscripts/variants_or_json_from_csv.py \\
         --config configs/metabolism_redux_classic_variant.json \\
         --csv "notebooks/Heena notebooks/Metabolism_New Genes/\\
 pareto_results_init_selective_2000samples/objective_weights_batch_apr.csv" \\
         --outdir out/variants_apr
 
     # Only run specific rows by Index value:
-    python runscripts/create_variants_from_csv.py \\
-        --config configs/metabolism_redux_classic_variant.json \\
+    python runscripts/variants_or_json_from_csv.py \\
+        --config configs/..json \\
         --csv path/to/weights.csv \\
         --outdir out/variants_subset \\
         --indices 282 424 728
 
     # Just write the merged config JSON without running the workflow:
-    python runscripts/create_variants_from_csv.py \\
+    python runscripts/variants_or_json_from_csv.py \\
         --config configs/metabolism_redux_classic_variant.json \\
         --csv path/to/weights.csv \\
         --outdir out/variants_apr \\
         --write-config-only merged_config.json
 
 Usage (programmatic):
-    from runscripts.create_variants_from_csv import csv_to_variants_config
+    from runscripts.variants_or_json_from_csv import csv_to_variants_config
 
     variants_block = csv_to_variants_config("path/to/weights.csv")
     # variants_block can be assigned to config["variants"] directly

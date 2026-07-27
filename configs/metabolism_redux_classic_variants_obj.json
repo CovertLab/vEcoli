@@ -1,10 +1,9 @@
 {
-    "experiment_id": "check_hom_obj_threshold",
+    "experiment_id": "relationship_hom_threshold",
     "parca_options": {
         "cpus": 10
     },
     "max_duration": 4000,
-    "sim_data_path": null,
     "fail_at_max_duration": true,
     "progress_bar": true,
     "log_updates": false,
@@ -93,17 +92,61 @@
     "disable_ppgpp_elongation_inhibition": true,
     "process_configs": {
         "ecoli-metabolism-redux-classic": {
-            "objective_weights": {
-                "secretion": 0,
-                "efficiency": 0,
-                "kinetics": 0,
-                "diversity": 0,
-                "homeostatic": 1
-            },
             "fraction_kinetic_target": 1.0,
             "include_new": true
         }
+    },
+    "variants": {
+    "metabolism_redux_classic_objective_weights": {
+      "homeostatic": {
+          "value": [0.020631693]
+      },
+        "secretion": {
+            "value": [1.02973E-05
+            ]
+        },
+        "efficiency": {
+            "value": [
+                1.25E-06
+            ]
+        },
+        "kinetics": {
+            "value": [
+                1.05357E-05
+            ]
+        },
+        "diversity": {
+            "value": [
+                0.008543309
+            ]
+        },
+      "op": "zip"
     }
+  },
+    "analysis_options": {
+        "outdir": "out/objective_weight_jul/analysis/",
+            "multivariant": {
+                "cell_mass": {},
+                "doubling_time_hist": {"skip_n_gens": 0},
+                "centralCarbonMetabolismScatter": {},
+                "centralCarbonMetabolismBoxScatter": {},
+                "weighted_objective_terms": {},
+                "mean_flux_distribution": {
+                    "in_molar": false,
+                    "bin_edges": [0, 1E-6, 1e-3, 1, 2, 10, 1e3, 1E6, 1E9, 1E12],
+                    "facet_columns": 4,
+                    "n_bins": 25
+                },
+                "kinetic_flux": {"plot_catalysts": [
+                    "NACGLCTRANS-MONOMER[c]",
+                    "UDPNACETYLGLUCOSAMACYLTRANS-CPLX[c]",
+                    "UDPNACETYLGLUCOSAMENOLPYRTRANS-MONOMER[c]"]},
+                "metabolite_unmet_need": {},
+                "selected_catalyst_fluxes": {
+                    "plot_catalysts": ["UDP-NACMURALA-GLU-LIG-MONOMER[c]"]},
+                "sankey_metabolite_flux": {
+                    "metabolites_of_interest": ["C6[p]", "WATER[c]"]
+                }
+            }
+     }
 }
-
-

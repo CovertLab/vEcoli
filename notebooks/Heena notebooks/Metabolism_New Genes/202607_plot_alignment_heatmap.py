@@ -10,7 +10,7 @@ Each well is colored with one of four discrete categories:
     D - both models match
 
 A well with no ground truth call, or infeasible/missing in either model's
-results, is left blank (grey).
+results, is left blank (white).
 
 Usage:
     uv run --env-file .env --project . python3 \
@@ -23,7 +23,6 @@ from pathlib import Path
 
 import altair as alt
 import pandas as pd
-import plotly.colors as pc
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_OLD_RESULTS_CSV = (
@@ -48,8 +47,12 @@ CATEGORY_LABELS = {
     "C": "C: only NEW correct",
     "D": "D: both correct",
 }
-CATEGORY_COLORS = pc.qualitative.Pastel[:4]
-BLANK_COLOR = pc.qualitative.Pastel[-1]
+# Explicit ColorBrewer-style sequential colors (not derived from a
+# qualitative palette): two 2-step ramps -- grey for "no NEW-model
+# correctness gain" (A/B), blue for "NEW model correct" (C/D) -- chosen for
+# perceptual distinctness and consistency in a static figure.
+CATEGORY_COLORS = ["#d9d9d9", "#969696", "#9ecae1", "#3182bd"]  # A, B, C, D
+BLANK_COLOR = "#ffffff"  # Missing: no ground truth / infeasible
 
 CELL_WIDTH = 130
 CELL_HEIGHT = 100

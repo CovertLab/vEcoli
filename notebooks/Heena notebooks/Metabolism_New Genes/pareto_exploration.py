@@ -18,15 +18,25 @@ Usage:
 from ecoli.processes.metabolism_redux_classic import (
     FlowResult,
     FREE_RXNS,
+    MetabolismReduxClassic,
     NetworkFlowModel,
 )
+from ecoli.library.parquet_emitter import (
+    dataset_sql,
+    field_metadata,
+    ndlist_to_ndarray,
+    read_stacked_columns,
+)
+from ecoli.library.sim_data import LoadSimData
 from wholecell.utils import units, toya
 import argparse
+import glob
 import os
 import warnings
 from typing import Optional
 import pickle
 import json
+import duckdb
 from fsspec import open as fsspec_open
 import altair as alt
 import cvxpy as cp
@@ -55,12 +65,15 @@ WEIGHT_RANGES = {
     "homeostatic": (1e-3, 1.0),
     "secretion": (1e-7, 1e-4),  # 2.12E-4
     "efficiency": (1e-7, 1e-4),  # 2.34E-5
-    "kinetics": (1e-5, 1e-3),  # 1.64E-3       1e-3 -1e-2 no points
+    # Widened upper bound from 1e-3 to 1e-2: the previous range under-sampled
+    # the large lambda_kin/lambda_hom ratios needed for a real (non-noise-floor)
+    # trade-off between obj_kin and obj_homeo (see 20260723 re-analysis).
+    "kinetics": (1e-5, 1e-2),
     "diversity": (1e-5, 1e-2),  # 8.53E-3
 }
 
 OUT_DIR = (
-    "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_init_10000samples"
+    "notebooks/Heena notebooks/Metabolism_New Genes/pareto_results_jul_10000samples"
 )
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -76,8 +89,8 @@ def log_uniform_sample(n_samples: int, seed: int = 42) -> np.ndarray:
     Draw n_samples weight combinations uniformly in log space within each
     term's feasible range.
 
-    Returns array of shape (n_samples, 4) with columns ordered as
-    WEIGHT_RANGES: [efficiency, kinetics, secretion, diversity].
+    Returns array of shape (n_samples, 5) with columns ordered as
+    WEIGHT_RANGES: [homeostatic, secretion, efficiency, kinetics, diversity].
     """
     rng = np.random.default_rng(seed)
     samples = []
@@ -158,10 +171,15 @@ def solve_one(
     counts_to_molar,
     solver_choice=cp.GLOP,
     binary_kinetics_idx=None,
+    fraction_kinetic_target: float = 1.0,
 ) -> Optional[dict]:
     """
     Build and solve the NetworkFlowModel for one weight combination.
     Returns a flat dict of weights + objective term values, or None on failure.
+
+    `fraction_kinetic_target` scales all kinetic targets uniformly (the
+    global proxy for a kinetic-enzyme knockdown used throughout this
+    project — see NetworkFlowModel.solve()); defaults to 1.0 (no knockdown).
     """
     weights = {
         "homeostatic": lam_hom,
@@ -195,6 +213,9 @@ def solve_one(
             objective_weights=weights,
             upper_flux_bound=100,
             target_minimal_flux=counts_to_molar[-1],
+            fraction_kinetic_target=fraction_kinetic_target,
+            include_new=True,
+            new_reaction_idx=metabolism.new_reaction_idx,
             solver=solver_choice,
         )
 
@@ -204,6 +225,7 @@ def solve_one(
             "lambda_eff": lam_eff,
             "lambda_kin": lam_kin,
             "lambda_div": lam_div,
+            "fraction_kinetic_target": fraction_kinetic_target,
             "obj_total": solution.objective,
             "obj_homeo": solution.homeostatic_term,
             "obj_kin": solution.kinetics_term,
@@ -677,17 +699,23 @@ def run(
     seed: int = 42,
     solver_choice=cp.GLOP,
     binary_kinetics_idx=None,
+    sample_fn=log_uniform_sample,
 ) -> pl.DataFrame:
     """
-    Run log-uniform Pareto exploration and generate all three plots.
+    Run Pareto exploration and generate all three plots.
+
+    `sample_fn(n_samples, seed=seed)` must return an array of shape
+    (n_samples, 5) ordered [homeostatic, secretion, efficiency, kinetics,
+    diversity]; defaults to the independent log-uniform sampler
+    (`log_uniform_sample`). Pass a different callable to explore
+    weight combinations constrained by known relationships between terms
+    (see pareto_exploration_relationship.py).
 
     Returns a Polars DataFrame with one row per successful solve containing
-    all four lambda values and all five objective term values.
+    all five lambda values and all five objective term values.
     """
-    print(
-        f"Sampling {n_samples} weight combinations (log-uniform in feasible ranges)..."
-    )
-    weight_samples = log_uniform_sample(n_samples, seed=seed)
+    print(f"Sampling {n_samples} weight combinations (via {sample_fn.__name__})...")
+    weight_samples = sample_fn(n_samples, seed=seed)
 
     fixed = dict(
         stoichiometry=stoichiometry,
@@ -757,37 +785,165 @@ def run(
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
+def load_problem_data(sim_out_dir: str):
+    """
+    Load the fixed problem data run() needs from a fresh homeostatic-only
+    whole-cell sim (parquet output from
+    `uvenv runscripts/workflow.py --config configs/metabolism_redux_classic.json`),
+    mirroring the extraction that 20260127_pairwise_to_homeo_weights.ipynb did
+    against the older raw-numpy (0_output.npy + agent_steps.pkl) snapshot
+    format, adapted for parquet + a bare (non-live) process reconstruction.
+    """
+    sim_dirs = sorted(glob.glob(os.path.join(sim_out_dir, "homeostatic_only_*")))
+    if not sim_dirs:
+        raise FileNotFoundError(
+            f"No homeostatic_only_* experiment directories found under "
+            f"{sim_out_dir}. Run `uvenv runscripts/workflow.py --config "
+            f"configs/metabolism_redux_classic.json` first."
+        )
+    experiment_dir = sim_dirs[-1]
+    experiment_id = os.path.basename(experiment_dir)
+    print(f"Loading fixed problem data from: {experiment_dir}")
+
+    # --- Reconstruct the static MetabolismReduxClassic attributes directly
+    # from sim_data, without running a live sim (see metabolism_redux_classic.py
+    # __init__, lines ~150-311, for what's fully determined by parameters alone).
+    sim_data_path = os.path.join(experiment_dir, "parca", "kb", "simData.cPickle")
+    load_sim_data = LoadSimData(
+        sim_data_path=sim_data_path,
+        seed=0,
+        fixed_media="minimal",
+        condition="basal",
+    )
+    metabolism_config = load_sim_data.get_metabolism_redux_config()
+    metabolism = MetabolismReduxClassic(metabolism_config)
+
+    # `allowed_exchange_uptake` is normally only populated live from
+    # environment state on the first next_update() call (metabolism_redux_classic.py:459-478).
+    # Media is fixed for the whole sim, so replicate that one-time computation
+    # directly from sim_data instead of running a live step.
+    exchange_data = load_sim_data.sim_data.external_state.exchange_data_from_media(
+        metabolism.media_id
+    )
+    unconstrained_uptake = exchange_data["importUnconstrainedExchangeMolecules"]
+    constrained_uptake = exchange_data["importConstrainedExchangeMolecules"]
+    metabolism.allowed_exchange_uptake = set(unconstrained_uptake).union(
+        constrained_uptake.keys()
+    )
+    metabolism.exchange_molecules = set(metabolism.exchange_molecules).union(
+        metabolism.allowed_exchange_uptake
+    )
+
+    # `new_reaction_idx` is likewise only assigned inside next_update()
+    # (metabolism_redux_classic.py:536-538), but is fully static — computed
+    # from `reaction_names` and the `fba_new_reaction_ids` parameter alone.
+    fba_new_reaction_ids = metabolism.parameters["fba_new_reaction_ids"]
+    metabolism.new_reaction_idx = np.where(
+        np.isin(metabolism.reaction_names, fba_new_reaction_ids)
+    )
+
+    # --- Pull time-resolved FBA listener targets from the parquet history ---
+    history_sql, config_sql, success_sql = dataset_sql(sim_out_dir, [experiment_id])
+    conn = duckdb.connect()
+
+    homeostatic_metabolites_meta = field_metadata(
+        conn, config_sql, "listeners__fba_results__target_homeostatic_dmdt"
+    )
+    kinetic_constraint_reactions_meta = field_metadata(
+        conn, config_sql, "listeners__fba_results__target_kinetic_fluxes"
+    )
+    if list(homeostatic_metabolites_meta) != list(metabolism.homeostatic_metabolites):
+        raise ValueError(
+            "Homeostatic metabolite order mismatch between parquet metadata "
+            "and the reconstructed process — check fixed_media/condition "
+            "passed to LoadSimData."
+        )
+    if list(kinetic_constraint_reactions_meta) != list(
+        metabolism.kinetic_constraint_reactions
+    ):
+        raise ValueError(
+            "Kinetic reaction order mismatch between parquet metadata and "
+            "the reconstructed process — check fixed_media/condition passed "
+            "to LoadSimData."
+        )
+
+    raw = read_stacked_columns(
+        history_sql,
+        [
+            "listeners__fba_results__target_homeostatic_dmdt AS target_homeostatic_dmdt",
+            "listeners__fba_results__homeostatic_metabolite_counts AS homeostatic_metabolite_counts",
+            "listeners__fba_results__maintenance_target AS maintenance_target",
+            "listeners__fba_results__target_kinetic_fluxes AS target_kinetic_fluxes",
+            "listeners__enzyme_kinetics__counts_to_molar AS counts_to_molar",
+        ],
+        remove_first=True,  # first emitted timestep has empty placeholder targets
+        conn=conn,
+    )
+
+    target_homeostatic_dmdt = ndlist_to_ndarray(raw["target_homeostatic_dmdt"])
+    homeostatic_metabolite_counts_ts = ndlist_to_ndarray(
+        raw["homeostatic_metabolite_counts"]
+    )
+    target_kinetic_fluxes = ndlist_to_ndarray(raw["target_kinetic_fluxes"])
+    maintenance_target_ts = raw["maintenance_target"].to_numpy()
+    counts_to_molar = raw["counts_to_molar"].to_numpy()
+
+    # Counts -> conc, aggregated over time the same way the pairwise-weights
+    # notebook did against the old snapshot (homeostatic target: max over
+    # time; everything else: mean over time).
+    homeostatic_dm_targets_vals = np.max(
+        target_homeostatic_dmdt * counts_to_molar[:, None], axis=0
+    )
+    homeostatic_metabolite_counts_vals = np.mean(
+        homeostatic_metabolite_counts_ts * counts_to_molar[:, None], axis=0
+    )
+    kinetic_vals = np.mean(target_kinetic_fluxes * counts_to_molar[:, None], axis=0)
+    maintenance = float(np.mean(maintenance_target_ts * counts_to_molar))
+
+    homeostatic_dm_targets = dict(
+        zip(metabolism.homeostatic_metabolites, homeostatic_dm_targets_vals)
+    )
+    kinetic = dict(zip(metabolism.kinetic_constraint_reactions, kinetic_vals))
+
+    return dict(
+        stoichiometry=metabolism.stoichiometry,
+        metabolites=metabolism.metabolite_names,
+        reaction_names=metabolism.reaction_names,
+        metabolism=metabolism,
+        homeostatic_metabolite_counts=homeostatic_metabolite_counts_vals,
+        homeostatic_dm_targets=homeostatic_dm_targets,
+        kinetic=kinetic,
+        maintenance=maintenance,
+        counts_to_molar=counts_to_molar,
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Log-uniform Pareto front exploration")
-    parser.add_argument("--n_samples", type=int, default=200)
+    parser.add_argument("--n_samples", type=int, default=10000)
     parser.add_argument(
         "--n_jobs",
         type=int,
-        default=1,
+        default=6,
         help="Parallel solves via joblib. Note: CVXPY itself is "
         "multi-threaded, so n_jobs * CVXPY threads must fit "
         "within your CPU budget.",
     )
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--sim_out_dir",
+        type=str,
+        default="out/objective_weights_jul",
+        help="Directory containing the fresh homeostatic_only_* sim run "
+        "produced by `uvenv runscripts/workflow.py --config "
+        "configs/metabolism_redux_classic.json`.",
+    )
     args = parser.parse_args()
 
-    # ------------------------------------------------------------------
-    # Load problem data here, then call run().
-    # This mirrors the setup in other notebook before test_NetworkFlowModel.
-    # ------------------------------------------------------------------
-    # Example:
-    #   run(
-    #       stoichiometry=stoichiometry,
-    #       metabolites=metabolites,
-    #       reaction_names=reaction_names,
-    #       metabolism=metabolism,
-    #       homeostatic_metabolite_counts=homeostatic_metabolite_counts,
-    #       homeostatic_dm_targets=homeostatic_dm_targets,
-    #       kinetic=kinetic,
-    #       maintenance=maintenance,
-    #       counts_to_molar=counts_to_molar,
-    #       n_samples=args.n_samples,
-    #       n_jobs=args.n_jobs,
-    #       seed=args.seed,
-    #   )
-    raise NotImplementedError("Fill in problem data above, then call run(). ")
+    problem_data = load_problem_data(args.sim_out_dir)
+    run(
+        n_samples=args.n_samples,
+        n_jobs=args.n_jobs,
+        seed=args.seed,
+        **problem_data,
+    )

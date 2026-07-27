@@ -1,8 +1,7 @@
-"""Plot a horizontal dumbbell chart of new-metabolic-gene usage: for each of
-the ~307 genes added to the model in the 2022 metabolic-gene expansion, what
-fraction of phenotype-microarray conditions gave that gene's enzyme(s) any
-flux, comparing the OLD model (no 2022 reactions) against the NEW model
-(with 2022 reactions).
+"""Plot a lollipop chart of new-metabolic-gene usage: for each of the ~307
+genes added to the model in the 2022 metabolic-gene expansion, what fraction
+of phenotype-microarray conditions gave that gene's enzyme(s) any flux, for a
+single model run.
 
 Requires per-well base-reaction flux data captured by
 202607_run_phenotypic_arrays.py --capture-fluxes (not present in the
@@ -24,33 +23,21 @@ directly answers "did adding the 2022 reactions get this gene used", the
 question motivating the whole analysis; it also matches the truthiness-only
 metric already used in the user's prior notebook precedent.
 
-Note: a gene showing 0% flux in the OLD model is not necessarily because its
-reactions are structurally missing from the OLD network -- most 2022-tagged
-reactions are present in both checkpoints' base_reaction_ids (the OLD/NEW
-gap mostly comes from which reactions the solver actually routes flux
-through in each checkpoint's frozen catalyst/kinetic state, not from S-matrix
-column presence/absence).
+Two figures are produced from the same per-gene fraction data:
+  - a lollipop chart (one stem+dot per gene, --orientation horizontal or
+    vertical) of the fraction of PM conditions with flux, optionally
+    restricted to the top N genes via --top-n;
+  - a bar chart (always over ALL genes, regardless of --top-n) counting how
+    many genes fall into each of 4 condition-coverage buckets: used in every
+    condition, used in exactly one condition, used in no conditions, or
+    other.
 
-CAVEAT (checked 2026-07-13): re-solving the OLD checkpoint (--capture-fluxes)
-to get flux data does NOT reproduce the already-published
-results_no_new_reactions_original_weights.csv's homeostatic_objective --
-every one of the 384 wells differs, many by 1.5-2.7 in absolute terms (e.g.
-published oofv ~3.44 for several PM1 wells vs. ~0.7-1.4 on re-solve). This is
-not floating-point noise (the NEW-model re-solve matches its own published
-CSV to ~1e-12 on the same wells) -- something about the OLD checkpoint's
-solve behavior has drifted, most likely from code changes to
-metabolism_redux_classic.py/NetworkFlowModel between whenever that CSV was
-generated and the current HEAD. This script's flux data (and therefore its
-OLD-model usage fractions) reflects CURRENT-HEAD solve behavior, not
-whatever produced the published OLD-model results.csv -- treat the OLD-model
-side of this plot as a snapshot of current code, not as consistent with
-prior OLD-model analyses, until that drift is root-caused.
-
-With ~307 genes, the output SVG/HTML is intentionally a tall image -- this
-matches the reference dumbbell-chart style, not a layout bug. By default
-every gene is plotted; pass --top-n N to only plot the top N genes by
-NEW-model fraction. The summary CSV always contains all genes regardless of
-this flag.
+With ~307 genes, the horizontal lollipop's output SVG/HTML is intentionally
+a tall image, and the vertical orientation's is analogously wide -- this
+matches the reference chart style, not a layout bug; --top-n is the
+mitigation for either orientation. By default every gene is plotted; pass
+--top-n N to only plot the top N genes by fraction. The summary CSV and the
+bar chart always cover all genes regardless of this flag.
 
 Usage:
     uv run --env-file .env --project . python3 \
@@ -71,11 +58,15 @@ DEFAULT_OUT_DIR = SCRIPT_DIR / "out" / "phenotypic_arrays"
 DEFAULT_PLOTS_DIR = DEFAULT_OUT_DIR / "plots"
 DEFAULT_GENE_ANNOTATION_CSV = SCRIPT_DIR / "new_metabolic_gene_annotation.csv"
 
-OLD_COLOR = "#b0b0b0"
-NEW_COLOR = pc.qualitative.Pastel[2]
+MARK_COLOR = pc.qualitative.Pastel[2]
 LINE_COLOR = "#dddddd"
-OLD_LABEL = "Old model (no 2022 reactions)"
-NEW_LABEL = "New model (with 2022 reactions)"
+
+COVERAGE_CATEGORY_ORDER = [
+    "used in no conditions",
+    "used in only one condition",
+    "other",
+    "used in all conditions",
+]
 
 
 def write_altair_figure(chart, out_dir, stem):
@@ -133,85 +124,144 @@ def compute_has_flux_fraction(flux_df, gene_to_base_reactions, epsilon):
     of its mapped base-reaction columns has |flux| > epsilon. Reaction ids
     not present in this model's flux_df columns are dropped -- treated as
     no-flux by construction, not an error (a handful of base reaction ids
-    differ between the OLD/NEW checkpoints' networks).
+    can differ between checkpoints' networks).
 
-    Returns (gene_id -> fraction, gene_id -> n_mapped_reactions_present)."""
+    Returns (gene_id -> fraction, gene_id -> n_mapped_reactions_present,
+    gene_id -> n_wells_with_flux)."""
     columns = set(flux_df.columns)
-    fractions, coverage = {}, {}
+    fractions, coverage, well_counts = {}, {}, {}
     for gene_id, base_reactions in gene_to_base_reactions.items():
         present = base_reactions & columns
         coverage[gene_id] = len(present)
         if not present:
             fractions[gene_id] = 0.0
+            well_counts[gene_id] = 0
             continue
         has_flux = (flux_df[list(present)].abs() > epsilon).any(axis=1)
+        well_counts[gene_id] = int(has_flux.sum())
         fractions[gene_id] = float(has_flux.mean())
-    return fractions, coverage
+    return fractions, coverage, well_counts
 
 
-def build_dumbbell_figure(result_df):
-    """Horizontal dumbbell/lollipop chart: one row per gene, a grey dot for
-    the OLD-model fraction and a colored dot for the NEW-model fraction,
-    connected by a thin line. result_df is expected pre-sorted; genes are
-    plotted top-to-bottom in that order (first row on top)."""
+def categorize_condition_coverage(n_wells_with_flux, n_wells):
+    """Bucket one gene's raw well-count into one of the 4 coverage
+    categories. Branch order matters for the degenerate n_wells<=1 cases:
+    checking ==0 and ==n_wells before ==1 means a gene with flux in a
+    single-well run's only well is classified as "all conditions" (the
+    stronger claim), not "only one condition"."""
+    if n_wells_with_flux == 0:
+        return "used in no conditions"
+    if n_wells_with_flux == n_wells:
+        return "used in all conditions"
+    if n_wells_with_flux == 1:
+        return "used in only one condition"
+    return "other"
+
+
+def compute_condition_coverage_counts(result_df, n_wells):
+    """Categorize every gene in result_df (expected to be the FULL,
+    unfiltered-by---top-n set) into COVERAGE_CATEGORY_ORDER buckets.
+    Returns a DataFrame with columns ["category", "count"], zero-filled for
+    any empty bucket."""
+    categories = result_df["n_wells_with_flux"].apply(
+        categorize_condition_coverage, n_wells=n_wells
+    )
+    counts = categories.value_counts().reindex(COVERAGE_CATEGORY_ORDER, fill_value=0)
+    return counts.rename_axis("category").reset_index(name="count")
+
+
+def build_lollipop_figure(result_df, orientation, run_name):
+    """Lollipop chart: one stem+dot per gene, stem from 0 to fraction, dot
+    at the tip, single MARK_COLOR (no legend -- one series). result_df is
+    expected pre-sorted by fraction descending; genes are plotted in that
+    order.
+
+    orientation="horizontal": genes on y (categorical), fraction on x
+    [0, 1], height scales with gene count.
+    orientation="vertical": genes on x (categorical, rotated labels),
+    fraction on y [0, 1], width scales with gene count instead."""
     labels = result_df["gene_label"].tolist()
     n_genes = len(result_df)
-    height = max(600, 22 * n_genes)
+    size = max(600, 22 * n_genes)
+    frac_scale = alt.Scale(domain=[-0.02, 1.02])
+    plot_df = result_df.assign(zero=0.0)
 
-    y_axis = alt.Y("gene_label:N", sort=labels, title="Gene")
-    x_scale = alt.Scale(domain=[-0.02, 1.02])
-
-    rules = (
-        alt.Chart(result_df)
-        .mark_rule(color=LINE_COLOR)
-        .encode(
-            y=y_axis,
-            x=alt.X("fraction_old:Q", scale=x_scale),
-            x2="fraction_new:Q",
+    if orientation == "horizontal":
+        cat_axis = alt.Y("gene_label:N", sort=labels, title="Gene")
+        stem_encode = dict(
+            y=cat_axis, x=alt.X("zero:Q", scale=frac_scale), x2="fraction:Q"
         )
-    )
-
-    long_df = pd.melt(
-        result_df,
-        id_vars=["gene_label"],
-        value_vars=["fraction_old", "fraction_new"],
-        var_name="model",
-        value_name="fraction",
-    )
-    long_df["model"] = long_df["model"].map(
-        {"fraction_old": OLD_LABEL, "fraction_new": NEW_LABEL}
-    )
-
-    points = (
-        alt.Chart(long_df)
-        .mark_circle(size=80)
-        .encode(
-            y=y_axis,
+        dot_encode = dict(
+            y=cat_axis,
             x=alt.X(
                 "fraction:Q",
-                scale=x_scale,
+                scale=frac_scale,
                 title="Fraction of conditions with flux",
             ),
-            color=alt.Color(
-                "model:N",
-                sort=[OLD_LABEL, NEW_LABEL],
-                scale=alt.Scale(
-                    domain=[OLD_LABEL, NEW_LABEL], range=[OLD_COLOR, NEW_COLOR]
-                ),
-                legend=alt.Legend(title=None, orient="top"),
-            ),
-            tooltip=["gene_label:N", "model:N", "fraction:Q"],
         )
+        width, height = 400, size
+    else:
+        cat_axis = alt.X(
+            "gene_label:N",
+            sort=labels,
+            title="Gene",
+            axis=alt.Axis(labelAngle=-90),
+        )
+        stem_encode = dict(
+            x=cat_axis, y=alt.Y("zero:Q", scale=frac_scale), y2="fraction:Q"
+        )
+        dot_encode = dict(
+            x=cat_axis,
+            y=alt.Y(
+                "fraction:Q",
+                scale=frac_scale,
+                title="Fraction of conditions with flux",
+            ),
+        )
+        width, height = size, 400
+
+    rules = alt.Chart(plot_df).mark_rule(color=LINE_COLOR).encode(**stem_encode)
+    points = (
+        alt.Chart(plot_df)
+        .mark_circle(size=80, color=MARK_COLOR)
+        .encode(tooltip=["gene_label:N", "fraction:Q"], **dot_encode)
     )
 
     chart = (
         (rules + points)
         .properties(
-            width=400,
+            width=width,
             height=height,
-            title="New Metabolic Gene Usage: Fraction of PM Conditions With Flux (Old vs New Model)",
+            title="New Metabolic Gene Usage: Fraction of PM Conditions With "
+            f"Flux ({run_name})",
         )
         .configure_axis(labelLimit=200)
+    )
+    return chart
+
+
+def build_condition_coverage_bar_figure(category_counts, n_wells, run_name):
+    """Bar chart of gene counts per condition-coverage category, computed
+    over ALL genes regardless of --top-n."""
+    chart = (
+        alt.Chart(category_counts)
+        .mark_bar(color=MARK_COLOR)
+        .encode(
+            x=alt.X(
+                "category:N",
+                sort=COVERAGE_CATEGORY_ORDER,
+                title=None,
+                axis=alt.Axis(labelAngle=-20),
+            ),
+            y=alt.Y("count:Q", title="Number of genes"),
+            tooltip=["category:N", "count:Q"],
+        )
+        .properties(
+            width=400,
+            height=300,
+            title="New Metabolic Gene Condition-Coverage Categories "
+            f"({run_name}, n={n_wells} wells, all genes)",
+        )
     )
     return chart
 
@@ -219,16 +269,10 @@ def build_dumbbell_figure(result_df):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--old-name",
-        default="no_new_reactions_original_weights",
+        "--run-name",
+        default="new_reaction_original_weights",
         help="--out-name used when running 202607_run_phenotypic_arrays.py "
-        "--capture-fluxes for the OLD model (no 2022 reactions)",
-    )
-    parser.add_argument(
-        "--new-name",
-        default="new_reactions_original_weights",
-        help="--out-name used when running 202607_run_phenotypic_arrays.py "
-        "--capture-fluxes for the NEW model (with 2022 reactions)",
+        "--capture-fluxes for this model run",
     )
     parser.add_argument(
         "--flux-dir",
@@ -256,88 +300,67 @@ def main():
         "--out-dir",
         type=Path,
         default=DEFAULT_PLOTS_DIR,
-        help="Directory to write the dumbbell chart HTML/SVG and a summary CSV",
+        help="Directory to write the lollipop/bar chart HTML/SVG and a summary CSV",
+    )
+    parser.add_argument(
+        "--orientation",
+        choices=["horizontal", "vertical"],
+        default="horizontal",
+        help="horizontal (default): genes on y-axis, fraction on x-axis, "
+        "height scales with gene count. vertical: genes on x-axis with "
+        "rotated labels, fraction on y-axis, width scales with gene count "
+        "instead.",
     )
     parser.add_argument(
         "--top-n",
         type=int,
         default=None,
-        help="Only plot the top N genes by NEW-model fraction (default: None, "
-        "plot every gene). The summary CSV always contains all genes "
-        "regardless of this flag.",
+        help="Only plot the top N genes by fraction (default: None, plot "
+        "every gene). The summary CSV and the condition-coverage bar chart "
+        "always cover all genes regardless of this flag.",
     )
     parser.add_argument(
-        "--show", action="store_true", help="Also open the figure in a browser"
+        "--show", action="store_true", help="Also open the figures in a browser"
     )
     args = parser.parse_args()
 
-    print(
-        "CAVEAT: the OLD-model flux data behind this plot comes from a "
-        "current-HEAD re-solve of the checkpoint, not from whatever "
-        "produced results_no_new_reactions_original_weights.csv -- the two "
-        "diverge substantially (see module docstring). Treat the OLD-model "
-        "side of this plot as current-code behavior, not as consistent "
-        "with prior OLD-model analyses."
+    flux_df = pd.read_parquet(args.flux_dir / f"{args.run_name}_fluxes.parquet")
+    print(f"flux matrix: {flux_df.shape[0]} wells x {flux_df.shape[1]} reactions")
+
+    with open(args.flux_dir / f"{args.run_name}_reaction_catalysts.json") as handle:
+        reaction_catalysts = json.load(handle)
+    with open(args.flux_dir / f"{args.run_name}_fba_to_base_reactions.json") as handle:
+        fba_to_base = json.load(handle)
+
+    genes_df, gene_to_base = load_gene_to_base_reactions(
+        args.gene_annotation_csv, reaction_catalysts, fba_to_base
     )
 
-    old_flux_df = pd.read_parquet(args.flux_dir / f"{args.old_name}_fluxes.parquet")
-    new_flux_df = pd.read_parquet(args.flux_dir / f"{args.new_name}_fluxes.parquet")
-    print(
-        f"OLD flux matrix: {old_flux_df.shape[0]} wells x {old_flux_df.shape[1]} reactions"
+    fraction, coverage, well_counts = compute_has_flux_fraction(
+        flux_df, gene_to_base, args.epsilon
     )
-    print(
-        f"NEW flux matrix: {new_flux_df.shape[0]} wells x {new_flux_df.shape[1]} reactions"
-    )
-
-    with open(args.flux_dir / f"{args.old_name}_reaction_catalysts.json") as handle:
-        old_reaction_catalysts = json.load(handle)
-    with open(args.flux_dir / f"{args.old_name}_fba_to_base_reactions.json") as handle:
-        old_fba_to_base = json.load(handle)
-    with open(args.flux_dir / f"{args.new_name}_reaction_catalysts.json") as handle:
-        new_reaction_catalysts = json.load(handle)
-    with open(args.flux_dir / f"{args.new_name}_fba_to_base_reactions.json") as handle:
-        new_fba_to_base = json.load(handle)
-
-    genes_df, gene_to_base_old = load_gene_to_base_reactions(
-        args.gene_annotation_csv, old_reaction_catalysts, old_fba_to_base
-    )
-    _, gene_to_base_new = load_gene_to_base_reactions(
-        args.gene_annotation_csv, new_reaction_catalysts, new_fba_to_base
-    )
-
-    fraction_old, coverage_old = compute_has_flux_fraction(
-        old_flux_df, gene_to_base_old, args.epsilon
-    )
-    fraction_new, coverage_new = compute_has_flux_fraction(
-        new_flux_df, gene_to_base_new, args.epsilon
-    )
+    n_wells = len(flux_df)
 
     gene_names = genes_df.set_index("Gene ID (EcoCyc)")["Gene name"].to_dict()
-    gene_ids = list(gene_to_base_new.keys())
+    gene_ids = list(gene_to_base.keys())
     result_df = pd.DataFrame(
         {
             "gene_id": gene_ids,
             "gene_name": [gene_names.get(g) for g in gene_ids],
-            "fraction_old": [fraction_old.get(g, 0.0) for g in gene_ids],
-            "fraction_new": [fraction_new.get(g, 0.0) for g in gene_ids],
-            "n_reactions_old": [coverage_old.get(g, 0) for g in gene_ids],
-            "n_reactions_new": [coverage_new.get(g, 0) for g in gene_ids],
+            "fraction": [fraction.get(g, 0.0) for g in gene_ids],
+            "n_reactions": [coverage.get(g, 0) for g in gene_ids],
+            "n_wells_with_flux": [well_counts.get(g, 0) for g in gene_ids],
         }
     )
     result_df["gene_label"] = result_df["gene_name"].fillna(result_df["gene_id"])
 
-    n_covered_new = (result_df["n_reactions_new"] > 0).sum()
-    n_covered_old = (result_df["n_reactions_old"] > 0).sum()
+    n_covered = (result_df["n_reactions"] > 0).sum()
     print(
-        f"{n_covered_new}/{len(result_df)} genes have >=1 mapped reaction present "
-        "in the NEW model's base_reaction_ids universe"
-    )
-    print(
-        f"{n_covered_old}/{len(result_df)} genes have >=1 mapped reaction present "
-        "in the OLD model's base_reaction_ids universe"
+        f"{n_covered}/{len(result_df)} genes have >=1 mapped reaction present "
+        "in this run's base_reaction_ids universe"
     )
 
-    result_df = result_df.sort_values("fraction_new", ascending=False).reset_index(
+    result_df = result_df.sort_values("fraction", ascending=False).reset_index(
         drop=True
     )
 
@@ -352,12 +375,26 @@ def main():
         plot_df = result_df.head(args.top_n).reset_index(drop=True)
     print(f"plotting {len(plot_df)}/{len(result_df)} genes (top_n={args.top_n})")
 
-    chart = build_dumbbell_figure(plot_df)
-    fig_path, svg_path = write_altair_figure(chart, args.out_dir, "gene_flux_dumbbell")
+    chart = build_lollipop_figure(plot_df, args.orientation, args.run_name)
+    fig_path, svg_path = write_altair_figure(chart, args.out_dir, "gene_flux_lollipop")
     print(f"wrote {fig_path}")
     print(f"wrote {svg_path}")
+
+    category_counts = compute_condition_coverage_counts(result_df, n_wells)
+    print(f"condition-coverage categories (all {len(result_df)} genes):")
+    print(category_counts)
+    bar_chart = build_condition_coverage_bar_figure(
+        category_counts, n_wells, args.run_name
+    )
+    bar_fig_path, bar_svg_path = write_altair_figure(
+        bar_chart, args.out_dir, "gene_flux_condition_coverage_bar"
+    )
+    print(f"wrote {bar_fig_path}")
+    print(f"wrote {bar_svg_path}")
+
     if args.show:
         chart.show()
+        bar_chart.show()
 
 
 if __name__ == "__main__":

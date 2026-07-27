@@ -609,9 +609,12 @@ def confusion_counts(df):
     return tp, fp, fn, tn
 
 
-def add_confusion_matrix(fig, tp, fp, fn, tn, row=None, col=None):
+def add_confusion_matrix(fig, tp, fp, fn, tn, n, row=None, col=None):
     """Draw one 2x2 confusion matrix (as a heatmap + annotations) onto fig,
-    either standalone (row/col=None) or into a subplot cell."""
+    either standalone (row/col=None) or into a subplot cell. n is the total
+    well count for this matrix (the overall n, or the per-source _n from
+    build_by_source_figure) and is used to show each cell's percentage of n
+    in the existing small-font label row."""
     trace_kwargs = {"row": row, "col": col} if row is not None else {}
     axis_kwargs = {"row": row, "col": col} if row is not None else {}
 
@@ -659,10 +662,11 @@ def add_confusion_matrix(fig, tp, fp, fn, tn, row=None, col=None):
             font=dict(size=34),
             **annotation_kwargs,
         )
+        pct = round(count / n * 100, 1) if n else 0.0
         fig.add_annotation(
             x=x,
             y=y + 0.2,
-            text=label,
+            text=f"{label} ({pct}%)",
             showarrow=False,
             font=dict(size=12),
             **annotation_kwargs,
@@ -671,7 +675,7 @@ def add_confusion_matrix(fig, tp, fp, fn, tn, row=None, col=None):
 
 def build_overall_figure(tp, fp, fn, tn, n):
     fig = go.Figure()
-    add_confusion_matrix(fig, tp, fp, fn, tn)
+    add_confusion_matrix(fig, tp, fp, fn, tn, n)
     fig.update_layout(
         title=f"Overall: Predicted vs. Experimental Growth (n={n})",
         paper_bgcolor=CONFUSION_BGCOLOR,
@@ -707,7 +711,7 @@ def build_by_source_figure(df):
     }
     for category, (row, col) in positions.items():
         (tp, fp, fn, tn), _n = counts_by_category[category]
-        add_confusion_matrix(fig, tp, fp, fn, tn, row=row, col=col)
+        add_confusion_matrix(fig, tp, fp, fn, tn, _n, row=row, col=col)
 
     fig.update_layout(
         title="Predicted vs. Experimental Growth by Nutrient Source",
