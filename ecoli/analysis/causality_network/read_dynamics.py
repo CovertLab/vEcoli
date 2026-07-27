@@ -109,9 +109,20 @@ def convert_dynamics(
     Reads listener time series from the Parquet output via DuckDB and rebuilds
     the nested ``timeseries[...]`` dict-of-ndarrays that the per-node reader
     functions consume.
+
+    Reads happen **cell-by-cell** (one query per (experiment, variant, seed,
+    generation, agent)) via ``read_stacked_columns(..., func=...)`` so that
+    long single-daughter lineages don't force DuckDB to materialize a giant
+    intermediate result and spill huge ``.block`` files (which can fail with
+    ``Invalid argument`` from macOS APFS ``F_PREALLOCATE`` on large sizes).
+    Each per-cell frame is sorted by time before concatenation, giving a
+    monotone timeseries across the whole lineage.
     """
 
-    df = read_stacked_columns(history_sql, LISTENER_COLUMNS, conn=conn)
+    df = read_stacked_columns(
+        history_sql, LISTENER_COLUMNS, conn=conn,
+        func=lambda _cell_df: _cell_df.sort("time"),
+    )
 
     timeseries = {}
     for col in LISTENER_COLUMNS:
