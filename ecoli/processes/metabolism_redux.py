@@ -2,6 +2,7 @@
 MetabolismRedux
 """
 
+import logging
 import numpy as np
 import numpy.typing as npt
 import time
@@ -19,6 +20,7 @@ from wholecell.utils import units
 
 from ecoli.processes.registries import topology_registry
 import cvxpy as cp
+from cvxpy.error import SolverError
 from typing import Iterable, Mapping
 from dataclasses import dataclass
 
@@ -28,6 +30,106 @@ COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
 MASS_UNITS = units.g
 TIME_UNITS = units.s
+
+log = logging.getLogger(__name__)
+
+# Fallback solvers to try, in order, if the primary solver (GLOP by default)
+# raises cvxpy.error.SolverError or fails to reach an optimal solution.
+# GLOP failures are typically transient/numerical (e.g. an ill-conditioned
+# basis at a particular tick/seed) rather than problem infeasibility, so
+# retrying with a different LP-capable solver that is installed in this
+# environment (see `cvxpy.installed_solvers()`) usually recovers a solution
+# instead of losing the whole simulation seed.
+DEFAULT_FALLBACK_SOLVERS: tuple = (cp.PDLP, cp.CLARABEL, cp.SCS)
+
+
+def solve_with_fallback(
+    problem: "cp.Problem",
+    primary_solver=cp.GLOP,
+    fallback_solvers: Iterable = DEFAULT_FALLBACK_SOLVERS,
+    **solve_kwargs,
+) -> "cp.Problem":
+    """Solve a cvxpy Problem in place, falling back to alternate solvers if
+    the primary solver errors out or fails to find an optimal solution.
+
+    This does NOT change the problem/objective/constraints in any way -- it
+    only changes which underlying solver cvxpy dispatches to. `primary_solver`
+    is tried first (fast path); on `cvxpy.error.SolverError` or a non-optimal
+    status, each solver in `fallback_solvers` is tried in turn, logging a
+    warning each time a fallback is attempted. If every solver fails, the
+    original exception from the primary solver is re-raised (or a ValueError
+    for a non-optimal status), with the list of attempted solvers noted.
+
+    Returns the same `problem` object (now populated with the solution from
+    whichever solver succeeded).
+    """
+    solvers_to_try = [primary_solver, *fallback_solvers]
+    first_error: Optional[BaseException] = None
+
+    for i, solver in enumerate(solvers_to_try):
+        is_primary = i == 0
+        try:
+            problem.solve(solver=solver, **solve_kwargs)
+        except SolverError as e:
+            if first_error is None:
+                first_error = e
+            if not is_primary:
+                log.warning(
+                    "Fallback solver %s also failed while solving network "
+                    "flow metabolism model: %s",
+                    solver,
+                    e,
+                )
+                continue
+            log.warning(
+                "Primary solver %s raised SolverError (%s); retrying with "
+                "fallback solvers %s.",
+                solver,
+                e,
+                list(fallback_solvers),
+            )
+            continue
+
+        if problem.status == "optimal":
+            if not is_primary:
+                log.warning(
+                    "Network flow metabolism model solved successfully with "
+                    "fallback solver %s after primary solver %s failed.",
+                    solver,
+                    primary_solver,
+                )
+            return problem
+
+        # Solved without raising, but did not reach an optimal status.
+        status_error = ValueError(
+            f"Solver {solver} returned non-optimal status "
+            f"'{problem.status}' for network flow metabolism model."
+        )
+        if first_error is None:
+            first_error = status_error
+        if is_primary:
+            log.warning(
+                "Primary solver %s returned non-optimal status '%s'; "
+                "retrying with fallback solvers %s.",
+                solver,
+                problem.status,
+                list(fallback_solvers),
+            )
+        else:
+            log.warning(
+                "Fallback solver %s also returned non-optimal status '%s'.",
+                solver,
+                problem.status,
+            )
+
+    # Every solver either raised or failed to reach an optimal solution.
+    raise ValueError(
+        "Network flow model of metabolism did not converge to an optimal "
+        f"solution with any solver (tried {solvers_to_try}). "
+        f"Original error from primary solver {primary_solver}: {first_error}"
+    ) from first_error
+
+
 CONC_UNITS = COUNTS_UNITS / VOLUME_UNITS
 CONVERSION_UNITS = MASS_UNITS * TIME_UNITS / VOLUME_UNITS
 GDCW_BASIS = units.mmol / units.g / units.h
@@ -1058,21 +1160,7 @@ class NetworkFlowModel:
 
         p = cp.Problem(cp.Minimize(loss), constr)
 
-        try:
-            p.solve(solver=solver, verbose=False)
-        except cp.error.SolverError:
-            p.solve(
-                solver=solver,
-                verbose=True,
-            )
-            raise ValueError(
-                "Network flow model of metabolism did not converge to a solution."
-            )
-        if p.status != "optimal":
-            raise ValueError(
-                "Network flow model of metabolism did not "
-                "converge to an optimal solution."
-            )
+        solve_with_fallback(p, primary_solver=solver, verbose=False)
 
         velocities = np.array(v.value)
         dm_dt = np.array(dm.value)
