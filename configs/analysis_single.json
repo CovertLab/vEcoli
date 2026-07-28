@@ -1,36 +1,53 @@
 {
     "emitter_arg": {
-        "out_dir": "out/objective_weights_jul/"
+        "out_dir": "/scratch/users/hsaqibo1/"
     },
     "analysis_options": {
-        "experiment_id": ["check_hom_obj_threshold_20260724-124052"],
-        "variant_data_dir": ["out/objective_weights_jul/check_hom_obj_threshold_20260724-124052/variant_sim_data"],
-        "validation_data_path": ["out/objective_weights_jul/check_hom_obj_threshold_20260724-124052/parca/kb/validationData.cPickle"],
-        "outdir": "out/objective_weights_jul/analysis/check_hom_obj_threshold_20260724-124052/",
-        "cpus": 1,
-
-        "multivariant": {
-            "cell_mass": {},
-            "doubling_time_hist": {"skip_n_gens": 0},
-            "centralCarbonMetabolismScatter": {},
-            "weighted_objective_terms": {},
-            "enzyme_availability_flux":{},
-            "mean_flux_distribution": {
-                "in_molar": false,
-                "bin_edges": [0, 1E-6, 1e-3, 1, 2, 10, 1e3, 1E6, 1E9, 1E12],
-                "facet_columns": 4,
-                "n_bins": 25
-            },
-            "kinetic_flux": {
-                "plot_catalysts": ["UDP-NACMURALA-GLU-LIG-MONOMER[c]"]
-            },
-            "metabolite_unmet_need": {},
-            "selected_catalyst_fluxes": {
-                "plot_catalysts": ["UDP-NACMURALA-GLU-LIG-MONOMER[c]"]
-            },
-            "sankey_metabolite_flux": {
-                "metabolites_of_interest": ["C6[p]"]
-            }
-        }
+    "outdir": "out/objective_weight_jul/analysis/",
+    "multivariant": {
+      "cell_mass": {},
+      "doubling_time_hist": {
+        "skip_n_gens": 0
+      },
+      "centralCarbonMetabolismScatter": {},
+      "centralCarbonMetabolismBoxScatter": {},
+      "weighted_objective_terms": {},
+      "mean_flux_distribution": {
+        "in_molar": false,
+        "bin_edges": [
+          0,
+          1e-06,
+          0.001,
+          1,
+          2,
+          10,
+          1000.0,
+          1000000.0,
+          1000000000.0,
+          1000000000000.0
+        ],
+        "facet_columns": 4,
+        "n_bins": 25
+      },
+      "kinetic_flux": {
+        "plot_catalysts": [
+          "NACGLCTRANS-MONOMER[c]",
+          "UDPNACETYLGLUCOSAMACYLTRANS-CPLX[c]",
+          "UDPNACETYLGLUCOSAMENOLPYRTRANS-MONOMER[c]"
+        ]
+      },
+      "metabolite_unmet_need": {},
+      "selected_catalyst_fluxes": {
+        "plot_catalysts": [
+          "UDP-NACMURALA-GLU-LIG-MONOMER[c]"
+        ]
+      },
+      "sankey_metabolite_flux": {
+        "metabolites_of_interest": [
+          "C6[p]",
+          "WATER[c]"
+        ]
+      }
     }
+  }
 }
